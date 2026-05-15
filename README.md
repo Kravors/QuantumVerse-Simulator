@@ -63,37 +63,220 @@ ctest --output-on-failure
 ### Directory Structure
 
 ```
-f:/QuantumVerse-Simulator/
+f:/QuantumVerse/
 ├── src/                          # Source code (~350K LOC total)
 │   ├── spacetime/                # 4D events, metrics, curvature
+│   │   ├── Event4D.h             # 4D spacetime event representation
+│   │   ├── MetricTensor.h        # Metric tensor, Christoffel symbols, curvature
+│   │   ├── DilatonMetric.h       # 2D dilaton gravity (CGHS model)
+│   │   ├── FRWMetric.h           # Friedmann-Lemaître-Robertson-Walker cosmology
+│   │   ├── LightCone.h           # Light cone calculations
+│   │   ├── WorldLine.h           # Particle world-line tracking
+│   │   └── DifferentiableMetric.h # AD-enabled metrics
 │   ├── physics/                  # Geodesics, singularities, differentiable
+│   │   ├── GeodesicIntegrator.h  # Adaptive RK4 geodesic solver
+│   │   ├── SingularityHandler.h  # Black hole types, regular BHs
+│   │   ├── DifferentiableGeodesicIntegrator.h  # AD-enabled geodesics
+│   │   ├── DifferentiableCurvature.h  # AD curvature tensors
+│   │   ├── ParameterizedMetrics.h  # Parameterized metric templates
+│   │   ├── CurvatureCalculator.h  # Curvature invariants
+│   │   ├── DilatonBlackHole.h    # 2D dilaton black hole
+│   │   └── HawkingCalculator.h   # Hawking radiation flux
 │   ├── rendering/                # OpenGL 4.5 + quantum geometry
+│   │   ├── CurvatureRenderer.h   # 3D curvature visualization
+│   │   ├── QuantumGeometryRenderer.h  # Quantum gravity visualization
+│   │   ├── CelestialBodyRenderer.h    # Solar system bodies
+│   │   ├── OrbitRenderer.h       # Orbital path rendering
+│   │   ├── Texture.h             # OpenGL texture wrapper
+│   │   └── Texture.cpp
 │   ├── ui4d/                     # 4D UI + Planck microscope
+│   │   ├── UI4D.h                # Main 4D UI coordinator
+│   │   ├── Camera4D.h            # 4D camera with SO(4) rotations
+│   │   ├── PlanckMicroscope.h    # Planck-scale zoom (35 orders of magnitude)
+│   │   ├── Camera4DAdapter.h     # Qt adapter for 4D camera
+│   │   └── SceneGraphManager.h   # 4D scene graph
 │   ├── math/                     # Vectors, matrices, autodiff
+│   │   ├── Vector4D.h            # 4D vector operations
+│   │   ├── Matrix4x4.h           # 4x4 transformation matrices
+│   │   ├── AutoDiff.h            # Forward-mode automatic differentiation
+│   │   ├── SO4Rotation.h         # SO(4) rotation utilities
+│   │   └── DifferentiableMetric.h # AD metric wrapper
 │   ├── discovery/                # AI discovery engine, theory plugins
+│   │   ├── DiscoveryEngine.h     # AI-driven discovery system
+│   │   ├── TheoryManager.cpp     # Plugin registration system
+│   │   ├── DiscoveryPanelManager.h  # Discovery UI panel
+│   │   ├── DiscoveryInstrument.h    # Discovery tools
+│   │   ├── ExoplanetaryTTVFifthForceHunter.h
+│   │   ├── GalacticRotationCurveScanner.h
+│   │   ├── FineStructureConstantDriftObservatory.h
+│   │   ├── BosonStarCollisionPredictor.h
+│   │   ├── NeutronStarGlitchPhaseDetector.h
+│   │   ├── UltralightDMWaveInterferometer.h
+│   │   ├── BlackHoleJetAnomalyRecogniser.h
+│   │   ├── PrimordialLithiumCrisisSolver.h
+│   │   ├── GalacticTidalStreamCartographer.h
+│   │   └── RecombinationConstantVariationImager.h
 │   ├── quantumgravity/           # CDT, LQG, GFT, causal sets
+│   │   ├── CDTEngine.h           # Causal Dynamical Triangulations
+│   │   ├── SpinNetwork.h         # Loop Quantum Gravity spin networks
+│   │   ├── SpinFoam.h            # Spin foam 2-complex
+│   │   ├── SpinFoamEngine.h      # EPRL model implementation
+│   │   ├── GFTEngine.h           # Group Field Theory
+│   │   ├── CausalSet.h           # Causal set dynamics
+│   │   ├── CausalSetEngine.h     # Causal set engine
+│   │   └── QuantumGravityPlugin.h  # Base plugin interface
 │   ├── data/                     # Multi-messenger adapters
+│   │   ├── MultiMessengerAdapter.h  # Base adapter interface
+│   │   └── LIGOAdapter.cpp       # LIGO/GraceDB integration
 │   ├── ml/                       # Neural ODE, GNN, normalizing flows
-│   ├── vr/                       # Multi-user VR server/client
+│   │   ├── GeodesicNeuralODE.h   # Neural ODE surrogate
+│   │   ├── GeodesicNeuralODE.cpp
+│   │   ├── MetricGNN.cpp         # Graph neural network for metrics
+│   │   ├── CurvatureNormalizingFlow.h
+│   │   ├── CurvatureNormalizingFlow.cpp
+│   │   ├── DifferentiableSimulator.h
+│   │   └── DifferentiableSimulator.cpp
 │   ├── bayesian/                 # Bayesian evidence calculator
-│   └── QuantumVerseApp.cpp       # Main application
+│   │   └── BayesianEvidenceCalculator.cpp
+│   ├── vr/                       # Multi-user VR server/client
+│   │   ├── MultiUserServer.cpp   # VR collaboration server
+│   │   ├── VRCommon.h            # VR utilities
+│   │   └── VRCommon.cpp
+│   ├── ui_imgui/                 # Dear ImGui 4D UI
+│   │   ├── UI4D_ImGui.h
+│   │   └── UI4D_ImGui.cpp
+│   ├── QuantumVerseApp.cpp       # Main application
+│   ├── main_glfw.cpp              # GLFW entry point
+│   ├── main_qml.cpp               # Qt/QML entry point
+│   └── main_console.cpp           # Console entry point
 ├── tests/                        # Test suite (75+ tests)
+│   ├── test_cdt.cpp              # CDT engine tests (10 tests)
+│   ├── test_spin_foam.cpp        # Spin foam tests (12 tests)
+│   ├── test_gft.cpp              # GFT engine tests (12 tests)
+│   ├── test_causal_set.cpp       # Causal set tests (13 tests)
+│   ├── test_regular_black_holes.cpp  # Regular BH tests (8 tests)
+│   ├── test_autodiff.cpp         # AutoDiff tests (10 tests)
+│   ├── test_theory_plugins.cpp   # Plugin system tests (7 tests)
+│   ├── test_ligo_adapter.cpp     # LIGO adapter tests (6 tests)
+│   ├── test_differentiable_geodesic.cpp  # AD geodesic tests (5 tests)
+│   ├── test_differentiable_curvature.cpp  # AD curvature tests (5 tests)
+│   ├── test_differentiable_benchmark.cpp  # AD benchmarks (4 tests)
+│   ├── test_validation.cpp         # GR validation tests (6 tests)
+│   ├── test_neural_ode.cpp         # Neural ODE tests
+│   ├── test_neural_ode_onnx.cpp    # ONNX inference tests
+│   ├── test_neural_ode_accuracy.cpp  # Accuracy tests
+│   ├── test_celestial_body_renderer.cpp  # Renderer tests
+│   ├── test_texture.cpp            # Texture tests
+│   ├── test_hawking_calculator.cpp  # Hawking radiation tests
+│   ├── test_dilaton_blackhole.cpp   # Dilaton BH tests
+│   ├── test_mercury_precession.cpp  # Mercury precession test
+│   ├── test_light_deflection.cpp    # Light deflection test
+│   ├── test_frame_dragging.cpp      # Frame dragging test
+│   ├── test_gravitational_redshift.cpp  # Redshift test
+│   ├── test_frw_cosmology.cpp       # FRW cosmology test
+│   ├── test_curvature_schwarzschild.cpp  # Schwarzschild curvature
+│   ├── test_lightcone.cpp           # Light cone tests
+│   ├── test_orbit_renderer.cpp      # Orbit renderer tests
+│   ├── test_qml_viewport.cpp        # QML viewport tests
+│   ├── test_vr_multiplayer.cpp      # VR multiplayer tests
+│   ├── test_metric_tensor.cpp       # Metric tensor tests
+│   ├── test_metric_gnn.cpp          # GNN tests
+│   ├── test_paper_generator.cpp     # LaTeX generator tests
+│   ├── test_rl_discovery.cpp        # RL agent tests
+│   ├── test_symbolic_regression.cpp  # Symbolic regression tests
+│   ├── test_anomaly_detection.cpp   # Anomaly detection tests
+│   ├── test_bayesian_evidence.cpp   # Bayesian evidence tests
+│   ├── test_curvature_flow.cpp      # Curvature flow tests
+│   ├── test_discovery.cpp           # Discovery engine tests
+│   ├── test_integration.cpp         # Integration tests
+│   ├── test_singularity.cpp         # Singularity tests
+│   ├── test_sing.cpp                # Singularity tests
+│   ├── test_spacetime.cpp           # Spacetime tests
+│   ├── test_event4d.cpp             # Event4D tests
+│   ├── test_geodesic.cpp            # Geodesic tests
+│   ├── test_gravity.cpp             # Gravity tests
+│   ├── test_curvature_renderer.cpp  # Curvature renderer tests
+│   ├── test_solar_system.cpp        # Solar system tests
+│   ├── test_relativity.cpp          # Relativity tests
+│   └── test_differentiable_simulator.cpp  # Differentiable simulator tests
 ├── examples/                     # Example applications
+│   ├── example_differentiable_physics.cpp  # AD physics demo
+│   ├── example_solar_system.cpp  # Solar system simulation
+│   ├── example_black_hole.cpp    # Black hole visualization
+│   ├── example_spacetime_curvature.cpp  # Curvature demo
+│   └── example_discovery.cpp     # Discovery engine demo
 ├── python/                       # ML training scripts
+│   ├── datagen.py                # Geodesic dataset generation
+│   ├── train.py                  # Neural ODE training
+│   ├── train_retrain.py          # Resume training
+│   ├── train_tiny.py             # Quick training test
+│   ├── export_model.py           # ONNX export
+│   ├── export_best.py            # Export best model
+│   ├── export_flow_onnx.py       # Flow model export
+│   ├── generate_curvature_dataset.py  # Curvature data
+│   ├── requirements_task2_1.txt  # Task 2.1 dependencies
+│   └── requirements_task2_5.txt  # Task 2.5 dependencies
 ├── models/                       # Trained neural network checkpoints
-├── plans/                        # Design specifications (10 plans)
-├── info/                         # Theoretical background (8 articles)
+│   └── geodesic_ode/             # Neural ODE checkpoints
+│       ├── checkpoint_epoch94.pth  # Training checkpoint
+│       └── normalization.json      # Normalization parameters
+├── data/                         # Datasets
+│   └── geodesics_1M.h5           # 109 MB training dataset (1M samples)
+├── plans/                        # Design specifications (12 plans)
+│   ├── QuantumVerse_Project_Plan.md  # Master project plan
+│   ├── plan.md                   # 4D UI design specification
+│   ├── plan1.md - plan10.md        # Detailed phase plans
+│   ├── PHASE2_AI_ACCELERATION_PLAN.md
+│   ├── PHASE3_PLAN.md
+│   ├── EXECUTION_PLAN.md
+│   ├── EXECUTION_TRACKING.md
+│   ├── INTEGRATION_PROGRESS_REPORT.md
+│   ├── QuantumVerse_Verification_Report.md
+│   ├── Complete Global Integration Plan.md
+│   └── 4d_dashboard_integration_plan.md
+├── info/                         # Theoretical background (9 articles)
+│   ├── Spacetime.md              # Spacetime fundamentals
+│   ├── Curved_spacetime.md       # Curved spacetime theory
+│   ├── Gravitational_singularity.md  # Singularities
+│   ├── Complex_spacetime.md      # Complex spacetime
+│   ├── Spacetime_topology.md     # Topology
+│   ├── Three-dimensional_space.md  # 3D space
+│   ├── Time_geography.md         # Time geography
+│   ├── Solar_System_README.md    # Solar system data
+│   └── s42005-019-0218-5.pdf     # Research paper
 ├── doc/                          # QDoc documentation
+├── third_party/                  # Third-party libraries
+│   ├── stb_image.h               # Image loading
+│   ├── glad/                     # OpenGL loader
+│   └── imgui/                    # Dear ImGui
+├── cmake/                        # CMake configuration
+│   ├── FindONNXRuntime.cmake     # ONNX Runtime finder
+│   └── QtNamespaceConfig.h.in    # Qt namespace config
 ├── CMakeLists.txt                # Build configuration
-├── launch_quantumverse.bat/sh    # Launcher scripts
+├── launch_quantumverse.bat       # Windows launcher
+├── launch_quantumverse.sh        # Linux/macOS launcher
+├── build_msvc.bat                # MSVC build script
+├── build_phase1.sh               # Phase 1 build script
+├── install_dependencies.bat      # Dependency installer
 ├── all_info.md                   # Complete project reference
 ├── IMPLEMENTATION_SUMMARY.md     # Comprehensive technical details
 ├── VERIFICATION_CHECKLIST.md     # 119-point verification checklist
 ├── FINAL_PROJECT_SUMMARY.md      # Executive summary
 ├── PROJECT_COMPLETION_REPORT.md  # Completion report
 ├── BUILD_REPORT.md               # Build status report
+├── PHASE1_COMPLETE_SUMMARY.md    # Phase 1 summary
+├── PHASE2_COMPLETE_SUMMARY.md    # Phase 2 summary
+├── TASK2_1_IMPLEMENTATION_SUMMARY.md  # Task 2.1 details
+├── TASK2_3_COMPLETE_SUMMARY.md   # Task 2.3 details
+├── PHASE1_IMPLEMENTATION_REPORT.md
+├── PHASE1_REMAINING_TASKS_COMPLETE.md
+├── CLEAN_STATE_REPORT.md
+├── BUILD_AND_TEST_TASK2_3.md
 └── README.md                     # This file
 ```
+
+
+
 
 ### Key Documentation
 
