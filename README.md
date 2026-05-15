@@ -24,7 +24,7 @@
 
 ```bash
 # Clone or extract project
-cd c:/QuantumVerse-Simulator
+cd C:/QuantumVerse-Simulator
 # Create build directory
 mkdir build && cd build
 
@@ -63,7 +63,7 @@ ctest --output-on-failure
 ### Directory Structure
 
 ```
-f:/QuantumVerse/
+C:/QuantumVerse/
 ├── src/                          # Source code (~350K LOC total)
 │   ├── spacetime/                # 4D events, metrics, curvature
 │   │   ├── Event4D.h             # 4D spacetime event representation
