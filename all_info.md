@@ -610,7 +610,7 @@ Output: [t_f, r_f, θ_f, φ_f]  (final event)
 
 ```bash
 # Clone or extract project
-cd f:/syyyy
+cd C:/QuantumVerse
 
 # Create build directory
 mkdir build && cd build
@@ -638,7 +638,7 @@ cmake --install . --prefix "C:\Program Files\QuantumVerse"  # Windows
 
 **Windows (MSVC)**:
 ```cmd
-cd f:\syyyy
+cd C:\QuantumVerse
 mkdir build && cd build
 cmake .. -G "Visual Studio 17 2022" -A x64 -DQUANTUMVERSE_USE_QT=ON
 cmake --build . --config Release
@@ -671,7 +671,7 @@ These scripts handle building (if needed) and launching the application.
 ### 7.5 Python Environment (Phase 2 ML)
 
 ```bash
-cd f:/syyyy/python
+cd C:/QuantumVerse/python
 pip install -r requirements_task2_1.txt
 # Includes: torch, torchvision, torchaudio, onnx, onnxruntime, h5py, numpy, tqdm, matplotlib
 ```
@@ -734,7 +734,7 @@ ctest -R "quantum_gravity" -V  # Only quantum gravity tests
 ## 9. File Structure
 
 ```
-f:/syyyy/
+C:/QuantumVerse/
 ├── src/                          # Source code (~350K LOC total)
 │   ├── spacetime/                # 4D events, metrics
 │   ├── physics/                  # Geodesics, singularities, differentiable
@@ -881,7 +881,7 @@ run_gui.bat
 
 ```bash
 # 1. Setup Python environment
-cd f:/syyyy/python
+cd C:/QuantumVerse/python
 pip install -r requirements_task2_1.txt
 
 # 2. Generate dataset (10⁶ geodesics)
