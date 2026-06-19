@@ -1,0 +1,126 @@
+name: Fuzz Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Tuesdays at 05:00 UTC
+    - cron: '0 5 * * 2'
+  workflow_dispatch:
+
+jobs:
+  fuzz-metric:
+    name: Metric Tensor Fuzzer
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-17 llvm-17-dev libclang-rt17-dev
+
+      - name: Configure CMake with libFuzzer
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_FUZZER=ON \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+
+      - name: Build fuzzer
+        run: cmake --build build --parallel
+
+      - name: Run metric fuzzer
+        run: |
+          cd build
+          timeout 300 ./fuzz_metric -max_total_time=300 -detect_leaks=1 || true
+
+      - name: Upload fuzzer crash reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fuzz-crash-reports
+          path: |
+            build/crash-*
+            *.log
+
+  fuzz-geodesic:
+    name: Geodesic Fuzzer
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-17 llvm-17-dev libclang-rt17-dev
+
+      - name: Configure CMake with libFuzzer
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_FUZZER=ON \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+
+      - name: Build fuzzer
+        run: cmake --build build --parallel
+
+      - name: Run geodesic fuzzer
+        run: |
+          cd build
+          timeout 300 ./fuzz_geodesic -max_total_time=300 -detect_leaks=1 || true
+
+      - name: Upload fuzzer crash reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fuzz-geodesic-crash-reports
+          path: |
+            build/crash-*
+            *.log
+
+  fuzz-onnx:
+    name: ONNX Loading Fuzzer
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-17 llvm-17-dev libclang-rt17-dev
+
+      - name: Configure CMake with libFuzzer
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_FUZZER=ON \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+
+      - name: Build fuzzer
+        run: cmake --build build --parallel
+
+      - name: Run ONNX fuzzer
+        run: |
+          cd build
+          timeout 300 ./fuzz_onnx -max_total_time=300 -detect_leaks=1 || true
+
+      - name: Upload fuzzer crash reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fuzz-onnx-crash-reports
+          path: |
+            build/crash-*
+            *.log
