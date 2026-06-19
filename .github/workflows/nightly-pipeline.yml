@@ -1,0 +1,160 @@
+name: Nightly Cleanliness Pipeline
+
+on:
+  schedule:
+    # Run nightly at 01:00 UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  nightly-build:
+    name: Nightly Build and Test
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache clang-tidy cppcheck
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
+            -DQUANTUMVERSE_USE_RAPIDCHECK=ON \
+            -DQUANTUMVERSE_USE_BOOST_MULTIPRECISION=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run all tests
+        working-directory: build
+        run: ctest --output-on-failure -j $(nproc)
+
+      - name: Run static analysis
+        run: |
+          clang-tidy -p build $(find src -name '*.cpp' -o -name '*.h') \
+            -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*' || true
+
+      - name: Generate coverage report
+        run: |
+          lcov --capture --directory . --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          lcov --remove coverage.info '*/third_party/*' --output-file coverage.info
+          lcov --remove coverage.info '*/tests/*' --output-file coverage.info
+          genhtml coverage.info --output-directory coverage_report
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-coverage-report
+          path: coverage_report/
+
+      - name: Check for regressions
+        run: |
+          # Compare with previous baseline
+          if [ -f tests/baselines/performance_baseline.json ]; then
+            python3 scripts/analyze_traces.py --compare-baseline tests/baselines/performance_baseline.json || true
+          fi
+
+  nightly-windows:
+    name: Nightly Windows Build
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DQUANTUMVERSE_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run tests
+        working-directory: build
+        run: ctest -C Release --output-on-failure -j 4
+
+      - name: Upload Windows test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-windows-test-results
+          path: build/Testing/**/*.xml
+
+  nightly-macos:
+    name: Nightly macOS Build
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          brew install ninja ccache jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DQUANTUMVERSE_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure -j $(sysctl -n hw.ncpu)
+
+      - name: Upload macOS test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-macos-test-results
+          path: build/Testing/**/*.xml
+
+  nightly-report:
+    name: Generate Nightly Report
+    needs: [nightly-build, nightly-windows, nightly-macos]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate summary report
+        run: |
+          mkdir -p reports
+          echo "# Nightly Build Report" > reports/nightly-summary.md
+          echo "" >> reports/nightly-summary.md
+          echo "## Build Status" >> reports/nightly-summary.md
+          echo "Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> reports/nightly-summary.md
+          echo "" >> reports/nightly-summary.md
+          echo "### Linux" >> reports/nightly-summary.md
+          echo "- Build: $(test -d artifacts/nightly-coverage-report && echo 'PASS' || echo 'FAIL')" >> reports/nightly-summary.md
+          echo "" >> reports/nightly-summary.md
+          echo "### Windows" >> reports/nightly-summary.md
+          echo "- Build: $(test -d artifacts/nightly-windows-test-results && echo 'PASS' || echo 'FAIL')" >> reports/nightly-summary.md
+          echo "" >> reports/nightly-summary.md
+          echo "### macOS" >> reports/nightly-summary.md
+          echo "- Build: $(test -d artifacts/nightly-macos-test-results && echo 'PASS' || echo 'FAIL')" >> reports/nightly-summary.md
+
+      - name: Upload nightly report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-summary-report
+          path: reports/nightly-summary.md
