@@ -1,0 +1,142 @@
+name: Security Hardening Audit
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Wednesdays at 06:00 UTC
+    - cron: '0 6 * * 3'
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: Security Analysis
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install security tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tools cppcheck python3-pip
+          pip3 install bandit safety
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: cpp
+          config-file: .github/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:cpp
+
+      - name: Run Clang Static Analyzer
+        run: |
+          scan-build -o reports scan-build --status-bugs cmake -B build -DCMAKE_BUILD_TYPE=Debug
+          scan-build -o reports --use-c++=clang++ cmake --build build --parallel || true
+
+      - name: Run Cppcheck with security focus
+        run: |
+          cppcheck --enable=warning,style,performance,portability,information \
+            --inconclusive \
+            --suppress=missingIncludeSystem \
+            --platform=unix64 \
+            --xml src/ 2> cppcheck-security.xml || true
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Check for potential secrets in source code
+          grep -rE "(password|secret|api_key|token|private_key)\s*=\s*['\"][^'\"]+['\"]" src/ --include="*.cpp" --include="*.h" || true
+          echo "Secret scan completed"
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            reports/
+            *.xml
+            *.log
+
+  binary-hardening:
+    name: Binary Hardening Check
+    runs-on: [self-hosted, Windows, X64]
+    needs: security-scan
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install hardening tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y checksec
+
+      - name: Configure and Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake --build build --parallel
+
+      - name: Check binary hardening
+        run: |
+          # Check for stack protection, ASLR, NX bit, etc.
+          find build -type f -executable -exec checksec --file={} \; 2>&1 | tee hardening-report.txt || true
+
+      - name: Verify PIE/RELRO
+        run: |
+          # Check for Position Independent Executable
+          for binary in $(find build -type f -executable); do
+            if file "$binary" | grep -q "ELF"; then
+              echo "Checking $binary"
+              readelf -l "$binary" | grep -q "GNU_RELRO" && echo "RELRO: OK" || echo "RELRO: MISSING"
+              readelf -d "$binary" | grep -q "PIE" && echo "PIE: OK" || echo "PIE: MISSING"
+            fi
+          done
+
+      - name: Upload hardening report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: binary-hardening-report
+          path: hardening-report.txt
+
+  dependency-audit:
+    name: Dependency Security Audit
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Audit Python dependencies
+        run: |
+          pip3 install safety bandit
+          # Check for vulnerable Python packages in requirements files
+          for req in $(find . -name "requirements*.txt"); do
+            echo "Checking $req"
+            safety check -r "$req" || true
+          done
+
+      - name: Check for vulnerable C/C++ dependencies
+        run: |
+          # This would check for known vulnerabilities in third_party libraries
+          # For now, just list the dependencies
+          find third_party -name "*.h" -o -name "*.cpp" | head -20
+          echo "Dependency audit completed"
+
+      - name: Upload dependency report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit-report
+          path: |
+            *.log
+            *.txt

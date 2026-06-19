@@ -1,0 +1,216 @@
+name: Cross-Platform Sanitization Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Mondays at 04:00 UTC
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  asan-linux:
+    name: AddressSanitizer (Linux)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache
+
+      - name: Configure CMake with ASan
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_ASAN=ON \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=address -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Run tests with ASan
+        working-directory: build
+        run: |
+          export ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:symbolize=1
+          ctest --output-on-failure -j $(nproc)
+
+      - name: Upload ASan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: asan-report-linux
+          path: |
+            build/**/*.log
+            *.log
+
+  ubsan-linux:
+    name: UndefinedBehaviorSanitizer (Linux)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache
+
+      - name: Configure CMake with UBSan
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_UBSAN=ON \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=undefined -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=undefined"
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Run tests with UBSan
+        working-directory: build
+        run: |
+          export UBSAN_OPTIONS=abort_on_error=1:print_stacktrace=1
+          ctest --output-on-failure -j $(nproc)
+
+      - name: Upload UBSan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ubsan-report-linux
+          path: |
+            build/**/*.log
+            *.log
+
+  tsan-linux:
+    name: ThreadSanitizer (Linux)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache
+
+      - name: Configure CMake with TSan
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_TSAN=ON \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=thread -g" \
+            -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=thread"
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Run tests with TSan
+        working-directory: build
+        run: |
+          ctest --output-on-failure -j 2  # TSan requires single-threaded execution
+
+      - name: Upload TSan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tsan-report-linux
+          path: |
+            build/**/*.log
+            *.log
+
+  asan-windows:
+    name: AddressSanitizer (Windows)
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSVC with ASan
+        run: |
+          echo "ASan enabled via CMake flags"
+
+      - name: Configure CMake with ASan
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Debug `
+            -DQUANTUMVERSE_BUILD_TESTS=ON `
+            -DQUANTUMVERSE_USE_ASAN=ON
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Run tests with ASan
+        working-directory: build
+        run: |
+          $env:ASAN_OPTIONS = "detect_leaks=1:abort_on_error=1"
+          ctest -C Debug --output-on-failure -j 4
+
+      - name: Upload ASan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: asan-report-windows
+          path: |
+            build/**/*.log
+            *.log
+
+  asan-macos:
+    name: AddressSanitizer (macOS)
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          brew install ninja ccache
+          brew install jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
+
+      - name: Configure CMake with ASan
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_ASAN=ON \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=address -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Run tests with ASan
+        working-directory: build
+        run: |
+          export ASAN_OPTIONS=detect_leaks=1:abort_on_error=1: symbolize=1
+          ctest --output-on-failure -j $(sysctl -n hw.ncpu)
+
+      - name: Upload ASan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: asan-report-macos
+          path: |
+            build/**/*.log
+            *.log
