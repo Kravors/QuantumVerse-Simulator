@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.1.1)'
+        required: true
+        default: 'v0.1.1'
+
+jobs:
+  build-and-release:
+    runs-on: [self-hosted, Windows, X64]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure & Build
+      run: |
+        cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
+        cmake --build build --config Release --parallel
+    
+    - name: Test
+      run: ctest --test-dir build -C Release
+    
+    - name: Package
+      run: cd build && cpack -C Release
+    
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          build/QuantumVerse-*.zip
+          build/QuantumVerse-*.exe
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

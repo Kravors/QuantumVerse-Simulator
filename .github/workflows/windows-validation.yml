@@ -1,0 +1,115 @@
+name: Windows Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+        ui_backend: [QML, ImGui]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v1.1
+      
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -DQUANTUMVERSE_USE_QML=${{ matrix.ui_backend == 'QML' }} `
+            -DQUANTUMVERSE_USE_IMGUI=${{ matrix.ui_backend == 'ImGui' }}
+      
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+      
+      - name: Run Tests
+        working-directory: build
+        run: ctest -C ${{ matrix.build_type }} --output-on-failure
+      
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.build_type }}-${{ matrix.ui_backend }}
+          path: build/Testing/
+
+  sanitizer-check:
+    runs-on: windows-2022
+    needs: build-and-test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v1.1
+      
+      - name: Configure with ASan
+        run: cmake -B build_asan -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON
+      
+      - name: Build with ASan
+        run: cmake --build build_asan --config Debug --parallel
+      
+      - name: Run ASan Tests
+        working-directory: build_asan
+        run: ctest -C Debug --output-on-failure
+
+  deploy-validation:
+    runs-on: windows-2022
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Smoke Test
+        run: |
+          # Create a minimal deploy for testing
+          New-Item -ItemType Directory -Path deploy\windows -Force
+          # Copy built executables
+          Copy-Item build\Release\quantumverse_qml.exe deploy\windows\ -ErrorAction SilentlyContinue
+          Copy-Item build\Release\quantumverse_imgui.exe deploy\windows\ -ErrorAction SilentlyContinue
+          # Run smoke test
+          .\scripts\smoke_test_deployment.ps1 -DeployPath deploy\windows
+      
+      - name: Check DLL Dependencies
+        run: .\scripts\check_dll_dependencies.ps1 -DeployPath deploy\windows
+
+  fuzzer-check:
+    runs-on: windows-2022
+    needs: build-and-test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Clang
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      
+      - name: Configure Fuzzer
+        run: cmake -B build_fuzz -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON
+      
+      - name: Build Fuzzer
+        run: cmake --build build_fuzz --config Debug --parallel
+      
+      - name: Run Short Fuzz
+        working-directory: build_fuzz
+        run: .\Debug\fuzz_metric.exe -max_total_time=300
+
+  appverifier-soak:
+    runs-on: windows-2022
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run AppVerifier Soak (1 hour)
+        run: .\scripts\appverifier_soak_test.ps1 -Duration 60

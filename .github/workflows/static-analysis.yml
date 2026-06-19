@@ -1,0 +1,112 @@
+name: Static Analysis
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  clang-tidy:
+    name: Clang-Tidy Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Clang-Tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy
+      
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DQUANTUMVERSE_USE_IMGUI=ON
+      
+      - name: Run Clang-Tidy
+        run: |
+          clang-tidy -p build \
+            -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
+            -header-filter='.*' \
+            $(find src -name '*.cpp' -o -name '*.h') \
+            -- -std=c++17
+      
+      - name: Upload Clang-Tidy Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clang-tidy-report
+          path: |
+            **/*.txt
+            **/*.log
+
+  cppcheck:
+    name: Cppcheck Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
+      
+      - name: Run Cppcheck
+        run: |
+          cppcheck --enable=all --inconclusive \
+            --suppress=missingIncludeSystem \
+            --error-exitcode=1 \
+            src/ 2>&1 | tee cppcheck-report.txt || true
+      
+      - name: Upload Cppcheck Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cppcheck-report
+          path: cppcheck-report.txt
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: cpp
+      
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+      
+      - name: Upload CodeQL Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codeql-report
+          path: |
+            **/*.sarif
+
+  coverity:
+    name: Coverity Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Coverity
+        run: |
+          wget https://scan.coverity.com/download/linux --post-data "token=${{ secrets.COVERITY_TOKEN }}&project=QuantumVerse" -O coverity.tar.gz
+          tar -xzf coverity.tar.gz
+      
+      - name: Build with Coverity
+        run: |
+          export PATH=$PATH:$(pwd)/cov-analysis-linux64-*/bin
+          cov-build --dir cov-int cmake -B build
+          cov-build --dir cov-int cmake --build build --config Release
+      
+      - name: Submit to Coverity
+        run: |
+          cov-submit --dir cov-int --host=https://scan.coverity.com --ssl --token=${{ secrets.COVERITY_TOKEN }} --stream=QuantumVerse

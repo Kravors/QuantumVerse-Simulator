@@ -1,0 +1,35 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils
+          
+      - name: Configure CMake
+        run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON
+        
+      - name: Build
+        run: cmake --build build --target tests
+        
+      - name: Run unit tests
+        run: cd build && ctest --output-on-failure -L unit
+        
+      - name: Run integration tests
+        run: cd build && ctest --output-on-failure -L integration
+        
+      - name: Run validation tests
+        run: cd build && ctest --output-on-failure -L validation
+        
+      - name: Run benchmarks
+        run: cd build && ./tests/benchmarks/run_benchmarks --benchmark_format=json > benchmarks.json
+        
+      - name: Check performance regression
+        run: python scripts/check_performance.py benchmarks.json

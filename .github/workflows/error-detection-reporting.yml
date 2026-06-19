@@ -1,0 +1,248 @@
+name: Error Detection & Reporting
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Sundays at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      run_sanitizers:
+        description: 'Run AddressSanitizer and UndefinedBehaviorSanitizer'
+        required: false
+        default: true
+        type: boolean
+      run_cppcheck:
+        description: 'Run Cppcheck static analysis'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install analysis tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-tidy cppcheck
+    
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    
+    - name: Run Clang-Tidy
+      id: clang-tidy
+      run: |
+        run-clang-tidy -p build -export-fixes=reports/clang-tidy-fixes.yaml 2>&1 || true
+        run-clang-tidy -p build 2>&1 | head -100
+    
+    - name: Run Cppcheck
+      id: cppcheck
+      run: |
+        mkdir -p reports
+        cppcheck --enable=all --xml --output-file=reports/cppcheck.xml src/ 2>&1 || true
+        cppcheck --enable=all --suppress=missingIncludeSystem src/ 2>&1 | head -100
+    
+    - name: Upload static analysis reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: static-analysis-reports
+        path: |
+          reports/clang-tidy-fixes.yaml
+          reports/cppcheck.xml
+
+  sanitizer-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.run_sanitizers != 'false' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure with sanitizers
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DQUANTUMVERSE_USE_ASAN=ON \
+          -DQUANTUMVERSE_USE_UBSAN=ON \
+          -DQUANTUMVERSE_BUILD_TESTS=ON
+    
+    - name: Build
+      run: cmake --build build --config Debug --parallel
+    
+    - name: Run tests with ASan/UBSan
+      id: test
+      run: |
+        cd build
+        ASAN_OPTIONS="detect_leaks=1:halt_on_error=0:log_path=reports/asan" \
+        UBSAN_OPTIONS="print_stacktrace=1" \
+        ctest -C Debug --output-on-failure --output-junit reports/ctest-results.xml 2>&1 || true
+    
+    - name: Upload sanitizer reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: sanitizer-reports
+        path: |
+          build/reports/asan.*
+          build/reports/ctest-results.xml
+
+  performance-baseline:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+    
+    - name: Build
+      run: cmake --build build --config Release --parallel
+    
+    - name: Run performance baseline test
+      run: |
+        cd build
+        ./test_performance_baseline > ../reports/performance.log 2>&1 || true
+    
+    - name: Compare against baseline
+      run: |
+        python3 ../scripts/analyze_traces.py ../reports/performance.log \
+          reports/performance_report.html \
+          --compare-baseline --baseline-path tests/baselines/performance_baseline.json \
+          --threshold 5
+    
+    - name: Upload performance report
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-report
+        path: |
+          reports/performance.log
+          reports/performance_report.html
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install coverage tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y lcov
+    
+    - name: Configure with coverage
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="--coverage -O0 -g" \
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+          -DQUANTUMVERSE_BUILD_TESTS=ON
+    
+    - name: Build
+      run: cmake --build build --config Debug --parallel
+    
+    - name: Run tests
+      run: cd build && ctest -C Debug --output-on-failure
+    
+    - name: Generate coverage report
+      run: |
+        cd build
+        lcov --capture --directory . --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        lcov --remove coverage.info '*/third_party/*' --output-file coverage.info
+        genhtml coverage.info --output-directory coverage_html
+    
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: build/coverage_html
+
+  fuzz-testing:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Clang for libFuzzer
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang
+    
+    - name: Configure with fuzzer
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DQUANTUMVERSE_USE_FUZZER=ON \
+          -DCMAKE_CXX_COMPILER=clang++
+    
+    - name: Build fuzzer
+      run: cmake --build build --config Debug --parallel --target fuzz_metric --target fuzz_api_contract
+    
+    - name: Run fuzzer (short duration)
+      run: |
+        cd build
+        timeout 300 ./fuzz_metric -max_total_time=300 -artifact_dir=fuzz_artifacts || true
+        timeout 300 ./fuzz_api_contract -max_total_time=300 -artifact_dir=fuzz_artifacts || true
+    
+    - name: Upload fuzzer artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzzer-artifacts
+        path: build/fuzz_artifacts
+
+  windows-memory-analysis:
+    runs-on: windows-2022
+    needs: [static-analysis, sanitizer-tests, performance-baseline]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure & Build
+      run: |
+        cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
+        cmake --build build --config Release --parallel
+    
+    - name: Test
+      run: ctest --test-dir build -C Release
+    
+    - name: Package
+      run: cd build && cpack -C Release
+    
+    - uses: actions/upload-artifact@v4
+      with:
+        name: QuantumVerse-Windows
+        path: |
+          build/QuantumVerse-*.zip
+          build/QuantumVerse-*.exe
+
+  combine-reports:
+    needs: [static-analysis, sanitizer-tests, performance-baseline, coverage, windows-memory-analysis, fuzz-testing]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        path: all-reports
+    
+    - name: Generate combined report
+      run: |
+        echo "# QuantumVerse Error Detection Report" > combined_report.md
+        echo "" >> combined_report.md
+        echo "**Date:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> combined_report.md
+        echo "" >> combined_report.md
+        echo "## Summary" >> combined_report.md
+        echo "" >> combined_report.md
+        echo "| Check | Status |" >> combined_report.md
+        echo "|-------|--------|" >> combined_report.md
+        echo "| Static Analysis | See artifacts |" >> combined_report.md
+        echo "| Sanitizer Tests | See artifacts |" >> combined_report.md
+        echo "| Performance Baseline | See artifacts |" >> combined_report.md
+        echo "| Coverage | See artifacts |" >> combined_report.md
+        echo "| Fuzz Testing | See artifacts |" >> combined_report.md
+    
+    - name: Upload combined report
+      uses: actions/upload-artifact@v4
+      with:
+        name: error-detection-summary
+        path: combined_report.md
