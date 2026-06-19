@@ -1,0 +1,45 @@
+name: Nightly Baseline Update
+
+on:
+  schedule:
+    # Run nightly at 02:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      update_baseline:
+        description: 'Update performance baseline'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  update-baseline:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+    
+    - name: Build
+      run: cmake --build build --config Release --parallel
+    
+    - name: Run performance baseline test
+      run: |
+        cd build
+        ./test_performance_baseline > ../reports/performance.log 2>&1
+    
+    - name: Generate and save new baseline
+      run: |
+        python3 ../scripts/analyze_traces.py ../reports/performance.log \
+          --save-baseline --baseline-path tests/baselines/performance_baseline.json
+    
+    - name: Commit new baseline
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add tests/baselines/performance_baseline.json
+        git commit -m "chore: update performance baseline [skip ci]" || echo "No changes to commit"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

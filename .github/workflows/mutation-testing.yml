@@ -1,0 +1,116 @@
+name: Mutation Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Sundays at 03:00 UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+jobs:
+  mutation-test:
+    name: Mull Mutation Testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Mull
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-17 llvm-17-dev clang-17
+          git clone https://github.com/mull-project/mull.git
+          cd mull
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DMULL_ENABLE_TESTS=OFF
+          cmake --build build --parallel
+          sudo cmake --install build --prefix /usr/local
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
+            -DCMAKE_CXX_COMPILER=clang++-17 \
+            -DCMAKE_C_COMPILER=clang-17
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Run mutation testing on core modules
+        run: |
+          cd build
+          # Run mutation testing on physics module
+          mull-cxx --config-file=../.mull.yml \
+            --timeout 300 \
+            --enable-mutation-types=math,cpp \
+            --exclude-files=third_party \
+            ./test_physics_integration 2>&1 | tee ../reports/mutation-physics.log || true
+
+      - name: Run mutation testing on spacetime module
+        run: |
+          cd build
+          mull-cxx --config-file=../.mull.yml \
+            --timeout 300 \
+            --enable-mutation-types=math,cpp \
+            --exclude-files=third_party \
+            ./test_spacetime 2>&1 | tee ../reports/mutation-spacetime.log || true
+
+      - name: Run mutation testing on rendering module
+        run: |
+          cd build
+          mull-cxx --config-file=../.mull.yml \
+            --timeout 300 \
+            --enable-mutation-types=math,cpp \
+            --exclude-files=third_party \
+            ./test_orbit_renderer 2>&1 | tee ../reports/mutation-rendering.log || true
+
+      - name: Generate mutation report
+        run: |
+          mkdir -p reports
+          echo "# Mutation Testing Report" > reports/mutation-summary.md
+          echo "" >> reports/mutation-summary.md
+          echo "## Summary" >> reports/mutation-summary.md
+          echo "Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> reports/mutation-summary.md
+          echo "" >> reports/mutation-summary.md
+          if [ -f reports/mutation-physics.log ]; then
+            echo "### Physics Integration" >> reports/mutation-summary.md
+            grep -E "(Mutation score|Killed|Survived|Timeout)" reports/mutation-physics.log >> reports/mutation-summary.md || true
+          fi
+          if [ -f reports/mutation-spacetime.log ]; then
+            echo "### Spacetime" >> reports/mutation-summary.md
+            grep -E "(Mutation score|Killed|Survived|Timeout)" reports/mutation-spacetime.log >> reports/mutation-summary.md || true
+          fi
+          if [ -f reports/mutation-rendering.log ]; then
+            echo "### Rendering" >> reports/mutation-summary.md
+            grep -E "(Mutation score|Killed|Survived|Timeout)" reports/mutation-rendering.log >> reports/mutation-summary.md || true
+          fi
+
+      - name: Upload mutation reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-test-reports
+          path: reports/
+
+      - name: Check mutation score threshold
+        run: |
+          # Fail if mutation score is below 80%
+          if [ -f reports/mutation-physics.log ]; then
+            SCORE=$(grep "Mutation score" reports/mutation-physics.log | grep -oP '\d+' | head -1 || echo "0")
+            if [ "$SCORE" -lt 80 ]; then
+              echo "ERROR: Mutation score $SCORE% is below threshold of 80%"
+              exit 1
+            fi
+          fi
