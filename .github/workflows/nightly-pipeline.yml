@@ -25,12 +25,12 @@ jobs:
             ninja-build ccache clang-tidy cppcheck
 
       - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
-            -DQUANTUMVERSE_USE_RAPIDCHECK=ON \
-            -DQUANTUMVERSE_USE_BOOST_MULTIPRECISION=ON
+         run: |
+           cmake -B build -DCMAKE_BUILD_TYPE=Release \
+             -DQUANTUMVERSE_BUILD_TESTS=ON \
+             -DQUANTUMVERSE_USE_COVERAGE=ON \
+             -DQUANTUMVERSE_USE_RAPIDCHECK=ON \
+             -DQUANTUMVERSE_USE_BOOST_MULTIPRECISION=ON
 
       - name: Build
         run: cmake --build build --config Release --parallel

@@ -1,0 +1,108 @@
+{
+  "domain": "String Cosmology",
+  "source": "https://en.wikipedia.org/wiki/String_cosmology",
+  "extraction_date": "2026-06-24",
+  "concepts": [
+    {
+      "name": "Dilaton Field",
+      "description": "A scalar field in string theory that couples to the string tension and appears in the effective low-energy action",
+      "equations": ["$\\mathcal{L}_{\\phi} = -\\frac{1}{2}(\\partial\\phi)^2 - V(\\phi)$"],
+      "parameters": ["phi", "V(phi)"]
+    },
+    {
+      "name": "Moduli Fields",
+      "description": "Scalar fields parameterizing the shape and size of compactified extra dimensions",
+      "equations": ["$V_{\\text{flux}} = \\frac{1}{2} |F_3|^2 + \\frac{1}{2} |D\\phi|^2$"],
+      "parameters": ["phi_moduli", "F_3", "D"]
+    },
+    {
+      "name": "Brane Inflation",
+      "description": "Inflationary model where the inflaton is the separation of branes in extra dimensions",
+      "equations": ["$V(\\phi) = V_0 \\cosh^{-p}(\\phi/\\mu)$"],
+      "parameters": ["V_0", "p", "mu"]
+    },
+    {
+      "name": "Compactification",
+      "description": "Procedure of reducing extra dimensions to small sizes to match observed 4D spacetime",
+      "equations": ["$V_{\\text{compact}} = \\frac{1}{\\text{Vol}(K)} \\int |W|^2$"],
+      "parameters": ["Vol(K)", "W"]
+    },
+    {
+      "name": "KKLT Scenario",
+      "description": "Kachru-Kallosh-Linde-Trivedi model for de Sitter vacuum via anti-D3 branes",
+      "equations": ["$V_{\\text{KKLT}} = V_{\\text{AdS}} + V_{\\text{antid3}}$"],
+      "parameters": ["V_AdS", "V_antid3"]
+    }
+  ],
+  "equations": [
+    {
+      "name": "String Frame Einstein Equations",
+      "latex": "$R_{\\mu\\nu} + \\frac{2}{\\alpha'} H_{\\mu\\lambda\\nu} H_\\nu{}^{\\lambda} = T_{\\mu\\nu}$",
+      "description": "Einstein equations in string frame with NS-NS 3-form flux"
+    },
+    {
+      "name": "Dilaton Equation of Motion",
+      "latex": "$\\Box \\phi = \\frac{\\partial V}{\\partial \\phi}$",
+      "description": "Scalar field evolution in curved spacetime"
+    },
+    {
+      "name": "Flux Quantization",
+      "latex": "$\\int_{S^2} F_3 = 2\\pi n$",
+      "description": "Integer quantization of 3-form flux"
+    },
+    {
+      "name": "Slow-Roll Parameters",
+      "latex": "$\\epsilon = \\frac{M_{\\text{Pl}}^2}{2} \\left(\\frac{V'}{V}\\right)^2, \\quad \\eta = M_{\\text{Pl}}^2 \\frac{V''}{V}$",
+      "description": "Inflationary slow-roll parameters"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "dilaton_coupling",
+      "symbol": "\\alpha'",
+      "description": "String tension parameter",
+      "default": 1.0,
+      "range": [0.01, 100.0]
+    },
+    {
+      "name": "compactification_radius",
+      "symbol": "R",
+      "description": "Radius of compactified extra dimension",
+      "default": 10.0,
+      "range": [0.1, 1000.0]
+    },
+    {
+      "name": "brane_separation",
+      "symbol": "\\phi",
+      "description": "Inflaton field (brane separation)",
+      "default": 5.0,
+      "range": [0.1, 50.0]
+    },
+    {
+      "name": "flux_quantization",
+      "symbol": "n",
+      "description": "Integer flux quantum number",
+      "default": 1,
+      "range": [1, 100]
+    }
+  ],
+  "algorithms": [
+    {
+      "name": "Moduli Stabilization Solver",
+      "description": "Numerical solver for moduli potential minimization",
+      "complexity": "O(N^2)",
+      "steps": ["Initialize potential", "Compute gradient", "Apply optimizer", "Check convergence"]
+    },
+    {
+      "name": "Inflationary Trajectory Integrator",
+      "description": "RK4 integrator for inflaton evolution with Hubble friction",
+      "complexity": "O(N)",
+      "steps": ["Set initial conditions", "Compute potential", "Integrate equations", "Check slow-roll"]
+    }
+  ],
+  "references": [
+    "Giddings, S. B. (1994). Lectures on 2D gravity and 2D quantum field theory",
+    "Kachru, S., Kallosh, A., Linde, A., & Trivedi, N. (2003). De Sitter vacua in string theory",
+    "Douglas, M. R. (2003). The statistics of string/M theory vacua"
+  ]
+}

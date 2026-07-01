@@ -7,6 +7,28 @@ on:
     branches: [ main, develop ]
 
 jobs:
+  clang-format:
+    name: Code Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+      
+      - name: Check Code Formatting
+        run: |
+          # Check formatting for source files
+          clang-format --dry-run --Werror -style=file \
+            $(find src -name '*.cpp' -o -name '*.h') \
+            $(find tests -name '*.cpp' -o -name '*.h') \
+            $(find examples -name '*.cpp' -o -name '*.h') || exit 1
+        env:
+          # Allow formatting differences in third-party code
+          CLANG_FORMAT_IGNORE: "third_party"
+
   clang-tidy:
     name: Clang-Tidy Analysis
     runs-on: ubuntu-latest

@@ -1,0 +1,66 @@
+{
+  "title": "QuantumVerse Resilience Experiment",
+  "description": "Test system resilience under various fault conditions",
+  "steady-state-hypothesis": {
+    "title": "Application is healthy",
+    "probes": [
+      {
+        "name": "application-responds",
+        "type": "probe",
+        "provider": {
+          "type": "http",
+          "url": "http://localhost:8080/health",
+          "timeout": 5
+        }
+      }
+    ]
+  },
+  "method": [
+    {
+      "type": "action",
+      "name": "simulate-cpu-stress",
+      "provider": {
+        "type": "process",
+        "path": "stress",
+        "arguments": "--cpu 4 --timeout 30",
+        "env": {}
+      },
+      "pauses": {
+        "after": 10
+      }
+    },
+    {
+      "type": "action",
+      "name": "simulate-memory-pressure",
+      "provider": {
+        "type": "process",
+        "path": "stress",
+        "arguments": "--vm 2 --vm-bytes 512M --timeout 30",
+        "env": {}
+      },
+      "pauses": {
+        "after": 10
+      }
+    },
+    {
+      "type": "probe",
+      "name": "verify-application-recovery",
+      "provider": {
+        "type": "http",
+        "url": "http://localhost:8080/health",
+        "timeout": 5
+      }
+    }
+  ],
+  "rollbacks": [
+    {
+      "type": "action",
+      "name": "stop-stress",
+      "provider": {
+        "type": "process",
+        "path": "pkill",
+        "arguments": "-f stress"
+      }
+    }
+  ]
+}

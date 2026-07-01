@@ -1,0 +1,67 @@
+# Mull Mutation Testing Configuration for QuantumVerse
+# https://mull.readthedocs.io/en/latest/Configuration.html
+
+# Test command configuration
+tests:
+  # Physics integration tests
+  - name: physics_integration
+    command: ./test_physics_integration
+    files:
+      - src/physics/*.cpp
+      - src/physics/*.h
+    timeout: 300
+
+  # Spacetime tests
+  - name: spacetime
+    command: ./test_spacetime
+    files:
+      - src/spacetime/*.cpp
+      - src/spacetime/*.h
+    timeout: 300
+
+  # Rendering tests
+  - name: rendering
+    command: ./test_orbit_renderer
+    files:
+      - src/rendering/*.cpp
+      - src/rendering/*.h
+    timeout: 300
+
+# Mutation types to enable
+mutation-types:
+  - math      # Arithmetic mutations
+  - cpp       # C++ specific mutations
+  - llvm      # LLVM IR mutations
+
+# Disable specific mutations that are not relevant
+disable-mutation-types:
+  - clang-static analyzer
+
+# Files to exclude from mutation
+exclude-files:
+  - third_party/**
+  - tests/**
+  - examples/**
+
+# Mutation operators to use
+mutators:
+  - Mull_Arithmetic
+  - Mull_Bitwise
+  - Mull_Call
+  - Mull_Conditional
+  - Mull_Constant
+  - Mull_Constructor
+  - Mull_Expression
+  - Mull_Field
+
+# Timeout for each mutant (seconds)
+timeout: 300
+
+# Number of parallel jobs
+jobs: 4
+
+# Report format
+report-format: text
+
+# Minimum mutation score threshold (percentage)
+minimum-mutation-score: 80

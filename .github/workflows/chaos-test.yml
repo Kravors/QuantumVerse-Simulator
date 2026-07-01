@@ -1,0 +1,54 @@
+name: Chaos Engineering Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM
+  workflow_dispatch:
+
+jobs:
+  chaos-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install chaos toolkit
+        run: |
+          python3 -m pip install chaostoolkit --quiet
+
+      - name: Run chaos experiment
+        run: |
+          chaos run chaos/experiment.json --journal-output chaos-journal.json
+        continue-on-error: true
+
+      - name: Upload chaos journal
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-journal
+          path: chaos-journal.json
+
+      - name: Analyze results
+        run: |
+          python3 << 'EOF'
+import json
+import sys
+
+try:
+    with open('chaos-journal.json', 'r') as f:
+        journal = json.load(f)
+    
+    experiment = journal.get('experiment', {})
+    results = experiment.get('results', [])
+    
+    failures = [r for r in results if r.get('status') != 'success']
+    
+    if failures:
+        print(f"::warning::{len(failures)} chaos experiments failed")
+        for f in failures:
+            print(f"  - {f.get('name')}: {f.get('message', 'unknown error')}")
+    else:
+        print("All chaos experiments passed")
+        
+except Exception as e:
+    print(f"Could not analyze journal: {e}")
+EOF

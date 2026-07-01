@@ -1,0 +1,166 @@
+{
+  "timestamp": "2026-06-30T03:25:10.393872",
+  "summary": {
+    "timestamp": "2026-06-30T03:25:10.393906",
+    "total_checks": 6,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 5,
+    "categories": {
+      "static_analysis": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 2,
+        "total": 2
+      },
+      "dynamic_analysis": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "total": 1
+      },
+      "ui_testing": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 1,
+        "total": 1
+      },
+      "fuzzing": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 1,
+        "total": 1
+      },
+      "performance": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 1,
+        "total": 1
+      }
+    }
+  },
+  "results": {
+    "static_analysis": {
+      "clang_tidy": {
+        "output": "",
+        "status": "skipped",
+        "issues": []
+      },
+      "cppcheck": {
+        "output": "",
+        "status": "skipped",
+        "issues": []
+      }
+    },
+    "dynamic_analysis": {
+      "default": {
+        "output": "test_anomaly_detection.exe: Running anomaly detection tests...\ntest_discovery_engine_init: PASSED\ntest_schwarzschild_anomaly: PASSED\ntest_hypothesis_management: PASSED\ntest_anomaly_classification: PASSED\ntest_detect_anomaly: PASSED\nAll anomaly detection tests passed!\n [CurvatureNormalizingFlow] Constructor: Starting\n[CurvatureNormalizingFlow] Constructor: Done\n[CurvatureNormalizingFlow] Constructor: Starting\n[CurvatureNormalizingFlow] Constructor: Done\n[CurvatureNormalizingFlow] Constructor: Sta\ntest_api_contract.exe: === API Contract Tests ===\n\n[API Contract] Event4D\n  [PASS] Event4D API contract verified\n[API Contract] MetricTensor\n  [PASS] MetricTensor API contract verified\n[API Contract] CurvatureCalculator\n  [PASS] CurvatureCalculator API contract verified\n[API Contract] Edge Cases (NaN/Inf)\n  [PASS] Edge cases handled gracefully\n\n=== ALL API CONTRACT TESTS PASSED ===\n \ntest_autodiff.exe: QuantumVerse Auto-Differentiation - Test Suite\n===============================================\n=== ADVariable Basic Test ===\n[PASS] x*x: value=4.0, derivative=4.0\n[PASS] x+5: value=7.0, derivative=1.0\n[PASS] sin(x): value=0.909297, derivative=-0.416147\n\n=== ADVariable Multivariate Test ===\n[PASS] f(x,y,z)=x\u00c2\u00b2+y\u00c2\u00b2+z\u00c2\u00b2: value=29, gradient=(4,6,8)\n\n=== Product Rule Test ===\n[PASS] x*y: value=12, derivative=7\n\n=== Chain Rule Test ===\n[PASS] exp(x\u00c2\u00b2): value=54.5982, derivative=218.\ntest_bayesian_evidence.exe: === BayesianEvidenceCalculator Test Suite ===\n\nTest 1: Grid integration for linear model (y = a*x + b)\n  Log evidence (log Z) = -6.20715\n  Evidence (Z)         = 0.00201497\n  MAP a                = 2.06897\n  MAP b                = -0.172414\n  Runtime              = 0 s\n  Valid                = yes\n  \u00e2\u0153\u201c MAP estimates within tolerance\n\nTest 2: Model comparison (identical models)\n  logK = 0 (Not worth more than a bare mention)\n  \u00e2\u0153\u201c Identical models yield K \u00e2\u2030\u02c6 1\n\nTest \ntest_causal_set.exe: QuantumVerse Causal Set Engine - Test Suite\n==========================================\n\n[Test 1] CausalSet Basic Construction\n  [PASS] First element added (id=0)\n  [PASS] Second element added (id=1) with past {0}\n  [PASS] Third element added (id=2) with past {0,1}\n\n[Test 2] Causal Order Relation\n  [PASS] Direct precedence relations correct\n  [PASS] Non-precedence correct\n  [PASS] Irreflexive (no self-precedence)\n\n[Test 3] Past and Future Sets\n  [PASS] Past of 1 = {0}\n  [PASS\ntest_cbmc_verification.exe: === CBMC Verification Tests ===\n[PASS] All CBMC verification tests passed\n \ntest_cdt.exe: QuantumVerse CDT Engine - Test Suite\n=====================================\n=== CDT Basics Test ===\n[PASS] CDTEngine constructed\n[PASS] QuantumGravityPlugin interface correct\n[PASS] Parameter ranges defined\n\n=== SimplicialManifold Test ===\n[PASS] Manifold initialized: 200 vertices, 40 simplices\n[PASS] Deficit angles computed: 200 values\n[INFO] Hausdorff dimension: 1.81481 (expected ~4)\n[INFO] Spectral dimension: 1 (expected ~4 at large scale)\n  [PASS] Spectral dimension in reasonabl\ntest_cdt_convergence.exe: === CDT Convergence Test ===\nTesting spectral dimension convergence with increasing lattice size\n\n[INFO] Running CDT with 100 simplices...\n  Spectral dimension: 1\n  Hausdorff dimension: 1.55467\n\n[INFO] Running CDT with 200 simplices...\n  Spectral dimension: 1\n  Hausdorff dimension: 1.85863\n\n[INFO] Running CDT with 400 simplices...\n  Spectral dimension: 1\n  Hausdorff dimension: 2.07147\n\n[INFO] Checking convergence...\n  [PASS] Spectral dimension 1 in reasonable range for \ntest_cosmology.exe: === Cosmology Module Tests ===\nTesting cosmic parameters...\n  Cosmic parameters tests passed!\nTesting CMB temperature...\n  CMB temperature tests passed!\nTesting Friedmann solver...\n  Friedmann solver tests passed!\nTesting dark energy model...\n  Dark energy model tests passed!\n=== All cosmology tests passed! ===\n \ntest_cosmology_integration.exe: === Cosmology Integration Tests ===\n\nTesting redshiftToScale... PASSED\nTesting scaleToRedshift... PASSED\nTesting redshiftToTime and timeToRedshift... PASSED\nTesting hubbleParameter... PASSED\nTesting comovingDistance... PASSED\nTesting FriedmannSolver... PASSED\nTesting CosmologyPanel integration... PASSED\n\n=== All tests PASSED ===\n \ntest_crash_guard.exe: ===============================================================================\nAll tests passed (9 assertions in 5 test cases)\n\n \ntest_curvature_flow.exe: \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\ntest_curvature_flow.exe is a Catch v2.13.10 host application.\nRun with -? for options\n\n-------------------------------------------------------------------------------\nCurvatureNormalizingFlow - ONNX Loading\n  Loading valid ONNX file returns true (if ONNX available)\n-------------------------------------------------------------------------------\nF:\\syyyy\\tests\\test_curvature_flow.cpp(118)\n....\ntest_curvature_renderer.exe: Running CurvatureRenderer tests...\ntest_curvature_renderer_init: PASSED\ntest_set_metric: PASSED\ntest_kretschmann_scalar: PASSED\ntest_mode_switching: PASSED\ntest_wireframe_mode: PASSED\nAll CurvatureRenderer tests passed!\n \ntest_curvature_schwarzschild.exe: === Curvature Calculator \u00e2\u20ac\u201c Schwarzschild Validation ===\n\nSchwarzschild radius: 1.485e-27 m\nTest radius: 1.485e-26 m\n\nMetric components at r = 10 rs:\n  g[0][0] = -9.000000e-01 (expected: -1.0)\n  g[1][1] = 1.111111e+00 (expected: 1.111111e+00)\n  g[2][2] = 2.205914e-52 (expected: 2.205914e-52)\n  g[3][3] = 2.205914e-52 (expected: 2.205914e-52)\n\n[PASS] Metric components are correct\nDeterminant: -4.866058e-104 (should be negative)\n[PASS] Determinant is negative (Lor\ntest_differentiable_ad.exe: === Automatic Differentiation Gradient Validation ===\n\n--- Test 1: Basic arithmetic (f(x) = x^2) ---\nf(3) = 9.000000000000000 (expected 9.000000000000000)\nf'(3) = 6.000000000000000 (expected 6.000000000000000)\n[PASS] Basic arithmetic correct to machine precision\n\n--- Test 2: Division (f(x) = 1/x) ---\nf(2.5) = 0.400000000000000 (expected 0.400000000000000)\nf'(2.5) = -0.160000000000000 (expected -0.160000000000000)\n[PASS] Division correct to machine precision\n\n--- Test \ntest_differentiable_benchmark.exe: QuantumVerse Differentiable Physics - Benchmark Suite\n======================================================\n\n[Benchmark 1] Light Deflection Gradient (dAlpha/dM)\n  b = 6.96e+08 m, M = 1477 m\n  AD gradient dy_final/dM = 0\n  Analytic dAlpha/dM = 4/b = 5.74713e-09\n  [PASS] Gradient computation completed\n\n[Benchmark 2] Kretschmann Gradient (dK/dM = 96M/r^6)\n  r = 10, M = 1e+06\n  FD gradient dK/dM = 96\n  Analytic dK/dM = 96\n  [PASS] Gradients match (rel err = 1.4652\ntest_differentiable_curvature.exe: QuantumVerse Differentiable Curvature - Test Suite\n==================================================\n\n[Test 1] DifferentiableCurvature construction\n  [PASS] Constructor created\n[Test 2] Ricci scalar in vacuum (Schwarzschild)\n  [PASS] R \u00e2\u2030\u02c6 0 (vacuum solution)\n[Test 3] Kretschmann scalar (Schwarzschild analytic)\n  [PASS] K = 4.8e-05 (analytic: 4.8e-05)\n[Test 4] Gradient \u00e2\u02c6\u201aK/\u00e2\u02c6\u201aM (Schwarzschild: \u00e2\u02c6\u201aK/\u00e2\u02c6\u201aM = 96M/r\u00e2\ufffd\u00b6)\n  [PASS] \u00e2\u02c6\u201aK/\u00e2\u02c6\u201aM = 9.6e-05 (analytic: 9.6e\ntest_differentiable_geodesic.exe: QuantumVerse Differentiable Geodesic Integrator - Test Suite\n============================================================\n\n[Test 1] DifferentiableGeodesicIntegrator construction\n  [PASS] Constructor created successfully\n[Test 2] ADVariable gradient propagation (sanity check)\n  [PASS] f(3) = 9 (correct)\n  [PASS] df/dM = 6 (correct)\n[Test 3] Differentiable geodesic integration (N=1, mass parameter)\n  [PASS] Integration completed successfully\n  [PASS] Final radius \ntest_differentiable_simulator.exe: \n=== DifferentiableSimulator Tests ===\n\n[TEST] DifferentiableSimulator construction... PASSED\n[TEST] Timelike geodesic simulation... PASSED (endpoint: t=5.01, r=0.501) \n[TEST] Lightlike geodesic simulation... PASSED (endpoint: t=5.01, x=15.01)\n[TEST] Full trajectory simulation... PASSED (52 steps)\n[TEST] Observable extraction (position)... PASSED\n[TEST] Observable extraction (proper time)... PASSED (tau=5.01)\n[TEST] Jacobian computation (Schwarzschild)... PASSE\ntest_differential.exe: === Differential Testing ===\n=== Differential Testing Framework ===\n\n=== MetricTensor Determinant Differential Tests ===\nSchwarzschild determinant: -1.000000e+04 (expected negative)\n\n=== MetricTensor Inverse Differential Tests ===\n\n=== Interval Calculation Differential Tests ===\n\n=== Geodesic vs Analytic Differential Tests ===\n\n=== Kerr vs Schwarzschild Limit Tests ===\n\n[PASS] All differential tests passed\n\n=== ALL DIFFERENTIAL TESTS PASSED ===\n ",
+        "status": "passed",
+        "passed": 20,
+        "failed": 0,
+        "errors": []
+      }
+    },
+    "ui_testing": {
+      "interaction": {
+        "headless_check": {
+          "output": "UI executable not found",
+          "status": "skipped"
+        },
+        "interaction": {
+          "output": "UI executable not found",
+          "status": "skipped",
+          "actions_performed": 0,
+          "crashes": []
+        },
+        "imgui_state": {
+          "output": "",
+          "status": "skipped",
+          "issues": []
+        },
+        "screenshots": {
+          "output": "Baseline directory not found: F:\\syyyy\\tests\\ui_baselines",
+          "status": "skipped",
+          "differences": []
+        }
+      }
+    },
+    "fuzzing": {
+      "targets": {
+        "metric": {
+          "name": "metric",
+          "output": "Fuzz target fuzz_metric not found in build directory",
+          "status": "skipped",
+          "crashes": [],
+          "coverage": {}
+        },
+        "geodesic": {
+          "name": "geodesic",
+          "output": "Fuzz target fuzz_geodesic not found in build directory",
+          "status": "skipped",
+          "crashes": [],
+          "coverage": {}
+        },
+        "event4d": {
+          "name": "event4d",
+          "output": "Fuzz target fuzz_event4d not found in build directory",
+          "status": "skipped",
+          "crashes": [],
+          "coverage": {}
+        }
+      }
+    },
+    "performance": {
+      "benchmarks": {
+        "geodesic_integration": {
+          "name": "geodesic_integration",
+          "output": "Benchmark executable not found: geodesic_integration",
+          "status": "skipped",
+          "duration_ms": 0,
+          "iterations": 0,
+          "mean_us": 0,
+          "median_us": 0
+        },
+        "geodesic_integration_regression": {
+          "name": "geodesic_integration",
+          "regression": false,
+          "threshold_percent": 5,
+          "baseline": null,
+          "current": null
+        },
+        "metric_evaluation": {
+          "name": "metric_evaluation",
+          "output": "Benchmark executable not found: metric_evaluation",
+          "status": "skipped",
+          "duration_ms": 0,
+          "iterations": 0,
+          "mean_us": 0,
+          "median_us": 0
+        },
+        "metric_evaluation_regression": {
+          "name": "metric_evaluation",
+          "regression": false,
+          "threshold_percent": 5,
+          "baseline": null,
+          "current": null
+        },
+        "frame_time": {
+          "name": "frame_time",
+          "output": "Benchmark executable not found: frame_time",
+          "status": "skipped",
+          "duration_ms": 0,
+          "iterations": 0,
+          "mean_us": 0,
+          "median_us": 0
+        },
+        "frame_time_regression": {
+          "name": "frame_time",
+          "regression": false,
+          "threshold_percent": 5,
+          "baseline": null,
+          "current": null
+        }
+      }
+    }
+  }
+}

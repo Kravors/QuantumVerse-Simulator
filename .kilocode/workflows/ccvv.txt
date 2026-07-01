@@ -1,0 +1,348 @@
+# QuantumVerse Simulator – Comprehensive Functional Verification Master Plan
+
+## 1. Executive Summary
+
+This plan provides a systematic methodology to verify the correctness, robustness, and performance of every public function, class, and module within the QuantumVerse Simulator. It builds upon the existing 51‑test foundation, expands coverage to all exposed APIs, and introduces integration, UI, performance, and acceptance tests. The goal is to guarantee that every advertised capability behaves as documented under both normal and edge‑case conditions.
+
+## 2. Scope
+
+The verification covers all modules listed in the API Reference:
+
+- **Spacetime** (Event4D, MetricTensor, LightCone)
+- **Physics** (GeodesicIntegrator, DifferentiableGeodesicIntegrator)
+- **UI4D / ImGui** (UI4D_ImGui, FloatingPanels, TimelineBar, ContextMenu, etc.)
+- **Discovery** (DiscoveryEngine, TheoryPlugin, 10+ instruments)
+- **Quantum Gravity** (CausalSetEngine, CDTEngine, SpinFoamEngine, GFTEngine)
+- **Math Utilities** (Vector4D, Matrix4x4, SO4Rotation, AutoDiff)
+- **Rendering** (CurvatureRenderer, QuantumGeometryRenderer, CelestialBodyRenderer)
+- **VR** (MultiUserServer)
+- **ML** (GeodesicNeuralODE, CurvatureNormalizingFlow)
+
+For each public method, we define test objectives, input variants, expected results, and the level (unit, integration, UI, performance).
+
+## 3. Testing Hierarchy & Strategy
+
+| Level | Description | Tools / Approach |
+|-------|-------------|------------------|
+| **Unit** | Isolated function/class tests | Google Test (existing framework), custom test harness |
+| **Integration** | Interaction of two or more modules (e.g., geodesic + metric) | Google Test with linked libraries |
+| **UI** | ImGui panels, input handling, rendering | Automated screenshot comparison (e.g., OpenCV) + manual exploratory |
+| **Performance** | Timing, memory footprint, scalability | Benchmark tests, `std::chrono`, Valgrind/AddressSanitizer |
+| **Acceptance** | End‑to‑end scenario tests | Pre‑defined workflows, build & deploy scripts |
+| **Stress / Edge** | Extreme values, large data, long runs | Parameterised tests, fuzzing |
+
+## 4. Module‑by‑Module Test Plan
+
+### 4.1 Spacetime Module
+
+#### 4.1.1 Event4D
+
+| Function | Test Type | Key Test Cases | Expected Outcome |
+|----------|-----------|----------------|------------------|
+| `intervalSquared` | Unit | 1) Timelike separation: `(0,0,0,0)` → `(1,0,0,0)` ⇒ `-c²`<br>2) Lightlike: `(0,0,0,0)` → `(1,c,0,0)` ⇒ `0`<br>3) Spacelike: `(0,0,0,0)` → `(0,1,0,0)` ⇒ `+1` | Exact match (within double precision) |
+| `properTime` | Unit | For timelike pair: should equal `√(-intervalSquared)/c`; for lightlike/spacelike return 0 or throw | 0 or appropriate error |
+| `spatialDistance` | Unit | Between `(0,0,0,0)` and `(0,3,4,0)` ⇒ `5.0` | Exact |
+| `spatialLength` | Unit | Origin → `(0,0,0,0)` ⇒ `0`; non‑zero value | Correct Euclidean norm |
+| `theta`, `phi` | Unit | Test points on axes: `(0,0,1)` gives θ=0, φ=0; `(0,1,0)` gives θ=π/2, φ=π/2 | Expected spherical coordinates |
+| `isTimelike/Lightlike/Spacelike` | Unit | Use same inputs as `intervalSquared` | Boolean correctly indicates sign |
+| `lorentzTransform` | Unit | Boost along x with β=0.6: `(t,x)` → `(γ(t-βx), γ(x-βt), y, z)` | Compute analytically and compare |
+| `operator+/-/*` | Unit | Simple vector arithmetic | Correct component‑wise operations |
+| `operator==/!=` | Unit | Same vs. different events | True/false as expected |
+| `operator[]` | Unit | Read/write components | Index maps correctly to t,x,y,z |
+
+**Integration**: Use `Event4D` within `MetricTensor::interval` and verify consistency.
+
+#### 4.1.2 MetricTensor
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| Default constructor | Unit | Should produce Minkowski metric (diag(-c²,1,1,1)) |
+| `schwarzschild(mass, r, θ, φ)` | Unit | For large r → metric approaches Minkowski; at r=2GM/c², g_tt=0; manually compute a few components |
+| `kerr(mass, a, r, θ)` | Unit | At equatorial plane, check g_tφ term; for a=0, must match Schwarzschild |
+| `evaluate(event)` | Unit | Create metric with known components, verify `evaluate` returns correct array |
+| `setToMinkowski/Zero` | Unit | Check all components after call |
+| `set(mu, nu, val)` | Unit | Set component, read back |
+| `interval(event1, event2)` | Integration | Compare with `Event4D::intervalSquared` when metric is Minkowski |
+| `properTime` | Unit | For Minkowski, should match `Event4D::properTime` |
+| `isLorentzian` | Unit | Minkowski: true; random symmetric matrix: false |
+| `determinant` | Unit | Minkowski: -c²; Schwarzschild (external): -r⁴ sin²θ |
+| `inverse` | Unit | Compute `metric * inverse`, should be identity |
+| `lowerIndex/raiseIndex` | Unit | Apply to a known vector, verify index lowering/raising rules |
+| Static constants | Unit | `C`, `C2`, `G` equal expected physical constants |
+
+#### 4.1.3 LightCone
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `computeFuture/Past` | Integration | For event at origin in Minkowski, set radius=1, check that all generated points satisfy Δs² ≤ 0 (future) or ≥ 0 (past) |
+| `isCausal` | Unit | Test pairs: timelike ⇒ true, spacelike ⇒ false; lightlike ⇒ true |
+
+### 4.2 Physics Module
+
+#### 4.2.1 GeodesicIntegrator
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| Constructor | Unit | Provide tolerance, step limits; check internal state |
+| `setMetric`, `getMetric` | Unit | Set a shared metric, retrieve |
+| `setMetricField` | Integration | Supply a function that returns a varying metric, verify it is called during integration |
+| `computeChristoffelSymbols` | Unit | Use Minkowski metric: Christoffels all zero; Schwarzschild: compare with analytic Christoffels at a few points |
+| `getChristoffel(lambda, mu, nu)` | Unit | After computation, retrieve value; for Minkowski should be 0 |
+| `integrate` (Timelike) | Integration | Integrate a circular orbit in Schwarzschild; verify radius stays constant (within tolerance) for many orbits |
+| `integrate` (Lightlike) | Integration | Photon orbit at r=3M should be unstable; test with slight perturbation |
+| `integrateSimple` | Unit | Compare result with full `integrate` for a short trajectory and adaptive=false |
+| GeodesicType enum | Unit | Verify correct handling of TIMELIKE, LIGHTLIKE, SPACELIKE (spacelike may throw) |
+
+#### 4.2.2 DifferentiableGeodesicIntegrator
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `integrateWithGradients` | Unit | For a simple metric parameter (e.g., mass in Schwarzschild), compute gradient of final position w.r.t. mass; check against finite difference |
+| `setParameter`, `getParameter` | Unit | Set parameter value, retrieve |
+
+### 4.3 UI4D / ImGui Module
+
+#### 4.3.1 UI4D_ImGui (Main Class)
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| Constructor | Unit | Create with valid metric/renderer; verify no crash |
+| `render()` | UI | Launch application, verify that the dock space and all default panels are drawn |
+| `setupDockingAndMenu()` | UI | Check that menu bar (File, View, Edit, Tools) is visible and functioning |
+| `processInput()` | Integration | Simulate GLFW key events (W/A/S/D) and verify camera translation |
+| `setShow4DView(false)` | UI | Call, check 4D View panel disappears |
+| `translateCamera(delta)`, `rotateCamera(plane1, plane2, angle)`, `zoomCamera(factor)`, `resetCamera()` | UI/Unit | Query camera state after each call to verify correct transformation |
+| `setActiveTheory("CDT")` | Integration | Verify that the active theory is set, and subsequent metric computations use it |
+| `addEvent(event)` | Unit | Add event, check causal graph node count increases |
+| `moveProbeTo(event)` | Unit | Move probe, check position update |
+| `setupInputCallbacks(window)` | Integration | Trigger mouse/keyboard events, ensure callbacks are invoked (via debug logs) |
+| `setSceneGraphManager` | Integration | After setting, verify solar system objects are accessible |
+
+#### 4.3.2 FloatingPanels
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `toggleCurvatureOverlay` | UI | Toggle, check overlay visibility flag |
+| `addAnomaly(alert)` | Integration | Add alert, then check that the `showAnomalyAlerts` panel renders the message |
+| `clearAlerts()` | Integration | Add alert, clear, verify list empty |
+| `setCurvatureIntensity(float)` | UI/Unit | Verify curvature scale variable updated |
+
+#### 4.3.3 Other UI Components (TimelineBar, ContextMenu, ObjectBrowser, PropertyEditor, etc.)
+
+These are primarily UI components; their verification relies on UI tests:
+
+- **ContextMenu**: Right‑click on a celestial body → menu appears with correct actions; selecting “Test GR” triggers a validation test.
+- **ObjectBrowser**: Filter, select, fly‑to actions.
+- **PropertyEditor**: Edit a property → object’s property changes in scene.
+- **TimelineBar**: Play/pause/rewind changes simulation time.
+
+These will be tested via automated screenshot comparison and manual exploratory testing on Windows, Linux, and macOS.
+
+### 4.4 Discovery Module
+
+#### 4.4.1 DiscoveryEngine
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `enableSymbolicRegression(bool)`, `enableAnomalyDetection(bool)`, `enableHypothesisTesting(bool)` | Unit | Set flags, check they are stored |
+| `generateFieldEquation(trajectory, metric, tol)` | Unit | Supply a geodesic from a known metric (e.g., Schwarzschild), expect symbolic form of Einstein tensor |
+| `detectAnomaly(location, metric, trajectory)` | Unit | Create a metric that deviates from GR by a small amount; should flag anomaly with appropriate score |
+| `classifyAnomaly(result)` | Unit | Pass result with known type, check classification string |
+| `proposeHypothesis(name, eq, params)`, `testHypothesis`, `validateHypothesis`, `refuteHypothesis` | Integration | Create dummy hypothesis, test against data, validate with Bayesian evidence |
+| `getDiscoveries`, `getHypotheses` | Unit | After adding, verify lists |
+| `calculateAnomalyScore`, `calculateDeviationFromGR` | Unit | Known deviations produce correct scores |
+| `calculateBayesFactor` | Unit | Compare two hypotheses; if one is true, Bayes factor should be >1 |
+| `exportDiscovery` / `exportHypothesis` | Unit | Export to JSON, parse back, verify data integrity |
+| `saveState`/`loadState` | Integration | Save, modify, load, verify restored state |
+| `loadCurvatureModel` | Unit | Load a valid ONNX model, check `isCurvatureModelLoaded` returns true; with invalid path, returns false |
+
+#### 4.4.2 TheoryPlugin (and QuantumGravityPlugin)
+
+For each plugin (CausalSetEngine, CDTEngine, SpinFoamEngine, GFTEngine), the following are common:
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `getName`, `getDescription`, `getFieldEquation` | Unit | Check non‑empty strings |
+| `computeMetric` | Unit | For known parameters, verify metric components against analytic expectations (e.g., CDT ≈ FLRW at large scales) |
+| `computeChristoffel` | Unit | Compare with numeric differentiation of metric |
+| `computeRicciTensor`, `computeRicciScalar`, `computeKretschmannScalar` | Unit | For Minkowski limit, all should be zero |
+| `predictsWormholes`, `predictsNakedSingularities`, `violatesEnergyConditions`, `allowsTimeTravel` | Unit | Check boolean consistency with known theory properties |
+| `getParameterRanges` | Unit | All parameters have finite ranges |
+| `clone` | Unit | Clone, verify cloned object’s `getName()` matches original |
+| `computeAmplitude` (QuantumGravity) | Unit | Test with timelike separation → non‑zero amplitude |
+| `computeSpectralDimension` | Unit | For µ→0, should approach topological dimension (4) |
+| `computeHausdorffDimension` | Unit | Should be ≤ 4 |
+| `getGeometryVertices/Edges/Colors` | Unit | Check vectors not empty after initialization |
+| `grow(n, t)` (CausalSet) | Integration | Grow causal set, verify element count and causal ordering |
+| `setParameters` | Unit | Change α, β, confirm getters return new values |
+
+#### 4.4.3 Discovery Instruments (10+ instruments)
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `getName`, `getDescription`, `getCategory`, `getDefaultSeverity` | Unit | Non‑empty strings, correct enum |
+| `analyze(metric, location, trajectory)` | Unit | For each instrument, provide a synthetic metric that matches its detection pattern; expect an anomaly finding with severity ≥ threshold |
+| `getParameterRanges`, `setParameter` | Unit | Set a parameter, get it back |
+| `getLastFindings`, `getTotalFindings` | Integration | After analyze, check findings list |
+
+*Example for `ExoplanetaryTTVFifthForceHunter`*: Provide a trajectory with periodic TTV signal; instrument should detect it and report HIGH severity.
+
+### 4.5 Math Utilities
+
+#### 4.5.1 Vector4D
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `dot`, `cross`, `magnitude`, `normalize`, `add`, `subtract`, `scale` | Unit | Test with known vectors; for cross, verify orthogonality to inputs |
+
+#### 4.5.2 Matrix4x4
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `multiply` | Unit | Multiply identity by any matrix, check equality; multiply two known matrices |
+| `determinant` | Unit | Identity det=1; singular matrix det=0 |
+| `inverse` | Unit | Multiply original by inverse → identity |
+| `transpose` | Unit | Transpose then transpose again = original |
+| `transform(vector)` | Unit | Transform (1,0,0,0) by identity, get same |
+
+#### 4.5.3 SO4Rotation
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `rotateXY`, `rotateYZ`, etc. | Unit | Rotate a unit vector by 90°, check coordinates; rotate by 360° returns original |
+
+#### 4.5.4 AutoDiff
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `derivative`, `gradient`, `jacobian` | Unit | Differentiate f(x)=x² at x=2 → derivative 4; compute gradient of a scalar field numerically vs auto‑diff |
+
+### 4.6 Rendering Module
+
+Rendering is inherently visual; we test via:
+
+- **Initialization tests**: Call `initialize()` and check that no OpenGL error occurs, and `isInitialized()` returns true.
+- **Smoke tests**: Render a known metric to an off‑screen framebuffer, capture the image (using `glReadPixels`), and compare against a reference image with tolerance (structural similarity index > 0.95).
+- **Parameter tests**: After changing `setGridResolution` or `setCurvatureScale`, verify that the number of vertices in the generated mesh changes accordingly (via inspection of internal geometry arrays).
+
+### 4.7 VR Module (MultiUserServer)
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `start(port)` | Unit/Integration | Start server on a free port, check that it accepts connections (use a dummy client) |
+| `stop()` | Unit | After stop, new connections are refused |
+| `broadcastState(state)` | Integration | Connect a client, broadcast, verify client receives the state |
+| `handleClientMessage(userId, msg)` | Integration | Send a message from client, check server’s log |
+
+### 4.8 ML Module
+
+#### 4.8.1 GeodesicNeuralODE
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `loadModel(path)` | Unit | Valid ONNX model → true; invalid path → false |
+| `predict(start, velocity, tau, steps)` | Integration | Compare predicted trajectory with ground truth from GeodesicIntegrator; error should be within 5% for a simple Schwarzschild scenario |
+| `isLoaded()` | Unit | After load, returns true |
+
+#### 4.8.2 CurvatureNormalizingFlow
+
+| Function | Test Type | Key Test Cases |
+|----------|-----------|----------------|
+| `loadModel` | Unit | Same as above |
+| `detectAnomaly(features)` | Unit | Provide a vector of curvature invariants from a normal GR spacetime → low anomaly score; provide a vector from a modified theory → high score |
+
+## 5. UI Automation Plan
+
+Because QuantumVerse’s UI is built with Dear ImGui, direct widget access from test code is possible via `ImGui::GetCurrentContext()`. The plan:
+
+1. **Headless rendering**: Use a headless OpenGL context (e.g., OSMesa or EGL) to run the app without a physical display.
+2. **Scripted interaction**: Inject GLFW input events (`glfwSetKey`, `glfwSetCursorPos`) and call `UI4D_ImGui::render()` each frame.
+3. **Visual validation**: Capture framebuffer content using `glReadPixels` and compare to baseline images stored in `tests/baseline_ui/`. Tolerance set to 2% pixel difference.
+4. **Property checks**: Query ImGui internal state (e.g., `ImGuiWindow::Active`, `ImGui::GetIO().WantCaptureMouse`) to verify UI logic.
+
+Test suites for each panel:
+
+- **4D View**: Rotate camera, verify that curvature grid shader is active and a non‑black image is produced.
+- **Slice Views**: Change slice offset, check that the displayed 4D coordinate label updates.
+- **Planck Microscope**: Zoom scale changes, verify that the LOD level text matches.
+- **Discovery Panel**: After running `detectAnomaly`, check that the anomaly table contains a new entry.
+
+## 6. Performance & Stress Testing
+
+### 6.1 Benchmarks (to be added to `tests/test_performance_baseline.cpp`)
+
+| Target Function | Metric | Threshold |
+|-----------------|--------|-----------|
+| `Event4D::intervalSquared` | 100,000 calls | < 10 ms |
+| `MetricTensor::schwarzschild` creation | 1,000 creations | < 50 ms |
+| `GeodesicIntegrator::integrate` (timelike, 1000 steps) | Single integration | < 200 ms |
+| `CausalSetEngine::grow(1000)` | 1000 elements | < 500 ms |
+| `CurvatureRenderer::render` (1024×768) | Per frame | < 16 ms |
+
+### 6.2 Stress Scenarios
+
+- Grow causal set to 1,000,000 elements and measure memory/timing.
+- Integrate 10,000 geodesics simultaneously (simulate spray of particles).
+- Keep 100 anomaly alerts active and render FloatingPanels.
+- Run all 10 discovery instruments on a complex metric and check for deadlocks.
+
+### 6.3 Memory Leak Checks
+
+- Run the entire test suite under AddressSanitizer (`build_asan` configuration) and Valgrind on Linux.
+- Run long‑duration UI session (10,000 frames) and monitor `PerformanceMonitor::memoryUsedMB` growth (should stay below 2 GB baseline + 10% after 30 minutes).
+
+## 7. Build & Deployment Tests
+
+| Test | Method |
+|------|--------|
+| **Clean build** | Clone fresh, `cmake .. -DQUANTUMVERSE_USE_IMGUI=ON -DQUANTUMVERSE_BUILD_TESTS=ON`, build with no errors |
+| **Install package** | `cpack -C Release`, verify `quantumverse_imgui.exe` and dependencies exist |
+| **Cross‑platform** | Run CI on Windows‑MSVC, Ubuntu‑GCC, macOS‑Clang |
+| **Static analysis** | Run Clang‑Tidy, Cppcheck; ensure zero new warnings |
+| **Fuzz testing** | Use libFuzzer on `Event4D` parsing, metric construction |
+
+## 8. Gap Analysis and Coverage Tracking
+
+We will maintain a matrix linking each API function to one or more tests. Using `gcov/lcov` we will aim for **>90% line coverage** for all non‑UI modules, and >80% for UI modules (including ImGui rendering code).
+
+Current status (51 tests):  
+- Core physics: good  
+- Quantum gravity: partial (only CDT, SpinFoam, GFT, CausalSet have basic tests)  
+- Discovery: limited  
+- UI: 0 automated UI tests  
+- VR, ML: minimal  
+
+**Missing tests to be developed** (estimated ~120 new test cases) are detailed in section 4 above.
+
+## 9. Implementation Roadmap
+
+| Phase | Duration | Activities |
+|-------|----------|------------|
+| **Phase 1: Setup** | Week 1 | Set up test infrastructure: headless OpenGL context, image comparison library, CI environment with all platforms |
+| **Phase 2: Unit Tests – Spacetime & Math** | Weeks 2‑3 | Implement all missing unit tests for Event4D, MetricTensor, LightCone, Vector4D, Matrix4x4, SO4Rotation, AutoDiff |
+| **Phase 3: Unit Tests – Physics & Quantum Gravity** | Weeks 4‑5 | Complete geodesic integrator tests (including differentiable), add thorough tests for all 4 quantum gravity engines, including spectral dimension, Hausdorff, geometry visualization |
+| **Phase 4: Unit Tests – Discovery & ML** | Weeks 6‑7 | Test DiscoveryEngine, TheoryManager, all 10+ instruments, GeodesicNeuralODE, CurvatureNormalizingFlow |
+| **Phase 5: Integration Tests** | Week 8 | Test interactions: geodesic + metric, discovery engine + instruments + hypothesis testing, VR server/client, neural ODE vs classical integrator |
+| **Phase 6: UI Automation** | Weeks 9‑10 | Develop ImGui test harness, create baseline images, implement panel‑level UI tests |
+| **Phase 7: Performance & Stress** | Week 11 | Add benchmarks, run stress tests, fix any regressions |
+| **Phase 8: Acceptance & Deployment** | Week 12 | End‑to‑end workflows (tutorial playthrough, discovery scan), full CI pipeline validation, release candidate |
+| **Continuous** | Ongoing | Run tests on every commit, maintain coverage dashboard, fuzz‑test nightly |
+
+## 10. Success Criteria
+
+- All functions in the API Reference are covered by at least one automated test.
+- Overall code coverage > 90% (non‑UI) and > 80% (UI).
+- Zero critical or high‑severity bugs found during final acceptance runs.
+- Performance benchmarks meet the thresholds listed in section 6.
+- The system passes cross‑platform CI on Windows, Linux, and macOS.
+
+## 11. Risk Mitigation
+
+| Risk | Mitigation |
+|------|------------|
+| UI tests flaky due to rendering differences | Use structural similarity index (SSIM) with a generous tolerance (0.98); periodically update baselines |
+| Headless OpenGL may not support all features | Provide a fallback using a virtual framebuffer (OSMesa) |
+| Time‑consuming performance benchmarks | Run benchmarks only on PRs to main, or nightly |
+| Missing ML models for ONNX tests | Include a tiny dummy model (2‑layer NN) in test data |
+
+This plan ensures that QuantumVerse can be confidently declared “fully functional” and production‑ready.

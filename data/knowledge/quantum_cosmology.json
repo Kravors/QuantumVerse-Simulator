@@ -1,0 +1,126 @@
+{
+  "concepts": [
+    {
+      "name": "Wheeler-DeWitt Equation",
+      "description": "The fundamental equation of quantum gravity that describes the quantum state of the universe",
+      "equation": "H hat Psi = 0",
+      "key_points": [
+        "Hamiltonian constraint in canonical quantum gravity",
+        "No time parameter - timeless formulation",
+        "Wavefunctional depends on 3-metric g_ij",
+        "Represents superposition of all geometries"
+      ]
+    },
+    {
+      "name": "Minisuperspace Model",
+      "description": "Simplified truncation of full quantum gravity to homogeneous isotropic metrics",
+      "equation": "ds^2 = -dt^2 + a(t)^2 dSigma_k^2",
+      "key_points": [
+        "Friedmann-Robertson-Walker metric",
+        "Scale factor a(t) as configuration variable",
+        "Scalar field phi as additional degree of freedom",
+        "Reduces infinite-dimensional problem to finite dimensions"
+      ]
+    },
+    {
+      "name": "Loop Quantum Cosmology (LQC)",
+      "description": "Quantum cosmology based on loop quantum gravity techniques",
+      "key_points": [
+        "Holonomy corrections replace point holonomies",
+        "Singularity resolution via quantum bounce",
+        "Discrete geometry at Planck scale",
+        "Effective equations derived from polymer-like representations"
+      ]
+    },
+    {
+      "name": "Hartle-Hawking Wavefunction",
+      "description": "No-boundary proposal for the wavefunction of the universe",
+      "equation": "Psi propto exp(-S_E[h]/hbar)",
+      "key_points": [
+        "Euclidean signature in imaginary time",
+        "Compact Euclidean 4-geometry as saddle point",
+        "Suppression of large fluctuations",
+        "Predicts low entropy initial state"
+      ]
+    }
+  ],
+  "equations": [
+    {
+      "name": "Wheeler-DeWitt Equation (Minisuperspace)",
+      "latex": "partial^2 Psi / partial a^2 + partial^2 Psi / partial phi^2 + (a sin(a phi))/(a phi) Psi = 0",
+      "description": "Simplified form for a simple minisuperspace model with scale factor a and scalar field phi",
+      "variables": ["a", "phi", "Psi"]
+    },
+    {
+      "name": "LQC Effective Hamiltonian Constraint",
+      "latex": "H_eff = -p_phi^2/(2 kappa gamma^2 rho_bar) + rho_c/(3 kappa) sin^2(lambda_bar c) + rho_c/(3 kappa) lambda_bar^2 c cos(lambda_bar c) = 0",
+      "description": "Effective constraint equation in LQC with holonomy corrections",
+      "variables": ["c", "p_phi", "rho_bar"]
+    },
+    {
+      "name": "LQC Bounce Condition",
+      "latex": "rho = rho_c/2",
+      "description": "Density at which classical Big Bang singularity is replaced by quantum bounce",
+      "variables": ["rho", "rho_c"]
+    },
+    {
+      "name": "Hartle-Hawking No-Boundary Action",
+      "latex": "S_E = 1/(8 pi G) int d^4x sqrt(g)(R - 2 Lambda)",
+      "description": "Euclidean Einstein-Hilbert action for no-boundary proposal",
+      "variables": ["R", "Lambda", "G"]
+    }
+  ],
+  "parameters": [
+    {
+      "name": "Cosmological Constant",
+      "symbol": "Lambda",
+      "description": "Cosmological constant",
+      "units": "1/m^2",
+      "typical_value": "1.1e-52"
+    },
+    {
+      "name": "Scalar Field Mass",
+      "symbol": "m_phi",
+      "description": "Mass of the inflaton scalar field",
+      "units": "kg",
+      "typical_value": "varies"
+    },
+    {
+      "name": "Immirzi Parameter",
+      "symbol": "gamma",
+      "description": "Discrete parameter in LQG",
+      "units": "dimensionless",
+      "typical_value": "0.274"
+    },
+    {
+      "name": "Critical Density",
+      "symbol": "rho_c",
+      "description": "Maximum density in LQC before bounce",
+      "units": "kg/m^3",
+      "typical_value": "0.41 rho_crit"
+    },
+    {
+      "name": "Planck Length",
+      "symbol": "l_p",
+      "description": "Fundamental length scale in quantum gravity",
+      "units": "m",
+      "typical_value": "1.616e-35"
+    }
+  ],
+  "models": [
+    {
+      "name": "Simple Minisuperspace",
+      "description": "FRW with scalar field, no spatial curvature",
+      "lagrangian": "L = -3a da/dt^2 + a^3 (1/2 dphi/dt^2 - V(phi))",
+      "hamiltonian": "H = -p_a^2/(24a) + p_phi^2/(2a^3) + a^3 V(phi) = 0"
+    },
+    {
+      "name": "LQC Effective Dynamics",
+      "description": "Effective equations with holonomy corrections",
+      "equations": [
+        "da/dt^2 = 8 pi G/3 rho (1 - rho/rho_c)",
+        "dphi/dt^2 = p_phi^2/(2a^6)"
+      ]
+    }
+  ]
+}

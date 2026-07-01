@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuantumVerse Diagnostic Report</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #0a0a1a; color: #eee; }
+        h1 { color: #00d4ff; border-bottom: 2px solid #00d4ff; padding-bottom: 10px; }
+        h2 { color: #7b68ee; margin-top: 30px; }
+        .section { margin: 20px 0; padding: 15px; background: #16213e; border-radius: 8px; }
+        .status-ok { color: #51cf64; font-weight: bold; }
+        .status-failed { color: #ff6b6b; font-weight: bold; }
+        .status-skipped { color: #ffd43b; font-weight: bold; }
+        .status-error { color: #ff6b6b; font-weight: bold; }
+        .status-timeout { color: #ffd43b; font-weight: bold; }
+        .summary { display: flex; gap: 20px; flex-wrap: wrap; }
+        .summary-box { background: #16213e; padding: 15px 25px; border-radius: 8px; text-align: center; }
+        .summary-box.passed { border-left: 4px solid #51cf64; }
+        .summary-box.failed { border-left: 4px solid #ff6b6b; }
+        .summary-box.skipped { border-left: 4px solid #ffd43b; }
+        pre { background: #000; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 300px; }
+        .trend-chart { height: 100px; background: linear-gradient(to right, #16213e, #0f172a); margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>QuantumVerse Diagnostic Report</h1>
+    <p>Generated: 2026-06-30T03:29:36.709092</p>
+    
+    <div class="summary">
+        <div class="summary-box passed">
+            <h3>1</h3>
+            <p>Passed</p>
+        </div>
+        <div class="summary-box failed">
+            <h3>0</h3>
+            <p>Failed</p>
+        </div>
+        <div class="summary-box skipped">
+            <h3>5</h3>
+            <p>Skipped</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Static Analysis (0/2)</h2>
+
+        <div style="margin: 10px 0; padding: 10px; background: #0f172a; border-radius: 4px;">
+            <p><strong>clang_tidy</strong>: <span class="status-skipped">skipped</span></p>
+            <pre></pre>
+        </div>
+
+        <div style="margin: 10px 0; padding: 10px; background: #0f172a; border-radius: 4px;">
+            <p><strong>cppcheck</strong>: <span class="status-skipped">skipped</span></p>
+            <pre></pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Dynamic Analysis (1/1)</h2>
+
+        <div style="margin: 10px 0; padding: 10px; background: #0f172a; border-radius: 4px;">
+            <p><strong>default</strong>: <span class="status-passed">passed</span></p>
+            <pre>test_anomaly_detection.exe: Running anomaly detection tests...
+test_discovery_engine_init: PASSED
+test_schwarzschild_anomaly: PASSED
+test_hypothesis_management: PASSED
+test_anomaly_classification: PASSED
+test_detect_anomaly: PASSED
+All anomaly detection tests passed!
+ [CurvatureNormalizingFlow] Constructor: Starting
+[CurvatureNormalizingFlow] Constructor: Done
+[CurvatureNormalizingFlow] Constructor: Starting
+[CurvatureNormalizingFlow] Constructor: Done
+[CurvatureNormalizingFlow] Constructor: Sta
+test_api_contract.exe: === API Contract Tests ===
+
+[API Contract] Event4D
+  [PASS] Event4D API contract verified
+[API Contract] MetricTensor
+  [PASS] MetricTensor API contract verified
+[API Contract] CurvatureCalculator
+  [PASS] CurvatureCalculator API contract verified
+[API Contract] Edge Cases (NaN/Inf)
+  [PASS] Edge cases handled gracefully
+
+=== ALL API CONTRACT TESTS PASSED ===
+ 
+test_autodiff.exe: QuantumVerse Auto-Differentiation - Test Suite
+===============================================
+=== ADVariable Basic Test ===
+[PASS] x*x: value=4.0, derivative=4.0
+[PASS] x+5: value=7.0, derivative=1.0
+[PASS] sin(x): value=0.909297, derivative=-0.416147
+
+=== ADVariable Multivariate Test ===
+[PASS] f(x,y,z)=x²+y²+z²: value=29, gradient=(4,6,8)
+
+=== Product Rule Test ===
+[PASS] x*y: value=12, derivative=7
+
+=== Chain Rule Test ===
+[PASS] exp(x²): value=54.5982, derivative=218.
+test_bayesian_evidence.exe: === BayesianEvidenceCalculator Test Suite ===
+
+Test 1: Grid integration for linear model (y = a*x + b)
+  Log evidence (log Z) = -6.20715
+  Evidence (Z)         = 0.00201497
+  MAP a                = 2.06897
+  MAP b                = -0.172414
+  Runtime              = 0 s
+  Valid                = yes
+  ✓ MAP estimates within tolerance
+
+Test 2: Model comparison (identical models)
+  logK = 0 (Not worth more than a bare mention)
+  ✓ Identical models yield K ≈ 1
+
+Test 
+test_causal_set.exe: QuantumVerse Causal Set Engine - Test Suite
+==========================================
+
+[</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Ui Testing (0/1)</h2>
+
+        <div style="margin: 10px 0; padding: 10px; background: #0f172a; border-radius: 4px;">
+            <p><strong>interaction</strong>: <span class="status-skipped">skipped</span></p>
+            <pre></pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Fuzzing (0/1)</h2>
+
+        <div style="margin: 10px 0; padding: 10px; background: #0f172a; border-radius: 4px;">
+            <p><strong>targets</strong>: <span class="status-skipped">skipped</span></p>
+            <pre></pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Performance (0/1)</h2>
+
+        <div style="margin: 10px 0; padding: 10px; background: #0f172a; border-radius: 4px;">
+            <p><strong>benchmarks</strong>: <span class="status-skipped">skipped</span></p>
+            <pre></pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Trend Analysis</h2>
+        <p>Last 5 runs:</p>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="border-bottom: 1px solid #7b68ee;">
+                <th style="text-align: left; padding: 8px;">Date</th>
+                <th style="text-align: center; padding: 8px;">Passed</th>
+                <th style="text-align: center; padding: 8px;">Failed</th>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #16213e;">
+                <td style="padding: 8px;">2026-06-30</td>
+                <td style="text-align: center; padding: 8px; color: #51cf64;">0</td>
+                <td style="text-align: center; padding: 8px; color: #ff6b6b;">0</td>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #16213e;">
+                <td style="padding: 8px;">2026-06-30</td>
+                <td style="text-align: center; padding: 8px; color: #51cf64;">0</td>
+                <td style="text-align: center; padding: 8px; color: #ff6b6b;">0</td>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #16213e;">
+                <td style="padding: 8px;">2026-06-30</td>
+                <td style="text-align: center; padding: 8px; color: #51cf64;">0</td>
+                <td style="text-align: center; padding: 8px; color: #ff6b6b;">0</td>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #16213e;">
+                <td style="padding: 8px;">2026-06-30</td>
+                <td style="text-align: center; padding: 8px; color: #51cf64;">0</td>
+                <td style="text-align: center; padding: 8px; color: #ff6b6b;">1</td>
+            </tr>
+
+            <tr style="border-bottom: 1px solid #16213e;">
+                <td style="padding: 8px;">2026-06-30</td>
+                <td style="text-align: center; padding: 8px; color: #51cf64;">1</td>
+                <td style="text-align: center; padding: 8px; color: #ff6b6b;">0</td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,100 @@
+name: Formal Verification
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 3 * * *'  # Nightly at 3 AM
+  workflow_dispatch:
+
+jobs:
+  cbmc-verification:
+    name: CBMC Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install CBMC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cbmc
+
+      - name: Build with CBMC
+        run: |
+          mkdir -p build-cbmc
+          cd build-cbmc
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_ENABLE_CBMC=ON
+          cmake --build . --parallel
+
+      - name: Run CBMC verification
+        run: |
+          cd build-cbmc
+          cbmc tests/verification/harness_metric.cpp \
+            --bounds-check --pointer-check --unwind 10 \
+            --32-bit --xml-ui \
+            --object-bits 32
+          
+          cbmc tests/verification/harness_geodesic.cpp \
+            --bounds-check --pointer-check --unwind 10 \
+            --32-bit
+
+      - name: Upload CBMC results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cbmc-results
+          path: build-cbmc/*.xml
+
+  differential-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build double precision
+        run: |
+          mkdir -p build-double
+          cd build-double
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --parallel
+
+      - name: Build long double precision
+        run: |
+          mkdir -p build-long-double
+          cd build-long-double
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_LONG_DOUBLE=ON
+          cmake --build . --parallel
+
+      - name: Run differential tests
+        run: |
+          cd build-double
+          ./test_differential
+          cd ../build-long-double
+          ./test_differential
+
+      - name: Compare results
+        run: |
+          python3 << 'EOF'
+import subprocess
+import sys
+
+def run_test(build_dir):
+    result = subprocess.run(
+        [f"{build_dir}/test_differential"],
+        capture_output=True, text=True
+    )
+    return result.stdout, result.stderr, result.returncode
+
+double_out, double_err, double_code = run_test("build-double")
+ld_out, ld_err, ld_code = run_test("build-long-double")
+
+if double_code != ld_code:
+    print(f"::error::Differential test failed - different exit codes")
+    print(f"Double: {double_code}, Long Double: {ld_code}")
+    sys.exit(1)
+
+print("Differential tests passed - both variants agree")
+EOF

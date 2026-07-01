@@ -1,0 +1,74 @@
+name: Pull Request Diagnostics
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  pr-diagnostics:
+    name: PR Diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev \
+            libdouble-conversion-dev ninja-build ccache clang-tidy cppcheck python3-pip
+          pip3 install semgrep safety
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_FLAGS="-Wall -Wextra"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run validation tests
+        working-directory: build
+        run: |
+          ctest -R "Test" --output-on-failure -j $(nproc)
+
+      - name: Run ASan fast subset
+        run: |
+          cmake -B build_san -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_ASAN=ON
+          cmake --build build_san --parallel
+          cd build_san
+          export ASAN_OPTIONS=detect_leaks=0:halt_on_error=1
+          timeout 300 ctest --output-on-failure -j $(nproc) || true
+
+      - name: Static analysis (clang-tidy)
+        working-directory: build
+        run: |
+          clang-tidy -p . ../src/utils/Telemetry.cpp \
+            --checks='bugprone-*,performance-*,modernize-*' \
+            --warnings-as-errors='*' --quiet || true
+
+      - name: Static analysis (cppcheck)
+        run: |
+          cppcheck --enable=warning,style,performance \
+            --inconclusive --suppress=missingIncludeSystem \
+            --platform=unix64 src/ || true
+
+      - name: Coverage check
+        working-directory: build
+        run: |
+          cmake -B build_cov -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake --build build_cov --parallel
+          cd build_cov
+          lcov --capture --directory . --output-file coverage.info || true
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info || true
+          lcov --summary coverage.info || true

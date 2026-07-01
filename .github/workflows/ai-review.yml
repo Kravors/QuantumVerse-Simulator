@@ -1,0 +1,131 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install openai diff-cover pyyaml
+
+      - name: Run static analysis
+        id: analysis
+        run: |
+          echo "Running CBMC verification..."
+          if command -v cbmc &> /dev/null; then
+            cbmc tests/verification/harness_metric.cpp --bounds-check --pointer-check --unwind 10 --32-bit || true
+          fi
+          
+          echo "Running clang-tidy..."
+          if command -v clang-tidy &> /dev/null; then
+            find src -name "*.cpp" -o -name "*.h" | head -5 | xargs clang-tidy -p . || true
+          fi
+
+      - name: AI Bug Detection
+        id: ai-bug-detect
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python3 << 'EOF'
+import os
+import openai
+import subprocess
+
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+
+pr_diff = subprocess.getoutput("git diff origin/main...HEAD --stat")
+changed_files = [f for f in pr_diff.split('\n') if f.strip() and not f.startswith(' ')]
+
+if not openai.api_key:
+    print("::warning::OPENAI_API_KEY not set - skipping AI review")
+    exit(0)
+
+prompt = f"""
+Review this C++17 code for bugs, performance issues, and style violations.
+Focus on: memory safety, undefined behavior, physics correctness, and GR validation.
+
+Changed files:
+{pr_diff[:3000]}
+
+Provide a brief summary of issues found.
+"""
+
+try:
+    response = openai.ChatCompletion.create(
+        model="gpt-4-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=500
+    )
+    review = response.choices[0].message['content']
+    print(review)
+    
+    with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+        f.write(f"### AI Code Review\n\n{review}\n\n")
+except Exception as e:
+    print(f"AI review failed: {e}")
+    print("::warning::AI review failed")
+EOF
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+            if (fs.existsSync(summaryPath)) {
+              const summary = fs.readFileSync(summaryPath, 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## AI Code Review\n\n${summary}`
+              });
+            }
+        if: always()
+
+  risk-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Analyze code churn
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | wc -l)
+          TOTAL_CHANGED=$(git diff --numstat origin/main...HEAD | awk '{sum += $1 + $2} END {print sum}')
+          echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
+          echo "TOTAL_CHANGED=$TOTAL_CHANGED" >> $GITHUB_ENV
+      
+      - name: Risk classification
+        run: |
+          if [ "$TOTAL_CHANGED" -gt 1000 ]; then
+            echo "HIGH_RISK=true" >> $GITHUB_ENV
+          elif [ "$TOTAL_CHANGED" -gt 100 ]; then
+            echo "MEDIUM_RISK=true" >> $GITHUB_ENV
+          else
+            echo "LOW_RISK=true" >> $GITHUB_ENV
+          fi
+          echo "Risk level: $TOTAL_CHANGED lines changed"
+          
+      - name: Request extra review
+        if: env.HIGH_RISK == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '@${context.payload.pull_request.user.login} - This PR has high code churn. Please ensure all tests pass and consider requesting additional review.'
+            });

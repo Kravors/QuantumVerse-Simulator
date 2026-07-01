@@ -1,0 +1,71 @@
+{
+    "developer_profiles": {
+        "default": {
+            "build_type": "Release",
+            "parallel_jobs": 8,
+            "compiler_flags": {
+                "msvc": ["/O2", "/GL", "/arch:AVX2"],
+                "gcc": ["-O3", "-march=native"],
+                "clang": ["-O3", "-march=native"]
+            }
+        },
+        "debug": {
+            "build_type": "Debug",
+            "parallel_jobs": 4,
+            "compiler_flags": {
+                "msvc": ["/Zi", "/Od", "/RTC1"],
+                "gcc": ["-g", "-O0"],
+                "clang": ["-g", "-O0"]
+            }
+        },
+        "ci": {
+            "build_type": "Release",
+            "parallel_jobs": 8,
+            "run_tests": true,
+            "generate_report": true
+        },
+        "performance": {
+            "build_type": "Release",
+            "parallel_jobs": 16,
+            "compiler_flags": {
+                "msvc": ["/O2", "/GL", "/arch:AVX512", "/fp:fast"],
+                "gcc": ["-O3", "-march=native", "-ffast-math"],
+                "clang": ["-O3", "-march=native", "-ffast-math"]
+            }
+        }
+    },
+    "test_categories": {
+        "physics_validation": [
+            "MercuryPrecessionTest",
+            "LightDeflectionTest",
+            "GravitationalRedshiftTest",
+            "FrameDraggingTest"
+        ],
+        "quantum_gravity": [
+            "CDTTest",
+            "SpinFoamTest",
+            "CausalSetTest",
+            "GFTTest"
+        ],
+        "ml_inference": [
+            "NeuralODETest",
+            "NeuralODEONNXTest",
+            "NeuralODEAccuracyTest"
+        ],
+        "fast": [
+            "MetricTensorTest",
+            "Event4DTest",
+            "GeodesicTest"
+        ]
+    },
+    "analytics": {
+        "history_file": "build_history.json",
+        "max_history_entries": 100,
+        "report_format": "json"
+    },
+    "notifications": {
+        "enabled": false,
+        "slack_webhook": "",
+        "discord_webhook": ""
+    }
+}

@@ -1,0 +1,13 @@
+{
+  "train_loss": 0.00018770248607324902,
+  "val_error": 0.00018770248607324902,
+  "num_epochs": 30,
+  "input_dim": 10,
+  "output_dim": 4,
+  "hidden_dim": 64,
+  "num_layers": 2,
+  "date_trained": "2026-05-14",
+  "dataset": "data/geodesics_1M.h5",
+  "input_normalization": "zero_mean_unit_variance",
+  "output_normalization": "zero_mean_unit_variance"
+}

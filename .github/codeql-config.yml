@@ -1,0 +1,33 @@
+name: CodeQL Configuration
+
+# CodeQL analysis configuration for QuantumVerse
+# This file configures which queries to run and how to analyze the codebase
+
+queries:
+  # Use the default C++ queries
+  - uses: security-and-quality
+
+# Paths to analyze
+paths:
+  - src/
+  - tests/
+
+# Paths to exclude from analysis
+paths-ignore:
+  - third_party/
+  - build/
+  - docs/
+
+# Query filters
+query-filters:
+  # Focus on security-related queries
+  - category: security
+    severity: error
+  - category: security
+    severity: warning
+  - category: security
+    severity: recommendation
+
+# Configuration for specific query packs
+packs:
+  - codeql/cpp-queries: 0.0.0#main

@@ -1,0 +1,215 @@
+name: Nightly Deep Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  nightly-sanitizers:
+    name: Sanitizer Deep Scan
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache valgrind
+
+      - name: ASan nightly
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_ASAN=ON \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=address -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
+          cmake --build build --config Debug --parallel
+          export ASAN_OPTIONS=detect_leaks=1:abort_on_error=0:symbolize=1:log_path=asan_report
+          timeout 14400 ctest --output-on-failure -j $(nproc)
+
+      - name: UBSan nightly
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_UBSAN=ON \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=undefined -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=undefined"
+          cmake --build build --config Debug --parallel
+          export UBSAN_OPTIONS=abort_on_error=0:print_stacktrace=1:log_path=ubsan_report
+          timeout 14400 ctest --output-on-failure -j $(nproc)
+
+      - name: TSan nightly
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_TSAN=ON \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=thread -g" \
+            -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=thread"
+          cmake --build build --config Debug --parallel
+          timeout 14400 ctest --output-on-failure -j 2
+
+      - name: Valgrind nightly
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake --build build --config Release --parallel
+          mkdir -p valgrind-reports
+          for test in $(find build -name "test_*" -type f -executable | head -20); do
+            valgrind --leak-check=full --show-leak-kinds=all \
+              --log-file="valgrind-reports/$(basename $test).valgrind.log" \
+              --error-exitcode=1 "$test" || true
+          done
+
+      - name: Upload sanitizer and valgrind reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-sanitizer-reports
+          path: |
+            asan_report*
+            ubsan_report*
+            valgrind-reports/
+
+  nightly-benchmarks:
+    name: Nightly Benchmarks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache python3-pip
+          pip3 install numpy
+
+      - name: Configure and build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake --build build --config Release --parallel
+
+      - name: Run performance baseline tests
+        working-directory: build
+        run: |
+          ./test_performance_baseline
+
+      - name: Run benchmark suite
+        working-directory: build
+        run: |
+          python3 ../scripts/diagnose_all.py --bench || true
+
+      - name: Compare against baseline
+        run: |
+          python3 scripts/analyze_traces.py --compare-baseline tests/baselines/performance_baseline.json || true
+
+      - name: Upload benchmark reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-benchmark-reports
+          path: |
+            benchmark_report*
+            performance_baseline.json
+
+  nightly-golden-master:
+    name: Golden Master UI Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
+            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
+            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            ninja-build ccache python3-pip
+          pip3 install imagehash Pillow numpy
+
+      - name: Configure and build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake --build build --config Release --parallel
+
+      - name: Run golden master tests
+        run: |
+          python3 scripts/golden_master_test.py ui_main_viewport || true
+          python3 scripts/golden_master_test.py ui_discovery_panel || true
+          python3 scripts/golden_master_test.py ui_physics_viewport || true
+
+      - name: Upload golden master diff
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-master-diff
+          path: scripts/test_data/current/
+        continue-on-error: true
+
+      - name: Update golden masters (on approval)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          for test in ui_main_viewport ui_discovery_panel ui_physics_viewport; do
+            python3 scripts/golden_master_test.py "$test" --update-golden || true
+          done
+
+      - name: Upload golden master updates
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: nightly-golden-masters
+          path: scripts/test_data/golden_master/
+        continue-on-error: true
+
+  nightly-fuzz:
+    name: Nightly Differential Fuzzing
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install fuzzer dependencies
+        run: |
+          sudo apt-get update
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
+          sudo apt-get update
+          sudo apt-get install -y clang-17 llvm-17-dev libclang-rt-17-dev
+
+      - name: Build fuzzers
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DQUANTUMVERSE_USE_FUZZER=ON \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang
+          cmake --build build --parallel
+
+      - name: Differential fuzzing
+        run: |
+          cd build
+          timeout 14400 ./fuzz_differential -max_total_time=14400 -detect_leaks=1 || true
+
+      - name: Upload fuzz corpus and crashes
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-fuzz-results
+          path: |
+            crash-*
+            *.log
