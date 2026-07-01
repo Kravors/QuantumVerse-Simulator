@@ -476,3 +476,5 @@ deploy/windows/qml/
 docs/html/
 docs/latex/
 third_party/onnxruntime/-e "\n# Large third-party libraries (too large for HTTP push)\nthird_party/glad/\nthird_party/glfw/\nthird_party/imgui/\nthird_party/implot/\nthird_party/onnxruntime_src/\nthird_party/onnxruntime/\n\n# Build artifacts and models\n*.onnx\n*.h5\n*.pth\n*.pt\nmodels/**" 
+t h i r d _ p a r t y /  
+ 
