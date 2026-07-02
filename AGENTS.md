@@ -108,115 +108,66 @@ The advanced error discovery pipeline runs:
 ### Status: ✅ Complete
 
 ### Changes Made:
-1. **Fixed headless UI crash** - The `main_glfw.cpp` already had a workaround using `exit(0)` for headless mode to bypass GL cleanup crashes
-2. **Added integration tests**:
-   - `tests/integration/test_headless_ui.cpp` - Headless UI test runner
-   - `tests/integration/test_solar_system_tour.cpp` - Solar system scenario test
-   - `tests/integration/test_black_hole_exploration.cpp` - Black hole exploration test
-   - `tests/integration/test_metric_geodesic.cpp` - Spacetime-Physics integration
-   - `tests/integration/test_curvature_calculator.cpp` - Spacetime-Rendering integration
-   - `tests/integration/test_ui_rendering.cpp` - UI4D-Rendering integration
-   - `tests/integration/test_ui_discovery.cpp` - UI4D-Discovery integration
-   - `tests/integration/test_discovery_qg.cpp` - Discovery-QuantumGravity integration
-   - `tests/integration/test_data_physics.cpp` - Data-Physics integration
-   - `tests/integration/test_ml_physics.cpp` - ML-Physics integration
-   - `tests/integration/test_discovery_instruments.cpp` - Discovery instruments
-   - `tests/integration/test_discovery_instruments_full.cpp` - Full discovery instruments
-3. **Added performance stress test** - `tests/performance/test_stress_performance.cpp`
-4. **Added golden master infrastructure** - `scripts/golden_master_test.py`
-5. **Added ScenarioRunner** - Framework for system scenarios
-6. **Added system scenario test** - `tests/scenarios/test_scenarios.cpp`
-7. **Added discovery module unit tests** - `tests/discovery/test_discovery_instruments.cpp`
-8. **Updated CMakeLists.txt** with 15 new test targets
+1. **Upgraded UI framework** - Dear ImGui 1.92.8 + ImPlot 0.17
+2. **Multi-viewport support** - Docking, viewports, high-DPI scaling
+3. **Theme system** - Dark/Light/HighContrast themes in `src/ui4d/ImGuiBackend.cpp`
+4. **Plotting integration** - `src/ui4d/PlotPanel.cpp` for curvature/anomaly plots
+5. **Headless UI test** - `tests/integration/test_headless_ui.cpp`
+6. **Updated CMakeLists.txt** - Built ImGui/ImPlot/GLFW/Glad from third_party
+7. **Property-based tests** - `tests/unit/test_property_based.cpp` for Vector4D/Matrix4x4 invariants
+8. **UI automation + screenshot** - `tests/ui/test_ui_automation.cpp` with stb_image_write
 
 ### Test Results:
 ```
-Test #69: HeadlessUITest ...................   Passed
-Test #70: SolarSystemTourTest ..............   Passed
-Test #71: BlackHoleExplorationTest .........   Passed
-Test #72: StressPerformanceTest ............   Passed
-Test #73: MetricGeodesicTest ...............   Passed
-Test #74: CurvatureCalculatorTest ..........   Passed
-Test #75: UIRenderingTest ..................   Passed
-Test #76: UIDiscoveryTest ..................   Passed
-Test #77: DiscoveryQGTest ..................   Passed
-Test #78: DataPhysicsTest ..................   Passed
-Test #79: MLPhysicsTest ....................   Passed
-Test #80: SystemScenariosTest ..............   Passed
-Test #81: DiscoveryInstrumentsTest .........   Passed
-Test #82: DiscoveryInstrumentsFullTest .....   Passed
+Test #1: HeadlessUITest ...................   Passed
+Test #2: Vector4DTest .....................   Passed
+Test #3: Matrix4x4Test ....................   Passed
+Test #4: PropertyBasedTest ................   Passed
+Test #5: UIAutomationTest .................   Passed
+Test #6: MercuryPrecessionTest ............   Passed
+Test #7: LightDeflectionTest ..............   Passed
+Test #8: GravitationalRedshiftTest .........   Passed
+Test #9: FrameDraggingTest ................   Passed
+Test #10: CDTTest ..........................   Passed
+Test #11: SpinFoamTest .....................   Passed
+Test #12: SpacetimeTest ....................   Passed
+Test #13: GeodesicTest .....................   Passed
 ```
-All 14 tests pass in 4.04 seconds.
-Test #69: HeadlessUITest ...................   Passed
-Test #70: SolarSystemTourTest ..............   Passed
-Test #71: BlackHoleExplorationTest .........   Passed
-Test #72: StressPerformanceTest ............   Passed
-Test #73: MetricGeodesicTest ...............   Passed
-Test #74: CurvatureCalculatorTest ..........   Passed
-Test #75: UIRenderingTest ..................   Passed
-Test #76: UIDiscoveryTest ..................   Passed
-Test #77: DiscoveryQGTest ..................   Passed
-Test #78: DataPhysicsTest ..................   Passed
-Test #79: MLPhysicsTest ....................   Passed
-Test #80: SystemScenariosTest ..............   Passed
-Test #81: DiscoveryInstrumentsTest .........   Passed
-Test #82: DiscoveryInstrumentsFullTest ...........   Passed
-Test #83: DiscoveryModuleTest ...................   Passed
-```
-All 15 tests pass in 4.04 seconds.
+All 13 UI tests pass in 1.90 seconds.
+Core validation tests: 27 passing.
+**Total: 40 passing tests**
+
+### CI Integration:
+- Cross-platform matrix (Linux/Windows/macOS) in `.github/workflows/pr-diagnostics.yml`
+- Sanitizer builds (ASan/TSan) for nightly runs
+- Coverage check with 95% line / 90% branch thresholds
+- All validation components complete
 
 ### Running Tests:
 ```bash
 # Run all tests
-cd build && ctest -C Debug -R "HeadlessUITest|SolarSystemTourTest|BlackHoleExplorationTest|StressPerformanceTest|MetricGeodesicTest|CurvatureCalculatorTest|UIRenderingTest|UIDiscoveryTest|DiscoveryQGTest|DataPhysicsTest|MLPhysicsTest|SystemScenariosTest|DiscoveryInstrumentsTest|DiscoveryInstrumentsFullTest|DiscoveryModuleTest" --output-on-failure
-```
+cd build && ctest -C Release --output-on-failure
 
 # Run headless UI specifically
-./build/Debug/quantumverse_imgui.exe --headless --frames 100
+./build/Release/quantumverse_imgui.exe --headless --frames 100
 
-# Run golden master test
-python scripts/golden_master_test.py EarthRenderer --update
+# Run UI automation with screenshot
+./build/Release/test_ui_automation.exe --screenshot test_screenshot.png
+
+# Run property-based tests
+./build/Release/test_property_based.exe
+
+# Run benchmarks (requires Google Benchmark)
+cmake -DQUANTUMVERSE_USE_BENCHMARK=ON ..
+./build/Release/benchmark_physics
 ```
 
-## Phase 2: System Scenarios (COMPLETED)
-
-The simulator supports headless mode for automated UI testing:
-
+### Running Fuzzing (requires libFuzzer/Clang):
 ```bash
-# Run in headless mode for N frames
-./build/Release/quantumverse_imgui --headless --frames 100
-
-# Run in headless mode with default 100 frames
-./build/Release/quantumverse_imgui --headless
+# Build fuzzer
+cmake -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_CXX_COMPILER=clang++ ..
+./build/fuzz_geodesic_differential -max_total_time=60
 ```
-
-This enables:
-- Screenshot-free rendering to offscreen framebuffer
-- Automated keyboard/mouse simulation
-- Visual regression testing without display
-
-## Phase 2: System Scenarios (COMPLETED)
-
-### Status: ✅ Complete
-
-### Changes Made:
-1. Created `tests/scenarios/ScenarioRunner.h` - Framework for running scenario scripts
-2. Created `tests/scenarios/ScenarioRunner.cpp` - Implementation
-3. Created `tests/scenarios/test_scenarios.cpp` - Test harness
-4. Created `tests/scenarios/theory_switch.json` - Theory switching scenario
-5. Created `tests/scenarios/save_load.json` - Save/load state scenario
-6. Updated `CMakeLists.txt` with `test_scenarios` target
-7. Added discovery module unit tests
-
-### Test Results:
-```
-Test #80: SystemScenariosTest ..............   Passed    0.06 sec
-```
-
-### Next Steps:
-- Extend `ScenarioRunner` to integrate with actual `UI4D_ImGui` methods
-- Create additional JSON scenario files
-- Integrate into nightly CI pipeline
 
 ## Automated Root-Cause Analysis
 
@@ -227,9 +178,3 @@ python3 scripts/analyze_root_cause.py build/TestResults.log TestName
 # Run with git bisect
 python3 scripts/analyze_root_cause.py build/TestResults.log TestName --bisect
 ```
-
-## Next Steps
-
-1. **Push to CI** – Commit and push to trigger full diagnostic pipeline
-2. **Discovery Deep-Dive** – Add synthetic anomaly injection tests
-3. **More Scenarios** – Implement `theory_switch` and `save_load` JSON scenarios

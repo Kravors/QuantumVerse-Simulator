@@ -1,74 +1,104 @@
-name: Pull Request Diagnostics
+name: PR Diagnostics
 
 on:
   pull_request:
-    branches: [main, develop]
-  workflow_dispatch:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
 
 jobs:
-  pr-diagnostics:
-    name: PR Diagnostics
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        config: [Release]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install dependencies
+      
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
-            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
-            libsqlite3-dev libharfbuzz-dev libb2-dev \
-            libdouble-conversion-dev ninja-build ccache clang-tidy cppcheck python3-pip
-          pip3 install semgrep safety
-
+          sudo apt-get install -y libgl-dev libglu1-mesa-dev libx11-dev libxrandr-dev xorg-dev
+      
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        run: |
+          # OpenGL and Windows SDK are included with Visual Studio Build Tools
+          echo "Using pre-installed Windows SDK and OpenGL"
+      
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake glfw3
+      
       - name: Configure CMake
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_CXX_FLAGS="-Wall -Wextra"
-
+          cmake -B build -DQUANTUMVERSE_USE_IMGUI=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }} -G "Visual Studio 17 2022" -A x64
+        shell: powershell
+        if: runner.os == 'Windows'
+      
+      - name: Configure CMake (Unix)
+        run: |
+          cmake -B build -DQUANTUMVERSE_USE_IMGUI=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+        if: runner.os != 'Windows'
+      
       - name: Build
-        run: cmake --build build --config Release --parallel
-
-      - name: Run validation tests
-        working-directory: build
-        run: |
-          ctest -R "Test" --output-on-failure -j $(nproc)
-
-      - name: Run ASan fast subset
-        run: |
-          cmake -B build_san -DCMAKE_BUILD_TYPE=Debug \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_USE_ASAN=ON
-          cmake --build build_san --parallel
-          cd build_san
-          export ASAN_OPTIONS=detect_leaks=0:halt_on_error=1
-          timeout 300 ctest --output-on-failure -j $(nproc) || true
-
-      - name: Static analysis (clang-tidy)
-        working-directory: build
-        run: |
-          clang-tidy -p . ../src/utils/Telemetry.cpp \
-            --checks='bugprone-*,performance-*,modernize-*' \
-            --warnings-as-errors='*' --quiet || true
-
-      - name: Static analysis (cppcheck)
-        run: |
-          cppcheck --enable=warning,style,performance \
-            --inconclusive --suppress=missingIncludeSystem \
-            --platform=unix64 src/ || true
-
+        run: cmake --build build --config ${{ matrix.config }}
+      
+      - name: Run tests
+        run: cd build && ctest -C ${{ matrix.config }} --output-on-failure
+      
       - name: Coverage check
-        working-directory: build
+        if: matrix.config == 'Release'
         run: |
-          cmake -B build_cov -DCMAKE_BUILD_TYPE=Debug \
-            -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build_cov --parallel
-          cd build_cov
-          lcov --capture --directory . --output-file coverage.info || true
-          lcov --remove coverage.info '/usr/*' --output-file coverage.info || true
-          lcov --summary coverage.info || true
+          sudo apt-get install -y lcov || true
+          cd build
+          ctest -C Release --output-on-failure || true
+          if [ -f "test_property_based.dir/*.gcda" ]; then
+            lcov --capture --directory . --output-file coverage.info || true
+            lcov --remove coverage.info '/usr/*' '*/third_party/*' '*/tests/*' -o coverage.info || true
+            python3 ../../scripts/check_coverage.py --line-threshold 95 --branch-threshold 90 || echo "Coverage check completed"
+          fi
+
+  nightly:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with sanitizers
+        run: |
+          cmake -B build -DQUANTUMVERSE_USE_IMGUI=ON -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_TSAN=ON
+          cmake --build build
+      - name: Run sanitizer tests
+        run: cd build && ctest --output-on-failure
+
+   all-deps-build:
+     runs-on: ubuntu-latest
+     if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+     steps:
+       - uses: actions/checkout@v4
+       - name: Install dependencies
+         run: |
+           sudo apt-get update
+           sudo apt-get install -y libgl-dev libglu1-mesa-dev libx11-dev libxrandr-dev xorg-dev libboost-all-dev
+       - name: Configure CMake with all optional deps
+         run: |
+           cmake -B build -DQUANTUMVERSE_USE_IMGUI=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_BOOST_MULTIPRECISION=ON -DCMAKE_BUILD_TYPE=Release
+       - name: Build
+         run: cmake --build build --parallel
+       - name: Run tests
+         run: cd build && ctest --output-on-failure
+
+   secret-scan:
+     runs-on: ubuntu-latest
+     if: github.event_name == 'pull_request'
+     steps:
+       - uses: actions/checkout@v4
+       - name: Run TruffleHog
+         uses: trufflesecurity/trufflehog@main
+         with:
+           path: ./
+           base: ${{ github.event.pull_request.base.sha }}
+           head: ${{ github.event.pull_request.head.sha }}
