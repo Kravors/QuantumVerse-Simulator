@@ -1,0 +1,130 @@
+/**
+ * @file GLDebug.cpp
+ * @brief OpenGL debug context callback implementation
+ */
+
+#include "GLDebug.h"
+#include "../utils/TraceLogger.h"
+
+// Include GL headers in implementation only
+#define GL_SILENCE_DEPRECATION
+#include "../../third_party/glad/glad.h"
+#include <GL/gl.h>
+
+namespace quantumverse {
+
+GLDebug& GLDebug::instance() {
+    static GLDebug instance;
+    return instance;
+}
+
+bool GLDebug::initialize() {
+    // Check if debug output is supported
+    if (GLAD_GL_VERSION_4_3 || GLAD_GL_ARB_debug_output) {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        
+        // Set the debug callback
+        glDebugMessageCallback(debugCallback, nullptr);
+        
+        m_enabled = true;
+        
+        utils::TraceLogger::instance().log(utils::LogCategory::RENDER,
+            "GLDebug callback initialized successfully");
+        return true;
+    }
+    
+    utils::TraceLogger::instance().log(utils::LogCategory::RENDER,
+        "GL debug output not supported - GL version < 4.3");
+    return false;
+}
+
+void GLDebug::setLogCallback(std::function<void(const std::string& message)> callback) {
+    m_logCallback = std::move(callback);
+}
+
+void GLDebug::resetCounters() {
+    m_errorCount = 0;
+    m_warningCount = 0;
+}
+
+void GLDebug::logGLError(GLDEBUG_ENUM error, const char* file, int line, const char* context) {
+    const char* errorStr = "Unknown error";
+    switch (error) {
+        case 0x0500: errorStr = "GL_INVALID_ENUM"; break;
+        case 0x0501: errorStr = "GL_INVALID_VALUE"; break;
+        case 0x0502: errorStr = "GL_INVALID_OPERATION"; break;
+        case 0x0503: errorStr = "GL_STACK_OVERFLOW"; break;
+        case 0x0504: errorStr = "GL_STACK_UNDERFLOW"; break;
+        case 0x0505: errorStr = "GL_OUT_OF_MEMORY"; break;
+        case 0x0506: errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
+        case 0x0507: errorStr = "GL_CONTEXT_LOST"; break;
+        default: break;
+    }
+    
+    std::string msg = std::string("GL Error: ") + errorStr + 
+        " at " + file + ":" + std::to_string(line) + 
+        " context: " + context;
+    
+    utils::TraceLogger::instance().log(utils::LogCategory::RENDER, msg);
+    
+    auto& inst = instance();
+    if (inst.m_logCallback) {
+        inst.m_logCallback(msg);
+    }
+}
+
+void GLDebug::debugCallback(
+    GLDEBUG_ENUM source,
+    GLDEBUG_ENUM type,
+    GLDEBUG_ENUM id,
+    GLDEBUG_ENUM severity,
+    int length,
+    const char* message,
+    const void* userParam
+) {
+    (void)length;
+    (void)userParam;
+    
+    std::string sourceStr;
+    switch (source) {
+        case GL_DEBUG_SOURCE_API: sourceStr = "API"; break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: sourceStr = "Window System"; break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER: sourceStr = "Shader Compiler"; break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY: sourceStr = "Third Party"; break;
+        case GL_DEBUG_SOURCE_APPLICATION: sourceStr = "Application"; break;
+        case GL_DEBUG_SOURCE_OTHER: sourceStr = "Other"; break;
+        default: sourceStr = "Unknown"; break;
+    }
+    
+    std::string typeStr;
+    switch (type) {
+        case GL_DEBUG_TYPE_ERROR: typeStr = "ERROR"; break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeStr = "DEPRECATED"; break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: typeStr = "UNDEFINED"; break;
+        case GL_DEBUG_TYPE_PORTABILITY: typeStr = "PORTABILITY"; break;
+        case GL_DEBUG_TYPE_PERFORMANCE: typeStr = "PERFORMANCE"; break;
+        case GL_DEBUG_TYPE_MARKER: typeStr = "MARKER"; break;
+        case GL_DEBUG_TYPE_PUSH_GROUP: typeStr = "PUSH_GROUP"; break;
+        case GL_DEBUG_TYPE_POP_GROUP: typeStr = "POP_GROUP"; break;
+        case GL_DEBUG_TYPE_OTHER: typeStr = "OTHER"; break;
+        default: typeStr = "Unknown"; break;
+    }
+    
+    // Log based on severity
+    if (type == GL_DEBUG_TYPE_ERROR) {
+        instance().m_errorCount++;
+        utils::TraceLogger::instance().log(utils::LogCategory::RENDER,
+            "[GL " + typeStr + "][" + sourceStr + "] " + message);
+    } else if (severity == GL_DEBUG_SEVERITY_HIGH || 
+               severity == GL_DEBUG_SEVERITY_MEDIUM) {
+        instance().m_warningCount++;
+        utils::TraceLogger::instance().log(utils::LogCategory::RENDER,
+            "[GL " + typeStr + "][" + sourceStr + "] " + message);
+    } else {
+        utils::TraceLogger::instance().log(utils::LogCategory::RENDER,
+            "[GL " + typeStr + "][" + sourceStr + "] " + message);
+    }
+}
+
+} // namespace quantumverse
