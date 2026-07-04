@@ -19,7 +19,10 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQmlComponent>
+#include <QQuickWindow>
 #include <QSurfaceFormat>
+#include <QResource>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -118,14 +121,6 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    // Set offscreen platform for headless environments BEFORE creating QGuiApplication
-    // This prevents "resource deadlock would occur" errors in CI/headless environments
-    // Use _putenv (C runtime) instead of qputenv since Qt is not yet initialized
-    // Note: qoffscreen has static mutex issues, use qminimal for headless
-    // For now, disable platform plugin to avoid static init crash
-    _putenv("QT_QPA_PLATFORM=");
-    _putenv("QT_OPENGL=software");
-
     try {
         // Initialize crash handler and trace logger first (before any other initialization)
         // NOTE: TraceLogger disabled for testing - it was causing crashes in headless environment
@@ -139,9 +134,15 @@ int main(int argc, char* argv[])
         QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
         QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
+        // Set OpenGL format before QGuiApplication to avoid shared-context warnings
+        QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+
         QGuiApplication app(argc, argv);
         app.setApplicationName("QuantumVerse Simulator");
         app.setOrganizationName("QuantumVerse");
+
+        qDebug() << "QT_OPENGL env:" << qgetenv("QT_OPENGL").constData();
+        qDebug() << "OpenGL API before engine load:" << QQuickWindow::graphicsApi();
 
         // 1. Ensure Qt can find its plugins
         std::cerr << "QT_PLUGIN_PATH = " << qgetenv("QT_PLUGIN_PATH").constData() << std::endl;
@@ -239,13 +240,15 @@ int main(int argc, char* argv[])
         // Set up the QML engine
         QQmlApplicationEngine engine;
 
-        // Add QML import paths for QuantumVerse module
+        // Add QML import paths
         // The qmldir file is in deploy/windows/qml/QuantumVerse/
         engine.addImportPath(QStringLiteral("qrc:/"));
         // Also add the current directory for file system QML modules
         engine.addImportPath(QStringLiteral("."));
         // Add the qml subdirectory for QuantumVerse module
         engine.addImportPath(QStringLiteral("qml"));
+        // Add Qt's own QML module directory so QtQuick/QtQuick.Controls resolve from resources
+        engine.addImportPath(QStringLiteral("F:/syyyy/Qt6/6.5.3/msvc2019_64/qml"));
 
         // Create QML camera controller for basic 3D navigation
         auto camController = new quantumverse::QmlCamController(&engine);
@@ -269,6 +272,20 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("discoveryPanelManager",
             QVariant::fromValue(discoveryPanelManager.get()));
 
+        // Stub missing properties so QML does not throw reference errors
+        rootContext->setContextProperty("probeKretschmann",
+            QVariant::fromValue(QString("—")));
+        rootContext->setContextProperty("probeRicci",
+            QVariant::fromValue(QString("—")));
+        rootContext->setContextProperty("probeWeyl",
+            QVariant::fromValue(QString("—")));
+        rootContext->setContextProperty("probeRedshift",
+            QVariant::fromValue(QString("—")));
+
+        QStringList bodies = {"Schwarzschild BH"};
+        engine.rootContext()->setContextProperty("celestialBodyModel",
+            QVariant::fromValue(bodies));
+
         // Load the main QML file
         const QUrl url(QStringLiteral("qrc:/main.qml"));
         qDebug() << "QuantumVerse: Loading QML from" << url.toString();
@@ -276,10 +293,21 @@ int main(int argc, char* argv[])
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
             &app, [url](QObject* obj, const QUrl& objUrl) {
                 if (!obj && url == objUrl) {
-                    qCritical() << "Failed to load main.qml from" << url.toString();
+                    std::cerr << "Failed to load main.qml from" << url.toString().toStdString() << std::endl;
+                    std::cerr.flush();
                     QCoreApplication::exit(-1);
                 }
             }, Qt::QueuedConnection);
+
+        QQmlComponent component(&engine, url);
+        if (component.isError()) {
+            std::cerr << "QQmlComponent errors:" << std::endl;
+            for (const QQmlError& error : component.errors()) {
+                std::cerr << "  " << error.toString().toStdString() << std::endl;
+            }
+            std::cerr.flush();
+            return -1;
+        }
 
         engine.load(url);
         qDebug() << "QuantumVerse: QML engine.load() completed";
@@ -322,9 +350,16 @@ int main(int argc, char* argv[])
                 viewport->setCelestialBodyRendererDirect(celestialBodyRenderer);
 
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
+                std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
+                std::cerr.flush();
             } else {
                 qWarning("QuantumVerse: Could not find QmlGlViewport in QML object tree");
+                std::cerr << "QuantumVerse: Could not find QmlGlViewport in QML object tree" << std::endl;
+                std::cerr.flush();
             }
+        } else {
+            std::cerr << "QuantumVerse: No root QML object found" << std::endl;
+            std::cerr.flush();
         }
 
         qDebug() << "QuantumVerse Simulator started successfully";
@@ -332,6 +367,12 @@ int main(int argc, char* argv[])
         qDebug() << "  - QML Scene Graph with" << sceneGraphManager->getScene().objects.size() << "objects";
         qDebug() << "  - Curvature renderer initialized";
         qDebug() << "  - Ready for 4D navigation";
+        std::cerr << "QuantumVerse Simulator started successfully" << std::endl;
+        std::cerr << "  - OpenGL 4.5 Core Profile" << std::endl;
+        std::cerr << "  - QML Scene Graph with " << sceneGraphManager->getScene().objects.size() << " objects" << std::endl;
+        std::cerr << "  - Curvature renderer initialized" << std::endl;
+        std::cerr << "  - Ready for 4D navigation" << std::endl;
+        std::cerr.flush();
 
         // Run the application
         int result = app.exec();

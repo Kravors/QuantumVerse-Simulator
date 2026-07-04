@@ -125,7 +125,8 @@ QmlGlRenderer::~QmlGlRenderer()
 
 void QmlGlRenderer::render()
 {
-    // Record frame time
+    std::cerr << "QmlGlRenderer::render() frame=" << m_frameCount << std::endl;
+    std::cerr.flush();
     static int64_t lastTime = 0;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
     if (lastTime > 0) {
@@ -1166,16 +1167,16 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
 {
     setObjectName("viewport");  // Required for findChild in main_qml.cpp
     setAcceptedMouseButtons(Qt::AllButtons);
-    setFlag(ItemHasContents, true);
 }
 
 QmlGlViewport::~QmlGlViewport()
 {
-    delete m_renderer;
 }
 
 QQuickFramebufferObject::Renderer* QmlGlViewport::createRenderer() const
 {
+    std::cerr << "QmlGlViewport::createRenderer() size=" << width() << "x" << height() << std::endl;
+    std::cerr.flush();
     m_renderer = new QmlGlRenderer(width() > 0 ? static_cast<int>(width()) : 1280,
                                     height() > 0 ? static_cast<int>(height()) : 720);
     return m_renderer;
