@@ -152,8 +152,10 @@ void SceneGraphModel::selectObject(const QString& id)
     if (!m_manager) return;
 
     m_manager->selectObject(id.toStdString());
+    m_selectedObjectId = id;
     emit selectedObjectIdChanged();
     emit selectionChanged(id);
+    emit dataChanged(index(0), index(rowCount() - 1), {IsSelectedRole});
 }
 
 void SceneGraphModel::clearSelection()
@@ -161,7 +163,9 @@ void SceneGraphModel::clearSelection()
     if (!m_manager) return;
 
     m_manager->clearSelection();
+    m_selectedObjectId.clear();
     emit selectedObjectIdChanged();
+    emit dataChanged(index(0), index(rowCount() - 1), {IsSelectedRole});
 }
 
 void SceneGraphModel::refresh()

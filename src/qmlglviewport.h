@@ -359,6 +359,9 @@ private:
 
     // Framebuffer object
     QOpenGLFramebufferObject* m_fbo;
+
+    // One-time GL initialization guard
+    bool m_glInitialized;
 };
 
 /**
@@ -422,10 +425,14 @@ public:
 
     // Direct C++ setters for shared_ptr renderers (bypasses QML type system)
     void setCurvatureRendererDirect(std::shared_ptr<CurvatureRenderer> renderer);
+    std::shared_ptr<CurvatureRenderer> curvatureRenderer() const { return m_curvatureRenderer; }
+
     void setQuantumRendererDirect(std::shared_ptr<QuantumGeometryRenderer> renderer);
+    std::shared_ptr<QuantumGeometryRenderer> quantumGeometryRenderer() const { return m_quantumRenderer; }
 
     // Set UI4D instance for scene data access
     void setUI4D(std::shared_ptr<UI4D> ui4d);
+    std::shared_ptr<UI4D> ui4d() const { return m_ui4d; }
 
     // Camera4D adapter access for QML toolbar
     QObject* camera4DAdapterObj() const;
@@ -433,9 +440,11 @@ public:
 
     // Direct setter for CelestialBodyRenderer (bypasses QML type system)
     void setCelestialBodyRendererDirect(std::shared_ptr<CelestialBodyRenderer> renderer);
+    std::shared_ptr<CelestialBodyRenderer> celestialBodyRenderer() const { return m_celestialBodyRenderer; }
 
     // Direct setter for Camera4DAdapter (bypasses QML type system)
     void setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter);
+    std::shared_ptr<Camera4DAdapter> camera4DAdapter() const { return m_camera4DAdapter; }
 
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);

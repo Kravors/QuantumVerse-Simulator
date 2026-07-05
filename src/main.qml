@@ -411,24 +411,31 @@ ApplicationWindow {
                 sourceComponent: noViewport ? placeholderComponent : viewportComponent
             }
 
-            Component {
-                id: viewportComponent
-                QmlGlViewport {
-                    id: viewport
-                    anchors.fill: parent
-                    showGrid: true
-                    showGeodesics: true
-                    showQuantumGeometry: false
-                    Component.onCompleted: console.log("Viewport created, size:", width, "x", height)
+             Component {
+                 id: viewportComponent
+                 QmlGlViewport {
+                     id: viewport
+                     anchors.fill: parent
+                     showGrid: true
+                     showGeodesics: true
+                     showQuantumGeometry: false
+                     Component.onCompleted: console.log("Viewport created, size:", width, "x", height)
 
-                    MouseArea {
-                        id: viewportMouse
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                        property point lastPos
-                        property bool isPanning: false
-                        property int dragButton: 0
-                        property bool mousePressed: false
+                     Timer {
+                         interval: 16
+                         running: true
+                         repeat: true
+                         onTriggered: viewport.update()
+                     }
+
+                     MouseArea {
+                         id: viewportMouse
+                         anchors.fill: parent
+                         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                         property point lastPos
+                         property bool isPanning: false
+                         property int dragButton: 0
+                         property bool mousePressed: false
 
                         onPressed: function(mouse) {
                             lastPos = Qt.point(mouse.x, mouse.y)

@@ -66,6 +66,7 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 , m_cameraPanX(0.0f)
 , m_cameraPanY(0.0f)
 , m_fbo(nullptr)
+, m_glInitialized(false)
 {
     // Initialize view matrix
     m_viewMatrix.setToIdentity();
@@ -153,7 +154,6 @@ void QmlGlRenderer::render()
     // Initialize OpenGL state on first render
     static bool initialized = false;
     if (!initialized) {
-        qDebug() << "QmlGlRenderer: Initializing OpenGL on first render";
         initializeGL();
         initialized = true;
     }
@@ -162,7 +162,6 @@ void QmlGlRenderer::render()
     // This is done here instead of in synchronize() because synchronize() may be called
     // before the GL context is available on the render thread
     if (m_celestialBodyRenderer && !m_celestialBodyRenderer->isInitialized()) {
-        qDebug() << "QmlGlRenderer: Initializing celestial body renderer";
         try {
             m_celestialBodyRenderer->initializeGL();
         } catch (const std::exception& e) {
@@ -249,32 +248,49 @@ QOpenGLFramebufferObject* QmlGlRenderer::createFramebufferObject(const QSize& si
 void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
 {
     try {
-        Q_UNUSED(item);
-        
-        // Null renderer guards - prevent crashes when renderers are not set
-        if (!m_curvatureRenderer) {
-            qWarning() << "QmlGlRenderer: curvatureRenderer is null in synchronize()";
+        auto* viewport = qobject_cast<QmlGlViewport*>(item);
+        if (!viewport) {
             return;
         }
-        if (!m_quantumRenderer) {
-            qWarning() << "QmlGlRenderer: quantumRenderer is null in synchronize()";
-            // Continue anyway - quantum geometry is optional
+
+        // One-time GL initialization on the first synchronize/render cycle.
+        // This must happen before any renderer-specific GL work, and it must
+        // not be gated on m_curvatureRenderer being non-null.
+        if (!m_glInitialized) {
+            initializeGL();
+            m_glInitialized = true;
         }
-        
-        // Initialize the curvature renderer's GL resources if it has been set
-        // but not yet initialized (requires a valid GL context which we now have).
-        // Note: CelestialBodyRenderer initialization is deferred to render() to avoid
-        // potential crashes when synchronize() is called before GL context is ready.
-        try {
-            if (!m_curvatureRenderer->isInitialized()) {
-                m_curvatureRenderer->initializeGL();
+
+        // Pull per-frame state from the viewport item.
+        m_curvatureRenderer = viewport->curvatureRenderer();
+        m_quantumRenderer = viewport->quantumGeometryRenderer();
+        m_ui4d = viewport->ui4d();
+        m_celestialBodyRenderer = viewport->celestialBodyRenderer();
+        m_camera4DAdapter = viewport->camera4DAdapter();
+
+        // Curvature renderer is optional; it may arrive a few frames late.
+        if (!m_curvatureRenderer) {
+            static bool warned = false;
+            if (!warned) {
+                qWarning() << "QmlGlRenderer: curvatureRenderer not yet set in synchronize() - will retry";
+                warned = true;
             }
-        } catch (const std::exception& e) {
-            qWarning() << "QmlGlRenderer: Failed to initialize curvature renderer:" << e.what();
-        } catch (...) {
-            qWarning() << "QmlGlRenderer: Unknown error initializing curvature renderer";
         }
-        
+
+        // Initialize curvature renderer GL resources if available.
+        if (m_curvatureRenderer) {
+            try {
+                if (!m_curvatureRenderer->isInitialized()) {
+                    m_curvatureRenderer->initializeGL();
+                }
+            } catch (const std::exception& e) {
+                qWarning() << "QmlGlRenderer: Failed to initialize curvature renderer:" << e.what();
+            } catch (...) {
+                qWarning() << "QmlGlRenderer: Unknown error initializing curvature renderer";
+            }
+        }
+
+        // Quantum renderer is optional.
         if (m_quantumRenderer) {
             try {
                 if (!m_quantumRenderer->isInitialized()) {
@@ -286,8 +302,9 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
                 qWarning() << "QmlGlRenderer: Unknown error initializing quantum renderer";
             }
         }
-        // Note: m_celestialBodyRenderer initialization is done in render() on first frame
-        // to ensure GL context is current on the render thread
+
+        // CelestialBodyRenderer initialization remains in render() so it runs
+        // on the render thread with a current GL context.
     } catch (const std::exception& e) {
         std::cerr << "EXCEPTION in synchronize: " << e.what() << std::endl;
     } catch (...) {
