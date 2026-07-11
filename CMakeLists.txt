@@ -301,6 +301,14 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_recombination_constant_variation PRIVATE dilaton)
     add_test(NAME RecombinationConstantVariationTest COMMAND test_recombination_constant_variation)
 
+    # Exoplanetary TTV fifth-force hunter (discovery instrument)
+    add_executable(test_exoplanetary_ttv
+        tests/test_exoplanetary_ttv.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+    )
+    target_link_libraries(test_exoplanetary_ttv PRIVATE dilaton)
+    add_test(NAME ExoplanetaryTTVFifthForceHunterTest COMMAND test_exoplanetary_ttv)
+
     # Neural ODE accuracy test
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_neural_ode_accuracy.cpp)
         add_executable(test_neural_ode_accuracy
