@@ -75,7 +75,7 @@ public:
     static bool isDiagnosticMode();
 
     /**
-     * @brief Set diagnostic mode flag (public for main_glfw.cpp access)
+     * @brief Set diagnostic mode flag
      */
     static bool s_diagnosticMode;
 

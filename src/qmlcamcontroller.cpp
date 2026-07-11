@@ -3,6 +3,8 @@
  * @brief Implementation of QML camera controller
  */
 
+#include "../third_party/glad/glad.h"
+
 // Qt headers MUST be included before ui4d/UI4D.h, which opens namespace
 // quantumverse. Qt uses QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros
 // internally that break when nested inside our namespace.

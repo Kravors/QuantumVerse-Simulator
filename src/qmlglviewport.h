@@ -12,15 +12,14 @@
 #ifndef QMLGLVIEWPORT_H
 #define QMLGLVIEWPORT_H
 
-// Prevent GLFW (if transitively included by Qt) from pulling in
-// system <GL/gl.h> before glad can provide the prototypes.
-#define GLFW_INCLUDE_NONE
 #include "../third_party/glad/glad.h"
 
 // Qt headers MUST be included outside any namespace, because Qt uses
 // QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros that break when nested
 // inside namespace quantumverse {}.
 #include <QQuickFramebufferObject>
+#include <QQuickItem>
+#include <QSGSimpleTextureNode>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLFunctions>
@@ -36,6 +35,9 @@
 #include <cmath>
 #include <array>
 
+#include "ml/SurrogateIntegration.h"
+#include "vr/OpenXRBackend.h"
+
 // Forward declarations to avoid Qt header conflicts with renderer includes
 // These are in the quantumverse namespace
 namespace quantumverse {
@@ -45,6 +47,7 @@ class UI4D;
 class Camera4D;
 class Camera4DAdapter;
 class CelestialBodyRenderer;
+class SurrogateIntegration;
 }
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
@@ -246,6 +249,12 @@ private:
     void setProjectionMatrix(const QMatrix4x4& proj);
     QMatrix4x4 getViewMatrix() const;
     QMatrix4x4 getProjectionMatrix() const;
+    void setViewportSize(int width, int height);
+
+    // VR head tracking
+    void setHeadPose(const quantumverse::vr::HeadPose& pose);
+    void applyHeadPose();
+    bool hasHeadPose() const { return m_hasHeadPose; }
 
     // Interaction
     void zoom(float factor);
@@ -268,10 +277,15 @@ private:
     float getFrameTime() const { return m_frameTime; }
     int getFrameCount() const { return m_frameCount; }
 
-    // Frame profiler access for overlay rendering
+    // Frame profiler access for overlay rendering and tests
     const FrameProfiler& getFrameProfiler() const { return m_frameProfiler; }
 
-// Celestial body & camera adapters
+    // Headless performance baseline support
+    void setHeadlessFrameTarget(int frames);
+    bool headlessTargetReached() const { return m_headlessStatsLogged; }
+    int getHeadlessFrameCount() const { return m_frameCount; }
+
+    // Celestial body & camera adapters
     void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
     void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
 
@@ -339,6 +353,10 @@ private:
     float m_cameraPanX;
     float m_cameraPanY;
 
+    // VR head tracking state
+    quantumverse::vr::HeadPose m_headPose;
+    bool m_hasHeadPose = false;
+
     // Pointers to core renderers (non-owning)
     std::shared_ptr<CurvatureRenderer> m_curvatureRenderer;
     std::shared_ptr<QuantumGeometryRenderer> m_quantumRenderer;
@@ -349,8 +367,15 @@ private:
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
 
+    // Surrogate integration for real-time geodesic prediction
+    std::unique_ptr<SurrogateIntegration> m_surrogateIntegration;
+
     // Frame profiler for benchmark/profiling overlay
     FrameProfiler m_frameProfiler;
+
+    // Headless baseline target
+    int m_headlessTargetFrames;
+    bool m_headlessStatsLogged;
 
     // Mutable renderer storage for createRenderer() const
     mutable std::shared_ptr<CurvatureRenderer> m_pendingCurvatureRenderer;
@@ -379,7 +404,7 @@ private:
  * }
  * \endqml
  */
-class QmlGlViewport : public ::QQuickFramebufferObject
+class QmlGlViewport : public ::QQuickItem
 {
     Q_OBJECT
     Q_PROPERTY(bool showGrid READ showGrid WRITE setShowGrid NOTIFY showGridChanged)
@@ -397,8 +422,8 @@ public:
     explicit QmlGlViewport(QQuickItem* parent = nullptr);
     ~QmlGlViewport() override;
 
-    // QQuickFramebufferObject interface
-    Renderer* createRenderer() const override;
+    // QQuickItem scene graph interface
+    QSGNode* updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData* data) override;
 
     // Property accessors
     bool showGrid() const { return m_showGrid; }
@@ -446,6 +471,8 @@ public:
     void setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter);
     std::shared_ptr<Camera4DAdapter> camera4DAdapter() const { return m_camera4DAdapter; }
 
+    void setHeadlessFrameTarget(int frames) { if (m_renderer) m_renderer->setHeadlessFrameTarget(frames); }
+
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);
 
@@ -480,7 +507,7 @@ public slots:
     void handleWheel(float delta);
 
 private:
-    mutable QmlGlRenderer* m_renderer;
+    QmlGlRenderer* m_renderer;
     bool m_showGrid;
     bool m_showLightCones;
     bool m_showGeodesics;
@@ -506,6 +533,15 @@ private:
 
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
+
+    // Qt 6 RHI fallback: managed FBO and texture state
+    QOpenGLFramebufferObject* m_fbo;
+    bool m_textureDirty;
+    quint64 m_lastTextureId;
+
+private slots:
+    void onWindowChanged(QQuickWindow* win);
+    void renderGL();
 };
 
 } // namespace quantumverse

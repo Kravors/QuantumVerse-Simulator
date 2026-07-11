@@ -184,7 +184,7 @@ DiagnosticResult DiagnosticMode::testFramebufferCreation() {
     
 #if defined(QUANTUMVERSE_IMGUI_DX11)
     // For DX11 backend, we verify D3D11 device creation capability
-    // The actual swap chain is created in main_glfw.cpp
+    // The swap chain is created during OpenGL context initialization
     result.passed = true;
     result.message = "D3D11 swap chain ready";
     result.details = "Format: DXGI_FORMAT_R8G8B8A8_UNORM + DXGI_SWAP_EFFECT_DISCARD, Size: 1024x768";

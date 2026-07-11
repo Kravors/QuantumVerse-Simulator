@@ -3,12 +3,9 @@
 #include <string>
 #include <vector>
 #include <array>
+#include "spacetime/Event4D.h"
 
 namespace quantumverse {
-namespace spacetime {
-struct Event4D;
-} // namespace spacetime
-
 namespace utils {
 class ThreadPool;
 } // namespace utils
@@ -32,15 +29,15 @@ public:
     bool loadSurrogates(const std::string& model_dir);
 
     bool predictGeodesicIfReady(
-        const spacetime::Event4D& initial_event,
+        const Event4D& initial_event,
         const std::array<double,4>& initial_velocity,
         const std::vector<double>& metric_params,
         double tau,
-        spacetime::Event4D& out_event) const;
+        Event4D& out_event) const;
 
     // Parallel geodesic bundle integration
-    std::vector<std::vector<spacetime::Event4D>> predictGeodesicBundleIfReady(
-        const std::vector<spacetime::Event4D>& initial_events,
+    std::vector<std::vector<Event4D>> predictGeodesicBundleIfReady(
+        const std::vector<Event4D>& initial_events,
         const std::vector<std::array<double,4>>& initial_velocities,
         const std::vector<double>& metric_params,
         double tau,

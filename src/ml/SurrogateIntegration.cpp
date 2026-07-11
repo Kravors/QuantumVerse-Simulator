@@ -46,11 +46,11 @@ bool SurrogateIntegration::loadSurrogates(const std::string& model_dir) {
 }
 
 bool SurrogateIntegration::predictGeodesicIfReady(
-        const spacetime::Event4D& initial_event,
+        const Event4D& initial_event,
         const std::array<double,4>& initial_velocity,
         const std::vector<double>& metric_params,
         double tau,
-        spacetime::Event4D& out_event) const {
+        Event4D& out_event) const {
     const auto* base = pImpl_.get();
     if (!base->geodesic_loaded_ || !base->geodesic_ode_) return false;
     auto out = base->geodesic_ode_->predict(initial_event, initial_velocity, metric_params, tau);
@@ -91,8 +91,8 @@ bool SurrogateIntegration::isMetricSurrogateReady() const noexcept {
 }
 
 // Parallel geodesic bundle integration
-std::vector<std::vector<spacetime::Event4D>> SurrogateIntegration::predictGeodesicBundleIfReady(
-        const std::vector<spacetime::Event4D>& initial_events,
+std::vector<std::vector<Event4D>> SurrogateIntegration::predictGeodesicBundleIfReady(
+        const std::vector<Event4D>& initial_events,
         const std::vector<std::array<double,4>>& initial_velocities,
         const std::vector<double>& metric_params,
         double tau,

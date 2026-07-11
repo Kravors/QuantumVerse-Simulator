@@ -446,3 +446,39 @@ Qt6/
 *.pth
 *.pt
 models/**
+
+# Kilo cache
+.kilocode/
+
+# Deployment artifacts
+deploy/
+deploy_staging/
+dist/
+_CPack_Packages/
+*.zip
+*.nsis
+
+# Build directories
+build*/
+Build*/
+out/
+cmake/
+
+# Qt-specific
+mkspecs/
+qmake/
+*.qmlc
+*.jsc
+
+# IDE/editor
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Test output
+test_output/
+Testing/
+**/Testing/

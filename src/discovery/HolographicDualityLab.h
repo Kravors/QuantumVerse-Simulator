@@ -5,6 +5,8 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
@@ -98,6 +100,48 @@ public:
         const std::vector<double>& state
     ) const;
     
+    /**
+     * @brief Get the AdS metric at a spacetime point in Poincaré coordinates.
+     * @param pos Spacetime event (t, x, y, z) where z is the radial AdS coordinate.
+     * @return Metric tensor g_{μν} = (L^2/z^2) * diag(-1, 1, 1, 1).
+     */
+    MetricTensor getMetricAt(const Event4D& pos) const;
+
+    /**
+     * @brief Compute geodesic between two boundary-proximal points.
+     * @param start Start event near boundary (z ≈ 0).
+     * @param end End event near boundary (z ≈ 0).
+     * @param stepSize Integration step size.
+     * @return Sampled geodesic points.
+     */
+    std::vector<Event4D> computeGeodesic(
+        const Event4D& start,
+        const Event4D& end,
+        double stepSize
+    ) const;
+
+    /**
+     * @brief Compute boundary two-point correlator via geodesic approximation.
+     * @param start Boundary point 1.
+     * @param end Boundary point 2.
+     * @param Delta Scaling dimension of the boundary operator.
+     * @param L AdS radius.
+     * @return Correlator ~ exp(-Delta * L / z_max).
+     */
+    double computeCorrelator(
+        const Event4D& start,
+        const Event4D& end,
+        double Delta,
+        double L
+    ) const;
+
+    /**
+     * @brief Probe Kretschmann scalar at a bulk point.
+     * @param pos Spacetime event.
+     * @return Kretschmann invariant K = R_{μνρσ} R^{μνρσ}.
+     */
+    double probeKretschmann(const Event4D& pos) const;
+
     /**
      * @brief Get the AdS radius.
      */

@@ -28,13 +28,6 @@
 #include <map>
 #include <cmath>
 
-// Define M_PI for Visual Studio
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-#include "../../third_party/glad/glad.h"
-
 namespace quantumverse {
 
 // Forward declarations for quantum gravity engines

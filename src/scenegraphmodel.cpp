@@ -50,10 +50,16 @@ QVariant SceneGraphModel::data(const QModelIndex& index, int role) const
     if (!obj) return QVariant();
 
     switch (role) {
-    case NameRole:
-        return QString::fromStdString(obj->name);
-    case TypeRole:
-        return objectTypeToString(obj->type);
+    case NameRole: {
+        QString name = QString::fromStdString(obj->name);
+        qDebug() << "SceneGraphModel: row" << row << "NameRole returning:" << name << "obj->name:" << obj->name.c_str();
+        return name;
+    }
+    case TypeRole: {
+        QString type = objectTypeToString(obj->type);
+        qDebug() << "SceneGraphModel: row" << row << "TypeRole returning:" << type;
+        return type;
+    }
     case MassRole:
         return obj->mass;
     case PositionRole: {
@@ -79,6 +85,7 @@ QVariant SceneGraphModel::data(const QModelIndex& index, int role) const
     case IsSelectedRole:
         return obj->id == m_manager->getScene().selectedObjectId;
     default:
+        qDebug() << "SceneGraphModel: unknown role" << role << "for object" << QString::fromStdString(obj->name);
         return QVariant();
     }
 }

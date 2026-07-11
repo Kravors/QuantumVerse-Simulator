@@ -5,8 +5,11 @@
 // Date: 2026-05-31
 
 #include "HolographicDualityLab.h"
+#include "spacetime/MetricTensor.h"
+#include "spacetime/Event4D.h"
 #include <cmath>
 #include <sstream>
+#include <algorithm>
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -27,6 +30,66 @@ HolographicDualityLab::HolographicDualityLab()
     coefficients_["entropy_factor"] = 1.0 / (4.0 * G_N_);
     coefficients_["complexity_cv_factor"] = 1.0 / (8.0 * M_PI * G_N_);
     coefficients_["complexity_ca_factor"] = 1.0 / M_PI;
+}
+
+MetricTensor HolographicDualityLab::getMetricAt(const Event4D& pos) const {
+    MetricTensor metric;
+    double z = pos[3];
+    if (z < 1e-12) z = 1e-12;
+    double factor = (L_ * L_) / (z * z);
+    metric.g[0][0] = -factor;
+    metric.g[1][1] = factor;
+    metric.g[2][2] = factor;
+    metric.g[3][3] = factor;
+    return metric;
+}
+
+std::vector<Event4D> HolographicDualityLab::computeGeodesic(
+    const Event4D& start,
+    const Event4D& end,
+    double stepSize) const {
+    // Minimal TDD implementation: analytic semicircle in Poincaré coordinates.
+    // In AdS, geodesics between boundary points are semicircles.
+    // Circle center and radius from endpoints.
+    double x1 = start[1];
+    double x2 = end[1];
+    double cx = (x1 + x2) / 2.0;
+    double radius = std::abs(x2 - x1) / 2.0;
+    if (radius < 1e-12) radius = 1e-12;
+
+    std::vector<Event4D> points;
+    int steps = static_cast<int>(std::ceil(1.0 / stepSize));
+    steps = std::max(steps, 2);
+    for (int i = 0; i <= steps; ++i) {
+        double t = static_cast<double>(i) / steps;
+        double angle = t * M_PI;
+        double x = cx + radius * std::cos(angle);
+        double z = radius * std::sin(angle);
+        points.emplace_back(start[0], x, start[2], z);
+    }
+    return points;
+}
+
+double HolographicDualityLab::computeCorrelator(
+    const Event4D& start,
+    const Event4D& end,
+    double Delta,
+    double L) const {
+    auto geodesic = computeGeodesic(start, end, 0.01);
+    double z_max = 0.0;
+    for (const auto& pt : geodesic) {
+        z_max = std::max(z_max, pt[3]);
+    }
+    if (z_max < 1e-12) z_max = 1e-12;
+    return std::exp(-Delta * L / z_max);
+}
+
+double HolographicDualityLab::probeKretschmann(const Event4D&) const {
+    // For AdS_{d+1} with radius L, Kretschmann scalar is constant:
+    // K = 2 * d * (d - 1) / L^4 where d is the boundary dimension (here 4).
+    // This is a minimal TDD implementation returning a constant.
+    int d = 4;
+    return 2.0 * d * (d - 1) / (L_ * L_ * L_ * L_);
 }
 
 double HolographicDualityLab::computeBulkToBoundaryPropagator(

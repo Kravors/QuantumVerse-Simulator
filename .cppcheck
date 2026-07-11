@@ -1,4 +1,4 @@
---enable=warning,performance,portability
+--enable=all
 --std=c++17
 --suppress=missingIncludeSystem
 --suppress=*:/third_party/*
@@ -17,3 +17,6 @@
 --suppress=noExplicitConstructor
 --suppress=passedByValue
 --suppress=useInitializationList
+--inline-suppr
+--force
+--error-exitcode=1

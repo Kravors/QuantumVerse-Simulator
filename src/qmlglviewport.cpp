@@ -6,9 +6,6 @@
  * hardware-accelerated OpenGL rendering within QML layouts.
  */
 
-// glad.h MUST be included before Qt OpenGL headers to provide
-// OpenGL function prototypes and prevent system <GL/gl.h> conflicts.
-#define GLFW_INCLUDE_NONE
 #include "../third_party/glad/glad.h"
 
 // Qt headers MUST be included outside any namespace block, since Qt uses
@@ -16,6 +13,8 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QOpenGLContext>
+#include <QQuickWindow>
+#include <qsgtexture_platform.h>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QOpenGLFunctions>
 
@@ -28,11 +27,14 @@
 #include "ui4d/Camera4DAdapter.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/MetricTensor.h"
+#include "ml/SurrogateIntegration.h"
+#include "utils/ThreadPool.h"
 
 #include <algorithm>
 #include <cmath>
 #include <deque>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <windows.h>  // for MessageBoxA
 
@@ -48,6 +50,65 @@
 // Note: Classes are defined in quantumverse namespace in the header,
 // so we open the namespace block here.
 namespace quantumverse {
+
+#define GL_CHECK() do { \
+    GLenum err = glad_glGetError(); \
+    if (err != GL_NO_ERROR) { \
+        qWarning() << "GL Error:" << err << " at " << __FILE__ << ":" << __LINE__; \
+    } \
+} while(0)
+
+static bool initializeGlad()
+{
+    static bool initialized = false;
+    if (initialized) return true;
+
+    QOpenGLContext* ctx = QOpenGLContext::currentContext();
+    if (!ctx) {
+        qWarning() << "QmlGlViewport: No current OpenGL context for glad initialization";
+        return false;
+    }
+
+    using GLADloadproc = void* (*)(const char*);
+    auto loader = [](const char* name) -> void* {
+        QOpenGLContext* c = QOpenGLContext::currentContext();
+        if (!c) return nullptr;
+        return reinterpret_cast<void*>(c->getProcAddress(name));
+    };
+
+    if (gladLoadGLLoader(loader)) {
+        qDebug() << "QmlGlViewport: glad initialized successfully, GL version:"
+                 << reinterpret_cast<const char*>(glad_glGetString(GL_VERSION));
+        qDebug() << "QmlGlViewport: GL_RENDERER:" << reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+        qDebug() << "QmlGlViewport: GL_VENDOR:" << reinterpret_cast<const char*>(glad_glGetString(GL_VENDOR));
+        qDebug() << "QmlGlViewport: openGLModuleType (instance):" << (ctx ? ctx->openGLModuleType() : -1);
+        qDebug() << "QmlGlViewport: openGLModuleType (static):" << QOpenGLContext::openGLModuleType();
+
+        const char* renderer_str = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+        if (renderer_str && (strstr(renderer_str, "ANGLE") || strstr(renderer_str, "Microsoft GDI"))) {
+            qWarning() << "WARNING: Desktop OpenGL may not be active! Renderer contains ANGLE/GDI.";
+        }
+
+        static bool fallbackLogged = false;
+        if (!fallbackLogged) {
+            const char* glRenderer = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+            bool isDesktop = glRenderer && strstr(glRenderer, "ANGLE") == nullptr &&
+                             strstr(glRenderer, "Microsoft GDI") == nullptr;
+            if (!isDesktop) {
+                qWarning() << "Desktop OpenGL not available; fallback to software renderer or ANGLE mode.";
+            } else {
+                qDebug() << "Desktop OpenGL confirmed active.";
+            }
+            fallbackLogged = true;
+        }
+
+        initialized = true;
+        return true;
+    }
+
+    qWarning() << "QmlGlViewport: glad initialization failed";
+    return false;
+}
 
 QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 : m_viewportWidth(viewportWidth)
@@ -67,6 +128,9 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 , m_cameraPanY(0.0f)
 , m_fbo(nullptr)
 , m_glInitialized(false)
+, m_surrogateIntegration(nullptr)
+, m_headlessTargetFrames(0)
+, m_headlessStatsLogged(false)
 {
     // Initialize view matrix
     m_viewMatrix.setToIdentity();
@@ -126,8 +190,7 @@ QmlGlRenderer::~QmlGlRenderer()
 
 void QmlGlRenderer::render()
 {
-    std::cerr << "QmlGlRenderer::render() frame=" << m_frameCount << std::endl;
-    std::cerr.flush();
+    std::ofstream("renderer_render.log", std::ios::app) << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
     static int64_t lastTime = 0;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
     if (lastTime > 0) {
@@ -176,15 +239,28 @@ void QmlGlRenderer::render()
         m_viewMatrix = m_camera4DAdapter->viewMatrix();
     }
 
+    // Apply VR head tracking offset
+    if (m_hasHeadPose) {
+        applyHeadPose();
+    }
+
     // Clear the framebuffer
     glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLenum err = glad_glGetError();
+    if (err != GL_NO_ERROR) {
+        qWarning() << "QmlGlRenderer: OpenGL Error after clear:" << err;
+    }
+    GL_CHECK();
 
     // Enable depth testing
     glEnable(GL_DEPTH_TEST);
+    GL_CHECK();
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    GL_CHECK();
     glEnable(GL_LINE_SMOOTH);
+    GL_CHECK();
 
     // Render scene components
     if (m_showGrid) {
@@ -226,23 +302,39 @@ void QmlGlRenderer::render()
 
     // Update time for animation
     m_time += m_frameTime;
+
+    // Headless baseline: emit stats once the target frame count is reached
+    if (m_headlessTargetFrames > 0 && !m_headlessStatsLogged && m_frameCount >= m_headlessTargetFrames) {
+        m_headlessStatsLogged = true;
+        const FrameProfiler& profiler = getFrameProfiler();
+        float avg = profiler.getAverageFrameTime();
+        float max = profiler.getMaxFrameTime();
+        float min = profiler.getMinFrameTime();
+        float fps = profiler.getAverageFPS();
+        qWarning() << "HeadlessPerformanceStats: frames=" << m_frameCount
+                   << "avg=" << avg << "ms min=" << min << "ms max=" << max
+                   << "ms fps=" << fps;
+        std::ofstream perfLog("headless_performance.log", std::ios::app);
+        perfLog << "Average frame time: " << avg << " ms, Max: " << max
+                << " ms, Min: " << min << " ms, FPS: " << fps
+                << " (frames=" << m_frameCount << ")\n";
+    }
 }
 
 QOpenGLFramebufferObject* QmlGlRenderer::createFramebufferObject(const QSize& size)
 {
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
-    format.setSamples(4); // MSAA for smooth rendering
     m_viewportWidth = size.width();
     m_viewportHeight = size.height();
 
-    // Update projection matrix for new aspect ratio
     const float fov = 45.0f;
     const float aspect = static_cast<float>(size.width()) / size.height();
     m_projectionMatrix.setToIdentity();
     m_projectionMatrix.perspective(fov, aspect, 0.1f, 1000.0f);
 
-    return new QOpenGLFramebufferObject(size, format);
+    auto* fbo = new QOpenGLFramebufferObject(size, format);
+    return fbo;
 }
 
 void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
@@ -347,6 +439,29 @@ void QmlGlRenderer::setProjectionMatrix(const QMatrix4x4& proj)
     m_projectionMatrix = proj;
 }
 
+void QmlGlRenderer::setViewportSize(int width, int height)
+{
+    m_viewportWidth = width;
+    m_viewportHeight = height;
+}
+
+void QmlGlRenderer::setHeadPose(const quantumverse::vr::HeadPose& pose)
+{
+    m_headPose = pose;
+    m_hasHeadPose = true;
+}
+
+void QmlGlRenderer::applyHeadPose()
+{
+    if (!m_hasHeadPose) return;
+    QMatrix4x4 headMatrix;
+    headMatrix.translate(m_headPose.position.x, m_headPose.position.y, m_headPose.position.z);
+    QQuaternion q(m_headPose.orientation.w, m_headPose.orientation.x,
+                  m_headPose.orientation.y, m_headPose.orientation.z);
+    headMatrix.rotate(q);
+    m_viewMatrix = m_viewMatrix * headMatrix.inverted();
+}
+
 QMatrix4x4 QmlGlRenderer::getViewMatrix() const
 {
     return m_viewMatrix;
@@ -410,6 +525,12 @@ void QmlGlRenderer::setShowGeodesics(bool show) { m_showGeodesics = show; }
 void QmlGlRenderer::setShowQuantumGeometry(bool show) { m_showQuantumGeometry = show; }
 void QmlGlRenderer::setCurvatureMode(int mode) { m_curvatureMode = mode; }
 
+void QmlGlRenderer::setHeadlessFrameTarget(int frames)
+{
+    m_headlessTargetFrames = frames;
+    m_headlessStatsLogged = false;
+}
+
 void QmlGlRenderer::updateTime(float deltaTime)
 {
     m_time += deltaTime;
@@ -429,29 +550,48 @@ void QmlGlRenderer::resetTime()
 
 void QmlGlRenderer::initializeGL()
 {
-    // Load OpenGL function pointers via glad
-    if (!gladLoadGL()) {
+    std::ofstream initLog("renderer_init.log");
+    initLog << "initializeGL() called" << std::endl;
+
+    QOpenGLContext* ctx = QOpenGLContext::currentContext();
+    if (!ctx) {
+        initLog << "FAIL: No current OpenGL context" << std::endl;
+        qWarning("Failed to get current OpenGL context for GLAD loader");
+        return;
+    }
+    initLog << "ctx=" << ctx << " moduleType=" << ctx->openGLModuleType() << std::endl;
+
+    initLog << "Calling initializeGlad..." << std::endl;
+    if (!initializeGlad()) {
+        initLog << "FAIL: initializeGlad failed" << std::endl;
         qWarning("Failed to initialize GLAD OpenGL loader");
         return;
     }
+    initLog << "initializeGlad succeeded" << std::endl;
 
-    // Initialize Qt's OpenGL function wrappers
+    const char* version = reinterpret_cast<const char*>(glad_glGetString(GL_VERSION));
+    const char* renderer_str = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+    const char* vendor = reinterpret_cast<const char*>(glad_glGetString(GL_VENDOR));
+    initLog << "GL_VERSION: " << (version ? version : "null") << std::endl;
+    initLog << "GL_RENDERER: " << (renderer_str ? renderer_str : "null") << std::endl;
+    initLog << "GL_VENDOR: " << (vendor ? vendor : "null") << std::endl;
+    initLog << "openGLModuleType: " << (ctx ? ctx->openGLModuleType() : -1) << std::endl;
+
+    qWarning() << "GLAD initialized, GL_VERSION:" << version;
+    qWarning() << "GL_RENDERER:" << renderer_str;
+    qWarning() << "GL_VENDOR:" << vendor;
+
     initializeOpenGLFunctions();
 
-    // Install GL debug callback for error detection
     if (!quantumverse::GLDebug::instance().initialize()) {
         qWarning("Failed to initialize GL debug callback");
     }
 
-    // Setup shaders
     setupShaders();
-
-    // Setup geometry
     setupGridGeometry();
     setupAxisGizmo();
     setupOverlayGeometry();
 
-    // OpenGL state
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -479,6 +619,18 @@ bool QmlGlRenderer::compileShader(QOpenGLShaderProgram& program,
     if (!success) {
         qWarning("Shader linking failed: %s", program.log().toStdString().c_str());
         return false;
+    }
+
+    if (!program.isLinked()) {
+        qWarning() << "Shader link error:" << program.log();
+        return false;
+    }
+
+    GLint valid = 0;
+    glGetProgramiv(program.programId(), GL_VALIDATE_STATUS, &valid);
+    if (!valid) {
+        qWarning() << "Program validation failed!";
+        qWarning() << "Program info log:" << program.log();
     }
 
     return true;
@@ -642,10 +794,18 @@ void QmlGlRenderer::setupGridGeometry()
 
     // Create OpenGL buffers
     glGenVertexArrays(1, &m_gridVao);
+    if (m_gridVao == 0) {
+        qWarning() << "QmlGlRenderer: Failed to generate grid VAO!";
+        return;
+    }
     glGenBuffers(1, &m_gridVbo);
     glGenBuffers(1, &m_gridEbo);
 
     glBindVertexArray(m_gridVao);
+    GLenum vaoErr = glad_glGetError();
+    if (vaoErr != GL_NO_ERROR) {
+        qWarning() << "QmlGlRenderer: VAO bind error:" << vaoErr;
+    }
 
     glBindBuffer(GL_ARRAY_BUFFER, m_gridVbo);
     glBufferData(GL_ARRAY_BUFFER,
@@ -764,16 +924,30 @@ void QmlGlRenderer::setupOverlayGeometry()
 
 void QmlGlRenderer::renderGrid()
 {
-    if (!m_gridShader.bind()) return;
-
+    if (!m_gridShader.isLinked()) {
+        qWarning() << "QmlGlRenderer: Grid shader not linked!";
+        return;
+    }
+    if (!m_gridShader.bind()) {
+        qWarning() << "QmlGlRenderer: Failed to bind grid shader";
+        return;
+    }
     m_gridShader.setUniformValue("viewMatrix", m_viewMatrix);
     m_gridShader.setUniformValue("projectionMatrix", m_projectionMatrix);
     m_gridShader.setUniformValue("time", m_time);
     m_gridShader.setUniformValue("curvatureScale", 1.0f);
 
     glBindVertexArray(m_gridVao);
+    GLenum bindErr = glad_glGetError();
+    if (bindErr != GL_NO_ERROR) {
+        qWarning() << "QmlGlRenderer: Error binding grid VAO:" << bindErr;
+    }
     glLineWidth(1.0f);
-    glDrawElements(GL_LINES, 2 * (21 + 21), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_LINES, 2 * (21 + 21), GL_UNSIGNED_INT, nullptr);
+    GLenum drawErr = glad_glGetError();
+    if (drawErr != GL_NO_ERROR) {
+        qWarning() << "QmlGlRenderer: Error during grid drawElements:" << drawErr;
+    }
     glBindVertexArray(0);
 
     m_gridShader.release();
@@ -781,7 +955,14 @@ void QmlGlRenderer::renderGrid()
 
 void QmlGlRenderer::renderAxisGizmo()
 {
-    if (!m_overlayShader.bind()) return;
+    if (!m_overlayShader.isLinked()) {
+        qWarning() << "QmlGlRenderer: Overlay shader not linked!";
+        return;
+    }
+    if (!m_overlayShader.bind()) {
+        qWarning() << "QmlGlRenderer: Failed to bind overlay shader";
+        return;
+    }
 
     // Use orthographic projection for screen-space axis indicator
     QMatrix4x4 ortho;
@@ -812,7 +993,51 @@ void QmlGlRenderer::renderGeodesics()
      const auto& solarData = m_ui4d->getSolarSystemData();
      std::vector<std::vector<Event4D>> geodesics;
 
-     for (const auto& bodyPair : solarData.bodies) {
+     // Optionally use neural ODE surrogate for real-time geodesic prediction
+     if (m_surrogateIntegration && m_surrogateIntegration->isGeodesicSurrogateReady()) {
+         try {
+             std::vector<Event4D> initialEvents;
+             std::vector<std::array<double,4>> initialVelocities;
+
+             for (const auto& bodyPair : solarData.bodies) {
+                 const auto& body = bodyPair.second;
+                 if (!body.showOrbit || body.orbitPoints.empty()) continue;
+
+                 const auto& last = body.orbitPoints.back();
+                 initialEvents.emplace_back(last.t, last.x, last.y, last.z);
+
+                 if (body.orbitPoints.size() >= 2) {
+                     const auto& prev = body.orbitPoints[body.orbitPoints.size() - 2];
+                     initialVelocities.push_back({
+                         last.t - prev.t,
+                         last.x - prev.x,
+                         last.y - prev.y,
+                         last.z - prev.z
+                     });
+                 } else {
+                     initialVelocities.push_back({1.0, 0.0, 0.0, 0.0});
+                 }
+             }
+
+             if (!initialEvents.empty()) {
+                 std::vector<double> metricParams = {1.0};
+                 utils::ThreadPool pool(4);
+                 auto surrogateGeodesics = m_surrogateIntegration->predictGeodesicBundleIfReady(
+                     initialEvents,
+                     initialVelocities,
+                     metricParams,
+                     0.01,
+                     pool
+                 );
+                 geodesics.insert(geodesics.end(), std::make_move_iterator(surrogateGeodesics.begin()), std::make_move_iterator(surrogateGeodesics.end()));
+             }
+         } catch (const std::exception& e) {
+             qWarning() << "QmlGlRenderer: Surrogate geodesic prediction failed:" << e.what();
+         }
+     }
+
+     if (geodesics.empty()) {
+         for (const auto& bodyPair : solarData.bodies) {
          const auto& body = bodyPair.second;
          if (!body.showOrbit || body.orbitPoints.empty()) continue;
 
@@ -963,9 +1188,13 @@ void QmlGlRenderer::renderQuantumGeometry()
 
 void QmlGlRenderer::renderOverlay()
 {
-    // Delegate to Camera4DAdapter for view matrix if available
-    if (m_camera4DAdapter) {
-        m_viewMatrix = m_camera4DAdapter->viewMatrix();
+    if (!m_overlayShader.isLinked()) {
+        qWarning() << "QmlGlRenderer: Overlay shader not linked in renderOverlay!";
+        return;
+    }
+    if (!m_overlayShader.bind()) {
+        qWarning() << "QmlGlRenderer: Failed to bind overlay shader in renderOverlay";
+        return;
     }
 
     // Render HUD overlay elements:
@@ -1059,8 +1288,16 @@ void QmlGlRenderer::renderOverlay()
 
 void QmlGlRenderer::renderProfilingOverlay()
 {
+    if (!m_overlayShader.isLinked()) {
+        qWarning() << "QmlGlRenderer: Overlay shader not linked in renderProfilingOverlay!";
+        return;
+    }
+    if (!m_overlayShader.bind()) {
+        qWarning() << "QmlGlRenderer: Failed to bind overlay shader in renderProfilingOverlay";
+        return;
+    }
+
     // Draw profiling stats using OpenGL primitives
-    if (!m_overlayShader.bind()) return;
 
     QMatrix4x4 ortho;
     ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
@@ -1167,8 +1404,10 @@ void QmlGlRenderer::renderProfilingOverlay()
 // ============================================================================
 
 QmlGlViewport::QmlGlViewport(QQuickItem* parent)
-    : QQuickFramebufferObject(parent)
+    : QQuickItem(parent)
     , m_renderer(nullptr)
+    , m_fbo(nullptr)
+    , m_textureDirty(true)
     , m_showGrid(true)
     , m_showLightCones(false)
     , m_showGeodesics(true)
@@ -1182,21 +1421,46 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     , m_frameCount(0)
     , m_lastFrameTime(0)
 {
+    std::ofstream("viewport_ctor.log") << "QmlGlViewport constructor called, parent=" << parent << std::endl;
     setObjectName("viewport");  // Required for findChild in main_qml.cpp
     setAcceptedMouseButtons(Qt::AllButtons);
+    setFlag(QQuickItem::ItemHasContents, true);
+
+    int w = width() > 0 ? static_cast<int>(width()) : 1280;
+    int h = height() > 0 ? static_cast<int>(height()) : 720;
+    m_renderer = new QmlGlRenderer(w, h);
+
+    connect(this, &QQuickItem::windowChanged, this, &QmlGlViewport::onWindowChanged);
+
+    connect(this, &QQuickItem::widthChanged, this, [this]() {
+        if (m_renderer) {
+            m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
+        }
+    });
+    connect(this, &QQuickItem::heightChanged, this, [this]() {
+        if (m_renderer) {
+            m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
+        }
+    });
 }
 
 QmlGlViewport::~QmlGlViewport()
 {
+    delete m_fbo;
+    m_fbo = nullptr;
+    delete m_renderer;
+    m_renderer = nullptr;
 }
 
-QQuickFramebufferObject::Renderer* QmlGlViewport::createRenderer() const
+void QmlGlViewport::onWindowChanged(QQuickWindow* win)
 {
-    std::cerr << "QmlGlViewport::createRenderer() size=" << width() << "x" << height() << std::endl;
-    std::cerr.flush();
-    m_renderer = new QmlGlRenderer(width() > 0 ? static_cast<int>(width()) : 1280,
-                                    height() > 0 ? static_cast<int>(height()) : 720);
-    return m_renderer;
+    std::ofstream("viewport_window.log") << "onWindowChanged, win=" << win << std::endl;
+    qWarning() << "QmlGlViewport::onWindowChanged, win=" << win;
+    if (win) {
+        connect(win, &QQuickWindow::beforeRendering,
+                this, &QmlGlViewport::renderGL, Qt::DirectConnection);
+        qWarning() << "Connected to beforeRendering";
+    }
 }
 
 float QmlGlViewport::frameRate() const
@@ -1384,6 +1648,8 @@ void QmlGlViewport::setCamera4DAdapterObj(QObject* adapter)
 
 void QmlGlViewport::updateSimulation(double deltaTime)
 {
+    std::cerr << "updateSimulation called, dt=" << deltaTime << std::endl;
+    std::cerr.flush();
     m_simulationTime += deltaTime;
     if (m_renderer) {
         m_renderer->updateTime(static_cast<float>(deltaTime));
@@ -1395,7 +1661,8 @@ void QmlGlViewport::updateSimulation(double deltaTime)
     if (m_lastFrameTime > 0) {
         qint64 elapsed = now - m_lastFrameTime;
         if (elapsed > 0) {
-            m_frameRate = 1000.0f / elapsed;
+            m_frameRate = 1000.0f / static_cast<float>(elapsed);
+            qWarning() << "FPS:" << m_frameRate << "elapsed:" << elapsed;
             emit frameRateChanged();
         }
     }
@@ -1439,6 +1706,106 @@ void QmlGlViewport::handleWheel(float delta)
     } else {
         zoomOut();
     }
+}
+
+void QmlGlViewport::renderGL()
+{
+    std::ofstream("viewport_render.log", std::ios::app) << "renderGL() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
+    qWarning() << ">>> renderGL() triggered";
+    if (!m_renderer) {
+        qWarning() << ">>> renderGL() early return: no renderer";
+        return;
+    }
+
+    if (!initializeGlad()) {
+        qWarning() << ">>> renderGL() early return: glad not initialized";
+        return;
+    }
+
+    if (QOpenGLContext::currentContext()) {
+        qWarning() << ">>> renderGL() openGLModuleType:" << QOpenGLContext::currentContext()->openGLModuleType();
+    }
+    qWarning() << ">>> renderGL() GL_RENDERER:" << reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+
+    int w = width() > 0 ? static_cast<int>(width()) : 1280;
+    int h = height() > 0 ? static_cast<int>(height()) : 720;
+    qWarning() << ">>> renderGL() size:" << w << "x" << h;
+    if (!m_fbo || m_fbo->width() != w || m_fbo->height() != h) {
+        qWarning() << ">>> renderGL() recreating FBO";
+        delete m_fbo;
+        m_fbo = nullptr;
+        QOpenGLFramebufferObjectFormat format;
+        format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+        m_fbo = new QOpenGLFramebufferObject(QSize(w, h), format);
+        if (m_renderer) {
+            const float fov = 45.0f;
+            const float aspect = static_cast<float>(w) / h;
+            QMatrix4x4 proj;
+            proj.perspective(fov, aspect, 0.1f, 1000.0f);
+            m_renderer->setProjectionMatrix(proj);
+            m_renderer->setViewportSize(w, h);
+        }
+    }
+    if (!m_fbo) {
+        qWarning() << ">>> renderGL() early return: no FBO";
+        return;
+    }
+
+    m_fbo->bind();
+    GL_CHECK();
+    GLenum fboStatus = glad_glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
+        qWarning() << "QmlGlViewport: Framebuffer not complete! Status:" << fboStatus;
+    }
+    GL_CHECK();
+    qWarning() << ">>> renderGL() calling m_renderer->render()";
+    m_renderer->render();
+    qWarning() << ">>> renderGL() m_renderer->render() returned";
+    m_fbo->release();
+    QOpenGLFramebufferObject::bindDefault();
+
+    m_textureDirty = true;
+    qWarning() << ">>> renderGL() complete";
+}
+
+QSGNode *QmlGlViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *)
+{
+    QSGSimpleTextureNode *node = static_cast<QSGSimpleTextureNode*>(oldNode);
+
+    if (m_fbo && window()) {
+        quint64 texId = static_cast<quint64>(m_fbo->texture());
+        if (!node) {
+            node = new QSGSimpleTextureNode();
+            QSGTexture *texture = QNativeInterface::QSGOpenGLTexture::fromNative(
+                static_cast<GLuint>(texId), window(), m_fbo->size());
+            if (!texture) {
+                qWarning() << "QmlGlViewport: Failed to create QSGTexture from OpenGL texture";
+                return node;
+            }
+            node->setTexture(texture);
+            node->setFiltering(QSGTexture::Linear);
+            node->setRect(boundingRect());
+            m_lastTextureId = texId;
+        } else if (texId != m_lastTextureId) {
+            QSGTexture *texture = QNativeInterface::QSGOpenGLTexture::fromNative(
+                static_cast<GLuint>(texId), window(), m_fbo->size());
+            if (!texture) {
+                qWarning() << "QmlGlViewport: Failed to create QSGTexture from OpenGL texture";
+                return node;
+            }
+            node->setTexture(texture);
+            node->setRect(boundingRect());
+            m_lastTextureId = texId;
+        } else {
+            node->setRect(boundingRect());
+        }
+        if (m_textureDirty) {
+            node->markDirty(QSGNode::DirtyMaterial);
+            m_textureDirty = false;
+        }
+    }
+
+    return node;
 }
 
 } // namespace quantumverse

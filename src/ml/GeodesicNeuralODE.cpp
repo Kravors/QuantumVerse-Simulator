@@ -3,6 +3,19 @@
 #include <sstream>
 #include <cmath>
 #include <stdexcept>
+#include <cstring>
+#include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#ifdef HAVE_ONNX
+#ifndef ORT_API_VERSION
+#define ORT_API_VERSION 22
+#endif
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#endif
 
 namespace quantumverse {
 namespace ml {
@@ -75,16 +88,86 @@ inline std::vector<float> DenormalizeOutput(const std::vector<float>& norm,
     }
     return out;
 }
+
+#ifdef _WIN32
+inline std::wstring widen_path(const std::string& path) {
+    int needed = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+    if (needed <= 0) return L"";
+    std::wstring wpath(needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, &wpath[0], needed);
+    wpath.resize(needed - 1);
+    return wpath;
+}
+#endif
 }
 
 struct GeodesicNeuralODE::Impl {
     bool loaded_ = false;
+    bool use_onnx_ = false;
     NormStats norm_;
     std::string model_path_;
+
+#ifdef HAVE_ONNX
+    std::unique_ptr<Ort::Env> env_;
+    std::unique_ptr<Ort::Session> session_;
+    std::vector<std::string> input_names_;
+    std::vector<std::string> output_names_;
+    std::vector<ONNXTensorElementDataType> input_types_;
+    std::vector<ONNXTensorElementDataType> output_types_;
+    std::vector<int64_t> input_dims_;
+    std::vector<int64_t> output_dims_;
+#endif
+
     std::array<double,4> (*cpp_predict_fn_)(const double*) = nullptr;
 
-    [[nodiscard]] bool tryLoadONNX(const std::string&) {
+    [[nodiscard]] bool tryLoadONNX(const std::string& path) {
+#ifdef HAVE_ONNX
+        try {
+            env_ = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "GeodesicNeuralODE");
+            Ort::SessionOptions opts;
+            opts.SetIntraOpNumThreads(1);
+            opts.SetInterOpNumThreads(1);
+            opts.DisableCpuMemArena();
+
+            session_ = std::unique_ptr<Ort::Session>(
+                new Ort::Session(*env_, widen_path(path).c_str(), opts)
+            );
+
+            size_t num_inputs = session_->GetInputCount();
+            size_t num_outputs = session_->GetOutputCount();
+
+            input_names_ = session_->GetInputNames();
+            output_names_ = session_->GetOutputNames();
+            input_types_.reserve(num_inputs);
+            output_types_.reserve(num_outputs);
+            input_dims_.reserve(num_inputs);
+            output_dims_.reserve(num_outputs);
+
+            for (size_t i = 0; i < num_inputs; ++i) {
+                auto type_info = session_->GetInputTypeInfo(i);
+                auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
+                input_types_.push_back(tensor_info.GetElementType());
+                input_dims_ = tensor_info.GetShape();
+            }
+
+            for (size_t i = 0; i < num_outputs; ++i) {
+                auto type_info = session_->GetOutputTypeInfo(i);
+                auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
+                output_types_.push_back(tensor_info.GetElementType());
+                output_dims_ = tensor_info.GetShape();
+            }
+
+            use_onnx_ = true;
+            return true;
+        } catch (const std::exception& e) {
+            std::cerr << "[GeodesicNeuralODE] ONNX load failed: " << e.what() << "\n";
+            use_onnx_ = false;
+            return false;
+        }
+#else
+        (void)path;
         return false;
+#endif
     }
 };
 
@@ -119,17 +202,94 @@ bool GeodesicNeuralODE::isLoaded() const noexcept {
     return pImpl_->loaded_;
 }
 
-std::vector<spacetime::Event4D> GeodesicNeuralODE::predict(
-        const spacetime::Event4D& initial_event,
+std::vector<Event4D> GeodesicNeuralODE::predict(
+        const Event4D& initial_event,
         const std::array<double,4>& initial_velocity,
         const std::vector<double>& metric_params,
         double tau) const {
     if (!isLoaded()) {
-        return {spacetime::Event4D()};
+        return {Event4D()};
     }
 
     const auto& base = *pImpl_;
-    spacetime::Event4D final(
+
+#ifdef HAVE_ONNX
+    if (base.use_onnx_ && base.session_) {
+        try {
+            std::vector<float> input_data;
+            input_data.reserve(8 + metric_params.size());
+            input_data.push_back(static_cast<float>(initial_event.t));
+            input_data.push_back(static_cast<float>(initial_event.x));
+            input_data.push_back(static_cast<float>(initial_event.y));
+            input_data.push_back(static_cast<float>(initial_event.z));
+            input_data.push_back(static_cast<float>(initial_velocity[0]));
+            input_data.push_back(static_cast<float>(initial_velocity[1]));
+            input_data.push_back(static_cast<float>(initial_velocity[2]));
+            input_data.push_back(static_cast<float>(initial_velocity[3]));
+            for (double p : metric_params) {
+                input_data.push_back(static_cast<float>(p));
+            }
+
+            auto normed = NormalizeInput(input_data, base.norm_);
+
+            Ort::MemoryInfo mem_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+            Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
+                mem_info,
+                normed.data(),
+                normed.size(),
+                base.input_dims_.data(),
+                base.input_dims_.size()
+            );
+
+            std::vector<const char*> input_names_ptrs;
+            input_names_ptrs.reserve(base.input_names_.size());
+            for (const auto& name : base.input_names_) {
+                input_names_ptrs.push_back(name.c_str());
+            }
+
+            std::vector<const char*> output_names_ptrs;
+            output_names_ptrs.reserve(base.output_names_.size());
+            for (const auto& name : base.output_names_) {
+                output_names_ptrs.push_back(name.c_str());
+            }
+
+            std::vector<Ort::Value> outputs = base.session_->Run(
+                Ort::RunOptions{},
+                input_names_ptrs.data(),
+                &input_tensor,
+                1,
+                output_names_ptrs.data(),
+                output_names_ptrs.size()
+            );
+
+            if (!outputs.empty()) {
+                auto* out_ptr = outputs[0].GetTensorMutableData<float>();
+                size_t out_size = outputs[0].GetTensorTypeAndShapeInfo().GetElementCount();
+
+                auto denormed = DenormalizeOutput(
+                    std::vector<float>(out_ptr, out_ptr + out_size),
+                    base.norm_
+                );
+
+                double dt = static_cast<double>(denormed[0]);
+                double dx = static_cast<double>(denormed[1]);
+                double dy = static_cast<double>(denormed[2]);
+                double dz = static_cast<double>(denormed[3]);
+
+                return {Event4D(
+                    initial_event.t + dt,
+                    initial_event.x + dx,
+                    initial_event.y + dy,
+                    initial_event.z + dz
+                )};
+            }
+        } catch (const Ort::Exception& e) {
+            std::cerr << "[GeodesicNeuralODE] ONNX inference failed: " << e.what() << "\n";
+        }
+    }
+#endif
+
+    Event4D final(
         initial_event.t + initial_velocity[0] * tau,
         initial_event.x + initial_velocity[1] * tau,
         initial_event.y + initial_velocity[2] * tau,
@@ -138,14 +298,14 @@ std::vector<spacetime::Event4D> GeodesicNeuralODE::predict(
     return {final};
 }
 
-std::vector<std::vector<spacetime::Event4D>> GeodesicNeuralODE::predictBundle(
-        const std::vector<spacetime::Event4D>& initial_events,
+std::vector<std::vector<Event4D>> GeodesicNeuralODE::predictBundle(
+        const std::vector<Event4D>& initial_events,
         const std::vector<std::array<double,4>>& initial_velocities,
         const std::vector<double>& metric_params,
         double tau,
         utils::ThreadPool& pool) const {
     const size_t N = initial_events.size();
-    std::vector<std::vector<spacetime::Event4D>> results(N);
+    std::vector<std::vector<Event4D>> results(N);
 
     auto predictOne = [&](size_t i) {
         if (i < N) {

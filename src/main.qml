@@ -12,7 +12,8 @@
 
 import QtQuick
 import QtQuick.Window
-import QtQuick.Controls
+import QtQuick.Controls.Basic 6.0
+import QtQuick.Controls 6.0
 import QtQuick.Layouts
 import QuantumVerse 1.0
 
@@ -24,12 +25,22 @@ ApplicationWindow {
     title: "QuantumVerse Simulator - 4D Spacetime Explorer"
     color: "#0a0a1a"
 
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            console.log("TEST TIMER FIRED")
+        }
+    }
+
     property bool noViewport: Qt.application.arguments.indexOf("--noviewport") !== -1
     property Item viewportItem: viewportLoader.item
 
     Component.onCompleted: {
         console.log("sceneGraphModel count:", sceneGraphModel ? sceneGraphModel.count : "model not available")
         console.log("discoveryInstruments count:", discoveryPanelManager ? discoveryPanelManager.instrumentCount : "not available")
+        console.log("noViewport=" + noViewport + " args=" + Qt.application.arguments)
     }
 
     // Early placeholders to avoid ReferenceError before first use
@@ -260,6 +271,8 @@ ApplicationWindow {
     RowLayout {
         id: mainContent
         anchors.fill: parent
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         spacing: 2
 
         // --- LEFT SIDEBAR: Object Browser ---
@@ -408,6 +421,8 @@ ApplicationWindow {
             Loader {
                 id: viewportLoader
                 anchors.fill: parent
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 sourceComponent: noViewport ? placeholderComponent : viewportComponent
             }
 
@@ -416,17 +431,22 @@ ApplicationWindow {
                  QmlGlViewport {
                      id: viewport
                      anchors.fill: parent
+                     Layout.fillWidth: true
+                     Layout.fillHeight: true
                      showGrid: true
                      showGeodesics: true
                      showQuantumGeometry: false
                      Component.onCompleted: console.log("Viewport created, size:", width, "x", height)
 
-                     Timer {
-                         interval: 16
-                         running: true
-                         repeat: true
-                         onTriggered: viewport.update()
-                     }
+                      Timer {
+                          interval: 16
+                          running: true
+                          repeat: true
+                          onTriggered: {
+                              console.log("Timer tick, viewport size:", viewport.width, "x", viewport.height)
+                              viewport.update()
+                          }
+                      }
 
                      MouseArea {
                          id: viewportMouse
@@ -654,6 +674,22 @@ ApplicationWindow {
                     Layout.preferredHeight: 8
                     visible: discoveryPanelManager && discoveryPanelManager.scanRunning
                     value: discoveryPanelManager ? discoveryPanelManager.scanProgress : 0
+                }
+
+                // Planck Microscope toggle
+                Button {
+                    text: "🔭 Planck Microscope"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: planckContainer && planckContainer.visible
+                    onClicked: {
+                        if (planckContainer) {
+                            planckContainer.visible = checked
+                            if (checked) {
+                                planckContainer.raise()
+                            }
+                        }
+                    }
                 }
 
                 Label {
@@ -1011,9 +1047,10 @@ ApplicationWindow {
         running: !simulationPaused
         repeat: true
         onTriggered: {
+            console.log("simTimer tick, paused=" + simulationPaused)
             var dt = (interval / 1000.0) * timeScale
             simulationTime += dt
-            viewport.updateSimulation(dt)
+            viewportItem.updateSimulation(dt)
             timeSlider.value = simulationTime
         }
     }
@@ -1037,6 +1074,7 @@ ApplicationWindow {
         running: true
         repeat: true
         onTriggered: {
+            console.log("Render timer tick, viewport size:", viewportItem ? viewportItem.width + "x" + viewportItem.height : "null")
             if (viewportItem && viewportItem.width > 0 && viewportItem.height > 0) {
                 viewportItem.update()
             }

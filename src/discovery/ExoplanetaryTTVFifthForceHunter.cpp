@@ -4,7 +4,6 @@
  */
 
 #include "ExoplanetaryTTVFifthForceHunter.h"
-#include "PatchedConicIntegrator.h"
 #include "PlanetaryGridGenerator.h"
 #include <cmath>
 #include <algorithm>

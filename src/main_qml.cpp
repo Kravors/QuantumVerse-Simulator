@@ -17,10 +17,12 @@
 // Qt headers MUST come before project headers to avoid namespace pollution.
 // Qt uses QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
 #include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQmlComponent>
 #include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QSurfaceFormat>
 #include <QResource>
 #include <QDebug>
@@ -29,14 +31,16 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QWidget>
+#include <QWindow>
 #include <iostream>
 
 #include "qmlglviewport.h"
 #include "qmlcamcontroller.h"
 #include "scenegraphmodel.h"
-#include "ui4d/Camera4DAdapter.h"
 #include "ui4d/SceneGraphManager.h"
 #include "ui4d/UI4D.h"
+#include "ui4d/PlanckMicroscope.h"
 #include "ui4d/Camera4DAdapter.h"
 #include "spacetime/MetricTensor.h"
 #include "rendering/CurvatureRenderer.h"
@@ -115,7 +119,14 @@ int main(int argc, char* argv[])
     }
 
     // Headless detection - exit gracefully if no display (for CI environments)
-    if (GetSystemMetrics(SM_CMONITORS) == 0) {
+    // But if --frames is specified, attempt headless benchmark rendering below.
+    int headlessFrames = 0;
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
+            headlessFrames = atoi(argv[++i]);
+        }
+    }
+    if (GetSystemMetrics(SM_CMONITORS) == 0 && headlessFrames <= 0) {
         std::cerr << "No display detected. Exiting gracefully (headless environment)." << std::endl;
         std::cerr.flush();
         return 0;
@@ -129,20 +140,48 @@ int main(int argc, char* argv[])
         std::cerr << "Starting QuantumVerse QML application" << std::endl;
         std::cerr.flush();
 
-        // Enable high-DPI scaling
-        QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-        QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-        QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+    // Force desktop OpenGL backend before any Qt window is created.
+    // On Windows, Qt 6 defaults to ANGLE (OpenGL ES -> DirectX translation),
+    // which causes GL_INVALID_OPERATION on raw glClear/glDrawElements calls.
+    // Environment variables must be set first, followed by the application attributes,
+    // then the explicit graphics API override. QSG_OPENGL_LEGACY tells the RHI
+    // backend to use classic OpenGL calls instead of the modern RHI pipeline.
+    qputenv("QSG_RHI_BACKEND", QByteArray("opengl"));
+    qputenv("QT_OPENGL", QByteArray("desktop"));
+    qputenv("QSG_OPENGL_LEGACY", QByteArray("1"));
+    qputenv("QT_ANGLE_PLATFORM", QByteArray("none"));
 
-        // Set OpenGL format before QGuiApplication to avoid shared-context warnings
-        QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
 
-        QGuiApplication app(argc, argv);
-        app.setApplicationName("QuantumVerse Simulator");
-        app.setOrganizationName("QuantumVerse");
+    qDebug() << "QSG_RHI_BACKEND =" << qgetenv("QSG_RHI_BACKEND");
+    qDebug() << "QSG_OPENGL_LEGACY =" << qgetenv("QSG_OPENGL_LEGACY");
+    qDebug() << "QT_OPENGL =" << qgetenv("QT_OPENGL");
+    qDebug() << "QT_ANGLE_PLATFORM =" << qgetenv("QT_ANGLE_PLATFORM");
 
-        qDebug() << "QT_OPENGL env:" << qgetenv("QT_OPENGL").constData();
-        qDebug() << "OpenGL API before engine load:" << QQuickWindow::graphicsApi();
+    // Force desktop OpenGL at the application level as well.
+    // This influences RHI backend selection even when setGraphicsApi() alone is insufficient.
+    QGuiApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
+    QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+
+    // Ensure Qt can find its plugins and QML modules when running from a
+    // deployment directory that does not preserve the original Qt layout.
+    qputenv("QT_PLUGIN_PATH", QByteArray("F:/qt/6.11.1/msvc2022_64/plugins"));
+    qputenv("QML2_IMPORT_PATH", QByteArray("F:/qt/6.11.1/msvc2022_64/qml"));
+    qDebug() << "QT_PLUGIN_PATH set to:" << qgetenv("QT_PLUGIN_PATH").constData();
+    qDebug() << "QML2_IMPORT_PATH set to:" << qgetenv("QML2_IMPORT_PATH").constData();
+
+    // Enable high-DPI scaling
+    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
+    // Set OpenGL format before QGuiApplication to avoid shared-context warnings
+    QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+
+    QApplication app(argc, argv);
+    app.setApplicationName("QuantumVerse Simulator");
+    app.setOrganizationName("QuantumVerse");
+
+    std::ofstream("graphics_api.txt") << "Graphics API after QApplication/QQuickWindow setup: " << QQuickWindow::graphicsApi() << std::endl;
+    qDebug() << "Graphics API after QApplication/QQuickWindow setup:" << QQuickWindow::graphicsApi();
 
         // 1. Ensure Qt can find its plugins
         std::cerr << "QT_PLUGIN_PATH = " << qgetenv("QT_PLUGIN_PATH").constData() << std::endl;
@@ -229,13 +268,34 @@ int main(int argc, char* argv[])
         ui4d->setMetric(metric);
         ui4d->setCurvatureRenderer(curvatureRenderer);
         ui4d->setQuantumRenderer(quantumRenderer);
-        qDebug() << "QuantumVerse: Setting active quantum theory to CDT";
+        std::cerr << "QuantumVerse: Setting active quantum theory to CDT" << std::endl;
+        std::cerr.flush();
         ui4d->setActiveQuantumTheory("CDT");
-        qDebug() << "QuantumVerse: Active quantum theory set to: CDT";
+        std::cerr << "QuantumVerse: Active quantum theory set to: CDT" << std::endl;
+        std::cerr.flush();
 
         // Create the Camera4DAdapter for 4D navigation with 6-plane SO(4) rotation
+        std::cerr << "QuantumVerse: Creating Camera4DAdapter..." << std::endl;
+        std::cerr.flush();
         auto camera4DAdapter = std::make_shared<quantumverse::Camera4DAdapter>();
         camera4DAdapter->setAnimationSpeed(1.0);
+        std::cerr << "QuantumVerse: Camera4DAdapter created" << std::endl;
+        std::cerr.flush();
+
+        // Create the Planck Microscope widget for Planck-scale exploration
+        std::cerr << "QuantumVerse: Creating PlanckMicroscope..." << std::endl;
+        std::cerr.flush();
+        auto planckMicroscope = new quantumverse::PlanckMicroscope(nullptr);
+        std::cerr << "QuantumVerse: PlanckMicroscope created" << std::endl;
+        std::cerr.flush();
+        QWidget* planckContainer = QWidget::createWindowContainer(
+            planckMicroscope->windowHandle(), nullptr);
+        std::cerr << "QuantumVerse: planckContainer created" << std::endl;
+        std::cerr.flush();
+        planckContainer->setObjectName("planckContainer");
+        planckContainer->setVisible(false);
+        std::cerr << "QuantumVerse: PlanckMicroscope setup complete" << std::endl;
+        std::cerr.flush();
 
         // Set up the QML engine
         QQmlApplicationEngine engine;
@@ -243,12 +303,9 @@ int main(int argc, char* argv[])
         // Add QML import paths
         // The qmldir file is in deploy/windows/qml/QuantumVerse/
         engine.addImportPath(QStringLiteral("qrc:/"));
-        // Also add the current directory for file system QML modules
         engine.addImportPath(QStringLiteral("."));
-        // Add the qml subdirectory for QuantumVerse module
         engine.addImportPath(QStringLiteral("qml"));
-        // Add Qt's own QML module directory so QtQuick/QtQuick.Controls resolve from resources
-        engine.addImportPath(QStringLiteral("F:/syyyy/Qt6/6.5.3/msvc2019_64/qml"));
+        engine.addImportPath(QStringLiteral("F:/qt/6.11.1/msvc2022_64/qml"));
 
         // Create QML camera controller for basic 3D navigation
         auto camController = new quantumverse::QmlCamController(&engine);
@@ -271,6 +328,8 @@ int main(int argc, char* argv[])
             QVariant::fromValue(camController));
         rootContext->setContextProperty("discoveryPanelManager",
             QVariant::fromValue(discoveryPanelManager.get()));
+        rootContext->setContextProperty("planckContainer",
+            QVariant::fromValue(planckContainer));
 
         // Stub missing properties so QML does not throw reference errors
         rootContext->setContextProperty("probeKretschmann",
@@ -311,6 +370,8 @@ int main(int argc, char* argv[])
 
         engine.load(url);
         qDebug() << "QuantumVerse: QML engine.load() completed";
+
+        std::ofstream("graphics_api.txt", std::ios::app) << "graphics_api_post_engine: " << QQuickWindow::graphicsApi() << std::endl;
 
         // Check for QML errors
         if (engine.rootObjects().isEmpty()) {
@@ -373,6 +434,35 @@ int main(int argc, char* argv[])
         std::cerr << "  - Curvature renderer initialized" << std::endl;
         std::cerr << "  - Ready for 4D navigation" << std::endl;
         std::cerr.flush();
+
+        if (headlessFrames > 0) {
+            qDebug() << "Headless benchmark mode: rendering" << headlessFrames << "frames";
+            std::cerr << "Headless benchmark mode: rendering " << headlessFrames << " frames" << std::endl;
+            std::cerr.flush();
+
+            QObject* rootObject = engine.rootObjects().value(0, nullptr);
+            if (auto* mainWindow = qobject_cast<QQuickWindow*>(rootObject)) {
+                if (mainWindow->isVisible()) {
+                    mainWindow->hide();
+                }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
+                mainWindow->setRenderPolicy(QQuickWindow::RenderPolicy::Continuous);
+#endif
+                int renderedFrames = 0;
+                QObject::connect(mainWindow, &QQuickWindow::frameSwapped, [&]() {
+                    renderedFrames++;
+                    if (renderedFrames >= headlessFrames + 2) {
+                        QTimer::singleShot(200, QCoreApplication::quit);
+                    }
+                });
+            }
+
+            QTimer::singleShot(headlessFrames * 100 + 5000, []() {
+                std::cerr << "Headless benchmark safety timeout - exiting\n";
+                std::cerr.flush();
+                QCoreApplication::quit();
+            });
+        }
 
         // Run the application
         int result = app.exec();

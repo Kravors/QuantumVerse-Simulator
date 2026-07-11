@@ -23,6 +23,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include "PlanckMicroscope.h"
 #include "../spacetime/Event4D.h"
 #include "../spacetime/MetricTensor.h"
 #include "../physics/GeodesicIntegrator.h"
@@ -42,7 +43,6 @@ class SliceView;
 class CausalGraph;
 class DiscoveryProbe;
 class SingularityHandler;
-class PlanckMicroscope;
 
 // 4D UI Configuration
 struct UI4DConfig {

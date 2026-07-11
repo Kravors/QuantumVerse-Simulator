@@ -8,9 +8,16 @@ Checks: >
   - modernize-*
   - cppcoreguidelines-*
   - readability-*
+  - cert-*
+  - clang-analyzer-*
+  - google-*
+  - llvm-*
+  - altera-*
   - -cppcoreguidelines-avoid-magic-numbers
   - -readability-magic-numbers
   - -modernize-use-trailing-return-type
+  - -bugprone-suspicious-include
+  - -clang-analyzer-valist.Uninitialized
 
 CheckOptions:
   - key: readability-identifier-naming.NamespaceCase
@@ -36,6 +43,5 @@ CheckOptions:
 
 AnalyzeTemporaryDtors: false
 FormatStyle: none
-HeaderFilterRegex: '.*'
-WarningsAsErrors: ''
-...
+HeaderFilterRegex: 'src/.*|tests/.*|examples/.*'
+WarningsAsErrors: '*'
