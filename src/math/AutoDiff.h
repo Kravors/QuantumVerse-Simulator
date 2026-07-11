@@ -372,7 +372,7 @@ std::array<double, N> gradient(
         vars.push_back(ADVariable<N>::variable(x[i], i));
     }
     ADVariable<N> result = f(vars);
-    std::array<double, N> grad;
+    std::array<double, N> grad{};
     for (size_t i = 0; i < N; ++i) {
         grad[i] = result[i];
     }
@@ -390,7 +390,7 @@ std::array<std::array<double, M>, N> jacobian(
         vars.push_back(ADVariable<M>::variable(x[i], i));
     }
     std::vector<ADVariable<N>> result = F(vars);
-    std::array<std::array<double, M>, N> J;
+    std::array<std::array<double, M>, N> J{};
     for (size_t i = 0; i < N; ++i) {
         for (size_t j = 0; j < M; ++j) {
             J[i][j] = result[i][j];
@@ -416,7 +416,7 @@ std::array<double, N> gradientN(
 ) {
     // Use finite difference for scalar functions (AD requires expression templates)
     // This is a simple and robust implementation
-    std::array<double, N> grad;
+    std::array<double, N> grad{};
     const double h = 1e-8;
     
     for (size_t i = 0; i < N; ++i) {

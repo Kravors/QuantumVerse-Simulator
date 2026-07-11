@@ -266,8 +266,8 @@ public:
 private:
     struct CachedTexture {
         std::vector<uint8_t> data;
-        size_t lastAccess;
-        size_t size;
+        size_t lastAccess = 0;
+        size_t size = 0;
     };
 
     std::unordered_map<std::string, CachedTexture> m_cache;

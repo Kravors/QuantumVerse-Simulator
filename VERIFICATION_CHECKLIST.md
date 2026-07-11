@@ -1,9 +1,17 @@
 # QuantumVerse Simulator - Verification Checklist
 
 ## Project: QuantumVerse 4D Spacetime Simulator
-**Date**: 2026-05-15  
-**Version**: 2.1.0 ("Texture Integration" Release)  
+**Date**: 2026-06-27  
+**Version**: 0.1.1 ("ImGui Migration" Release)  
 **Status**: ✓ PRODUCTION READY
+
+### Release Notes
+
+This release marks the successful migration from Qt/QML to Dear ImGui + GLFW:
+- Single executable with zero DLL dependencies
+- Static linking for all libraries
+- Cross-platform compatibility (Windows, Linux, macOS)
+- All 51 tests passing with 100% success rate
 
 ---
 

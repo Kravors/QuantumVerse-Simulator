@@ -122,14 +122,14 @@ public:
  */
 struct DiscoveryResult {
     std::string id;
-    std::string type;  // "wormhole", "naked_singularity", "ctc", "new_field", etc.
+    std::string type;
     std::string description;
-    double confidence;
+    double confidence = 0.0;
     Event4D location;
     std::map<std::string, double> parameters;
-    std::string fieldEquation;  // Symbolic regression output
-    double timestamp;
-    bool validated;
+    std::string fieldEquation;
+    double timestamp = 0.0;
+    bool validated = false;
 };
 
 /**
@@ -143,8 +143,8 @@ struct Hypothesis {
     std::map<std::string, double> parameters;
     std::vector<double> predictions;
     std::vector<double> observations;
-    double confidence;
-    std::string status;  // "proposed", "testing", "validated", "refuted"
+    double confidence = 0.0;
+    std::string status = "proposed";
 };
 
 /**
@@ -221,9 +221,9 @@ private:
     bool refuteHypothesis(const std::string& hypothesisId);
     
     // Discovery queries
-    std::vector<DiscoveryResult> getDiscoveries() const;
+    const std::vector<DiscoveryResult>& getDiscoveries() const;
     std::vector<DiscoveryResult> getDiscoveriesByType(const std::string& type) const;
-    std::vector<Hypothesis> getHypotheses() const;
+    const std::vector<Hypothesis>& getHypotheses() const;
     std::vector<Hypothesis> getActiveHypotheses() const;
     
     // Validation against known physics
@@ -426,7 +426,7 @@ public:
     
     // Active theory
     bool setActiveTheory(const std::string& name);
-    std::string getActiveTheory() const;
+    const std::string& getActiveTheory() const;
     
     // Compute with active theory
     MetricTensor computeMetric(

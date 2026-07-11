@@ -217,33 +217,35 @@ void CurvatureCalculator::computeRicciScalar(const Event4D& position) const {
 void CurvatureCalculator::computeKretschmann(const Event4D& position) const {
     ensureRiemann(position);
 
-    // K = R^rho_sigma_mu_nu * R_rho_sigma_mu_nu
-    // Need to lower all indices: K = g_rho_alpha g_sigma_beta g_mu_gamma g_nu_delta * R^alpha_beta_gamma_delta * R^rho_sigma_mu_nu
-    // Simpler: K = R_{rho sigma mu nu} * R^{rho sigma mu nu}
-    // We compute by contracting with the metric
-
+    // K = R_{rho sigma mu nu} R^{rho sigma mu nu}
+    // Use Ricci tensor: K = R_{ij}R^{ij} + 2*R_{ijkl}R^{ijkl}/3 for vacuum
+    // But simpler: just contract the Riemann tensor
+    
+    // First compute R_{rho sigma mu nu} = g_rho_alpha R^alpha_sigma_mu_nu
     MetricTensor metric = metricField_(position);
-    MetricTensor inv = metric.inverse();
-
+    std::array<std::array<std::array<std::array<double, 4>, 4>, 4>, 4> R_lowered;
+    
+    for (int rho = 0; rho < 4; rho++) {
+        for (int sigma = 0; sigma < 4; sigma++) {
+            for (int mu = 0; mu < 4; mu++) {
+                for (int nu = 0; nu < 4; nu++) {
+                    double sum = 0.0;
+                    for (int alpha = 0; alpha < 4; alpha++) {
+                        sum += metric.g[rho][alpha] * riemannCache_[alpha][sigma][mu][nu];
+                    }
+                    R_lowered[rho][sigma][mu][nu] = sum;
+                }
+            }
+        }
+    }
+    
+    // Now contract: K = R^{rho sigma mu nu} * R_{rho sigma mu nu}
     double sum = 0.0;
     for (int rho = 0; rho < 4; rho++) {
         for (int sigma = 0; sigma < 4; sigma++) {
             for (int mu = 0; mu < 4; mu++) {
                 for (int nu = 0; nu < 4; nu++) {
-                    // Lower all indices of Riemann
-                    double R_lowered = 0.0;
-                    for (int a = 0; a < 4; a++) {
-                        for (int b = 0; b < 4; b++) {
-                            for (int c = 0; c < 4; c++) {
-                                for (int d = 0; d < 4; d++) {
-                                    R_lowered += metric.g[rho][a] * metric.g[sigma][b] *
-                                                 metric.g[mu][c] * metric.g[nu][d] *
-                                                 riemannCache_[a][b][c][d];
-                                }
-                            }
-                        }
-                    }
-                    sum += R_lowered * riemannCache_[rho][sigma][mu][nu];
+                    sum += riemannCache_[rho][sigma][mu][nu] * R_lowered[rho][sigma][mu][nu];
                 }
             }
         }

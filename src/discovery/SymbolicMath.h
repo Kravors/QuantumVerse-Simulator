@@ -27,9 +27,9 @@ public:
      * @brief Result of symbolic computation.
      */
     struct SymbolicResult {
-        std::string expression;       ///< LaTeX or string representation
-        bool is_valid;                ///< Whether computation succeeded
-        std::string error_message;    ///< Error if any
+        std::string expression;
+        bool is_valid = false;
+        std::string error_message;
     };
 
     /**
@@ -185,10 +185,10 @@ public:
      * @brief Result of symbolic regression.
      */
     struct RegressionResult {
-        std::string equation;         ///< Discovered equation
-        double fitness_score;           ///< How well it fits
-        int complexity;                 ///< Expression complexity
-        bool is_valid;                  ///< Whether result is valid
+        std::string equation;
+        double fitness_score = 0.0;
+        int complexity = 0;
+        bool is_valid = false;
     };
 
     explicit SymbolicRegressionEngine(const Config& config = Config{});

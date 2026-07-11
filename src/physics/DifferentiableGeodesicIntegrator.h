@@ -34,20 +34,17 @@ using math::ADVariable;
 struct DifferentiableGeodesicResult {
     std::array<ADVariable<1>, 4> finalPosition;
     std::array<ADVariable<1>, 4> finalVelocity;
-    double finalProperTime;
-    int iterations;
-    bool success;
+    double finalProperTime = 0.0;
+    int iterations = 0;
+    bool success = false;
 };
 
-/**
- * @brief Integration result with 2-parameter gradient data.
- */
 struct DifferentiableGeodesicResult2 {
     std::array<ADVariable<2>, 4> finalPosition;
     std::array<ADVariable<2>, 4> finalVelocity;
-    double finalProperTime;
-    int iterations;
-    bool success;
+    double finalProperTime = 0.0;
+    int iterations = 0;
+    bool success = false;
 };
 
 /**

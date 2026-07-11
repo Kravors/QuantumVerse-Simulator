@@ -12,6 +12,7 @@
 #include "DiscoveryInstrument.h"
 #include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "PlanetaryGridGenerator.h"
 
 namespace quantumverse {
 
@@ -35,6 +36,8 @@ public:
     std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
         const std::vector<Event4D>& trajectory = {}) override;
 
+    std::vector<InstrumentFinding> analyzeGrid(const std::vector<PlanetaryGridResult>& gridResults);
+
     std::string getName() const override { return "ExoplanetaryTTVFifthForceHunter"; }
     std::string getDescription() const override
     {
@@ -51,6 +54,7 @@ private:
     bool isAnomalousPattern(const std::vector<double>& residuals, double threshold);
     double estimateFifthForceStrength(const std::vector<double>& residuals,
         const std::vector<double>& distances);
+    double estimateStrengthFromGrid(const std::vector<PlanetaryGridResult>& gridResults);
 };
 
 } // namespace quantumverse

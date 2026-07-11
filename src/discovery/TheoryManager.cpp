@@ -63,7 +63,7 @@ bool TheoryManager::setActiveTheory(const std::string& name) {
     return false;
 }
 
-std::string TheoryManager::getActiveTheory() const {
+const std::string& TheoryManager::getActiveTheory() const {
     return activeTheory;
 }
 

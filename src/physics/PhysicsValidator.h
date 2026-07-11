@@ -29,11 +29,11 @@ namespace quantumverse {
  * @brief Results of differential physics validation
  */
 struct ValidationResult {
-    bool passed;                    ///< Overall pass/fail status
-    double geodesicDeviation;       ///< Max deviation between integrators
-    double christoffelError;        ///< Max error in Christoffel symbols
-    double ricciConsistency;      ///< Ricci scalar consistency error
-    std::string message;           ///< Human-readable result message
+    bool passed = false;                    ///< Overall pass/fail status
+    double geodesicDeviation = 0.0;       ///< Max deviation between integrators
+    double christoffelError = 0.0;        ///< Max error in Christoffel symbols
+    double ricciConsistency = 0.0;        ///< Ricci scalar consistency error
+    std::string message;                   ///< Human-readable result message
 };
 
 /**

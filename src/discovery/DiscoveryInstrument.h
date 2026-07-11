@@ -23,6 +23,9 @@
 
 namespace quantumverse {
 
+// Forward declaration for PlanetaryGridResult
+struct PlanetaryGridResult;
+
 /**
  * @brief Severity level for discovery alerts
  */
@@ -40,12 +43,12 @@ enum class AlertSeverity {
 struct InstrumentFinding {
     std::string id;
     std::string instrumentName;
-    AlertSeverity severity;
-    double confidence;           ///< 0.0 to 1.0
+    AlertSeverity severity = AlertSeverity::INFO;
+    double confidence = 0.0;
     std::string description;
     std::map<std::string, double> parameters;
     Event4D location;
-    double timestamp;
+    double timestamp = 0.0;
 };
 
 /**
@@ -81,15 +84,17 @@ public:
      * @param trajectory Optional trajectory data
      * @return List of findings (may be empty)
      */
-    virtual std::vector<InstrumentFinding> analyze(
+virtual std::vector<InstrumentFinding> analyze(
         const MetricTensor& metric,
         const Event4D& location,
         const std::vector<Event4D>& trajectory = {}
     ) = 0;
 
-    /**
-     * @brief Get parameter ranges for this instrument
-     */
+    virtual std::vector<InstrumentFinding> analyzeGrid(
+        const std::vector<PlanetaryGridResult>& gridResults) {
+        return {};
+    }
+
     virtual std::map<std::string, std::pair<double, double>> getParameterRanges() const {
         // Default implementation: return empty map
         // Derived classes should override to provide actual parameter ranges
@@ -106,7 +111,7 @@ public:
     /**
      * @brief Get current parameter values
      */
-    std::map<std::string, double> getParameters() const {
+    const std::map<std::string, double>& getParameters() const {
         return m_parameters;
     }
 
@@ -116,8 +121,8 @@ public:
      * @return Parameter value, or 0.0 if not found
      */
     virtual double getParameter(const std::string& name) const {
-        auto it = getParameters().find(name);
-        return (it != getParameters().end()) ? it->second : 0.0;
+        auto it = m_parameters.find(name);
+        return (it != m_parameters.end()) ? it->second : 0.0;
     }
 
     /**

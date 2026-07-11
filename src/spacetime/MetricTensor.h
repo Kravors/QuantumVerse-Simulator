@@ -48,8 +48,11 @@ public:
         
         if (r <= rs) {
             // Inside event horizon - metric signature flips
-            metric.g[0][0] = 1.0 / factor;   // Now positive (timelike becomes spacelike)
-            metric.g[1][1] = -factor;        // Now negative (spacelike becomes timelike)
+            // g[0][0] becomes positive (time becomes space-like)
+            // g[1][1] becomes negative (radial becomes time-like)
+            // factor = 1 - rs/r < 0 when r < rs
+            metric.g[0][0] = -factor;       // -factor > 0 (positive)
+            metric.g[1][1] = 1.0 / factor;  // 1/factor < 0 (negative)
         } else {
             metric.g[0][0] = -factor;
             metric.g[1][1] = 1.0 / factor;

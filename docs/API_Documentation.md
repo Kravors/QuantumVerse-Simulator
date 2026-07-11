@@ -4,6 +4,10 @@
 
 This document provides detailed API documentation for the QuantumVerse Simulator's core modules, including the discovery engine, quantum gravity engines, and physics components.
 
+**Version**: 0.1.1  
+**Last Updated**: 2026-06-27  
+**Status**: Production Ready
+
 ---
 
 ## Table of Contents
@@ -13,6 +17,8 @@ This document provides detailed API documentation for the QuantumVerse Simulator
 3. [Quantum Gravity Engines API](#quantum-gravity-engines-api)
 4. [Physics Components API](#physics-components-api)
 5. [Math Utilities API](#math-utilities-api)
+6. [Build Configuration](#build-configuration)
+7. [Migration Notes](#migration-notes)
 
 ---
 
@@ -889,9 +895,70 @@ cmake --build . --config Release --parallel 8
 
 ---
 
+## Build Configuration
+
+### CMake Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `QUANTUMVERSE_USE_IMGUI` | ON | Enable ImGui GUI (recommended) |
+| `QUANTUMVERSE_USE_QT` | OFF | Enable Qt GUI (deprecated) |
+| `QUANTUMVERSE_ENABLE_QUANTUM_GRAVITY` | ON | Enable quantum gravity engines |
+| `QUANTUMVERSE_BUILD_TESTS` | ON | Build test suite |
+| `QUANTUMVERSE_BUILD_EXAMPLES` | ON | Build examples |
+| `QUANTUMVERSE_USE_CUDA` | OFF | Enable CUDA acceleration |
+| `QUANTUMVERSE_USE_ONNX` | OFF | Enable ONNX Runtime for ML models |
+
+### Example Build
+
+```bash
+# Recommended ImGui build
+cmake -B build -DCMAKE_BUILD_TYPE=Release \
+         -DQUANTUMVERSE_USE_IMGUI=ON \
+         -DQUANTUMVERSE_BUILD_TESTS=ON
+cmake --build build --config Release --parallel 8
+```
+
+---
+
+## Migration Notes
+
+### ImGui Migration (2026-05-29)
+
+The project has been successfully migrated from Qt to Dear ImGui + GLFW. Key changes:
+
+- **Single executable**: No DLL dependencies (static linking)
+- **Zero external dependencies**: All libraries statically linked
+- **Cross-platform**: Works on Windows, Linux, and macOS
+- **VR support**: OpenXR integration via stub mode
+
+### Breaking Changes from Qt Version
+
+| Qt Feature | ImGui Equivalent |
+|------------|------------------|
+| `MainWindow` | `UI4D_ImGui` |
+| QML Viewport | `UI4D_ImGui::render4DView()` |
+| Qt Signals/Slots | Direct function calls |
+| QML Properties | Direct member access |
+
+### File Structure Changes
+
+```
+src/ui_imgui/          # All UI code (replaces src/qml/)
+├── UI4D_ImGui.cpp/h    # Main UI implementation
+├── TimelineBar.cpp/h   # Timeline control
+├── ObjectBrowser.cpp/h # Scene object browser
+├── PropertyEditor.cpp/h # Object property editor
+└── FloatingPanels.cpp/h # Overlay panels
+```
+
+---
+
 ## See Also
 
 - [README.md](README.md) - Project overview and quick start
 - [UI_Documentation.md](UI_Documentation.md) - User interface documentation
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Technical implementation details
+- [user_manual/README.md](user_manual/README.md) - Complete user manual
 - [VERIFICATION_CHECKLIST.md](VERIFICATION_CHECKLIST.md) - Validation checklist
+- [docs/4D_VIEWPORT_GUIDE.md](docs/4D_VIEWPORT_GUIDE.md) - 4D viewport guide
+- [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) - UI layout documentation

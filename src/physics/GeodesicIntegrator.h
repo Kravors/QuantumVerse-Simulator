@@ -38,9 +38,9 @@ namespace quantumverse {
 // Geodesic integration result
 struct GeodesicStep {
     Event4D event;      ///< Spacetime position
-    double properTime;  ///< Proper time along geodesic
-    double stepSize;    ///< Integration step size used
-    bool valid;         ///< Integration success flag
+    double properTime = 0.0;  ///< Proper time along geodesic
+    double stepSize = 0.0;    ///< Integration step size used
+    bool valid = false;         ///< Integration success flag
 };
 
 // Geodesic type enumeration

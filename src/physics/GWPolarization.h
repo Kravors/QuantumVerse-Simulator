@@ -37,16 +37,13 @@ enum class PolarizationMode {
  */
 struct GWPolarizationState {
     std::vector<std::pair<double, double>> waveform;  ///< Time series (time, strain)
-    PolarizationMode mode;                            ///< Polarization type
-    double amplitude = 0.0;                         ///< Overall amplitude
+    PolarizationMode mode = PolarizationMode::Plus;   ///< Polarization type
+    double amplitude = 0.0;                           ///< Overall amplitude
     double frequency = 0.0;                         ///< Central frequency
     double phase = 0.0;                             ///< Initial phase
     double sky_location[2] = {0.0, 0.0};            ///< (ra, dec) in radians
-    double polarization_angle = 0.0;                ///< Polarization angle
+    double polarization_angle = 0.0;                  ///< Polarization angle
     
-    /**
-     * @brief Get strain at time t.
-     */
     double strainAt(double t) const;
 };
 
@@ -119,10 +116,10 @@ class GWDetectorNetwork {
 public:
     struct Detector {
         std::string name;
-        std::array<double, 3> arm1;     ///< First arm direction
-        std::array<double, 3> arm2;     ///< Second arm direction
-        double latitude;                ///< Latitude in radians
-        double longitude;               ///< Longitude in radians
+        std::array<double, 3> arm1 = {0.0, 0.0, 0.0};    ///< First arm direction
+        std::array<double, 3> arm2 = {0.0, 0.0, 0.0};    ///< Second arm direction
+        double latitude = 0.0;               ///< Latitude in radians
+        double longitude = 0.0;                ///< Longitude in radians
     };
     
     std::vector<Detector> detectors;

@@ -2,7 +2,20 @@
 
 ## Overview
 
+**Version**: 0.1.1  
+**Last Updated**: 2026-06-27  
+**Status**: Production Ready
+
 The QuantumVerse Simulator features an immersive, GUI-first interface built with Dear ImGui that transforms the physics simulation into an interactive spacetime laboratory. The UI is designed around the "Navigate to Discover" philosophy where navigation actions automatically enable relevant physics interrogation tools.
+
+### Key Features
+
+- **True 4D Navigation**: Full six-dimensional rotation (SO(4)) and translation
+- **Multi-Viewport Layout**: Coordinated 4D view, slice views, and diagnostic panels
+- **Planck Microscope**: Zoom from cosmic scale to Planck length (35 orders of magnitude)
+- **Discovery Console**: Real-time anomaly detection and hypothesis generation
+- **Accessibility Support**: WCAG 2.1 AA compliance with keyboard navigation
+- **VR Integration**: OpenXR-based virtual reality support (stub mode)
 
 ## UI Architecture
 

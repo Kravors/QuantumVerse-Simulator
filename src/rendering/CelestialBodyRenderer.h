@@ -40,15 +40,15 @@ namespace quantumverse {
 struct CelestialBodyInstance {
     std::string objectId;
     std::string name;
-    double mass;               // kg
-    double radius;             // meters (visual radius)
-    float color[3];            // Base color (RGB)
-    float emissive[3];         // Emissive glow (RGB)
-    float position[3];         // World-space position (x, y, z)
-    bool isStar;               // Whether this is a star (emits light)
-    bool hasAtmosphere;        // Whether to render atmospheric glow
-    float atmosphereRadius;    // Atmosphere scale factor (>1.0)
-    int textureLayer;          ///< Index into GL_TEXTURE_2D_ARRAY (-1 = no texture)
+    double mass = 0.0;
+    double radius = 0.0;
+    float color[3] = {0.0f, 0.0f, 0.0f};
+    float emissive[3] = {0.0f, 0.0f, 0.0f};
+    float position[3] = {0.0f, 0.0f, 0.0f};
+    bool isStar = false;
+    bool hasAtmosphere = false;
+    float atmosphereRadius = 1.0f;
+    int textureLayer = -1;
 };
 
 /**
@@ -234,8 +234,8 @@ private:
     // Body data
     struct BodyData {
         CelestialBodyInstance instance;
-        float modelMatrix[16];  // Cached model matrix
-        float modelMatrixIT[9]; // Inverse transpose for normals
+        float modelMatrix[16] = {0.0f};
+        float modelMatrixIT[9] = {0.0f};
     };
     std::vector<BodyData> m_bodies;
     std::map<std::string, size_t> m_bodyIndexMap;

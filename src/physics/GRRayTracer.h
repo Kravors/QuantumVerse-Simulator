@@ -27,9 +27,9 @@ class MetricTensor;
 struct RayTraceResult {
     std::vector<Event4D> path;     ///< Geodesic path points
     std::vector<float> colors;     ///< Color values along path
-    bool hitEventHorizon;          ///< Whether ray hit event horizon
-    bool hitSingularity;           ///< Whether ray hit singularity
-    double finalTime;              ///< Final proper time
+    bool hitEventHorizon = false;  ///< Whether ray hit event horizon
+    bool hitSingularity = false;   ///< Whether ray hit singularity
+    double finalTime = 0.0;        ///< Final proper time
 };
 
 /**

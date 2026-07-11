@@ -41,12 +41,12 @@ private:
     };
 
     struct Simplex4D {
-        int v[5];
-        int e[10];
-        int t[10];
-        int te[5];
-        double volume;
-        int id;
+        int v[5] = {0, 0, 0, 0, 0};
+        int e[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        int t[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        int te[5] = {0, 0, 0, 0, 0};
+        double volume = 0.0;
+        int id = 0;
     };
 
     mutable std::vector<Vertex> vertices;

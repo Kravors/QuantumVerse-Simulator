@@ -19,6 +19,16 @@ tests:
       - src/spacetime/*.h
     timeout: 300
 
+  # Integration tests (includes geodesic, metric, singularity)
+  - name: integration
+    command: ./test_integration
+    files:
+      - src/spacetime/*.cpp
+      - src/spacetime/*.h
+      - src/physics/*.cpp
+      - src/physics/*.h
+    timeout: 600
+
   # Rendering tests
   - name: rendering
     command: ./test_orbit_renderer

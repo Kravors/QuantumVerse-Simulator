@@ -225,7 +225,7 @@ bool DiscoveryEngine::refuteHypothesis(const std::string& hypothesisId) {
     return false;
 }
 
-std::vector<DiscoveryResult> DiscoveryEngine::getDiscoveries() const {
+const std::vector<DiscoveryResult>& DiscoveryEngine::getDiscoveries() const {
     return discoveries;
 }
 
@@ -239,7 +239,7 @@ std::vector<DiscoveryResult> DiscoveryEngine::getDiscoveriesByType(const std::st
     return filtered;
 }
 
-std::vector<Hypothesis> DiscoveryEngine::getHypotheses() const {
+const std::vector<Hypothesis>& DiscoveryEngine::getHypotheses() const {
     return hypotheses;
 }
 

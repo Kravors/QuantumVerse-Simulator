@@ -32,8 +32,8 @@ public:
     struct HolographicState {
         std::vector<double> bulk_metric;
         std::vector<double> boundary_stress_tensor;
-        double entanglement_entropy;
-        double holographic_complexity;
+        double entanglement_entropy = 0.0;
+        double holographic_complexity = 0.0;
         std::string dual_cft_description;
     };
     
@@ -129,14 +129,14 @@ class AICoPilot {
 public:
     struct AnalysisResult {
         std::string hypothesis;
-        double confidence;
+        double confidence = 0.0;
         std::vector<std::string> suggested_experiments;
         std::string explanation;
     };
     
     struct AnomalyReport {
         std::string anomaly_type;
-        double significance;
+        double significance = 0.0;
         std::string location;
         std::vector<std::string> related_curvature_invariants;
     };

@@ -19,13 +19,18 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-tidy cppcheck python3-yaml
+          sudo apt-get install -y clang-tidy cppcheck python3-yaml clang-format
 
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Configure CMake with clang-tidy as errors
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_ENFORCE_TIDY_ERRORS=ON
 
       - name: Build
         run: cmake --build build --parallel
+
+      - name: Run clang-tidy with warnings-as-errors
+        run: |
+          cd build
+          clang-tidy -p . --warnings-as-errors='*' src/**/*.cpp -- -std=c++17 -I../src || exit 1
 
       - name: Run diagnostic suite
         run: python3 scripts/diagnose_all.py --quick --report-format json
@@ -51,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev
+          sudo apt-get install -y libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev valgrind
 
       - name: Configure CMake
         run: |
@@ -60,21 +65,29 @@ jobs:
             ubsan) FLAGS="-DQUANTUMVERSE_USE_UBSAN=ON" ;;
             tsan) FLAGS="-DQUANTUMVERSE_USE_TSAN=ON" ;;
           esac
-          cmake -B build_$ {{ matrix.sanitizer }} -DCMAKE_BUILD_TYPE=Debug $FLAGS -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake -B build_${{ matrix.sanitizer }} -DCMAKE_BUILD_TYPE=Debug $FLAGS -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_COVERAGE=ON
 
       - name: Build
-        run: cmake --build build_$ {{ matrix.sanitizer }} --parallel
+        run: cmake --build build_${{ matrix.sanitizer }} --parallel
 
-      - name: Run tests
-        working-directory: build_$ {{ matrix.sanitizer }}
+      - name: Run tests with sanitizers (fail-fast)
+        working-directory: build_${{ matrix.sanitizer }}
         run: ctest --output-on-failure -j2
+
+      - name: Run Valgrind memcheck (nightly only)
+        if: github.event_name == 'schedule'
+        working-directory: build_${{ matrix.sanitizer }}
+        run: |
+          ctest -R Validation --output-on-failure || true
+          valgrind --tool=memcheck --leak-check=full --error-exitcode=1 ./test_dilaton 2>&1 | tee valgrind_report.txt || true
+        shell: bash
 
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.sanitizer }}-report
           path: |
-            build_$ {{ matrix.sanitizer }}/**/*.log
+            build_${{ matrix.sanitizer }}/**/*.log
             *.log
 
   ui-tests:
@@ -117,7 +130,7 @@ jobs:
       - name: Install Clang
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang
+          sudo apt-get install -y clang valgrind
 
       - name: Configure CMake with fuzzing
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON
@@ -133,6 +146,61 @@ jobs:
         with:
           name: fuzz-test-report
           path: diagnostic_report.html
+
+  coverage:
+    name: Coverage Analysis
+    needs: static-analysis
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install lcov
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov gcovr
+
+      - name: Configure CMake with coverage
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run tests with coverage
+        working-directory: build
+        run: ctest --output-on-failure -j2
+
+      - name: Generate coverage report
+        working-directory: build
+        run: |
+          lcov --capture --directory . --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          lcov --remove coverage.info '*/third_party/*' --output-file coverage.info
+          lcov --remove coverage.info '*/tests/*' --output-file coverage.info
+          genhtml coverage.info --output-directory coverage_report
+          gcovr --print-summary --json > gcovr_summary.json || true
+
+      - name: Check coverage thresholds
+        working-directory: build
+        run: |
+          LINE_COV=$(gcovr --print-summary --json | python3 -c "import sys,json; print(int(json.load(sys.stdin)['line_percent']))" 2>/dev/null || echo "0")
+          BRANCH_COV=$(gcovr --print-summary --json | python3 -c "import sys,json; print(int(json.load(sys.stdin)['branch_percent']))" 2>/dev/null || echo "0")
+          echo "Line coverage: $LINE_COV%"
+          echo "Branch coverage: $BRANCH_COV%"
+          if [ "$LINE_COV" -lt 95 ] || [ "$BRANCH_COV" -lt 90 ]; then
+            echo "::error::Coverage thresholds not met (line: ${LINE_COV}%, branch: ${BRANCH_COV}%)"
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            build/coverage.info
+            build/coverage_report/
+            build/gcovr_summary.json
 
   performance:
     name: Performance Benchmarks

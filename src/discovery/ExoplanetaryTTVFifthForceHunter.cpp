@@ -4,6 +4,8 @@
  */
 
 #include "ExoplanetaryTTVFifthForceHunter.h"
+#include "PatchedConicIntegrator.h"
+#include "PlanetaryGridGenerator.h"
 #include <cmath>
 #include <algorithm>
 
@@ -20,6 +22,56 @@ ExoplanetaryTTVFifthForceHunter::ExoplanetaryTTVFifthForceHunter()
     setParameter("yukawa_strength", 1e-6);
     setParameter("detection_threshold_sigma", 3.0);
     setParameter("min_planet_mass_earth", 0.5);
+}
+
+std::vector<InstrumentFinding> ExoplanetaryTTVFifthForceHunter::analyzeGrid(
+    const std::vector<PlanetaryGridResult>& gridResults)
+{
+    std::vector<InstrumentFinding> findings;
+    if (gridResults.empty()) return findings;
+
+    double strength = estimateStrengthFromGrid(gridResults);
+    double thresholdSigma = getParameter("detection_threshold_sigma");
+    double yukawaRange = getParameter("yukawa_range_au");
+
+    if (strength > 1e-6) {
+        InstrumentFinding finding;
+        finding.id = "TTV_5F_GRID_" + std::to_string(getTotalFindings());
+        finding.instrumentName = getName();
+        finding.severity = confidenceToSeverity(strength);
+        finding.confidence = strength;
+        finding.description = "Grid-based TTV analysis: fifth-force signature strength "
+            + std::to_string(strength) + " across " + std::to_string(gridResults.size())
+            + " orbital configurations";
+        finding.location = gridResults.front().trajectory.empty()
+                           ? Event4D() : gridResults.front().trajectory.front();
+        finding.timestamp = 0.0;
+        finding.parameters["yukawa_strength"] = strength;
+        finding.parameters["yukawa_range_au"] = yukawaRange;
+        finding.parameters["grid_points"] = static_cast<double>(gridResults.size());
+        addFinding(finding);
+        findings.push_back(finding);
+    }
+
+    return findings;
+}
+
+double ExoplanetaryTTVFifthForceHunter::estimateStrengthFromGrid(
+    const std::vector<PlanetaryGridResult>& gridResults)
+{
+    if (gridResults.empty()) return 0.0;
+
+    double sumStrength = 0.0;
+    size_t count = 0;
+    for (const auto& r : gridResults) {
+        if (r.anomalyDetected) {
+            sumStrength += r.fifthForceStrength;
+            count++;
+        }
+    }
+
+    if (count == 0) return 0.0;
+    return std::min(1.0, (sumStrength / static_cast<double>(count)) * static_cast<double>(count) / static_cast<double>(gridResults.size()));
 }
 
 std::vector<InstrumentFinding> ExoplanetaryTTVFifthForceHunter::analyze(

@@ -21,11 +21,11 @@ namespace quantumverse {
  * @brief Celestial body for N-body simulation
  */
 struct NBody {
-    std::string id;         ///< Unique identifier
-    double mass;            ///< Mass in kg
-    double position[3];     ///< Position in 3D space
-    double velocity[3];     ///< Velocity vector
-    double acceleration[3]; ///< Acceleration vector
+    std::string id;                 ///< Unique identifier
+    double mass = 0.0;              ///< Mass in kg
+    double position[3] = {0.0, 0.0, 0.0};     ///< Position in 3D space
+    double velocity[3] = {0.0, 0.0, 0.0};   ///< Velocity vector
+    double acceleration[3] = {0.0, 0.0, 0.0}; ///< Acceleration vector
 };
 
 /**
