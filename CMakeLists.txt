@@ -15,12 +15,8 @@ if(QUANTUMVERSE_USE_COVERAGE)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} --coverage -O0 -g")
 endif()
 
-# MSVC static runtime linking (reduces DLL dependencies)
-# Note: Pre-built glfw3.lib uses dynamic CRT, so static linking requires recompiling glfw
-
 # Options
 option(QUANTUMVERSE_BUILD_TESTS "Build test suite" ON)
-option(QUANTUMVERSE_USE_IMGUI "Build ImGui UI" ON)
 option(QUANTUMVERSE_USE_QT "Build Qt UI" OFF)
 option(QUANTUMVERSE_USE_COVERAGE "Enable code coverage instrumentation" OFF)
 
@@ -49,102 +45,6 @@ if(CURL_FOUND)
 endif()
 if(NOT CURL_FOUND)
     message(STATUS "CURL not found - building adapters without HTTP support")
-endif()
-
-# ImGui/ImPlot/GLFW configuration
-if(QUANTUMVERSE_USE_IMGUI)
-    # Third-party libraries
-    set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/third_party/imgui)
-    set(IMPLOT_DIR ${CMAKE_SOURCE_DIR}/third_party/implot)
-    set(GLFW_DIR ${CMAKE_SOURCE_DIR}/third_party/glfw)
-    set(GLAD_DIR ${CMAKE_SOURCE_DIR}/third_party/glad)
-
-    # GLFW library - use Release lib for both Debug/Release (compatible)
-    set(GLFW_LIB_PATH "${CMAKE_SOURCE_DIR}/build/third_party/glfw/src/Release/glfw3.lib")
-    add_library(glfw_lib STATIC IMPORTED)
-    set_target_properties(glfw_lib PROPERTIES 
-        IMPORTED_LOCATION "${GLFW_LIB_PATH}"
-        LINKER_LANGUAGE C
-    )
-    set_target_properties(glfw_lib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${GLFW_DIR}/include")
-    set(GLFW_TARGET glfw_lib)
-
-    # ImGui library
-    add_library(imgui STATIC
-        ${IMGUI_DIR}/imgui.cpp
-        ${IMGUI_DIR}/imgui_draw.cpp
-        ${IMGUI_DIR}/imgui_widgets.cpp
-        ${IMGUI_DIR}/imgui_tables.cpp
-        ${IMGUI_DIR}/imgui_demo.cpp
-    )
-    target_include_directories(imgui PUBLIC ${IMGUI_DIR})
-
-    # ImPlot library
-    add_library(implot STATIC
-        ${IMPLOT_DIR}/implot.cpp
-        ${IMPLOT_DIR}/implot_demo.cpp
-        ${IMPLOT_DIR}/implot_items.cpp
-    )
-    target_include_directories(implot PUBLIC ${IMPLOT_DIR})
-    target_link_libraries(implot PUBLIC imgui)
-
-    # Glad OpenGL loader
-    add_library(glad STATIC ${GLAD_DIR}/glad.cpp)
-    target_include_directories(glad PUBLIC ${GLAD_DIR})
-
-    # ImGui backends
-    add_library(imgui_impl_glfw STATIC
-        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-    )
-    target_include_directories(imgui_impl_glfw PUBLIC ${IMGUI_DIR}/backends ${IMGUI_DIR} ${GLFW_DIR}/include)
-    target_link_libraries(imgui_impl_glfw PUBLIC imgui)
-
-    add_library(imgui_impl_opengl3 STATIC
-        ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-    )
-    target_include_directories(imgui_impl_opengl3 PUBLIC ${IMGUI_DIR}/backends ${IMGUI_DIR} ${GLAD_DIR})
-    target_link_libraries(imgui_impl_opengl3 PUBLIC imgui)
-
-# Main UI executable
-    add_executable(quantumverse_imgui 
-        main_glfw.cpp 
-        src/ui4d/ImGuiBackend.cpp src/ui4d/PlotPanel.cpp
-        src/ui4d/UI4D_ImGui.cpp
-    )
-    target_include_directories(quantumverse_imgui PRIVATE
-        ${IMGUI_DIR}
-        ${IMGUI_DIR}/backends
-        ${IMPLOT_DIR}
-        ${GLFW_DIR}/include
-        ${GLAD_DIR}
-        ${CMAKE_SOURCE_DIR}/src
-    )
-    target_link_libraries(quantumverse_imgui PRIVATE imgui implot imgui_impl_glfw imgui_impl_opengl3 glad ${GLFW_TARGET} opengl32 user32 gdi32)
-
-    # ImNodes for causal graph visualization (after executable defined)
-    set(IMNODES_DIR ${CMAKE_SOURCE_DIR}/third_party)
-    if(EXISTS "${IMNODES_DIR}/imnodes.h")
-        target_include_directories(quantumverse_imgui PRIVATE ${IMNODES_DIR})
-        target_sources(quantumverse_imgui PRIVATE ${IMNODES_DIR}/imnodes.cpp)
-        target_compile_definitions(quantumverse_imgui PRIVATE HAVE_IMNODES)
-        message(STATUS "ImNodes integrated for causal graph UI")
-    else()
-        message(WARNING "ImNodes not found; causal graph UI disabled")
-    endif()
-
-    # Headless test
-    add_executable(test_headless_ui 
-        tests/integration/test_headless_ui.cpp 
-        src/ui4d/ImGuiBackend.cpp src/ui4d/PlotPanel.cpp
-        src/ui4d/UI4D_ImGui.cpp
-    )
-    target_include_directories(test_headless_ui PRIVATE 
-        ${CMAKE_SOURCE_DIR}/src 
-        ${GLFW_DIR}/include 
-        ${GLAD_DIR}
-    )
-    target_link_libraries(test_headless_ui PRIVATE imgui implot imgui_impl_glfw imgui_impl_opengl3 glad ${GLFW_TARGET} opengl32 user32 gdi32)
-    add_test(NAME HeadlessUITest COMMAND test_headless_ui --headless --frames 10)
 endif()
 
 # Qt/QML configuration
@@ -235,6 +135,18 @@ if(QUANTUMVERSE_USE_QT)
         AUTORCC ON
         AUTOUIC ON
     )
+
+    if(QUANTUMVERSE_BUILD_TESTS)
+        add_executable(qml_performance_baseline tests/benchmark/qml_performance_baseline.cpp)
+        set_target_properties(qml_performance_baseline PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:quantumverse_qml>
+        )
+        add_test(NAME QMLPerformanceBaseline COMMAND qml_performance_baseline)
+        set_tests_properties(QMLPerformanceBaseline PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+        )
+        add_dependencies(qml_performance_baseline quantumverse_qml)
+    endif()
 endif()
 
 # Test executables
@@ -253,15 +165,6 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_include_directories(test_property_based PRIVATE ${CMAKE_SOURCE_DIR}/build-appimage/QuantumVerse.AppDir/usr/include ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(test_property_based PRIVATE dilaton)
     add_test(NAME PropertyBasedTest COMMAND test_property_based)
-    
-    # UI automation test
-    add_executable(test_ui_automation 
-        tests/ui/test_ui_automation.cpp 
-        src/ui4d/ImGuiBackend.cpp src/ui4d/PlotPanel.cpp
-    )
-    target_include_directories(test_ui_automation PRIVATE ${CMAKE_SOURCE_DIR}/src ${GLFW_DIR}/include ${GLAD_DIR} ${CMAKE_SOURCE_DIR}/third_party/stb)
-    target_link_libraries(test_ui_automation PRIVATE imgui implot imgui_impl_glfw imgui_impl_opengl3 glad ${GLFW_TARGET} opengl32 user32 gdi32)
-    add_test(NAME UIAutomationTest COMMAND test_ui_automation --screenshot)
     
     # Fuzz differential testing
     option(QUANTUMVERSE_USE_FUZZER "Build fuzzer targets" OFF)
@@ -326,56 +229,138 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_geodesic PRIVATE dilaton)
     add_test(NAME GeodesicTest COMMAND test_geodesic)
 
-    # Neural ODE accuracy test
-    add_executable(test_neural_ode_accuracy
-        tests/test_neural_ode_accuracy.cpp
-        src/ml/GeodesicNeuralODE.cpp
+    # Neutron star glitch phase detector (discovery instrument)
+    add_executable(test_neutron_glitch
+        tests/test_neutron_glitch.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
     )
-    target_link_libraries(test_neural_ode_accuracy PRIVATE dilaton)
-    add_test(NAME NeuralODEAccuracyTest COMMAND test_neural_ode_accuracy)
+    target_link_libraries(test_neutron_glitch PRIVATE dilaton)
+    add_test(NAME NeutronStarGlitchTest COMMAND test_neutron_glitch)
+
+    # Ultralight DM wave interferometer (discovery instrument)
+    add_executable(test_ultralight_dm_wave
+        tests/test_ultralight_dm_wave.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+    )
+    target_link_libraries(test_ultralight_dm_wave PRIVATE dilaton)
+    add_test(NAME UltralightDMWaveTest COMMAND test_ultralight_dm_wave)
+
+    # Galactic rotation curve scanner (discovery instrument)
+    add_executable(test_galactic_rotation_curve
+        tests/test_galactic_rotation_curve.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+    )
+    target_link_libraries(test_galactic_rotation_curve PRIVATE dilaton)
+    add_test(NAME GalacticRotationCurveTest COMMAND test_galactic_rotation_curve)
+
+    # Fine-structure constant drift observatory (discovery instrument)
+    add_executable(test_fine_structure_drift
+        tests/test_fine_structure_drift.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+    )
+    target_link_libraries(test_fine_structure_drift PRIVATE dilaton)
+    add_test(NAME FineStructureConstantDriftTest COMMAND test_fine_structure_drift)
+
+    # Boson star collision predictor (discovery instrument)
+    add_executable(test_boson_star_collision
+        tests/test_boson_star_collision.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+    )
+    target_link_libraries(test_boson_star_collision PRIVATE dilaton)
+    add_test(NAME BosonStarCollisionTest COMMAND test_boson_star_collision)
+
+    # Black hole jet anomaly recogniser (discovery instrument)
+    add_executable(test_black_hole_jet_anomaly
+        tests/test_black_hole_jet_anomaly.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+    )
+    target_link_libraries(test_black_hole_jet_anomaly PRIVATE dilaton)
+    add_test(NAME BlackHoleJetAnomalyTest COMMAND test_black_hole_jet_anomaly)
+
+    # Primordial lithium crisis solver (discovery instrument)
+    add_executable(test_primordial_lithium
+        tests/test_primordial_lithium.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+    )
+    target_link_libraries(test_primordial_lithium PRIVATE dilaton)
+    add_test(NAME PrimordialLithiumCrisisTest COMMAND test_primordial_lithium)
+
+    # Galactic tidal stream cartographer (discovery instrument)
+    add_executable(test_galactic_tidal_stream
+        tests/test_galactic_tidal_stream.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+    )
+    target_link_libraries(test_galactic_tidal_stream PRIVATE dilaton)
+    add_test(NAME GalacticTidalStreamTest COMMAND test_galactic_tidal_stream)
+
+    # Recombination constant variation imager (discovery instrument)
+    add_executable(test_recombination_constant_variation
+        tests/test_recombination_constant_variation.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+    )
+    target_link_libraries(test_recombination_constant_variation PRIVATE dilaton)
+    add_test(NAME RecombinationConstantVariationTest COMMAND test_recombination_constant_variation)
+
+    # Neural ODE accuracy test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_neural_ode_accuracy.cpp)
+        add_executable(test_neural_ode_accuracy
+            tests/test_neural_ode_accuracy.cpp
+            src/ml/GeodesicNeuralODE.cpp
+        )
+        target_link_libraries(test_neural_ode_accuracy PRIVATE dilaton)
+        add_test(NAME NeuralODEAccuracyTest COMMAND test_neural_ode_accuracy)
+    endif()
 
     # MetricGNN accuracy test
-    add_executable(test_metric_gnn
-        tests/test_metric_gnn.cpp
-        src/ml/MetricGNN.cpp
-    )
-    target_link_libraries(test_metric_gnn PRIVATE dilaton)
-    add_test(NAME MetricGNNTest COMMAND test_metric_gnn)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_metric_gnn.cpp)
+        add_executable(test_metric_gnn
+            tests/test_metric_gnn.cpp
+            src/ml/MetricGNN.cpp
+        )
+        target_link_libraries(test_metric_gnn PRIVATE dilaton)
+        add_test(NAME MetricGNNTest COMMAND test_metric_gnn)
+    endif()
 
     # Surrogate integration test
-    add_executable(test_surrogate_integration
-        tests/test_surrogate_integration.cpp
-        src/ml/SurrogateIntegration.cpp
-        src/ml/GeodesicNeuralODE.cpp
-        src/ml/MetricGNN.cpp
-        src/ml/BVHAcceleratedMetricQuery.cpp
-    )
-    target_link_libraries(test_surrogate_integration PRIVATE dilaton)
-    add_test(NAME SurrogateIntegrationTest COMMAND test_surrogate_integration)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_surrogate_integration.cpp)
+        add_executable(test_surrogate_integration
+            tests/test_surrogate_integration.cpp
+            src/ml/SurrogateIntegration.cpp
+            src/ml/GeodesicNeuralODE.cpp
+            src/ml/MetricGNN.cpp
+            src/ml/BVHAcceleratedMetricQuery.cpp
+        )
+        target_link_libraries(test_surrogate_integration PRIVATE dilaton)
+        add_test(NAME SurrogateIntegrationTest COMMAND test_surrogate_integration)
+    endif()
 
     # Multi-messenger live data test
-    add_executable(test_multimessenger
-        tests/test_multimessenger.cpp
-        src/data/MultiMessengerAdapter.cpp
-        src/data/LIGOAdapter.cpp
-        src/data/IceCubeAdapter.cpp
-    )
-    target_link_libraries(test_multimessenger PRIVATE dilaton)
-    add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_multimessenger.cpp)
+        add_executable(test_multimessenger
+            tests/test_multimessenger.cpp
+            src/data/MultiMessengerAdapter.cpp
+            src/data/LIGOAdapter.cpp
+            src/data/IceCubeAdapter.cpp
+        )
+        target_link_libraries(test_multimessenger PRIVATE dilaton)
+        add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
+    endif()
 
     # End-to-end discovery workflow test
-    add_executable(test_e2e_discovery
-        tests/test_e2e_discovery.cpp
-        src/data/MultiMessengerAdapter.cpp
-        src/data/LIGOAdapter.cpp
-        src/data/IceCubeAdapter.cpp
-        src/ml/SurrogateIntegration.cpp
-        src/ml/GeodesicNeuralODE.cpp
-        src/ml/MetricGNN.cpp
-        src/ml/BVHAcceleratedMetricQuery.cpp
-    )
-    target_link_libraries(test_e2e_discovery PRIVATE dilaton)
-    add_test(NAME E2EDiscoveryTest COMMAND test_e2e_discovery)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_e2e_discovery.cpp)
+        add_executable(test_e2e_discovery
+            tests/test_e2e_discovery.cpp
+            src/data/MultiMessengerAdapter.cpp
+            src/data/LIGOAdapter.cpp
+            src/data/IceCubeAdapter.cpp
+            src/ml/SurrogateIntegration.cpp
+            src/ml/GeodesicNeuralODE.cpp
+            src/ml/MetricGNN.cpp
+            src/ml/BVHAcceleratedMetricQuery.cpp
+        )
+        target_link_libraries(test_e2e_discovery PRIVATE dilaton)
+        add_test(NAME E2EDiscoveryTest COMMAND test_e2e_discovery)
+    endif()
 endif()
 option(QUANTUMVERSE_USE_ONNX "Build with ONNX Runtime support" OFF)
 if(QUANTUMVERSE_USE_ONNX)
@@ -393,12 +378,6 @@ endif()
 # Install rules for packaging
 if(WIN32)
     set(CMAKE_INSTALL_PREFIX "C:/Program Files/QuantumVerse" CACHE PATH "Install path" FORCE)
-endif()
-if(QUANTUMVERSE_USE_IMGUI)
-    install(TARGETS quantumverse_imgui
-        RUNTIME DESTINATION bin
-        BUNDLE DESTINATION .
-    )
 endif()
 if(QUANTUMVERSE_USE_QT)
     install(TARGETS quantumverse_qml

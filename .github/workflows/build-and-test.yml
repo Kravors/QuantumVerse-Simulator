@@ -27,12 +27,12 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libglfw3-dev libglm-dev libeigen3-dev
-    
+        sudo apt-get install -y libglm-dev libeigen3-dev
+     
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install glfw glm eigen
+        brew install glm eigen
     
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}

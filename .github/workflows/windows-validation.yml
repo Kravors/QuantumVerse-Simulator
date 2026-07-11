@@ -12,8 +12,8 @@ jobs:
     strategy:
       matrix:
         build_type: [Debug, Release]
-        ui_backend: [QML, ImGui]
-    
+        ui_backend: [QML]
+     
     steps:
       - uses: actions/checkout@v4
       
@@ -23,8 +23,7 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
-            -DQUANTUMVERSE_USE_QML=${{ matrix.ui_backend == 'QML' }} `
-            -DQUANTUMVERSE_USE_IMGUI=${{ matrix.ui_backend == 'ImGui' }}
+            -DQUANTUMVERSE_USE_QML=${{ matrix.ui_backend == 'QML' }}
       
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel
@@ -74,7 +73,6 @@ jobs:
           New-Item -ItemType Directory -Path deploy\windows -Force
           # Copy built executables
           Copy-Item build\Release\quantumverse_qml.exe deploy\windows\ -ErrorAction SilentlyContinue
-          Copy-Item build\Release\quantumverse_imgui.exe deploy\windows\ -ErrorAction SilentlyContinue
           # Run smoke test
           .\scripts\smoke_test_deployment.ps1 -DeployPath deploy\windows
       

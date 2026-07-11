@@ -42,8 +42,7 @@ jobs:
       
       - name: Configure CMake
         run: |
-          cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DQUANTUMVERSE_USE_IMGUI=ON
+          cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       
       - name: Run Clang-Tidy
         run: |

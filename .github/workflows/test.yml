@@ -33,22 +33,3 @@ jobs:
         
       - name: Check performance regression
         run: python scripts/check_performance.py benchmarks.json
-
-  gui-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev xvfb
-          
-      - name: Configure CMake with ImGui
-        run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_IMGUI=ON
-        
-      - name: Build GUI tests
-        run: cmake --build build --target test_gui_automation
-        
-      - name: Run GUI automation tests with xvfb
-        run: xvfb-run -a ./build/test_gui_automation
