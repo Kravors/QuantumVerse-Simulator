@@ -33,3 +33,32 @@ jobs:
         
       - name: Check performance regression
         run: python scripts/check_performance.py benchmarks.json
+
+  performance-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.2'
+          modules: 'qtdeclarative qtquickcontrols2'
+          cache: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb
+
+      - name: Configure CMake
+        run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCTEST_PERFORMANCE_THRESHOLD=60 -DCTEST_PERFORMANCE_MAX_THRESHOLD=80
+
+      - name: Build performance targets
+        run: cmake --build build --config Release --target qml_performance_baseline test_performance_gate
+
+      - name: Run performance gate
+        run: |
+          export QT_QPA_PLATFORM=offscreen
+          cd build
+          ctest -C Release -R "Performance" --output-on-failure

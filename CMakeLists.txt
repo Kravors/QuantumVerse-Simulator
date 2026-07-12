@@ -20,6 +20,11 @@ option(QUANTUMVERSE_BUILD_TESTS "Build test suite" ON)
 option(QUANTUMVERSE_USE_QT "Build Qt UI" OFF)
 option(QUANTUMVERSE_USE_COVERAGE "Enable code coverage instrumentation" OFF)
 
+# Performance regression gate thresholds (ms) for the QML headless baseline.
+# Override on the CMake command line, e.g. -DCTEST_PERFORMANCE_THRESHOLD=50.
+set(CTEST_PERFORMANCE_THRESHOLD 60 CACHE STRING "Avg frame-time threshold (ms) for the QML performance gate")
+set(CTEST_PERFORMANCE_MAX_THRESHOLD 80 CACHE STRING "Max frame-time threshold (ms) for the QML performance gate")
+
 enable_testing()
 
 # Fetch third-party dependencies
@@ -141,14 +146,34 @@ if(QUANTUMVERSE_USE_QT)
 
     if(QUANTUMVERSE_BUILD_TESTS)
         add_executable(qml_performance_baseline tests/benchmark/qml_performance_baseline.cpp)
+        target_include_directories(qml_performance_baseline PRIVATE ${CMAKE_SOURCE_DIR}/tests/benchmark)
+        target_compile_definitions(qml_performance_baseline PRIVATE
+            PERF_AVG_THRESHOLD_DEFAULT=${CTEST_PERFORMANCE_THRESHOLD}
+            PERF_MAX_THRESHOLD_DEFAULT=${CTEST_PERFORMANCE_MAX_THRESHOLD}
+        )
         set_target_properties(qml_performance_baseline PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:quantumverse_qml>
         )
         add_test(NAME QMLPerformanceBaseline COMMAND qml_performance_baseline)
         set_tests_properties(QMLPerformanceBaseline PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            LABELS "performance;qt"
         )
         add_dependencies(qml_performance_baseline quantumverse_qml)
+
+        # TDD contract test for the performance gate: validates parse/threshold
+        # logic and (when built) that the baseline executable returns exit 0.
+        add_executable(test_performance_gate tests/test_performance_gate.cpp)
+        target_include_directories(test_performance_gate PRIVATE ${CMAKE_SOURCE_DIR}/tests/benchmark)
+        set_target_properties(test_performance_gate PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:quantumverse_qml>
+        )
+        add_test(NAME PerformanceGateTest COMMAND test_performance_gate)
+        set_tests_properties(PerformanceGateTest PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            LABELS "performance;qt"
+        )
+        add_dependencies(test_performance_gate qml_performance_baseline)
 
         # FindingsModel unit test (requires Qt for QAbstractListModel)
         add_executable(test_findings_model
