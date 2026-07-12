@@ -756,6 +756,46 @@ ApplicationWindow {
 
                         Label { text: "Anomaly Feed"; font.bold: true; font.pixelSize: 12 }
 
+                        // Filter / sort controls
+                        RowLayout {
+                            spacing: 4
+
+                            ComboBox {
+                                id: severityFilter
+                                Layout.preferredWidth: 92
+                                model: ["All", "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+                                onCurrentTextChanged: findingsModel.filterSeverity =
+                                    (currentText === "All" ? "" : currentText)
+                            }
+                            ComboBox {
+                                id: instrumentFilter
+                                Layout.preferredWidth: 150
+                                property var names: ["All"].concat(
+                                    discoveryPanelManager ? discoveryPanelManager.instrumentNames : [],
+                                    ["LIGO", "IceCube"])
+                                model: names
+                                onCurrentTextChanged: findingsModel.filterInstrument =
+                                    (currentText === "All" ? "" : currentText)
+                            }
+                            ComboBox {
+                                id: sortCombo
+                                Layout.preferredWidth: 104
+                                model: ["Newest", "Severity", "Confidence"]
+                                onCurrentTextChanged: {
+                                    if (currentText === "Newest") {
+                                        findingsModel.sortRole = "timestamp"
+                                        findingsModel.sortAscending = false
+                                    } else if (currentText === "Severity") {
+                                        findingsModel.sortRole = "severity"
+                                        findingsModel.sortAscending = false
+                                    } else if (currentText === "Confidence") {
+                                        findingsModel.sortRole = "confidence"
+                                        findingsModel.sortAscending = false
+                                    }
+                                }
+                            }
+                        }
+
                         ScrollView {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -767,6 +807,7 @@ ApplicationWindow {
                                 delegate: ItemDelegate {
                                     width: parent ? parent.width : 0
                                     padding: 4
+                                    onClicked: findingsModel.select(index)
 
                                     RowLayout {
                                         spacing: 6
@@ -800,17 +841,54 @@ ApplicationWindow {
                                             }
 
                                             Label {
-                                                                                     text: "σ" + (model.confidence !== undefined ? (model.confidence * 10).toFixed(1) : "?")
-                                                                                     font.pixelSize: 9
-                                                                                     color: "#666"
-                                                                                 }
-                                                                                 Label {
-                                                                                     text: model.timestamp !== undefined ? "t=" + model.timestamp.toFixed(1) + "s" : ""
-                                                                                     font.pixelSize: 9
-                                                                                     color: "#444"
-                                                                                 }
+                                                text: "σ" + (model.confidence !== undefined ? (model.confidence * 10).toFixed(1) : "?")
+                                                font.pixelSize: 9
+                                                color: "#666"
+                                            }
+                                            Label {
+                                                text: model.timestamp !== undefined ? "t=" + model.timestamp.toFixed(1) + "s" : ""
+                                                font.pixelSize: 9
+                                                color: "#444"
+                                            }
                                         }
                                     }
+                                }
+                            }
+                        }
+
+                        // Detail pane for the selected finding
+                        Pane {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 96
+                            padding: 6
+                            visible: findingsModel.currentFinding["id"] !== undefined
+                            background: Rectangle { color: "#161616"; radius: 4 }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 2
+
+                                Label {
+                                    text: (findingsModel.currentFinding["instrumentName"] || "")
+                                          + "  [" + (findingsModel.currentFinding["severity"] || "") + "]"
+                                    font.bold: true
+                                    font.pixelSize: 11
+                                    color: "#ddd"
+                                }
+                                Label {
+                                    text: findingsModel.currentFinding["description"] || ""
+                                    font.pixelSize: 10
+                                    color: "#aaa"
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                }
+                                Label {
+                                    text: "σ" + (findingsModel.currentFinding["confidence"] !== undefined
+                                          ? (findingsModel.currentFinding["confidence"] * 10).toFixed(1) : "?")
+                                          + "   t=" + (findingsModel.currentFinding["timestamp"] !== undefined
+                                          ? findingsModel.currentFinding["timestamp"].toFixed(1) : "?") + "s"
+                                    font.pixelSize: 9
+                                    color: "#777"
                                 }
                             }
                         }

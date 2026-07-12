@@ -5,6 +5,8 @@
 
 #include "FindingsModel.h"
 
+#include <algorithm>
+
 namespace quantumverse {
 
 FindingsModel::FindingsModel(QObject* parent)
@@ -15,7 +17,7 @@ FindingsModel::FindingsModel(QObject* parent)
 int FindingsModel::rowCount(const QModelIndex& parent) const
 {
     if (parent.isValid()) return 0;
-    return static_cast<int>(m_findings.size());
+    return static_cast<int>(m_view.size());
 }
 
 QHash<int, QByteArray> FindingsModel::roleNames() const
@@ -36,11 +38,11 @@ QHash<int, QByteArray> FindingsModel::roleNames() const
 QVariant FindingsModel::data(const QModelIndex& index, int role) const
 {
     if (!index.isValid() || index.row() < 0 ||
-        index.row() >= static_cast<int>(m_findings.size())) {
+        index.row() >= static_cast<int>(m_view.size())) {
         return QVariant();
     }
 
-    const InstrumentFinding& f = m_findings[index.row()];
+    const InstrumentFinding& f = m_view[index.row()];
     switch (role) {
     case IdRole:
         return QString::fromStdString(f.id);
@@ -73,26 +75,167 @@ QVariant FindingsModel::data(const QModelIndex& index, int role) const
     }
 }
 
+std::string FindingsModel::severityToString(AlertSeverity sev)
+{
+    switch (sev) {
+    case AlertSeverity::INFO:     return "INFO";
+    case AlertSeverity::LOW:      return "LOW";
+    case AlertSeverity::MEDIUM:   return "MEDIUM";
+    case AlertSeverity::HIGH:     return "HIGH";
+    case AlertSeverity::CRITICAL: return "CRITICAL";
+    }
+    return "UNKNOWN";
+}
+
+int FindingsModel::severityRank(AlertSeverity sev)
+{
+    switch (sev) {
+    case AlertSeverity::INFO:     return 0;
+    case AlertSeverity::LOW:      return 1;
+    case AlertSeverity::MEDIUM:   return 2;
+    case AlertSeverity::HIGH:     return 3;
+    case AlertSeverity::CRITICAL: return 4;
+    }
+    return -1;
+}
+
+void FindingsModel::refreshView()
+{
+    beginResetModel();
+    m_view = m_findings;
+
+    // Filter by severity.
+    if (!m_filterSeverity.empty()) {
+        m_view.erase(std::remove_if(m_view.begin(), m_view.end(),
+            [this](const InstrumentFinding& f) {
+                return severityToString(f.severity) != m_filterSeverity;
+            }), m_view.end());
+    }
+    // Filter by instrument.
+    if (!m_filterInstrument.empty()) {
+        m_view.erase(std::remove_if(m_view.begin(), m_view.end(),
+            [this](const InstrumentFinding& f) {
+                return f.instrumentName != m_filterInstrument;
+            }), m_view.end());
+    }
+
+    // Sort.
+    if (m_sortRole == "severity") {
+        std::sort(m_view.begin(), m_view.end(),
+            [this](const InstrumentFinding& a, const InstrumentFinding& b) {
+                int ra = severityRank(a.severity);
+                int rb = severityRank(b.severity);
+                return m_sortAscending ? (ra < rb) : (ra > rb);
+            });
+    } else if (m_sortRole == "confidence") {
+        std::sort(m_view.begin(), m_view.end(),
+            [this](const InstrumentFinding& a, const InstrumentFinding& b) {
+                return m_sortAscending ? (a.confidence < b.confidence)
+                                       : (a.confidence > b.confidence);
+            });
+    } else { // "timestamp" (default)
+        std::sort(m_view.begin(), m_view.end(),
+            [this](const InstrumentFinding& a, const InstrumentFinding& b) {
+                return m_sortAscending ? (a.timestamp < b.timestamp)
+                                       : (a.timestamp > b.timestamp);
+            });
+    }
+
+    // Selection is no longer valid after a view rebuild.
+    m_selected = -1;
+    endResetModel();
+    emit currentFindingChanged();
+}
+
 void FindingsModel::addFinding(const InstrumentFinding& finding)
 {
-    const int row = static_cast<int>(m_findings.size());
-    beginInsertRows(QModelIndex(), row, row);
     m_findings.push_back(finding);
-    endInsertRows();
+    refreshView();
 }
 
 void FindingsModel::setFindings(const std::vector<InstrumentFinding>& findings)
 {
-    beginResetModel();
     m_findings = findings;
-    endResetModel();
+    refreshView();
 }
 
 void FindingsModel::clear()
 {
-    beginResetModel();
     m_findings.clear();
-    endResetModel();
+    refreshView();
+}
+
+void FindingsModel::setFilterSeverity(const QString& s)
+{
+    std::string v = s.toStdString();
+    if (v != m_filterSeverity) {
+        m_filterSeverity = v;
+        refreshView();
+        emit filterSeverityChanged();
+    }
+}
+
+void FindingsModel::setFilterInstrument(const QString& s)
+{
+    std::string v = s.toStdString();
+    if (v != m_filterInstrument) {
+        m_filterInstrument = v;
+        refreshView();
+        emit filterInstrumentChanged();
+    }
+}
+
+void FindingsModel::setSortRole(const QString& s)
+{
+    std::string v = s.toStdString();
+    if (v != m_sortRole) {
+        m_sortRole = v;
+        refreshView();
+        emit sortRoleChanged();
+    }
+}
+
+void FindingsModel::setSortAscending(bool asc)
+{
+    if (asc != m_sortAscending) {
+        m_sortAscending = asc;
+        refreshView();
+        emit sortAscendingChanged();
+    }
+}
+
+void FindingsModel::select(int index)
+{
+    if (index < 0 || index >= static_cast<int>(m_view.size())) {
+        if (m_selected != -1) {
+            m_selected = -1;
+            emit currentFindingChanged();
+        }
+        return;
+    }
+    if (index != m_selected) {
+        m_selected = index;
+        emit currentFindingChanged();
+    }
+}
+
+QVariantMap FindingsModel::currentFinding() const
+{
+    QVariantMap map;
+    if (m_selected < 0 || m_selected >= static_cast<int>(m_view.size())) {
+        return map;
+    }
+    const InstrumentFinding& f = m_view[m_selected];
+    map["id"] = QString::fromStdString(f.id);
+    map["instrumentName"] = QString::fromStdString(f.instrumentName);
+    map["description"] = QString::fromStdString(f.description);
+    map["severity"] = QString::fromStdString(severityToString(f.severity));
+    map["confidence"] = f.confidence;
+    map["timestamp"] = f.timestamp;
+    map["x"] = f.location.x;
+    map["y"] = f.location.y;
+    map["z"] = f.location.z;
+    return map;
 }
 
 } // namespace quantumverse

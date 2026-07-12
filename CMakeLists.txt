@@ -163,6 +163,19 @@ if(QUANTUMVERSE_USE_QT)
         target_link_libraries(test_findings_model PRIVATE Qt6::Core dilaton)
         add_test(NAME FindingsModelTest COMMAND test_findings_model)
 
+        # FindingsModel filtering / sorting / detail-view test
+        add_executable(test_findings_model_filtering
+            tests/test_findings_model_filtering.cpp
+            src/discovery/FindingsModel.cpp
+        )
+        set_target_properties(test_findings_model_filtering PROPERTIES AUTOMOC ON)
+        target_include_directories(test_findings_model_filtering PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        target_link_libraries(test_findings_model_filtering PRIVATE Qt6::Core dilaton)
+        add_test(NAME FindingsModelFilteringTest COMMAND test_findings_model_filtering)
+
         # Multi-messenger alert wiring test (LIGO/IceCube -> FindingsModel)
         add_executable(test_multimessenger_ui
             tests/test_multimessenger_ui.cpp
