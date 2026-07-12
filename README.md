@@ -1,6 +1,6 @@
 # QuantumVerse Simulator — 4D Spacetime Cognition Laboratory
 
-![QuantumVerse](https://img.shields.io/badge/QuantumVerse-v3.6.0-blue)
+![QuantumVerse](https://img.shields.io/badge/QuantumVerse-v3.7.0-blue)
 ![C++17](https://img.shields.io/badge/C++-17%20Standard-orange)
 ![OpenGL 4.5](https://img.shields.io/badge/OpenGL-4.5-green)
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple)
@@ -406,7 +406,7 @@
   
   ---
   
-*QuantumVerse v3.6.0 | Last Updated: 2026-07-12 | MIT License*
+*QuantumVerse v3.7.0 | Last Updated: 2026-07-12 | MIT License*
 
   ### Build & UI Status (2026-07-12)
 

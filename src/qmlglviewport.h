@@ -388,6 +388,13 @@ private:
 
     // One-time GL initialization guard
     bool m_glInitialized;
+
+    // H5: cached scaled-orbit worldlines for renderGeodesics(). Rebuilt only
+    // when the solar system data signature changes, avoiding per-frame
+    // allocation churn of vector<vector<Event4D>>.
+    std::vector<std::vector<Event4D>> m_cachedGeodesics;
+    size_t m_geodesicsCacheKey = 0;
+    const UI4D* m_cachedGeodesicsUi4d = nullptr;
 };
 
 /**

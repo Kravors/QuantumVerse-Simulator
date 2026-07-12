@@ -1,7 +1,7 @@
 # QuantumVerse Simulator - CMakeLists.txt
 # Production-ready 4D spacetime cognition laboratory
 cmake_minimum_required(VERSION 3.20)
-project(QuantumVerse LANGUAGES C CXX VERSION 3.6.0)
+project(QuantumVerse LANGUAGES C CXX VERSION 3.7.0)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
@@ -184,6 +184,27 @@ if(QUANTUMVERSE_USE_QT)
             LABELS "performance;qt"
         )
         add_dependencies(test_performance_gate qml_performance_baseline)
+
+        # P3-3 contract test: verifies GL_CHECK() is compiled out in Release
+        # builds (no-op) and active in Debug. Compile-time guarantee via
+        # macro expansion inspection.
+        add_executable(test_gl_check tests/test_gl_check.cpp)
+        target_include_directories(test_gl_check PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        target_link_libraries(test_gl_check PRIVATE Qt6::Core)
+        if(MSVC)
+            target_compile_options(test_gl_check PRIVATE /EHsc)
+        endif()
+        set_target_properties(test_gl_check PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:quantumverse_qml>
+        )
+        add_test(NAME GLCheckTest COMMAND test_gl_check)
+        set_tests_properties(GLCheckTest PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            LABELS "performance;qt"
+        )
 
         # FindingsModel unit test (requires Qt for QAbstractListModel)
         add_executable(test_findings_model
@@ -475,7 +496,7 @@ endif()
 
 # CPack configuration for packaging
 set(CPACK_PACKAGE_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "3.6.0")
+set(CPACK_PACKAGE_VERSION "3.7.0")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AI-accelerated 4D spacetime simulator")
 set(CPACK_PACKAGE_VENDOR "Humanity")
 

@@ -24,6 +24,7 @@
 #include "rendering/QuantumGeometryRenderer.h"
 #include "rendering/CelestialBodyRenderer.h"
 #include "rendering/GLDebug.h"
+#include "rendering/gl_check.h"
 #include "ui4d/UI4D.h"
 #include "ui4d/Camera4DAdapter.h"
 #include "spacetime/Event4D.h"
@@ -51,13 +52,6 @@
 // Note: Classes are defined in quantumverse namespace in the header,
 // so we open the namespace block here.
 namespace quantumverse {
-
-#define GL_CHECK() do { \
-    GLenum err = glad_glGetError(); \
-    if (err != GL_NO_ERROR) { \
-        qWarning() << "GL Error:" << err << " at " << __FILE__ << ":" << __LINE__; \
-    } \
-} while(0)
 
 // Lightweight per-function timing instrumentation (disabled by default).
 // Build with -DPERF_TRACE=1 to print microsecond costs of each render
@@ -1039,72 +1033,54 @@ void QmlGlRenderer::renderGeodesics()
      }
      
      const auto& solarData = m_ui4d->getSolarSystemData();
-     std::vector<std::vector<Event4D>> geodesics;
 
-      // Optionally use neural ODE surrogate for real-time geodesic prediction
-#if 0
-      if (m_surrogateIntegration && m_surrogateIntegration->isGeodesicSurrogateReady()) {
-          try {
-              std::vector<Event4D> initialEvents;
-              std::vector<std::array<double,4>> initialVelocities;
+     // H5: Cache the scaled orbit worldlines. The orbit points are
+     // pre-calculated and only change when the solar system data changes
+     // (bodies added/removed, orbit points regenerated, or scale factor
+     // changed). Rebuilding them every frame churns vector<vector<Event4D>>
+     // allocations, so we key the cache on a cheap signature and reuse the
+     // previous geometry whenever the key is unchanged.
+     auto foldBytes = [](std::size_t h, const void* p, std::size_t n) {
+         const unsigned char* b = static_cast<const unsigned char*>(p);
+         for (std::size_t i = 0; i < n; ++i) h = h * 1000003u + b[i];
+         return h;
+     };
+     std::size_t key = reinterpret_cast<std::size_t>(static_cast<const void*>(m_ui4d.get()));
+     key = foldBytes(key, &solarData.scaleFactor, sizeof(double));
+     for (const auto& bp : solarData.bodies) {
+         const auto& body = bp.second;
+         key = foldBytes(key, &body.showOrbit, sizeof(bool));
+         const std::size_t n = body.orbitPoints.size();
+         key = key * 1000003u + n;
+         if (n) {
+             key = foldBytes(key, &body.orbitPoints.front(), sizeof(Event4D));
+             key = foldBytes(key, &body.orbitPoints.back(), sizeof(Event4D));
+         }
+     }
 
-              for (const auto& bodyPair : solarData.bodies) {
-                  const auto& body = bodyPair.second;
-                  if (!body.showOrbit || body.orbitPoints.empty()) continue;
+     if (key != m_geodesicsCacheKey || m_cachedGeodesicsUi4d != m_ui4d.get()) {
+         m_cachedGeodesics.clear();
+         for (const auto& bp : solarData.bodies) {
+             const auto& body = bp.second;
+             if (!body.showOrbit || body.orbitPoints.empty()) continue;
 
-                  const auto& last = body.orbitPoints.back();
-                  initialEvents.emplace_back(last.t, last.x, last.y, last.z);
-
-                  if (body.orbitPoints.size() >= 2) {
-                      const auto& prev = body.orbitPoints[body.orbitPoints.size() - 2];
-                      initialVelocities.push_back({
-                          last.t - prev.t,
-                          last.x - prev.x,
-                          last.y - prev.y,
-                          last.z - prev.z
-                      });
-                  } else {
-                      initialVelocities.push_back({1.0, 0.0, 0.0, 0.0});
-                  }
-              }
-
-              if (!initialEvents.empty()) {
-                  std::vector<double> metricParams = {1.0};
-                  utils::ThreadPool pool(4);
-                  auto surrogateGeodesics = m_surrogateIntegration->predictGeodesicBundleIfReady(
-                      initialEvents,
-                      initialVelocities,
-                      metricParams,
-                      0.01,
-                      pool
-                  );
-                  geodesics.insert(geodesics.end(), std::make_move_iterator(surrogateGeodesics.begin()), std::make_move_iterator(surrogateGeodesics.end()));
-              }
-          } catch (const std::exception& e) {
-              qWarning() << "QmlGlRenderer: Surrogate geodesic prediction failed:" << e.what();
-          }
-      }
-#endif
-
-      if (geodesics.empty()) {
-          for (const auto& bodyPair : solarData.bodies) {
-          const auto& body = bodyPair.second;
-          if (!body.showOrbit || body.orbitPoints.empty()) continue;
-
-          // Convert orbit points from solar system scale to viewport scale
-          std::vector<Event4D> scaledOrbit;
-          scaledOrbit.reserve(body.orbitPoints.size());
-          for (const auto& pt : body.orbitPoints) {
-              scaledOrbit.emplace_back(
-                  pt.t,
-                  pt.x * solarData.scaleFactor,
-                  pt.y * solarData.scaleFactor,
-                  pt.z * solarData.scaleFactor
-              );
-          }
-          geodesics.push_back(std::move(scaledOrbit));
-      }
-      }
+             // Convert orbit points from solar system scale to viewport scale
+             std::vector<Event4D> scaledOrbit;
+             scaledOrbit.reserve(body.orbitPoints.size());
+             for (const auto& pt : body.orbitPoints) {
+                 scaledOrbit.emplace_back(
+                     pt.t,
+                     pt.x * solarData.scaleFactor,
+                     pt.y * solarData.scaleFactor,
+                     pt.z * solarData.scaleFactor
+                 );
+             }
+             m_cachedGeodesics.push_back(std::move(scaledOrbit));
+         }
+         m_geodesicsCacheKey = key;
+         m_cachedGeodesicsUi4d = m_ui4d.get();
+     }
+     const auto& geodesics = m_cachedGeodesics;
 
       // Delegate to CurvatureRenderer for actual GPU rendering
       if (m_curvatureRenderer && !geodesics.empty()) {
