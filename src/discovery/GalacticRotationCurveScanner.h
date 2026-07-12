@@ -39,9 +39,7 @@ public:
     AlertSeverity getDefaultSeverity() const override { return AlertSeverity::MEDIUM; }
 
 private:
-    double computeNFWPrediction(double radius, double virialMass, double concentration);
-    double computeMONDAcceleration(double newtonianAccel, double a0);
-    bool detectSystematicResidual(const std::vector<double>& residuals);
+    // (no private helpers; detection is performed inline in analyze)
 };
 
 } // namespace quantumverse

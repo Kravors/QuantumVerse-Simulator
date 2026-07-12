@@ -15,11 +15,8 @@ namespace quantumverse {
 
 BosonStarCollisionPredictor::BosonStarCollisionPredictor()
 {
+    setParameter("strain_threshold", 1e-7);
     setParameter("boson_mass_ev", 1e-12);
-    setParameter("compactness", 0.15);
-    setParameter("tidal_deformability_threshold", 500.0);
-    setParameter("mass_gap_lower_msun", 2.5);
-    setParameter("mass_gap_upper_msun", 5.0);
 }
 
 std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
@@ -27,123 +24,85 @@ std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
     const std::vector<Event4D>& trajectory)
 {
     std::vector<InstrumentFinding> findings;
+    if (trajectory.size() < 10) return findings;
 
+    double strainThreshold = getParameter("strain_threshold");
     double bosonMass = getParameter("boson_mass_ev");
-    double compactness = getParameter("compactness");
-    double tidalThreshold = getParameter("tidal_deformability_threshold");
-    double massGapLower = getParameter("mass_gap_lower_msun");
-    double massGapUpper = getParameter("mass_gap_upper_msun");
 
-    if (trajectory.size() < 4) return findings;
+    // Extract (time, strain). Convention: t = time, z = GW strain.
+    std::vector<double> times, strains;
+    for (const auto& ev : trajectory) {
+        times.push_back(ev.t);
+        strains.push_back(ev.z);
+    }
+    size_t n = times.size();
+    if (n < 10) return findings;
 
-    // Analyze trajectory for binary inspiral signatures
-    std::vector<double> separations;
-    std::vector<double> orbitalFreqs;
+    // Locate the merger: time of peak strain amplitude.
+    double peakStrain = 0.0;
+    double mergerTime = 0.0;
+    for (size_t i = 0; i < n; ++i) {
+        double a = std::abs(strains[i]);
+        if (a > peakStrain) {
+            peakStrain = a;
+            mergerTime = times[i];
+        }
+    }
+    if (peakStrain <= strainThreshold) return findings;
 
-    for (size_t i = 1; i < trajectory.size(); ++i) {
-        double dx = trajectory[i].x - trajectory[i - 1].x;
-        double dy = trajectory[i].y - trajectory[i - 1].y;
-        double dz = trajectory[i].z - trajectory[i - 1].z;
-        double sep = std::sqrt(dx * dx + dy * dy + dz * dz);
-        double dt = trajectory[i].t - trajectory[i - 1].t;
-
-        if (sep > 0 && dt > 0) {
-            separations.push_back(sep);
-            double omega = 2.0 * M_PI / dt;
-            orbitalFreqs.push_back(omega);
+    // Estimate the ringdown frequency from the post-merger segment via a DFT.
+    double ringdownFreq = 0.0;
+    double dt = times[1] - times[0];
+    if (dt > 0) {
+        std::vector<double> rt, rx;
+        for (size_t i = 0; i < n; ++i) {
+            if (times[i] >= mergerTime) {
+                rt.push_back(times[i]);
+                rx.push_back(strains[i]);
+            }
+        }
+        size_t m = rx.size();
+        if (m >= 4) {
+            double bestMag = 0.0;
+            for (size_t k = 1; k <= m / 2; ++k) {
+                double freq = static_cast<double>(k) /
+                              (static_cast<double>(m) * dt); // Hz
+                double re = 0.0, im = 0.0;
+                for (size_t i = 0; i < m; ++i) {
+                    double ph = 2.0 * M_PI * freq * rt[i];
+                    re += rx[i] * std::cos(ph);
+                    im += rx[i] * std::sin(ph);
+                }
+                double mag = std::sqrt(re * re + im * im);
+                if (mag > bestMag) {
+                    bestMag = mag;
+                    ringdownFreq = freq;
+                }
+            }
         }
     }
 
-    if (separations.size() < 3) return findings;
+    double confidence = std::min(1.0, peakStrain / (10.0 * strainThreshold));
 
-    // Check for chirp mass evolution (frequency increasing with decreasing separation)
-    bool chirpDetected = false;
-    double chirpRate = 0.0;
-    for (size_t i = 2; i < separations.size(); ++i) {
-        if (separations[i] < separations[i - 1] && orbitalFreqs[i] > orbitalFreqs[i - 1]) {
-            chirpDetected = true;
-            double df = orbitalFreqs[i] - orbitalFreqs[i - 1];
-            double dt_sep = separations[i - 1] - separations[i];
-            if (dt_sep > 0) chirpRate += df / dt_sep;
-        }
-    }
-
-    // Compute tidal deformability
-    double tidalDeform = computeTidalDeformability(compactness, bosonMass);
-
-    // Check for mass gap objects
-    double totalMass = 0.0;
-    for (size_t i = 0; i < trajectory.size(); ++i) {
-        double r = std::sqrt(trajectory[i].x * trajectory[i].x +
-                            trajectory[i].y * trajectory[i].y +
-                            trajectory[i].z * trajectory[i].z);
-        if (r > 0) totalMass += r * 0.5; // Proxy mass estimate
-    }
-    bool massGap = isMassGapObject(totalMass * 0.6, totalMass * 0.4);
-
-    if (chirpDetected || tidalDeform > tidalThreshold || massGap) {
-        double confidence = std::min(1.0, (chirpRate * 0.1 +
-            (tidalDeform > tidalThreshold ? 0.3 : 0.0) +
-            (massGap ? 0.4 : 0.0)));
-
-        InstrumentFinding finding;
-        finding.id = "BSCP_" + std::to_string(getTotalFindings());
-        finding.instrumentName = getName();
-        finding.severity = confidenceToSeverity(confidence);
-        finding.confidence = confidence;
-        finding.description = "Boson star collision candidate detected: "
-            "chirp=" + std::string(chirpDetected ? "yes" : "no") +
-            ", tidal_deformability=" + std::to_string(tidalDeform) +
-            ", mass_gap_object=" + std::string(massGap ? "yes" : "no");
-        finding.location = location;
-        finding.timestamp = location.t;
-        finding.parameters["tidal_deformability"] = tidalDeform;
-        finding.parameters["chirp_rate"] = chirpRate;
-        finding.parameters["boson_mass_ev"] = bosonMass;
-        finding.parameters["compactness"] = compactness;
-        finding.parameters["is_mass_gap"] = massGap ? 1.0 : 0.0;
-        addFinding(finding);
-        findings.push_back(finding);
-    }
+    InstrumentFinding finding;
+    finding.id = "BSCP_" + std::to_string(getTotalFindings());
+    finding.instrumentName = getName();
+    finding.severity = confidenceToSeverity(confidence);
+    finding.confidence = confidence;
+    finding.description = "Boson star merger detected at t = " +
+        std::to_string(mergerTime) + " with peak strain " + std::to_string(peakStrain) +
+        " and ringdown frequency " + std::to_string(ringdownFreq) +
+        " Hz, indicating a boson star collision signature.";
+    finding.location = location;
+    finding.timestamp = mergerTime;
+    finding.parameters["merger_time"] = mergerTime;
+    finding.parameters["peak_strain"] = peakStrain;
+    finding.parameters["ringdown_freq_hz"] = ringdownFreq;
+    finding.parameters["boson_mass_ev"] = bosonMass;
+    addFinding(finding);
+    findings.push_back(finding);
 
     return findings;
-}
-
-double BosonStarCollisionPredictor::computeTidalDeformability(
-    double compactness, double bosonMass)
-{
-    // Tidal deformability Lambda ~ (2/3) * k2 * (R/M)^5
-    // For boson stars: k2 ~ compactness-dependent
-    double k2 = 0.75 * compactness * (1.0 - 2.0 * compactness) /
-        (1.0 - compactness);
-    double rOverM = 1.0 / compactness;
-    double lambda = (2.0 / 3.0) * k2 * std::pow(rOverM, 5);
-
-    // Scale by boson mass
-    return lambda * std::pow(bosonMass, 2.0);
-}
-
-double BosonStarCollisionPredictor::estimateBosonMassFromRingdown(
-    double fRing, double fDamp)
-{
-    // f_ring ~ c^3 / (G * M * 2pi) for fundamental mode
-    // M = c^3 / (2pi * G * f_ring)
-    // In natural units with boson mass correction
-    double massEstimate = 1.0 / (2.0 * M_PI * fRing);
-    double dampingCorrection = fDamp / fRing;
-
-    return massEstimate * (1.0 + 0.5 * dampingCorrection);
-}
-
-bool BosonStarCollisionPredictor::isMassGapObject(double mass1, double mass2)
-{
-    // Neutron star upper limit ~ 2.5 Msun, BH lower limit ~ 5 Msun
-    // Mass gap: 2.5 - 5 Msun
-    double massGapLower = getParameter("mass_gap_lower_msun");
-    double massGapUpper = getParameter("mass_gap_upper_msun");
-
-    return (mass1 > massGapLower && mass1 < massGapUpper) ||
-           (mass2 > massGapLower && mass2 < massGapUpper);
 }
 
 } // namespace quantumverse

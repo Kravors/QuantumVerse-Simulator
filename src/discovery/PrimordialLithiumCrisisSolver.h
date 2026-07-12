@@ -39,10 +39,7 @@ public:
     AlertSeverity getDefaultSeverity() const override { return AlertSeverity::MEDIUM; }
 
 private:
-    double computeLithiumAbundance(double baryonToPhoton, double neutronLifetime, double dmCrossSection);
-    double computeBBNChiSquared(const std::vector<double>& observedAbundances,
-        const std::vector<double>& predictedAbundances);
-    bool isLithiumCrisisResolved(double li7OverH, double be7OverH);
+    // (no private helpers; detection is performed inline in analyze)
 };
 
 } // namespace quantumverse

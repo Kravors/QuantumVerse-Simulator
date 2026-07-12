@@ -40,10 +40,7 @@ public:
     AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
 
 private:
-    double computeBlandfordZnajekPower(double spin, double magneticField, double mass);
-    double computeJetCollimationAngle(double spinParameter);
-    bool detectJetPrecession(const std::vector<double>& jetAngles);
-    double estimateSpinFromJet(double jetPower, double mass);
+    // (no private helpers; detection is performed inline in analyze)
 };
 
 } // namespace quantumverse

@@ -478,17 +478,24 @@ CMB power spectrum archaeologist for recombination constant variation.
 | `getName` | `std::string getName() const override` | Returns "RecombinationConstantVariationImager" |
 | `getDescription` | `std::string getDescription() const override` | Returns description |
 | `getCategory` | `std::string getCategory() const override` | Returns "CMB Physics" |
-| `getDefaultSeverity` | `AlertSeverity getDefaultSeverity() const override` | Returns CRITICAL |
-| `analyze` | `std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location, const std::vector<Event4D>& trajectory = {}) override` | Analyze recombination variations |
+| `getDefaultSeverity` | `AlertSeverity getDefaultSeverity() const override` | Returns MEDIUM |
+| `analyze` | `std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location, const std::vector<Event4D>& trajectory = {}) override` | Compare observed C_l against the ΛCDM proxy and flag a Δα/α scaling |
 
-#### Private Methods
+#### Parameters
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `computeRecombinationRedshift` | `double computeRecombinationRedshift(double alphaOverAlpha0, double meffOverMe0)` | Compute recombination redshift |
-| `computeDMultipoleShift` | `double computeDMultipoleShift(double deltaZrec, double lPeak)` | Compute multipole shift |
-| `detectSpectralDistortion` | `bool detectSpectralDistortion(const std::vector<double>& powerSpectrum, const std::vector<double>& multipoles)` | Detect spectral distortion |
-| `constrainConstantVariation` | `double constrainConstantVariation(double chi2, int dof)` | Constrain constant variation |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `alpha_sensitivity` | `1.0` | C_l response coefficient to Δα/α |
+| `confidence_threshold` | `1e-5` | Minimum `\|Δα/α\|` required to emit a finding |
+| `min_points` | `10.0` | Minimum number of `(ℓ, C_l)` samples required |
+
+#### Finding Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `delta_alpha_over_alpha` | Inferred variation in the fine-structure constant |
+| `mean_ratio` | Mean observed/expected C_l ratio |
+| `significance_sigma` | Significance of the deviation in sigma |
 
 ---
 

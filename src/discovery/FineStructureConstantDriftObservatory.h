@@ -39,10 +39,7 @@ public:
     AlertSeverity getDefaultSeverity() const override { return AlertSeverity::CRITICAL; }
 
 private:
-    double computeAlphaVariation(double redshift, double deltaAlphaOverAlpha);
-    bool isDriftSignificant(const std::vector<double>& alphaMeasurements,
-        const std::vector<double>& redshifts);
-    double constrainScalarFieldMass(const std::vector<double>& residuals);
+    // (no private helpers; detection is performed inline in analyze)
 };
 
 } // namespace quantumverse

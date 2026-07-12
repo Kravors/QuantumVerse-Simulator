@@ -38,9 +38,7 @@ public:
     AlertSeverity getDefaultSeverity() const override { return AlertSeverity::MEDIUM; }
 
 private:
-    double computeStreamWidth(double distance, double velocityDispersion);
-    double estimateSubhaloMass(double streamDeflection, double distance);
-    bool detectGapStructure(const std::vector<double>& streamDensities);
+    // (no private helpers; detection is performed inline in analyze)
 };
 
 } // namespace quantumverse

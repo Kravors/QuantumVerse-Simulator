@@ -15,10 +15,8 @@ namespace quantumverse {
 
 FineStructureConstantDriftObservatory::FineStructureConstantDriftObservatory()
 {
-    setParameter("alpha_variation_limit", 1e-6);
-    setParameter("redshift_range_max", 5.0);
-    setParameter("num_quasar_sightlines", 100);
-    setParameter("spectral_resolution", 50000.0);
+    setParameter("drift_significance_threshold", 3.0);
+    setParameter("min_points", 4.0);
 }
 
 std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
@@ -27,123 +25,70 @@ std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
 {
     std::vector<InstrumentFinding> findings;
 
-    double alphaLimit = getParameter("alpha_variation_limit");
-    double zMax = getParameter("redshift_range_max");
-    double resolution = getParameter("spectral_resolution");
+    double minPoints = getParameter("min_points");
+    if (trajectory.size() < static_cast<size_t>(minPoints)) return findings;
 
-    if (trajectory.size() < 3) return findings;
+    double sigThreshold = getParameter("drift_significance_threshold");
 
-    // Simulate quasar absorption line measurements at different redshifts
-    std::vector<double> alphaMeasurements;
-    std::vector<double> redshifts;
-
-    for (size_t i = 0; i < trajectory.size(); ++i) {
-        double z = trajectory[i].t * 0.1; // Simplified redshift proxy
-        if (z > zMax) break;
-
-        // Simulate alpha measurement with potential drift
-        double deltaAlpha = alphaLimit * (1.0 + 0.1 * std::sin(z * 2.0));
-        double measuredAlpha = 1.0 / 137.035999084 + deltaAlpha;
-
-        alphaMeasurements.push_back(measuredAlpha);
-        redshifts.push_back(z);
+    // Extract (time, alpha) measurements. Convention: t = time, z = measured α.
+    std::vector<double> times, alphas;
+    for (const auto& ev : trajectory) {
+        times.push_back(ev.t);
+        alphas.push_back(ev.z);
     }
+    size_t n = times.size();
+    if (n < 3) return findings;
 
-    if (alphaMeasurements.size() < 4) return findings;
-
-    // Fit linear drift: alpha(z) = alpha0 + alpha0 * q * z
-    double sumZ = 0.0, sumA = 0.0, sumZ2 = 0.0, sumZA = 0.0;
-    size_t n = alphaMeasurements.size();
+    // Least-squares linear fit: alpha = a0 + slope * t.
+    double sumT = 0.0, sumA = 0.0, sumT2 = 0.0, sumTA = 0.0;
     for (size_t i = 0; i < n; ++i) {
-        sumZ += redshifts[i];
-        sumA += alphaMeasurements[i];
-        sumZ2 += redshifts[i] * redshifts[i];
-        sumZA += redshifts[i] * alphaMeasurements[i];
+        sumT += times[i];
+        sumA += alphas[i];
+        sumT2 += times[i] * times[i];
+        sumTA += times[i] * alphas[i];
     }
-
-    double denom = n * sumZ2 - sumZ * sumZ;
+    double denom = static_cast<double>(n) * sumT2 - sumT * sumT;
     if (std::abs(denom) < 1e-30) return findings;
 
-    double slope = (n * sumZA - sumZ * sumA) / denom;
-    double alpha0 = (sumA - slope * sumZ) / n;
+    double slope = (static_cast<double>(n) * sumTA - sumT * sumA) / denom;
+    double a0 = (sumA - slope * sumT) / static_cast<double>(n);
 
-    // Compute residuals and chi-squared
-    double chi2 = 0.0;
-    std::vector<double> residuals;
+    // Residuals and standard error of the slope.
+    double sxx = sumT2 - sumT * sumT / static_cast<double>(n);
+    double rss = 0.0;
     for (size_t i = 0; i < n; ++i) {
-        double expected = alpha0 * (1.0 + slope / alpha0 * redshifts[i]);
-        double res = alphaMeasurements[i] - expected;
-        residuals.push_back(res);
-        chi2 += res * res;
+        double pred = a0 + slope * times[i];
+        double res = alphas[i] - pred;
+        rss += res * res;
     }
+    double dof = static_cast<double>(n) - 2.0;
+    if (dof < 1.0) return findings;
 
-    if (isDriftSignificant(alphaMeasurements, redshifts)) {
-        double scalarMass = constrainScalarFieldMass(residuals);
-        double confidence = std::min(1.0, std::abs(slope) * 1e10);
+    double sigmaRes = std::sqrt(rss / dof + 1e-30);
+    double sigmaSlope = sigmaRes / std::sqrt(sxx + 1e-30);
+    double significance = (sigmaSlope > 0.0) ? std::abs(slope) / sigmaSlope : 0.0;
+
+    if (significance > sigThreshold) {
+        double confidence = std::min(1.0, significance / (2.0 * sigThreshold));
 
         InstrumentFinding finding;
         finding.id = "FSCD_" + std::to_string(getTotalFindings());
         finding.instrumentName = getName();
         finding.severity = confidenceToSeverity(confidence);
         finding.confidence = confidence;
-        finding.description = "Fine-structure constant drift detected: dα/dz = "
-            + std::to_string(slope) + " suggesting scalar field coupling. "
-            + "Scalar field mass constraint: " + std::to_string(scalarMass) + " eV";
+        finding.description = "Fine-structure constant drift detected: dα/dt = " +
+            std::to_string(slope) + " with significance " + std::to_string(significance) +
+            " sigma, suggesting a varying fundamental coupling (scalar-tensor / string).";
         finding.location = location;
         finding.timestamp = location.t;
-        finding.parameters["alpha_slope"] = slope;
-        finding.parameters["alpha_0"] = alpha0;
-        finding.parameters["scalar_field_mass_eV"] = scalarMass;
-        finding.parameters["chi_squared"] = chi2;
+        finding.parameters["drift_rate"] = slope;
+        finding.parameters["alpha_0"] = a0;
+        finding.parameters["significance_sigma"] = significance;
         addFinding(finding);
         findings.push_back(finding);
     }
 
     return findings;
-}
-
-double FineStructureConstantDriftObservatory::computeAlphaVariation(
-    double redshift, double deltaAlphaOverAlpha)
-{
-    // Webb et al. parametrization: α(z) = α0(1 + qα z)
-    double alpha0 = 1.0 / 137.035999084;
-    return alpha0 * (1.0 + deltaAlphaOverAlpha * redshift);
-}
-
-bool FineStructureConstantDriftObservatory::isDriftSignificant(
-    const std::vector<double>& alphaMeasurements,
-    const std::vector<double>& redshifts)
-{
-    if (alphaMeasurements.size() < 5) return false;
-
-    // Compute weighted correlation between alpha and redshift
-    double sumZ = 0.0, sumA = 0.0, sumZ2 = 0.0, sumZA = 0.0;
-    size_t n = alphaMeasurements.size();
-    for (size_t i = 0; i < n; ++i) {
-        sumZ += redshifts[i];
-        sumA += alphaMeasurements[i];
-        sumZ2 += redshifts[i] * redshifts[i];
-        sumZA += redshifts[i] * alphaMeasurements[i];
-    }
-
-    double r = (n * sumZA - sumZ * sumA) /
-        std::sqrt((n * sumZ2 - sumZ * sumZ) * (n * sumA * sumA / n - sumA * sumA / n));
-
-    return std::abs(r) > 0.7;
-}
-
-double FineStructureConstantDriftObservatory::constrainScalarFieldMass(
-    const std::vector<double>& residuals)
-{
-    // From Bekenstein-type models: m_phi ~ Δα/α × H0
-    double rmsResidual = 0.0;
-    for (double r : residuals) rmsResidual += r * r;
-    rmsResidual = std::sqrt(rmsResidual / residuals.size());
-
-    double hubbleConstant = 67.4; // km/s/Mpc
-    double mass_eV = rmsResidual * 1e10 * hubbleConstant;
-
-    return mass_eV;
 }
 
 } // namespace quantumverse

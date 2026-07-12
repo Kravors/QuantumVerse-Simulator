@@ -41,7 +41,6 @@ public:
 private:
     double computeDMSignalAmplitude(double dmMass, double localDensity);
     double computeOscillationFrequency(double dmMass);
-    bool detectCoherentOscillation(const std::vector<double>& residuals, double frequency);
 };
 
 } // namespace quantumverse

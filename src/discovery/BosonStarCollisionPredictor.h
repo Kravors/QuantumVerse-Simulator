@@ -40,9 +40,7 @@ public:
     AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
 
 private:
-    double computeTidalDeformability(double compactness, double bosonMass);
-    double estimateBosonMassFromRingdown(double fRing, double fDamp);
-    bool isMassGapObject(double mass1, double mass2);
+    // (no private helpers; detection is performed inline in analyze)
 };
 
 } // namespace quantumverse

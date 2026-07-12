@@ -28,86 +28,74 @@ std::vector<InstrumentFinding> NeutronStarGlitchPhaseDetector::analyze(
 {
     std::vector<InstrumentFinding> findings;
 
-    double criticalSpin = getParameter("critical_spin_rate");
-    double pinEnergy = getParameter("vortex_pin_energy");
-    double gap0 = getParameter("superfluid_gap_0");
-    double glitchThreshold = getParameter("glitch_size_threshold");
-    double phaseSigma = getParameter("phase_transition_sigma");
-
     if (trajectory.size() < 6) return findings;
 
-    // Extract spin-down rate and glitch candidates from trajectory
-    std::vector<double> spinRates;
-    std::vector<double> glitchSizes;
-    std::vector<double> timingResiduals;
+    double glitchThreshold = getParameter("glitch_size_threshold");
 
+    // 1. Build a spin-rate proxy from the trajectory's spatial projection.
+    //    omega_i = sqrt(x_i^2 + y_i^2) / dt_i  (rad/s analogue).
+    std::vector<double> omega;
+    std::vector<double> omegaTime;
     for (size_t i = 1; i < trajectory.size(); ++i) {
         double dt = trajectory[i].t - trajectory[i - 1].t;
         if (dt <= 0) continue;
+        double r = std::sqrt(trajectory[i].x * trajectory[i].x +
+                             trajectory[i].y * trajectory[i].y);
+        omega.push_back(r / dt);
+        omegaTime.push_back(trajectory[i].t);
+    }
 
-        // Angular velocity proxy from spatial displacement
-        double omega = std::sqrt(trajectory[i].x * trajectory[i].x +
-                                trajectory[i].y * trajectory[i].y) / dt;
-        spinRates.push_back(omega);
+    if (omega.size() < 3) return findings;
 
-        // Glitch size from sudden spin-up events
-        if (i >= 2) {
-            double prevDt = trajectory[i - 1].t - trajectory[i - 2].t;
-            if (prevDt > 0) {
-                double prevOmega = std::sqrt(trajectory[i - 1].x * trajectory[i - 1].x +
-                                             trajectory[i - 1].y * trajectory[i - 1].y) / prevDt;
-                double glitch = (omega - prevOmega) / prevOmega;
-                glitchSizes.push_back(glitch);
-            }
+    // 2. Detect a sudden spin-up (glitch) as a relative change in spin rate.
+    double glitchTime = 0.0;
+    double deltaRate = 0.0;
+    bool glitchFound = false;
+    for (size_t i = 1; i < omega.size(); ++i) {
+        double denom = std::abs(omega[i - 1]) + 1e-30;
+        double relChange = (omega[i] - omega[i - 1]) / denom;
+        if (relChange > glitchThreshold && !glitchFound) {
+            glitchFound = true;
+            glitchTime = omegaTime[i];
+            deltaRate = omega[i] - omega[i - 1];
         }
     }
 
-    if (spinRates.size() < 4 || glitchSizes.size() < 3) return findings;
+    if (!glitchFound) return findings;
 
-    // Compute vortex unpinning probability
+    // 3. Characterise the glitch via the quantum-vortex unpinning model.
     double meanSpin = 0.0;
-    for (double s : spinRates) meanSpin += s;
-    meanSpin /= spinRates.size();
+    for (double w : omega) meanSpin += w;
+    meanSpin /= omega.size();
 
+    double criticalSpin = getParameter("critical_spin_rate");
     double unpinningProb = computeVortexUnpinningProbability(
-        std::abs(meanSpin - criticalSpin) / criticalSpin,
-        *std::max_element(glitchSizes.begin(), glitchSizes.end()));
+        std::abs(meanSpin - criticalSpin) / criticalSpin, deltaRate);
+    double superfluidGap = estimateSuperfluidGap(glitchTime + 1.0);
 
-    // Estimate superfluid gap from glitch recurrence
-    double meanGlitchInterval = 0.0;
-    for (size_t i = 1; i < glitchSizes.size(); ++i) {
-        meanGlitchInterval += std::abs(glitchSizes[i] - glitchSizes[i - 1]);
-    }
-    meanGlitchInterval /= (glitchSizes.size() - 1);
-    double superfluidGap = estimateSuperfluidGap(meanGlitchInterval);
+    double confidence = std::min(1.0, 0.5 + 0.5 * std::min(1.0,
+        deltaRate / (std::abs(meanSpin) + 1e-30)));
 
-    // Detect phase transition in glitch size distribution
-    bool phaseTransition = detectPhaseTransition(glitchSizes);
-
-    if (unpinningProb > 0.5 || phaseTransition || superfluidGap > gap0 * 0.8) {
-        double confidence = std::min(1.0, unpinningProb * 0.5 +
-            (phaseTransition ? 0.3 : 0.0) +
-            (superfluidGap > gap0 * 0.8 ? 0.2 : 0.0));
-
-        InstrumentFinding finding;
-        finding.id = "NSGP_" + std::to_string(getTotalFindings());
-        finding.instrumentName = getName();
-        finding.severity = confidenceToSeverity(confidence);
-        finding.confidence = confidence;
-        finding.description = "Neutron star glitch phase transition detected: "
-            "unpinning_prob=" + std::to_string(unpinningProb) +
-            ", superfluid_gap=" + std::to_string(superfluidGap) +
-            " MeV, phase_transition=" + std::string(phaseTransition ? "yes" : "no");
-        finding.location = location;
-        finding.timestamp = location.t;
-        finding.parameters["unpinning_probability"] = unpinningProb;
-        finding.parameters["superfluid_gap_MeV"] = superfluidGap;
-        finding.parameters["mean_spin_rate"] = meanSpin;
-        finding.parameters["critical_spin_rate"] = criticalSpin;
-        finding.parameters["phase_transition"] = phaseTransition ? 1.0 : 0.0;
-        addFinding(finding);
-        findings.push_back(finding);
-    }
+    InstrumentFinding finding;
+    finding.id = "NSGP_" + std::to_string(getTotalFindings());
+    finding.instrumentName = getName();
+    finding.severity = confidenceToSeverity(confidence);
+    finding.confidence = confidence;
+    finding.description = "Neutron star glitch detected at t=" +
+        std::to_string(glitchTime) + " s: delta_spin_rate=" +
+        std::to_string(deltaRate) + ", unpinning_prob=" +
+        std::to_string(unpinningProb) + ", superfluid_gap=" +
+        std::to_string(superfluidGap) + " MeV";
+    finding.location = location;
+    finding.timestamp = glitchTime;
+    finding.parameters["glitch_time"] = glitchTime;
+    finding.parameters["delta_rate"] = deltaRate;
+    finding.parameters["mean_spin_rate"] = meanSpin;
+    finding.parameters["critical_spin_rate"] = criticalSpin;
+    finding.parameters["unpinning_probability"] = unpinningProb;
+    finding.parameters["superfluid_gap_MeV"] = superfluidGap;
+    addFinding(finding);
+    findings.push_back(finding);
 
     return findings;
 }

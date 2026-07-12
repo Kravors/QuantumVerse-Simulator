@@ -385,8 +385,8 @@ Main AI-driven discovery system.
 | `getName` | `std::string getName() const override` | Returns "RecombinationConstantVariationImager" |
 | `getDescription` | `std::string getDescription() const override` | Returns description |
 | `getCategory` | `std::string getCategory() const override` | Returns "CMB Physics" |
-| `getDefaultSeverity` | `AlertSeverity getDefaultSeverity() const override` | Returns CRITICAL |
-| `analyze` | `std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location, const std::vector<Event4D>& trajectory = {}) override` | Analyze recombination variations |
+| `getDefaultSeverity` | `AlertSeverity getDefaultSeverity() const override` | Returns MEDIUM |
+| `analyze` | `std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location, const std::vector<Event4D>& trajectory = {}) override` | Compare observed C_l against the ΛCDM proxy and flag a Δα/α scaling |
 
 ---
 
