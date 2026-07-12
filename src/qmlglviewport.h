@@ -47,7 +47,6 @@ class UI4D;
 class Camera4D;
 class Camera4DAdapter;
 class CelestialBodyRenderer;
-class SurrogateIntegration;
 }
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
@@ -367,8 +366,10 @@ private:
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
 
-    // Surrogate integration for real-time geodesic prediction
-    std::unique_ptr<SurrogateIntegration> m_surrogateIntegration;
+    // Surrogate integration for real-time geodesic prediction (currently disabled)
+#if 0
+    std::unique_ptr<quantumverse::ml::SurrogateIntegration> m_surrogateIntegration;
+#endif
 
     // Frame profiler for benchmark/profiling overlay
     FrameProfiler m_frameProfiler;

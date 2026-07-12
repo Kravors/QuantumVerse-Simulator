@@ -17,6 +17,7 @@
 #include <qsgtexture_platform.h>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QOpenGLFunctions>
+#include <QQuaternion>
 
 #include "qmlglviewport.h"
 #include "rendering/CurvatureRenderer.h"
@@ -27,7 +28,6 @@
 #include "ui4d/Camera4DAdapter.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/MetricTensor.h"
-#include "ml/SurrogateIntegration.h"
 #include "utils/ThreadPool.h"
 
 #include <algorithm>
@@ -37,6 +37,7 @@
 #include <fstream>
 #include <vector>
 #include <windows.h>  // for MessageBoxA
+#undef connect
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
 #ifndef M_PI
@@ -128,7 +129,6 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 , m_cameraPanY(0.0f)
 , m_fbo(nullptr)
 , m_glInitialized(false)
-, m_surrogateIntegration(nullptr)
 , m_headlessTargetFrames(0)
 , m_headlessStatsLogged(false)
 {
@@ -993,70 +993,73 @@ void QmlGlRenderer::renderGeodesics()
      const auto& solarData = m_ui4d->getSolarSystemData();
      std::vector<std::vector<Event4D>> geodesics;
 
-     // Optionally use neural ODE surrogate for real-time geodesic prediction
-     if (m_surrogateIntegration && m_surrogateIntegration->isGeodesicSurrogateReady()) {
-         try {
-             std::vector<Event4D> initialEvents;
-             std::vector<std::array<double,4>> initialVelocities;
+      // Optionally use neural ODE surrogate for real-time geodesic prediction
+#if 0
+      if (m_surrogateIntegration && m_surrogateIntegration->isGeodesicSurrogateReady()) {
+          try {
+              std::vector<Event4D> initialEvents;
+              std::vector<std::array<double,4>> initialVelocities;
 
-             for (const auto& bodyPair : solarData.bodies) {
-                 const auto& body = bodyPair.second;
-                 if (!body.showOrbit || body.orbitPoints.empty()) continue;
+              for (const auto& bodyPair : solarData.bodies) {
+                  const auto& body = bodyPair.second;
+                  if (!body.showOrbit || body.orbitPoints.empty()) continue;
 
-                 const auto& last = body.orbitPoints.back();
-                 initialEvents.emplace_back(last.t, last.x, last.y, last.z);
+                  const auto& last = body.orbitPoints.back();
+                  initialEvents.emplace_back(last.t, last.x, last.y, last.z);
 
-                 if (body.orbitPoints.size() >= 2) {
-                     const auto& prev = body.orbitPoints[body.orbitPoints.size() - 2];
-                     initialVelocities.push_back({
-                         last.t - prev.t,
-                         last.x - prev.x,
-                         last.y - prev.y,
-                         last.z - prev.z
-                     });
-                 } else {
-                     initialVelocities.push_back({1.0, 0.0, 0.0, 0.0});
-                 }
-             }
+                  if (body.orbitPoints.size() >= 2) {
+                      const auto& prev = body.orbitPoints[body.orbitPoints.size() - 2];
+                      initialVelocities.push_back({
+                          last.t - prev.t,
+                          last.x - prev.x,
+                          last.y - prev.y,
+                          last.z - prev.z
+                      });
+                  } else {
+                      initialVelocities.push_back({1.0, 0.0, 0.0, 0.0});
+                  }
+              }
 
-             if (!initialEvents.empty()) {
-                 std::vector<double> metricParams = {1.0};
-                 utils::ThreadPool pool(4);
-                 auto surrogateGeodesics = m_surrogateIntegration->predictGeodesicBundleIfReady(
-                     initialEvents,
-                     initialVelocities,
-                     metricParams,
-                     0.01,
-                     pool
-                 );
-                 geodesics.insert(geodesics.end(), std::make_move_iterator(surrogateGeodesics.begin()), std::make_move_iterator(surrogateGeodesics.end()));
-             }
-         } catch (const std::exception& e) {
-             qWarning() << "QmlGlRenderer: Surrogate geodesic prediction failed:" << e.what();
-         }
-     }
+              if (!initialEvents.empty()) {
+                  std::vector<double> metricParams = {1.0};
+                  utils::ThreadPool pool(4);
+                  auto surrogateGeodesics = m_surrogateIntegration->predictGeodesicBundleIfReady(
+                      initialEvents,
+                      initialVelocities,
+                      metricParams,
+                      0.01,
+                      pool
+                  );
+                  geodesics.insert(geodesics.end(), std::make_move_iterator(surrogateGeodesics.begin()), std::make_move_iterator(surrogateGeodesics.end()));
+              }
+          } catch (const std::exception& e) {
+              qWarning() << "QmlGlRenderer: Surrogate geodesic prediction failed:" << e.what();
+          }
+      }
+#endif
 
-     if (geodesics.empty()) {
-         for (const auto& bodyPair : solarData.bodies) {
-         const auto& body = bodyPair.second;
-         if (!body.showOrbit || body.orbitPoints.empty()) continue;
+      if (geodesics.empty()) {
+          for (const auto& bodyPair : solarData.bodies) {
+          const auto& body = bodyPair.second;
+          if (!body.showOrbit || body.orbitPoints.empty()) continue;
 
-         // Convert orbit points from solar system scale to viewport scale
-         std::vector<Event4D> scaledOrbit;
-         scaledOrbit.reserve(body.orbitPoints.size());
-         for (const auto& pt : body.orbitPoints) {
-             scaledOrbit.emplace_back(
-                 pt.t,
-                 pt.x * solarData.scaleFactor,
-                 pt.y * solarData.scaleFactor,
-                 pt.z * solarData.scaleFactor
-             );
-         }
-         geodesics.push_back(std::move(scaledOrbit));
-     }
+          // Convert orbit points from solar system scale to viewport scale
+          std::vector<Event4D> scaledOrbit;
+          scaledOrbit.reserve(body.orbitPoints.size());
+          for (const auto& pt : body.orbitPoints) {
+              scaledOrbit.emplace_back(
+                  pt.t,
+                  pt.x * solarData.scaleFactor,
+                  pt.y * solarData.scaleFactor,
+                  pt.z * solarData.scaleFactor
+              );
+          }
+          geodesics.push_back(std::move(scaledOrbit));
+      }
+      }
 
-     // Delegate to CurvatureRenderer for actual GPU rendering
-     if (m_curvatureRenderer && !geodesics.empty()) {
+      // Delegate to CurvatureRenderer for actual GPU rendering
+      if (m_curvatureRenderer && !geodesics.empty()) {
          try {
              m_curvatureRenderer->renderGeodesics(
                  geodesics,
@@ -1430,14 +1433,14 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     int h = height() > 0 ? static_cast<int>(height()) : 720;
     m_renderer = new QmlGlRenderer(w, h);
 
-    connect(this, &QQuickItem::windowChanged, this, &QmlGlViewport::onWindowChanged);
+    QObject::connect(this, &QQuickItem::windowChanged, this, &QmlGlViewport::onWindowChanged);
 
-    connect(this, &QQuickItem::widthChanged, this, [this]() {
+    QObject::connect(this, &QQuickItem::widthChanged, this, [this]() {
         if (m_renderer) {
             m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
         }
     });
-    connect(this, &QQuickItem::heightChanged, this, [this]() {
+    QObject::connect(this, &QQuickItem::heightChanged, this, [this]() {
         if (m_renderer) {
             m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
         }
@@ -1457,7 +1460,7 @@ void QmlGlViewport::onWindowChanged(QQuickWindow* win)
     std::ofstream("viewport_window.log") << "onWindowChanged, win=" << win << std::endl;
     qWarning() << "QmlGlViewport::onWindowChanged, win=" << win;
     if (win) {
-        connect(win, &QQuickWindow::beforeRendering,
+        QObject::connect(win, &QQuickWindow::beforeRendering,
                 this, &QmlGlViewport::renderGL, Qt::DirectConnection);
         qWarning() << "Connected to beforeRendering";
     }
@@ -1648,8 +1651,10 @@ void QmlGlViewport::setCamera4DAdapterObj(QObject* adapter)
 
 void QmlGlViewport::updateSimulation(double deltaTime)
 {
+#if 0
     std::cerr << "updateSimulation called, dt=" << deltaTime << std::endl;
     std::cerr.flush();
+#endif
     m_simulationTime += deltaTime;
     if (m_renderer) {
         m_renderer->updateTime(static_cast<float>(deltaTime));
