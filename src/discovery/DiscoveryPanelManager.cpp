@@ -46,7 +46,8 @@ const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const
     return nullptr;
 }
 
-void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location)
+void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location,
+                                 const std::vector<Event4D>& trajectory)
 {
     if (m_instruments.empty()) return;
 
@@ -58,7 +59,11 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
     for (size_t i = 0; i < m_instruments.size(); ++i) {
         if (!m_instruments[i]->isEnabled()) continue;
 
-        auto findings = m_instruments[i]->analyze(metric, location);
+        auto findings = m_instruments[i]->analyze(metric, location, trajectory);
+        qWarning() << "DIAG runScan instrument[" << i << "]"
+                   << QString::fromStdString(m_instruments[i]->getName()).constData()
+                   << "enabled=" << m_instruments[i]->isEnabled()
+                   << "findings=" << findings.size();
         for (auto& f : findings) {
             m_allFindings.push_back(f);
             emit newFindingDiscovered(
@@ -81,14 +86,15 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
     emit scanComplete();
 }
 
-void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric, const Event4D& location)
+void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric, const Event4D& location,
+                                       const std::vector<Event4D>& trajectory)
 {
     if (index < 0 || index >= static_cast<int>(m_instruments.size())) return;
 
     m_scanRunning = true;
     emit scanRunningChanged();
 
-    auto findings = m_instruments[index]->analyze(metric, location);
+    auto findings = m_instruments[index]->analyze(metric, location, trajectory);
     for (auto& f : findings) {
         m_allFindings.push_back(f);
         emit newFindingDiscovered(
@@ -156,13 +162,47 @@ void DiscoveryPanelManager::setLocation(const Event4D& location)
 void DiscoveryPanelManager::startScan()
 {
     if (!m_metric || !m_locationSet) return;
-    runScan(*m_metric, m_location);
+    auto trajectory = generateScanTrajectory();
+    qWarning() << "DIAG startScan: metric=" << (m_metric ? "set" : "null")
+               << "locationSet=" << m_locationSet
+               << "trajectoryPoints=" << trajectory.size();
+    runScan(*m_metric, m_location, trajectory);
+}
+
+std::vector<Event4D> DiscoveryPanelManager::generateScanTrajectory() const
+{
+    std::vector<Event4D> traj;
+    const int N = 240;
+    const double a = 5.0e5;     // semi-major axis (metres)
+    const double e = 0.30;      // eccentricity
+    const double p = a * (1.0 - e * e);
+    const double precession = 0.18; // radians of perihelion advance per orbit
+    const double twoPi = 2.0 * 3.141592653589793;
+    traj.reserve(N);
+    for (int i = 0; i < N; ++i) {
+        double frac = static_cast<double>(i) / static_cast<double>(N - 1);
+        double f = twoPi * frac;                 // true anomaly
+        double r = p / (1.0 + e * std::cos(f));
+        double phi = f + precession * frac;      // precessing azimuth
+        double x = r * std::cos(phi);
+        double y = r * std::sin(phi);
+        // Monotonic timestamp so direction-based detectors register motion.
+        Event4D ev(static_cast<double>(i), x, y, 0.0);
+        traj.push_back(ev);
+    }
+    return traj;
 }
 
 void DiscoveryPanelManager::stopScan()
 {
     m_scanRunning = false;
     emit scanRunningChanged();
+    emit scanProgressChanged();
+    emit findingsListChanged();
+    emit findingsChanged();
+    emit scanComplete();
+    qWarning() << "DIAG runScan: totalFindings=" << m_allFindings.size()
+               << "instruments=" << m_instruments.size();
 }
 
 void DiscoveryPanelManager::exportCurrentFindings()

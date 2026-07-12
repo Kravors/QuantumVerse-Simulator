@@ -238,7 +238,7 @@ void CurvatureRenderer::initializeGL()
                 case 0: {
                     float intensity = clamp(log2(abs(curvatureValue) + 1.0) * 0.3, 0.0, 1.0);
                     baseColor = mix(vec3(0.2, 0.3, 0.8), vec3(0.8, 0.1, 0.1), intensity);
-                    alpha = 0.7;
+                    alpha = 0.15;
                     break;
                 }
                 case 1: {
@@ -253,13 +253,13 @@ void CurvatureRenderer::initializeGL()
                         baseColor = mix(vec3(0,1,0), vec3(1,1,0), (hue - 0.5) * 4.0);
                     else
                         baseColor = mix(vec3(1,1,0), vec3(1,0,0), (hue - 0.75) * 4.0);
-                    alpha = 0.8;
+                    alpha = 0.2;
                     break;
                 }
                 case 2: {
                     float intensity = clamp(log2(max(curvatureValue, 1.0)) * 0.15, 0.0, 1.0);
                     baseColor = mix(vec3(0.0, 0.2, 0.8), vec3(1.0, 0.1, 0.1), intensity);
-                    alpha = 0.8;
+                    alpha = 0.2;
                     break;
                 }
                 case 3: {
@@ -268,12 +268,12 @@ void CurvatureRenderer::initializeGL()
                         baseColor = vec3(1.0, d * 2.0, 0.0);
                     else
                         baseColor = vec3((1.0 - d) * 2.0, 1.0, (d - 0.5) * 2.0);
-                    alpha = 0.85;
+                    alpha = 0.25;
                     break;
                 }
                 default:
                     baseColor = vec3(0.2, 0.6, 1.0);
-                    alpha = 0.5;
+                    alpha = 0.15;
                     break;
             }
             outColor = vec4(baseColor, alpha);
@@ -810,8 +810,12 @@ void CurvatureRenderer::deformGrid()
         double curvature = calculator.getKretschmann();
         vertex.curvature = static_cast<float>(curvature);
         
-        // Apply deformation based on curvature
-        float displacement = static_cast<float>(curvature * 0.001);
+        // Apply deformation based on curvature.
+        // Clamp the displacement to avoid the 1/r^6 Kretschmann blow-up
+        // near the singularity producing an enormous spike.
+        float rawDisplacement = static_cast<float>(curvature * 0.001);
+        float displacement = rawDisplacement > 1.0f ? 1.0f
+                          : (rawDisplacement < -1.0f ? -1.0f : rawDisplacement);
         vertex.position[2] += displacement;
         
         // Update time dilation

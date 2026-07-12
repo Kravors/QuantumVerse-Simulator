@@ -21,6 +21,21 @@ namespace quantumverse {
 // Forward declaration
 class StressEnergyTensor;
 
+/**
+ * @brief Curvature invariants at a spacetime event.
+ *
+ * Returned by MetricTensor::curvatureScalars(). A metric that can supply
+ * exact invariants (e.g. Schwarzschild) overrides that method and sets
+ * valid=true; the default returns invalid so callers fall back to numerical
+ * differentiation.
+ */
+struct CurvatureScalars {
+    double kretschmann = 0.0;   ///< K = R_{ρσμν} R^{ρσμν}
+    double ricciScalar = 0.0;   ///< R = g^{μν} R_{μν}
+    double weylSquared = 0.0;   ///< C_{abcd} C^{abcd}
+    bool valid = false;         ///< false => use numerical fallback
+};
+
 class MetricTensor {
 public:
     // 4x4 metric tensor components
@@ -93,6 +108,17 @@ public:
     // Subclasses override for position-dependent metrics (Schwarzschild, Kerr, etc.)
     virtual std::array<std::array<double, 4>, 4> evaluate(const Event4D& event) const {
         return g;  // Default: return stored metric (constant spacetime)
+    }
+
+    /**
+     * @brief Curvature invariants at an event, if analytically known.
+     *
+     * Base returns invalid; subclasses with closed-form curvature (e.g.
+     * SchwarzschildMetric) override and set valid=true. Callers should use
+     * this when valid, falling back to CurvatureCalculator otherwise.
+     */
+    virtual CurvatureScalars curvatureScalars(const Event4D& /*event*/) const {
+        return CurvatureScalars{};  // invalid by default
     }
 
     // Virtual destructor for proper polymorphic cleanup
@@ -294,6 +320,80 @@ private:
         // Apply sign: (-1)^(row+col)
         return ((row + col) % 2 == 0 ? 1 : -1) * det;
     }
+};
+
+/**
+ * @brief Position-dependent Schwarzschild metric.
+ *
+ * Unlike the constant base MetricTensor, this evaluates the Schwarzschild
+ * geometry at the actual spacetime event. Routing curvature computations,
+ * geodesic integration, and instrument scans through evaluate() makes the
+ * renderer surface, the probe readout, and the scanner see real curvature
+ * instead of a single flat point metric.
+ */
+class SchwarzschildMetric : public MetricTensor {
+public:
+    explicit SchwarzschildMetric(double massKg) : m_mass(massKg) {}
+
+    /// @brief Black hole mass in kilograms.
+    double mass() const { return m_mass; }
+
+    std::array<std::array<double, 4>, 4> evaluate(const Event4D& event) const override {
+        // Return the metric in the SAME (t, x, y, z) Cartesian basis that the
+        // curvature/geodesic calculators finite-difference. The Schwarzschild
+        // line element ds^2 = -(1-rs/r) dt^2 + (1-rs/r)^{-1} dr^2 + r^2 dΩ^2
+        // expands to g_ij = δ_ij + (rs/(r-rs)) x_i x_j / r^2 in Cartesian
+        // coordinates. (Returning spherical components g_θθ=r^2 while the
+        // calculators perturb x,y,z produced a spurious, basis-mismatched
+        // curvature of ~4 even for flat space.)
+        double x = event.x, y = event.y, z = event.z;
+        double r = std::sqrt(x * x + y * y + z * z);
+        const double minR = 1e-9;
+        if (r < minR) r = minR;
+
+        const double c2 = Event4D::C * Event4D::C;
+        double rs = 2.0 * Event4D::G * m_mass / c2;
+        double factor = 1.0 - rs / r;                 // g_tt = -factor
+
+        // Spatial correction coefficient; clamp inside the horizon to avoid
+        // the singular blow-up (geometric view is degenerate there anyway).
+        double fr = (r > rs) ? rs / (r - rs) : 0.0;
+        double inv_r2 = 1.0 / (r * r);
+
+        std::array<std::array<double, 4>, 4> g4{};
+        g4[0][0] = -factor;
+        double xs[3] = {x, y, z};
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                double delta = (i == j) ? 1.0 : 0.0;
+                g4[i + 1][j + 1] = delta + fr * (xs[i] * xs[j] * inv_r2);
+            }
+        }
+        return g4;
+    }
+
+    CurvatureScalars curvatureScalars(const Event4D& event) const override {
+        // Exact Schwarzschild invariants (vacuum: Ricci = 0, Riemann = Weyl).
+        // Using the closed form avoids finite-difference round-off, which
+        // otherwise zeroes the curvature at astronomical probe distances.
+        double r = std::sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+        const double minR = 1e-9;
+        if (r < minR) r = minR;
+
+        const double c4 = Event4D::C * Event4D::C * Event4D::C * Event4D::C;
+        double G = Event4D::G;
+        double K = 48.0 * G * G * m_mass * m_mass / (c4 * std::pow(r, 6));
+
+        CurvatureScalars s;
+        s.kretschmann = K;
+        s.ricciScalar = 0.0;    // vacuum
+        s.weylSquared = K;      // vacuum: Riemann == Weyl
+        s.valid = true;
+        return s;
+    }
+
+private:
+    double m_mass;
 };
 
 // Stress-energy tensor (source of spacetime curvature)

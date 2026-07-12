@@ -240,8 +240,16 @@ ApplicationWindow {
                 model: ["Grid Deformation", "Riemann Color", "Curvature Scalar", "Time Dilation", "Geodesic Flow"]
                 currentIndex: 0
                 onCurrentIndexChanged: if (viewportItem) viewportItem.curvatureMode = currentIndex
-                Layout.preferredWidth: 140
+                Layout.preferredWidth: 178
                 ToolTip.text: "Curvature visualization mode"
+                contentItem: Text {
+                    text: curvatureModeCombo.currentText
+                    font: curvatureModeCombo.font
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: curvatureModeCombo.leftPadding
+                    rightPadding: curvatureModeCombo.rightPadding
+                }
             }
 
             ToolSeparator {}
@@ -259,7 +267,8 @@ ApplicationWindow {
             Label {
                 text: "FPS: " + (viewportItem && viewportItem.frameRate > 0 ? viewportItem.frameRate.toFixed(1) : "—")
                 color: viewportItem && viewportItem.frameRate >= 45 ? "#4f4" : "#f44"
-                font.pixelSize: 11
+                font.pixelSize: 14
+                font.bold: true
                 Layout.rightMargin: 8
             }
         }
@@ -714,32 +723,36 @@ ApplicationWindow {
                                         spacing: 2
                 
                                         Label { text: "Probe Readout"; font.bold: true; font.pixelSize: 12 }
-                
-                                        // Placeholder values - in a full implementation these would be
-                                        // bound to actual probe data from the C++ side
-                                        property string probeKretschmann: "—"
-                                        property string probeRicci: "—"
-                                        property string probeWeyl: "—"
-                                        property string probeRedshift: "—"
-                
+
                                         RowLayout {
                                             Label { text: "Kretschmann:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: probeKretschmann; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem.kretschmann; color: "#4af"; font.family: "monospace" }
                                         }
-                
+
                                         RowLayout {
                                             Label { text: "Ricci Scalar:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: probeRicci; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem.ricciScalar; color: "#4af"; font.family: "monospace" }
                                         }
-                
+
                                         RowLayout {
                                             Label { text: "Weyl Scalar:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: probeWeyl; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem.weylSquared; color: "#4af"; font.family: "monospace" }
                                         }
-                
+
                                         RowLayout {
                                             Label { text: "Redshift:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: probeRedshift; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem.redshift; color: "#4af"; font.family: "monospace" }
+                                        }
+
+                                        Connections {
+                                            target: sceneGraphModel
+                                            function onSelectedObjectIdChanged() {
+                                                console.log("DIAG selectedObjectIdChanged ->", sceneGraphModel.selectedObjectId)
+                                                var pos = sceneGraphModel.selectedObjectPosition()
+                                                console.log("DIAG selectedObjectPosition ->", JSON.stringify(pos))
+                                                if (pos && pos.x !== undefined) viewportItem.probeAt(pos.x, pos.y, pos.z)
+                                                else { console.log("DIAG no position, clearProbe"); viewportItem.clearProbe() }
+                                            }
                                         }
                                     }
                                 }
@@ -769,13 +782,21 @@ ApplicationWindow {
                             }
                             ComboBox {
                                 id: instrumentFilter
-                                Layout.preferredWidth: 150
+                                Layout.preferredWidth: 210
                                 property var names: ["All"].concat(
                                     discoveryPanelManager ? discoveryPanelManager.instrumentNames : [],
                                     ["LIGO", "IceCube"])
                                 model: names
                                 onCurrentTextChanged: findingsModel.filterInstrument =
                                     (currentText === "All" ? "" : currentText)
+                                contentItem: Text {
+                                    text: instrumentFilter.currentText
+                                    font: instrumentFilter.font
+                                    elide: Text.ElideRight
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: instrumentFilter.leftPadding
+                                    rightPadding: instrumentFilter.rightPadding
+                                }
                             }
                             ComboBox {
                                 id: sortCombo
@@ -828,6 +849,8 @@ ApplicationWindow {
                                                 font.pixelSize: 10
                                                 color: "#888"
                                                 font.bold: true
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
                                             }
 
                                             Label {

@@ -72,6 +72,9 @@ public:
     Q_INVOKABLE void selectObject(const QString& id);
     Q_INVOKABLE void clearSelection();
 
+    /// @brief Position (t,x,y,z) of the currently selected object, or empty map.
+    Q_INVOKABLE QVariantMap selectedObjectPosition() const;
+
     // Refresh model from scene graph
     Q_INVOKABLE void refresh();
 

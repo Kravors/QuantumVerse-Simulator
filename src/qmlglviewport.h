@@ -27,6 +27,7 @@
 #include <QDateTime>
 #include <QOpenGLContext>
 #include <QDebug>
+#include <QVariant>
 #include <memory>
 #include <vector>
 #include <deque>
@@ -47,6 +48,7 @@ class UI4D;
 class Camera4D;
 class Camera4DAdapter;
 class CelestialBodyRenderer;
+class MetricTensor;
 }
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
@@ -445,6 +447,26 @@ public:
     float simulationTime() const { return m_simulationTime; }
     float frameRate() const;
 
+    // --- Curvature probe readout (wired to the live metric) -------------
+    Q_PROPERTY(QString kretschmann READ kretschmann NOTIFY probeChanged)
+    Q_PROPERTY(QString ricciScalar READ ricciScalar NOTIFY probeChanged)
+    Q_PROPERTY(QString weylSquared READ weylSquared NOTIFY probeChanged)
+    Q_PROPERTY(QString redshift READ redshift NOTIFY probeChanged)
+    Q_PROPERTY(bool probeValid READ probeValid NOTIFY probeChanged)
+
+    /// @brief Compute curvature scalars at a world position and update the readout.
+    Q_INVOKABLE void probeAt(double x, double y, double z);
+    /// @brief Reset the readout to its placeholder state.
+    Q_INVOKABLE void clearProbe();
+    /// @brief Provide the metric used for probe computations.
+    void setProbeMetric(std::shared_ptr<MetricTensor> metric);
+
+    QString kretschmann() const { return m_kretschmann; }
+    QString ricciScalar() const { return m_ricciScalar; }
+    QString weylSquared() const { return m_weylSquared; }
+    QString redshift() const { return m_redshift; }
+    bool probeValid() const { return m_probeValid; }
+
     // Exposed methods for QML
     Q_INVOKABLE void zoomIn();
     Q_INVOKABLE void zoomOut();
@@ -499,6 +521,7 @@ signals:
     void curvatureRendererChanged();
     void quantumRendererChanged();
     void camera4DAdapterChanged();
+    void probeChanged();
 
 public slots:
     void setShowGrid(bool show);
@@ -529,6 +552,10 @@ private:
     int m_frameCount;
     qint64 m_lastFrameTime;
 
+    // FPS averaging state (measured from the actual render rate in renderGL)
+    int m_fpsFrameCount = 0;
+    qint64 m_fpsWindowStart = 0;
+
     // Pointers to core renderers (non-owning)
     std::shared_ptr<CurvatureRenderer> m_curvatureRenderer;
     std::shared_ptr<QuantumGeometryRenderer> m_quantumRenderer;
@@ -541,6 +568,14 @@ private:
 
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
+
+    // Probe readout state (driven by probeAt)
+    std::shared_ptr<MetricTensor> m_probeMetric;
+    QString m_kretschmann = "—";
+    QString m_ricciScalar = "—";
+    QString m_weylSquared = "—";
+    QString m_redshift = "—";
+    bool m_probeValid = false;
 
     // Qt 6 RHI fallback: managed FBO and texture state
     QOpenGLFramebufferObject* m_fbo;

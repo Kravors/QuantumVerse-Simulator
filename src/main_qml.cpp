@@ -213,14 +213,15 @@ int main(int argc, char* argv[])
         std::cerr.flush();
 
         // Create the physics engine components
-        auto metric = std::make_shared<quantumverse::MetricTensor>();
+        double blackHoleMass = 10.0 * 1.989e30;  // 10 solar masses in kg
+        auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(blackHoleMass);
         auto curvatureRenderer = std::make_shared<quantumverse::CurvatureRenderer>(
             30, 100.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
         curvatureRenderer->setMetric(metric);
 
         // Create a Schwarzschild black hole singularity (M = 10 solar masses)
         // Position at origin for the central viewport focus
-        double blackHoleMass = 10.0 * 1.989e30;  // 10 solar masses in kg
+        // (blackHoleMass is defined above, where the metric is created)
         std::array<double, 3> bhPos = {0.0, 0.0, 0.0};
         auto singularity = std::make_shared<quantumverse::SingularityHandler>(
             quantumverse::SingularityType::SCHWARZSCHILD,
@@ -434,6 +435,7 @@ int main(int argc, char* argv[])
             quantumverse::QmlGlViewport* viewport = rootObject->findChild<quantumverse::QmlGlViewport*>();
             if (viewport) {
                 viewport->setCurvatureRendererDirect(curvatureRenderer);
+                viewport->setProbeMetric(metric);
                 viewport->setQuantumRendererDirect(quantumRenderer);
                 viewport->setUI4D(ui4d);
 

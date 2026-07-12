@@ -70,10 +70,12 @@ public:
     const DiscoveryInstrument* instrument(int index) const;
 
     // Run all active instruments
-    void runScan(const MetricTensor& metric, const Event4D& location);
+    void runScan(const MetricTensor& metric, const Event4D& location,
+                 const std::vector<Event4D>& trajectory = {});
 
     // Run a specific instrument
-    void runInstrument(int index, const MetricTensor& metric, const Event4D& location);
+    void runInstrument(int index, const MetricTensor& metric, const Event4D& location,
+                       const std::vector<Event4D>& trajectory = {});
 
     // Clear all findings
     void clearFindings();
@@ -124,6 +126,9 @@ private:
     std::shared_ptr<MetricTensor> m_metric;
     Event4D m_location;
     bool m_locationSet = false;
+
+    // Generate a sample trajectory (precessing orbit) for instrument scans.
+    std::vector<Event4D> generateScanTrajectory() const;
 };
 
 #else // QUANTUMVERSE_USE_QML not defined - plain C++ stub

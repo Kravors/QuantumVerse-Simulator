@@ -7,6 +7,7 @@
 // because Qt uses QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
 #include <QColor>
 #include <QDebug>
+#include <fstream>
 
 #include "scenegraphmodel.h"
 
@@ -49,15 +50,21 @@ QVariant SceneGraphModel::data(const QModelIndex& index, int role) const
     const auto& obj = objects[row];
     if (!obj) return QVariant();
 
+    static int s_dbg = 0;
+    if (s_dbg < 40) {
+        std::ofstream("model_debug.log", std::ios::app)
+            << "row=" << row << " name=[" << obj->name << "] type="
+            << objectTypeToString(obj->type).toStdString() << " id=[" << obj->id << "]\n";
+        ++s_dbg;
+    }
+
     switch (role) {
     case NameRole: {
         QString name = QString::fromStdString(obj->name);
-        qDebug() << "SceneGraphModel: row" << row << "NameRole returning:" << name << "obj->name:" << obj->name.c_str();
         return name;
     }
     case TypeRole: {
         QString type = objectTypeToString(obj->type);
-        qDebug() << "SceneGraphModel: row" << row << "TypeRole returning:" << type;
         return type;
     }
     case MassRole:
@@ -173,6 +180,22 @@ void SceneGraphModel::clearSelection()
     m_selectedObjectId.clear();
     emit selectedObjectIdChanged();
     emit dataChanged(index(0), index(rowCount() - 1), {IsSelectedRole});
+}
+
+QVariantMap SceneGraphModel::selectedObjectPosition() const
+{
+    QVariantMap empty;
+    if (!m_manager) return empty;
+
+    const auto& obj = m_manager->getSelectedObject();
+    if (!obj) return empty;
+
+    QVariantMap pos;
+    pos["t"] = obj->position.t;
+    pos["x"] = obj->position.x;
+    pos["y"] = obj->position.y;
+    pos["z"] = obj->position.z;
+    return pos;
 }
 
 void SceneGraphModel::refresh()

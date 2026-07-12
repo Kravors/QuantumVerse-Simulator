@@ -15,8 +15,13 @@ CurvatureCalculator::CurvatureCalculator(std::shared_ptr<MetricTensor> metric)
     if (!currentMetric_) {
         currentMetric_ = std::make_shared<MetricTensor>();
     }
+    // Default field resolves the metric at the requested event so that
+    // position-dependent metrics (e.g. SchwarzschildMetric) yield real
+    // curvature instead of a single constant copy.
     metricField_ = [this](const Event4D& evt) -> MetricTensor {
-        return *currentMetric_;
+        MetricTensor m;
+        m.g = currentMetric_->evaluate(evt);
+        return m;
     };
 }
 

@@ -104,9 +104,13 @@ public:
         safetyFactor(safety), maxIterations(maxIter),
         cacheValid(false) {
         currentMetric = std::make_shared<MetricTensor>();
-        // Default metric field: returns constant metric everywhere
-        metricField = [this](const Event4D&) -> MetricTensor {
-            return *currentMetric;
+        // Default metric field resolves the metric at the requested event so
+        // position-dependent metrics (e.g. SchwarzschildMetric) integrate real
+        // geodesics instead of a single constant copy.
+        metricField = [this](const Event4D& evt) -> MetricTensor {
+            MetricTensor m;
+            m.g = currentMetric->evaluate(evt);
+            return m;
         };
     }
 

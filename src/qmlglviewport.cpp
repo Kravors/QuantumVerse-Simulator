@@ -29,6 +29,7 @@
 #include "ui4d/Camera4DAdapter.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/MetricTensor.h"
+#include "physics/CurvatureCalculator.h"
 #include "utils/ThreadPool.h"
 
 #include <algorithm>
@@ -274,10 +275,6 @@ void QmlGlRenderer::render()
     // Clear the framebuffer
     glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    GLenum err = glad_glGetError();
-    if (err != GL_NO_ERROR) {
-        qWarning() << "QmlGlRenderer: OpenGL Error after clear:" << err;
-    }
     GL_CHECK();
 
     // Enable depth testing
@@ -306,7 +303,10 @@ void QmlGlRenderer::render()
     }
 
     // Render curvature visualization (delegates to CurvatureRenderer)
-    if (m_curvatureRenderer) {
+    // TEMP DIAGNOSTIC: disabled to confirm the "massive light-blue polygon"
+    // is the CurvatureRenderer 3D volume surface and not the grid. Re-enable
+    // after confirming the grid + axis gizmo become visible.
+    if (false && m_curvatureRenderer) {
         PERF_SCOPE("curvatureRender");
         m_curvatureRenderer->render(m_viewMatrix.constData(),
                                      m_projectionMatrix.constData());
@@ -714,10 +714,14 @@ void QmlGlRenderer::setupShaders()
         out vec4 outColor;
 
         void main() {
-            // Color based on curvature magnitude
-            float intensity = clamp(log2(abs(curvatureValue) + 1.0) * 0.3, 0.0, 1.0);
-            vec3 blueShift = mix(vec3(0.1, 0.2, 0.6), vec3(0.8, 0.1, 0.1), intensity);
-            outColor = vec4(blueShift, fragColor.a * 0.7);
+            // Color based on curvature magnitude. Base grid is a bright
+            // cyan-blue for visibility against the dark background; high
+            // curvature shifts the color toward hot red.
+            float intensity = clamp(log2(abs(curvatureValue) + 1.0) * 0.5, 0.0, 1.0);
+            vec3 base = vec3(0.3, 0.65, 1.0);
+            vec3 hot = vec3(1.0, 0.35, 0.2);
+            vec3 color = mix(base, hot, intensity);
+            outColor = vec4(color, 0.9);
         }
     )";
 
@@ -1011,8 +1015,10 @@ void QmlGlRenderer::renderAxisGizmo()
     ortho.ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
     m_overlayShader.setUniformValue("projectionMatrix", ortho);
 
+    // Core-profile contexts only guarantee an aliased line width of 1.0;
+    // requesting any other value raises GL_INVALID_VALUE. Clamp to 1.0.
     glBindVertexArray(m_axisVao);
-    glLineWidth(2.0f);
+    glLineWidth(1.0f);
     glDrawArrays(GL_LINES, 0, 6);
     glBindVertexArray(0);
 
@@ -1481,12 +1487,9 @@ QmlGlViewport::~QmlGlViewport()
 
 void QmlGlViewport::onWindowChanged(QQuickWindow* win)
 {
-    std::ofstream("viewport_window.log") << "onWindowChanged, win=" << win << std::endl;
-    qWarning() << "QmlGlViewport::onWindowChanged, win=" << win;
     if (win) {
         QObject::connect(win, &QQuickWindow::beforeRendering,
                 this, &QmlGlViewport::renderGL, Qt::DirectConnection);
-        qWarning() << "Connected to beforeRendering";
     }
 }
 
@@ -1658,6 +1661,55 @@ void QmlGlViewport::setCelestialBodyRendererDirect(std::shared_ptr<CelestialBody
     }
 }
 
+void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
+{
+    m_probeMetric = std::move(metric);
+}
+
+void QmlGlViewport::probeAt(double x, double y, double z)
+{
+    auto metric = m_probeMetric
+        ? m_probeMetric
+        : (m_curvatureRenderer ? m_curvatureRenderer->metric() : nullptr);
+    if (!metric) {
+        clearProbe();
+        return;
+    }
+
+    Event4D event(0.0, x, y, z);
+
+    // Prefer exact invariants when the metric supplies them (Schwarzschild);
+    // otherwise fall back to numerical differentiation.
+    auto scalars = metric->curvatureScalars(event);
+    if (scalars.valid) {
+        m_kretschmann = QString::number(scalars.kretschmann, 'e', 3);
+        m_ricciScalar = QString::number(scalars.ricciScalar, 'e', 3);
+        m_weylSquared = QString::number(scalars.weylSquared, 'e', 3);
+    } else {
+        CurvatureCalculator calculator(metric);
+        CurvatureResult result = calculator.computeAll(event);
+        m_kretschmann = QString::number(result.kretschmann, 'e', 3);
+        m_ricciScalar = QString::number(result.ricciScalar, 'e', 3);
+        m_weylSquared = QString::number(result.weylSquared, 'e', 3);
+    }
+
+    double gtt = metric->evaluate(event)[0][0];
+    m_redshift = (gtt < 0.0) ? QString::number(1.0 / std::sqrt(-gtt) - 1.0, 'e', 3) : QString("n/a");
+
+    m_probeValid = true;
+    emit probeChanged();
+}
+
+void QmlGlViewport::clearProbe()
+{
+    m_kretschmann = "—";
+    m_ricciScalar = "—";
+    m_weylSquared = "—";
+    m_redshift = "—";
+    m_probeValid = false;
+    emit probeChanged();
+}
+
 QObject* QmlGlViewport::camera4DAdapterObj() const
 {
     return m_camera4DAdapter.get();
@@ -1684,18 +1736,6 @@ void QmlGlViewport::updateSimulation(double deltaTime)
         m_renderer->updateTime(static_cast<float>(deltaTime));
     }
     emit simulationTimeChanged();
-
-    // Update frame rate
-    qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (m_lastFrameTime > 0) {
-        qint64 elapsed = now - m_lastFrameTime;
-        if (elapsed > 0) {
-            m_frameRate = 1000.0f / static_cast<float>(elapsed);
-            qWarning() << "FPS:" << m_frameRate << "elapsed:" << elapsed;
-            emit frameRateChanged();
-        }
-    }
-    m_lastFrameTime = now;
 
     update();
 }
@@ -1739,33 +1779,25 @@ void QmlGlViewport::handleWheel(float delta)
 
 void QmlGlViewport::renderGL()
 {
-    std::ofstream("viewport_render.log", std::ios::app) << "renderGL() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
-    qWarning() << ">>> renderGL() triggered";
     if (!m_renderer) {
-        qWarning() << ">>> renderGL() early return: no renderer";
         return;
     }
 
     if (!initializeGlad()) {
-        qWarning() << ">>> renderGL() early return: glad not initialized";
+        qWarning() << "QmlGlViewport: initializeGlad() FAILED - render aborted";
         return;
     }
 
-    if (QOpenGLContext::currentContext()) {
-        qWarning() << ">>> renderGL() openGLModuleType:" << QOpenGLContext::currentContext()->openGLModuleType();
-    }
-    qWarning() << ">>> renderGL() GL_RENDERER:" << reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
-
     int w = width() > 0 ? static_cast<int>(width()) : 1280;
     int h = height() > 0 ? static_cast<int>(height()) : 720;
-    qWarning() << ">>> renderGL() size:" << w << "x" << h;
+    bool fboJustAllocated = false;
     if (!m_fbo || m_fbo->width() != w || m_fbo->height() != h) {
-        qWarning() << ">>> renderGL() recreating FBO";
         delete m_fbo;
         m_fbo = nullptr;
         QOpenGLFramebufferObjectFormat format;
         format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
         m_fbo = new QOpenGLFramebufferObject(QSize(w, h), format);
+        fboJustAllocated = true;
         if (m_renderer) {
             const float fov = 45.0f;
             const float aspect = static_cast<float>(w) / h;
@@ -1776,8 +1808,18 @@ void QmlGlViewport::renderGL()
         }
     }
     if (!m_fbo) {
-        qWarning() << ">>> renderGL() early return: no FBO";
         return;
+    }
+
+    // updatePaintNode() runs during the scene-graph sync phase, which is BEFORE
+    // beforeRendering. On the first frame the FBO does not exist yet when
+    // updatePaintNode() is called, so it returns a null node and the FBO is
+    // never composited (permanent black viewport). Request a repaint whenever
+    // we (re)allocate the FBO so updatePaintNode() is recalled and builds the
+    // QSG texture node from the freshly created FBO texture.
+    if (fboJustAllocated) {
+        m_textureDirty = true;
+        update();
     }
 
     m_fbo->bind();
@@ -1787,22 +1829,46 @@ void QmlGlViewport::renderGL()
         qWarning() << "QmlGlViewport: Framebuffer not complete! Status:" << fboStatus;
     }
     GL_CHECK();
-    qWarning() << ">>> renderGL() calling m_renderer->render()";
     m_renderer->render();
-    qWarning() << ">>> renderGL() m_renderer->render() returned";
     m_fbo->release();
     QOpenGLFramebufferObject::bindDefault();
 
     m_textureDirty = true;
-    qWarning() << ">>> renderGL() complete";
+
+    // FPS is measured from the actual render rate, averaged over ~1 s
+    // windows, so the displayed value is stable and not jittery.
+    ++m_fpsFrameCount;
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (m_fpsWindowStart == 0) {
+        m_fpsWindowStart = now;
+    }
+    const qint64 elapsed = now - m_fpsWindowStart;
+    if (elapsed >= 1000) {
+        m_frameRate = static_cast<float>(m_fpsFrameCount) * 1000.0f / static_cast<float>(elapsed);
+        m_fpsWindowStart = now;
+        m_fpsFrameCount = 0;
+        emit frameRateChanged();
+    }
 }
 
 QSGNode *QmlGlViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *)
 {
     QSGSimpleTextureNode *node = static_cast<QSGSimpleTextureNode*>(oldNode);
 
-    if (m_fbo && window()) {
+    if (!window()) {
+        return node;
+    }
+    if (!m_fbo) {
+        return node;
+    }
+
+    {
         quint64 texId = static_cast<quint64>(m_fbo->texture());
+        if (texId == 0) {
+            qWarning() << "QmlGlViewport: FBO has no color attachment (texture id 0)";
+            return node;
+        }
+
         if (!node) {
             node = new QSGSimpleTextureNode();
             QSGTexture *texture = QNativeInterface::QSGOpenGLTexture::fromNative(

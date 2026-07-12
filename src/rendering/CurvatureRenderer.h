@@ -236,6 +236,9 @@ public:
     // Get grid size
     float getSize() const;
 
+    /// @brief Current metric used for curvature/deformation.
+    std::shared_ptr<MetricTensor> metric() const { return currentMetric; }
+
     // Render curvature visualization
     void render(const float* viewMatrix, const float* projectionMatrix);
 
