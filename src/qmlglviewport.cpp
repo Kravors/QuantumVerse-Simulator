@@ -217,7 +217,9 @@ QmlGlRenderer::~QmlGlRenderer()
 
 void QmlGlRenderer::render()
 {
+#if PERF_TRACE
     std::ofstream("renderer_render.log", std::ios::app) << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
+#endif
     static int64_t lastTime = 0;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
     if (lastTime > 0) {

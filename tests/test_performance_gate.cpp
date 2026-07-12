@@ -97,9 +97,18 @@ int main() {
         baselineBuilt = probe.is_open();
     }
     if (baselineBuilt) {
+        // P3-1 contract: the per-frame renderer_render.log must NOT be
+        // created when PERF_TRACE is off (the default / gate build).
+        std::remove("renderer_render.log");
         const std::string invoke = std::string("\"") + baselineName + "\"";
         const int ret = std::system(invoke.c_str());
         check(ret == 0, "baseline executable invoked and returned exit 0");
+        bool logExists = false;
+        {
+            std::ifstream log("renderer_render.log");
+            logExists = log.is_open();
+        }
+        check(!logExists, "renderer_render.log not created when PERF_TRACE is off");
     } else {
         std::cout << "  [SKIP] baseline binary not present in working directory" << std::endl;
     }
