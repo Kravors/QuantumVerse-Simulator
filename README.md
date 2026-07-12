@@ -31,17 +31,17 @@
   # Create build directory
   mkdir build && cd build
   
-  # Configure (ImGui version - recommended)
+  # Configure (Qt6/QML version - recommended)
   cmake .. -DCMAKE_BUILD_TYPE=Release \
-             -DQUANTUMVERSE_USE_IMGUI=ON \
+             -DQUANTUMVERSE_USE_QT=ON \
              -DQUANTUMVERSE_BUILD_TESTS=ON
   
   # Build
   cmake --build . --config Release --parallel $(nproc)
   
   # Run
-  ./quantumverse_imgui     # Linux/macOS (ImGui version)
-  quantumverse_imgui.exe   # Windows (ImGui version)
+  ./quantumverse_qml       # Linux/macOS (Qt6/QML version)
+  quantumverse_qml.exe     # Windows (Qt6/QML version)
   
   # Run tests
   ctest --output-on-failure
@@ -56,12 +56,12 @@
   | **GPU** | OpenGL 4.5 compatible | NVIDIA RTX 3070+ |
   | **RAM** | 8 GB | 16 GB+ |
   | **Disk** | 5 GB | 10 GB+ |
-  | **Qt6** | Optional (deprecated) | N/A |
+  | **Qt6** | 6.11.1 (required for the QML UI) | Qt 6.11.1 |
   | **GSL** | Optional (for Wigner symbols) | GSL 2.7+ |
   | **Python** | Optional (for ML training) | Python 3.10+ |
   | **CUDA** | Optional (future GPU acceleration) | CUDA 11+ |
   
-  **Note**: The ImGui version is now the recommended build. It requires no Qt installation and produces a single self-contained executable.
+  **Note**: The Qt6/QML build (`quantumverse_qml`) is the supported build. The earlier Dear ImGui + GLFW UI was removed; the project is now Qt-only.
   
   ### Directory Structure
   
@@ -406,18 +406,16 @@
   
   ---
   
-  *QuantumVerse v0.1.1 | Last Updated: 2026-06-15 | MIT License*
-  
-  ### ImGui Migration (2026-05-29)
-  
-  The project has been successfully migrated from Qt to Dear ImGui + GLFW. See `MIGRATION_SUMMARY.md` for details.
-  
-  **Key changes:**
-  - Single executable with no DLL dependencies
-  - ImGui version is now the default/recommended build
-  - All 51 tests pass with 100% success rate
-  - Complete solar system with 8 planets and major moons implemented
-  - Working measurement tools (gravity, equivalence principle, GR validation)
+*QuantumVerse v3.6.0 | Last Updated: 2026-07-12 | MIT License*
+
+  ### Build & UI Status (2026-07-12)
+
+  The project is **Qt-only** (Qt 6.11 + QML). The earlier Dear ImGui + GLFW UI was removed; the supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
+
+  **Current status:**
+  - Qt6/QML UI (`quantumverse_qml`) is the supported build
+  - All 25 tests pass via `ctest --output-on-failure`
+  - Multi-messenger pipeline (LIGO, IceCube) integrated into the FindingsModel
+  - 10 discovery instruments with TDD coverage
   - VR support via OpenXR integration (stub mode - full VR requires OpenXR SDK)
   - Holographic duality for quantum gravity research
-  - ZIP package generated (11.3 MB) for distribution
