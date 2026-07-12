@@ -1,7 +1,7 @@
 # QuantumVerse Simulator - CMakeLists.txt
 # Production-ready 4D spacetime cognition laboratory
 cmake_minimum_required(VERSION 3.20)
-project(QuantumVerse LANGUAGES C CXX VERSION 3.5.0)
+project(QuantumVerse LANGUAGES C CXX VERSION 3.6.0)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
@@ -440,7 +440,7 @@ endif()
 
 # CPack configuration for packaging
 set(CPACK_PACKAGE_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "3.5.0")
+set(CPACK_PACKAGE_VERSION "3.6.0")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AI-accelerated 4D spacetime simulator")
 set(CPACK_PACKAGE_VENDOR "Humanity")
 
