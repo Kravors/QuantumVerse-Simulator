@@ -250,9 +250,13 @@ void QmlGlRenderer::render()
         initialized = true;
     }
 
-    // Initialize celestial body renderer on first render (GL context is now confirmed current)
-    // This is done here instead of in synchronize() because synchronize() may be called
-    // before the GL context is available on the render thread
+    // One-time GL initialization of the celestial body renderer.
+    // Kept in render() (not initializeGL()) because m_celestialBodyRenderer
+    // is set by synchronize() which may not have run on the very first
+    // render() call; placing it in initializeGL() (also called from the
+    // top of render) would evaluate the guard while the pointer is still
+    // null and then never retry. The isInitialized() guard makes this
+    // run exactly once. Done after the ctx check so a GL context exists.
     if (m_celestialBodyRenderer && !m_celestialBodyRenderer->isInitialized()) {
         try {
             m_celestialBodyRenderer->initializeGL();
@@ -863,16 +867,17 @@ void QmlGlRenderer::setupGridGeometry()
                  GL_STATIC_DRAW);
 
     // Position (3 floats)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // Normal (3 floats)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     // Color (4 floats)
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    // Curvature (1 float)
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)(10 * sizeof(float)));
+    // Curvature (1 float) — vertex is 11 floats (pos3+normal3+color4+curvature1),
+    // so the stride must be 11, not 10, or the attribute is misaligned.
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(10 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
     glBindVertexArray(0);
