@@ -36,8 +36,12 @@ inline bool parseLog(const std::string& log, double& avg, double& max) {
         R"(Average frame time:\s+([^\s,]+)\s*ms,\s+Max:\s+([^\s,]+)\s*ms)");
     std::smatch match;
     if (std::regex_search(log, match, avg_regex)) {
-        avg = std::stod(match[1]);
-        max = std::stod(match[2]);
+        try {
+            avg = std::stod(match[1]);
+            max = std::stod(match[2]);
+        } catch (...) {
+            return false;
+        }
         return true;
     }
     return false;

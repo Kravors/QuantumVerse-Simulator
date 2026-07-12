@@ -59,6 +59,33 @@ namespace quantumverse {
     } \
 } while(0)
 
+// Lightweight per-function timing instrumentation (disabled by default).
+// Build with -DPERF_TRACE=1 to print microsecond costs of each render
+// stage via qDebug(). Does not affect the release performance gate.
+#ifndef PERF_TRACE
+#define PERF_TRACE 0
+#endif
+
+#if PERF_TRACE
+#include <chrono>
+#include <cstdio>
+namespace {
+struct PerfScope {
+    explicit PerfScope(const char* name) : m_name(name), m_start(std::chrono::steady_clock::now()) {}
+    ~PerfScope() {
+        using namespace std::chrono;
+        const auto us = duration_cast<microseconds>(steady_clock::now() - m_start).count();
+        std::fprintf(stderr, "[PERF] %s: %lld us\n", m_name, static_cast<long long>(us));
+    }
+    const char* m_name;
+    std::chrono::steady_clock::time_point m_start;
+};
+}
+#define PERF_SCOPE(name) PerfScope _perfScope ## __LINE__(name)
+#else
+#define PERF_SCOPE(name) ((void)0)
+#endif
+
 static bool initializeGlad()
 {
     static bool initialized = false;
@@ -264,23 +291,30 @@ void QmlGlRenderer::render()
 
     // Render scene components
     if (m_showGrid) {
+        PERF_SCOPE("renderGrid");
         renderGrid();
     }
 
-    renderAxisGizmo();
+    {
+        PERF_SCOPE("renderAxisGizmo");
+        renderAxisGizmo();
+    }
 
     if (m_showGeodesics && m_curvatureRenderer) {
+        PERF_SCOPE("renderGeodesics");
         renderGeodesics();
     }
 
     // Render curvature visualization (delegates to CurvatureRenderer)
     if (m_curvatureRenderer) {
+        PERF_SCOPE("curvatureRender");
         m_curvatureRenderer->render(m_viewMatrix.constData(),
                                      m_projectionMatrix.constData());
     }
 
     // Render celestial bodies (only if initialized)
     if (m_celestialBodyRenderer) {
+        PERF_SCOPE("celestialRender");
         try {
             if (m_celestialBodyRenderer->isInitialized()) {
                 m_celestialBodyRenderer->render(m_viewMatrix.constData(),
@@ -294,11 +328,18 @@ void QmlGlRenderer::render()
     }
 
     if (m_showQuantumGeometry && m_quantumRenderer) {
+        PERF_SCOPE("renderQuantumGeometry");
         renderQuantumGeometry();
     }
 
-    renderOverlay();
-    renderProfilingOverlay();
+    {
+        PERF_SCOPE("renderOverlay");
+        renderOverlay();
+    }
+    {
+        PERF_SCOPE("renderProfilingOverlay");
+        renderProfilingOverlay();
+    }
 
     // Update time for animation
     m_time += m_frameTime;

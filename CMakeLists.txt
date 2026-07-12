@@ -144,6 +144,13 @@ if(QUANTUMVERSE_USE_QT)
         AUTOUIC ON
     )
 
+    # Optional per-stage render timers (QmlGlRenderer). Off by default so the
+    # release performance gate is unaffected; enable for profiling builds.
+    option(QUANTUMVERSE_PERF_TRACE "Enable QmlGlRenderer per-stage timers" OFF)
+    if(QUANTUMVERSE_PERF_TRACE)
+        target_compile_definitions(quantumverse_qml PRIVATE PERF_TRACE=1)
+    endif()
+
     if(QUANTUMVERSE_BUILD_TESTS)
         add_executable(qml_performance_baseline tests/benchmark/qml_performance_baseline.cpp)
         target_include_directories(qml_performance_baseline PRIVATE ${CMAKE_SOURCE_DIR}/tests/benchmark)
@@ -165,6 +172,9 @@ if(QUANTUMVERSE_USE_QT)
         # logic and (when built) that the baseline executable returns exit 0.
         add_executable(test_performance_gate tests/test_performance_gate.cpp)
         target_include_directories(test_performance_gate PRIVATE ${CMAKE_SOURCE_DIR}/tests/benchmark)
+        if(MSVC)
+            target_compile_options(test_performance_gate PRIVATE /EHsc)
+        endif()
         set_target_properties(test_performance_gate PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:quantumverse_qml>
         )
