@@ -279,9 +279,12 @@ ApplicationWindow {
     // =========================================================================
     RowLayout {
         id: mainContent
+        // In an ApplicationWindow, declared children are parented to the
+        // contentItem, which already excludes the header/footer. Filling
+        // `parent` therefore reserves space for the footer correctly.
+        // (`parent.contentItem` was undefined and collapsed the layout,
+        // letting the panes overpaint the footer.)
         anchors.fill: parent
-        Layout.fillWidth: true
-        Layout.fillHeight: true
         spacing: 2
 
         // --- LEFT SIDEBAR: Object Browser ---
@@ -328,6 +331,16 @@ ApplicationWindow {
                             onClicked: {
                                 if (sceneGraphModel) {
                                     sceneGraphModel.selectObject(model.objectId)
+                                }
+                                // Focus the camera on the clicked object.
+                                var pos = model && model.position ? model.position
+                                    : (sceneGraphModel ? sceneGraphModel.selectedObjectPosition() : null)
+                                if (pos && pos.x !== undefined &&
+                                    viewportItem && viewportItem.camera4DAdapter) {
+                                    viewportItem.camera4DAdapter.focusOn(
+                                        Qt.vector3d(pos.x, pos.y, pos.z))
+                                } else {
+                                    console.warn("focusOn skipped: camera4DAdapter or position missing")
                                 }
                             }
 

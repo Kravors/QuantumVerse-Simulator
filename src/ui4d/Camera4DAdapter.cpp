@@ -41,47 +41,30 @@ Camera4DAdapter::~Camera4DAdapter() = default;
 
 QMatrix4x4 Camera4DAdapter::viewMatrix() const
 {
-    // Build a 4D view matrix using the camera's position and orientation
-    // Then project to 3D by extracting the spatial components
+    // Build a standard orbit (look-at) view matrix. The eye orbits the
+    // target (tx,ty,tz) at `distance`, parameterised by azimuth/elevation.
+    //
+    // Previously this hand-rolled the matrix and placed only the target in
+    // the translation row, ignoring `distance` entirely. That left the eye
+    // sitting exactly on the target (the origin by default), edge-on to the
+    // Y=0 grid, so the whole scene rendered off-screen (black viewport).
+    const double ce = std::cos(m_state.elevation);
+    const double se = std::sin(m_state.elevation);
+    const double ca = std::cos(m_state.azimuth);
+    const double sa = std::sin(m_state.azimuth);
 
-    // Compute view direction and orthonormal basis in 4D
-    double forward[4] = {
-        m_state.tx - m_state.distance * std::cos(m_state.elevation) * std::sin(m_state.azimuth),
-        m_state.ty - m_state.distance * std::sin(m_state.elevation),
-        m_state.tz - m_state.distance * std::cos(m_state.elevation) * std::cos(m_state.azimuth),
-        0.0  // Temporal component for spatial camera
-    };
+    const QVector3D target(
+        static_cast<float>(m_state.tx),
+        static_cast<float>(m_state.ty),
+        static_cast<float>(m_state.tz));
 
-    double len = std::sqrt(forward[0]*forward[0] + forward[1]*forward[1] +
-                           forward[2]*forward[2] + forward[3]*forward[3]);
-    if (len > 1e-10) {
-        for (int i = 0; i < 4; i++) forward[i] /= len;
-    }
+    const QVector3D eye(
+        static_cast<float>(m_state.tx + m_state.distance * ce * sa),
+        static_cast<float>(m_state.ty + m_state.distance * se),
+        static_cast<float>(m_state.tz + m_state.distance * ce * ca));
 
-    // Build QMatrix4x4 from 4D camera state
-    // Rows 0-2 are spatial axes, row 3 is the translation
     QMatrix4x4 view;
-
-    // Compute spatial right and up vectors from azimuth/elevation
-    double ce = std::cos(m_state.elevation);
-    double se = std::sin(m_state.elevation);
-    double ca = std::cos(m_state.azimuth);
-    double sa = std::sin(m_state.azimuth);
-
-    // Right vector (spatial x-axis in camera space)
-    view.setRow(0, QVector4D(ce * ca, -sa, ce * sa, 0.0f));
-    // Up vector (spatial y-axis in camera space)
-    view.setRow(1, QVector4D(se * ca, 0.0, se * sa, 0.0f));
-    // Forward vector (looking direction)
-    view.setRow(2, QVector4D(-forward[0], -forward[1], -forward[2], 0.0f));
-    // Translation
-    view.setRow(3, QVector4D(
-        static_cast<float>(-m_state.tx),
-        static_cast<float>(-m_state.ty),
-        static_cast<float>(-m_state.tz),
-        1.0f
-    ));
-
+    view.lookAt(eye, target, QVector3D(0.0f, 1.0f, 0.0f));
     return view;
 }
 
