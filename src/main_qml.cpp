@@ -52,6 +52,9 @@
 #include "quantumgravity/CDTEngine.h"
 #include "discovery/DiscoveryPanelManager.h"
 #include "discovery/FindingsModel.h"
+#include "data/LIGOAdapter.h"
+#include "data/IceCubeAdapter.h"
+#include "data/AlertToFinding.h"
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
 #include "discovery/GalacticRotationCurveScanner.h"
 #include "discovery/FineStructureConstantDriftObservatory.h"
@@ -342,6 +345,26 @@ int main(int argc, char* argv[])
             });
         findingsModel->setFindings(discoveryPanelManager->findings());
         rootContext->setContextProperty("findingsModel", findingsModel);
+
+        // Live multi-messenger alerts: LIGO/IceCube alerts flow into the same
+        // FindingsModel so they appear in the QML Anomaly Feed alongside
+        // discovery instrument findings.
+        auto ligoAdapter = std::make_shared<quantumverse::LIGOAdapter>();
+        auto iceCubeAdapter = std::make_shared<quantumverse::IceCubeAdapter>();
+        ligoAdapter->setCallback([findingsModel, ligoAdapter](const quantumverse::GravitationalWaveAlert& alert) {
+            (void)ligoAdapter;
+            findingsModel->addFinding(quantumverse::toInstrumentFinding(alert));
+        });
+        iceCubeAdapter->setCallback([findingsModel, iceCubeAdapter](const quantumverse::NeutrinoAlert& alert) {
+            (void)iceCubeAdapter;
+            findingsModel->addFinding(quantumverse::toInstrumentFinding(alert));
+        });
+        ligoAdapter->start();
+        iceCubeAdapter->start();
+        rootContext->setContextProperty("ligoAdapter",
+            QVariant::fromValue(ligoAdapter.get()));
+        rootContext->setContextProperty("iceCubeAdapter",
+            QVariant::fromValue(iceCubeAdapter.get()));
         rootContext->setContextProperty("planckContainer",
             QVariant::fromValue(planckContainer));
 

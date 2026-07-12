@@ -72,6 +72,8 @@ if(QUANTUMVERSE_USE_QT)
         src/ui4d/DiscoveryProbe.cpp
         src/discovery/DiscoveryPanelManager.cpp
         src/discovery/FindingsModel.cpp
+        src/data/LIGOAdapter.cpp
+        src/data/IceCubeAdapter.cpp
         src/discovery/DiscoveryEngine.cpp
         src/discovery/TheoryManager.cpp
         src/rendering/CurvatureRenderer.cpp
@@ -160,6 +162,21 @@ if(QUANTUMVERSE_USE_QT)
         )
         target_link_libraries(test_findings_model PRIVATE Qt6::Core dilaton)
         add_test(NAME FindingsModelTest COMMAND test_findings_model)
+
+        # Multi-messenger alert wiring test (LIGO/IceCube -> FindingsModel)
+        add_executable(test_multimessenger_ui
+            tests/test_multimessenger_ui.cpp
+            src/discovery/FindingsModel.cpp
+            src/data/LIGOAdapter.cpp
+            src/data/IceCubeAdapter.cpp
+        )
+        set_target_properties(test_multimessenger_ui PROPERTIES AUTOMOC ON)
+        target_include_directories(test_multimessenger_ui PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        target_link_libraries(test_multimessenger_ui PRIVATE Qt6::Core dilaton)
+        add_test(NAME MultiMessengerUITest COMMAND test_multimessenger_ui)
     endif()
 endif()
 
