@@ -71,6 +71,7 @@ if(QUANTUMVERSE_USE_QT)
         src/ui4d/CausalGraph.cpp
         src/ui4d/DiscoveryProbe.cpp
         src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/FindingsModel.cpp
         src/discovery/DiscoveryEngine.cpp
         src/discovery/TheoryManager.cpp
         src/rendering/CurvatureRenderer.cpp
@@ -146,6 +147,19 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
         )
         add_dependencies(qml_performance_baseline quantumverse_qml)
+
+        # FindingsModel unit test (requires Qt for QAbstractListModel)
+        add_executable(test_findings_model
+            tests/test_findings_model.cpp
+            src/discovery/FindingsModel.cpp
+        )
+        set_target_properties(test_findings_model PROPERTIES AUTOMOC ON)
+        target_include_directories(test_findings_model PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        target_link_libraries(test_findings_model PRIVATE Qt6::Core dilaton)
+        add_test(NAME FindingsModelTest COMMAND test_findings_model)
     endif()
 endif()
 

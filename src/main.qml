@@ -763,7 +763,7 @@ ApplicationWindow {
 
                             ListView {
                                 id: anomalyList
-                                model: discoveryPanelManager ? discoveryPanelManager.findingsList : null
+                                model: findingsModel
                                 delegate: ItemDelegate {
                                     width: parent ? parent.width : 0
                                     padding: 4

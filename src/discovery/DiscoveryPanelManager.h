@@ -90,6 +90,9 @@ public:
     QVariantList findingsList() const;
     QVariantMap activeInstrumentInfo() const;
 
+    /** @brief Direct access to the underlying findings (for FindingsModel). */
+    const std::vector<InstrumentFinding>& findings() const { return m_allFindings; }
+
 public slots:
     void setActiveInstrumentIndex(int index);
     void startScan();
@@ -107,6 +110,7 @@ signals:
     void scanRunningChanged();
     void scanProgressChanged();
     void findingsListChanged();
+    void findingsChanged();
     void activeInstrumentInfoChanged();
     void newFindingDiscovered(const QString& instrumentName, const QString& description, double confidence);
     void scanComplete();

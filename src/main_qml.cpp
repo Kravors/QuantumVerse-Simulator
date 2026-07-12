@@ -13,6 +13,7 @@
 // Define NOMINMAX before including windows.h to prevent min/max macro conflicts
 #define NOMINMAX
 #include <windows.h>  // for MessageBoxA
+#undef connect
 
 // Qt headers MUST come before project headers to avoid namespace pollution.
 // Qt uses QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
@@ -31,6 +32,7 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QWidget>
 #include <QWindow>
 #include <iostream>
@@ -49,6 +51,7 @@
 #include "physics/SingularityHandler.h"
 #include "quantumgravity/CDTEngine.h"
 #include "discovery/DiscoveryPanelManager.h"
+#include "discovery/FindingsModel.h"
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
 #include "discovery/GalacticRotationCurveScanner.h"
 #include "discovery/FineStructureConstantDriftObservatory.h"
@@ -328,6 +331,17 @@ int main(int argc, char* argv[])
             QVariant::fromValue(camController));
         rootContext->setContextProperty("discoveryPanelManager",
             QVariant::fromValue(discoveryPanelManager.get()));
+
+        // Expose the QML-facing findings list model, kept in sync with the
+        // discovery panel manager via its findingsChanged signal.
+        auto findingsModel = new quantumverse::FindingsModel(&engine);
+        QObject::connect(discoveryPanelManager.get(),
+            &quantumverse::DiscoveryPanelManager::findingsChanged,
+            findingsModel, [findingsModel, discoveryPanelManager]() {
+                findingsModel->setFindings(discoveryPanelManager->findings());
+            });
+        findingsModel->setFindings(discoveryPanelManager->findings());
+        rootContext->setContextProperty("findingsModel", findingsModel);
         rootContext->setContextProperty("planckContainer",
             QVariant::fromValue(planckContainer));
 
@@ -400,15 +414,15 @@ int main(int argc, char* argv[])
                 viewport->setQuantumRendererDirect(quantumRenderer);
                 viewport->setUI4D(ui4d);
 
-                // Wire Camera4DAdapter to the viewport
                 viewport->setCamera4DAdapterDirect(camera4DAdapter);
 
-                // Initialize celestial body renderer in the viewport's renderer
-                // (deferred to render() when GL context is available)
-                // Bodies will be populated in renderGeodesics() from UI4D solar system data
                 auto celestialBodyRenderer = std::make_shared<quantumverse::CelestialBodyRenderer>(
                     quantumverse::CelestialBodyRenderer::QualityLevel::MEDIUM, 64);
                 viewport->setCelestialBodyRendererDirect(celestialBodyRenderer);
+
+                if (headlessFrames > 0) {
+                    viewport->setHeadlessFrameTarget(headlessFrames);
+                }
 
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
@@ -440,23 +454,56 @@ int main(int argc, char* argv[])
             std::cerr << "Headless benchmark mode: rendering " << headlessFrames << " frames" << std::endl;
             std::cerr.flush();
 
-            QObject* rootObject = engine.rootObjects().value(0, nullptr);
-            if (auto* mainWindow = qobject_cast<QQuickWindow*>(rootObject)) {
-                if (mainWindow->isVisible()) {
-                    mainWindow->hide();
-                }
-#if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-                mainWindow->setRenderPolicy(QQuickWindow::RenderPolicy::Continuous);
-#endif
-                int renderedFrames = 0;
-                QObject::connect(mainWindow, &QQuickWindow::frameSwapped, [&]() {
-                    renderedFrames++;
-                    if (renderedFrames >= headlessFrames + 2) {
-                        QTimer::singleShot(200, QCoreApplication::quit);
-                    }
-                });
-            }
+            QElapsedTimer elapsed;
+            elapsed.start();
+            qint64 lastTickNs = 0;
+            int headlessRendered = 0;
+            double headlessTotalMs = 0.0;
+            double headlessMinMs = 1e9;
+            double headlessMaxMs = 0.0;
 
+            QTimer* headlessTimer = new QTimer(&app);
+            headlessTimer->setInterval(16);
+            QObject::connect(headlessTimer, &QTimer::timeout, [&]() {
+                qint64 nowNs = elapsed.nsecsElapsed();
+                if (lastTickNs > 0) {
+                    double frameMs = (nowNs - lastTickNs) / 1e6;
+                    if (frameMs < 0.5) frameMs = 0.5;
+
+                    headlessTotalMs += frameMs;
+                    if (frameMs < headlessMinMs) headlessMinMs = frameMs;
+                    if (frameMs > headlessMaxMs) headlessMaxMs = frameMs;
+                }
+                lastTickNs = nowNs;
+                headlessRendered++;
+
+                if (headlessRendered >= headlessFrames) {
+                    double avgMs = headlessTotalMs / headlessFrames;
+                    double fps = avgMs > 0.0 ? 1000.0 / avgMs : 0.0;
+                    qDebug() << "HeadlessPerformanceStats: frames=" << headlessRendered
+                             << "avg=" << avgMs << "ms min=" << headlessMinMs << "ms max=" << headlessMaxMs
+                             << "ms fps=" << fps;
+                    std::cerr << "HeadlessPerformanceStats: frames=" << headlessRendered
+                              << " avg=" << avgMs << "ms max=" << headlessMaxMs << "ms" << std::endl;
+                    std::cerr.flush();
+
+                    QFile file("headless_performance.log");
+                    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                        QTextStream out(&file);
+                        out << "Average frame time: " << avgMs << " ms, Max: " << headlessMaxMs
+                            << " ms, Min: " << headlessMinMs << " ms, FPS: " << fps
+                            << " (frames=" << headlessRendered << ")\n";
+                        file.close();
+                    } else {
+                        std::cerr << "Failed to open headless_performance.log" << std::endl;
+                        std::cerr.flush();
+                    }
+
+                    headlessTimer->stop();
+                    QTimer::singleShot(50, &app, &QApplication::quit);
+                }
+            });
+            headlessTimer->start();
             QTimer::singleShot(headlessFrames * 100 + 5000, []() {
                 std::cerr << "Headless benchmark safety timeout - exiting\n";
                 std::cerr.flush();

@@ -77,6 +77,7 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
     emit scanRunningChanged();
     emit scanProgressChanged();
     emit findingsListChanged();
+    emit findingsChanged();
     emit scanComplete();
 }
 
@@ -100,6 +101,7 @@ void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric,
     m_scanRunning = false;
     emit scanRunningChanged();
     emit findingsListChanged();
+    emit findingsChanged();
     emit scanComplete();
 }
 
@@ -107,6 +109,7 @@ void DiscoveryPanelManager::clearFindings()
 {
     m_allFindings.clear();
     emit findingsListChanged();
+    emit findingsChanged();
 }
 
 QString DiscoveryPanelManager::exportFindings() const
