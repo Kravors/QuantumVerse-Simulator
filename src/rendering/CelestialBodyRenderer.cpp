@@ -20,6 +20,8 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
+#include <QDebug>
 
 namespace quantumverse {
 
@@ -508,21 +510,21 @@ int CelestialBodyRenderer::addBody(const CelestialBodyInstance& body)
     BodyData data;
     data.instance = body;
 
-    // Compute model matrix
-    float scale = static_cast<float>(body.radius);
+    // The vertex shader already applies aRadius to aPos, so the model matrix
+    // must be translation-only (unit scale). Baking radius into the scale here
+    // too would apply it twice (radius^2), shrinking bodies to invisibility.
     float* m = data.modelMatrix;
-    // Identity with scale and translation
     std::memset(m, 0, 16 * sizeof(float));
-    m[0] = scale;  m[5] = scale;  m[10] = scale;  m[15] = 1.0f;
+    m[0] = 1.0f;  m[5] = 1.0f;  m[10] = 1.0f;  m[15] = 1.0f;
     m[12] = body.position[0];
     m[13] = body.position[1];
     m[14] = body.position[2];
 
-    // Inverse transpose (for normals, assuming uniform scale = identity)
+    // Inverse transpose (uniform scale = 1 -> identity)
     std::memset(data.modelMatrixIT, 0, 9 * sizeof(float));
-    data.modelMatrixIT[0] = 1.0f / scale;
-    data.modelMatrixIT[4] = 1.0f / scale;
-    data.modelMatrixIT[8] = 1.0f / scale;
+    data.modelMatrixIT[0] = 1.0f;
+    data.modelMatrixIT[4] = 1.0f;
+    data.modelMatrixIT[8] = 1.0f;
 
     m_bodyIndexMap[body.objectId] = m_bodies.size();
     m_bodies.push_back(data);
@@ -559,19 +561,18 @@ bool CelestialBodyRenderer::updateBody(const std::string& objectId,
     size_t idx = it->second;
     m_bodies[idx].instance = body;
 
-    // Update model matrix
-    float scale = static_cast<float>(body.radius);
+    // Update model matrix (translation only; shader applies aRadius)
     float* m = m_bodies[idx].modelMatrix;
     std::memset(m, 0, 16 * sizeof(float));
-    m[0] = scale; m[5] = scale; m[10] = scale; m[15] = 1.0f;
+    m[0] = 1.0f; m[5] = 1.0f; m[10] = 1.0f; m[15] = 1.0f;
     m[12] = body.position[0];
     m[13] = body.position[1];
     m[14] = body.position[2];
 
     std::memset(m_bodies[idx].modelMatrixIT, 0, 9 * sizeof(float));
-    m_bodies[idx].modelMatrixIT[0] = 1.0f / scale;
-    m_bodies[idx].modelMatrixIT[4] = 1.0f / scale;
-    m_bodies[idx].modelMatrixIT[8] = 1.0f / scale;
+    m_bodies[idx].modelMatrixIT[0] = 1.0f;
+    m_bodies[idx].modelMatrixIT[4] = 1.0f;
+    m_bodies[idx].modelMatrixIT[8] = 1.0f;
 
     m_buffersDirty = true;
     return true;
@@ -717,6 +718,7 @@ void CelestialBodyRenderer::updateBodyBuffers()
 
 void CelestialBodyRenderer::render(const float* viewMatrix, const float* projectionMatrix)
 {
+    qWarning("[DIAG-CelestialRender] render() called, body count = %zu", m_bodies.size());
     if (!m_initialized || m_bodies.empty()) return;
 
     updateBodyBuffers();
@@ -812,20 +814,20 @@ void CelestialBodyRenderer::renderBody(const CelestialBodyInstance& body,
     float instanceData[33];
     std::memset(instanceData, 0, 33 * sizeof(float));
 
-    float scale = static_cast<float>(body.radius);
-    // Model matrix
-    instanceData[0] = scale;
-    instanceData[5] = scale;
-    instanceData[10] = scale;
+    float scale = static_cast<float>(body.radius);  // radius consumed by shader (aRadius)
+    // Model matrix: translation only (shader applies aRadius), so unit scale
+    instanceData[0] = 1.0f;
+    instanceData[5] = 1.0f;
+    instanceData[10] = 1.0f;
     instanceData[15] = 1.0f;
     instanceData[12] = body.position[0];
     instanceData[13] = body.position[1];
     instanceData[14] = body.position[2];
 
-    // Inverse-transpose (uniform scale = identity * 1/scale)
-    instanceData[16] = 1.0f / scale;
-    instanceData[20] = 1.0f / scale;
-    instanceData[24] = 1.0f / scale;
+    // Inverse-transpose (uniform scale = 1 -> identity)
+    instanceData[16] = 1.0f;
+    instanceData[20] = 1.0f;
+    instanceData[24] = 1.0f;
 
     // Color
     instanceData[25] = body.color[0];

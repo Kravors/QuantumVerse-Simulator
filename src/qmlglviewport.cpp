@@ -81,6 +81,29 @@ struct PerfScope {
 #define PERF_SCOPE(name) ((void)0)
 #endif
 
+// Check every element of a 4x4 matrix is finite. A non-finite (NaN/Inf)
+// view or projection matrix makes every perspective-drawn primitive vanish
+// (black viewport) while the orthographic axis gizmo survives.
+static bool matrixIsFinite(const QMatrix4x4& m)
+{
+    const float* d = m.constData();
+    for (int i = 0; i < 16; ++i) {
+        if (!std::isfinite(d[i])) return false;
+    }
+    return true;
+}
+
+// [DIAG] Mirror diagnostic lines to a file so they can be captured reliably
+// regardless of how the GUI process' console is (or isn't) attached.
+static void diagLog(const QString& msg)
+{
+    static std::ofstream s_file("viewport_diag.log", std::ios::app);
+    if (s_file) {
+        s_file << QDateTime::currentMSecsSinceEpoch() << "  " << msg.toStdString() << "\n";
+        s_file.flush();
+    }
+}
+
 static bool initializeGlad()
 {
     static bool initialized = false;
@@ -215,6 +238,19 @@ void QmlGlRenderer::render()
 #if PERF_TRACE
     std::ofstream("renderer_render.log", std::ios::app) << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
 #endif
+    // [DIAG] Confirm render() is actually entered each frame and whether a GL
+    // context is current. Placed at the very top so it logs even if a later
+    // early-return (e.g. null context) would otherwise hide activity.
+    static int s_rCalls = 0;
+    if (s_rCalls < 3 || (s_rCalls % 30) == 0) {
+        QOpenGLContext* c = QOpenGLContext::currentContext();
+        const QString m = QString("[DIAG-render] render() ENTERED call#%1 ctx=%2")
+                             .arg(s_rCalls).arg(c ? "valid" : "NULL");
+        qWarning() << m;
+        diagLog(m);
+    }
+    s_rCalls++;
+
     static int64_t lastTime = 0;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
     if (lastTime > 0) {
@@ -237,6 +273,33 @@ void QmlGlRenderer::render()
         qWarning("QmlGlRenderer: No OpenGL context available in render()");
         return;
     }
+
+    // [DIAG] Step 2: clear the GL error queue every frame and surface any
+    // error that is pending at the start of the frame (first 10 occurrences
+    // only, to avoid flooding). Also log viewport size periodically so we can
+    // detect a 0x0 resize (Step 5) that would invalidate the projection.
+    // NOTE: must use glad_glGetError(), not the QOpenGLFunctions::glGetError(),
+    // because initializeOpenGLFunctions() (which populates the QOpenGLFunctions
+    // pointers) is only called later inside initializeGL(). Calling the
+    // QOpenGLFunctions variant here on the first frame would dereference a null
+    // pointer and crash the render loop after a single frame.
+    GLenum startErr = glad_glGetError();
+    if (startErr != GL_NO_ERROR) {
+        static int s_errCount = 0;
+        if (s_errCount++ < 10) {
+            const QString m = QString("[DIAG-render] GL error at start of render: %1").arg(startErr);
+            qWarning() << m;
+            diagLog(m);
+        }
+    }
+    static int s_sizeLog = 0;
+    if (s_sizeLog < 5 || s_sizeLog % 15 == 0) {
+        const QString m = QString("[DIAG-render] viewport size: %1 x %2")
+                             .arg(m_viewportWidth).arg(m_viewportHeight);
+        qWarning() << m;
+        diagLog(m);
+    }
+    s_sizeLog++;
 
     // Initialize OpenGL state on first render
     static bool initialized = false;
@@ -272,6 +335,34 @@ void QmlGlRenderer::render()
         applyHeadPose();
     }
 
+    // [DIAG] Guard against non-finite camera matrices. A degenerate view or
+    // projection matrix (e.g. NaN from a focus/selection that places the eye on
+    // the target, or a zero-aspect projection) makes every perspective-drawn
+    // primitive (grid, geodesics, celestial bodies) vanish while the
+    // orthographic axis gizmo survives -- i.e. a "black viewport". Reset to a
+    // safe default so the scene stays visible.
+    if (!matrixIsFinite(m_viewMatrix) || !matrixIsFinite(m_projectionMatrix)) {
+        static int s_badMatrix = 0;
+        if (s_badMatrix++ < 10) {
+            const QString mdiag = QString("[DIAG-render] non-finite matrix; resetting (viewFinite=%1 projFinite=%2)")
+                                  .arg(matrixIsFinite(m_viewMatrix)).arg(matrixIsFinite(m_projectionMatrix));
+            qWarning() << mdiag;
+            diagLog(mdiag);
+        }
+        m_viewMatrix.setToIdentity();
+        m_viewMatrix.translate(0.0f, 0.0f, -m_cameraDistance);
+        m_viewMatrix.rotate(m_cameraAngleX, 1.0f, 0.0f, 0.0f);
+        m_viewMatrix.rotate(m_cameraAngleY, 0.0f, 1.0f, 0.0f);
+        m_viewMatrix.translate(m_cameraPanX, m_cameraPanY, 0.0f);
+
+        const float fov = 45.0f;
+        const float aspect = (m_viewportHeight > 0)
+                                 ? static_cast<float>(m_viewportWidth) / static_cast<float>(m_viewportHeight)
+                                 : 1.0f;
+        m_projectionMatrix.setToIdentity();
+        m_projectionMatrix.perspective(fov, aspect, 0.1f, 1000.0f);
+    }
+
     // Clear the framebuffer
     glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -298,8 +389,19 @@ void QmlGlRenderer::render()
     }
 
     if (m_showGeodesics && m_curvatureRenderer) {
+        static int s_geoDiag = 0;
+        if (s_geoDiag++ < 5) {
+            qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics
+                       << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+        }
         PERF_SCOPE("renderGeodesics");
         renderGeodesics();
+    } else {
+        static int s_geoSkip = 0;
+        if (s_geoSkip++ < 5) {
+            qWarning() << "[DIAG-renderGeodesics] SKIPPED, m_showGeodesics=" << m_showGeodesics
+                       << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+        }
     }
 
     // Render curvature visualization (delegates to CurvatureRenderer)
@@ -315,6 +417,12 @@ void QmlGlRenderer::render()
     // Render celestial bodies (only if initialized)
     if (m_celestialBodyRenderer) {
         PERF_SCOPE("celestialRender");
+        static int s_renderDiag = 0;
+        if (s_renderDiag++ < 5) {
+            qWarning() << "[DIAG-CelestialRender] about to call render(); queued bodies="
+                       << m_celestialBodyRenderer->bodyCount()
+                       << "initialized=" << m_celestialBodyRenderer->isInitialized();
+        }
         try {
             if (m_celestialBodyRenderer->isInitialized()) {
                 m_celestialBodyRenderer->render(m_viewMatrix.constData(),
@@ -970,11 +1078,30 @@ void QmlGlRenderer::setupOverlayGeometry()
 
 void QmlGlRenderer::renderGrid()
 {
+    // [DIAG] Step 2: confirm renderGrid is still entered after a scan and that
+    // the grid VAO / shader program remain valid. Throttled to ~1 Hz plus any
+    // frame where the state is actually bad, so the transition to black is
+    // captured without flooding the console. Also reports the bind result and
+    // whether the view/projection matrices are finite -- a non-finite matrix
+    // makes the grid draw nothing (NaN gl_Position) while the function and its
+    // DIAG line still run, which is the usual cause of a grid-less black viewport.
+    static int s_gridLog = 0;
+    const bool bindOk = m_gridShader.bind();
+    const bool bad = (!m_gridShader.isLinked()) || (m_gridVao == 0) || !bindOk
+                     || !matrixIsFinite(m_viewMatrix) || !matrixIsFinite(m_projectionMatrix);
+    if (s_gridLog < 5 || s_gridLog % 15 == 0 || bad) {
+        const QString m = QString("[DIAG-renderGrid] called: m_gridVao=%1 isLinked=%2 bindOk=%3 viewFinite=%4 projFinite=%5")
+                             .arg(m_gridVao).arg(m_gridShader.isLinked()).arg(bindOk)
+                             .arg(matrixIsFinite(m_viewMatrix)).arg(matrixIsFinite(m_projectionMatrix));
+        qWarning() << m;
+        diagLog(m);
+    }
+    s_gridLog++;
     if (!m_gridShader.isLinked()) {
         qWarning() << "QmlGlRenderer: Grid shader not linked!";
         return;
     }
-    if (!m_gridShader.bind()) {
+    if (!bindOk) {
         qWarning() << "QmlGlRenderer: Failed to bind grid shader";
         return;
     }
@@ -1027,6 +1154,7 @@ void QmlGlRenderer::renderAxisGizmo()
 
 void QmlGlRenderer::renderGeodesics()
  {
+     qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics << "m_curvatureRenderer=" << m_curvatureRenderer.get();
      if (!m_geodesicShader.bind()) return;
 
      m_geodesicShader.setUniformValue("viewMatrix", m_viewMatrix);
@@ -1124,15 +1252,28 @@ void QmlGlRenderer::renderGeodesics()
                      return -1; // No texture
                  };
 
-                 for (const auto& bodyPair : solarData.bodies) {
-                     const auto& body = bodyPair.second;
-                     if (!body.showOrbit || body.orbitPoints.empty()) continue;
+                  for (const auto& bodyPair : solarData.bodies) {
+                      const auto& body = bodyPair.second;
+                      // Need a position source; the Sun has no orbit (showOrbit
+                      // false) but is the central body and must still be drawn.
+                      if (body.orbitPoints.empty()) continue;
+                      if (!body.isCentralBody && !body.showOrbit) continue;
 
                      CelestialBodyInstance cbi;
                      cbi.objectId = bodyPair.first;
                      cbi.name = body.name;
                      cbi.mass = static_cast<float>(body.mass);
-                     cbi.radius = static_cast<float>(body.radius) * solarData.scaleFactor * 0.5f;
+                      // Visual radius. Physical radii (1e6..1e9 m) shrink to
+                      // sub-pixel specks once converted by the meters->viewport
+                      // scaleFactor (~8.7e-12), so exaggerate and clamp to keep
+                      // every body visible while preserving rough relative sizes
+                      // (Sun largest, gas giants larger than terrestrials).
+                      const double kRadiusExaggeration = 2000.0;
+                      const float rPhys = static_cast<float>(body.radius * solarData.scaleFactor);
+                      float visRadius = rPhys * static_cast<float>(kRadiusExaggeration);
+                      visRadius = std::max(visRadius, 0.04f);
+                      visRadius = std::min(visRadius, 2.5f);
+                      cbi.radius = visRadius;
                      cbi.position[0] = static_cast<float>(body.orbitPoints.back().x * solarData.scaleFactor);
                      cbi.position[1] = static_cast<float>(body.orbitPoints.back().y * solarData.scaleFactor);
                      cbi.position[2] = static_cast<float>(body.orbitPoints.back().z * solarData.scaleFactor);
@@ -1158,14 +1299,29 @@ void QmlGlRenderer::renderGeodesics()
 
                      // Add body (respects maxBodies cap internally)
                      m_celestialBodyRenderer->addBody(cbi);
-                 }
-             }
-         } catch (const std::exception& e) {
-             qWarning() << "QmlGlRenderer: Error in renderGeodesics celestial body rendering:" << e.what();
-         } catch (...) {
-             qWarning() << "QmlGlRenderer: Unknown error in renderGeodesics celestial body rendering";
-         }
-     }
+                  }
+              }
+
+              // [DIAG-CelestialBodies] Confirm how many bodies were queued and
+              // at what scale, so it is clear whether the population loop ran.
+              static int s_bodyDiag = 0;
+              if (s_bodyDiag++ < 5) {
+                  qWarning() << "[DIAG-CelestialBodies] added"
+                             << m_celestialBodyRenderer->bodyCount() << "bodies; scaleFactor="
+                             << solarData.scaleFactor;
+                  if (!solarData.bodies.empty()) {
+                      const auto& sample = solarData.bodies.begin()->second;
+                      qWarning() << "[DIAG-CelestialBodies] sample:" << sample.name.c_str()
+                                 << "radius(m)=" << sample.radius
+                                 << "pos(unscaled)=" << sample.orbitPoints.back().x;
+                  }
+              }
+          } catch (const std::exception& e) {
+              qWarning() << "QmlGlRenderer: Error in renderGeodesics celestial body rendering:" << e.what();
+          } catch (...) {
+              qWarning() << "QmlGlRenderer: Unknown error in renderGeodesics celestial body rendering";
+          }
+      }
      
      m_geodesicShader.release();
  }
@@ -1466,11 +1622,21 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     QObject::connect(this, &QQuickItem::windowChanged, this, &QmlGlViewport::onWindowChanged);
 
     QObject::connect(this, &QQuickItem::widthChanged, this, [this]() {
+        // [DIAG] Step 5: log viewport width changes to catch a 0x0 resize
+        // that would blank the FBO.
+        const QString m = QString("[DIAG-viewport] widthChanged -> %1 x %2")
+                             .arg(width()).arg(height());
+        qWarning() << m;
+        diagLog(m);
         if (m_renderer) {
             m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
         }
     });
     QObject::connect(this, &QQuickItem::heightChanged, this, [this]() {
+        const QString m = QString("[DIAG-viewport] heightChanged -> %1 x %2")
+                             .arg(width()).arg(height());
+        qWarning() << m;
+        diagLog(m);
         if (m_renderer) {
             m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
         }
@@ -1779,6 +1945,16 @@ void QmlGlViewport::handleWheel(float delta)
 
 void QmlGlViewport::renderGL()
 {
+    // [DIAG] Count renderGL invocations to confirm the render loop runs
+    // continuously (vs. stalling after a single frame).
+    static int s_rgCalls = 0;
+    if (s_rgCalls < 3 || (s_rgCalls % 30) == 0) {
+        const QString m = QString("[DIAG-renderGL] renderGL ENTERED call#%1").arg(s_rgCalls);
+        qWarning() << m;
+        diagLog(m);
+    }
+    s_rgCalls++;
+
     if (!m_renderer) {
         return;
     }
@@ -1798,6 +1974,11 @@ void QmlGlViewport::renderGL()
         format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
         m_fbo = new QOpenGLFramebufferObject(QSize(w, h), format);
         fboJustAllocated = true;
+        // [DIAG] Step 5: a reallocation means the viewport size changed. A
+        // 0x0 size here would produce a black/unusable FBO.
+        const QString m = QString("[DIAG-renderGL] FBO (re)allocated to %1 x %2").arg(w).arg(h);
+        qWarning() << m;
+        diagLog(m);
         if (m_renderer) {
             const float fov = 45.0f;
             const float aspect = static_cast<float>(w) / h;
@@ -1809,6 +1990,17 @@ void QmlGlViewport::renderGL()
     }
     if (!m_fbo) {
         return;
+    }
+
+    // Manual synchronize: QmlGlViewport is a QQuickItem, not a QQuickFramebufferObject,
+    // so Qt never calls QmlGlRenderer::synchronize(). Pull state from the viewport
+    // item into the renderer here so the guard in render() sees the curvature renderer.
+    if (m_renderer) {
+        m_renderer->setCurvatureRenderer(m_curvatureRenderer);
+        m_renderer->setQuantumRenderer(m_quantumRenderer);
+        m_renderer->setCelestialBodyRenderer(m_celestialBodyRenderer);
+        m_renderer->setUI4D(m_ui4d);
+        m_renderer->setCamera4DAdapter(m_camera4DAdapter);
     }
 
     // updatePaintNode() runs during the scene-graph sync phase, which is BEFORE
@@ -1829,6 +2021,11 @@ void QmlGlViewport::renderGL()
         qWarning() << "QmlGlViewport: Framebuffer not complete! Status:" << fboStatus;
     }
     GL_CHECK();
+    {
+        const QString m = QString("[DIAG-renderGL] calling m_renderer->render() call#%1").arg(s_rgCalls);
+        qWarning() << m;
+        diagLog(m);
+    }
     m_renderer->render();
     m_fbo->release();
     QOpenGLFramebufferObject::bindDefault();
@@ -1849,10 +2046,48 @@ void QmlGlViewport::renderGL()
         m_fpsFrameCount = 0;
         emit frameRateChanged();
     }
+
+    // Keep the QSG texture in sync with the FBO contents every frame. After the
+    // initial FBO allocation, updatePaintNode() is otherwise only recalled when
+    // something else dirties the item; without this the scene-graph node keeps
+    // displaying the FBO texture from the first frame even though the FBO is
+    // re-rendered (e.g. after a scan updates the metric/curvature).
+    update();
+}
+
+void QmlGlViewport::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry)
+{
+    QQuickItem::geometryChange(newGeometry, oldGeometry);
+
+    // Force a scene-graph refresh on any geometry change (resize, maximize,
+    // or full-screen toggle). The render loop already calls update() once per
+    // frame, but this guarantees the QSG texture node is re-evaluated
+    // immediately on a toggle even if the viewport size is unchanged (which
+    // would otherwise leave the texture node holding the previous frame).
+    if (width() > 0 && height() > 0) {
+        const QString m = QString("[DIAG-geometryChanged] %1 x %2 (was %3 x %4)")
+                              .arg(width()).arg(height())
+                              .arg(oldGeometry.width()).arg(oldGeometry.height());
+        qWarning() << m;
+        diagLog(m);
+        update();
+    }
 }
 
 QSGNode *QmlGlViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *)
 {
+    // [DIAG] Confirm updatePaintNode() is recalled every frame after the
+    // renderGL()->update() fix. Throttled so it logs ~1 Hz plus the first few
+    // calls, to prove the QSG texture node is being rebuilt/refreshed.
+    static int s_upnCalls = 0;
+    if (s_upnCalls < 3 || (s_upnCalls % 30) == 0) {
+        const QString m = QString("[DIAG-updatePaintNode] called: call#%1 fbo=%2")
+                              .arg(s_upnCalls).arg(m_fbo ? m_fbo->texture() : 0);
+        qWarning() << m;
+        diagLog(m);
+    }
+    s_upnCalls++;
+
     QSGSimpleTextureNode *node = static_cast<QSGSimpleTextureNode*>(oldNode);
 
     if (!window()) {

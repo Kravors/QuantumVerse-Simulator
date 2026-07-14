@@ -333,12 +333,17 @@ ApplicationWindow {
                                     sceneGraphModel.selectObject(model.objectId)
                                 }
                                 // Focus the camera on the clicked object.
+                                // Positions are raw meters; convert to viewport
+                                // units with the same factor the renderer uses
+                                // so the camera stays on-grid instead of flying
+                                // out to ~1e11 (which blanked the viewport).
                                 var pos = model && model.position ? model.position
                                     : (sceneGraphModel ? sceneGraphModel.selectedObjectPosition() : null)
+                                var s = (typeof viewportScale !== "undefined") ? viewportScale : 1
                                 if (pos && pos.x !== undefined &&
                                     viewportItem && viewportItem.camera4DAdapter) {
                                     viewportItem.camera4DAdapter.focusOn(
-                                        Qt.vector3d(pos.x, pos.y, pos.z))
+                                        Qt.vector3d(pos.x * s, pos.y * s, pos.z * s))
                                 } else {
                                     console.warn("focusOn skipped: camera4DAdapter or position missing")
                                 }

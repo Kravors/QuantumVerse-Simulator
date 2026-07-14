@@ -435,6 +435,11 @@ public:
     // QQuickItem scene graph interface
     QSGNode* updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData* data) override;
 
+    /// @brief Force a scene-graph refresh on any geometry change (resize,
+    /// maximize, or full-screen toggle) so the QSG texture node is rebuilt
+    /// even when the viewport size happens to be unchanged.
+    void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
+
     // Property accessors
     bool showGrid() const { return m_showGrid; }
     bool showLightCones() const { return m_showLightCones; }

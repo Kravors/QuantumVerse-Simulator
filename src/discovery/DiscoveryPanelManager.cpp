@@ -11,6 +11,8 @@
 #ifdef QUANTUMVERSE_USE_QML
 
 #include <QDebug>
+#include <fstream>
+#include <QDateTime>
 
 namespace quantumverse {
 
@@ -166,6 +168,15 @@ void DiscoveryPanelManager::startScan()
     qWarning() << "DIAG startScan: metric=" << (m_metric ? "set" : "null")
                << "locationSet=" << m_locationSet
                << "trajectoryPoints=" << trajectory.size();
+    {
+        std::ofstream df("viewport_diag.log", std::ios::app);
+        if (df) {
+            df << QDateTime::currentMSecsSinceEpoch() << "  [DIAG-startScan] metric="
+               << (m_metric ? "set" : "null")
+               << " locationSet=" << m_locationSet
+               << " trajectoryPoints=" << trajectory.size() << "\n";
+        }
+    }
     runScan(*m_metric, m_location, trajectory);
 }
 

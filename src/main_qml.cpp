@@ -105,6 +105,10 @@ QSurfaceFormat createSurfaceFormat()
 
 int main(int argc, char* argv[])
 {
+    std::ofstream startupLog("startup.log");
+    startupLog << "main() started at " << std::time(nullptr) << std::endl;
+    startupLog.close();
+
     // Log everything immediately to stderr so it appears even if Qt is broken
     std::cerr << "QML main started" << std::endl;
     std::cerr.flush();
@@ -127,9 +131,15 @@ int main(int argc, char* argv[])
     // Headless detection - exit gracefully if no display (for CI environments)
     // But if --frames is specified, attempt headless benchmark rendering below.
     int headlessFrames = 0;
+    bool autoScan = false;
+    bool enableGeodesics = false;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--autoscan") == 0) {
+            autoScan = true;
+        } else if (strcmp(argv[i], "--enable-geodesics") == 0) {
+            enableGeodesics = true;
         }
     }
     if (GetSystemMetrics(SM_CMONITORS) == 0 && headlessFrames <= 0) {
@@ -275,6 +285,17 @@ int main(int argc, char* argv[])
         ui4d->setMetric(metric);
         ui4d->setCurvatureRenderer(curvatureRenderer);
         ui4d->setQuantumRenderer(quantumRenderer);
+
+        // Visualization scale: object positions are stored in raw meters
+        // (Sun at origin, Neptune at ~30 AU). The viewport grid spans only
+        // +/-50 units, so meter-scale positions render off-grid. Map the
+        // solar system into the grid (1 AU -> kViewportUnitsPerAU units) and
+        // reuse the exact same factor for camera focus (exposed to QML below)
+        // so the camera target and the rendered bodies always agree.
+        constexpr double kAstronomicalUnit = 1.495978707e11; // meters
+        constexpr double kViewportUnitsPerAU = 1.3;
+        const double kViewportScale = kViewportUnitsPerAU / kAstronomicalUnit;
+        ui4d->setSolarSystemScale(kViewportScale);
         std::cerr << "QuantumVerse: Setting active quantum theory to CDT" << std::endl;
         std::cerr.flush();
         ui4d->setActiveQuantumTheory("CDT");
@@ -331,6 +352,10 @@ int main(int argc, char* argv[])
             QVariant::fromValue(ui4d.get()));
         rootContext->setContextProperty("camera4DAdapter",
             QVariant::fromValue(camera4DAdapter.get()));
+        // Shared meters -> viewport-units factor so QML camera focus lands
+        // where the C++ renderer draws the bodies (see kViewportScale above).
+        rootContext->setContextProperty("viewportScale",
+            QVariant::fromValue(kViewportScale));
         rootContext->setContextProperty("camController",
             QVariant::fromValue(camController));
         rootContext->setContextProperty("discoveryPanelManager",
@@ -430,9 +455,10 @@ int main(int argc, char* argv[])
         // Find the QmlGlViewport in the QML object tree and wire up renderers
         // This must happen after engine.load() so the QML object tree exists
         QObject* rootObject = engine.rootObjects().value(0, nullptr);
+        quantumverse::QmlGlViewport* viewport = nullptr;
         if (rootObject) {
             // Find the viewport by object name set in QML
-            quantumverse::QmlGlViewport* viewport = rootObject->findChild<quantumverse::QmlGlViewport*>();
+            viewport = rootObject->findChild<quantumverse::QmlGlViewport*>();
             if (viewport) {
                 viewport->setCurvatureRendererDirect(curvatureRenderer);
                 viewport->setProbeMetric(metric);
@@ -449,6 +475,12 @@ int main(int argc, char* argv[])
                     viewport->setHeadlessFrameTarget(headlessFrames);
                 }
 
+                if (enableGeodesics) {
+                    qDebug() << "[DIAG] --enable-geodesics: forcing showGeodesics=true on viewport";
+                    viewport->setShowGeodesics(true);
+                    qDebug() << "[DIAG] --enable-geodesics: curvatureRenderer sync will happen in renderGL()";
+                }
+
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
                 std::cerr.flush();
@@ -460,6 +492,17 @@ int main(int argc, char* argv[])
         } else {
             std::cerr << "QuantumVerse: No root QML object found" << std::endl;
             std::cerr.flush();
+        }
+
+        // [DIAG] Auto-trigger a discovery scan a few seconds after startup so
+        // the post-Scan render diagnostics can be captured without a manual
+        // button click (use the --autoscan CLI flag).
+        if (autoScan) {
+            qDebug() << "Auto-scan enabled: will call startScan() after 2.5s";
+            QTimer::singleShot(2500, &app, [discoveryPanelManager]() {
+                qDebug() << "Auto-scan: invoking discoveryPanelManager->startScan()";
+                discoveryPanelManager->startScan();
+            });
         }
 
         qDebug() << "QuantumVerse Simulator started successfully";
@@ -501,6 +544,14 @@ int main(int argc, char* argv[])
                 }
                 lastTickNs = nowNs;
                 headlessRendered++;
+
+                // [DIAG] Drive continuous rendering in headless mode. The QML
+                // Timer that normally calls viewport.update() each frame is
+                // paused when the window is not the active window, so without
+                // this the render loop only runs a single frame.
+                if (viewport) {
+                    viewport->update();
+                }
 
                 if (headlessRendered >= headlessFrames) {
                     double avgMs = headlessTotalMs / headlessFrames;

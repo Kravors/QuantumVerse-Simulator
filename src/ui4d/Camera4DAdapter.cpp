@@ -48,23 +48,43 @@ QMatrix4x4 Camera4DAdapter::viewMatrix() const
     // the translation row, ignoring `distance` entirely. That left the eye
     // sitting exactly on the target (the origin by default), edge-on to the
     // Y=0 grid, so the whole scene rendered off-screen (black viewport).
-    const double ce = std::cos(m_state.elevation);
-    const double se = std::sin(m_state.elevation);
-    const double ca = std::cos(m_state.azimuth);
-    const double sa = std::sin(m_state.azimuth);
+    //
+    // Guard: never return a non-finite matrix. A focus/selection can feed a
+    // NaN/Inf target (e.g. selecting an object whose position is not yet
+    // computed), and lookAt() of a NaN eye/target yields a degenerate matrix
+    // that blanks every perspective-drawn primitive (grid, geodesics,
+    // celestial bodies) while the orthographic axis gizmo survives -- a
+    // "black viewport". Sanitize the state first; if it is still bad, fall
+    // back to a safe default view.
+    const double distance = std::isfinite(m_state.distance) ? m_state.distance : 50.0;
+    const double elevation = std::isfinite(m_state.elevation) ? m_state.elevation : 0.0;
+    const double azimuth = std::isfinite(m_state.azimuth) ? m_state.azimuth : 0.0;
+    const double tx = std::isfinite(m_state.tx) ? m_state.tx : 0.0;
+    const double ty = std::isfinite(m_state.ty) ? m_state.ty : 0.0;
+    const double tz = std::isfinite(m_state.tz) ? m_state.tz : 0.0;
+
+    const double ce = std::cos(elevation);
+    const double se = std::sin(elevation);
+    const double ca = std::cos(azimuth);
+    const double sa = std::sin(azimuth);
 
     const QVector3D target(
-        static_cast<float>(m_state.tx),
-        static_cast<float>(m_state.ty),
-        static_cast<float>(m_state.tz));
+        static_cast<float>(tx),
+        static_cast<float>(ty),
+        static_cast<float>(tz));
 
     const QVector3D eye(
-        static_cast<float>(m_state.tx + m_state.distance * ce * sa),
-        static_cast<float>(m_state.ty + m_state.distance * se),
-        static_cast<float>(m_state.tz + m_state.distance * ce * ca));
+        static_cast<float>(tx + distance * ce * sa),
+        static_cast<float>(ty + distance * se),
+        static_cast<float>(tz + distance * ce * ca));
 
     QMatrix4x4 view;
     view.lookAt(eye, target, QVector3D(0.0f, 1.0f, 0.0f));
+    if (!view.isAffine()) {
+        // Fallback: identity-ish view looking down -Z at the origin.
+        view.setToIdentity();
+        view.translate(0.0f, 0.0f, -50.0f);
+    }
     return view;
 }
 

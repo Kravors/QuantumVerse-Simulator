@@ -7,7 +7,7 @@ echo QuantumVerse v3.6.0 Deployment
 echo ========================================
 
 set QT_DIR=F:\qt\6.11.1\msvc2022_64
-set BUILD_DIR=build_qml
+set BUILD_DIR=build
 set DEPLOY_DIR=deploy\windows
 
 REM 1. Clean deploy folder
