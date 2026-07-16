@@ -49,6 +49,7 @@ struct InstrumentFinding {
     std::map<std::string, double> parameters;
     Event4D location;
     double timestamp = 0.0;
+    bool isAnomaly = false;
 };
 
 /**
@@ -176,6 +177,7 @@ protected:
      */
     void clearFindings() { m_lastFindings.clear(); }
 
+public:
     /**
      * @brief Helper: compute significance from confidence
      */

@@ -5,6 +5,10 @@
 
 #include "DiscoveryPanelManager.h"
 #include "DiscoveryEngine.h"
+#include "data/AlertToFinding.h"
+#ifdef QUANTUMVERSE_USE_QML
+#include "data/MultiMessengerCorrelator.h"
+#endif
 #include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
 
@@ -13,6 +17,8 @@
 #include <QDebug>
 #include <fstream>
 #include <QDateTime>
+#include <QJsonObject>
+#include "data/GCNNoticeParser.h"
 
 namespace quantumverse {
 
@@ -22,6 +28,11 @@ DiscoveryPanelManager::DiscoveryPanelManager(QObject* parent)
     , m_scanRunning(false)
     , m_scanProgress(0.0)
 {
+#ifdef QUANTUMVERSE_USE_QML
+    m_correlator = std::make_unique<MultiMessengerCorrelator>(this);
+    connect(m_correlator.get(), &MultiMessengerCorrelator::correlationDetected,
+            this, &DiscoveryPanelManager::onCorrelationDetected);
+#endif
 }
 
 DiscoveryPanelManager::~DiscoveryPanelManager() = default;
@@ -141,6 +152,61 @@ void DiscoveryPanelManager::setActiveInstrumentIndex(int index)
     }
 }
 
+int DiscoveryPanelManager::correlationCount() const
+{
+#ifdef QUANTUMVERSE_USE_QML
+    return m_correlator ? m_correlator->correlationCount() : 0;
+#else
+    return 0;
+#endif
+}
+
+void DiscoveryPanelManager::onCorrelationDetected(const CorrelationEvent& correlation)
+{
+#ifdef QUANTUMVERSE_USE_QML
+    emit correlationCountChanged();
+    emit correlationsListChanged();
+#endif
+    Q_UNUSED(correlation);
+}
+
+QString DiscoveryPanelManager::severityToString(AlertSeverity sev) const
+{
+    switch (sev) {
+    case AlertSeverity::INFO:     return "INFO";
+    case AlertSeverity::LOW:      return "LOW";
+    case AlertSeverity::MEDIUM:   return "MEDIUM";
+    case AlertSeverity::HIGH:     return "HIGH";
+    case AlertSeverity::CRITICAL: return "CRITICAL";
+    }
+    return "UNKNOWN";
+}
+
+QVariantList DiscoveryPanelManager::correlationsList() const
+{
+#ifdef QUANTUMVERSE_USE_QML
+    QVariantList list;
+    if (!m_correlator) return list;
+    for (const CorrelationEvent& ev : m_correlator->correlations()) {
+        QVariantMap item;
+        item["id"] = ev.id;
+        item["messengers"] = ev.messengers;
+        item["ra"] = ev.ra;
+        item["dec"] = ev.dec;
+        item["timestamp"] = ev.timestamp;
+        item["combinedConfidence"] = ev.combinedConfidence;
+        item["spatialScore"] = ev.spatialScore;
+        item["description"] = ev.description;
+        item["severity"] = severityToString(ev.severity);
+        item["alertIds"] = ev.alertIds;
+        list.append(item);
+    }
+    return list;
+#else
+    return {};
+#endif
+}
+
 QStringList DiscoveryPanelManager::instrumentNames() const
 {
     QStringList names;
@@ -178,6 +244,113 @@ void DiscoveryPanelManager::startScan()
         }
     }
     runScan(*m_metric, m_location, trajectory);
+}
+
+void DiscoveryPanelManager::ingestAlert(const QJsonObject& alertJson)
+{
+    const ParsedGCNNotice parsed = GCNNoticeParser::parse(alertJson);
+
+    InstrumentFinding finding;
+    finding.id = QStringLiteral("LIVE_%1").arg(parsed.raw_type).toStdString();
+    finding.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+
+    switch (parsed.origin) {
+    case AlertOrigin::LIGO: {
+        finding.instrumentName = "LIGO (Live)";
+        finding.description = QStringLiteral("Live GW alert %1 (SNR=%2, FAR=%3)")
+            .arg(QString::fromStdString(parsed.gw.event_id))
+            .arg(parsed.gw.snr)
+            .arg(parsed.gw.false_alarm_rate)
+            .toStdString();
+        finding.confidence = alertConfidence(parsed.gw.false_alarm_rate, parsed.gw.confidence);
+        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+        finding.location = Event4D(finding.timestamp, parsed.gw.ra, parsed.gw.dec, 0.0);
+        finding.parameters["snr"] = parsed.gw.snr;
+        finding.parameters["m1"] = parsed.gw.m1;
+        finding.parameters["m2"] = parsed.gw.m2;
+        break;
+    }
+    case AlertOrigin::IceCube: {
+        finding.instrumentName = "IceCube (Live)";
+        finding.description = QStringLiteral("Live neutrino alert %1 (E=%2 TeV, FAR=%3)")
+            .arg(QString::fromStdString(parsed.neutrino.event_id))
+            .arg(parsed.neutrino.energy_tev)
+            .arg(parsed.neutrino.false_alarm_rate)
+            .toStdString();
+        finding.confidence = alertConfidence(parsed.neutrino.false_alarm_rate, parsed.neutrino.confidence);
+        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+        finding.location = Event4D(finding.timestamp, parsed.neutrino.ra, parsed.neutrino.dec, 0.0);
+        finding.parameters["energy_tev"] = parsed.neutrino.energy_tev;
+        break;
+    }
+    case AlertOrigin::TESS: {
+        finding.instrumentName = "TESS (Live)";
+        finding.description = QStringLiteral("Live TOI alert %1 (P=%2 d, depth=%3 ppm)")
+            .arg(QString::fromStdString(parsed.tess.toi_id))
+            .arg(parsed.tess.period_days)
+            .arg(parsed.tess.depth_ppm)
+            .toStdString();
+        finding.confidence = parsed.tess.confidence;
+        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+        finding.location = Event4D(finding.timestamp, parsed.tess.ra, parsed.tess.dec, 0.0);
+        finding.parameters["period_days"] = parsed.tess.period_days;
+        finding.parameters["depth_ppm"] = parsed.tess.depth_ppm;
+        finding.parameters["duration_hours"] = parsed.tess.duration_hours;
+        break;
+    }
+    default:
+        finding.instrumentName = "Unknown (Live)";
+        finding.description = QStringLiteral("Unsupported alert type: %1").arg(parsed.raw_type).toStdString();
+        finding.severity = AlertSeverity::INFO;
+        finding.confidence = 0.0;
+        break;
+    }
+
+    m_allFindings.push_back(finding);
+    emit newFindingDiscovered(
+        QString::fromStdString(finding.instrumentName),
+        QString::fromStdString(finding.description),
+        finding.confidence
+    );
+    emit findingsListChanged();
+    emit findingsChanged();
+    emit liveAlertProcessed(QString::fromStdString(finding.id));
+
+    if (runAnomalyDetection(finding)) {
+        if (!m_allFindings.empty()) {
+            m_allFindings.back().isAnomaly = true;
+        }
+        emit findingsChanged();
+    }
+
+#ifdef QUANTUMVERSE_USE_QML
+    if (m_correlator) {
+        m_correlator->addAlert(finding);
+    }
+#endif
+}
+
+bool DiscoveryPanelManager::runAnomalyDetection(const InstrumentFinding& finding)
+{
+    if (!m_anomalyDetectionEnabled) return false;
+
+    DiscoveryResult result = m_engine.detectAnomaly(
+        finding.location,
+        m_metric ? *m_metric : MetricTensor(),
+        {}
+    );
+
+    if (result.confidence > 0.8) {
+        QJsonObject anomaly;
+        anomaly["id"] = QString::fromStdString(result.id);
+        anomaly["type"] = QString::fromStdString(result.type);
+        anomaly["description"] = QString::fromStdString(result.description);
+        anomaly["confidence"] = result.confidence;
+        anomaly["validated"] = result.validated;
+        emit anomalyDetected(anomaly);
+        return true;
+    }
+    return false;
 }
 
 std::vector<Event4D> DiscoveryPanelManager::generateScanTrajectory() const
@@ -220,17 +393,6 @@ void DiscoveryPanelManager::exportCurrentFindings()
 {
     QString findings = exportFindings();
     qDebug() << "=== Discovery Findings Export ===" << findings;
-}
-
-QString severityToString(AlertSeverity sev) {
-    switch (sev) {
-        case AlertSeverity::INFO: return "INFO";
-        case AlertSeverity::LOW: return "LOW";
-        case AlertSeverity::MEDIUM: return "MEDIUM";
-        case AlertSeverity::HIGH: return "HIGH";
-        case AlertSeverity::CRITICAL: return "CRITICAL";
-        default: return "UNKNOWN";
-    }
 }
 
 QVariantList DiscoveryPanelManager::findingsList() const

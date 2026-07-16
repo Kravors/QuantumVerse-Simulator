@@ -49,6 +49,21 @@ ApplicationWindow {
         function open() { console.log("About dialog unavailable: QtQuick.Dialogs 1.3 missing in Qt 6.5.3") }
     }
 
+    // Toast notification for live alerts
+    ToastNotification {
+        id: toastNotification
+    }
+
+    Connections {
+        target: discoveryPanelManager
+        function onLiveAlertProcessed(findingId) {
+            var list = discoveryPanelManager.findingsList || []
+            var last = list.length > 0 ? list[list.length - 1] : null
+            toastNotification.alertType = last ? (last.severity || "INFO") : "INFO"
+            toastNotification.origin = last ? (last.instrumentName || findingId) : findingId
+        }
+    }
+
     // Global state
     property real simulationTime: 0.0
     property bool simulationPaused: false
@@ -848,15 +863,30 @@ ApplicationWindow {
                                     width: parent ? parent.width : 0
                                     padding: 4
                                     onClicked: findingsModel.select(index)
+                                    background: Rectangle {
+                                        anchors.fill: parent
+                                        radius: 4
+                                        color: model.isAnomaly ? "#4a1a1a" : "transparent"
+                                        border.color: model.isAnomaly ? "#f44" : "transparent"
+                                        border.width: model.isAnomaly ? 1 : 0
+                                    }
 
                                     RowLayout {
                                         spacing: 6
+
+                                        Label {
+                                            text: model.isAnomaly ? "‼" : ""
+                                            font.pixelSize: 14
+                                            color: "#f44"
+                                            visible: model.isAnomaly
+                                        }
 
                                         Rectangle {
                                             width: 8; height: 8; radius: 4
                                             color: model.severity === "CRITICAL" ? "#f44" :
                                                   model.severity === "HIGH" ? "#fa4" :
                                                   model.severity === "MEDIUM" ? "#faa" : "#4f4"
+                                            visible: !model.isAnomaly
                                         }
 
                                         ColumnLayout {
@@ -866,7 +896,7 @@ ApplicationWindow {
                                             Label {
                                                 text: model.instrumentName || ""
                                                 font.pixelSize: 10
-                                                color: "#888"
+                                                color: model.isAnomaly ? "#f66" : "#888"
                                                 font.bold: true
                                                 elide: Text.ElideRight
                                                 Layout.fillWidth: true
@@ -875,9 +905,10 @@ ApplicationWindow {
                                             Label {
                                                 text: model.description || ""
                                                 font.pixelSize: 11
-                                                color: model.severity === "CRITICAL" ? "#f66" :
-                                                      model.severity === "HIGH" ? "#fd4" :
-                                                      model.severity === "MEDIUM" ? "#fa8" : "#6f6"
+                                                color: model.isAnomaly ? "#f66" :
+                                                       model.severity === "CRITICAL" ? "#f66" :
+                                                       model.severity === "HIGH" ? "#fd4" :
+                                                       model.severity === "MEDIUM" ? "#fa8" : "#6f6"
                                                 wrapMode: Text.Wrap
                                                 Layout.fillWidth: true
                                             }
@@ -885,12 +916,12 @@ ApplicationWindow {
                                             Label {
                                                 text: "σ" + (model.confidence !== undefined ? (model.confidence * 10).toFixed(1) : "?")
                                                 font.pixelSize: 9
-                                                color: "#666"
+                                                color: model.isAnomaly ? "#f88" : "#666"
                                             }
                                             Label {
                                                 text: model.timestamp !== undefined ? "t=" + model.timestamp.toFixed(1) + "s" : ""
                                                 font.pixelSize: 9
-                                                color: "#444"
+                                                color: model.isAnomaly ? "#f88" : "#444"
                                             }
                                         }
                                     }
@@ -898,7 +929,172 @@ ApplicationWindow {
                             }
                         }
 
-                        // Detail pane for the selected finding
+                        // Replay Archive panel
+                        Pane {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 140
+                            visible: replayContainer && replayContainer.visible
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 4
+
+                                Label { text: "Replay Archive"; font.bold: true; font.pixelSize: 12 }
+
+                                RowLayout {
+                                    spacing: 4
+
+                                    TextField {
+                                        id: replayDirField
+                                        placeholderText: "Archive directory..."
+                                        Layout.fillWidth: true
+                                        font.pixelSize: 10
+                                        text: "data/gcn_archive"
+                                    }
+
+                                    Button {
+                                        text: replayStream && replayStream.running ? "Stop" : "Replay"
+                                        Layout.preferredWidth: 70
+                                        onClicked: {
+                                            if (!replayStream) return
+                                            if (replayStream.running) {
+                                                replayStream.stop()
+                                            } else {
+                                                replayStream.setDirectory(replayDirField.text)
+                                                replayStream.setSpeed(replaySpeedSlider.value)
+                                                replayStream.start()
+                                            }
+                                        }
+                                    }
+                                }
+
+                                RowLayout {
+                                    spacing: 4
+
+                                    Label { text: "Speed:"; color: "#888"; font.pixelSize: 10 }
+
+                                    Slider {
+                                        id: replaySpeedSlider
+                                        from: 1; to: 100; stepSize: 1; value: 10
+                                        Layout.fillWidth: true
+                                        onValueChanged: {
+                                            if (replayStream) replayStream.setSpeed(value)
+                                        }
+                                    }
+
+                                    Label {
+                                        text: replaySpeedSlider.value.toFixed(0) + "x"
+                                        color: "#ccc"
+                                        font.pixelSize: 10
+                                        Layout.preferredWidth: 30
+                                    }
+                                }
+
+                                Label {
+                                    text: replayStream
+                                        ? ("Loaded " + replayStream.totalFiles + " files, playing #" + replayStream.currentIndex)
+                                        : "No archive loaded"
+                                    font.pixelSize: 10
+                                    color: "#666"
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+
+                        // Multi-messenger correlation panel
+                        Pane {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 160
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 4
+
+                                Label { text: "Multi-Messenger Correlations"; font.bold: true; font.pixelSize: 12 }
+
+                                ScrollView {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    clip: true
+
+                                    ListView {
+                                        model: discoveryPanelManager.correlationsList
+                                        delegate: ItemDelegate {
+                                            width: parent ? parent.width : 0
+                                            padding: 4
+                                            background: Rectangle {
+                                                anchors.fill: parent
+                                                radius: 4
+                                                color: model.severity === "CRITICAL" ? "#4a1a1a" : "#1a1a2e"
+                                                border.color: model.severity === "CRITICAL" ? "#f44" : "#333"
+                                                border.width: 1
+                                            }
+
+                                            RowLayout {
+                                                spacing: 6
+
+                                                Label {
+                                                    text: model.severity === "CRITICAL" ? "‼" : "🔗"
+                                                    font.pixelSize: 14
+                                                    color: model.severity === "CRITICAL" ? "#f44" : "#4af"
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 1
+
+                                                    Label {
+                                                        text: model.messengers ? model.messengers.join(" + ") : ""
+                                                        font.pixelSize: 10
+                                                        color: "#4af"
+                                                        font.bold: true
+                                                        elide: Text.ElideRight
+                                                        Layout.fillWidth: true
+                                                    }
+
+                                                    Label {
+                                                        text: model.description || ""
+                                                        font.pixelSize: 10
+                                                        color: "#ccc"
+                                                        wrapMode: Text.Wrap
+                                                        Layout.fillWidth: true
+                                                    }
+
+                                                    RowLayout {
+                                                        spacing: 6
+                                                        Label {
+                                                            text: "σ" + (model.combinedConfidence !== undefined ? (model.combinedConfidence * 10).toFixed(1) : "?")
+                                                            font.pixelSize: 9
+                                                            color: "#888"
+                                                        }
+                                                        Label {
+                                                            text: model.spatialScore !== undefined ? "proximity=" + (model.spatialScore * 100).toFixed(0) + "%" : ""
+                                                            font.pixelSize: 9
+                                                            color: "#666"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Label {
+                                    text: discoveryPanelManager.correlationCount > 0
+                                        ? discoveryPanelManager.correlationCount + " correlation(s) detected"
+                                        : "Awaiting multi-messenger coincidences..."
+                                    font.pixelSize: 10
+                                    color: "#666"
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Detail pane for the selected finding
                         Pane {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 96
@@ -1106,6 +1302,25 @@ ApplicationWindow {
                     checked: Math.abs(timeScale - 100) < 0.1
                     onClicked: timeScaleSlider.value = 3
                     font.pixelSize: 10
+                }
+            }
+
+            // Live ingest status indicator
+            Item {
+                Layout.preferredWidth: 12
+                Layout.preferredHeight: 12
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 10; height: 10; radius: 5
+                    color: "#4caf50"
+                    border.color: "#81c784"
+                    border.width: 1
+                    opacity: 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(Date.now() / 300))
+                    ToolTip.visible: Qt.application.arguments.indexOf("--headless") === -1
+                    ToolTip.text: kafkaListener && kafkaListener.consumerError.length === 0
+                        ? "Live GCN ingest connected"
+                        : "Live GCN ingest disconnected"
                 }
             }
         }

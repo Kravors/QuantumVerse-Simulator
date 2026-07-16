@@ -59,7 +59,7 @@ int main(int argc, char** argv)
                .toString().toStdString() == "IceCube");
     assert(model.data(model.index(1, 0),
                quantumverse::FindingsModel::SeverityRole)
-               .toString().toStdString() == "HIGH");
+               .toString().toStdString() == "CRITICAL");
 
     std::cout << "All Multi-Messenger UI tests passed." << std::endl;
     return 0;

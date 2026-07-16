@@ -19,6 +19,7 @@
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QJsonObject>
 #include <QDebug>
 #endif
 
@@ -30,8 +31,13 @@
 #include "DiscoveryInstrument.h"
 #include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "discovery/DiscoveryEngine.h"
+#ifdef QUANTUMVERSE_USE_QML
+#include "data/MultiMessengerCorrelator.h"
+#endif
 
 namespace quantumverse {
+struct ParsedGCNNotice;
 
 /**
  * @brief Manages discovery instruments and exposes data to QML
@@ -57,6 +63,8 @@ class DiscoveryPanelManager : public QObject
     Q_PROPERTY(double scanProgress READ scanProgress NOTIFY scanProgressChanged)
     Q_PROPERTY(QVariantList findingsList READ findingsList NOTIFY findingsListChanged)
     Q_PROPERTY(QVariantMap activeInstrumentInfo READ activeInstrumentInfo NOTIFY activeInstrumentInfoChanged)
+    Q_PROPERTY(int correlationCount READ correlationCount NOTIFY correlationCountChanged)
+    Q_PROPERTY(QVariantList correlationsList READ correlationsList NOTIFY correlationsListChanged)
 
 public:
     explicit DiscoveryPanelManager(QObject* parent = nullptr);
@@ -91,6 +99,11 @@ public:
     double scanProgress() const { return m_scanProgress; }
     QVariantList findingsList() const;
     QVariantMap activeInstrumentInfo() const;
+    int correlationCount() const;
+    QVariantList correlationsList() const;
+
+    /** @brief Access the underlying multi-messenger correlator. */
+    MultiMessengerCorrelator* correlator() const { return m_correlator.get(); }
 
     /** @brief Direct access to the underlying findings (for FindingsModel). */
     const std::vector<InstrumentFinding>& findings() const { return m_allFindings; }
@@ -105,6 +118,9 @@ public slots:
     void setMetric(const std::shared_ptr<MetricTensor>& metric);
     void setLocation(const Event4D& location);
 
+    /** @brief Ingest a live alert JSON (from GCN Kafka) and process it through the discovery pipeline. */
+    void ingestAlert(const QJsonObject& alertJson);
+
 signals:
     void activeInstrumentIndexChanged();
     void instrumentCountChanged();
@@ -114,8 +130,12 @@ signals:
     void findingsListChanged();
     void findingsChanged();
     void activeInstrumentInfoChanged();
+    void correlationCountChanged();
+    void correlationsListChanged();
     void newFindingDiscovered(const QString& instrumentName, const QString& description, double confidence);
     void scanComplete();
+    void liveAlertProcessed(const QString& findingId);
+    void anomalyDetected(const QJsonObject& anomaly);
 
 private:
     std::vector<std::unique_ptr<DiscoveryInstrument>> m_instruments;
@@ -129,6 +149,22 @@ private:
 
     // Generate a sample trajectory (precessing orbit) for instrument scans.
     std::vector<Event4D> generateScanTrajectory() const;
+
+    /** @brief Convert a parsed GCN notice into an InstrumentFinding and append it. */
+    void appendFindingFromParsedNotice(const ParsedGCNNotice& parsed);
+
+    /** @brief Run anomaly detection on a finding and emit anomalyDetected if warranted. */
+    bool runAnomalyDetection(const InstrumentFinding& finding);
+
+    QString severityToString(AlertSeverity sev) const;
+
+private slots:
+    void onCorrelationDetected(const CorrelationEvent& correlation);
+
+private:
+    DiscoveryEngine m_engine;
+    bool m_anomalyDetectionEnabled = true;
+    std::unique_ptr<MultiMessengerCorrelator> m_correlator;
 };
 
 #else // QUANTUMVERSE_USE_QML not defined - plain C++ stub
@@ -164,9 +200,11 @@ public:
     std::vector<std::string> instrumentNames() const;
     bool scanRunning() const { return m_scanRunning; }
     double scanProgress() const { return m_scanProgress; }
-    const std::vector<InstrumentFinding>& findings() const { return m_allFindings; }
+     const std::vector<InstrumentFinding>& findings() const { return m_allFindings; }
 
-    // Scan control
+     int correlationCount() const { return 0; }
+
+     // Scan control
      void startScan();
      void stopScan();
      void exportCurrentFindings();

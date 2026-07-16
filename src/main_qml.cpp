@@ -57,7 +57,12 @@
 #include "discovery/FindingsModel.h"
 #include "data/LIGOAdapter.h"
 #include "data/IceCubeAdapter.h"
+#include "data/TESSAlertAdapter.h"
 #include "data/AlertToFinding.h"
+#include "data/AlertRouter.h"
+#include "data/KafkaAlertListener.h"
+#include "data/GCNNoticeParser.h"
+#include "data/GCNReplayStream.h"
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
 #include "discovery/GalacticRotationCurveScanner.h"
 #include "discovery/FineStructureConstantDriftObservatory.h"
@@ -384,6 +389,9 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("discoveryPanelManager",
             QVariant::fromValue(discoveryPanelManager.get()));
 
+        // Correlations are exposed via DiscoveryPanelManager::correlationsList
+        // and emitted through its built-in signals.
+
         // Expose the QML-facing findings list model, kept in sync with the
         // discovery panel manager via its findingsChanged signal.
         auto findingsModel = new quantumverse::FindingsModel(&engine);
@@ -414,6 +422,63 @@ int main(int argc, char* argv[])
             QVariant::fromValue(ligoAdapter.get()));
         rootContext->setContextProperty("iceCubeAdapter",
             QVariant::fromValue(iceCubeAdapter.get()));
+
+#ifdef HAVE_LIBRDKAFKA
+        auto alertRouter = std::make_shared<quantumverse::AlertRouter>();
+        alertRouter->setLIGOAdapter(ligoAdapter.get());
+        alertRouter->setIceCubeAdapter(iceCubeAdapter.get());
+
+        auto tessAdapter = std::make_shared<quantumverse::TESSAlertAdapter>();
+        tessAdapter->setCallback([findingsModel](const quantumverse::TESSAlert& alert) {
+            quantumverse::InstrumentFinding f;
+            f.id = "TESS_" + alert.toi_id;
+            f.instrumentName = "TESS (Live)";
+            f.description = QStringLiteral("Live TOI %1 (P=%2 d, depth=%3 ppm)")
+                .arg(QString::fromStdString(alert.toi_id))
+                .arg(alert.period_days)
+                .arg(alert.depth_ppm)
+                .toStdString();
+            f.confidence = alert.confidence;
+            f.severity = quantumverse::confidenceToSeverity(alert.confidence);
+            f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+            findingsModel->addFinding(f);
+        });
+        alertRouter->setTESSAdapter(tessAdapter.get());
+        rootContext->setContextProperty("tessAdapter",
+            QVariant::fromValue(tessAdapter.get()));
+
+        auto kafkaListener = std::make_shared<quantumverse::KafkaAlertListener>(
+            QStringLiteral("gcn-kafka.nasa.gov:9092"),
+            {
+                QStringLiteral("gcn.notices.LVC"),
+                QStringLiteral("gcn.notices.ICECUBE"),
+                QStringLiteral("gcn.notices.TESS")
+            }
+        );
+
+        QObject::connect(kafkaListener.get(), &quantumverse::KafkaAlertListener::alertReceived,
+            alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
+
+        QObject::connect(alertRouter.get(), &quantumverse::AlertRouter::parsedAlertReady,
+            discoveryPanelManager.get(), &quantumverse::DiscoveryPanelManager::ingestAlert);
+
+        QObject::connect(kafkaListener.get(), &quantumverse::KafkaAlertListener::consumerError,
+            [](const QString& err) {
+                qWarning() << "Kafka listener error:" << err;
+            });
+
+        kafkaListener->start();
+        rootContext->setContextProperty("kafkaListener",
+            QVariant::fromValue(kafkaListener.get()));
+        rootContext->setContextProperty("alertRouter",
+            QVariant::fromValue(alertRouter.get()));
+
+        auto replayStream = std::make_shared<quantumverse::GCNReplayStream>();
+        QObject::connect(replayStream.get(), &quantumverse::GCNReplayStream::alertAvailable,
+            alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
+        rootContext->setContextProperty("replayStream",
+            QVariant::fromValue(replayStream.get()));
+#endif
         rootContext->setContextProperty("planckContainer",
             QVariant::fromValue(planckContainer));
 

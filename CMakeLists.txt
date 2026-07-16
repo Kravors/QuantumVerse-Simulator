@@ -26,6 +26,7 @@ endif()
 option(QUANTUMVERSE_BUILD_TESTS "Build test suite" ON)
 option(QUANTUMVERSE_USE_QT "Build Qt UI" OFF)
 option(QUANTUMVERSE_USE_VR "Build VR/OpenXR backend" OFF)
+option(QUANTUMVERSE_USE_KAFKA "Build Kafka/GCN live ingest" OFF)
 option(QUANTUMVERSE_USE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(QUANTUMVERSE_USE_ASAN "Build with AddressSanitizer" OFF)
 
@@ -59,6 +60,16 @@ target_include_directories(nlohmann_json INTERFACE ${CMAKE_SOURCE_DIR}/third_par
 find_package(CURL QUIET)
 if(CURL_FOUND)
     message(STATUS "CURL found - HTTP adapters enabled")
+endif()
+
+# librdkafka for GCN Kafka live ingest
+set(LIBRDKAFKA_ROOT "" CACHE PATH "Root directory of librdkafka installation")
+find_package(librdkafka QUIET)
+if(LIBRDKAFKA_FOUND)
+    message(STATUS "librdkafka found - Kafka/GCN live ingest enabled")
+    add_compile_definitions(HAVE_LIBRDKAFKA=1)
+else()
+    message(STATUS "librdkafka not found - building without Kafka/GCN live ingest")
 endif()
 
 # Main library interface (header-only for now)
@@ -104,6 +115,13 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/FindingsModel.cpp
         src/data/LIGOAdapter.cpp
         src/data/IceCubeAdapter.cpp
+        src/data/TESSAlertAdapter.cpp
+        src/data/GCNNoticeParser.cpp
+        src/data/KafkaAlertListener.cpp
+        src/data/AlertRouter.cpp
+        src/data/AlertListener.cpp
+        src/data/GCNReplayStream.cpp
+        src/data/MultiMessengerCorrelator.cpp
         src/discovery/DiscoveryEngine.cpp
         src/discovery/TheoryManager.cpp
         src/rendering/CurvatureRenderer.cpp
@@ -149,6 +167,7 @@ if(QUANTUMVERSE_USE_QT)
     target_include_directories(quantumverse_qml PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party
+        ${LIBRDKAFKA_INCLUDE_DIRS}
     )
     target_link_libraries(quantumverse_qml PRIVATE
         Qt6::Core
@@ -163,6 +182,7 @@ if(QUANTUMVERSE_USE_QT)
         Qt6::OpenGLWidgets
         Qt6::Network
         dilaton
+        ${LIBRDKAFKA_LIBRARIES}
         opengl32
         user32
         gdi32
@@ -782,6 +802,77 @@ if(QUANTUMVERSE_BUILD_TESTS)
         )
         target_link_libraries(test_multimessenger PRIVATE dilaton)
         add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
+    endif()
+
+    # Phase 12: GCN parser unit test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_parser.cpp)
+        add_executable(test_gcn_parser
+            tests/data/test_gcn_parser.cpp
+            src/data/GCNNoticeParser.cpp
+        )
+        target_link_libraries(test_gcn_parser PRIVATE dilaton Qt6::Core)
+        add_test(NAME GCNParserTest COMMAND test_gcn_parser)
+    endif()
+
+    # Phase 12: Kafka listener integration test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_kafka_listener.cpp)
+        add_executable(test_kafka_listener
+            tests/data/test_kafka_listener.cpp
+            src/data/KafkaAlertListener.cpp
+            src/data/GCNNoticeParser.cpp
+            src/data/AlertRouter.cpp
+            src/data/AlertListener.cpp
+            src/data/LIGOAdapter.cpp
+            src/data/IceCubeAdapter.cpp
+            src/data/TESSAlertAdapter.cpp
+        )
+        target_link_libraries(test_kafka_listener PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
+        set_target_properties(test_kafka_listener PROPERTIES AUTOMOC ON)
+        add_test(NAME KafkaListenerTest COMMAND test_kafka_listener)
+    endif()
+
+    # Phase 12c: GCN archive replay stream test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_replay.cpp)
+        add_executable(test_gcn_replay
+            tests/data/test_gcn_replay.cpp
+            src/data/GCNReplayStream.cpp
+            src/data/GCNNoticeParser.cpp
+        )
+        target_link_libraries(test_gcn_replay PRIVATE dilaton Qt6::Core Qt6::Test)
+        set_target_properties(test_gcn_replay PROPERTIES AUTOMOC ON)
+        add_test(NAME GCNReplayStreamTest COMMAND test_gcn_replay)
+    endif()
+
+    # Phase 13: Multi-messenger correlator test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_multimessenger_correlator.cpp)
+        add_executable(test_multimessenger_correlator
+            tests/data/test_multimessenger_correlator.cpp
+            src/data/MultiMessengerCorrelator.cpp
+            src/discovery/DiscoveryPanelManager.cpp
+            src/discovery/DiscoveryEngine.cpp
+            src/data/GCNNoticeParser.cpp
+            src/ml/CurvatureNormalizingFlow.cpp
+        )
+        target_link_libraries(test_multimessenger_correlator PRIVATE dilaton Qt6::Core Qt6::Test)
+        target_compile_definitions(test_multimessenger_correlator PRIVATE QUANTUMVERSE_USE_QML)
+        set_target_properties(test_multimessenger_correlator PROPERTIES AUTOMOC ON)
+        add_test(NAME MultiMessengerCorrelatorTest COMMAND test_multimessenger_correlator)
+    endif()
+
+    # Phase 12b: DiscoveryPanelManager live ingest test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_discovery_panel_manager.cpp)
+        add_executable(test_discovery_panel_manager
+            tests/test_discovery_panel_manager.cpp
+            src/discovery/DiscoveryPanelManager.cpp
+            src/discovery/DiscoveryEngine.cpp
+            src/data/GCNNoticeParser.cpp
+            src/data/MultiMessengerCorrelator.cpp
+            src/ml/CurvatureNormalizingFlow.cpp
+        )
+        target_link_libraries(test_discovery_panel_manager PRIVATE dilaton Qt6::Core Qt6::Test)
+        target_compile_definitions(test_discovery_panel_manager PRIVATE QUANTUMVERSE_USE_QML)
+        set_target_properties(test_discovery_panel_manager PROPERTIES AUTOMOC ON)
+        add_test(NAME DiscoveryPanelManagerIngestTest COMMAND test_discovery_panel_manager)
     endif()
 
     # End-to-end discovery workflow test

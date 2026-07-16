@@ -46,7 +46,8 @@ public:
         TimestampRole,
         XRole,
         YRole,
-        ZRole
+        ZRole,
+        IsAnomalyRole
     };
     Q_ENUM(Roles)
 

@@ -864,6 +864,10 @@ public:
         return causalGraph.addEvent(event);
     }
     
+    void clearCausalGraph() {
+        causalGraph.clear();
+    }
+    
     void selectEvent(int index) {
         if (index >= 0 && index < (int)causalGraph.getNodes().size()) {
             selectedEventIndex = index;

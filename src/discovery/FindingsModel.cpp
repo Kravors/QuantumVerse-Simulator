@@ -32,6 +32,7 @@ QHash<int, QByteArray> FindingsModel::roleNames() const
     roles[XRole] = "x";
     roles[YRole] = "y";
     roles[ZRole] = "z";
+    roles[IsAnomalyRole] = "isAnomaly";
     return roles;
 }
 
@@ -70,6 +71,8 @@ QVariant FindingsModel::data(const QModelIndex& index, int role) const
         return f.location.y;
     case ZRole:
         return f.location.z;
+    case IsAnomalyRole:
+        return f.isAnomaly;
     default:
         return QVariant();
     }
