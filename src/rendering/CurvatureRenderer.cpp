@@ -116,7 +116,7 @@ CurvatureRenderer::~CurvatureRenderer()
 void CurvatureRenderer::initializeFallbackGeometry()
 {
     // Create a simple quad for fallback rendering (magenta warning square)
-    float vertices[] = {
+    float quadVertices[] = {
         -0.5f, -0.5f, 0.0f,
          0.5f, -0.5f, 0.0f,
          0.5f,  0.5f, 0.0f,
@@ -127,7 +127,7 @@ void CurvatureRenderer::initializeFallbackGeometry()
     glGenBuffers(1, &fallbackVbo);
     glBindVertexArray(fallbackVao);
     glBindBuffer(GL_ARRAY_BUFFER, fallbackVbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
@@ -637,10 +637,10 @@ void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* p
      overlayShader.setUniform("projectionMatrix", projectionMatrix);
      overlayShader.setUniform("viewMatrix", viewMatrix);
 
-    const auto& vertices = lightCone->getVertices();
-    const auto& indices = lightCone->getIndices();
+    const auto& lightConeVertices = lightCone->getVertices();
+    const auto& lightConeIndices = lightCone->getIndices();
 
-    if (vertices.empty() || indices.empty()) return;
+    if (lightConeVertices.empty() || lightConeIndices.empty()) return;
 
     // Initialize light cone buffers if not already done
     if (!lightConeBuffersInitialized) {
@@ -650,14 +650,14 @@ void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* p
     // Update vertex data
     glBindBuffer(GL_ARRAY_BUFFER, lightConeVbo);
     glBufferData(GL_ARRAY_BUFFER,
-                 vertices.size() * sizeof(LightConeVertex),
-                 vertices.data(), GL_DYNAMIC_DRAW);
+                 lightConeVertices.size() * sizeof(LightConeVertex),
+                 lightConeVertices.data(), GL_DYNAMIC_DRAW);
 
     // Update index data
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lightConeEbo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 indices.size() * sizeof(unsigned int),
-                 indices.data(), GL_DYNAMIC_DRAW);
+                 lightConeIndices.size() * sizeof(unsigned int),
+                 lightConeIndices.data(), GL_DYNAMIC_DRAW);
 
     glBindVertexArray(lightConeVao);
 
@@ -673,7 +673,7 @@ void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* p
 
     // Render as wireframe lines
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()),
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(lightConeIndices.size()),
                   GL_UNSIGNED_INT, 0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 

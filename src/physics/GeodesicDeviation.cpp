@@ -43,6 +43,8 @@ std::vector<JacobiField> GeodesicDeviation::solve(
     double tau_max,
     int num_steps) {
     
+    (void)metric; (void)initial_position; (void)initial_velocity; (void)initial_deviation; (void)initial_derivative;
+    
     std::vector<JacobiField> result;
     result.reserve(num_steps);
     
@@ -97,6 +99,8 @@ std::array<std::array<double, 3>, 3> GeodesicDeviation::tidalTensor(
     const Event4D& position,
     const Event4D& velocity) {
     
+    (void)metric; (void)velocity;
+    
     // Simplified tidal tensor
     // E_ij = R_{titj} where t is time component
     
@@ -130,6 +134,8 @@ double GeodesicDeviation::raychaudhuriExpansion(
     double initial_separation,
     double initial_expansion,
     double tau_max) {
+    
+    (void)metric; (void)initial_separation;
     
     // Raychaudhuri equation: dθ/dτ = -θ²/3 - σ² - R_μν u^μ u^ν
     // Simplified: dθ/dτ = -θ²/3 - curvature

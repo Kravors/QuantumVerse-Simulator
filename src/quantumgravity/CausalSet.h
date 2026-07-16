@@ -229,6 +229,11 @@ public:
     ) const override;
 
     double computeSpectralDimension(double mu) const override;
+    /**
+     * @brief Computes the Hausdorff dimension of the causal set.
+     * Uses box-counting on the poset to estimate the fractal dimension.
+     * @return Estimated Hausdorff dimension.
+     */
     double computeHausdorffDimension() const override;
 
     // Visualization

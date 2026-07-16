@@ -173,7 +173,10 @@ public:
 
     std::unique_ptr<TheoryPlugin> clone() const override;
 
-    // CDT operations
+    /**
+     * @brief Run Monte Carlo simulation of the triangulated manifold.
+     * @param numSteps Number of Monte Carlo steps to perform.
+     */
     void runMonteCarlo(int numSteps);
     void thermalize(int steps);
     void measureObservables();

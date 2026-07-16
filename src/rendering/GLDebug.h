@@ -67,6 +67,12 @@ public:
     void resetCounters();
 
     /**
+     * @brief Enable strict mode: any GL error causes failure
+     */
+    void setStrictMode(bool strict) { m_strictMode = strict; }
+    bool strictMode() const { return m_strictMode; }
+
+    /**
      * @brief Log a GL error (for use with CHECK_GL_ERROR macro)
      */
     static void logGLError(GLDEBUG_ENUM error, const char* file, int line, const char* context);
@@ -89,6 +95,7 @@ private:
     bool m_enabled = false;
     int m_errorCount = 0;
     int m_warningCount = 0;
+    bool m_strictMode = false;
     std::function<void(const std::string&)> m_logCallback;
 };
 

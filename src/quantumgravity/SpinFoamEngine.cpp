@@ -91,6 +91,7 @@ MetricTensor SpinFoamEngine::computeMetric(
     double r = std::sqrt(dx*dx + dy*dy + dz*dz);
     double theta = M_PI / 2.0;  // Equatorial
     double phi = 0.0;
+    (void)phi;
     
     // Quantum correction factor: effective metric becomes regular at r=0
     // Using a simple polymer-like correction: r^2 -> r^2 + λ^2
@@ -119,6 +120,10 @@ std::array<std::array<double, 4>, 4> SpinFoamEngine::computeChristoffel(
     const Event4D& location,
     int rho, int mu, int nu
 ) const {
+    (void)location;
+    (void)rho;
+    (void)mu;
+    (void)nu;
     // Compute metric at this location
     MetricTensor metric = computeMetric(location, {});
     
@@ -145,6 +150,7 @@ std::array<std::array<double, 4>, 4> SpinFoamEngine::computeChristoffel(
 }
 
 MetricTensor SpinFoamEngine::computeRicciTensor(const Event4D& location) const {
+    (void)location;
     // For a vacuum solution (like quantum-corrected Schwarzschild),
     // Ricci tensor should be zero outside matter.
     // Return zero tensor.
@@ -158,6 +164,7 @@ MetricTensor SpinFoamEngine::computeRicciTensor(const Event4D& location) const {
 }
 
 double SpinFoamEngine::computeRicciScalar(const Event4D& location) const {
+    (void)location;
     // R = 0 for vacuum
     return 0.0;
 }
@@ -303,8 +310,8 @@ SpinNetwork SpinFoamEngine::generateRandomBoundary(int numVertices, double avgSp
                 Spin s = static_cast<Spin>(2 * (avgSpin + spinOffset(rng)));
                 s = std::max(0, std::min(s, maxSpin));
                 edges.emplace_back(i, j, s, 0, 0);
-                vertices[i].incident_edges.push_back(edges.size()-1);
-                vertices[j].incident_edges.push_back(edges.size()-1);
+                vertices[i].incident_edges.push_back(static_cast<int>(edges.size()-1));
+                vertices[j].incident_edges.push_back(static_cast<int>(edges.size()-1));
             }
         }
     }

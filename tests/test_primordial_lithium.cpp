@@ -36,6 +36,7 @@ int main() {
     const auto& f = findings.front();
     bool mentions = f.description.find("lithium") != std::string::npos;
     assert(mentions && "Finding does not mention lithium crisis");
+    (void)mentions;
 
     auto mit = f.parameters.find("measured_abundance");
     assert(mit != f.parameters.end() && "measured_abundance parameter missing");

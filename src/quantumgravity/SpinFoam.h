@@ -118,6 +118,7 @@ public:
      * @return Amplitude contribution
      */
     static double amplitudeFrom15j(const std::array<Spin, 10>& simplex_spins, double gamma) {
+        (void)gamma;
         // In EPRL, the vertex amplitude involves a sum over SO(3) intertwiners
         // and ultimately reduces to a 15j symbol in the large spin limit.
         double j15 = compute15jSymbol(simplex_spins);
@@ -130,17 +131,17 @@ public:
     /**
      * @brief Get number of boundary slices
      */
-    int numBoundaries() const { return boundary_slices.size(); }
+    int numBoundaries() const { return static_cast<int>(boundary_slices.size()); }
     
     /**
      * @brief Get number of vertices in the foam
      */
-    int numVertices() const { return vertex_spins.size(); }
+    int numVertices() const { return static_cast<int>(vertex_spins.size()); }
     
     /**
      * @brief Get number of faces
      */
-    int numFaces() const { return face_spins.size(); }
+    int numFaces() const { return static_cast<int>(face_spins.size()); }
     
     /**
      * @brief Clone this spin foam

@@ -38,6 +38,7 @@ int main() {
     bool mentions = f.description.find("stream") != std::string::npos ||
                     f.description.find("anomaly") != std::string::npos;
     assert(mentions && "Finding does not mention stream anomaly");
+    (void)mentions;
 
     auto ait = f.parameters.find("anomaly_time");
     assert(ait != f.parameters.end() && "anomaly_time parameter missing");

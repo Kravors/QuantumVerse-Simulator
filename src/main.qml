@@ -550,6 +550,7 @@ ApplicationWindow {
                         case Qt.Key_S: camController.dolly(1.0); break
                         case Qt.Key_R: camController.reset(); break
                         case Qt.Key_Space: simulationPaused = !simulationPaused; break
+                        case Qt.Key_F3: if (viewport) viewport.showHUD = !viewport.showHUD; break
                         case Qt.Key_1: if (viewport && viewport.camera4DAdapter) viewport.camera4DAdapter.activePlane = 0; break
                         case Qt.Key_2: if (viewport && viewport.camera4DAdapter) viewport.camera4DAdapter.activePlane = 1; break
                         case Qt.Key_3: if (viewport && viewport.camera4DAdapter) viewport.camera4DAdapter.activePlane = 2; break

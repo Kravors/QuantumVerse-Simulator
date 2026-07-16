@@ -1,39 +1,29 @@
 name: Release
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (e.g., v0.1.1)'
-        required: true
-        default: 'v0.1.1'
+  push:
+    tags: ['v*']
 
 jobs:
-  build-and-release:
-    runs-on: [self-hosted, Windows, X64]
-    
+  package-windows:
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Configure & Build
-      run: |
-        cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
-        cmake --build build --config Release --parallel
-    
-    - name: Test
-      run: ctest --test-dir build -C Release
-    
-    - name: Package
-      run: cd build && cpack -C Release
-    
-    - name: Upload Release Assets
-      uses: softprops/action-gh-release@v2
+    - name: Setup Qt
+      uses: jurplel/install-qt-action@v4
       with:
-        files: |
-          build/QuantumVerse-*.zip
-          build/QuantumVerse-*.exe
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        version: 6.11.1
+        arch: msvc2022_64
+    - name: Build Release
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON && cmake --build build --config Release --parallel
+    - name: Deploy with windeployqt
+      run: cmake --build build --config Release --target deploy_qt_runtime
+    - name: Package as zip
+      run: |
+        cd build/Release
+        7z a ../../quantumverse_v${{ github.ref_name }}_win64.zip *.exe *.dll *.conf qt.conf plugins/ qml/
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: quantumverse-windows
+        path: quantumverse_v${{ github.ref_name }}_win64.zip

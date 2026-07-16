@@ -67,6 +67,7 @@ LONG WINAPI crashHandler(EXCEPTION_POINTERS* exceptionInfo) {
             nullptr,
             nullptr
         );
+        (void)result;
         
         s_lastCrashDump = dumpFile;
         CloseHandle(hFile);

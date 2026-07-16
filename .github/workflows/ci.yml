@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+        qt_version: [6.11.1]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ matrix.qt_version }}
+        target: desktop
+        arch: msvc2022_64
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }}
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel
+    - name: Deploy Qt runtime
+      run: cmake --build build --config ${{ matrix.build_type }} --target deploy_qt_runtime
+    - name: Run tests (excl. slow)
+      run: ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure
+    - name: Run ASan tests (Debug only)
+      if: matrix.build_type == 'Debug'
+      run: ctest -C Debug -R MemoryLeakTest --output-on-failure
+
+  build-and-test-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y qt6-base-dev qt6-declarative-dev libgl1-mesa-dev
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel
+    - name: Run tests (excl. slow)
+      run: ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure

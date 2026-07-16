@@ -139,9 +139,11 @@ public:
         double r = event.x;      // comoving radial coordinate
         double theta = event.y;  // polar angle
         double phi = event.z;    // azimuthal angle
+        (void)phi;
 
         double a = scaleFactor_(t);
         double adot = derivativeScaleFactor(t);
+        (void)adot;
 
         MetricTensor metric;
         metric.setToZero();

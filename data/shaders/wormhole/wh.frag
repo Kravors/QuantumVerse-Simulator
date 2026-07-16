@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../common/ubo.glsl"
 
@@ -6,8 +7,6 @@ in vec3 v_worldPos;
 in float v_radius;
 
 out vec4 FragColor;
-
-uniform float u_time;
 uniform float u_throatRadius;
 
 void main() {
@@ -20,3 +19,4 @@ void main() {
     
     FragColor = vec4(color, alpha);
 }
+

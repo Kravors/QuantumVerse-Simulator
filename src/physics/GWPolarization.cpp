@@ -29,6 +29,8 @@ std::vector<GWPolarizationState> GWPolarization::analyze(
     const std::vector<double>& detector2,
     double time_delay) {
     
+    (void)detector1; (void)detector2; (void)time_delay;
+    
     std::vector<GWPolarizationState> result;
     
     // Simplified analysis: detect plus and cross modes

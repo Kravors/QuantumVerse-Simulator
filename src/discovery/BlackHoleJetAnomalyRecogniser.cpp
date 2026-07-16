@@ -23,6 +23,7 @@ std::vector<InstrumentFinding> BlackHoleJetAnomalyRecogniser::analyze(
     const MetricTensor& metric, const Event4D& location,
     const std::vector<Event4D>& trajectory)
 {
+    (void)metric;
     std::vector<InstrumentFinding> findings;
     double minPoints = getParameter("min_points");
     if (trajectory.size() < static_cast<size_t>(minPoints)) return findings;

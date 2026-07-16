@@ -38,6 +38,7 @@ int main() {
     const auto& f = findings.front();
     bool mentionsDM = f.description.find("dark matter") != std::string::npos;
     assert(mentionsDM && "Finding does not mention dark matter");
+    (void)mentionsDM;
 
     auto rit = f.parameters.find("flatten_radius");
     assert(rit != f.parameters.end() && "flatten_radius parameter missing");

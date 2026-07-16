@@ -193,6 +193,7 @@ public:
     
     // Change slicing offset (displace slicing hyperplane)
     void setSliceOffset(double offset) {
+        (void)offset;
         // Move the slicing hyperplane along its normal
         // This affects which 3D slice is displayed
         // Implementation depends on slicing mode
@@ -437,19 +438,19 @@ public:
             
             if (interval > 0 && event[0] > nodes[i].event[0]) {
                 // Event is in causal future of node i
-                nodes[i].causalFuture.push_back(nodes.size());
-                node.causalPast.push_back(i);
+                nodes[i].causalFuture.push_back(static_cast<int>(nodes.size()));
+                node.causalPast.push_back(static_cast<int>(i));
             } else if (interval > 0 && event[0] < nodes[i].event[0]) {
                 // Event is in causal past of node i
-                nodes[i].causalPast.push_back(nodes.size());
-                node.causalFuture.push_back(i);
+                nodes[i].causalPast.push_back(static_cast<int>(nodes.size()));
+                node.causalFuture.push_back(static_cast<int>(i));
             }
             // interval == 0: lightlike (null)
             // interval < 0: spacelike (no causal relation)
         }
         
         nodes.push_back(node);
-        return nodes.size() - 1;
+        return static_cast<int>(nodes.size()) - 1;
     }
     
     // Get causal future of event
@@ -520,6 +521,7 @@ public:
     
     CurvatureSample sampleCurvature(
         const std::shared_ptr<MetricTensor>& metric) const {
+        (void)metric;
         
         CurvatureSample sample;
         
@@ -554,6 +556,7 @@ public:
     
     StressEnergySample sampleStressEnergy(
         const std::shared_ptr<MetricTensor>& metric) const {
+        (void)metric;
         
         StressEnergySample sample;
         sample.energyDensity = 0.0;  // Vacuum
@@ -984,12 +987,13 @@ public:
          }
      }
      
-     void renderDiscoveryPanel() {
-         // Display curvature samples, causal info, etc.
-         if (selectedEventIndex >= 0) {
-             const auto& node = causalGraph.getNodes()[selectedEventIndex];
-             
-             // Sample curvature at selected event
+      void renderDiscoveryPanel() {
+          // Display curvature samples, causal info, etc.
+          if (selectedEventIndex >= 0) {
+              const auto& node = causalGraph.getNodes()[selectedEventIndex];
+              (void)node;
+              
+              // Sample curvature at selected event
              auto curvature = probe.sampleCurvature(currentMetric);
              
              // Display information

@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../common/ubo.glsl"
 
@@ -19,8 +20,7 @@ in VS_OUT {
 out vec4 outColor;
 
 // Material properties from UBO
-uniform MaterialUBO u_material;
-uniform IBLUBO u_ibl;
+// u_material and u_ibl are declared in ubo.glsl
 
 // Textures
 uniform int textureArrayEnabled;
@@ -75,22 +75,22 @@ vec3 calculateIBL(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness) 
     vec3 diffuse = irradiance * albedo;
     
     vec3 specular = texture(u_brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rgb;
-    vec3 specularReflection = specular * F * u_material.metallic;
+    vec3 specularReflection = specular * F * u_metallic;
     
     vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - metallic;
     
-    return (kD * diffuse + specularReflection) * u_ibl.u_iblIntensity;
+    return (kD * diffuse + specularReflection) * u_iblIntensity;
 }
 
 void main() {
     // Get material properties
-    vec3 albedo = fs_in.color * u_material.u_albedo;
-    float metallic = u_material.u_metallic;
-    float roughness = u_material.u_roughness;
-    float emissive = u_material.u_emissive;
-    float normalScale = u_material.u_normalScale;
+    vec3 albedo = fs_in.color * u_albedo;
+    float metallic = u_metallic;
+    float roughness = u_roughness;
+    float emissive = u_emissive;
+    float normalScale = u_normalScale;
     
     // Sample texture if enabled
     vec3 texColor = vec3(1.0);
@@ -135,7 +135,7 @@ void main() {
     
     // Add IBL
     vec3 ibl = vec3(0.0);
-    if (u_ibl.u_iblEnabled > 0.5) {
+    if (u_iblEnabled > 0.5) {
         ibl = calculateIBL(N, V, albedo, metallic, roughness);
     }
     

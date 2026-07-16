@@ -23,6 +23,8 @@ std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
     const MetricTensor& metric, const Event4D& location,
     const std::vector<Event4D>& trajectory)
 {
+    (void)metric;
+    (void)location;
     std::vector<InstrumentFinding> findings;
 
     double minPoints = getParameter("min_points");

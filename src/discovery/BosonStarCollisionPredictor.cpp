@@ -23,6 +23,7 @@ std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
     const MetricTensor& metric, const Event4D& location,
     const std::vector<Event4D>& trajectory)
 {
+    (void)metric;
     std::vector<InstrumentFinding> findings;
     if (trajectory.size() < 10) return findings;
 

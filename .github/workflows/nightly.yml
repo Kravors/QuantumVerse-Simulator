@@ -1,0 +1,32 @@
+name: Nightly Deep Validation
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  deep-validation:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: 6.11.1
+        arch: msvc2022_64
+    - name: Build with ASan
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON
+    - name: Build
+      run: cmake --build build --config Debug --parallel
+    - name: Deploy Qt runtime
+      run: cmake --build build --config Debug --target deploy_qt_runtime
+    - name: Full test suite
+      run: ctest -C Debug --output-on-failure
+    - name: Fuzz campaign (10 min)
+      run: |
+        cd build/Debug
+        if (Test-Path .\fuzz_instruments.exe) { .\fuzz_instruments.exe --max_time=600 }
+        if (Test-Path .\fuzz_geodesic_differential.exe) { .\fuzz_geodesic_differential.exe --max_time=600 }
+    - name: Run shader validation
+      run: cmake --build build --target validate_shaders

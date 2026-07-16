@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../common/ubo.glsl"
 
@@ -8,7 +9,6 @@ in vec3 v_worldPos;
 out vec4 FragColor;
 
 uniform float u_mass;
-uniform float u_time;
 
 void main() {
     // Black hole: dark sphere with accretion disk effect

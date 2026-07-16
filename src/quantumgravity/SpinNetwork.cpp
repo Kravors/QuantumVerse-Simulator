@@ -39,8 +39,8 @@ SpinNetwork generateRandomSpinNetwork(int num_vertices, int max_spin, double con
                 Spin s = spin_dist(rng);
                 // Ensure triangle inequality for 3-valent case (simplified)
                 edges.emplace_back(i, j, s, 0, 0);
-                vertices[i].incident_edges.push_back(edges.size() - 1);
-                vertices[j].incident_edges.push_back(edges.size() - 1);
+                vertices[i].incident_edges.push_back(static_cast<int>(edges.size() - 1));
+                vertices[j].incident_edges.push_back(static_cast<int>(edges.size() - 1));
             }
         }
     }
@@ -125,6 +125,7 @@ double compute15jSymbol(const std::array<Spin, 10>& spins) {
     // Simplified: product of 6j symbols along a factorization (not accurate)
     // This is NOT the correct 15j but a placeholder for testing
     double prod = 1.0;
+    (void)prod;
     
     // Extract spins for the 4-simplex edge labeling
     // In a 4-simplex, there are 10 edges with spins:
@@ -159,6 +160,7 @@ double compute15jSymbol(const std::array<Spin, 10>& spins) {
  * @return Vertex amplitude (real part)
  */
 double computeEPRLVertexAmplitude(const std::array<Spin, 4>& spins, double gamma) {
+    (void)gamma;
     // Simplified version: product of (2j+1) times a phase factor
     double amp = 1.0;
     

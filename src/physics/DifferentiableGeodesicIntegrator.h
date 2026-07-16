@@ -84,6 +84,7 @@ private:
     virtual std::shared_ptr<MetricTensor> createPerturbedMetric(
         int paramIndex, double delta) const
     {
+        (void)paramIndex; (void)delta;
         // Default: return a copy of the base metric (zero gradient)
         auto copy = std::make_shared<MetricTensor>();
         copy->g = baseMetric_->g;
@@ -166,7 +167,7 @@ public:
         double paramValue = 0.0,
         bool storeTrajectory = false
     ) {
-        (void)storeTrajectory;
+        (void)storeTrajectory; (void)paramValue;
         DifferentiableGeodesicResult result;
         result.success = false;
         result.finalProperTime = 0.0;

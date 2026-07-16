@@ -14,8 +14,10 @@
 #include "../../third_party/glad/glad.h"
 
 // stb_image for loading image files
+#pragma warning(push, 0)
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../third_party/stb_image.h"
+#pragma warning(pop)
 
 #include <cstring>
 #include <iostream>
@@ -185,6 +187,7 @@ unsigned int Texture::channelsToGLFormat(int channels)
 
 unsigned int Texture::channelsToGLType(int channels)
 {
+    (void)channels;
     return GL_UNSIGNED_BYTE;
 }
 

@@ -124,9 +124,9 @@ public:
     quantumverse::CurvatureRenderer* getRenderer() const { return renderer.get(); }
 
     // Configuration
-    void setShowQuantumFoam(bool show) { /* TODO */ }
-    void setColorByCurvature(bool curvature) { /* TODO */ }
-    void setAnimationSpeed(int fps) { /* TODO */ }
+    void setShowQuantumFoam(bool show) { (void)show; /* TODO */ }
+    void setColorByCurvature(bool curvature) { (void)curvature; /* TODO */ }
+    void setAnimationSpeed(int fps) { (void)fps; /* TODO */ }
 
     // Public accessors
     double getTargetScale() const { return scaleFromLog(targetLogScale); }
@@ -166,10 +166,10 @@ using PlanckMicroscope = ::PlanckMicroscope;
 class PlanckMicroscope
 {
 public:
-    explicit PlanckMicroscope(void* parent = nullptr) {}
+    explicit PlanckMicroscope(void* parent = nullptr) { (void)parent; }
     ~PlanckMicroscope() = default;
 
-    void setActiveTheory(std::shared_ptr<quantumverse::QuantumGravityPlugin> theory) {}
+    void setActiveTheory(std::shared_ptr<quantumverse::QuantumGravityPlugin> theory) { (void)theory; }
     double getCurrentScale() const { return 1.0; }
     void setScale(double /*scale_meters*/) {}
     void zoom(double /*factor*/) {}

@@ -1,0 +1,2 @@
+Graphics API after QApplication/QQuickWindow setup: 3
+graphics_api_post_engine: 3

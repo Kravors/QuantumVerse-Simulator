@@ -52,9 +52,18 @@ public:
         g[3][0] = 0.0;   g[3][1] = 0.0;   g[3][2] = 0.0;   g[3][3] = 1.0;
     }
 
-    // Create Schwarzschild metric (non-rotating black hole)
-    // ds² = -(1-2GM/rc²)c²dt² + (1-2GM/rc²)⁻¹dr² + r²dΩ²
+    /**
+     * @brief Creates a Schwarzschild metric for a non-rotating black hole.
+     * @param mass Black hole mass in kg.
+     * @param r Radial coordinate in meters.
+     * @param theta Polar angle in radians.
+     * @param phi Azimuthal angle in radians (unused for spherical symmetry).
+     * @return Schwarzschild metric tensor.
+     *
+     * Line element: ds² = -(1-2GM/rc²)c²dt² + (1-2GM/rc²)⁻¹dr² + r²dΩ²
+     */
     static MetricTensor schwarzschild(double mass, double r, double theta, double phi) {
+        (void)phi;
         MetricTensor metric;
 
         // Schwarzschild radius: rs = 2GM/c²
@@ -104,9 +113,15 @@ public:
         return metric;
     }
 
-    // Virtual method to evaluate metric at a spacetime event
-    // Subclasses override for position-dependent metrics (Schwarzschild, Kerr, etc.)
+    /**
+     * @brief Evaluates the metric tensor at a spacetime event.
+     * @param event The spacetime event at which to evaluate.
+     * @return 4x4 metric tensor g_μν.
+     *
+     * Subclasses override for position-dependent metrics (Schwarzschild, Kerr, etc.).
+     */
     virtual std::array<std::array<double, 4>, 4> evaluate(const Event4D& event) const {
+        (void)event;
         return g;  // Default: return stored metric (constant spacetime)
     }
 
@@ -139,6 +154,7 @@ public:
     // Create metric from stress-energy tensor (Einstein field equations)
     // G_μν = (8πG/c⁴) T_μν
     static MetricTensor fromStressEnergy(const StressEnergyTensor& T) {
+        (void)T;
         // Simplified: linearized gravity approximation
         // g_μν = η_μν + h_μν where h_μν is small perturbation
         MetricTensor metric;
@@ -339,6 +355,10 @@ public:
     double mass() const { return m_mass; }
 
     std::array<std::array<double, 4>, 4> evaluate(const Event4D& event) const override {
+        if (!std::isfinite(event.x) || !std::isfinite(event.y) || !std::isfinite(event.z)) {
+            return MetricTensor().g;
+        }
+
         // Return the metric in the SAME (t, x, y, z) Cartesian basis that the
         // curvature/geodesic calculators finite-difference. The Schwarzschild
         // line element ds^2 = -(1-rs/r) dt^2 + (1-rs/r)^{-1} dr^2 + r^2 dΩ^2

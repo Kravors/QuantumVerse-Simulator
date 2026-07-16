@@ -33,7 +33,7 @@ int CausalSet::addElement(double birth_time, const std::set<int>& past_ids) {
     }
 
     elements.push_back(elem);
-    id_to_index[next_id] = elements.size() - 1;
+    id_to_index[next_id] = static_cast<int>(elements.size()) - 1;
     return next_id++;
 }
 
@@ -114,7 +114,7 @@ int CausalSet::intervalSize(int x, int y) const {
             interval.insert(z);
         }
     }
-    return interval.size();
+    return static_cast<int>(interval.size());
 }
 
 bool CausalSet::isTree() const {
@@ -149,14 +149,14 @@ double CausalSet::density() const {
     }
 
     double time_span = max_t - min_t;
-    if (time_span < 1e-10) return elements.size();
+    if (time_span < 1e-10) return static_cast<double>(elements.size());
 
     // Density = elements per unit "volume" (here just time for 1D)
     return elements.size() / time_span;
 }
 
 std::vector<std::vector<int>> CausalSet::adjacencyMatrix() const {
-    int n = elements.size();
+    int n = static_cast<int>(elements.size());
     std::vector<std::vector<int>> adj(n, std::vector<int>(n, 0));
 
     for (int i = 0; i < n; ++i) {
@@ -175,11 +175,12 @@ CausalSetDynamics::CausalSetDynamics(CausalSet& cs_, double alpha_, double beta_
     : cs(cs_), alpha(alpha_), beta(beta_), uniformDist(0.0, 1.0) {}
 
 double CausalSetDynamics::birthProbability(const std::set<int>& past, double current_time) const {
+    (void)current_time;
     // Probability of adding element with given past set
     // CSG model: P(past) ∝ exp(-α * |past| + β * number_of_pairs_in_past)
     // Simplified: P ∝ (α)^|past| * (1-β)^(pairs)
 
-    int n_past = past.size();
+    int n_past = static_cast<int>(past.size());
     int n_pairs = 0;
     if (n_past >= 2) {
         // Count pairs (i,j) where both in past and i<j
@@ -204,7 +205,7 @@ int CausalSetDynamics::growStep(double birth_time) {
     }
 
     // Determine past set size from Poisson-like distribution
-    std::uniform_int_distribution<int> countDist(0, existing.size());
+    std::uniform_int_distribution<int> countDist(0, static_cast<int>(existing.size()));
     int k = countDist(rng);
 
     // Randomly select k elements as past
@@ -227,7 +228,7 @@ void CausalSetDynamics::grow(int n, double max_time) {
     for (int i = 0; i < n; ++i) {
         double t = i * dt;
         growStep(t);
-        element_count_history.push_back(cs.size());
+        element_count_history.push_back(static_cast<int>(cs.size()));
         volume_history.push_back(cs.size() * default_planck_volume);
     }
 }
@@ -253,7 +254,7 @@ CausalSetEngine::CausalSetEngine(
 
     // Initialize with some elements
     dynamics->grow(initial_elements_, 1.0);
-    num_elements = causal_set->size();
+    num_elements = static_cast<int>(causal_set->size());
     sprinkling_density = causal_set->density();
 }
 
@@ -275,12 +276,16 @@ MetricTensor CausalSetEngine::computeMetric(
     const Event4D& location,
     const std::map<std::string, double>& parameters
 ) const {
+    (void)location;
+    (void)parameters;
     // Causal set metric is fundamentally discrete
     // For visualization, return a coarse-grained effective metric
     // Approximate as Minkowski or FLRW depending on growth
 
     double r = std::sqrt(location.x*location.x + location.y*location.y + location.z*location.z);
     double t = location.t;
+    (void)r;
+    (void)t;
 
     // For a sprinkling of causal set elements, the effective metric is approximately flat
     // but with small stochastic fluctuations at Planck scale
@@ -305,6 +310,10 @@ std::array<std::array<double, 4>, 4> CausalSetEngine::computeChristoffel(
     const Event4D& location,
     int rho, int mu, int nu
 ) const {
+    (void)location;
+    (void)rho;
+    (void)mu;
+    (void)nu;
     // Flat spacetime: Christoffel symbols vanish
     std::array<std::array<double, 4>, 4> result;
     for (int i = 0; i < 4; ++i) {
@@ -316,6 +325,7 @@ std::array<std::array<double, 4>, 4> CausalSetEngine::computeChristoffel(
 }
 
 MetricTensor CausalSetEngine::computeRicciTensor(const Event4D& location) const {
+    (void)location;
     MetricTensor zero;
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
@@ -326,10 +336,12 @@ MetricTensor CausalSetEngine::computeRicciTensor(const Event4D& location) const 
 }
 
 double CausalSetEngine::computeRicciScalar(const Event4D& location) const {
+    (void)location;
     return 0.0;  // Flat
 }
 
 double CausalSetEngine::computeKretschmannScalar(const Event4D& location) const {
+    (void)location;
     return 0.0;  // Flat
 }
 
@@ -365,8 +377,8 @@ double CausalSetEngine::computeSpectralDimension(double mu) const {
     // At large scales (mu → 0): d_s → 4
     // At small scales (mu → ∞): d_s → 2
     double mu_c = 1.0 / std::sqrt(planck_volume);  // Planck scale
-    double alpha = 1.0;
-    double d_s = 2.0 + 2.0 / (1.0 + std::pow(mu / mu_c, alpha));
+    double alpha_local = 1.0;
+    double d_s = 2.0 + 2.0 / (1.0 + std::pow(mu / mu_c, alpha_local));
     return d_s;
 }
 
@@ -459,7 +471,7 @@ std::string CausalSetEngine::getPlanckScaleEffects() const {
 
 void CausalSetEngine::grow(int n, double max_time) {
     dynamics->grow(n, max_time);
-    num_elements = causal_set->size();
+    num_elements = static_cast<int>(causal_set->size());
     sprinkling_density = causal_set->density();
 }
 
@@ -476,6 +488,8 @@ double CausalSetEngine::estimateDimensionality() const {
 }
 
 double CausalSetEngine::randomWalkSpectralDimension(int num_walks, int steps) const {
+    (void)num_walks;
+    (void)steps;
     // Estimate spectral dimension via random walks on the causal set
     // d_s = 2 * (mean squared displacement) / log(steps)  (for diffusion on fractals)
 

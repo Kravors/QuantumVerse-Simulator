@@ -164,6 +164,7 @@ public:
     std::vector<std::string> instrumentNames() const;
     bool scanRunning() const { return m_scanRunning; }
     double scanProgress() const { return m_scanProgress; }
+    const std::vector<InstrumentFinding>& findings() const { return m_allFindings; }
 
     // Scan control
      void startScan();

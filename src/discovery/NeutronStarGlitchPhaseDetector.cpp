@@ -26,6 +26,7 @@ std::vector<InstrumentFinding> NeutronStarGlitchPhaseDetector::analyze(
     const MetricTensor& metric, const Event4D& location,
     const std::vector<Event4D>& trajectory)
 {
+    (void)metric;
     std::vector<InstrumentFinding> findings;
 
     if (trajectory.size() < 6) return findings;
@@ -103,6 +104,7 @@ std::vector<InstrumentFinding> NeutronStarGlitchPhaseDetector::analyze(
 double NeutronStarGlitchPhaseDetector::computeVortexUnpinningProbability(
     double spinDownRate, double glitchSize)
 {
+    (void)glitchSize;
     // Exponential activation model: P ~ exp(-E_pin / (k_B T_eff))
     // T_eff ~ hbar * Omega_critical
     double omegaRatio = spinDownRate;

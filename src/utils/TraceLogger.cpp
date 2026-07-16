@@ -156,7 +156,9 @@ std::string TraceLogger::getTimestamp() {
         now.time_since_epoch()) % 1000;
     
     std::ostringstream oss;
-    oss << std::put_time(std::localtime(&time_t), "%Y-%m-%dT%H:%M:%S");
+    std::tm tm_buf;
+    localtime_s(&tm_buf, &time_t);
+    oss << std::put_time(&tm_buf, "%Y-%m-%dT%H:%M:%S");
     oss << '.' << std::setfill('0') << std::setw(3) << ms.count() << 'Z';
     return oss.str();
 }

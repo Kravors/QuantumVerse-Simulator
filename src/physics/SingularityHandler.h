@@ -114,7 +114,6 @@ private:
     
     // Check if singularity is naked (no event horizon)
     bool checkNakedSingularity(double mass, double angular_momentum, double charge) const {
-        double rs = computeSchwarzschildRadius(mass);
         double a = angular_momentum / (mass * Event4D::C);
         double q = charge * charge / (4.0 * M_PI * 8.854187817e-12 * Event4D::C2 * mass);
         
@@ -211,7 +210,11 @@ public:
         return r < props.ergosphere_radius && r > props.event_horizon_radius;
     }
     
-    // Compute tidal forces at given position
+    /**
+     * @brief Computes tidal forces at a given position.
+     * @param event The spacetime event where tidal forces are evaluated.
+     * @return TidalForce structure with radial stretch, lateral compression, and spaghettification factor.
+     */
     TidalForce computeTidalForces(const Event4D& event) const {
         TidalForce force;
         
@@ -303,7 +306,6 @@ public:
         double dy = event.y - position[1];
         double dz = event.z - position[2];
         double r = std::sqrt(dx * dx + dy * dy + dz * dz);
-        double theta = std::acos(dz / r);
 
         double a = props.angular_momentum / (props.mass * Event4D::C);
         double rs = props.schwarzschild_radius;
@@ -321,6 +323,7 @@ public:
       * No curvature singularity at r=0; de Sitter core.
       */
     MetricTensor getHaywardMetric(double r, double theta, double phi) const {
+        (void)phi;
         double M = props.schwarzschild_radius;  // Use r_s instead of mass in kg
         double L = 1.616e-35;  // Planck length
 
@@ -350,6 +353,7 @@ public:
       * Regular core sourced by nonlinear electrodynamics (Born-Infeld).
       */
     MetricTensor getBardeenMetric(double r, double theta, double phi) const {
+        (void)phi;
         double M = props.schwarzschild_radius;  // Use r_s instead of mass in kg
         double Q = props.charge;  // Magnetic charge parameter (length scale)
 
@@ -382,6 +386,7 @@ public:
       * Replaces singularity with quantum bounce.
       */
     MetricTensor getLoopQuantumMetric(double r, double theta, double phi) const {
+        (void)phi;
         double M = props.schwarzschild_radius;  // Use r_s instead of mass in kg
         double L = 1.616e-35;  // Planck length
 
@@ -433,6 +438,7 @@ public:
       * Matter source: T_μν ~ exp(-r²/σ²) gives regular core
       */
     MetricTensor getGaussMetric(double r, double theta, double phi) const {
+        (void)phi;
         double M = props.schwarzschild_radius;  // Use r_s instead of mass in kg
         double sigma = 1.0 * 1.616e-35;  // Gaussian width ~ Planck length
 
@@ -464,7 +470,6 @@ public:
     double getHawkingTemperature() const {
         if (props.type == SingularityType::HAYWARD) {
             double L = 1.616e-35;
-            double r_h = getHaywardHorizonRadius();
             // κ = (r_h - r_+) / (2 r_h r_+) where r_+ is outer horizon
             // Simplified: T ~ 1/(8πM) for large M, but saturates at T_max ~ 1/(2πL)
             return 1.0 / (8.0 * M_PI * props.mass) * (1.0 + std::pow(L / (2.0 * props.mass), 2));
@@ -490,7 +495,6 @@ public:
      * For regular BHs, evaporation stops at Planck mass remnant.
      */
     double getEvaporationRate() const {
-        double T = getHawkingTemperature();
         // Power ~ A T⁴, A ~ r_h², for BH: dM/dt ~ -1/M² (Schwarzschild)
         double alpha = 3.561e25;  // ħ c⁴ / (15360 π G²) in SI (kg³/s)
         double rate = -alpha / (props.mass * props.mass * props.mass);
@@ -650,6 +654,7 @@ public:
     
     // Get combined metric from all singularities (superposition approximation)
     MetricTensor getCombinedMetric(const Event4D& event) const {
+        (void)event;
         // Start with Minkowski metric
         MetricTensor combined;
         

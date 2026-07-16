@@ -205,7 +205,13 @@ private:
     // Classify anomaly type
     std::string classifyAnomaly(const DiscoveryResult& result);
     
-    // Hypothesis lifecycle management
+    /**
+     * @brief Propose a new physics hypothesis.
+     * @param name Human-readable name for the hypothesis.
+     * @param fieldEquation Mathematical form of the proposed field equation.
+     * @param parameters Initial parameter values for the hypothesis.
+     * @return Unique hypothesis ID.
+     */
     std::string proposeHypothesis(
         const std::string& name,
         const std::string& fieldEquation,

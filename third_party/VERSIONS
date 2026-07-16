@@ -1,0 +1,38 @@
+# Third-Party Dependency Versions
+
+This file documents the exact versions of all third-party dependencies
+used by QuantumVerse Simulator. Update this file when upgrading any
+dependency.
+
+## Graphics / OpenGL
+
+| Library | Version | Location | License |
+|---------|---------|----------|---------|
+| glad | 0.1.36 | third_party/glad/ | MIT |
+| stb_image | stub | third_party/stb_image.h | Public Domain / MIT |
+
+## Machine Learning
+
+| Library | Version | Location | License |
+|---------|---------|----------|---------|
+| ONNX Runtime | 1.27.0 | third_party/onnxruntime/ | MIT |
+
+## Qt Framework
+
+| Library | Version | Notes |
+|---------|---------|-------|
+| Qt | 6.11.1 | msvc2022_64, installed at F:\qt\6.11.1\msvc2022_64 |
+
+## Build Tools
+
+| Tool | Minimum Version | Notes |
+|------|-----------------|-------|
+| CMake | 3.20 | Configured with 4.3.2 |
+| MSVC | 19.38 (VS 2022) | Actual: 14.50.35717 (VS 18 2026) |
+
+## Notes
+
+- glad was generated on 2026-05-07 with OpenGL 4.5 Core Profile support.
+- ONNX Runtime 1.27.0 source is vendored in third_party/onnxruntime_src/.
+- stb_image.h is currently a stub; replace with upstream stb_image when image loading is required.
+- Qt is not vendored; it must be installed separately.

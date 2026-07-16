@@ -105,8 +105,8 @@ void QmlCamController::setAzimuth(float az)
     if (std::abs(m_azimuth - az) > 0.001f) {
         m_azimuth = az;
         // Wrap to [-PI, PI]
-        while (m_azimuth > M_PI) m_azimuth -= 2.0 * M_PI;
-        while (m_azimuth < -M_PI) m_azimuth += 2.0 * M_PI;
+        while (m_azimuth > static_cast<float>(M_PI)) m_azimuth -= static_cast<float>(2.0 * M_PI);
+        while (m_azimuth < static_cast<float>(-M_PI)) m_azimuth += static_cast<float>(2.0 * M_PI);
         emit azimuthChanged();
         emit viewChanged();
     }
@@ -154,6 +154,7 @@ void QmlCamController::onMousePressed(float x, float y, int button)
 
 void QmlCamController::onMouseMoved(float x, float y, int buttons)
 {
+    (void)buttons;
     if (!m_isDragging) return;
 
     float dx = x - m_lastMouseX;

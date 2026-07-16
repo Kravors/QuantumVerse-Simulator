@@ -38,8 +38,8 @@ void SimplicialManifold::initializeLattice() {
     simplices.clear();
 
     // Create regular lattice: time slices × spatial grid
-    int timeSteps = std::ceil(std::cbrt(N));
-    int spatialGrid = std::ceil(std::pow(N / timeSteps, 1.0/3.0));
+    int timeSteps = static_cast<int>(std::ceil(std::cbrt(static_cast<double>(N))));
+    int spatialGrid = static_cast<int>(std::ceil(std::pow(static_cast<double>(N) / timeSteps, 1.0/3.0)));
 
     double dt = temporalExtent / timeSteps;
     double dx = spatialVolume / spatialGrid;
@@ -153,9 +153,10 @@ bool SimplicialManifold::performPachnerMove2_6() {
     // Simplified: Randomly select an edge and flip
     if (simplices.empty()) return false;
 
-    std::uniform_int_distribution<int> simplexDist(0, simplices.size()-1);
+    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size())-1);
     int idx = simplexDist(rng);
     auto& s = simplices[idx];
+    (void)s;
 
     // Modify vertex connectivity (simplified - actual Pachner is more complex)
     // In full implementation: identify neighboring simplices, perform bistellar flip
@@ -166,7 +167,7 @@ bool SimplicialManifold::performPachnerMove3_3() {
     // 3-3 move: Replace 3 tetrahedra with 3 others
     if (simplices.size() < 3) return false;
 
-    std::uniform_int_distribution<int> simplexDist(0, simplices.size()-3);
+    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size())-3);
     int idx = simplexDist(rng);
 
     // Swap three simplices (simplified)
@@ -180,7 +181,7 @@ bool SimplicialManifold::performPachnerMove4_2() {
     // 4-2 move: Replace 1 4-simplex with 2
     if (simplices.empty()) return false;
 
-    std::uniform_int_distribution<int> simplexDist(0, simplices.size()-1);
+    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size())-1);
     int idx = simplexDist(rng);
 
     // Split simplex into two (simplified)
@@ -192,8 +193,8 @@ bool SimplicialManifold::performPachnerMove4_2() {
         s1.v[i] = original.v[i];
         s2.v[i] = original.v[i];
     }
-    s1.id = simplices.size();
-    s2.id = simplices.size()+1;
+    s1.id = static_cast<int>(simplices.size());
+    s2.id = static_cast<int>(simplices.size())+1;
     s1.volume = original.volume / 2;
     s2.volume = original.volume / 2;
 
@@ -254,6 +255,7 @@ double SimplicialManifold::computeReggeAction() const {
 }
 
 double SimplicialManifold::computeDeficitAngle(int vertexId) {
+    (void)vertexId;
     // Deficit angle: 2π - sum of solid angles of simplices around vertex
     // Simplified: return small random value for now
     std::uniform_real_distribution<double> angleDist(0.0, 0.1);
@@ -261,6 +263,7 @@ double SimplicialManifold::computeDeficitAngle(int vertexId) {
 }
 
 double SimplicialManifold::computeCurvatureScalar(int vertexId) {
+    (void)vertexId;
     // Regge curvature scalar from deficit angles
     double deficit = computeDeficitAngle(vertexId);
     // R ~ 6 * deficit / (volume around vertex)
@@ -270,7 +273,7 @@ double SimplicialManifold::computeCurvatureScalar(int vertexId) {
 std::vector<double> SimplicialManifold::computeAllDeficitAngles() {
     vertexDeficitAngles.resize(vertices.size());
     for (size_t i = 0; i < vertices.size(); ++i) {
-        vertexDeficitAngles[i] = computeDeficitAngle(i);
+        vertexDeficitAngles[i] = computeDeficitAngle(static_cast<int>(i));
     }
     return vertexDeficitAngles;
 }
@@ -290,13 +293,13 @@ double SimplicialManifold::estimateSpectralDimension(int numWalkers, int numStep
 
     for (int w = 0; w < numWalkers; ++w) {
         // Start at random vertex
-        std::uniform_int_distribution<int> vertexDist(0, vertices.size()-1);
+        std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size())-1);
         int current = vertexDist(rng);
         const auto& startPos = vertices[current].coordinates;
 
         for (int step = 0; step < numSteps; ++step) {
             // Random walk on dual graph (simplified: random neighbor)
-            std::uniform_int_distribution<int> neighborDist(0, simplices.size()-1);
+            std::uniform_int_distribution<int> neighborDist(0, static_cast<int>(simplices.size())-1);
             int neighborSimplex = neighborDist(rng);
 
             // Move to random vertex in that simplex
@@ -354,7 +357,7 @@ double SimplicialManifold::estimateSpectralDimensionAtScale(double mu) {
     std::vector<double> r2_t1(numWalkers), r2_t2(numWalkers);
 
     for (int w = 0; w < numWalkers; ++w) {
-        std::uniform_int_distribution<int> vertexDist(0, vertices.size()-1);
+        std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size())-1);
         int start = vertexDist(rng);
 
         // Walk t1 steps
@@ -367,6 +370,7 @@ double SimplicialManifold::estimateSpectralDimensionAtScale(double mu) {
     double meanR2_2 = std::accumulate(r2_t2.begin(), r2_t2.end(), 0.0) / numWalkers;
 
     double logMu = std::log(mu);
+    (void)logMu;
     double logR2_1 = std::log(meanR2_1 + 1e-10);
     double logR2_2 = std::log(meanR2_2 + 1e-10);
 
@@ -376,7 +380,7 @@ double SimplicialManifold::estimateSpectralDimensionAtScale(double mu) {
 
 double SimplicialManifold::randomWalkDistance(int start, int steps) const {
     // Simplified random walk: jump to random vertex
-    std::uniform_int_distribution<int> vertexDist(0, vertices.size()-1);
+    std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size())-1);
     int current = start;
     for (int i = 0; i < steps; ++i) {
         current = vertexDist(rng);
@@ -391,7 +395,7 @@ double SimplicialManifold::estimateHausdorffDimension() {
     std::vector<double> radii = {1.0, 2.0, 4.0, 8.0, 16.0};
     std::vector<double> volumes;
 
-    std::uniform_int_distribution<int> centerDist(0, vertices.size()-1);
+    std::uniform_int_distribution<int> centerDist(0, static_cast<int>(vertices.size())-1);
 
     for (double r : radii) {
         double totalVol = 0.0;
@@ -418,7 +422,7 @@ double SimplicialManifold::estimateHausdorffDimension() {
 
     // Linear regression: log(V) vs log(r)
     double sumLogR = 0.0, sumLogV = 0.0, sumLogR2 = 0.0, sumLogRV = 0.0;
-    int n = radii.size();
+    int n = static_cast<int>(radii.size());
 
     for (int i = 0; i < n; ++i) {
         double logR = std::log(radii[i]);
@@ -482,10 +486,12 @@ double SimplicialManifold::getCurvatureVariance() const {
 }
 
 void SimplicialManifold::saveToFile(const std::string& filename) const {
+    (void)filename;
     // TODO: Implement binary/ASCII save
 }
 
 void SimplicialManifold::loadFromFile(const std::string& filename) {
+    (void)filename;
     // TODO: Implement binary/ASCII load
 }
 
@@ -542,6 +548,9 @@ MetricTensor CDTEngine::computeMetric(
     double curvature = averageCurvature;
     double correction = 1.0 + curvature * 1e-30;  // Planck-scale effect
 
+    (void)location;
+    (void)parameters;
+
     // Apply to spatial part (simplified)
     for (int i = 1; i < 4; ++i) {
         metric.g[i][i] *= correction;
@@ -556,6 +565,8 @@ std::array<std::array<double, 4>, 4> CDTEngine::computeChristoffel(
 ) const {
     // Christoffel symbols from effective metric
     std::array<std::array<double, 4>, 4> gamma = {0};
+
+    (void)location;
 
     // Simplified: zero for flat + small corrections
     double correction = averageCurvature * 1e-30;
@@ -579,6 +590,8 @@ MetricTensor CDTEngine::computeRicciTensor(const Event4D& location) const {
 }
 
 double CDTEngine::computeRicciScalar(const Event4D& location) const {
+    (void)location;
+
     // R ~ 6 * average deficit / volume
     double deficit = manifold->getAverageDeficit();
     return 6.0 * deficit / 1.0;  // Simplified
@@ -595,6 +608,9 @@ double CDTEngine::computeAmplitude(
     const Event4D& from,
     const Event4D& to
 ) const {
+    (void)from;
+    (void)to;
+
     // Path integral amplitude between two events
     // Z ~ e^{-S_eff[path]}, S_eff from Regge action
     double action = manifold->computeReggeAction();

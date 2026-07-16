@@ -53,8 +53,11 @@ public:
     // Move constructor
     Event4D(Event4D&&) = default;
 
-    // Spacetime interval squared (Minkowski metric, mostly-minus convention)
-    // ds² = c²dt² - dx² - dy² - dz²
+    /**
+     * @brief Computes the squared Minkowski interval for this event.
+     * @param other The other event to compute interval to.
+     * @return ds² = c²dt² - dx² - dy² - dz²
+     */
     double intervalSquared(const Event4D& other) const {
         double dt = other.t - t;
         double dx = other.x - x;

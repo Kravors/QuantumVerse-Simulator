@@ -33,8 +33,10 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QThread>
 #include <QWidget>
 #include <QWindow>
+#include <vector>
 #include <iostream>
 
 #include "qmlglviewport.h"
@@ -48,6 +50,7 @@
 #include "rendering/CurvatureRenderer.h"
 #include "rendering/QuantumGeometryRenderer.h"
 #include "rendering/CelestialBodyRenderer.h"
+#include "rendering/GLDebug.h"
 #include "physics/SingularityHandler.h"
 #include "quantumgravity/CDTEngine.h"
 #include "discovery/DiscoveryPanelManager.h"
@@ -67,6 +70,7 @@
 #include "discovery/RecombinationConstantVariationImager.h"
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
+#include "utils/FrameDiagnostics.h"
 
 /**
  * @brief Register QML types for the QuantumVerse module
@@ -133,19 +137,41 @@ int main(int argc, char* argv[])
     int headlessFrames = 0;
     bool autoScan = false;
     bool enableGeodesics = false;
+    bool glStrict = false;
+    QString screenshotPath;
+    QString frameTimesPath;
+    QString diagnosticsPath;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--screenshot") == 0 && i + 1 < argc) {
+            screenshotPath = argv[++i];
+        } else if (strcmp(argv[i], "--dump-frame-times") == 0 && i + 1 < argc) {
+            frameTimesPath = argv[++i];
+        } else if (strcmp(argv[i], "--diagnostics") == 0 && i + 1 < argc) {
+            diagnosticsPath = argv[++i];
+        } else if (strcmp(argv[i], "--gl-strict") == 0) {
+            glStrict = true;
         } else if (strcmp(argv[i], "--autoscan") == 0) {
             autoScan = true;
         } else if (strcmp(argv[i], "--enable-geodesics") == 0) {
             enableGeodesics = true;
         }
     }
+    if (!screenshotPath.isEmpty() && headlessFrames <= 0) {
+        headlessFrames = 1;
+    }
     if (GetSystemMetrics(SM_CMONITORS) == 0 && headlessFrames <= 0) {
         std::cerr << "No display detected. Exiting gracefully (headless environment)." << std::endl;
         std::cerr.flush();
         return 0;
+    }
+
+    quantumverse::utils::FrameDiagnostics frameDiagnostics;
+    if (!diagnosticsPath.isEmpty()) {
+        frameDiagnostics.setEnabled(true);
+        std::cerr << "Frame diagnostics enabled, output: " << diagnosticsPath.toStdString() << std::endl;
+        std::cerr.flush();
     }
 
     try {
@@ -186,10 +212,7 @@ int main(int argc, char* argv[])
     qDebug() << "QT_PLUGIN_PATH set to:" << qgetenv("QT_PLUGIN_PATH").constData();
     qDebug() << "QML2_IMPORT_PATH set to:" << qgetenv("QML2_IMPORT_PATH").constData();
 
-    // Enable high-DPI scaling
-    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
-    // Set OpenGL format before QGuiApplication to avoid shared-context warnings
     QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
 
     QApplication app(argc, argv);
@@ -481,6 +504,14 @@ int main(int argc, char* argv[])
                     qDebug() << "[DIAG] --enable-geodesics: curvatureRenderer sync will happen in renderGL()";
                 }
 
+                if (!screenshotPath.isEmpty()) {
+                    viewport->requestScreenshot(screenshotPath);
+                }
+
+                if (glStrict) {
+                    quantumverse::GLDebug::instance().setStrictMode(true);
+                }
+
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
                 std::cerr.flush();
@@ -522,6 +553,21 @@ int main(int argc, char* argv[])
             std::cerr << "Headless benchmark mode: rendering " << headlessFrames << " frames" << std::endl;
             std::cerr.flush();
 
+            // Phase 1 warmup: complete GL initialization before benchmark.
+            // This triggers one-time shader recompilation, context creation,
+            // and driver warmup so measured frames reflect steady-state perf.
+            std::cerr << "Headless warmup: rendering initial frames..." << std::endl;
+            std::cerr.flush();
+            for (int w = 0; w < 5; ++w) {
+                if (viewport) {
+                    viewport->update();
+                }
+                QCoreApplication::processEvents();
+                QThread::msleep(50);
+            }
+            std::cerr << "Warmup complete, starting benchmark..." << std::endl;
+            std::cerr.flush();
+
             QElapsedTimer elapsed;
             elapsed.start();
             qint64 lastTickNs = 0;
@@ -529,18 +575,21 @@ int main(int argc, char* argv[])
             double headlessTotalMs = 0.0;
             double headlessMinMs = 1e9;
             double headlessMaxMs = 0.0;
+            std::vector<double> frameDeltas;
 
             QTimer* headlessTimer = new QTimer(&app);
             headlessTimer->setInterval(16);
             QObject::connect(headlessTimer, &QTimer::timeout, [&]() {
                 qint64 nowNs = elapsed.nsecsElapsed();
+                double frameMs = 0.0;
                 if (lastTickNs > 0) {
-                    double frameMs = (nowNs - lastTickNs) / 1e6;
+                    frameMs = (nowNs - lastTickNs) / 1e6;
                     if (frameMs < 0.5) frameMs = 0.5;
 
                     headlessTotalMs += frameMs;
                     if (frameMs < headlessMinMs) headlessMinMs = frameMs;
                     if (frameMs > headlessMaxMs) headlessMaxMs = frameMs;
+                    frameDeltas.push_back(frameMs);
                 }
                 lastTickNs = nowNs;
                 headlessRendered++;
@@ -551,6 +600,20 @@ int main(int argc, char* argv[])
                 // this the render loop only runs a single frame.
                 if (viewport) {
                     viewport->update();
+                }
+
+                if (frameDiagnostics.isEnabled()) {
+                    quantumverse::utils::FrameSnapshot snap;
+                    snap.frame_number = headlessRendered;
+                    snap.timestamp_s = elapsed.nsecsElapsed() / 1e9;
+                    snap.frame_time_ms = frameMs;
+                    snap.physics_time_ms = 0.0;
+                    snap.render_time_ms = 0.0;
+                    snap.ui_time_ms = 0.0;
+                    snap.active_geodesics = 0;
+                    snap.vram_used_mb = 0.0;
+                    snap.gl_error_count = quantumverse::GLDebug::instance().getErrorCount();
+                    frameDiagnostics.recordFrame(snap);
                 }
 
                 if (headlessRendered >= headlessFrames) {
@@ -575,6 +638,21 @@ int main(int argc, char* argv[])
                         std::cerr.flush();
                     }
 
+                    if (!frameTimesPath.isEmpty()) {
+                        QFile ftFile(frameTimesPath);
+                        if (ftFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                            QTextStream out(&ftFile);
+                            for (double dt : frameDeltas) {
+                                out << dt << "\n";
+                            }
+                            ftFile.close();
+                        } else {
+                            std::cerr << "Failed to open frame times file: "
+                                      << frameTimesPath.toStdString() << std::endl;
+                            std::cerr.flush();
+                        }
+                    }
+
                     headlessTimer->stop();
                     QTimer::singleShot(50, &app, &QApplication::quit);
                 }
@@ -589,6 +667,25 @@ int main(int argc, char* argv[])
 
         // Run the application
         int result = app.exec();
+
+        if (frameDiagnostics.isEnabled() && !diagnosticsPath.isEmpty()) {
+            bool written = frameDiagnostics.writeJson(diagnosticsPath.toStdString());
+            if (written) {
+                std::cerr << "Frame diagnostics written to " << diagnosticsPath.toStdString() << std::endl;
+            } else {
+                std::cerr << "Failed to write frame diagnostics to " << diagnosticsPath.toStdString() << std::endl;
+            }
+            std::cerr.flush();
+        }
+
+        if (glStrict && quantumverse::GLDebug::instance().isEnabled()) {
+            int errCount = quantumverse::GLDebug::instance().getErrorCount();
+            if (errCount > 0) {
+                std::cerr << "GL strict mode: " << errCount << " GL error(s) detected during rendering" << std::endl;
+                std::cerr.flush();
+                return 1;
+            }
+        }
 
         // Cleanup on exit
         std::cerr << "Shutting down QuantumVerse QML application" << std::endl;

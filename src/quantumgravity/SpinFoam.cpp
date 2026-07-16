@@ -42,7 +42,7 @@ std::unique_ptr<SpinFoam> buildSimpleFoam(
     // For simplicity, create a single vertex that connects all boundary edges
     // (This is not geometrically realistic but serves as a prototype)
     if (!initial_boundary.empty() && !final_boundary.empty()) {
-        std::array<Spin, 4> vertex_spins;
+        std::array<Spin, 4> vertex_spins = {};
         // Take first 4 spins from combined boundaries
         size_t n = std::min<size_t>(4, std::min(initial_boundary.size(), final_boundary.size()));
         for (size_t i = 0; i < n; ++i) {
@@ -55,6 +55,7 @@ std::unique_ptr<SpinFoam> buildSimpleFoam(
 }
 
 double pathIntegralOverFoams(const SpinNetwork& boundary, int max_spin, double gamma) {
+    (void)boundary;
     // This is a highly simplified approximation.
     // The full path integral sums over all spin assignments to the foam interior:
     // Z = Σ_{j_f, i_v} ∏_f (2j_f+1) ∏_v A_v(j_f, i_v, γ)

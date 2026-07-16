@@ -3,6 +3,7 @@
 #include "math/Matrix4x4.h"
 #include "physics/GeodesicIntegrator.h"
 #include "spacetime/MetricTensor.h"
+#include "quantumgravity/CDTEngine.h"
 #include <array>
 
 using namespace quantumverse;
@@ -50,5 +51,31 @@ static void BM_Matrix4x4Determinant(benchmark::State& state) {
     }
 }
 BENCHMARK(BM_Matrix4x4Determinant);
+
+static void BM_GeodesicThroughput(benchmark::State& state) {
+    Event4D start(0, 10, 0, 0);
+    std::array<double,4> vel = {0, 0, 0, 0.1};
+    auto metric = MetricTensor::schwarzschild(1.0, 10.0, M_PI/2, 0.0);
+    GeodesicIntegrator integrator;
+    integrator.setMetric(metric);
+    int count = 0;
+    for (auto _ : state) {
+        auto steps = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
+        benchmark::DoNotOptimize(steps);
+        ++count;
+    }
+    state.SetItemsProcessed(count);
+}
+BENCHMARK(BM_GeodesicThroughput);
+
+static void BM_CDTSweepTime(benchmark::State& state) {
+    quantumgravity::CDTEngine engine(1000, 100.0, 100.0);
+    engine.thermalize(500);
+    for (auto _ : state) {
+        engine.runMonteCarlo(100);
+        benchmark::DoNotOptimize(engine.getSpectralDimension());
+    }
+}
+BENCHMARK(BM_CDTSweepTime);
 
 BENCHMARK_MAIN();

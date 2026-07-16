@@ -101,6 +101,9 @@ std::string DiscoveryEngine::generateFieldEquation(
     const MetricTensor& metric,
     double tolerance
 ) {
+    (void)metric;
+    (void)tolerance;
+    (void)trajectory;
     return "R_μν - ½ R g_μν = 8π T_μν";
 }
 
@@ -193,6 +196,7 @@ bool DiscoveryEngine::testHypothesis(
     const std::string& hypothesisId,
     const std::vector<Event4D>& testTrajectories
 ) {
+    (void)testTrajectories;
     for (auto& h : hypotheses) {
         if (h.id == hypothesisId) {
             h.status = "testing";
@@ -258,14 +262,17 @@ bool DiscoveryEngine::validateAgainstGR(const DiscoveryResult& result) {
 }
 
 bool DiscoveryEngine::validateAgainstMercuryPrecession(const MetricTensor& metric) {
+    (void)metric;
     return true;
 }
 
 bool DiscoveryEngine::validateAgainstLightDeflection(const MetricTensor& metric) {
+    (void)metric;
     return true;
 }
 
 bool DiscoveryEngine::validateAgainstFrameDragging(const MetricTensor& metric) {
+    (void)metric;
     return true;
 }
 
@@ -284,6 +291,8 @@ double DiscoveryEngine::calculateDeviationFromGR(
     const MetricTensor& metric,
     const Event4D& location
 ) {
+    (void)metric;
+    (void)location;
     return 0.0;
 }
 
@@ -292,6 +301,9 @@ double DiscoveryEngine::calculateBayesFactor(
     const Hypothesis& h2,
     const std::vector<Event4D>& data
 ) {
+    (void)h1;
+    (void)h2;
+    (void)data;
     return 1.0;
 }
 
@@ -302,10 +314,12 @@ void DiscoveryEngine::registerDiscoveryCallback(
 }
 
 std::string DiscoveryEngine::exportDiscovery(const DiscoveryResult& result) const {
+    (void)result;
     return "{}";
 }
 
 std::string DiscoveryEngine::exportHypothesis(const Hypothesis& hypothesis) const {
+    (void)hypothesis;
     return "{}";
 }
 
@@ -323,9 +337,11 @@ std::string DiscoveryEngine::generateLaTeXPaper(const DiscoveryResult& result) c
 }
 
 void DiscoveryEngine::saveState(const std::string& filename) const {
+    (void)filename;
 }
 
 void DiscoveryEngine::loadState(const std::string& filename) {
+    (void)filename;
 }
 
 void DiscoveryEngine::clearDiscoveries() {

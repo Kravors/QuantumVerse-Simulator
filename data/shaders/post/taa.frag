@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../common/ubo.glsl"
 
@@ -14,7 +15,6 @@ uniform mat4 u_currentView;
 uniform mat4 u_previousView;
 uniform float u_jitterX;
 uniform float u_jitterY;
-uniform int u_sampleCount;
 
 // Reconstruct view space position from depth
 vec3 reconstructViewPos(vec2 uv, float depth) {
@@ -96,3 +96,4 @@ void main() {
     
     outColor = vec4(result, 1.0);
 }
+

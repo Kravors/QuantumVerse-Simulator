@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../common/ubo.glsl"
 
@@ -6,7 +7,6 @@ layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec3 a_normal;
 
 uniform mat4 u_modelMatrix;
-uniform float u_time;
 
 out vec3 v_normal;
 out vec3 v_worldPos;

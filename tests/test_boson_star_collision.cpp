@@ -46,6 +46,7 @@ int main() {
     bool mentions = f.description.find("boson star") != std::string::npos ||
                     f.description.find("merger") != std::string::npos;
     assert(mentions && "Finding does not mention boson star merger");
+    (void)mentions;
 
     auto mit = f.parameters.find("merger_time");
     assert(mit != f.parameters.end() && "merger_time parameter missing");

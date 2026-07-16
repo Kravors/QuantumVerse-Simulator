@@ -266,6 +266,7 @@ public:
      * @return Derivative dy/dτ.
      */
     std::vector<double> geodesicDerivative(double tau, const std::vector<double>& y) const {
+        (void)tau;
         std::vector<double> dydtau(8, 0.0);
 
         // Current position from state vector

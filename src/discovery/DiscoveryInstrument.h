@@ -92,6 +92,7 @@ virtual std::vector<InstrumentFinding> analyze(
 
     virtual std::vector<InstrumentFinding> analyzeGrid(
         const std::vector<PlanetaryGridResult>& gridResults) {
+        (void)gridResults;
         return {};
     }
 

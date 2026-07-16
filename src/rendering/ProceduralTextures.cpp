@@ -45,6 +45,7 @@ float ProceduralTextureGenerator::generatePerlinNoise(float x, float y, uint32_t
     // Fade curves
     float uFade = u * u * u * (u * (u * 6 - 15) + 10);
     float vFade = v * v * v * (v * (v * 6 - 15) + 10);
+    (void)vFade;
     
     // Hash coordinates
     int A = m_permutation[(X + offset) & 255] + Y;

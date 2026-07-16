@@ -23,31 +23,30 @@
 - **Holographic Duality**: AdS/CFT correspondence for quantum gravity research
 - **VR Support**: OpenXR integration (stub mode - full VR requires OpenXR SDK)
 
-### Quick Start
-  ```bash
-  # Clone or extract project
-  cd f:/syyyy
-  
-  # Create build directory
-  mkdir build && cd build
-  
-  # Configure (Qt6/QML version - recommended)
-  cmake .. -DCMAKE_BUILD_TYPE=Release \
-             -DQUANTUMVERSE_USE_QT=ON \
-             -DQUANTUMVERSE_BUILD_TESTS=ON
-  
-  # Build
-  cmake --build . --config Release --parallel $(nproc)
-  
-  # Run
-  ./quantumverse_qml       # Linux/macOS (Qt6/QML version)
-  quantumverse_qml.exe     # Windows (Qt6/QML version)
-  
-  # Run tests
-  ctest --output-on-failure
-  ```
-  
-  ### Requirements
+## Quick Start
+
+### Prerequisites
+- Windows 10/11, MSVC 2022, CMake 3.25+
+- Qt 6.11.1 (msvc2022_64)
+- Optional: ONNX Runtime 1.27.0, CUDA 12.x
+
+### Build
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+cmake --build build --config Release --parallel
+```
+
+### Run Headless
+```bash
+build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
+```
+
+### Run Tests
+```bash
+ctest -C Release -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure
+```
+
+### Requirements
   
   | Component | Minimum | Recommended |
   |-----------|---------|-------------|
@@ -304,9 +303,10 @@
   |------|-------------|
   | `README.md` | This file — project overview and quick start |
   | `docs/DIAGNOSTIC_SYSTEM.md` | Diagnostic system documentation |
-  | `IMPLEMENTATION_SUMMARY.md` | Comprehensive technical documentation (architecture, modules, data flow) |
-  | `VERIFICATION_CHECKLIST.md` | 119-point verification checklist (all passing) |
-  | `FINAL_PROJECT_SUMMARY.md` | Executive summary with completion status |
+| `IMPLEMENTATION_SUMMARY.md` | Comprehensive technical documentation (architecture, modules, data flow) |
+| `docs/DEVELOPMENT_STATUS.md` | **NEW**: Detailed feature status, codebase references, and implementation state for all modules |
+| `VERIFICATION_CHECKLIST.md` | 119-point verification checklist (all passing) |
+| `FINAL_PROJECT_SUMMARY.md` | Executive summary with completion status |
   | `PROJECT_COMPLETION_REPORT.md` | Detailed completion report |
   | `BUILD_REPORT.md` | Build status and physics validation |
   | `all_info.md` | Consolidated project reference |

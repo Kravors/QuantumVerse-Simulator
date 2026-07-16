@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../common/ubo.glsl"
 
@@ -32,13 +33,11 @@ out VS_OUT {
     flat float texLayer;
 } vs_out;
 
-uniform mat4 u_viewMatrix;
-uniform mat4 u_projectionMatrix;
 uniform float u_scaleFactor;  // Converts meters to scene units
 
 void main() {
     // Transform position to world space
-    vec4 worldPos4 = aModelMatrix * vec4(aPos * aScaleFactor, 1.0);
+    vec4 worldPos4 = aModelMatrix * vec4(aPos * u_scaleFactor, 1.0);
     vs_out.worldPos = worldPos4.xyz;
     
     // Normal, tangent, bitangent in world space

@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_GOOGLE_include_directive : enable
 
 // Include UBO definitions
 #include "../common/ubo.glsl"
@@ -11,7 +12,6 @@ out vec3 v_worldPos;
 out float v_curvature;
 
 uniform mat4 u_modelMatrix;
-uniform float u_time;
 
 void main() {
     v_normal = mat3(u_modelMatrix) * a_normal;
@@ -24,3 +24,4 @@ void main() {
     gl_Position = u_projectionMatrix * u_viewMatrix * vec4(displacedPos, 1.0);
     v_curvature = abs(displacedPos.y);
 }
+

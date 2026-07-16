@@ -124,8 +124,9 @@ public:
         Vertex v;
         v.incident_edges = incident_edges;
         v.intertwiner = i;
+        (void)i;
         vertices.push_back(v);
-        return vertices.size() - 1;
+        return static_cast<int>(vertices.size() - 1);
     }
     
     /**
@@ -133,9 +134,9 @@ public:
      */
     int addEdge(int v1, int v2, Spin spin, IntertwinerIndex i1 = 0, IntertwinerIndex i2 = 0) {
         edges.emplace_back(v1, v2, spin, i1, i2);
-        vertices[v1].incident_edges.push_back(edges.size() - 1);
-        vertices[v2].incident_edges.push_back(edges.size() - 1);
-        return edges.size() - 1;
+        vertices[v1].incident_edges.push_back(static_cast<int>(edges.size() - 1));
+        vertices[v2].incident_edges.push_back(static_cast<int>(edges.size() - 1));
+        return static_cast<int>(edges.size() - 1);
     }
     
     /**

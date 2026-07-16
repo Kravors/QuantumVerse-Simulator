@@ -285,3 +285,85 @@ QVariantMap DiscoveryPanelManager::activeInstrumentInfo() const
 } // namespace quantumverse
 
 #endif // QUANTUMVERSE_USE_QML
+
+// Plain C++ implementations when Qt is unavailable
+#ifndef QUANTUMVERSE_USE_QML
+
+namespace quantumverse {
+
+void DiscoveryPanelManager::registerInstrument(std::unique_ptr<DiscoveryInstrument> instrument) {
+    m_instruments.push_back(std::move(instrument));
+}
+
+DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) {
+    if (index >= 0 && index < static_cast<int>(m_instruments.size())) {
+        return m_instruments[index].get();
+    }
+    return nullptr;
+}
+
+const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const {
+    if (index >= 0 && index < static_cast<int>(m_instruments.size())) {
+        return m_instruments[index].get();
+    }
+    return nullptr;
+}
+
+void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location) {
+    m_allFindings.clear();
+    for (auto& inst : m_instruments) {
+        if (!inst->isEnabled()) continue;
+        auto findings = inst->analyze(metric, location);
+        m_allFindings.insert(m_allFindings.end(), findings.begin(), findings.end());
+    }
+}
+
+void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric, const Event4D& location) {
+    if (index < 0 || index >= static_cast<int>(m_instruments.size())) return;
+    auto* inst = m_instruments[index].get();
+    if (!inst->isEnabled()) return;
+    auto findings = inst->analyze(metric, location);
+    m_allFindings.insert(m_allFindings.end(), findings.begin(), findings.end());
+}
+
+void DiscoveryPanelManager::clearFindings() {
+    m_allFindings.clear();
+}
+
+std::string DiscoveryPanelManager::exportFindings() const {
+    return {};
+}
+
+std::vector<std::string> DiscoveryPanelManager::instrumentNames() const {
+    std::vector<std::string> names;
+    names.reserve(m_instruments.size());
+    for (const auto& inst : m_instruments) {
+        names.push_back(inst->getName());
+    }
+    return names;
+}
+
+void DiscoveryPanelManager::startScan() {
+    m_scanRunning = true;
+}
+
+void DiscoveryPanelManager::stopScan() {
+    m_scanRunning = false;
+}
+
+void DiscoveryPanelManager::exportCurrentFindings() {
+    // Stub
+}
+
+void DiscoveryPanelManager::setMetric(const std::shared_ptr<MetricTensor>& metric) {
+    m_metric = metric;
+}
+
+void DiscoveryPanelManager::setLocation(const Event4D& location) {
+    m_location = location;
+    m_locationSet = true;
+}
+
+} // namespace quantumverse
+
+#endif // !QUANTUMVERSE_USE_QML

@@ -249,6 +249,7 @@ std::vector<Event4D> LightCone::integrateNullRay(
          // would require solving the geodesic equation properly
 
          double g00 = m[0][0];
+         (void)g00;
         double spatialNorm = std::sqrt(direction[0]*direction[0] +
                                         direction[1]*direction[1] +
                                         direction[2]*direction[2]);

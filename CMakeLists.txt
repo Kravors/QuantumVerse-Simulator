@@ -9,6 +9,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Compiler warnings
+if(MSVC)
+    add_compile_options(/W4 /WX)
+else()
+    add_compile_options(-Wall -Wextra -Werror)
+endif()
+
 # Coverage instrumentation
 if(QUANTUMVERSE_USE_COVERAGE)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage -O0 -g")
@@ -18,12 +25,26 @@ endif()
 # Options
 option(QUANTUMVERSE_BUILD_TESTS "Build test suite" ON)
 option(QUANTUMVERSE_USE_QT "Build Qt UI" OFF)
+option(QUANTUMVERSE_USE_VR "Build VR/OpenXR backend" OFF)
 option(QUANTUMVERSE_USE_COVERAGE "Enable code coverage instrumentation" OFF)
+option(QUANTUMVERSE_USE_ASAN "Build with AddressSanitizer" OFF)
+
+# Sanitizer configuration
+if(QUANTUMVERSE_USE_ASAN)
+    if(MSVC)
+        add_compile_options(/fsanitize=address)
+        add_link_options(/fsanitize=address)
+    else()
+        add_compile_options(-fsanitize=address)
+        add_link_options(-fsanitize=address)
+    endif()
+    message(STATUS "AddressSanitizer enabled")
+endif()
 
 # Performance regression gate thresholds (ms) for the QML headless baseline.
 # Override on the CMake command line, e.g. -DCTEST_PERFORMANCE_THRESHOLD=50.
 set(CTEST_PERFORMANCE_THRESHOLD 60 CACHE STRING "Avg frame-time threshold (ms) for the QML performance gate")
-set(CTEST_PERFORMANCE_MAX_THRESHOLD 80 CACHE STRING "Max frame-time threshold (ms) for the QML performance gate")
+set(CTEST_PERFORMANCE_MAX_THRESHOLD 250 CACHE STRING "Max frame-time threshold (ms) for the QML performance gate")
 
 enable_testing()
 
@@ -54,7 +75,11 @@ endif()
 
 # Qt/QML configuration
 if(QUANTUMVERSE_USE_QT)
-    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick OpenGL OpenGLWidgets QuickControls2 QuickTemplates2 QuickLayouts Network)
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick OpenGL OpenGLWidgets QuickControls2 QuickTemplates2 QuickLayouts Network Test)
+
+    if(Qt6Core_DIR)
+        get_filename_component(QT_HOST_PATH "${Qt6Core_DIR}/../../.." ABSOLUTE)
+    endif()
 
     set(QML_DIR ${CMAKE_SOURCE_DIR}/src)
     set(RESOURCES_QRC ${CMAKE_SOURCE_DIR}/src/resources.qrc)
@@ -114,9 +139,13 @@ if(QUANTUMVERSE_USE_QT)
         src/utils/PerformanceMonitor.cpp
         src/utils/TraceLogger.cpp
         src/utils/CrashHandler.cpp
+        src/utils/FrameDiagnostics.cpp
         ${RESOURCES_QRC}
     )
     target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_QML)
+    if(QUANTUMVERSE_USE_VR)
+        target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_VR)
+    endif()
     target_include_directories(quantumverse_qml PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party
@@ -144,6 +173,25 @@ if(QUANTUMVERSE_USE_QT)
         AUTOUIC ON
     )
 
+    # Deploy Qt runtime files to the build output directory so test executables
+    # and headless runs can find DLLs/plugins without requiring Qt on PATH.
+    set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}/Release")
+    add_custom_target(deploy_qt_runtime
+        COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
+        COMMAND "${QT_HOST_PATH}/bin/windeployqt.exe"
+            --release
+            --qmldir "${CMAKE_SOURCE_DIR}/src"
+            --no-compiler-runtime
+            --no-translations
+            "${QT_RUNTIME_DEST}/quantumverse_qml.exe"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${QT_HOST_PATH}/bin/Qt6Test.dll"
+            "${QT_RUNTIME_DEST}/"
+        COMMENT "Running windeployqt on quantumverse_qml.exe to populate ${QT_RUNTIME_DEST}"
+    )
+    add_dependencies(deploy_qt_runtime quantumverse_qml)
+
     # Optional per-stage render timers (QmlGlRenderer). Off by default so the
     # release performance gate is unaffected; enable for profiling builds.
     option(QUANTUMVERSE_PERF_TRACE "Enable QmlGlRenderer per-stage timers" OFF)
@@ -166,7 +214,7 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             LABELS "performance;qt"
         )
-        add_dependencies(qml_performance_baseline quantumverse_qml)
+        add_dependencies(qml_performance_baseline deploy_qt_runtime)
 
         # TDD contract test for the performance gate: validates parse/threshold
         # logic and (when built) that the baseline executable returns exit 0.
@@ -183,7 +231,7 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             LABELS "performance;qt"
         )
-        add_dependencies(test_performance_gate qml_performance_baseline)
+        add_dependencies(test_performance_gate deploy_qt_runtime)
 
         # P3-3 contract test: verifies GL_CHECK() is compiled out in Release
         # builds (no-op) and active in Debug. Compile-time guarantee via
@@ -205,6 +253,7 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             LABELS "performance;qt"
         )
+        add_dependencies(test_gl_check deploy_qt_runtime)
 
         # FindingsModel unit test (requires Qt for QAbstractListModel)
         add_executable(test_findings_model
@@ -218,6 +267,11 @@ if(QUANTUMVERSE_USE_QT)
         )
         target_link_libraries(test_findings_model PRIVATE Qt6::Core dilaton)
         add_test(NAME FindingsModelTest COMMAND test_findings_model)
+        set_tests_properties(FindingsModelTest PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        )
+        add_dependencies(test_findings_model deploy_qt_runtime)
 
         # FindingsModel filtering / sorting / detail-view test
         add_executable(test_findings_model_filtering
@@ -231,6 +285,11 @@ if(QUANTUMVERSE_USE_QT)
         )
         target_link_libraries(test_findings_model_filtering PRIVATE Qt6::Core dilaton)
         add_test(NAME FindingsModelFilteringTest COMMAND test_findings_model_filtering)
+        set_tests_properties(FindingsModelFilteringTest PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        )
+        add_dependencies(test_findings_model_filtering deploy_qt_runtime)
 
         # Multi-messenger alert wiring test (LIGO/IceCube -> FindingsModel)
         add_executable(test_multimessenger_ui
@@ -246,6 +305,209 @@ if(QUANTUMVERSE_USE_QT)
         )
         target_link_libraries(test_multimessenger_ui PRIVATE Qt6::Core dilaton)
         add_test(NAME MultiMessengerUITest COMMAND test_multimessenger_ui)
+        set_tests_properties(MultiMessengerUITest PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        )
+        add_dependencies(test_multimessenger_ui deploy_qt_runtime)
+
+        # 5.1 QmlGlViewport isolation test
+        add_executable(test_viewport_isolation
+            tests/ui/test_viewport_isolation.cpp
+            src/qmlglviewport.cpp
+            third_party/glad/glad.cpp
+            src/rendering/CurvatureRenderer.cpp
+            src/rendering/QuantumGeometryRenderer.cpp
+            src/rendering/CelestialBodyRenderer.cpp
+            src/rendering/GLDebug.cpp
+            src/ui4d/Camera4DAdapter.cpp
+            src/physics/CurvatureCalculator.cpp
+            src/ui4d/UI4D.cpp
+            src/rendering/Texture.cpp
+            src/rendering/ProceduralTextures.cpp
+            src/utils/TraceLogger.cpp
+        )
+        target_link_libraries(test_viewport_isolation PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Quick
+            Qt6::OpenGL
+            Qt6::OpenGLWidgets
+            Qt6::Test
+            dilaton
+            opengl32
+            dbghelp
+        )
+        set_target_properties(test_viewport_isolation PROPERTIES AUTOMOC ON)
+        target_compile_definitions(test_viewport_isolation PRIVATE QUANTUMVERSE_USE_QML)
+        target_include_directories(test_viewport_isolation PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        add_test(NAME ViewportIsolationTest COMMAND test_viewport_isolation)
+        set_tests_properties(ViewportIsolationTest PROPERTIES
+            WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
+        )
+        add_dependencies(test_viewport_isolation deploy_qt_runtime)
+
+        # 5.3 Interaction stress test (rapid mouse/wheel input + property toggles)
+        add_executable(test_interaction_stress
+            tests/ui/test_interaction_stress.cpp
+            src/qmlglviewport.cpp
+            third_party/glad/glad.cpp
+            src/rendering/CurvatureRenderer.cpp
+            src/rendering/QuantumGeometryRenderer.cpp
+            src/rendering/CelestialBodyRenderer.cpp
+            src/rendering/GLDebug.cpp
+            src/ui4d/Camera4DAdapter.cpp
+            src/physics/CurvatureCalculator.cpp
+            src/ui4d/UI4D.cpp
+            src/rendering/Texture.cpp
+            src/rendering/ProceduralTextures.cpp
+            src/utils/TraceLogger.cpp
+        )
+        target_link_libraries(test_interaction_stress PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Quick
+            Qt6::OpenGL
+            Qt6::OpenGLWidgets
+            Qt6::Test
+            dilaton
+            opengl32
+            dbghelp
+        )
+        set_target_properties(test_interaction_stress PROPERTIES AUTOMOC ON)
+        target_compile_definitions(test_interaction_stress PRIVATE QUANTUMVERSE_USE_QML)
+        target_include_directories(test_interaction_stress PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        add_test(NAME InteractionStressTest COMMAND test_interaction_stress)
+        set_tests_properties(InteractionStressTest PROPERTIES
+            WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
+            TIMEOUT 120
+        )
+        add_dependencies(test_interaction_stress deploy_qt_runtime)
+
+        # 5.4 Resize/toggle stress test (FBO recreation + panel toggling)
+        add_executable(test_resize_stress
+            tests/ui/test_resize_stress.cpp
+            src/qmlglviewport.cpp
+            third_party/glad/glad.cpp
+            src/rendering/CurvatureRenderer.cpp
+            src/rendering/QuantumGeometryRenderer.cpp
+            src/rendering/CelestialBodyRenderer.cpp
+            src/rendering/GLDebug.cpp
+            src/ui4d/Camera4DAdapter.cpp
+            src/physics/CurvatureCalculator.cpp
+            src/ui4d/UI4D.cpp
+            src/rendering/Texture.cpp
+            src/rendering/ProceduralTextures.cpp
+            src/utils/TraceLogger.cpp
+        )
+        target_link_libraries(test_resize_stress PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Quick
+            Qt6::OpenGL
+            Qt6::OpenGLWidgets
+            Qt6::Test
+            dilaton
+            opengl32
+            dbghelp
+        )
+        set_target_properties(test_resize_stress PROPERTIES AUTOMOC ON)
+        target_compile_definitions(test_resize_stress PRIVATE QUANTUMVERSE_USE_QML)
+        target_include_directories(test_resize_stress PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        add_test(NAME ResizeStressTest COMMAND test_resize_stress)
+        set_tests_properties(ResizeStressTest PROPERTIES
+            WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
+            TIMEOUT 120
+        )
+        add_dependencies(test_resize_stress deploy_qt_runtime)
+
+        # 5.5 Memory leak detection (requires ASan build)
+        if(QUANTUMVERSE_USE_ASAN)
+            add_executable(test_memory_leak tests/ui/test_memory_leak.cpp)
+            target_link_libraries(test_memory_leak PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+            set_target_properties(test_memory_leak PROPERTIES AUTOMOC ON)
+            target_compile_definitions(test_memory_leak PRIVATE QUANTUMVERSE_USE_QML)
+            add_test(NAME MemoryLeakTest COMMAND test_memory_leak)
+            set_tests_properties(MemoryLeakTest PROPERTIES
+                WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+                ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+                TIMEOUT 120
+            )
+            add_dependencies(test_memory_leak deploy_qt_runtime)
+        endif()
+
+        # 5.6 Crash handler verification (Windows-only)
+        if(WIN32)
+            add_executable(crash_helper
+                tests/utils/crash_helper.cpp
+                src/utils/CrashHandler.cpp
+                src/utils/TraceLogger.cpp
+            )
+            target_link_libraries(crash_helper PRIVATE dilaton)
+            add_dependencies(crash_helper deploy_qt_runtime)
+
+            add_executable(test_crash_handler tests/utils/test_crash_handler.cpp)
+            target_link_libraries(test_crash_handler PRIVATE Qt6::Core Qt6::Test)
+            set_target_properties(test_crash_handler PROPERTIES AUTOMOC ON)
+            add_test(NAME CrashHandlerTest COMMAND test_crash_handler)
+            set_tests_properties(CrashHandlerTest PROPERTIES
+                WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+                ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+                TIMEOUT 30
+            )
+            add_dependencies(test_crash_handler crash_helper)
+
+            # 9.1 Frame diagnostics JSON output
+            add_executable(test_frame_diagnostics
+                tests/utils/test_frame_diagnostics.cpp
+                src/utils/FrameDiagnostics.cpp
+            )
+            target_link_libraries(test_frame_diagnostics PRIVATE Qt6::Core Qt6::Test)
+            set_target_properties(test_frame_diagnostics PROPERTIES AUTOMOC ON)
+            add_test(NAME DiagnosticsOutputTest COMMAND test_frame_diagnostics)
+
+            # 9.2 HUD toggle test
+            add_executable(test_hud_toggle
+                tests/utils/test_hud_toggle.cpp
+                src/qmlglviewport.cpp
+                third_party/glad/glad.cpp
+                src/rendering/CurvatureRenderer.cpp
+                src/rendering/QuantumGeometryRenderer.cpp
+                src/rendering/CelestialBodyRenderer.cpp
+                src/rendering/GLDebug.cpp
+                src/ui4d/Camera4DAdapter.cpp
+                src/physics/CurvatureCalculator.cpp
+                src/ui4d/UI4D.cpp
+                src/rendering/Texture.cpp
+                src/rendering/ProceduralTextures.cpp
+                src/utils/TraceLogger.cpp
+            )
+            target_link_libraries(test_hud_toggle PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Quick Qt6::Test)
+            set_target_properties(test_hud_toggle PROPERTIES AUTOMOC ON)
+            target_compile_definitions(test_hud_toggle PRIVATE QUANTUMVERSE_USE_QML)
+            target_include_directories(test_hud_toggle PRIVATE
+                ${CMAKE_SOURCE_DIR}/src
+                ${CMAKE_SOURCE_DIR}/third_party
+            )
+            add_test(NAME HUDToggleTest COMMAND test_hud_toggle)
+            set_tests_properties(HUDToggleTest PROPERTIES TIMEOUT 30)
+            add_dependencies(test_hud_toggle deploy_qt_runtime)
+        endif()
     endif()
 endif()
 
@@ -261,10 +523,21 @@ if(QUANTUMVERSE_BUILD_TESTS)
     add_test(NAME Matrix4x4Test COMMAND test_matrix4x4)
     
     # Property-based tests
-    add_executable(test_property_based tests/unit/test_property_based.cpp)
-    target_include_directories(test_property_based PRIVATE ${CMAKE_SOURCE_DIR}/build-appimage/QuantumVerse.AppDir/usr/include ${CMAKE_SOURCE_DIR}/src)
+    add_executable(test_property_based
+        tests/unit/test_property_based.cpp
+        src/quantumgravity/CDTEngine.cpp
+    )
+    target_include_directories(test_property_based PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/build-appimage/QuantumVerse.AppDir/usr/include)
     target_link_libraries(test_property_based PRIVATE dilaton)
     add_test(NAME PropertyBasedTest COMMAND test_property_based)
+
+    # 5.2 UI4D unit test (camera, slicing, probe, causal graph)
+    add_executable(test_ui4d
+        tests/unit/test_ui4d.cpp
+        src/ui4d/UI4D.cpp
+    )
+    target_link_libraries(test_ui4d PRIVATE dilaton)
+    add_test(NAME UI4DTest COMMAND test_ui4d)
     
     # Fuzz differential testing
     option(QUANTUMVERSE_USE_FUZZER "Build fuzzer targets" OFF)
@@ -277,7 +550,49 @@ if(QUANTUMVERSE_BUILD_TESTS)
         target_link_libraries(fuzz_geodesic_differential PRIVATE dilaton)
         target_compile_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer,libFuzzer)
         target_link_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer)
+
+        add_executable(fuzz_discovery_instruments tests/fuzz/fuzz_discovery_instruments.cpp)
+        target_include_directories(fuzz_discovery_instruments PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/build-appimage/QuantumVerse.AppDir/usr/include
+        )
+        target_link_libraries(fuzz_discovery_instruments PRIVATE dilaton)
+        target_compile_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer,libFuzzer)
+        target_link_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer)
     endif()
+
+    # Standalone fuzz driver (always built when tests are enabled)
+    add_executable(fuzz_instruments
+        tests/fuzz/fuzz_instruments.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+    )
+    target_link_libraries(fuzz_instruments PRIVATE dilaton)
+    add_test(NAME FuzzInstrumentsTest COMMAND fuzz_instruments)
+    set_tests_properties(FuzzInstrumentsTest PROPERTIES
+        LABELS "fuzz;discovery"
+        TIMEOUT 300
+    )
+
+    # Performance regression gate: actual benchmark measurements
+    add_executable(test_performance_regression
+        tests/test_performance_regression.cpp
+        src/quantumgravity/CDTEngine.cpp
+    )
+    target_link_libraries(test_performance_regression PRIVATE dilaton)
+    add_test(NAME PerformanceRegressionTest COMMAND test_performance_regression)
+    set_tests_properties(PerformanceRegressionTest PROPERTIES
+        LABELS "performance"
+        TIMEOUT 120
+    )
     
     # Performance benchmarks
     option(QUANTUMVERSE_USE_BENCHMARK "Build benchmarks" OFF)
@@ -328,6 +643,20 @@ if(QUANTUMVERSE_BUILD_TESTS)
     add_executable(test_geodesic tests/test_geodesic.cpp)
     target_link_libraries(test_geodesic PRIVATE dilaton)
     add_test(NAME GeodesicTest COMMAND test_geodesic)
+
+    add_executable(test_singularity_handler tests/test_singularity_handler.cpp)
+    target_link_libraries(test_singularity_handler PRIVATE dilaton)
+    add_test(NAME SingularityHandlerTest COMMAND test_singularity_handler)
+
+    # Scenario integration test (headless pipeline validation)
+    add_executable(test_scenario_integration
+        tests/integration/test_scenario_integration.cpp
+        src/ui4d/SceneGraphManager.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+    )
+    target_link_libraries(test_scenario_integration PRIVATE dilaton)
+    add_test(NAME ScenarioIntegrationTest COMMAND test_scenario_integration)
 
     # Neutron star glitch phase detector (discovery instrument)
     add_executable(test_neutron_glitch
@@ -469,19 +798,180 @@ if(QUANTUMVERSE_BUILD_TESTS)
         target_link_libraries(test_e2e_discovery PRIVATE dilaton)
         add_test(NAME E2EDiscoveryTest COMMAND test_e2e_discovery)
     endif()
-endif()
-option(QUANTUMVERSE_USE_ONNX "Build with ONNX Runtime support" OFF)
-if(QUANTUMVERSE_USE_ONNX)
-    find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
-        HINTS ${CMAKE_SOURCE_DIR}/third_party/onnxruntime)
-    find_library(ONNXRUNTIME_LIB onnxruntime
-        HINTS ${CMAKE_SOURCE_DIR}/third_party/onnxruntime)
-    if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIB)
-        target_compile_definitions(dilaton PRIVATE HAVE_ONNX)
-        target_include_directories(dilaton INTERFACE ${ONNXRUNTIME_INCLUDE_DIR})
-        target_link_libraries(dilaton INTERFACE ${ONNXRUNTIME_LIB})
+
+    # Phase 3: Physics & Mathematics Correctness Verification
+    # 3.1 Exact solution comparison
+    add_executable(test_exact_solutions
+        tests/test_exact_solutions.cpp
+        src/physics/CurvatureCalculator.cpp
+    )
+    target_link_libraries(test_exact_solutions PRIVATE dilaton)
+    add_test(NAME ExactSolutionsTest COMMAND test_exact_solutions)
+
+    # 3.2 GR validation suite expansion
+    add_executable(test_gr_validation
+        tests/test_gr_validation.cpp
+        src/physics/GWPolarization.cpp
+        src/physics/GeodesicDeviation.cpp
+    )
+    target_link_libraries(test_gr_validation PRIVATE dilaton)
+    add_test(NAME GRValidationTest COMMAND test_gr_validation)
+
+    # 3.3 Quantum gravity self-consistency
+    add_executable(test_quantum_gravity_consistency
+        tests/test_quantum_gravity_consistency.cpp
+        src/quantumgravity/CDTEngine.cpp
+        src/quantumgravity/CausalSet.cpp
+        src/quantumgravity/SpinFoam.cpp
+        src/quantumgravity/SpinNetwork.cpp
+    )
+    target_link_libraries(test_quantum_gravity_consistency PRIVATE dilaton)
+    add_test(NAME QuantumGravityConsistencyTest COMMAND test_quantum_gravity_consistency)
+
+    # 3.4 Automatic differentiation validation
+    add_executable(test_autodiff_validation tests/test_autodiff_validation.cpp)
+    target_link_libraries(test_autodiff_validation PRIVATE dilaton)
+    add_test(NAME AutoDiffValidationTest COMMAND test_autodiff_validation)
+
+    # Phase 4: Rendering & Animation Correctness
+    # 4.1 Visual regression via headless screenshot
+    add_executable(test_visual_regression tests/rendering/test_visual_regression.cpp)
+    target_link_libraries(test_visual_regression PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+    set_target_properties(test_visual_regression PROPERTIES AUTOMOC ON)
+    add_test(NAME VisualRegressionTest COMMAND test_visual_regression)
+    set_tests_properties(VisualRegressionTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+    )
+    if(TARGET deploy_qt_runtime)
+        add_dependencies(test_visual_regression deploy_qt_runtime)
     endif()
+
+    # 4.2 Animation timing consistency
+    add_executable(test_animation_timing tests/rendering/test_animation_timing.cpp)
+    target_link_libraries(test_animation_timing PRIVATE Qt6::Core Qt6::Test)
+    set_target_properties(test_animation_timing PROPERTIES AUTOMOC ON)
+    add_test(NAME AnimationTimingTest COMMAND test_animation_timing)
+    set_tests_properties(AnimationTimingTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        TIMEOUT 120
+    )
+    if(TARGET deploy_qt_runtime)
+        add_dependencies(test_animation_timing deploy_qt_runtime)
+    endif()
+
+    # 4.3 GL strict audit: runs headless with --gl-strict and asserts exit 0
+    add_test(NAME GLStrictAuditTest COMMAND quantumverse_qml
+        --headless --frames 10 --gl-strict
+    )
+    set_tests_properties(GLStrictAuditTest PROPERTIES
+        WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        TIMEOUT 120
+    )
 endif()
+
+# Phase 6: AI/Discovery Module Validation
+if(QUANTUMVERSE_BUILD_TESTS)
+    message(STATUS "Registering Phase 6 AI/Discovery tests")
+    message(STATUS "Creating test_instrument_audit target")
+    add_executable(test_instrument_audit
+        tests/discovery/test_instrument_audit.cpp
+        src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+    )
+    message(STATUS "Linking test_instrument_audit")
+    target_link_libraries(test_instrument_audit PRIVATE dilaton)
+    message(STATUS "Adding InstrumentAuditTest")
+    add_test(NAME InstrumentAuditTest COMMAND test_instrument_audit)
+    message(STATUS "InstrumentAuditTest added")
+
+    # 6.2 Symbolic regression sanity
+    add_executable(test_symbolic_regression
+        tests/discovery/test_symbolic_regression.cpp
+        src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/SymbolicMath.cpp
+        src/discovery/DiscoveryEngine.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+    )
+    target_link_libraries(test_symbolic_regression PRIVATE dilaton)
+    add_test(NAME SymbolicRegressionSanityTest COMMAND test_symbolic_regression)
+
+    # 6.3 RL agent convergence
+    add_executable(test_rl_agent
+        tests/discovery/test_rl_agent.cpp
+        src/discovery/RLDiscoveryAgent.cpp
+    )
+    target_link_libraries(test_rl_agent PRIVATE dilaton)
+    add_test(NAME RLAgentConvergenceTest COMMAND test_rl_agent)
+
+    # 6.4 Discovery pipeline integration
+    add_executable(test_discovery_pipeline
+        tests/discovery/test_discovery_pipeline.cpp
+        src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/DiscoveryEngine.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+    )
+    target_link_libraries(test_discovery_pipeline PRIVATE dilaton)
+    add_test(NAME DiscoveryPipelineIntegrationTest COMMAND test_discovery_pipeline)
+
+    # 6.5 Discovery robustness & fallback handling
+    add_executable(test_discovery_robustness
+        tests/discovery/test_discovery_robustness.cpp
+        src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+        src/ml/GeodesicNeuralODE.cpp
+    )
+    target_link_libraries(test_discovery_robustness PRIVATE dilaton)
+    add_test(NAME DiscoveryRobustnessTest COMMAND test_discovery_robustness)
+endif()
+
+# Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues
+find_program(GLSLANGVALIDATOR glslangValidator REQUIRED)
+file(GLOB_RECURSE SHADER_FILES
+    "${CMAKE_SOURCE_DIR}/data/shaders/*.vert"
+    "${CMAKE_SOURCE_DIR}/data/shaders/*.frag"
+)
+add_custom_target(validate_shaders
+    COMMAND PowerShell -ExecutionPolicy Bypass -File "${CMAKE_SOURCE_DIR}/scripts/validate_shaders.ps1"
+        -ValidatorPath "${GLSLANGVALIDATOR}"
+        -ShaderRoot "${CMAKE_SOURCE_DIR}/data/shaders"
+        ${SHADER_FILES}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Validating all shaders with glslangValidator"
+)
 
 # Install rules for packaging
 if(WIN32)

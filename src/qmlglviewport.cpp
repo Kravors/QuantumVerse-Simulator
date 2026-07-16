@@ -12,6 +12,7 @@
 // QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
 #include <QDateTime>
 #include <QDebug>
+#include <QImage>
 #include <QOpenGLContext>
 #include <QQuickWindow>
 #include <qsgtexture_platform.h>
@@ -174,8 +175,9 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 , m_cameraPanY(0.0f)
 , m_fbo(nullptr)
 , m_glInitialized(false)
-, m_headlessTargetFrames(0)
-, m_headlessStatsLogged(false)
+    , m_headlessTargetFrames(0)
+    , m_headlessStatsLogged(false)
+    , m_screenshotRequested(false)
 {
     // Initialize view matrix
     m_viewMatrix.setToIdentity();
@@ -194,6 +196,11 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 
 QmlGlRenderer::~QmlGlRenderer()
 {
+    QOpenGLContext* ctx = QOpenGLContext::currentContext();
+    if (!ctx) {
+        return;
+    }
+
     // Release OpenGL resources in reverse allocation order
     if (m_profilingVAO) {
         glDeleteVertexArrays(1, &m_profilingVAO);
@@ -330,10 +337,12 @@ void QmlGlRenderer::render()
         m_viewMatrix = m_camera4DAdapter->viewMatrix();
     }
 
+#ifdef QUANTUMVERSE_USE_VR
     // Apply VR head tracking offset
     if (m_hasHeadPose) {
         applyHeadPose();
     }
+#endif
 
     // [DIAG] Guard against non-finite camera matrices. A degenerate view or
     // projection matrix (e.g. NaN from a focus/selection that places the eye on
@@ -448,6 +457,8 @@ void QmlGlRenderer::render()
         PERF_SCOPE("renderProfilingOverlay");
         renderProfilingOverlay();
     }
+
+    m_overlayShader.release();
 
     // Update time for animation
     m_time += m_frameTime;
@@ -594,6 +605,7 @@ void QmlGlRenderer::setViewportSize(int width, int height)
     m_viewportHeight = height;
 }
 
+#ifdef QUANTUMVERSE_USE_VR
 void QmlGlRenderer::setHeadPose(const quantumverse::vr::HeadPose& pose)
 {
     m_headPose = pose;
@@ -610,6 +622,7 @@ void QmlGlRenderer::applyHeadPose()
     headMatrix.rotate(q);
     m_viewMatrix = m_viewMatrix * headMatrix.inverted();
 }
+#endif
 
 QMatrix4x4 QmlGlRenderer::getViewMatrix() const
 {
@@ -678,6 +691,12 @@ void QmlGlRenderer::setHeadlessFrameTarget(int frames)
 {
     m_headlessTargetFrames = frames;
     m_headlessStatsLogged = false;
+}
+
+void QmlGlRenderer::requestScreenshot(const QString &path)
+{
+    m_screenshotRequested = true;
+    m_screenshotPath = path;
 }
 
 void QmlGlRenderer::updateTime(float deltaTime)
@@ -1588,6 +1607,108 @@ void QmlGlRenderer::renderProfilingOverlay()
     m_overlayShader.release();
 }
 
+void QmlGlRenderer::renderHUD()
+{
+    if (!m_overlayShader.isLinked()) {
+        return;
+    }
+    if (!m_overlayShader.bind()) {
+        return;
+    }
+
+    QMatrix4x4 ortho;
+    ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
+                0.0f, static_cast<float>(m_viewportHeight),
+                -1.0f, 1.0f);
+    m_overlayShader.setUniformValue("projectionMatrix", ortho);
+
+    float avgFrameMs = m_frameProfiler.getAverageFrameTime();
+    float fps = avgFrameMs > 0.0f ? 1000.0f / avgFrameMs : 0.0f;
+    int glErrors = quantumverse::GLDebug::instance().getErrorCount();
+
+    // HUD panel background (top-left corner)
+    float panelX = 10.0f;
+    float panelY = static_cast<float>(m_viewportHeight) - 160.0f;
+    float panelW = 140.0f;
+    float panelH = 150.0f;
+
+    GLfloat bg[] = {
+        panelX, panelY,                     0.0f, 0.0f, 0.0f, 0.6f,
+        panelX + panelW, panelY,            0.0f, 0.0f, 0.0f, 0.6f,
+        panelX + panelW, panelY + panelH,   0.0f, 0.0f, 0.0f, 0.6f,
+        panelX, panelY + panelH,            0.0f, 0.0f, 0.0f, 0.6f,
+    };
+    GLuint bgVao = 0, bgVbo = 0;
+    glGenVertexArrays(1, &bgVao);
+    glGenBuffers(1, &bgVbo);
+    glBindVertexArray(bgVao);
+    glBindBuffer(GL_ARRAY_BUFFER, bgVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(bg), bg, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &bgVbo);
+    glDeleteVertexArrays(1, &bgVao);
+
+    // FPS indicator bar (green = good, yellow = ok, red = bad)
+    float barX = panelX + 10.0f;
+    float barY = panelY + 10.0f;
+    float barW = 80.0f;
+    float barH = 12.0f;
+    float fpsRatio = fps > 120.0f ? 1.0f : (fps > 30.0f ? fps / 120.0f : 0.0f);
+    float fpsR = fps > 60.0f ? 0.0f : (fps > 30.0f ? 1.0f : 1.0f);
+    float fpsG = fps > 60.0f ? 1.0f : (fps > 30.0f ? 1.0f : 0.0f);
+    GLfloat fpsBar[] = {
+        barX, barY,                      fpsR, fpsG, 0.0f, 0.8f,
+        barX + barW * fpsRatio, barY,    fpsR, fpsG, 0.0f, 0.8f,
+        barX + barW * fpsRatio, barY + barH, fpsR, fpsG, 0.0f, 0.8f,
+        barX, barY + barH,               fpsR, fpsG, 0.0f, 0.8f,
+    };
+    GLuint fpsVao = 0, fpsVbo = 0;
+    glGenVertexArrays(1, &fpsVao);
+    glGenBuffers(1, &fpsVbo);
+    glBindVertexArray(fpsVao);
+    glBindBuffer(GL_ARRAY_BUFFER, fpsVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fpsBar), fpsBar, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &fpsVbo);
+    glDeleteVertexArrays(1, &fpsVao);
+
+    // GL error indicator (red bar if errors present)
+    float errBarY = barY + 20.0f;
+    float errRatio = glErrors > 0 ? 1.0f : 0.0f;
+    GLfloat errBar[] = {
+        barX, errBarY,                      1.0f, 0.0f, 0.0f, 0.8f,
+        barX + barW * errRatio, errBarY,    1.0f, 0.0f, 0.0f, 0.8f,
+        barX + barW * errRatio, errBarY + barH, 1.0f, 0.0f, 0.0f, 0.8f,
+        barX, errBarY + barH,               1.0f, 0.0f, 0.0f, 0.8f,
+    };
+    GLuint errVao = 0, errVbo = 0;
+    glGenVertexArrays(1, &errVao);
+    glGenBuffers(1, &errVbo);
+    glBindVertexArray(errVao);
+    glBindBuffer(GL_ARRAY_BUFFER, errVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(errBar), errBar, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &errVbo);
+    glDeleteVertexArrays(1, &errVao);
+
+    m_overlayShader.release();
+}
+
 // ============================================================================
 // QmlGlViewport
 // ============================================================================
@@ -1601,6 +1722,7 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     , m_showLightCones(false)
     , m_showGeodesics(true)
     , m_showQuantumGeometry(false)
+    , m_showHUD(false)
     , m_curvatureMode(0)
     , m_cameraDistance(50.0f)
     , m_cameraAngleX(0.0f)
@@ -1645,6 +1767,11 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
 
 QmlGlViewport::~QmlGlViewport()
 {
+    QOpenGLContext* ctx = QOpenGLContext::currentContext();
+    if (!ctx) {
+        return;
+    }
+
     delete m_fbo;
     m_fbo = nullptr;
     delete m_renderer;
@@ -1703,6 +1830,15 @@ void QmlGlViewport::setShowQuantumGeometry(bool show)
         m_showQuantumGeometry = show;
         if (m_renderer) m_renderer->setShowQuantumGeometry(show);
         emit showQuantumGeometryChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setShowHUD(bool show)
+{
+    if (m_showHUD != show) {
+        m_showHUD = show;
+        emit showHUDChanged();
         update();
     }
 }
@@ -2027,6 +2163,21 @@ void QmlGlViewport::renderGL()
         diagLog(m);
     }
     m_renderer->render();
+    if (m_showHUD && m_renderer) {
+        m_renderer->renderHUD();
+    }
+    if (m_renderer->screenshotRequested()) {
+        QImage img = m_fbo->toImage();
+        if (!img.save(m_renderer->screenshotPath())) {
+            qWarning() << "QmlGlViewport: Failed to save screenshot to"
+                       << m_renderer->screenshotPath();
+        } else {
+            qDebug() << "QmlGlViewport: Screenshot saved to"
+                     << m_renderer->screenshotPath();
+        }
+        m_renderer->clearScreenshotRequest();
+        QCoreApplication::quit();
+    }
     m_fbo->release();
     QOpenGLFramebufferObject::bindDefault();
 

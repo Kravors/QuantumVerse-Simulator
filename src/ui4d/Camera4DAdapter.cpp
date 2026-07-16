@@ -245,6 +245,7 @@ void Camera4DAdapter::rotateInPlane(double angle)
 
 void Camera4DAdapter::advanceSlice(double delta)
 {
+    (void)delta;
     emit viewChanged();
 }
 
@@ -311,6 +312,7 @@ void Camera4DAdapter::cyclePlane()
 
 void Camera4DAdapter::onMousePressed(float x, float y, int button, int modifiers)
 {
+    (void)modifiers;
     m_isDragging = true;
     m_lastMouseX = x;
     m_lastMouseY = y;
@@ -319,6 +321,7 @@ void Camera4DAdapter::onMousePressed(float x, float y, int button, int modifiers
 
 void Camera4DAdapter::onMouseMoved(float x, float y, int buttons, int modifiers)
 {
+    (void)buttons;
     if (!m_isDragging) return;
 
     double dx = x - m_lastMouseX;
@@ -355,40 +358,43 @@ void Camera4DAdapter::onMouseMoved(float x, float y, int buttons, int modifiers)
             clampElevation();
             m_state.distance = std::max(0.1, m_state.distance + dx * ZOOM_SPEED * speedMult * 10.0);
             break;
-        case RotationPlane::TX:
-            // Proper SO(4) rotation in TX plane (Lorentz boost)
-            // Mouse horizontal = rotation angle, vertical = translation along X
-            {
-                double rotAngle = dx * ROTATION_SPEED * speedMult * 0.5;
-                double rapidity = std::clamp(rotAngle, -2.0, 2.0);
-                double coshR = std::cosh(rapidity);
-                double sinhR = std::sinh(rapidity);
-                double newTx = coshR * m_state.tx;
+            case RotationPlane::TX:
+                // Proper SO(4) rotation in TX plane (Lorentz boost)
+                // Mouse horizontal = rotation angle, vertical = translation along X
+                {
+                    double rotAngle = dx * ROTATION_SPEED * speedMult * 0.5;
+                    double rapidity = std::clamp(rotAngle, -2.0, 2.0);
+                    double coshR = std::cosh(rapidity);
+                    double sinhR = std::sinh(rapidity);
+                    (void)sinhR;
+                    double newTx = coshR * m_state.tx;
                 m_state.tx = std::clamp(newTx, -500.0, 500.0);
                 // Vertical adjusts distance
                 m_state.distance = std::max(0.1, m_state.distance + dy * ZOOM_SPEED * speedMult * 5.0);
             }
             break;
-        case RotationPlane::TY:
-            // Proper SO(4) rotation in TY plane
-            {
-                double rotAngle = dx * ROTATION_SPEED * speedMult * 0.5;
-                double rapidity = std::clamp(rotAngle, -2.0, 2.0);
-                double coshR = std::cosh(rapidity);
-                double sinhR = std::sinh(rapidity);
-                double newTy = coshR * m_state.ty;
+            case RotationPlane::TY:
+                // Proper SO(4) rotation in TY plane
+                {
+                    double rotAngle = dx * ROTATION_SPEED * speedMult * 0.5;
+                    double rapidity = std::clamp(rotAngle, -2.0, 2.0);
+                    double coshR = std::cosh(rapidity);
+                    double sinhR = std::sinh(rapidity);
+                    (void)sinhR;
+                    double newTy = coshR * m_state.ty;
                 m_state.ty = std::clamp(newTy, -500.0, 500.0);
                 m_state.distance = std::max(0.1, m_state.distance + dy * ZOOM_SPEED * speedMult * 5.0);
             }
             break;
-        case RotationPlane::TZ:
-            // Proper SO(4) rotation in TZ plane
-            {
-                double rotAngle = dx * ROTATION_SPEED * speedMult * 0.5;
-                double rapidity = std::clamp(rotAngle, -2.0, 2.0);
-                double coshR = std::cosh(rapidity);
-                double sinhR = std::sinh(rapidity);
-                double newTz = coshR * m_state.tz;
+            case RotationPlane::TZ:
+                // Proper SO(4) rotation in TZ plane
+                {
+                    double rotAngle = dx * ROTATION_SPEED * speedMult * 0.5;
+                    double rapidity = std::clamp(rotAngle, -2.0, 2.0);
+                    double coshR = std::cosh(rapidity);
+                    double sinhR = std::sinh(rapidity);
+                    (void)sinhR;
+                    double newTz = coshR * m_state.tz;
                 m_state.tz = std::clamp(newTz, -500.0, 500.0);
                 m_state.distance = std::max(0.1, m_state.distance + dy * ZOOM_SPEED * speedMult * 5.0);
             }

@@ -179,6 +179,7 @@ for rho in range(4):
 }
 
 std::string SymbolicMath::buildCurvatureScript(const std::string& metric_name) const {
+    (void)metric_name;
     std::ostringstream script;
     script << R"(
 import sympy as sp
@@ -513,7 +514,7 @@ print("LaTeX: R(x) = 0")
 
 std::string SymbolicRegressionEngine::buildRegressionScript(
     const std::vector<std::pair<std::vector<double>, double>>& data) const {
-    
+    (void)data;
     std::ostringstream script;
     script << R"(
 import sympy as sp

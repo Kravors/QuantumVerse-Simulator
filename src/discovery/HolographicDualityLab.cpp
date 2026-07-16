@@ -116,6 +116,7 @@ double HolographicDualityLab::computeBulkToBoundaryPropagator(
 
 std::vector<double> HolographicDualityLab::computeHolographicStressTensor(
     const std::vector<double>& bulk_metric) const {
+    (void)bulk_metric;
     
     // Simplified holographic stress tensor computation
     // T_{mu nu} = (2/L) * (g_{mu nu} - h_{mu nu}) / sqrt(-h)
@@ -139,6 +140,7 @@ std::vector<double> HolographicDualityLab::computeHolographicStressTensor(
 double HolographicDualityLab::computeEntanglementEntropy(
     double region_area,
     double bulk_area) const {
+    (void)region_area;
     
     // Ryu-Takayanagi formula: S = A/(4G_N)
     return coefficients_["entropy_factor"] * bulk_area;

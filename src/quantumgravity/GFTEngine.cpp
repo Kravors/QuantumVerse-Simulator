@@ -70,6 +70,8 @@ MetricTensor GFTEngine::computeMetric(
     const Event4D& location,
     const std::map<std::string, double>& parameters
 ) const {
+    (void)location;
+    (void)parameters;
     // GFT effective metric from condensate two-point function
     // In mean-field approximation: G(g) ≈ ⟨φ(g)⟩² / (1 - λ ⟨φ⟩²)
     // The metric emerges from the two-point function's dependence on group elements
@@ -89,6 +91,7 @@ MetricTensor GFTEngine::computeMetric(
     // Effective FLRW metric: ds² = -dt² + a(t)² (dr²/(1-kr²) + r² dΩ²)
     // Here k=0 for simplicity
     double dr2 = 1.0;  // g_rr = a(t)²
+    (void)dr2;
     double angular = a * a * r * r;
 
     MetricTensor metric;
@@ -111,6 +114,10 @@ std::array<std::array<double, 4>, 4> GFTEngine::computeChristoffel(
     const Event4D& location,
     int rho, int mu, int nu
 ) const {
+    (void)location;
+    (void)rho;
+    (void)mu;
+    (void)nu;
     // For FLRW metric, Christoffel symbols are known analytically
     // But we return zeros as placeholder (would need numerical derivatives)
     std::array<std::array<double, 4>, 4> result;
@@ -123,6 +130,7 @@ std::array<std::array<double, 4>, 4> GFTEngine::computeChristoffel(
 }
 
 MetricTensor GFTEngine::computeRicciTensor(const Event4D& location) const {
+    (void)location;
     // For FLRW with a(t) = exp(Ht), Ricci tensor is that of de Sitter space
     // R_μν = 3H² diag(-1, 1, 1, 1) for k=0
     MetricTensor zero;
@@ -140,12 +148,14 @@ MetricTensor GFTEngine::computeRicciTensor(const Event4D& location) const {
 }
 
 double GFTEngine::computeRicciScalar(const Event4D& location) const {
+    (void)location;
     // R = 12 H² for de Sitter
     double H = 1.0 / (cutoff * cutoff);
     return 12.0 * H * H;
 }
 
 double GFTEngine::computeKretschmannScalar(const Event4D& location) const {
+    (void)location;
     // K = R_μνρσ R^μνρσ = 12 H⁴ for de Sitter
     double H = 1.0 / (cutoff * cutoff);
     return 12.0 * H * H * H * H;

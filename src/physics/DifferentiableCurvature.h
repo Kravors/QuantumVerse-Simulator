@@ -195,7 +195,11 @@ public:
     }
     
     /**
-     * Compute gradient of Kretschmann scalar w.r.t. parameters
+     * @brief Compute gradient of Kretschmann scalar with respect to parameters.
+     * @param position Spacetime event at which to evaluate.
+     * @param params Metric parameters.
+     * @param eps Finite-difference step size.
+     * @return Array of partial derivatives ∂K/∂θ_i.
      */
     template<int N>
     std::array<double, N> computeKretschmannGradient(
@@ -205,6 +209,7 @@ public:
     ) const {
         std::array<double, N> grad;
         double K0 = computeKretschmannAt(position, params);
+        (void)K0;
         
         for (int i = 0; i < N; i++) {
             std::array<double, N> params_plus = params;

@@ -179,11 +179,11 @@ public:
     
     // Check vector type based on Lorentzian norm
     bool isTimelike() const {
-        return normSquaredLorentzian() > 1e-10;
+        return normSquaredLorentzian() < -1e-10;
     }
     
     bool isSpacelike() const {
-        return normSquaredLorentzian() < -1e-10;
+        return normSquaredLorentzian() > 1e-10;
     }
     
     bool isLightlike() const {

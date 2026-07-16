@@ -28,7 +28,6 @@
 
 namespace quantumverse {
 class Event4D;
-class ObjectProperties;
 struct ObjectProperties;
 }
 

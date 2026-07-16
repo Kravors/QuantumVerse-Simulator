@@ -37,7 +37,9 @@
 #include <array>
 
 #include "ml/SurrogateIntegration.h"
+#ifdef QUANTUMVERSE_USE_VR
 #include "vr/OpenXRBackend.h"
+#endif
 
 // Forward declarations to avoid Qt header conflicts with renderer includes
 // These are in the quantumverse namespace
@@ -253,9 +255,11 @@ private:
     void setViewportSize(int width, int height);
 
     // VR head tracking
+#ifdef QUANTUMVERSE_USE_VR
     void setHeadPose(const quantumverse::vr::HeadPose& pose);
     void applyHeadPose();
     bool hasHeadPose() const { return m_hasHeadPose; }
+#endif
 
     // Interaction
     void zoom(float factor);
@@ -268,6 +272,7 @@ private:
     void setShowLightCones(bool show);
     void setShowGeodesics(bool show);
     void setShowQuantumGeometry(bool show);
+    void setShowHUD(bool show);
     void setCurvatureMode(int mode);
 
     // Time control
@@ -286,9 +291,16 @@ private:
     bool headlessTargetReached() const { return m_headlessStatsLogged; }
     int getHeadlessFrameCount() const { return m_frameCount; }
 
+    // Headless screenshot support
+    void requestScreenshot(const QString &path);
+    bool screenshotRequested() const { return m_screenshotRequested; }
+    QString screenshotPath() const { return m_screenshotPath; }
+    void clearScreenshotRequest() { m_screenshotRequested = false; }
+
     // Celestial body & camera adapters
     void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
     void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
+    void renderHUD();
 
     private:
     // OpenGL initialization helpers
@@ -355,8 +367,10 @@ private:
     float m_cameraPanY;
 
     // VR head tracking state
+#ifdef QUANTUMVERSE_USE_VR
     quantumverse::vr::HeadPose m_headPose;
     bool m_hasHeadPose = false;
+#endif
 
     // Pointers to core renderers (non-owning)
     std::shared_ptr<CurvatureRenderer> m_curvatureRenderer;
@@ -368,7 +382,8 @@ private:
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
 
-    // Surrogate integration for real-time geodesic prediction (currently disabled)
+    // Surrogate integration for real-time geodesic prediction (deferred:
+    // SurrogateIntegration depends on geometry/BVH.h which is not yet present)
 #if 0
     std::unique_ptr<quantumverse::ml::SurrogateIntegration> m_surrogateIntegration;
 #endif
@@ -379,6 +394,10 @@ private:
     // Headless baseline target
     int m_headlessTargetFrames;
     bool m_headlessStatsLogged;
+
+    // Headless screenshot state
+    bool m_screenshotRequested;
+    QString m_screenshotPath;
 
     // Mutable renderer storage for createRenderer() const
     mutable std::shared_ptr<CurvatureRenderer> m_pendingCurvatureRenderer;
@@ -421,6 +440,7 @@ class QmlGlViewport : public ::QQuickItem
     Q_PROPERTY(bool showLightCones READ showLightCones WRITE setShowLightCones NOTIFY showLightConesChanged)
     Q_PROPERTY(bool showGeodesics READ showGeodesics WRITE setShowGeodesics NOTIFY showGeodesicsChanged)
     Q_PROPERTY(bool showQuantumGeometry READ showQuantumGeometry WRITE setShowQuantumGeometry NOTIFY showQuantumGeometryChanged)
+    Q_PROPERTY(bool showHUD READ showHUD WRITE setShowHUD NOTIFY showHUDChanged)
     Q_PROPERTY(int curvatureMode READ curvatureMode WRITE setCurvatureMode NOTIFY curvatureModeChanged)
     Q_PROPERTY(float cameraDistance READ cameraDistance WRITE setCameraDistance NOTIFY cameraDistanceChanged)
     Q_PROPERTY(float cameraAngleX READ cameraAngleX WRITE setCameraAngleX NOTIFY cameraAngleXChanged)
@@ -445,6 +465,7 @@ public:
     bool showLightCones() const { return m_showLightCones; }
     bool showGeodesics() const { return m_showGeodesics; }
     bool showQuantumGeometry() const { return m_showQuantumGeometry; }
+    bool showHUD() const { return m_showHUD; }
     int curvatureMode() const { return m_curvatureMode; }
     float cameraDistance() const { return m_cameraDistance; }
     float cameraAngleX() const { return m_cameraAngleX; }
@@ -507,6 +528,10 @@ public:
     std::shared_ptr<Camera4DAdapter> camera4DAdapter() const { return m_camera4DAdapter; }
 
     void setHeadlessFrameTarget(int frames) { if (m_renderer) m_renderer->setHeadlessFrameTarget(frames); }
+    bool headlessTargetReached() const { return m_renderer ? m_renderer->headlessTargetReached() : false; }
+
+    void requestScreenshot(const QString &path) { if (m_renderer && window()) m_renderer->requestScreenshot(path); }
+    bool screenshotRequested() const { return m_renderer ? m_renderer->screenshotRequested() : false; }
 
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);
@@ -516,6 +541,7 @@ signals:
     void showLightConesChanged();
     void showGeodesicsChanged();
     void showQuantumGeometryChanged();
+    void showHUDChanged();
     void curvatureModeChanged();
     void cameraDistanceChanged();
     void cameraAngleXChanged();
@@ -533,6 +559,7 @@ public slots:
     void setShowLightCones(bool show);
     void setShowGeodesics(bool show);
     void setShowQuantumGeometry(bool show);
+    void setShowHUD(bool show);
     void setCurvatureMode(int mode);
     void setCameraDistance(float dist);
     void setCameraAngleX(float angle);
@@ -548,6 +575,7 @@ private:
     bool m_showLightCones;
     bool m_showGeodesics;
     bool m_showQuantumGeometry;
+    bool m_showHUD;
     int m_curvatureMode;
     float m_cameraDistance;
     float m_cameraAngleX;

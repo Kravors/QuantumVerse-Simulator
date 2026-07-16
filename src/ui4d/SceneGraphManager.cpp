@@ -144,6 +144,7 @@ std::vector<Event4D> SceneGraphManager::getWorldline(const std::string& objectId
 
 std::vector<std::shared_ptr<ObjectProperties>> SceneGraphManager::getObjectsInRadius(
     const Event4D& center, double radius, bool includeWorldlines) const {
+    (void)includeWorldlines;
     
     std::vector<std::shared_ptr<ObjectProperties>> result;
     
@@ -288,13 +289,13 @@ bool SceneGraphManager::saveToFile(const std::string& filepath) const {
     return true;
 }
 
-void SceneGraphManager::importFromMetricTensor(const std::shared_ptr<MetricTensor>& metric,
+void SceneGraphManager::importFromMetricTensor(const std::shared_ptr<MetricTensor>& inputMetric,
                                                const std::vector<Event4D>& samplePoints,
                                                double properTimeStep) {
-    if (!metric) return;
+    if (!inputMetric) return;
 
     GeodesicIntegrator integrator;
-    integrator.setMetric(metric);
+    integrator.setMetric(inputMetric);
 
     for (const auto& event : samplePoints) {
         // Generate a short geodesic worldline from each sample point

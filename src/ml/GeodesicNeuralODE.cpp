@@ -207,11 +207,16 @@ std::vector<Event4D> GeodesicNeuralODE::predict(
         const std::array<double,4>& initial_velocity,
         const std::vector<double>& metric_params,
         double tau) const {
+    (void)initial_event;
+    (void)initial_velocity;
+    (void)metric_params;
+    (void)tau;
     if (!isLoaded()) {
         return {Event4D()};
     }
 
     const auto& base = *pImpl_;
+    (void)base;
 
 #ifdef HAVE_ONNX
     if (base.use_onnx_ && base.session_) {

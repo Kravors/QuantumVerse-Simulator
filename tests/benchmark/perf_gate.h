@@ -51,15 +51,27 @@ inline bool parseLog(const std::string& log, double& avg, double& max) {
 /// compile-time default when unset or unparseable. This lets CI adjust the
 /// gate without recompiling.
 inline double thresholdFromEnv(const char* name, double fallback) {
+    double value = fallback;
+#ifdef _MSC_VER
+    char* e = nullptr;
+    size_t envsz = 0;
+    if (_dupenv_s(&e, &envsz, name) == 0 && e && *e) {
+        try {
+            value = std::stod(e);
+        } catch (...) {
+        }
+        free(e);
+    }
+#else
     const char* e = std::getenv(name);
     if (e && *e) {
         try {
-            return std::stod(e);
+            value = std::stod(e);
         } catch (...) {
-            // fall through to default on malformed env value
         }
     }
-    return fallback;
+#endif
+    return value;
 }
 
 /// Evaluate log content against the supplied thresholds.

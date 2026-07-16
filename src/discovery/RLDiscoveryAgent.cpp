@@ -259,6 +259,7 @@ double RLDiscoveryAgent::getEpsilon() const { return epsilon; }
 int RLDiscoveryAgent::getEpisodeCount() const { return episode_count; }
 
 double RLDiscoveryAgent::getAverageReward(int window_size) const {
+    (void)window_size;
     return total_reward / static_cast<double>(episode_count + 1);
 }
 
