@@ -1,46 +1,72 @@
 @echo off
+REM QuantumVerse Windows Deployment
+REM Targets the CMake build directory (build/Release or build/Debug)
+
 setlocal enabledelayedexpansion
 
-echo === QuantumVerse Windows Deployment ===
+echo === QuantumVerse v3.7.2 Windows Deployment ===
 
-set BUILD_DIR=build_test
+set BUILD_TYPE=Release
+if not exist "build\%BUILD_TYPE%\quantumverse_imgui.exe" (
+    if exist "build\Debug\quantumverse_imgui.exe" (
+        set BUILD_TYPE=Debug
+    ) else (
+        echo ERROR: No build found in build/Release or build/Debug. Build first!
+        pause
+        exit /b 1
+    )
+)
+echo Build type: %BUILD_TYPE%
+
 set DEPLOY_DIR=deploy\windows
 
 REM 1. Clean deploy folder
 if exist "%DEPLOY_DIR%" rmdir /s /q "%DEPLOY_DIR%"
 mkdir "%DEPLOY_DIR%"
 
-REM 2. Copy executable
-copy "%BUILD_DIR%\Release\quantumverse_imgui.exe" "%DEPLOY_DIR%\"
-if errorlevel 1 (
-    echo ERROR: executable not found. Build first!
-    pause
-    exit /b 1
+REM 2. Copy executables
+echo Copying executables...
+copy "build\%BUILD_TYPE%\quantumverse_qml.exe" "%DEPLOY_DIR%\" >nul
+copy "build\%BUILD_TYPE%\quantumverse_imgui.exe" "%DEPLOY_DIR%\" >nul
+echo   quantumverse_qml.exe copied.
+echo   quantumverse_imgui.exe copied.
+
+REM 3. Copy Qt plugins (platforms, imageformats)
+echo Deploying Qt plugins...
+if exist "build\%BUILD_TYPE%\plugins" (
+    xcopy "build\%BUILD_TYPE%\plugins" "%DEPLOY_DIR%\plugins\" /E /I /Y >nul
+    echo   Qt plugins copied.
 )
 
-REM 3. Copy ONNX models for AI features
-if exist "models" (
-    xcopy "models" "%DEPLOY_DIR%\models\" /E /I /Y
-    echo Models copied.
+REM 4. Copy QML modules if present
+if exist "build\%BUILD_TYPE%\qml" (
+    xcopy "build\%BUILD_TYPE%\qml" "%DEPLOY_DIR%\qml\" /E /I /Y >nul
+    echo   QML modules copied.
 )
 
-REM 4. Copy any required DLLs (if not statically linked)
-REM Check for GLFW DLL
-if exist "third_party\glfw\lib-vc2010-64\glfw3.dll" (
-    copy "third_party\glfw\lib-vc2010-64\glfw3.dll" "%DEPLOY_DIR%\"
-    echo glfw3.dll copied.
+REM 5. Copy shader files
+if exist "data\shaders" (
+    if not exist "%DEPLOY_DIR%\shaders" mkdir "%DEPLOY_DIR%\shaders"
+    xcopy "data\shaders" "%DEPLOY_DIR%\shaders\" /E /I /Y >nul
+    echo   Shaders copied.
 )
 
-REM Check for ONNX Runtime DLL
-if exist "third_party\onnxruntime\onnxruntime-win-x64-gpu-cuda12-1.18.1\onnxruntime-win-x64-gpu-1.18.1\lib\onnxruntime.dll" (
-    copy "third_party\onnxruntime\onnxruntime-win-x64-gpu-cuda12-1.18.1\onnxruntime-win-x64-gpu-1.18.1\lib\onnxruntime.dll" "%DEPLOY_DIR%\"
-    echo onnxruntime.dll copied.
+REM 6. Copy icons for QML
+if not exist "%DEPLOY_DIR%\icons" mkdir "%DEPLOY_DIR%\icons"
+if exist "src\icons\*.svg" (
+    copy "src\icons\*.svg" "%DEPLOY_DIR%\icons\" >nul
+    echo   Icons copied.
 )
 
-REM 5. Copy the imgui.ini if you want a pre-configured layout (optional)
-if exist "imgui.ini" copy "imgui.ini" "%DEPLOY_DIR%\"
+REM 7. Copy qt.conf
+echo [Paths] > "%DEPLOY_DIR%\qt.conf"
+echo Prefix = . >> "%DEPLOY_DIR%\qt.conf"
+echo Plugins = plugins >> "%DEPLOY_DIR%\qt.conf"
+echo Qml2Imports = qml >> "%DEPLOY_DIR%\qt.conf"
 
 echo.
 echo Deployment completed to %DEPLOY_DIR%
+echo Run: %DEPLOY_DIR%\quantumverse_qml.exe
 echo Run: %DEPLOY_DIR%\quantumverse_imgui.exe
+echo ========================================
 pause

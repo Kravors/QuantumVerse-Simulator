@@ -8,16 +8,7 @@
 #include <fstream>
 #include <sstream>
 
-// For OpenGL functions (used when QUANTUMVERSE_IMGUI_DX11 is NOT defined)
-#if !defined(QUANTUMVERSE_IMGUI_DX11)
 #include "../../third_party/glad/glad.h"
-#endif
-
-// For DX11 functions (used when QUANTUMVERSE_IMGUI_DX11 is defined)
-#if defined(QUANTUMVERSE_IMGUI_DX11)
-#include <d3d11.h>
-#include <dxgi.h>
-#endif
 
 #ifdef _WIN32
     #include <windows.h>
@@ -127,29 +118,6 @@ DiagnosticResult DiagnosticMode::checkOpenGLCapabilities() {
     DiagnosticResult result;
     result.testName = "Graphics Capabilities";
     
-#if defined(QUANTUMVERSE_IMGUI_DX11)
-    // For DX11 backend, check D3D11 capabilities
-    result.passed = true;
-    result.message = "D3D11 context available";
-    result.details = "Using D3D11 backend for ImGui presentation";
-    
-    // Try to get DXGI adapter info
-    IDXGIFactory* factory = nullptr;
-    if (SUCCEEDED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory))) {
-        IDXGIAdapter* adapter = nullptr;
-        if (SUCCEEDED(factory->EnumAdapters(0, &adapter))) {
-            DXGI_ADAPTER_DESC desc;
-            if (SUCCEEDED(adapter->GetDesc(&desc))) {
-                // Convert WCHAR to char for std::string
-                char adapterName[128] = {0};
-                WideCharToMultiByte(CP_UTF8, 0, desc.Description, -1, adapterName, sizeof(adapterName), nullptr, nullptr);
-                result.details += "\nAdapter: " + std::string(adapterName);
-            }
-            adapter->Release();
-        }
-        factory->Release();
-    }
-#else
     // Get OpenGL version
     const char* version = (const char*)glGetString(GL_VERSION);
     const char* vendor = (const char*)glGetString(GL_VENDOR);
@@ -173,7 +141,6 @@ DiagnosticResult DiagnosticMode::checkOpenGLCapabilities() {
         result.message = "OpenGL context not available";
         result.details = "Cannot query GL strings - context may not be initialized";
     }
-#endif
     
     return result;
 }
@@ -182,13 +149,6 @@ DiagnosticResult DiagnosticMode::testFramebufferCreation() {
     DiagnosticResult result;
     result.testName = "Framebuffer Creation";
     
-#if defined(QUANTUMVERSE_IMGUI_DX11)
-    // For DX11 backend, we verify D3D11 device creation capability
-    // The swap chain is created during OpenGL context initialization
-    result.passed = true;
-    result.message = "D3D11 swap chain ready";
-    result.details = "Format: DXGI_FORMAT_R8G8B8A8_UNORM + DXGI_SWAP_EFFECT_DISCARD, Size: 1024x768";
-#else
     // Test FBO creation with the format used in CurvatureRenderer (1024x768)
     unsigned int fbo, texture, rbo;
     glGenFramebuffers(1, &fbo);
@@ -236,7 +196,6 @@ DiagnosticResult DiagnosticMode::testFramebufferCreation() {
         result.message = "Framebuffer incomplete";
         result.details = "Status: 0x" + std::to_string(status);
     }
-#endif
     
     return result;
 }
@@ -245,13 +204,6 @@ DiagnosticResult DiagnosticMode::testEmbeddedShaders() {
     DiagnosticResult result;
     result.testName = "Embedded Shaders";
     
-#if defined(QUANTUMVERSE_IMGUI_DX11)
-    // For DX11 backend, we verify the embedded shader strings exist
-    // The actual shader compilation happens in CurvatureRenderer
-    result.passed = true;
-    result.message = "Embedded shaders available (D3D11 backend)";
-    result.details = "Shaders are embedded in CurvatureRenderer.cpp and will be compiled on demand";
-#else
     // The shaders are embedded in CurvatureRenderer.cpp as string literals
     // This test verifies they compile correctly
     const char* testVert = R"(
@@ -320,7 +272,6 @@ DiagnosticResult DiagnosticMode::testEmbeddedShaders() {
         result.message = "Shader program linking failed";
         result.details = "Check OpenGL context and driver support";
     }
-#endif
     
     return result;
 }
@@ -329,13 +280,6 @@ DiagnosticResult DiagnosticMode::testShaderRender() {
     DiagnosticResult result;
     result.testName = "Shader Render Test";
     
-#if defined(QUANTUMVERSE_IMGUI_DX11)
-    // For DX11 backend, we verify the rendering pipeline is ready
-    // The actual rendering test happens in the main loop
-    result.passed = true;
-    result.message = "D3D11 rendering pipeline ready";
-    result.details = "ImGui DX11 backend will handle rendering";
-#else
     // Create a minimal VAO with a single triangle
     float vertices[] = {
         0.0f, 0.5f, 0.0f,
@@ -412,7 +356,6 @@ DiagnosticResult DiagnosticMode::testShaderRender() {
                          std::to_string(pixels[2]) + "," + 
                          std::to_string(pixels[3]) + ")";
     }
-#endif
     
     return result;
 }

@@ -1,7 +1,7 @@
 # QuantumVerse Simulator - CMakeLists.txt
 # Production-ready 4D spacetime cognition laboratory
 cmake_minimum_required(VERSION 3.20)
-project(QuantumVerse LANGUAGES C CXX VERSION 3.7.0)
+project(QuantumVerse LANGUAGES C CXX VERSION 3.7.2)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
@@ -191,6 +191,7 @@ if(QUANTUMVERSE_USE_QT)
         COMMENT "Running windeployqt on quantumverse_qml.exe to populate ${QT_RUNTIME_DEST}"
     )
     add_dependencies(deploy_qt_runtime quantumverse_qml)
+
 
     # Optional per-stage render timers (QmlGlRenderer). Off by default so the
     # release performance gate is unaffected; enable for profiling builds.
@@ -986,7 +987,7 @@ endif()
 
 # CPack configuration for packaging
 set(CPACK_PACKAGE_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "3.7.0")
+set(CPACK_PACKAGE_VERSION "3.7.2")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AI-accelerated 4D spacetime simulator")
 set(CPACK_PACKAGE_VENDOR "Humanity")
 

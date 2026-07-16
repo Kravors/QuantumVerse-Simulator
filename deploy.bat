@@ -1,14 +1,22 @@
 @echo off
 REM QuantumVerse Deployment Script
-REM Version: 2.4.0
+REM Version: 3.7.2
 
 echo ========================================
-echo QuantumVerse v3.6.0 Deployment
+echo QuantumVerse v3.7.2 Deployment
 echo ========================================
 
 set QT_DIR=F:\qt\6.11.1\msvc2022_64
 set BUILD_DIR=build
 set DEPLOY_DIR=deploy\windows
+
+REM Detect build type
+if exist "%BUILD_DIR%\Release\quantumverse_qml.exe" (
+    set BUILD_TYPE=Release
+) else (
+    set BUILD_TYPE=Debug
+)
+echo Build type: %BUILD_TYPE%
 
 REM 1. Clean deploy folder
 if exist "%DEPLOY_DIR%" rmdir /s /q "%DEPLOY_DIR%"
@@ -16,21 +24,23 @@ mkdir "%DEPLOY_DIR%"
 
 REM 2. Copy executables
 echo Copying executables...
-if exist "%BUILD_DIR%\Release\quantumverse_qml.exe" (
-    copy "%BUILD_DIR%\Release\quantumverse_qml.exe" "%DEPLOY_DIR%\" >nul
+if exist "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_qml.exe" (
+    copy "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_qml.exe" "%DEPLOY_DIR%\" >nul
     echo   quantumverse_qml.exe copied.
 )
-if exist "%BUILD_DIR%\Release\quantumverse_imgui.exe" (
-    copy "%BUILD_DIR%\Release\quantumverse_imgui.exe" "%DEPLOY_DIR%\" >nul
+if exist "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_imgui.exe" (
+    copy "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_imgui.exe" "%DEPLOY_DIR%\" >nul
     echo   quantumverse_imgui.exe copied.
 )
 
 REM 3. Use windeployqt to copy Qt dependencies automatically
 echo Deploying Qt dependencies...
 if exist "%QT_DIR%\bin\windeployqt.exe" (
-    "%QT_DIR%\bin\windeployqt.exe" --release --no-translations --no-system-d3d-compiler --compiler-runtime --qmldir "%~dp0src" "%DEPLOY_DIR%\quantumverse_qml.exe"
+    if exist "%DEPLOY_DIR%\quantumverse_qml.exe" (
+        "%QT_DIR%\bin\windeployqt.exe" --%BUILD_TYPE% --no-translations --no-system-d3d-compiler --compiler-runtime --qmldir "%~dp0src" "%DEPLOY_DIR%\quantumverse_qml.exe"
+    )
     if exist "%DEPLOY_DIR%\quantumverse_imgui.exe" (
-        "%QT_DIR%\bin\windeployqt.exe" --release --no-translations --no-system-d3d-compiler --compiler-runtime "--qmldir" "%~dp0src" "%DEPLOY_DIR%\quantumverse_imgui.exe"
+        "%QT_DIR%\bin\windeployqt.exe" --%BUILD_TYPE% --no-translations --no-system-d3d-compiler --compiler-runtime "%DEPLOY_DIR%\quantumverse_imgui.exe"
     )
     echo Qt dependencies deployed.
 ) else (
