@@ -148,6 +148,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
         src/discovery/RLDiscoveryAgent.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/HolographicDualityLab.cpp
@@ -597,6 +598,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
     )
     target_link_libraries(fuzz_instruments PRIVATE dilaton)
     add_test(NAME FuzzInstrumentsTest COMMAND fuzz_instruments)
@@ -750,6 +752,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         tests/test_recombination_constant_variation.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
     )
     target_link_libraries(test_recombination_constant_variation PRIVATE dilaton)
     add_test(NAME RecombinationConstantVariationTest COMMAND test_recombination_constant_variation)
@@ -985,6 +988,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
     )
     message(STATUS "Linking test_instrument_audit")
     target_link_libraries(test_instrument_audit PRIVATE dilaton)
@@ -1007,6 +1011,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
@@ -1037,6 +1042,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
@@ -1062,6 +1068,14 @@ if(QUANTUMVERSE_BUILD_TESTS)
     )
     target_link_libraries(test_cmb_lensing_scanner PRIVATE dilaton)
     add_test(NAME CMBLensingScannerTest COMMAND test_cmb_lensing_scanner)
+
+    # 6.7 Pulsar Timing Array scanner
+    add_executable(test_pta_scanner
+        tests/discovery/test_pta_scanner.cpp
+        src/discovery/PTAScanner.cpp
+    )
+    target_link_libraries(test_pta_scanner PRIVATE dilaton)
+    add_test(NAME PTAScannerTest COMMAND test_pta_scanner)
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues
