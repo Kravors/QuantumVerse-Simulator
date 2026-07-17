@@ -149,6 +149,36 @@ int main(int argc, char** argv)
         assert(std::fabs(parsed.fermi_gbm.confidence - 0.95) < 1e-9);
     }
 
+    // --- Swift BAT X-ray transient alert -----------------------------------------
+    {
+        const QJsonObject obj = makeJson(
+            "{"
+            "  \"alert_type\": \"Swift/BAT\","
+            "  \"trigger_id\": \"swift_bat_240512A\","
+            "  \"ra\": 123.45,"
+            "  \"dec\": -45.67,"
+            "  \"duration\": 1.8,"
+            "  \"bat_rate\": 4500.0,"
+            "  \"xrt_flux\": 3.2e-8,"
+            "  \"error_radius\": 1.5,"
+            "  \"false_alarm_rate\": 0.0005,"
+            "  \"confidence\": 0.98"
+            "}"
+        );
+
+        const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
+        assert(parsed.origin == AlertOrigin::Swift);
+        assert(parsed.swift_bat.trigger_id == "swift_bat_240512A");
+        assert(std::fabs(parsed.swift_bat.ra - 123.45) < 1e-9);
+        assert(std::fabs(parsed.swift_bat.dec - (-45.67)) < 1e-9);
+        assert(std::fabs(parsed.swift_bat.duration - 1.8) < 1e-9);
+        assert(std::fabs(parsed.swift_bat.bat_rate - 4500.0) < 1e-9);
+        assert(std::fabs(parsed.swift_bat.xrt_flux - 3.2e-8) < 1e-14);
+        assert(std::fabs(parsed.swift_bat.error_radius - 1.5) < 1e-9);
+        assert(std::fabs(parsed.swift_bat.false_alarm_rate - 0.0005) < 1e-12);
+        assert(std::fabs(parsed.swift_bat.confidence - 0.98) < 1e-9);
+    }
+
     // --- Missing fields default to zero -----------------------------------------
     {
         const QJsonObject obj = makeJson(

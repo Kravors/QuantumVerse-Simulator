@@ -83,6 +83,21 @@ struct FermiGBMAlertFields {
 };
 
 /**
+ * @brief Normalised Swift BAT gamma-ray burst / X-ray transient alert fields.
+ */
+struct SwiftBATAlertFields {
+    std::string trigger_id;
+    double bat_rate = 0.0;
+    double xrt_flux = 0.0;
+    double duration = 0.0;
+    double false_alarm_rate = 0.0;
+    double ra = 0.0;
+    double dec = 0.0;
+    double error_radius = 0.0;
+    double confidence = 0.0;
+};
+
+/**
  * @brief Union-style parse result for any supported alert type.
  */
 struct ParsedGCNNotice {
@@ -92,6 +107,7 @@ struct ParsedGCNNotice {
     NeutrinoAlertFields neutrino;
     TESSAlertFields tess;
     FermiGBMAlertFields fermi_gbm;
+    SwiftBATAlertFields swift_bat;
 };
 
 /**

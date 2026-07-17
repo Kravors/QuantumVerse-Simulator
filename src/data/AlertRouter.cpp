@@ -7,6 +7,7 @@
 #include "GCNNoticeParser.h"
 #include "TESSAlertAdapter.h"
 #include "FermiGBMAdapter.h"
+#include "SwiftBATAdapter.h"
 
 namespace quantumverse {
 
@@ -16,6 +17,7 @@ AlertRouter::AlertRouter(QObject* parent)
     , m_icecube(nullptr)
     , m_tess(nullptr)
     , m_fermi_gbm(nullptr)
+    , m_swift_bat(nullptr)
 {
 }
 
@@ -90,6 +92,25 @@ void AlertRouter::routeAlert(const QJsonObject& alert)
         tess.dec = parsed.tess.dec;
         m_tess->simulateAlert(tess);
         emit alertRouted(QStringLiteral("TESS"));
+        break;
+    }
+    case AlertOrigin::Swift: {
+        if (!m_swift_bat) {
+            emit routingError(QStringLiteral("No Swift BAT adapter registered"));
+            return;
+        }
+        SwiftBATAlert bat;
+        bat.trigger_id = parsed.swift_bat.trigger_id;
+        bat.bat_rate = parsed.swift_bat.bat_rate;
+        bat.xrt_flux = parsed.swift_bat.xrt_flux;
+        bat.duration = parsed.swift_bat.duration;
+        bat.false_alarm_rate = parsed.swift_bat.false_alarm_rate;
+        bat.ra = parsed.swift_bat.ra;
+        bat.dec = parsed.swift_bat.dec;
+        bat.error_radius = parsed.swift_bat.error_radius;
+        bat.confidence = parsed.swift_bat.confidence;
+        m_swift_bat->simulateAlert(bat);
+        emit alertRouted(QStringLiteral("SwiftBAT"));
         break;
     }
     default:

@@ -59,6 +59,7 @@
 #include "data/IceCubeAdapter.h"
 #include "data/TESSAlertAdapter.h"
 #include "data/FermiGBMAdapter.h"
+#include "data/SwiftBATAdapter.h"
 #include "data/AlertToFinding.h"
 #include "data/AlertRouter.h"
 #include "data/KafkaAlertListener.h"
@@ -539,13 +540,33 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("fermiAdapter",
             QVariant::fromValue(fermiAdapter.get()));
 
+        auto swiftAdapter = std::make_shared<quantumverse::SwiftBATAdapter>();
+        swiftAdapter->setCallback([findingsModel](const quantumverse::SwiftBATAlert& alert) {
+            quantumverse::InstrumentFinding f;
+            f.id = "SwiftBAT_" + alert.trigger_id;
+            f.instrumentName = "Swift BAT (Live)";
+            f.description = QStringLiteral("Live X-ray transient %1 (BAT rate=%2, XRT flux=%3)")
+                .arg(QString::fromStdString(alert.trigger_id))
+                .arg(alert.bat_rate)
+                .arg(alert.xrt_flux)
+                .toStdString();
+            f.confidence = quantumverse::alertConfidence(alert.false_alarm_rate, alert.confidence);
+            f.severity = quantumverse::confidenceToSeverity(f.confidence);
+            f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+            findingsModel->addFinding(f);
+        });
+        alertRouter->setSwiftBATAdapter(swiftAdapter.get());
+        rootContext->setContextProperty("swiftAdapter",
+            QVariant::fromValue(swiftAdapter.get()));
+
         auto kafkaListener = std::make_shared<quantumverse::KafkaAlertListener>(
             QStringLiteral("gcn-kafka.nasa.gov:9092"),
             {
                 QStringLiteral("gcn.notices.LVC"),
                 QStringLiteral("gcn.notices.ICECUBE"),
                 QStringLiteral("gcn.notices.TESS"),
-                QStringLiteral("gcn.notices.FERMI_GBM")
+                QStringLiteral("gcn.notices.FERMI_GBM"),
+                QStringLiteral("gcn.notices.SWIFT_BAT")
             }
         );
 

@@ -93,6 +93,19 @@ ParsedGCNNotice GCNNoticeParser::parse(const QJsonObject& json)
         out.fermi_gbm.confidence = jsonDouble(json, "confidence");
         break;
     }
+    case AlertOrigin::Swift: {
+        out.origin = AlertOrigin::Swift;
+        out.swift_bat.trigger_id = jsonString(json, "trigger_id").toStdString();
+        out.swift_bat.bat_rate = jsonDouble(json, "bat_rate");
+        out.swift_bat.xrt_flux = jsonDouble(json, "xrt_flux");
+        out.swift_bat.duration = jsonDouble(json, "duration");
+        out.swift_bat.false_alarm_rate = jsonDouble(json, "false_alarm_rate");
+        out.swift_bat.ra = jsonDouble(json, "ra");
+        out.swift_bat.dec = jsonDouble(json, "dec");
+        out.swift_bat.error_radius = jsonDouble(json, "error_radius");
+        out.swift_bat.confidence = jsonDouble(json, "confidence");
+        break;
+    }
     default:
         out.origin = AlertOrigin::Unknown;
         break;

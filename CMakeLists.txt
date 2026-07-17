@@ -857,6 +857,16 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME FermiGBMAdapterTest COMMAND test_fermi_gbm_adapter)
     endif()
 
+    # Phase 12: Swift BAT adapter unit test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_swift_bat_adapter.cpp)
+        add_executable(test_swift_bat_adapter
+            tests/data/test_swift_bat_adapter.cpp
+            src/data/SwiftBATAdapter.cpp
+        )
+        target_link_libraries(test_swift_bat_adapter PRIVATE dilaton Qt6::Core)
+        add_test(NAME SwiftBATAdapterTest COMMAND test_swift_bat_adapter)
+    endif()
+
     # Phase 12: GCN parser unit test
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_parser.cpp)
         add_executable(test_gcn_parser
