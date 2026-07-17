@@ -484,4 +484,5 @@ Testing/
 **/Testing/
 
 # Untracked VR stub (deferred H6 / future OpenXR work)
-src/vr/
+src/vr/*.bundle
+*.bundle
