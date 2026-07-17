@@ -342,6 +342,20 @@ int main(int argc, char* argv[])
         std::cerr << "QuantumVerse: Camera4DAdapter created" << std::endl;
         std::cerr.flush();
 
+        // Initialize VR backend if enabled
+#ifdef QUANTUMVERSE_USE_VR
+        auto vrBackend = std::make_shared<quantumverse::vr::OpenXRBackend>();
+        quantumverse::vr::VRConfig vrConfig;
+        vrConfig.enabled = true;
+        vrConfig.debugMode = false;
+        vrBackend->setConfig(vrConfig);
+        if (vrBackend->initialize("QuantumVerse")) {
+            qDebug() << "QuantumVerse: VR backend initialized";
+        } else {
+            qDebug() << "QuantumVerse: VR backend initialization failed - continuing without VR";
+        }
+#endif
+
         // Create the Planck Microscope widget for Planck-scale exploration
         std::cerr << "QuantumVerse: Creating PlanckMicroscope..." << std::endl;
         std::cerr.flush();
@@ -393,6 +407,10 @@ int main(int argc, char* argv[])
             QVariant::fromValue(camController));
         rootContext->setContextProperty("discoveryPanelManager",
             QVariant::fromValue(discoveryPanelManager.get()));
+#ifdef QUANTUMVERSE_USE_VR
+        rootContext->setContextProperty("vrBackend",
+            QVariant::fromValue(vrBackend.get()));
+#endif
 
         // Correlations are exposed via DiscoveryPanelManager::correlationsList
         // and emitted through its built-in signals.

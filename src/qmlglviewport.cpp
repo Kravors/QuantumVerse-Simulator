@@ -2079,6 +2079,39 @@ void QmlGlViewport::handleWheel(float delta)
     }
 }
 
+#ifdef QUANTUMVERSE_USE_VR
+void QmlGlViewport::setVrEnabled(bool enabled)
+{
+    if (m_vrEnabled == enabled) return;
+    m_vrEnabled = enabled;
+    emit vrEnabledChanged();
+}
+
+void QmlGlViewport::setVrActive(bool active)
+{
+    if (m_vrActive == active) return;
+    m_vrActive = active;
+    emit vrActiveChanged();
+}
+
+void QmlGlViewport::setVrIpd(float ipd)
+{
+    if (qFuzzyCompare(m_vrIpd, ipd)) return;
+    m_vrIpd = ipd;
+    emit vrIpdChanged();
+}
+
+void QmlGlViewport::toggleVR()
+{
+    setVrEnabled(!m_vrEnabled);
+    if (m_vrEnabled) {
+        setVrActive(true);
+    } else {
+        setVrActive(false);
+    }
+}
+#endif
+
 void QmlGlViewport::renderGL()
 {
     // [DIAG] Count renderGL invocations to confirm the render loop runs

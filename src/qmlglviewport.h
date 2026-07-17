@@ -447,6 +447,11 @@ class QmlGlViewport : public ::QQuickItem
     Q_PROPERTY(float cameraAngleY READ cameraAngleY WRITE setCameraAngleY NOTIFY cameraAngleYChanged)
     Q_PROPERTY(float simulationTime READ simulationTime NOTIFY simulationTimeChanged)
     Q_PROPERTY(float frameRate READ frameRate NOTIFY frameRateChanged)
+#ifdef QUANTUMVERSE_USE_VR
+    Q_PROPERTY(bool vrEnabled READ vrEnabled WRITE setVrEnabled NOTIFY vrEnabledChanged)
+    Q_PROPERTY(bool vrActive READ vrActive NOTIFY vrActiveChanged)
+    Q_PROPERTY(float vrIpd READ vrIpd WRITE setVrIpd NOTIFY vrIpdChanged)
+#endif
 
 public:
     explicit QmlGlViewport(QQuickItem* parent = nullptr);
@@ -472,6 +477,14 @@ public:
     float cameraAngleY() const { return m_cameraAngleY; }
     float simulationTime() const { return m_simulationTime; }
     float frameRate() const;
+#ifdef QUANTUMVERSE_USE_VR
+    bool vrEnabled() const { return m_vrEnabled; }
+    bool vrActive() const { return m_vrActive; }
+    float vrIpd() const { return m_vrIpd; }
+    void setVrEnabled(bool enabled);
+    void setVrActive(bool active);
+    void setVrIpd(float ipd);
+#endif
 
     // --- Curvature probe readout (wired to the live metric) -------------
     Q_PROPERTY(QString kretschmann READ kretschmann NOTIFY probeChanged)
@@ -535,6 +548,9 @@ public:
 
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);
+#ifdef QUANTUMVERSE_USE_VR
+    Q_INVOKABLE void toggleVR();
+#endif
 
 signals:
     void showGridChanged();
@@ -553,6 +569,11 @@ signals:
     void quantumRendererChanged();
     void camera4DAdapterChanged();
     void probeChanged();
+#ifdef QUANTUMVERSE_USE_VR
+    void vrEnabledChanged();
+    void vrActiveChanged();
+    void vrIpdChanged();
+#endif
 
 public slots:
     void setShowGrid(bool show);
@@ -609,6 +630,13 @@ private:
     QString m_weylSquared = "—";
     QString m_redshift = "—";
     bool m_probeValid = false;
+
+#ifdef QUANTUMVERSE_USE_VR
+    // VR state
+    bool m_vrEnabled = false;
+    bool m_vrActive = false;
+    float m_vrIpd = 0.063f;
+#endif
 
     // Qt 6 RHI fallback: managed FBO and texture state
     QOpenGLFramebufferObject* m_fbo;

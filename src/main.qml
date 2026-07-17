@@ -277,6 +277,16 @@ ApplicationWindow {
                 ToolTip.text: "Toggle Discovery Console"
             }
 
+            ToolButton {
+                text: "VR"
+                checkable: true
+                enabled: false
+                onClicked: {
+                    if (viewportItem) viewportItem.toggleVR()
+                }
+                ToolTip.text: "VR mode (requires OpenXR runtime)"
+            }
+
             Item { Layout.fillWidth: true }
 
             Label {

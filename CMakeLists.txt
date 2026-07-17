@@ -72,6 +72,22 @@ else()
     message(STATUS "librdkafka not found - building without Kafka/GCN live ingest")
 endif()
 
+# OpenXR SDK for VR support
+set(OPENXR_SDK_ROOT "" CACHE PATH "Root directory of OpenXR SDK installation")
+if(QUANTUMVERSE_USE_VR)
+    find_path(OPENXR_INCLUDE_DIR NAMES openxr/openxr.h PATHS "${OPENXR_SDK_ROOT}/include" NO_DEFAULT_PATH)
+    if(NOT OPENXR_INCLUDE_DIR)
+        find_path(OPENXR_INCLUDE_DIR NAMES openxr/openxr.h)
+    endif()
+    if(OPENXR_INCLUDE_DIR)
+        message(STATUS "OpenXR SDK found at ${OPENXR_INCLUDE_DIR} - VR backend enabled")
+        add_compile_definitions(QUANTUMVERSE_USE_OPENXR_SDK=1)
+        target_include_directories(dilaton INTERFACE ${OPENXR_INCLUDE_DIR})
+    else()
+        message(STATUS "OpenXR SDK not found - building VR stub backend")
+    endif()
+endif()
+
 # Main library interface (header-only for now)
 add_library(dilaton INTERFACE)
 target_include_directories(dilaton INTERFACE ${CMAKE_SOURCE_DIR}/src)
@@ -165,6 +181,10 @@ if(QUANTUMVERSE_USE_QT)
     target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_QML)
     if(QUANTUMVERSE_USE_VR)
         target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_VR)
+        target_sources(quantumverse_qml PRIVATE
+            src/vr/OpenXRBackend.cpp
+            src/vr/MultiUserServer.cpp
+        )
     endif()
     target_include_directories(quantumverse_qml PRIVATE
         ${CMAKE_SOURCE_DIR}/src

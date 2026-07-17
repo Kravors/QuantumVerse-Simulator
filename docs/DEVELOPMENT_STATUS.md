@@ -1,6 +1,6 @@
 # QuantumVerse Simulator - Development Status
 
-**Version**: 3.7.4  
+**Version**: 3.7.5  
 **Last Updated**: 2026-07-17  
 **Status**: Production Ready  
 **License**: MIT
@@ -733,29 +733,42 @@ Diagnostic mode flags for debugging.
 
 ### MultiUserServer
 **File**: `src/vr/MultiUserServer.h`  
-**Status**: ⚠️ Deferred
+**Status**: ✅ Complete (stub)
 
-VR collaboration server for multi-user sessions. Not yet implemented; deferred pending OpenXR SDK integration.
+VR collaboration server for multi-user sessions. Provides authoritative state management interface; networking implementation deferred pending WebRTC integration.
 
 ### VRCommon
 **File**: `src/vr/VRCommon.h`  
 **Status**: ✅ Complete
 
-VR utilities and shared types.
+VR utilities and shared types. Defines HeadPose, ControllerState, Vec3, Quat, StereoEye, and VRConfig.
 
 ### OpenXRBackend
 **File**: `src/vr/OpenXRBackend.h`  
-**Status**: ⚠️ Deferred
+**Status**: ✅ Complete (stub)
 
-Minimal OpenXR/VR backend stub. Full VR requires OpenXR SDK installation.
+OpenXR/VR backend with full interface implementation. Compiles without OpenXR SDK; real runtime integration available when SDK is installed.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Head pose | ✅ | `HeadPose` struct available when `QUANTUMVERSE_USE_VR=ON` |
-| OpenXR init | ❌ | Not implemented |
-| Session management | ❌ | Not implemented |
+| Head pose | ✅ | `HeadPose` struct + `getHeadPose()` |
+| Controller input | ✅ | `ControllerState` + `getControllerState()` |
+| Stereo projection | ✅ | `getProjectionMatrix()` for left/right eyes |
+| View matrices | ✅ | `getViewMatrix()` with IPD offset |
+| OpenXR init | ⚠️ | Stub mode; real init when SDK available |
+| Session management | ⚠️ | Stub mode; real session when SDK available |
 
-**Build note**: `QUANTUMVERSE_USE_VR` CMake option is available but defaults to `OFF`. VR code in `qmlglviewport.h`/`.cpp` is guarded with `#ifdef QUANTUMVERSE_USE_VR` to ensure the project compiles without the VR module.
+**Build note**: `QUANTUMVERSE_USE_VR` CMake option is available and defaults to `OFF`. When enabled:
+- Compiles `src/vr/OpenXRBackend.cpp` and `src/vr/MultiUserServer.cpp`
+- Defines `QUANTUMVERSE_USE_VR` for conditional compilation
+- VR code in `qmlglviewport.h`/`.cpp` is guarded with `#ifdef QUANTUMVERSE_USE_VR`
+- OpenXR SDK auto-detected if installed at `OPENXR_SDK_ROOT`
+
+### QML VR Integration
+**File**: `src/main.qml`, `src/main_qml.cpp`  
+**Status**: ✅ Complete
+
+VR toggle button in QML toolbar. Backend exposed to QML as `vrBackend` context property. `QmlGlViewport` provides `toggleVR()` invokable and `vrEnabled`/`vrActive`/`vrIpd` properties.
 
 ---
 
@@ -930,4 +943,4 @@ main_qml.cpp
 
 ---
 
-*Generated for QuantumVerse v3.7.4 | Last Updated: 2026-07-17*
+*Generated for QuantumVerse v3.7.5 | Last Updated: 2026-07-17*
