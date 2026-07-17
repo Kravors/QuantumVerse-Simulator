@@ -73,6 +73,12 @@
 #include "discovery/PrimordialLithiumCrisisSolver.h"
 #include "discovery/GalacticTidalStreamCartographer.h"
 #include "discovery/RecombinationConstantVariationImager.h"
+#include "discovery/CMBLensingScanner.h"
+#include "discovery/PTAScanner.h"
+#include "discovery/FRBDispersionScanner.h"
+#include "discovery/CosmicShearScanner.h"
+#include "discovery/GWMemoryDetector.h"
+#include "discovery/GWRingdownScanner.h"
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
 #include "utils/FrameDiagnostics.h"
@@ -301,6 +307,8 @@ int main(int argc, char* argv[])
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PTAScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::FRBDispersionScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::CosmicShearScanner>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWMemoryDetector>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWRingdownScanner>());
         qDebug() << "QuantumVerse: Registered" << discoveryPanelManager->instrumentCount() << "discovery instruments";
 
         // Provide metric and location to the discovery panel manager
@@ -354,6 +362,47 @@ int main(int argc, char* argv[])
         } else {
             qDebug() << "QuantumVerse: VR backend initialization failed - continuing without VR";
         }
+
+        // VR controller input → Camera4DAdapter wiring
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [vrBackend, camera4DAdapter](QObject* obj, const QUrl& objUrl) {
+            if (!obj) return;
+            QTimer* vrInputTimer = new QTimer(&engine);
+            vrInputTimer->setInterval(16); // ~60Hz polling
+            QObject::connect(vrInputTimer, &QTimer::timeout, [vrBackend, camera4DAdapter]() {
+                if (!vrBackend->isActive() || !camera4DAdapter) return;
+
+                quantumverse::vr::ControllerState left, right;
+                if (vrBackend->getControllerState(left, right)) {
+                    // Left thumbstick → XY/XZ rotations
+                    const float deadzone = 0.15f;
+                    if (std::abs(left.thumbstickAxis.x) > deadzone) {
+                        camera4DAdapter->onMouseMoved(
+                            camera4DAdapter->distance() * left.thumbstickAxis.x * 0.02f,
+                            0.0f, 0, 0);
+                    }
+                    if (std::abs(left.thumbstickAxis.y) > deadzone) {
+                        camera4DAdapter->onMouseMoved(
+                            0.0f,
+                            camera4DAdapter->distance() * left.thumbstickAxis.y * 0.02f,
+                            0, 0);
+                    }
+
+                    // Right thumbstick → TY/TZ 4D rotations
+                    if (std::abs(right.thumbstickAxis.x) > deadzone) {
+                        camera4DAdapter->rotateInPlane(right.thumbstickAxis.x * 0.05);
+                    }
+                    if (std::abs(right.thumbstickAxis.y) > deadzone) {
+                        camera4DAdapter->advanceSlice(right.thumbstickAxis.y * 0.1);
+                    }
+
+                    // Grip button → reset view
+                    if (left.buttons[quantumverse::vr::ControllerState::ButtonGrip]) {
+                        camera4DAdapter->reset();
+                    }
+                }
+            });
+            vrInputTimer->start();
+        }, Qt::QueuedConnection);
 #endif
 
         // Create the Planck Microscope widget for Planck-scale exploration
@@ -681,6 +730,13 @@ int main(int argc, char* argv[])
                 }
                 lastTickNs = nowNs;
                 headlessRendered++;
+
+                // Disable VR in headless mode
+#ifdef QUANTUMVERSE_USE_VR
+                if (viewport && viewport->vrActive()) {
+                    viewport->setVrActive(false);
+                }
+#endif
 
                 // [DIAG] Drive continuous rendering in headless mode. The QML
                 // Timer that normally calls viewport.update() each frame is

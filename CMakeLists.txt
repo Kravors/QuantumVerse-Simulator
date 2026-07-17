@@ -165,9 +165,13 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
+        src/discovery/FRBDispersionScanner.cpp
+        src/discovery/CosmicShearScanner.cpp
         src/discovery/RLDiscoveryAgent.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/HolographicDualityLab.cpp
+        src/discovery/GWMemoryDetector.cpp
+        src/discovery/GWRingdownScanner.cpp
         src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
         src/spacetime/LightCone.cpp
@@ -185,6 +189,18 @@ if(QUANTUMVERSE_USE_QT)
             src/vr/OpenXRBackend.cpp
             src/vr/MultiUserServer.cpp
         )
+        if(OPENXR_INCLUDE_DIR)
+            find_library(OPENXR_LIBRARY NAMES openxr openxr_loader PATHS "${OPENXR_SDK_ROOT}/lib" NO_DEFAULT_PATH)
+            if(NOT OPENXR_LIBRARY)
+                find_library(OPENXR_LIBRARY NAMES openxr openxr_loader)
+            endif()
+            if(OPENXR_LIBRARY)
+                message(STATUS "Linking OpenXR library: ${OPENXR_LIBRARY}")
+                target_link_libraries(quantumverse_qml PRIVATE ${OPENXR_LIBRARY})
+            else()
+                message(STATUS "OpenXR library not found - runtime loading will be used")
+            endif()
+        endif()
     endif()
     target_include_directories(quantumverse_qml PRIVATE
         ${CMAKE_SOURCE_DIR}/src
@@ -619,6 +635,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
+        src/discovery/GWMemoryDetector.cpp
     )
     target_link_libraries(fuzz_instruments PRIVATE dilaton)
     add_test(NAME FuzzInstrumentsTest COMMAND fuzz_instruments)
@@ -1009,6 +1026,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
+        src/discovery/GWMemoryDetector.cpp
     )
     message(STATUS "Linking test_instrument_audit")
     target_link_libraries(test_instrument_audit PRIVATE dilaton)
@@ -1032,6 +1050,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
+        src/discovery/GWMemoryDetector.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
@@ -1063,6 +1082,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
+        src/discovery/GWMemoryDetector.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
@@ -1112,6 +1132,22 @@ if(QUANTUMVERSE_BUILD_TESTS)
     )
     target_link_libraries(test_cosmic_shear_scanner PRIVATE dilaton)
     add_test(NAME CosmicShearScannerTest COMMAND test_cosmic_shear_scanner)
+
+    # 6.10 GW memory detector (discovery instrument)
+    add_executable(test_gw_memory_detector
+        tests/discovery/test_gw_memory_detector.cpp
+        src/discovery/GWMemoryDetector.cpp
+    )
+    target_link_libraries(test_gw_memory_detector PRIVATE dilaton)
+    add_test(NAME GWMemoryDetectorTest COMMAND test_gw_memory_detector)
+
+    # 6.11 GW ringdown scanner (discovery instrument)
+    add_executable(test_gw_ringdown_scanner
+        tests/discovery/test_gw_ringdown_scanner.cpp
+        src/discovery/GWRingdownScanner.cpp
+    )
+    target_link_libraries(test_gw_ringdown_scanner PRIVATE dilaton)
+    add_test(NAME GWRingdownScannerTest COMMAND test_gw_ringdown_scanner)
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues
