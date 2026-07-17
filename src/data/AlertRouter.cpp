@@ -6,6 +6,7 @@
 #include "AlertRouter.h"
 #include "GCNNoticeParser.h"
 #include "TESSAlertAdapter.h"
+#include "FermiGBMAdapter.h"
 
 namespace quantumverse {
 
@@ -14,6 +15,7 @@ AlertRouter::AlertRouter(QObject* parent)
     , m_ligo(nullptr)
     , m_icecube(nullptr)
     , m_tess(nullptr)
+    , m_fermi_gbm(nullptr)
 {
 }
 
@@ -53,6 +55,24 @@ void AlertRouter::routeAlert(const QJsonObject& alert)
         nu.confidence = parsed.neutrino.confidence;
         m_icecube->simulateAlert(nu);
         emit alertRouted(QStringLiteral("IceCube"));
+        break;
+    }
+    case AlertOrigin::FermiGBM: {
+        if (!m_fermi_gbm) {
+            emit routingError(QStringLiteral("No Fermi GBM adapter registered"));
+            return;
+        }
+        FermiGBMAlert grb;
+        grb.trigger_id = parsed.fermi_gbm.trigger_id;
+        grb.duration = parsed.fermi_gbm.duration;
+        grb.peak_flux = parsed.fermi_gbm.peak_flux;
+        grb.false_alarm_rate = parsed.fermi_gbm.false_alarm_rate;
+        grb.ra = parsed.fermi_gbm.ra;
+        grb.dec = parsed.fermi_gbm.dec;
+        grb.error_radius = parsed.fermi_gbm.error_radius;
+        grb.confidence = parsed.fermi_gbm.confidence;
+        m_fermi_gbm->simulateAlert(grb);
+        emit alertRouted(QStringLiteral("FermiGBM"));
         break;
     }
     case AlertOrigin::TESS: {

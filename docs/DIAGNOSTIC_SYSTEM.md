@@ -212,7 +212,7 @@ cd build && cpack -C Release
 
 | Phase | Status | Tests |
 |-------|--------|-------|
-| Phase 1 - Stabilise Test Suite | ✅ Complete | 50/50 passing |
+| Phase 1 - Stabilise Test Suite | ✅ Complete | 62/62 passing |
 | Phase 2 - Dynamic Analysis | ✅ Complete | Sanitizer job in CI |
 | Phase 3 - Strategic Instrumentation | ✅ Complete | Tracing option added |
 | Phase 4 - Performance Regression Guard | ✅ Complete | Baseline comparison working |

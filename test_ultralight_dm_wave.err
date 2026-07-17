@@ -1,0 +1,1 @@
+Assertion failed: none.empty() && "Constant signal should not trigger detection", file F:\syyyy\tests\test_ultralight_dm_wave.cpp, line 59

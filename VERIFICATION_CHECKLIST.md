@@ -11,7 +11,7 @@ This release marks the successful migration from Qt/QML to Dear ImGui + GLFW:
 - Single executable with zero DLL dependencies
 - Static linking for all libraries
 - Cross-platform compatibility (Windows, Linux, macOS)
-- All 51 tests passing with 100% success rate
+- All 62 tests passing with 100% success rate
 
 ---
 

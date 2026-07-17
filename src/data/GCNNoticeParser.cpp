@@ -81,6 +81,18 @@ ParsedGCNNotice GCNNoticeParser::parse(const QJsonObject& json)
         out.tess.dec = jsonDouble(json, "dec");
         break;
     }
+    case AlertOrigin::FermiGBM: {
+        out.origin = AlertOrigin::FermiGBM;
+        out.fermi_gbm.trigger_id = jsonString(json, "trigger_id").toStdString();
+        out.fermi_gbm.duration = jsonDouble(json, "duration");
+        out.fermi_gbm.peak_flux = jsonDouble(json, "peak_flux");
+        out.fermi_gbm.false_alarm_rate = jsonDouble(json, "false_alarm_rate");
+        out.fermi_gbm.ra = jsonDouble(json, "ra");
+        out.fermi_gbm.dec = jsonDouble(json, "dec");
+        out.fermi_gbm.error_radius = jsonDouble(json, "error_radius");
+        out.fermi_gbm.confidence = jsonDouble(json, "confidence");
+        break;
+    }
     default:
         out.origin = AlertOrigin::Unknown;
         break;

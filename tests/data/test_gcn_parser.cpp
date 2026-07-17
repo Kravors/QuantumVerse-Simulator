@@ -111,14 +111,42 @@ int main(int argc, char** argv)
     {
         const QJsonObject obj = makeJson(
             "{"
-            "  \"alert_type\": \"Fermi/GBM\","
-            "  \"event_id\": \"GBM250601\""
+            "  \"alert_type\": \"Mysterious/ALIEN\","
+            "  \"event_id\": \"X250601\""
             "}"
         );
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         assert(parsed.origin == AlertOrigin::Unknown);
-        assert(parsed.raw_type == "Fermi/GBM");
+        assert(parsed.raw_type == "Mysterious/ALIEN");
+    }
+
+    // --- Fermi GBM gamma-ray burst alert -----------------------------------------
+    {
+        const QJsonObject obj = makeJson(
+            "{"
+            "  \"alert_type\": \"Fermi/GBM\","
+            "  \"trigger_id\": \"bn240512001\","
+            "  \"ra\": 45.6,"
+            "  \"dec\": -23.4,"
+            "  \"duration\": 2.5,"
+            "  \"peak_flux\": 1.2e-7,"
+            "  \"error_radius\": 2.0,"
+            "  \"false_alarm_rate\": 0.001,"
+            "  \"confidence\": 0.95"
+            "}"
+        );
+
+        const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
+        assert(parsed.origin == AlertOrigin::FermiGBM);
+        assert(parsed.fermi_gbm.trigger_id == "bn240512001");
+        assert(std::fabs(parsed.fermi_gbm.ra - 45.6) < 1e-9);
+        assert(std::fabs(parsed.fermi_gbm.dec - (-23.4)) < 1e-9);
+        assert(std::fabs(parsed.fermi_gbm.duration - 2.5) < 1e-9);
+        assert(std::fabs(parsed.fermi_gbm.peak_flux - 1.2e-7) < 1e-14);
+        assert(std::fabs(parsed.fermi_gbm.error_radius - 2.0) < 1e-9);
+        assert(std::fabs(parsed.fermi_gbm.false_alarm_rate - 0.001) < 1e-12);
+        assert(std::fabs(parsed.fermi_gbm.confidence - 0.95) < 1e-9);
     }
 
     // --- Missing fields default to zero -----------------------------------------

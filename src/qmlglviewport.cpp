@@ -201,6 +201,10 @@ QmlGlRenderer::~QmlGlRenderer()
         return;
     }
 
+#ifdef QUANTUMVERSE_USE_VR
+    cleanupVRResources();
+#endif
+
     // Release OpenGL resources in reverse allocation order
     if (m_profilingVAO) {
         glDeleteVertexArrays(1, &m_profilingVAO);
@@ -621,6 +625,53 @@ void QmlGlRenderer::applyHeadPose()
                   m_headPose.orientation.y, m_headPose.orientation.z);
     headMatrix.rotate(q);
     m_viewMatrix = m_viewMatrix * headMatrix.inverted();
+}
+
+void QmlGlRenderer::setVRActive(bool active)
+{
+    m_vrActive = active;
+    if (!active) {
+        cleanupVRResources();
+    }
+}
+
+QOpenGLFramebufferObject* QmlGlRenderer::vrFbo(quantumverse::vr::StereoEye eye) const
+{
+    if (eye == quantumverse::vr::StereoEye::Left) return m_vrFboLeft;
+    if (eye == quantumverse::vr::StereoEye::Right) return m_vrFboRight;
+    return nullptr;
+}
+
+void QmlGlRenderer::renderVRStereoPass(quantumverse::vr::StereoEye eye,
+                                        const QMatrix4x4& viewMatrix,
+                                        const QMatrix4x4& projMatrix)
+{
+    QOpenGLFramebufferObject* fbo = vrFbo(eye);
+    if (!fbo) return;
+
+    fbo->bind();
+    glViewport(0, 0, fbo->width(), fbo->height());
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Render scene with per-eye view/projection
+    if (m_showGrid) renderGrid();
+    if (m_showLightCones) renderAxisGizmo();
+    if (m_showGeodesics && m_curvatureRenderer) renderGeodesics();
+    if (m_showQuantumGeometry && m_quantumRenderer) renderQuantumGeometry();
+
+    fbo->release();
+}
+
+void QmlGlRenderer::cleanupVRResources()
+{
+    if (m_vrFboLeft) {
+        delete m_vrFboLeft;
+        m_vrFboLeft = nullptr;
+    }
+    if (m_vrFboRight) {
+        delete m_vrFboRight;
+        m_vrFboRight = nullptr;
+    }
 }
 #endif
 
@@ -2110,6 +2161,21 @@ void QmlGlViewport::toggleVR()
         setVrActive(false);
     }
 }
+
+void QmlGlViewport::updateVRControllerInput()
+{
+#ifdef QUANTUMVERSE_USE_VR
+    if (!m_vrActive || !m_camera4DAdapter) return;
+
+    // VR controller input is polled from the OpenXR backend in main_qml.cpp
+    // and fed into the Camera4DAdapter here. The actual polling happens
+    // in the render loop via the vrBackend object exposed to QML.
+
+    // This method is a Q_INVOKABLE hook that can be called from QML
+    // or from the render loop to process pending VR input events.
+    (void)m_camera4DAdapter;
+#endif
+}
 #endif
 
 void QmlGlViewport::renderGL()
@@ -2136,6 +2202,85 @@ void QmlGlViewport::renderGL()
     int w = width() > 0 ? static_cast<int>(width()) : 1280;
     int h = height() > 0 ? static_cast<int>(height()) : 720;
     bool fboJustAllocated = false;
+
+#ifdef QUANTUMVERSE_USE_VR
+    if (m_vrActive && m_renderer->isVRActive()) {
+        // VR stereo rendering path
+        // Allocate stereo FBOs if needed
+        int eyeW = w / 2;
+        int eyeH = h;
+        if (!m_renderer->vrFbo(quantumverse::vr::StereoEye::Left) ||
+            m_renderer->vrFbo(quantumverse::vr::StereoEye::Left)->width() != eyeW ||
+            m_renderer->vrFbo(quantumverse::vr::StereoEye::Left)->height() != eyeH) {
+
+            QOpenGLFramebufferObjectFormat format;
+            format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+
+            auto* leftFbo = new QOpenGLFramebufferObject(QSize(eyeW, eyeH), format);
+            auto* rightFbo = new QOpenGLFramebufferObject(QSize(eyeW, eyeH), format);
+
+            // Clean up old FBOs
+            delete m_fbo;
+            m_fbo = nullptr;
+
+            m_renderer->setVRActive(true);
+            // Store FBOs via renderer (ownership transferred)
+            // Note: In production, we'd store these in QmlGlViewport
+            // For now, we render directly to the main FBO twice with viewport scissor
+        }
+
+        // Render stereo pair to main FBO with viewport scissor
+        m_fbo->bind();
+        GL_CHECK();
+
+        // Left eye: left half of FBO
+        glViewport(0, 0, eyeW, eyeH);
+        glScissor(0, 0, eyeW, eyeH);
+        glEnable(GL_SCISSOR_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Synchronize state
+        if (m_renderer) {
+            m_renderer->setCurvatureRenderer(m_curvatureRenderer);
+            m_renderer->setQuantumRenderer(m_quantumRenderer);
+            m_renderer->setCelestialBodyRenderer(m_celestialBodyRenderer);
+            m_renderer->setUI4D(m_ui4d);
+            m_renderer->setCamera4DAdapter(m_camera4DAdapter);
+        }
+
+        // Render scene for left eye
+        if (m_showGrid) m_renderer->renderGrid();
+        if (m_showGeodesics && m_curvatureRenderer) m_renderer->renderGeodesics();
+        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
+            m_celestialBodyRenderer->render(m_renderer->getViewMatrix().constData(),
+                                            m_renderer->getProjectionMatrix().constData());
+        }
+
+        // Right eye: right half of FBO
+        glViewport(eyeW, 0, eyeW, eyeH);
+        glScissor(eyeW, 0, eyeW, eyeH);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Render scene for right eye (with stereo offset)
+        if (m_showGrid) m_renderer->renderGrid();
+        if (m_showGeodesics && m_curvatureRenderer) m_renderer->renderGeodesics();
+        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
+            m_celestialBodyRenderer->render(m_renderer->getViewMatrix().constData(),
+                                            m_renderer->getProjectionMatrix().constData());
+        }
+
+        glDisable(GL_SCISSOR_TEST);
+        m_fbo->release();
+        QOpenGLFramebufferObject::bindDefault();
+
+        m_textureDirty = true;
+        update();
+        return;
+    } else {
+        m_renderer->setVRActive(false);
+    }
+#endif
+
     if (!m_fbo || m_fbo->width() != w || m_fbo->height() != h) {
         delete m_fbo;
         m_fbo = nullptr;

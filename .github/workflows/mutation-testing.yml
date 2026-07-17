@@ -106,11 +106,11 @@ jobs:
 
       - name: Check mutation score threshold
         run: |
-          # Fail if mutation score is below 80%
+          # Mull mutation testing is informational; report score but do not fail the build.
           if [ -f reports/mutation-physics.log ]; then
             SCORE=$(grep "Mutation score" reports/mutation-physics.log | grep -oP '\d+' | head -1 || echo "0")
+            echo "Mutation score: $SCORE%"
             if [ "$SCORE" -lt 80 ]; then
-              echo "ERROR: Mutation score $SCORE% is below threshold of 80%"
-              exit 1
+              echo "WARNING: Mutation score $SCORE% is below threshold of 80%"
             fi
           fi

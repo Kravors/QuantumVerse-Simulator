@@ -19,6 +19,7 @@
 #include "data/LIGOAdapter.h"
 #include "data/IceCubeAdapter.h"
 #include "data/TESSAlertAdapter.h"
+#include "data/FermiGBMAdapter.h"
 
 using namespace quantumverse;
 
@@ -101,6 +102,25 @@ int main(int argc, char** argv)
     router.routeAlert(tessAlert);
     assert(tess.receivedAlerts().size() == 1);
     assert(tess.receivedAlerts()[0].toi_id == "TOI-1234.01");
+
+    // Simulate a Fermi GBM alert through the router
+    FermiGBMAdapter fermi;
+    fermi.setCallback([](const FermiGBMAlert&) {});
+    router.setFermiGBMAdapter(&fermi);
+
+    QJsonObject grbAlert;
+    grbAlert.insert("alert_type", QJsonValue(QStringLiteral("Fermi/GBM")));
+    grbAlert.insert("trigger_id", QJsonValue(QStringLiteral("bn240512001")));
+    grbAlert.insert("ra", QJsonValue(45.6));
+    grbAlert.insert("dec", QJsonValue(-23.4));
+    grbAlert.insert("duration", QJsonValue(2.5));
+    grbAlert.insert("peak_flux", QJsonValue(1.2e-7));
+    grbAlert.insert("error_radius", QJsonValue(2.0));
+    grbAlert.insert("false_alarm_rate", QJsonValue(0.001));
+    grbAlert.insert("confidence", QJsonValue(0.95));
+    router.routeAlert(grbAlert);
+    assert(fermi.receivedAlerts().size() == 1);
+    assert(fermi.receivedAlerts()[0].trigger_id == "bn240512001");
 
     std::cout << "KafkaListenerTest checks passed." << std::endl;
     return 0;

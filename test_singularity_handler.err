@@ -1,0 +1,1 @@
+Assertion failed: handler.getProperties().mass > 0.0 && "Mass became negative", file F:\syyyy\tests\test_singularity_handler.cpp, line 49

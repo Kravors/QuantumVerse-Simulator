@@ -259,6 +259,17 @@ private:
     void setHeadPose(const quantumverse::vr::HeadPose& pose);
     void applyHeadPose();
     bool hasHeadPose() const { return m_hasHeadPose; }
+
+    // Stereo VR rendering
+    void setVRActive(bool active);
+    bool isVRActive() const { return m_vrActive; }
+    void setVRConfig(const quantumverse::vr::VRConfig& config) { m_vrConfig = config; }
+    const quantumverse::vr::VRConfig& vrConfig() const { return m_vrConfig; }
+    QOpenGLFramebufferObject* vrFbo(quantumverse::vr::StereoEye eye) const;
+    void renderVRStereoPass(quantumverse::vr::StereoEye eye,
+                            const QMatrix4x4& viewMatrix,
+                            const QMatrix4x4& projMatrix);
+    void cleanupVRResources();
 #endif
 
     // Interaction
@@ -370,6 +381,10 @@ private:
 #ifdef QUANTUMVERSE_USE_VR
     quantumverse::vr::HeadPose m_headPose;
     bool m_hasHeadPose = false;
+    bool m_vrActive = false;
+    quantumverse::vr::VRConfig m_vrConfig;
+    QOpenGLFramebufferObject* m_vrFboLeft = nullptr;
+    QOpenGLFramebufferObject* m_vrFboRight = nullptr;
 #endif
 
     // Pointers to core renderers (non-owning)
@@ -549,7 +564,8 @@ public:
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);
 #ifdef QUANTUMVERSE_USE_VR
-    Q_INVOKABLE void toggleVR();
+     Q_INVOKABLE void toggleVR();
+     Q_INVOKABLE void updateVRControllerInput();
 #endif
 
 signals:

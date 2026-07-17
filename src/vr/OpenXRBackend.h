@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <cstdint>
 
 namespace quantumverse {
 namespace vr {
@@ -24,6 +25,11 @@ namespace vr {
  *
  * Provides head pose tracking, controller input, and stereo rendering
  * support through the OpenXR runtime.
+ *
+ * When QUANTUMVERSE_USE_OPENXR_SDK is defined and the OpenXR headers
+ * are available, this compiles the real OpenXR implementation. Otherwise,
+ * a stub implementation is used that provides no-op behavior for build
+ * compatibility.
  */
 class OpenXRBackend {
 public:
@@ -133,6 +139,23 @@ public:
      */
     void setConfig(const VRConfig& config) { m_config = config; }
 
+#ifdef QUANTUMVERSE_USE_OPENXR_SDK
+    /**
+     * @brief Check if the real OpenXR runtime is available
+     */
+    bool hasOpenXR() const { return m_hasOpenXR; }
+
+    /**
+     * @brief Get the OpenXR instance handle
+     */
+    void* xrInstance() const { return m_xrInstance; }
+
+    /**
+     * @brief Get the OpenXR session handle
+     */
+    void* xrSession() const { return m_xrSession; }
+#endif
+
 private:
     bool m_isActive = false;
     bool m_isStub = true;
@@ -151,6 +174,21 @@ private:
     // Internal state
     double m_lastFrameTime = 0.0;
     uint64_t m_frameIndex = 0;
+
+#ifdef QUANTUMVERSE_USE_OPENXR_SDK
+    bool m_hasOpenXR = false;
+    void* m_xrInstance = nullptr;
+    void* m_xrSession = nullptr;
+    void* m_xrSpace = nullptr;
+    void* m_xrSwapchain = nullptr;
+    uint32_t m_swapchainWidth = 0;
+    uint32_t m_swapchainHeight = 0;
+    uint32_t m_swapchainIndex = 0;
+    void* m_xrActions = nullptr;
+    void* m_xrActionSet = nullptr;
+    uint64_t m_frameIndexXR = 0;
+    bool m_sessionRunning = false;
+#endif
 };
 
 } // namespace vr

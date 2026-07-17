@@ -69,6 +69,20 @@ struct TESSAlertFields {
 };
 
 /**
+ * @brief Normalised Fermi GBM gamma-ray burst alert fields.
+ */
+struct FermiGBMAlertFields {
+    std::string trigger_id;
+    double duration = 0.0;
+    double peak_flux = 0.0;
+    double false_alarm_rate = 0.0;
+    double ra = 0.0;
+    double dec = 0.0;
+    double error_radius = 0.0;
+    double confidence = 0.0;
+};
+
+/**
  * @brief Union-style parse result for any supported alert type.
  */
 struct ParsedGCNNotice {
@@ -77,6 +91,7 @@ struct ParsedGCNNotice {
     GWAlertFields gw;
     NeutrinoAlertFields neutrino;
     TESSAlertFields tess;
+    FermiGBMAlertFields fermi_gbm;
 };
 
 /**

@@ -298,6 +298,21 @@ void DiscoveryPanelManager::ingestAlert(const QJsonObject& alertJson)
         finding.parameters["duration_hours"] = parsed.tess.duration_hours;
         break;
     }
+    case AlertOrigin::FermiGBM: {
+        finding.instrumentName = "Fermi GBM (Live)";
+        finding.description = QStringLiteral("Live GRB alert %1 (duration=%2 s, flux=%3)")
+            .arg(QString::fromStdString(parsed.fermi_gbm.trigger_id))
+            .arg(parsed.fermi_gbm.duration)
+            .arg(parsed.fermi_gbm.peak_flux)
+            .toStdString();
+        finding.confidence = alertConfidence(parsed.fermi_gbm.false_alarm_rate, parsed.fermi_gbm.confidence);
+        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+        finding.location = Event4D(finding.timestamp, parsed.fermi_gbm.ra, parsed.fermi_gbm.dec, 0.0);
+        finding.parameters["duration"] = parsed.fermi_gbm.duration;
+        finding.parameters["peak_flux"] = parsed.fermi_gbm.peak_flux;
+        finding.parameters["error_radius"] = parsed.fermi_gbm.error_radius;
+        break;
+    }
     default:
         finding.instrumentName = "Unknown (Live)";
         finding.description = QStringLiteral("Unsupported alert type: %1").arg(parsed.raw_type).toStdString();

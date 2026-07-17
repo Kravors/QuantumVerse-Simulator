@@ -58,6 +58,7 @@
 #include "data/LIGOAdapter.h"
 #include "data/IceCubeAdapter.h"
 #include "data/TESSAlertAdapter.h"
+#include "data/FermiGBMAdapter.h"
 #include "data/AlertToFinding.h"
 #include "data/AlertRouter.h"
 #include "data/KafkaAlertListener.h"
@@ -519,12 +520,32 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("tessAdapter",
             QVariant::fromValue(tessAdapter.get()));
 
+        auto fermiAdapter = std::make_shared<quantumverse::FermiGBMAdapter>();
+        fermiAdapter->setCallback([findingsModel](const quantumverse::FermiGBMAlert& alert) {
+            quantumverse::InstrumentFinding f;
+            f.id = "FermiGBM_" + alert.trigger_id;
+            f.instrumentName = "Fermi GBM (Live)";
+            f.description = QStringLiteral("Live GRB %1 (duration=%2 s, flux=%3)")
+                .arg(QString::fromStdString(alert.trigger_id))
+                .arg(alert.duration)
+                .arg(alert.peak_flux)
+                .toStdString();
+            f.confidence = quantumverse::alertConfidence(alert.false_alarm_rate, alert.confidence);
+            f.severity = quantumverse::confidenceToSeverity(f.confidence);
+            f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+            findingsModel->addFinding(f);
+        });
+        alertRouter->setFermiGBMAdapter(fermiAdapter.get());
+        rootContext->setContextProperty("fermiAdapter",
+            QVariant::fromValue(fermiAdapter.get()));
+
         auto kafkaListener = std::make_shared<quantumverse::KafkaAlertListener>(
             QStringLiteral("gcn-kafka.nasa.gov:9092"),
             {
                 QStringLiteral("gcn.notices.LVC"),
                 QStringLiteral("gcn.notices.ICECUBE"),
-                QStringLiteral("gcn.notices.TESS")
+                QStringLiteral("gcn.notices.TESS"),
+                QStringLiteral("gcn.notices.FERMI_GBM")
             }
         );
 

@@ -847,6 +847,16 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
     endif()
 
+    # Phase 12: Fermi GBM adapter unit test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_fermi_gbm_adapter.cpp)
+        add_executable(test_fermi_gbm_adapter
+            tests/data/test_fermi_gbm_adapter.cpp
+            src/data/FermiGBMAdapter.cpp
+        )
+        target_link_libraries(test_fermi_gbm_adapter PRIVATE dilaton Qt6::Core)
+        add_test(NAME FermiGBMAdapterTest COMMAND test_fermi_gbm_adapter)
+    endif()
+
     # Phase 12: GCN parser unit test
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_parser.cpp)
         add_executable(test_gcn_parser
@@ -868,6 +878,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
             src/data/LIGOAdapter.cpp
             src/data/IceCubeAdapter.cpp
             src/data/TESSAlertAdapter.cpp
+            src/data/FermiGBMAdapter.cpp
         )
         target_link_libraries(test_kafka_listener PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
         set_target_properties(test_kafka_listener PROPERTIES AUTOMOC ON)

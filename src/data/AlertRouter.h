@@ -17,10 +17,12 @@
 #include "data/LIGOAdapter.h"
 #include "data/IceCubeAdapter.h"
 #include "data/GCNNoticeParser.h"
+#include "data/FermiGBMAdapter.h"
 
 namespace quantumverse {
 
 class TESSAlertAdapter; // forward declaration
+class FermiGBMAdapter;  // forward declaration
 
 /**
  * @brief Dispatches incoming alerts to the matching multi-messenger adapter.
@@ -41,6 +43,9 @@ public:
     /** @brief Register the TESS adapter for exoplanet transit alerts. */
     void setTESSAdapter(TESSAlertAdapter* adapter) { m_tess = adapter; }
 
+    /** @brief Register the Fermi GBM adapter for gamma-ray burst alerts. */
+    void setFermiGBMAdapter(FermiGBMAdapter* adapter) { m_fermi_gbm = adapter; }
+
 public slots:
     /**
      * @brief Parse and route a raw GCN Kafka JSON payload.
@@ -57,6 +62,7 @@ private:
     LIGOAdapter* m_ligo = nullptr;
     IceCubeAdapter* m_icecube = nullptr;
     TESSAlertAdapter* m_tess = nullptr;
+    FermiGBMAdapter* m_fermi_gbm = nullptr;
 };
 
 } // namespace quantumverse

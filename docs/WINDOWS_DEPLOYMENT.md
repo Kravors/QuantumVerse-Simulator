@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides comprehensive information about Windows deployment for the QuantumVerse Simulator v2.2.0, including build processes, common issues, crash diagnostics, and troubleshooting steps.
+This document provides comprehensive information about Windows deployment for the QuantumVerse Simulator v3.8.0, including build processes, common issues, crash diagnostics, and troubleshooting steps.
 
 ## Build System
 

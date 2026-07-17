@@ -77,7 +77,7 @@ set QT_LOGGING_RULES="qt.core.qobject=true;qt.qml=true"
 
 Look for these messages in the console:
 - `QuantumVerse: Created Schwarzschild BH, r_s = ... m` - Black hole initialization
-- `QuantumVerse: Registered 10 discovery instruments` - Discovery panel setup
+- `QuantumVerse: Registered 16 discovery instruments` - Discovery panel setup
 - `QuantumVerse: Found QmlGlViewport, wiring renderers...` - Viewport found
 - `QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport` - Success
 
