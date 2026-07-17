@@ -1091,7 +1091,6 @@ ApplicationWindow {
                                 }
                             }
                         }
-                    }
                 }
 
                 // Detail pane for the selected finding
@@ -1182,7 +1181,6 @@ ApplicationWindow {
                 }
             }
         }
-    }
 
     // =========================================================================
     // TIMELINE BAR (Bottom)

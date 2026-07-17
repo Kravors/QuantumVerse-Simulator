@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
         auto sceneGraphManager = std::make_shared<quantumverse::SceneGraphManager>(metric);
         sceneGraphManager->createSolarSystem();
 
-        // Create the Discovery Panel Manager and register all 10 instruments
+        // Create the Discovery Panel Manager and register all instruments
         auto discoveryPanelManager = std::make_shared<quantumverse::DiscoveryPanelManager>();
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::ExoplanetaryTTVFifthForceHunter>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GalacticRotationCurveScanner>());
@@ -297,6 +297,10 @@ int main(int argc, char* argv[])
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PrimordialLithiumCrisisSolver>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GalacticTidalStreamCartographer>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::RecombinationConstantVariationImager>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::CMBLensingScanner>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PTAScanner>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::FRBDispersionScanner>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::CosmicShearScanner>());
         qDebug() << "QuantumVerse: Registered" << discoveryPanelManager->instrumentCount() << "discovery instruments";
 
         // Provide metric and location to the discovery panel manager
@@ -361,6 +365,7 @@ int main(int argc, char* argv[])
         engine.addImportPath(QStringLiteral("qrc:/"));
         engine.addImportPath(QStringLiteral("."));
         engine.addImportPath(QStringLiteral("qml"));
+        engine.addImportPath(QStringLiteral("F:/syyyy/src/qml"));
         engine.addImportPath(QStringLiteral("F:/qt/6.11.1/msvc2022_64/qml"));
 
         // Create QML camera controller for basic 3D navigation

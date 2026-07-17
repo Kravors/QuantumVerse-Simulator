@@ -1,7 +1,7 @@
 # QuantumVerse Simulator - Development Status
 
-**Version**: 3.7.2  
-**Last Updated**: 2026-07-16  
+**Version**: 3.7.4  
+**Last Updated**: 2026-07-17  
 **Status**: Production Ready  
 **License**: MIT
 
@@ -37,7 +37,7 @@ QuantumVerse is a production-ready 4D spacetime cognition laboratory combining g
 - **Build system**: CMake 3.25+ with MSVC 2022
 - **Qt version**: 6.11.1 (msvc2022_64)
 - **OpenGL**: 4.5 Core Profile
-- **Tests**: 49/50 passing (Release) — ViewportIsolationTest segfault (known issue)
+- **Tests**: 59/59 passing (Release) — all green
 
 ### Phase 9 Deliverables
 
@@ -418,7 +418,7 @@ Plugin registration system for gravity theories.
 
 Base class for all discovery instruments.
 
-### Discovery Instruments (10 total)
+### Discovery Instruments (14 total)
 
 | Instrument | File | Status | Description |
 |------------|------|--------|-------------|
@@ -432,6 +432,10 @@ Base class for all discovery instruments.
 | PrimordialLithiumCrisisSolver | `src/discovery/PrimordialLithiumCrisisSolver.h` | ✅ | BBN lithium problem |
 | GalacticTidalStreamCartographer | `src/discovery/GalacticTidalStreamCartographer.h` | ✅ | Tidal stream mapping |
 | RecombinationConstantVariationImager | `src/discovery/RecombinationConstantVariationImager.h` | ✅ | CMB recombination analysis |
+| CMBLensingScanner | `src/discovery/CMBLensingScanner.h` | ✅ | CMB lensing anomaly detection |
+| PTAScanner | `src/discovery/PTAScanner.h` | ✅ | Pulsar timing array nanohertz GW detector |
+| FRBDispersionScanner | `src/discovery/FRBDispersionScanner.h` | ✅ | Fast radio burst dispersion measure scanner |
+| CosmicShearScanner | `src/discovery/CosmicShearScanner.h` | ✅ | Cosmic shear weak lensing scanner |
 
 ### FindingsModel
 **File**: `src/discovery/FindingsModel.h`  
@@ -821,12 +825,12 @@ Minimal OpenXR/VR backend stub. Full VR requires OpenXR SDK installation.
 | GalacticTidalStreamTest | `tests/test_galactic_tidal_stream.cpp` | ✅ | Tidal streams |
 | RecombinationConstantVariationTest | `tests/test_recombination_constant_variation.cpp` | ✅ | CMB recombination |
 | ExoplanetaryTTVFifthForceHunterTest | `tests/test_exoplanetary_ttv.cpp` | ✅ | Exoplanet TTV |
-| InstrumentAuditTest | `tests/discovery/test_instrument_audit.cpp` | ✅ | 10 discovery instruments |
+| InstrumentAuditTest | `tests/discovery/test_instrument_audit.cpp` | ✅ | 14 discovery instruments |
 | SymbolicRegressionSanityTest | `tests/discovery/test_symbolic_regression.cpp` | ✅ | SymPy fallback + regression |
 | RLAgentConvergenceTest | `tests/discovery/test_rl_agent.cpp` | ✅ | RL agent rewards + convergence |
 | DiscoveryPipelineIntegrationTest | `tests/discovery/test_discovery_pipeline.cpp` | ✅ | End-to-end pipeline |
 | DiscoveryRobustnessTest | `tests/discovery/test_discovery_robustness.cpp` | ✅ | NaN/extreme/ONNX fallback |
-| ViewportIsolationTest | `tests/ui/test_viewport_isolation.cpp` | ⚠️ | QmlGlViewport isolation (SEGFAULT) |
+| ViewportIsolationTest | `tests/ui/test_viewport_isolation.cpp` | ✅ | QmlGlViewport isolation |
 | InteractionStressTest | `tests/ui/test_interaction_stress.cpp` | ✅ | Rapid input stress |
 | ResizeStressTest | `tests/ui/test_resize_stress.cpp` | ✅ | FBO resize stress |
 | VisualRegressionTest | `tests/rendering/test_visual_regression.cpp` | ✅ | Render output stability |
@@ -918,7 +922,7 @@ main_qml.cpp
   ├── physics (SingularityHandler, CurvatureCalculator)
   ├── rendering (CurvatureRenderer, QuantumGeometryRenderer, CelestialBodyRenderer)
   ├── ui4d (UI4D, Camera4DAdapter, SceneGraphManager, PlanckMicroscope)
-  ├── discovery (DiscoveryPanelManager, 10 instruments, FindingsModel)
+  ├── discovery (DiscoveryPanelManager, 14 instruments, FindingsModel)
   ├── data (LIGOAdapter, IceCubeAdapter)
   ├── quantumgravity (CDTEngine)
   └── utils (TraceLogger, CrashHandler)
@@ -926,4 +930,4 @@ main_qml.cpp
 
 ---
 
-*Generated for QuantumVerse v3.7.2 | Last Updated: 2026-07-16*
+*Generated for QuantumVerse v3.7.4 | Last Updated: 2026-07-17*

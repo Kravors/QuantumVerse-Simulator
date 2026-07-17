@@ -1076,6 +1076,22 @@ if(QUANTUMVERSE_BUILD_TESTS)
     )
     target_link_libraries(test_pta_scanner PRIVATE dilaton)
     add_test(NAME PTAScannerTest COMMAND test_pta_scanner)
+
+    # 6.8 Fast Radio Burst dispersion measure scanner
+    add_executable(test_frb_dispersion_scanner
+        tests/discovery/test_frb_dispersion_scanner.cpp
+        src/discovery/FRBDispersionScanner.cpp
+    )
+    target_link_libraries(test_frb_dispersion_scanner PRIVATE dilaton)
+    add_test(NAME FRBDispersionScannerTest COMMAND test_frb_dispersion_scanner)
+
+    # 6.9 Cosmic shear weak lensing scanner
+    add_executable(test_cosmic_shear_scanner
+        tests/discovery/test_cosmic_shear_scanner.cpp
+        src/discovery/CosmicShearScanner.cpp
+    )
+    target_link_libraries(test_cosmic_shear_scanner PRIVATE dilaton)
+    add_test(NAME CosmicShearScannerTest COMMAND test_cosmic_shear_scanner)
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues
