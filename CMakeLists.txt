@@ -147,6 +147,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/PrimordialLithiumCrisisSolver.cpp
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
         src/discovery/RLDiscoveryAgent.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/HolographicDualityLab.cpp
@@ -595,6 +596,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/PrimordialLithiumCrisisSolver.cpp
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
     )
     target_link_libraries(fuzz_instruments PRIVATE dilaton)
     add_test(NAME FuzzInstrumentsTest COMMAND fuzz_instruments)
@@ -747,6 +749,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
     add_executable(test_recombination_constant_variation
         tests/test_recombination_constant_variation.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
     )
     target_link_libraries(test_recombination_constant_variation PRIVATE dilaton)
     add_test(NAME RecombinationConstantVariationTest COMMAND test_recombination_constant_variation)
@@ -981,6 +984,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/PrimordialLithiumCrisisSolver.cpp
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
     )
     message(STATUS "Linking test_instrument_audit")
     target_link_libraries(test_instrument_audit PRIVATE dilaton)
@@ -1002,6 +1006,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/PrimordialLithiumCrisisSolver.cpp
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
@@ -1031,6 +1036,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/PrimordialLithiumCrisisSolver.cpp
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
@@ -1048,6 +1054,14 @@ if(QUANTUMVERSE_BUILD_TESTS)
     )
     target_link_libraries(test_discovery_robustness PRIVATE dilaton)
     add_test(NAME DiscoveryRobustnessTest COMMAND test_discovery_robustness)
+
+    # 6.6 CMB lensing anomaly scanner
+    add_executable(test_cmb_lensing_scanner
+        tests/discovery/test_cmb_lensing_scanner.cpp
+        src/discovery/CMBLensingScanner.cpp
+    )
+    target_link_libraries(test_cmb_lensing_scanner PRIVATE dilaton)
+    add_test(NAME CMBLensingScannerTest COMMAND test_cmb_lensing_scanner)
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues

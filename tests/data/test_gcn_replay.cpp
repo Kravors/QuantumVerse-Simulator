@@ -65,6 +65,7 @@ int main(int argc, char** argv)
 
     bool finished = finishedSpy.wait(10000);
     assert(finished && "Replay should finish within timeout");
+    (void)finished;
 
     assert(spy.count() == 3 && "Should emit 3 alerts");
 
