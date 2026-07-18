@@ -29,7 +29,6 @@ jobs:
         cd build/Release
         7z a ../../quantumverse_v${{ github.ref_name }}_win64.zip ^
            quantumverse_qml.exe ^
-           quantumverse_imgui.exe ^
            *.dll *.conf ^
            qt.conf ^
            plugins/ ^

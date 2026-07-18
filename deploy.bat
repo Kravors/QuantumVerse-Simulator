@@ -28,19 +28,12 @@ if exist "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_qml.exe" (
     copy "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_qml.exe" "%DEPLOY_DIR%\" >nul
     echo   quantumverse_qml.exe copied.
 )
-if exist "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_imgui.exe" (
-    copy "%BUILD_DIR%\%BUILD_TYPE%\quantumverse_imgui.exe" "%DEPLOY_DIR%\" >nul
-    echo   quantumverse_imgui.exe copied.
-)
 
 REM 3. Use windeployqt to copy Qt dependencies automatically
 echo Deploying Qt dependencies...
 if exist "%QT_DIR%\bin\windeployqt.exe" (
     if exist "%DEPLOY_DIR%\quantumverse_qml.exe" (
         "%QT_DIR%\bin\windeployqt.exe" --%BUILD_TYPE% --no-translations --no-system-d3d-compiler --compiler-runtime --qmldir "%~dp0src" "%DEPLOY_DIR%\quantumverse_qml.exe"
-    )
-    if exist "%DEPLOY_DIR%\quantumverse_imgui.exe" (
-        "%QT_DIR%\bin\windeployqt.exe" --%BUILD_TYPE% --no-translations --no-system-d3d-compiler --compiler-runtime "%DEPLOY_DIR%\quantumverse_imgui.exe"
     )
     echo Qt dependencies deployed.
 ) else (
@@ -112,7 +105,6 @@ echo Files in deploy\windows\:
 dir "%DEPLOY_DIR%" /B
 
 echo.
-echo To run QML: deploy\windows\quantumverse_qml.exe
-echo To run ImGui: deploy\windows\quantumverse_imgui.exe
+echo To run: deploy\windows\quantumverse_qml.exe
 echo ========================================
 pause

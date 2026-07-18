@@ -4,11 +4,11 @@ REM Targets the CMake build directory (build/Release or build/Debug)
 
 setlocal enabledelayedexpansion
 
-echo === QuantumVerse v3.7.2 Windows Deployment ===
+echo === QuantumVerse v3.10.2 Windows Deployment ===
 
 set BUILD_TYPE=Release
-if not exist "build\%BUILD_TYPE%\quantumverse_imgui.exe" (
-    if exist "build\Debug\quantumverse_imgui.exe" (
+if not exist "build\%BUILD_TYPE%\quantumverse_qml.exe" (
+    if exist "build\Debug\quantumverse_qml.exe" (
         set BUILD_TYPE=Debug
     ) else (
         echo ERROR: No build found in build/Release or build/Debug. Build first!
@@ -27,9 +27,7 @@ mkdir "%DEPLOY_DIR%"
 REM 2. Copy executables
 echo Copying executables...
 copy "build\%BUILD_TYPE%\quantumverse_qml.exe" "%DEPLOY_DIR%\" >nul
-copy "build\%BUILD_TYPE%\quantumverse_imgui.exe" "%DEPLOY_DIR%\" >nul
 echo   quantumverse_qml.exe copied.
-echo   quantumverse_imgui.exe copied.
 
 REM 3. Copy Qt plugins (platforms, imageformats)
 echo Deploying Qt plugins...
@@ -67,6 +65,5 @@ echo Qml2Imports = qml >> "%DEPLOY_DIR%\qt.conf"
 echo.
 echo Deployment completed to %DEPLOY_DIR%
 echo Run: %DEPLOY_DIR%\quantumverse_qml.exe
-echo Run: %DEPLOY_DIR%\quantumverse_imgui.exe
 echo ========================================
 pause

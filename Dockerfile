@@ -1,6 +1,6 @@
 # QuantumVerse Simulator - Docker Container
-# Build: docker build -t quantumverse:3.7.2 .
-# Run:   docker run --rm -it --device=/dev/dri quantumverse:3.7.2
+# Build: docker build -t quantumverse:3.10.2 .
+# Run:   docker run --rm -it --device=/dev/dri quantumverse:3.10.2
 
 FROM ubuntu:24.04
 
@@ -18,18 +18,19 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libgl1-mesa-dev \
     libglu1-mesa-dev \
-    libglfw3-dev \
-    libglew-dev \
-    libxi6 \
-    libxrender1 \
-    libxrandr2 \
-    libxfixes3 \
-    libxcb1 \
-    libx11-6 \
-    libxext6 \
-    libopenal-dev \
-    libalut-dev \
-    libssl-dev \
+    libx11-xcb-dev \
+    libxkbcommon-x11-dev \
+    libpcre2-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libsqlite3-dev \
+    libharfbuzz-dev \
+    libb2-dev \
+    double-conversion \
+    qt6-base-dev \
+    qt6-declarative-dev \
+    qt6-quickcontrols2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/quantumverse
@@ -39,8 +40,8 @@ COPY . .
 RUN cmake -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DQUANTUMVERSE_BUILD_TESTS=ON \
-        -DQUANTUMVERSE_USE_QT=OFF \
+        -DQUANTUMVERSE_USE_QT=ON \
     && cmake --build build --parallel
 
-ENTRYPOINT ["build/quantumverse_imgui"]
+ENTRYPOINT ["build/quantumverse_qml"]
 CMD ["--help"]
