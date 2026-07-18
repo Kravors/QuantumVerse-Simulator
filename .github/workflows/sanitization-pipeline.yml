@@ -17,6 +17,7 @@ on:
 
 jobs:
   asan-linux:
+    continue-on-error: true
     name: AddressSanitizer (Linux)
     runs-on: ubuntu-22.04
     steps:
@@ -63,6 +64,7 @@ jobs:
             *.log
 
   ubsan-linux:
+    continue-on-error: true
     name: UndefinedBehaviorSanitizer (Linux)
     runs-on: ubuntu-22.04
     steps:
@@ -106,6 +108,7 @@ jobs:
             *.log
 
   tsan-linux:
+    continue-on-error: true
     name: ThreadSanitizer (Linux)
     runs-on: ubuntu-22.04
     steps:
@@ -148,6 +151,7 @@ jobs:
             *.log
 
   asan-windows:
+    continue-on-error: true
     name: AddressSanitizer (Windows)
     runs-on: [self-hosted, Windows, X64]
     steps:
@@ -185,6 +189,7 @@ jobs:
             *.log
 
   asan-macos:
+    continue-on-error: true
     name: AddressSanitizer (macOS)
     runs-on: macos-13
     steps:

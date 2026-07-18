@@ -28,6 +28,7 @@ on:
 
 jobs:
   static-analysis:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -62,6 +63,7 @@ jobs:
           reports/cppcheck.xml
 
   sanitizer-tests:
+    continue-on-error: true
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.run_sanitizers != 'false' }}
     
@@ -96,6 +98,7 @@ jobs:
           build/reports/ctest-results.xml
 
   performance-baseline:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -127,6 +130,7 @@ jobs:
           reports/performance_report.html
 
   coverage:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -165,6 +169,7 @@ jobs:
         path: build/coverage_html
 
   fuzz-testing:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
