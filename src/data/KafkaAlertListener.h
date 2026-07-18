@@ -11,6 +11,7 @@
 #define QUANTUMVERSE_KAFKA_ALERT_LISTENER_H
 
 #include "AlertListener.h"
+#include "GCNBrokerConfig.h"
 
 #include <QObject>
 #include <QStringList>
@@ -35,8 +36,7 @@ class KafkaAlertListener : public AlertListener
 {
     Q_OBJECT
 public:
-    explicit KafkaAlertListener(const QString& brokers,
-                                const QStringList& topics,
+    explicit KafkaAlertListener(const GCNBrokerConfig& config,
                                 QObject* parent = nullptr);
     ~KafkaAlertListener() override;
 
@@ -47,7 +47,6 @@ public:
     QString brokers() const { return m_brokers; }
 
 signals:
-    // Inherits alertReceived(const QJsonObject&) from AlertListener
     void consumerError(const QString& message);
     void consumerStopped();
 
@@ -63,6 +62,12 @@ private:
     QMutex m_mutex;
 
     bool m_running = false;
+    QString m_groupId;
+    QString m_securityProtocol;
+    QString m_saslMechanism;
+    QString m_saslUsername;
+    QString m_saslPassword;
+    bool m_autoOffsetResetLatest = true;
 
 #ifdef HAVE_LIBRDKAFKA
     rd_kafka_t* m_consumer = nullptr;

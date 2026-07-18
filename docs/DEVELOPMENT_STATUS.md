@@ -1,6 +1,6 @@
 # QuantumVerse Simulator - Development Status
 
-**Version**: 3.8.0  
+**Version**: 3.9.0  
 **Last Updated**: 2026-07-18  
 **Status**: Production Ready  
 **License**: MIT
@@ -37,7 +37,7 @@ QuantumVerse is a production-ready 4D spacetime cognition laboratory combining g
 - **Build system**: CMake 3.25+ with MSVC 2022
 - **Qt version**: 6.11.1 (msvc2022_64)
 - **OpenGL**: 4.5 Core Profile
-- **Tests**: 62/62 passing (Release) — all green
+- **Tests**: 64/64 passing (Release) — all green
 
 ### Phase 9 Deliverables
 
@@ -570,6 +570,34 @@ AD-enabled metric wrapper for differentiable physics.
 
 ## Data Module
 
+### GCNBrokerConfig
+**File**: `src/data/GCNBrokerConfig.h`  
+**Status**: ✅ Complete
+
+Configuration for GCN Kafka broker connections. Provides factory methods for the public GCN test stream (`test.gcn.nasa.gov:9092`) and the production broker (`gcn-kafka.nasa.gov:9092`). Supports SASL/SCRAM authentication for production use.
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Test stream config | ✅ | `GCNBrokerConfig::testStream()` |
+| Production config | ✅ | `GCNBrokerConfig::production()` |
+| SASL auth support | ✅ | `sasl_ssl`, `scram-sha-512` |
+| Topic presets | ✅ | LVC, IceCube, TESS, Fermi GBM, Swift BAT |
+
+### KafkaAlertListener
+**File**: `src/data/KafkaAlertListener.h`  
+**Status**: ✅ Complete (live)
+
+GCN Kafka consumer using `librdkafka`. Runs in a dedicated `QThread` to avoid blocking the UI. Emits `alertReceived()` for each successfully parsed JSON message.
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| librdkafka backend | ✅ | Configurable via `GCNBrokerConfig` |
+| Threaded consumption | ✅ | `QThread` + `consumeLoop()` |
+| Test broker support | ✅ | `test.gcn.nasa.gov:9092` |
+| Production broker | ✅ | `gcn-kafka.nasa.gov:9092` with SASL |
+| Error handling | ✅ | `consumerError` signal |
+| Graceful shutdown | ✅ | `consumerStopped` signal |
+
 ### LIGOAdapter
 **File**: `src/data/LIGOAdapter.h`  
 **Status**: ✅ Complete (live)
@@ -870,6 +898,7 @@ VR toggle button in QML toolbar. Backend exposed to QML as `vrBackend` context p
 | QuantumGravityConsistencyTest | `tests/test_quantum_gravity_consistency.cpp` | ✅ | Quantum gravity checks |
 | AutoDiffValidationTest | `tests/test_autodiff_validation.cpp` | ✅ | AutoDiff validation |
 | ScenarioIntegrationTest | `tests/test_scenario_integration.cpp` | ✅ | Scenario integration |
+| GCNBrokerConnectivityTest | `tests/data/test_gcn_broker_connectivity.cpp` | ✅ | GCN test broker smoke test (skipped if network unavailable) |
 
 ### Integration Tests
 
@@ -897,8 +926,11 @@ All limitations below are documented and tracked in this file.
 - VR code in `qmlglviewport.h`/`.cpp` is guarded with `#ifdef QUANTUMVERSE_USE_VR` so the project compiles without the VR module.
 
 ### Live Data Ingestion
-- All four major multi-messenger channels ingest in real time: LIGO (GW), IceCube (ν), TESS (exoplanets), Fermi GBM (GRBs).
+- All five major multi-messenger channels ingest in real time: LIGO (GW), IceCube (ν), TESS (exoplanets), Fermi GBM (GRBs), Swift BAT (X-ray transients).
 - Real-time GCN/Kafka backend integrated and operational.
+- `GCNBrokerConfig` provides test stream (`test.gcn.nasa.gov:9092`) and production (`gcn-kafka.nasa.gov:9092`) configurations.
+- CI smoke test (`GCNBrokerConnectivityTest`) validates broker connectivity on every build.
+- `--gcn-test` and `--gcn-prod` CLI flags select the broker environment.
 
 ### Differentiable Physics
 - Full parameter gradients through curvature require adjoint-mode AD (deferred).

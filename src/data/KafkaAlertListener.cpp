@@ -4,6 +4,7 @@
  */
 
 #include "KafkaAlertListener.h"
+#include "GCNBrokerConfig.h"
 
 #include <QJsonDocument>
 #include <QJsonParseError>
@@ -84,14 +85,19 @@ void KafkaAlertListener::onRawMessage(const QByteArray& payload)
 
 #endif
 
-KafkaAlertListener::KafkaAlertListener(const QString& brokers,
-                                       const QStringList& topics,
+KafkaAlertListener::KafkaAlertListener(const GCNBrokerConfig& config,
                                        QObject* parent)
     : AlertListener(parent)
-    , m_brokers(brokers)
+    , m_brokers(config.brokers)
     , m_thread(new QThread(this))
+    , m_groupId(config.groupId)
+    , m_securityProtocol(config.securityProtocol)
+    , m_saslMechanism(config.saslMechanism)
+    , m_saslUsername(config.saslUsername)
+    , m_saslPassword(config.saslPassword)
+    , m_autoOffsetResetLatest(config.autoOffsetResetLatest)
 {
-    m_topics = topics;
+    m_topics = config.topics;
 }
 
 KafkaAlertListener::~KafkaAlertListener()
@@ -133,8 +139,21 @@ void KafkaAlertListener::start()
     }
 
     rd_kafka_conf_set(m_conf, "bootstrap.servers", m_brokers.toUtf8().constData(), errstr, sizeof(errstr));
-    rd_kafka_conf_set(m_conf, "group.id", "quantumverse_ingest", errstr, sizeof(errstr));
-    rd_kafka_conf_set(m_conf, "auto.offset.reset", "latest", errstr, sizeof(errstr));
+    rd_kafka_conf_set(m_conf, "group.id", m_groupId.toUtf8().constData(), errstr, sizeof(errstr));
+    rd_kafka_conf_set(m_conf, "auto.offset.reset", m_autoOffsetResetLatest ? "latest" : "earliest", errstr, sizeof(errstr));
+
+    if (m_securityProtocol == QLatin1String("sasl_ssl")) {
+        rd_kafka_conf_set(m_conf, "security.protocol", "sasl_ssl", errstr, sizeof(errstr));
+        rd_kafka_conf_set(m_conf, "sasl.mechanism", m_saslMechanism.toUtf8().constData(), errstr, sizeof(errstr));
+        if (!m_saslUsername.isEmpty()) {
+            rd_kafka_conf_set(m_conf, "sasl.username", m_saslUsername.toUtf8().constData(), errstr, sizeof(errstr));
+        }
+        if (!m_saslPassword.isEmpty()) {
+            rd_kafka_conf_set(m_conf, "sasl.password", m_saslPassword.toUtf8().constData(), errstr, sizeof(errstr));
+        }
+    } else {
+        rd_kafka_conf_set(m_conf, "security.protocol", "plaintext", errstr, sizeof(errstr));
+    }
 
     m_consumer = rd_kafka_new(RD_KAFKA_CONSUMER, m_conf, errstr, sizeof(errstr));
     if (!m_consumer) {

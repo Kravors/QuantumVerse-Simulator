@@ -65,6 +65,7 @@
 #include "data/KafkaAlertListener.h"
 #include "data/GCNNoticeParser.h"
 #include "data/GCNReplayStream.h"
+#include "data/GCNBrokerConfig.h"
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
 #include "discovery/GalacticRotationCurveScanner.h"
 #include "discovery/FineStructureConstantDriftObservatory.h"
@@ -151,6 +152,8 @@ int main(int argc, char* argv[])
     bool autoScan = false;
     bool enableGeodesics = false;
     bool glStrict = false;
+    bool gcnTestMode = false;
+    bool gcnProdMode = false;
     QString screenshotPath;
     QString frameTimesPath;
     QString diagnosticsPath;
@@ -169,6 +172,10 @@ int main(int argc, char* argv[])
             autoScan = true;
         } else if (strcmp(argv[i], "--enable-geodesics") == 0) {
             enableGeodesics = true;
+        } else if (strcmp(argv[i], "--gcn-test") == 0) {
+            gcnTestMode = true;
+        } else if (strcmp(argv[i], "--gcn-prod") == 0) {
+            gcnProdMode = true;
         }
     }
     if (!screenshotPath.isEmpty() && headlessFrames <= 0) {
@@ -559,16 +566,16 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("swiftAdapter",
             QVariant::fromValue(swiftAdapter.get()));
 
-        auto kafkaListener = std::make_shared<quantumverse::KafkaAlertListener>(
-            QStringLiteral("gcn-kafka.nasa.gov:9092"),
-            {
-                QStringLiteral("gcn.notices.LVC"),
-                QStringLiteral("gcn.notices.ICECUBE"),
-                QStringLiteral("gcn.notices.TESS"),
-                QStringLiteral("gcn.notices.FERMI_GBM"),
-                QStringLiteral("gcn.notices.SWIFT_BAT")
-            }
-        );
+        quantumverse::GCNBrokerConfig gcnConfig;
+        if (gcnProdMode) {
+            gcnConfig = quantumverse::GCNBrokerConfig::production();
+            qDebug() << "QuantumVerse: Using production GCN broker" << gcnConfig.brokers;
+        } else {
+            gcnConfig = quantumverse::GCNBrokerConfig::testStream();
+            qDebug() << "QuantumVerse: Using GCN test stream broker" << gcnConfig.brokers;
+        }
+
+        auto kafkaListener = std::make_shared<quantumverse::KafkaAlertListener>(gcnConfig);
 
         QObject::connect(kafkaListener.get(), &quantumverse::KafkaAlertListener::alertReceived,
             alertRouter.get(), &quantumverse::AlertRouter::routeAlert);

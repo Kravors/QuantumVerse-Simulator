@@ -16,6 +16,7 @@
 #include "data/KafkaAlertListener.h"
 #include "data/GCNNoticeParser.h"
 #include "data/AlertRouter.h"
+#include "data/GCNBrokerConfig.h"
 #include "data/LIGOAdapter.h"
 #include "data/IceCubeAdapter.h"
 #include "data/TESSAlertAdapter.h"
@@ -29,10 +30,14 @@ int main(int argc, char** argv)
     std::cout << "=== KafkaListenerTest ===" << std::endl;
 
     // --- Construction ----------------------------------------------------------
-    KafkaAlertListener listener(
-        QStringLiteral("127.0.0.1:9092"),
-        { QStringLiteral("gcn.notices.LVC"), QStringLiteral("gcn.notices.ICECUBE") }
-    );
+    GCNBrokerConfig localConfig;
+    localConfig.brokers = QStringLiteral("127.0.0.1:9092");
+    localConfig.topics = { QStringLiteral("gcn.notices.LVC"), QStringLiteral("gcn.notices.ICECUBE") };
+    localConfig.groupId = QStringLiteral("quantumverse_test");
+    localConfig.securityProtocol = QStringLiteral("plaintext");
+    localConfig.autoOffsetResetLatest = true;
+
+    KafkaAlertListener listener(localConfig);
     assert(listener.topics().size() == 2);
     assert(listener.topics().contains(QStringLiteral("gcn.notices.LVC")));
 

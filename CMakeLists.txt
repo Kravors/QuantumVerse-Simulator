@@ -907,6 +907,20 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME GCNReplayStreamTest COMMAND test_gcn_replay)
     endif()
 
+    # Phase 12d: GCN broker connectivity smoke test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_broker_connectivity.cpp)
+        add_executable(test_gcn_broker_connectivity
+            tests/data/test_gcn_broker_connectivity.cpp
+            src/data/KafkaAlertListener.cpp
+            src/data/GCNNoticeParser.cpp
+            src/data/AlertRouter.cpp
+            src/data/AlertListener.cpp
+        )
+        target_link_libraries(test_gcn_broker_connectivity PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
+        set_target_properties(test_gcn_broker_connectivity PROPERTIES AUTOMOC ON)
+        add_test(NAME GCNBrokerConnectivityTest COMMAND test_gcn_broker_connectivity)
+    endif()
+
     # Phase 13: Multi-messenger correlator test
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_multimessenger_correlator.cpp)
         add_executable(test_multimessenger_correlator
