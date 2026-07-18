@@ -17,6 +17,8 @@ if exist "%BUILD_DIR%\Release\quantumverse_qml.exe" (
     set BUILD_TYPE=Debug
 )
 echo Build type: %BUILD_TYPE%
+set "BUILD_TYPE_LOWER=%BUILD_TYPE:Release=release%"
+set "BUILD_TYPE_LOWER=%BUILD_TYPE_LOWER:Debug=debug%"
 
 REM 1. Clean deploy folder
 if exist "%DEPLOY_DIR%" rmdir /s /q "%DEPLOY_DIR%"
@@ -33,7 +35,7 @@ REM 3. Use windeployqt to copy Qt dependencies automatically
 echo Deploying Qt dependencies...
 if exist "%QT_DIR%\bin\windeployqt.exe" (
     if exist "%DEPLOY_DIR%\quantumverse_qml.exe" (
-        "%QT_DIR%\bin\windeployqt.exe" --%BUILD_TYPE% --no-translations --no-system-d3d-compiler --compiler-runtime --qmldir "%~dp0src" "%DEPLOY_DIR%\quantumverse_qml.exe"
+        "%QT_DIR%\bin\windeployqt.exe" --%BUILD_TYPE_LOWER% --no-translations --no-system-d3d-compiler --compiler-runtime --qmldir "%~dp0src" "%DEPLOY_DIR%\quantumverse_qml.exe"
     )
     echo Qt dependencies deployed.
 ) else (
