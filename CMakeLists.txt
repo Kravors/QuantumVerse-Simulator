@@ -172,6 +172,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/HolographicDualityLab.cpp
         src/discovery/GWMemoryDetector.cpp
         src/discovery/GWRingdownScanner.cpp
+        src/discovery/EMBrightGWCounterpartDetector.cpp
         src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
         src/spacetime/LightCone.cpp
@@ -1183,6 +1184,16 @@ if(QUANTUMVERSE_BUILD_TESTS)
     )
     target_link_libraries(test_gw_ringdown_scanner PRIVATE dilaton)
     add_test(NAME GWRingdownScannerTest COMMAND test_gw_ringdown_scanner)
+
+    # 6.12 EM-bright GW counterpart detector (17th discovery instrument)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/discovery/test_em_bright_gw_counterpart_detector.cpp)
+        add_executable(test_em_bright_gw_counterpart_detector
+            tests/discovery/test_em_bright_gw_counterpart_detector.cpp
+            src/discovery/EMBrightGWCounterpartDetector.cpp
+        )
+        target_link_libraries(test_em_bright_gw_counterpart_detector PRIVATE dilaton)
+        add_test(NAME EMBrightGWCounterpartDetectorTest COMMAND test_em_bright_gw_counterpart_detector)
+    endif()
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues

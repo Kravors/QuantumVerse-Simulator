@@ -418,7 +418,7 @@ Plugin registration system for gravity theories.
 
 Base class for all discovery instruments.
 
-### Discovery Instruments (16 total)
+### Discovery Instruments (17 total)
 
 | Instrument | File | Status | Description |
 |------------|------|--------|-------------|
@@ -436,6 +436,9 @@ Base class for all discovery instruments.
 | PTAScanner | `src/discovery/PTAScanner.h` | ✅ | Pulsar timing array nanohertz GW detector |
 | FRBDispersionScanner | `src/discovery/FRBDispersionScanner.h` | ✅ | Fast radio burst dispersion measure scanner |
 | CosmicShearScanner | `src/discovery/CosmicShearScanner.h` | ✅ | Cosmic shear weak lensing scanner |
+| GWMemoryDetector | `src/discovery/GWMemoryDetector.h` | ✅ | Gravitational wave memory detector |
+| GWRingdownScanner | `src/discovery/GWRingdownScanner.h` | ✅ | Black hole ringdown anomaly scanner |
+| EMBrightGWCounterpartDetector | `src/discovery/EMBrightGWCounterpartDetector.h` | ✅ | GW-EM counterpart coincidence detector |
 
 ### FindingsModel
 **File**: `src/discovery/FindingsModel.h`  

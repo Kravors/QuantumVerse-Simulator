@@ -82,6 +82,7 @@
 #include "discovery/CosmicShearScanner.h"
 #include "discovery/GWMemoryDetector.h"
 #include "discovery/GWRingdownScanner.h"
+#include "discovery/EMBrightGWCounterpartDetector.h"
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
 #include "utils/FrameDiagnostics.h"
@@ -318,6 +319,7 @@ int main(int argc, char* argv[])
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::CosmicShearScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWMemoryDetector>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWRingdownScanner>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::EMBrightGWCounterpartDetector>());
         qDebug() << "QuantumVerse: Registered" << discoveryPanelManager->instrumentCount() << "discovery instruments";
 
         // Provide metric and location to the discovery panel manager
