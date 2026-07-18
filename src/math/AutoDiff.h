@@ -414,8 +414,6 @@ std::array<double, N> gradientN(
     const std::function<double(const std::vector<double>&)>& f,
     const std::vector<double>& x
 ) {
-    // Use finite difference for scalar functions (AD requires expression templates)
-    // This is a simple and robust implementation
     std::array<double, N> grad{};
     const double h = 1e-8;
     
@@ -428,6 +426,342 @@ std::array<double, N> gradientN(
     }
     return grad;
 }
+
+// ============================================================================
+// Reverse-Mode Automatic Differentiation (Adjoint Method)
+// ============================================================================
+
+class ADVar {
+public:
+    double value;
+    double grad;
+    std::function<void()> backward;
+
+    ADVar(double v) : value(v), grad(0.0) {}
+
+    ADVar(double v, std::function<void()> bw) : value(v), grad(0.0), backward(std::move(bw)) {}
+
+    ADVar(const ADVar&) = delete;
+    ADVar& operator=(const ADVar&) = delete;
+    ADVar(ADVar&& other) noexcept
+        : value(other.value), grad(other.grad), backward(std::move(other.backward)) {}
+};
+
+class ADTape {
+    static std::vector<ADVar*> variables;
+
+public:
+    static void clear() {
+        for (auto* var : variables) delete var;
+        variables.clear();
+    }
+
+    static ADVar* record(double value, std::function<void()> backward_fn) {
+        auto* var = new ADVar(value, std::move(backward_fn));
+        variables.push_back(var);
+        return var;
+    }
+
+    static std::vector<std::pair<ADVar*, double>> compute_gradients(ADVar& output) {
+        output.grad = 1.0;
+        for (auto it = variables.rbegin(); it != variables.rend(); ++it) {
+            if ((*it)->backward) (*it)->backward();
+        }
+        std::vector<std::pair<ADVar*, double>> grads;
+        grads.reserve(variables.size());
+        for (auto* var : variables) grads.emplace_back(var, var->grad);
+        return grads;
+    }
+
+    static double get_gradient(ADVar* var, const std::vector<std::pair<ADVar*, double>>& grads) {
+        for (const auto& [v, g] : grads) {
+            if (v == var) return g;
+        }
+        return 0.0;
+    }
+};
+
+std::vector<ADVar*> ADTape::variables;
+
+inline ADVar* var(double v) {
+    return ADTape::record(v, nullptr);
+}
+
+inline ADVar* add(ADVar* a, ADVar* b) {
+    ADVar* result = new ADVar(a->value + b->value);
+    result->backward = [a, b, result]() {
+        double dc = result->grad;
+        a->grad += dc;
+        b->grad += dc;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* sub(ADVar* a, ADVar* b) {
+    ADVar* result = new ADVar(a->value - b->value);
+    result->backward = [a, b, result]() {
+        double dc = result->grad;
+        a->grad += dc;
+        b->grad += -dc;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* mul(ADVar* a, ADVar* b) {
+    ADVar* result = new ADVar(a->value * b->value);
+    result->backward = [a, b, result]() {
+        double dc = result->grad;
+        a->grad += dc * b->value;
+        b->grad += dc * a->value;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* div(ADVar* a, ADVar* b) {
+    ADVar* result = new ADVar(a->value / b->value);
+    result->backward = [a, b, result]() {
+        double dc = result->grad;
+        a->grad += dc / b->value;
+        b->grad += -dc * a->value / (b->value * b->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* add(ADVar* a, double s) {
+    ADVar* result = new ADVar(a->value + s);
+    result->backward = [a, result]() {
+        a->grad += result->grad;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* add(double s, ADVar* a) {
+    return add(a, s);
+}
+
+inline ADVar* sub(ADVar* a, double s) {
+    ADVar* result = new ADVar(a->value - s);
+    result->backward = [a, result]() {
+        a->grad += result->grad;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* sub(double s, ADVar* a) {
+    ADVar* result = new ADVar(s - a->value);
+    result->backward = [a, result]() {
+        a->grad += -result->grad;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* mul(ADVar* a, double s) {
+    ADVar* result = new ADVar(a->value * s);
+    result->backward = [a, s, result]() {
+        a->grad += result->grad * s;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* mul(double s, ADVar* a) {
+    return mul(a, s);
+}
+
+inline ADVar* div(ADVar* a, double s) {
+    ADVar* result = new ADVar(a->value / s);
+    result->backward = [a, s, result]() {
+        a->grad += result->grad / s;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* div(double s, ADVar* a) {
+    ADVar* result = new ADVar(s / a->value);
+    result->backward = [a, s, result]() {
+        a->grad += -result->grad * s / (a->value * a->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* neg(ADVar* a) {
+    ADVar* result = new ADVar(-a->value);
+    result->backward = [a, result]() {
+        a->grad += -result->grad;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* sin(ADVar* x) {
+    ADVar* result = new ADVar(std::sin(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad * std::cos(x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* cos(ADVar* x) {
+    ADVar* result = new ADVar(std::cos(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad * -std::sin(x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* exp(ADVar* x) {
+    ADVar* result = new ADVar(std::exp(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad * result->value;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* log(ADVar* x) {
+    ADVar* result = new ADVar(std::log(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad / x->value;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* sqrt(ADVar* x) {
+    ADVar* result = new ADVar(std::sqrt(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad * 0.5 / result->value;
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* pow(ADVar* x, double p) {
+    ADVar* result = new ADVar(std::pow(x->value, p));
+    result->backward = [x, p, result]() {
+        x->grad += result->grad * p * std::pow(x->value, p - 1);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* pow(double base, ADVar* x) {
+    ADVar* result = new ADVar(std::pow(base, x->value));
+    result->backward = [x, base, result]() {
+        x->grad += result->grad * std::pow(base, x->value) * std::log(base);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* tan(ADVar* x) {
+    double tx = std::tan(x->value);
+    ADVar* result = new ADVar(tx);
+    result->backward = [x, result, tx]() {
+        x->grad += result->grad * (1.0 + tx * tx);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* atan(ADVar* x) {
+    ADVar* result = new ADVar(std::atan(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad / (1.0 + x->value * x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* sinh(ADVar* x) {
+    ADVar* result = new ADVar(std::sinh(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad * std::cosh(x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* cosh(ADVar* x) {
+    ADVar* result = new ADVar(std::cosh(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad * std::sinh(x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* tanh(ADVar* x) {
+    double tx = std::tanh(x->value);
+    ADVar* result = new ADVar(tx);
+    result->backward = [x, result, tx]() {
+        x->grad += result->grad * (1.0 - tx * tx);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* asin(ADVar* x) {
+    ADVar* result = new ADVar(std::asin(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad / std::sqrt(1.0 - x->value * x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* acos(ADVar* x) {
+    ADVar* result = new ADVar(std::acos(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad / -std::sqrt(1.0 - x->value * x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* asinh(ADVar* x) {
+    ADVar* result = new ADVar(std::asinh(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad / std::sqrt(1.0 + x->value * x->value);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* acosh(ADVar* x) {
+    ADVar* result = new ADVar(std::acosh(x->value));
+    result->backward = [x, result]() {
+        x->grad += result->grad / std::sqrt(x->value * x->value - 1.0);
+    };
+    ADTape::variables.push_back(result);
+    return result;
+}
+
+inline ADVar* operator+(ADVar* a, ADVar* b) { return add(a, b); }
+inline ADVar* operator-(ADVar* a, ADVar* b) { return sub(a, b); }
+inline ADVar* operator*(ADVar* a, ADVar* b) { return mul(a, b); }
+inline ADVar* operator/(ADVar* a, ADVar* b) { return div(a, b); }
+
+inline ADVar* operator+(ADVar* a, double s) { return add(a, s); }
+inline ADVar* operator+(double s, ADVar* a) { return add(a, s); }
+inline ADVar* operator-(ADVar* a, double s) { return sub(a, s); }
+inline ADVar* operator-(double s, ADVar* a) { return sub(s, a); }
+inline ADVar* operator*(ADVar* a, double s) { return mul(a, s); }
+inline ADVar* operator*(double s, ADVar* a) { return mul(a, s); }
+inline ADVar* operator/(ADVar* a, double s) { return div(a, s); }
+inline ADVar* operator/(double s, ADVar* a) { return div(s, a); }
+inline ADVar* operator-(ADVar* a) { return neg(a); }
 
 } // namespace math
 } // namespace quantumverse
