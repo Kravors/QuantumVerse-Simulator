@@ -25,21 +25,15 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Clang for libFuzzer
         run: |
           sudo apt-get update
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
-          sudo apt-get update
-          sudo apt-get install -y clang-17 llvm-17-dev libclang-rt-17-dev
+          sudo apt-get install -y clang-17 llvm-17 llvm-17-dev libclang-rt-17-dev
+          echo "CC=clang-17" >> $GITHUB_ENV
+          echo "CXX=clang++-17" >> $GITHUB_ENV
 
       - name: Configure CMake with libFuzzer
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
-            -DQUANTUMVERSE_USE_FUZZER=ON \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
 
       - name: Build fuzzer
         run: cmake --build build --parallel
@@ -71,21 +65,15 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Clang for libFuzzer
         run: |
           sudo apt-get update
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
-          sudo apt-get update
-          sudo apt-get install -y clang-17 llvm-17-dev libclang-rt-17-dev
+          sudo apt-get install -y clang-17 llvm-17 llvm-17-dev libclang-rt-17-dev
+          echo "CC=clang-17" >> $GITHUB_ENV
+          echo "CXX=clang++-17" >> $GITHUB_ENV
 
       - name: Configure CMake with libFuzzer
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
-            -DQUANTUMVERSE_USE_FUZZER=ON \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
 
       - name: Build fuzzer
         run: cmake --build build --parallel
@@ -117,21 +105,15 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Clang for libFuzzer
         run: |
           sudo apt-get update
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
-          sudo apt-get update
-          sudo apt-get install -y clang-17 llvm-17-dev libclang-rt-17-dev
+          sudo apt-get install -y clang-17 llvm-17 llvm-17-dev libclang-rt-17-dev
+          echo "CC=clang-17" >> $GITHUB_ENV
+          echo "CXX=clang++-17" >> $GITHUB_ENV
 
       - name: Configure CMake with libFuzzer
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
-            -DQUANTUMVERSE_USE_FUZZER=ON \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
 
       - name: Build fuzzer
         run: cmake --build build --parallel
