@@ -1,9 +1,9 @@
 @echo off
 REM QuantumVerse Deployment Script
-REM Version: 3.7.2
+REM Version: 3.10.2
 
 echo ========================================
-echo QuantumVerse v3.7.2 Deployment
+echo QuantumVerse v3.10.2 Deployment
 echo ========================================
 
 set QT_DIR=F:\qt\6.11.1\msvc2022_64
