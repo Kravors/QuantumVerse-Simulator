@@ -8,6 +8,11 @@
 # - ccache
 
 name: Smoke build
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on: push
 

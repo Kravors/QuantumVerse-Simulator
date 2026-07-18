@@ -39,7 +39,7 @@ GFTEngine::GFTEngine(
     // Allocate field: φ(g1,g2,g3,g4) on SU(2)^4 grid
     // Simplified: use linear array of size grid_size^4
     // In full implementation, would use group representation theory
-    field_values.resize(grid_size * grid_size * grid_size * grid_size);
+    field_values.resize(static_cast<size_t>(grid_size) * grid_size * grid_size * grid_size);
 
     // Initialize with small random fluctuations
     for (auto& val : field_values) {

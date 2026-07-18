@@ -1,4 +1,9 @@
 name: Advanced Error Discovery Pipeline
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on:
   push:

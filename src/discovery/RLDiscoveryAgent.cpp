@@ -51,7 +51,7 @@ PolicyNetwork::PolicyNetwork(int state_dim, int action_dim) {
     for (size_t i = 0; i < layer_sizes.size() - 1; ++i) {
         int rows = layer_sizes[i + 1];
         int cols = layer_sizes[i];
-        std::vector<double> layer_weights(rows * cols);
+        std::vector<double> layer_weights(static_cast<size_t>(rows) * cols);
         for (auto& w : layer_weights) w = normal(gen);
         weights.push_back(layer_weights);
         

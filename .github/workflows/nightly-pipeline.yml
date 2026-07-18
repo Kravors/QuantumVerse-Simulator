@@ -1,4 +1,9 @@
 name: Nightly Cleanliness Pipeline
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on:
   schedule:

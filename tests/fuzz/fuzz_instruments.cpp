@@ -92,7 +92,7 @@ int main() {
                 instruments.size(), kCyclesPerInstrument);
 
     for (size_t idx = 0; idx < instruments.size(); ++idx) {
-        const char* name = instruments[idx]->getName().c_str();
+        const std::string name = instruments[idx]->getName();
         int instrumentFailures = 0;
 
         for (int cycle = 0; cycle < kCyclesPerInstrument; ++cycle) {
@@ -107,32 +107,32 @@ int main() {
             try {
                 findings = instruments[idx]->analyze(*metric, location, traj);
             } catch (const std::exception& e) {
-                std::fprintf(stderr, "[FAIL] %s cycle %d threw: %s\n", name, cycle, e.what());
+                std::fprintf(stderr, "[FAIL] %s cycle %d threw: %s\n", name.c_str(), cycle, e.what());
                 ++instrumentFailures;
                 continue;
             } catch (...) {
-                std::fprintf(stderr, "[FAIL] %s cycle %d threw unknown exception\n", name, cycle);
+                std::fprintf(stderr, "[FAIL] %s cycle %d threw unknown exception\n", name.c_str(), cycle);
                 ++instrumentFailures;
                 continue;
             }
 
             auto elapsed = std::chrono::steady_clock::now() - start;
             if (elapsed > kTimeout) {
-                std::fprintf(stderr, "[FAIL] %s cycle %d timed out\n", name, cycle);
+                std::fprintf(stderr, "[FAIL] %s cycle %d timed out\n", name.c_str(), cycle);
                 ++instrumentFailures;
                 timedOut = true;
             }
 
             if (!timedOut && hasNaNOrInf(findings)) {
-                std::fprintf(stderr, "[FAIL] %s cycle %d produced NaN/Inf finding\n", name, cycle);
+                std::fprintf(stderr, "[FAIL] %s cycle %d produced NaN/Inf finding\n", name.c_str(), cycle);
                 ++instrumentFailures;
             }
         }
 
         if (instrumentFailures == 0) {
-            std::printf("[PASS] %s\n", name);
+            std::printf("[PASS] %s\n", name.c_str());
         } else {
-            std::printf("[FAIL] %s: %d/%d failures\n", name, instrumentFailures, kCyclesPerInstrument);
+            std::printf("[FAIL] %s: %d/%d failures\n", name.c_str(), instrumentFailures, kCyclesPerInstrument);
             ++failures;
         }
     }

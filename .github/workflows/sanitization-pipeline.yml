@@ -1,4 +1,9 @@
 name: Cross-Platform Sanitization Pipeline
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on:
   push:

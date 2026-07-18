@@ -1,4 +1,9 @@
 name: Error Detection & Reporting
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on:
   push:

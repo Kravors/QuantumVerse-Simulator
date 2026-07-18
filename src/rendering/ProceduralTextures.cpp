@@ -185,7 +185,7 @@ float ProceduralTextureGenerator::generateClouds(float x, float y,
 std::vector<uint8_t> ProceduralTextureGenerator::generatePlanetTexture(
     const PlanetTextureConfig& config) {
     
-    std::vector<uint8_t> pixels(config.width * config.height * 4);
+    std::vector<uint8_t> pixels(static_cast<size_t>(config.width) * config.height * 4);
     
     for (int y = 0; y < config.height; y++) {
         for (int x = 0; x < config.width; x++) {
@@ -223,7 +223,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generatePlanetTexture(
 std::vector<uint8_t> ProceduralTextureGenerator::generateStarTexture(
     const PlanetTextureConfig& config) {
     
-    std::vector<uint8_t> pixels(config.width * config.height * 4);
+    std::vector<uint8_t> pixels(static_cast<size_t>(config.width) * config.height * 4);
     
     for (int y = 0; y < config.height; y++) {
         for (int x = 0; x < config.width; x++) {
@@ -259,7 +259,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generateStarTexture(
 std::vector<uint8_t> ProceduralTextureGenerator::generateGasGiantTexture(
     const PlanetTextureConfig& config) {
     
-    std::vector<uint8_t> pixels(config.width * config.height * 4);
+    std::vector<uint8_t> pixels(static_cast<size_t>(config.width) * config.height * 4);
     
     for (int y = 0; y < config.height; y++) {
         for (int x = 0; x < config.width; x++) {
@@ -290,7 +290,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generateGasGiantTexture(
 std::vector<uint8_t> ProceduralTextureGenerator::generateIceWorldTexture(
     const PlanetTextureConfig& config) {
     
-    std::vector<uint8_t> pixels(config.width * config.height * 4);
+    std::vector<uint8_t> pixels(static_cast<size_t>(config.width) * config.height * 4);
     
     for (int y = 0; y < config.height; y++) {
         for (int x = 0; x < config.width; x++) {
@@ -319,7 +319,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generateIceWorldTexture(
 std::vector<uint8_t> ProceduralTextureGenerator::generateBarrenTexture(
     const PlanetTextureConfig& config) {
     
-    std::vector<uint8_t> pixels(config.width * config.height * 4);
+    std::vector<uint8_t> pixels(static_cast<size_t>(config.width) * config.height * 4);
     
     for (int y = 0; y < config.height; y++) {
         for (int x = 0; x < config.width; x++) {
@@ -350,7 +350,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generateBarrenTexture(
 std::vector<uint8_t> ProceduralTextureGenerator::generateLavaWorldTexture(
     const PlanetTextureConfig& config) {
     
-    std::vector<uint8_t> pixels(config.width * config.height * 4);
+    std::vector<uint8_t> pixels(static_cast<size_t>(config.width) * config.height * 4);
     
     for (int y = 0; y < config.height; y++) {
         for (int x = 0; x < config.width; x++) {

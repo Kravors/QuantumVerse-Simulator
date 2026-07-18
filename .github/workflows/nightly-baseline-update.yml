@@ -1,4 +1,9 @@
 name: Nightly Baseline Update
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on:
   schedule:

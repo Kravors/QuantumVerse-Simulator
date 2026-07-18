@@ -133,7 +133,7 @@ std::vector<std::vector<std::vector<double>>> MetricGNN::predict(
             for (int nu = 0; nu < 4; ++nu) {
                 double residual = 0.0;
                 if (!base.norm_.output_std.empty() && base.norm_.output_mean.size() >= (size_t)(mu*4+nu+1)) {
-                    size_t idx = mu * 4 + nu;
+                    size_t idx = static_cast<size_t>(mu) * 4 + nu;
                     if (idx < base.norm_.output_mean.size()) {
                         residual = 0.0;
                     }

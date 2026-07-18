@@ -21,9 +21,9 @@ namespace quantumgravity {
 SimplicialManifold::SimplicialManifold(int numVertices, double spatialSize, double timeSize, int topology)
     : N(numVertices), spatialVolume(spatialSize), temporalExtent(timeSize), topologyType(topology), rng(std::random_device{}()) {
     vertices.reserve(N);
-    edges.reserve(N * 10);
-    triangles.reserve(N * 20);
-    tetrahedra.reserve(N * 30);
+    edges.reserve(static_cast<size_t>(N) * 10);
+    triangles.reserve(static_cast<size_t>(N) * 20);
+    tetrahedra.reserve(static_cast<size_t>(N) * 30);
     simplices.reserve(N / 5);
 
     // Initialize vertices (sprinkling in 4D spacetime)

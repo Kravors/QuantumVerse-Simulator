@@ -130,7 +130,7 @@ void LightCone::generateCurvedCone()
     int nPhi = resolution * 2;
 
     std::vector<Event4D> rayEndpoints;
-    rayEndpoints.reserve((nTheta + 1) * (nPhi + 1));
+    rayEndpoints.reserve(static_cast<size_t>(nTheta + 1) * (nPhi + 1));
 
     for (int i = 0; i <= nTheta; ++i) {
         double theta = maxAngle * i / nTheta;
@@ -272,7 +272,7 @@ std::vector<Event4D> LightCone::integrateNullRay(
 void LightCone::buildIndices(int nTheta, int nPhi)
 {
     indices.clear();
-    indices.reserve((nTheta - 1) * (nPhi - 1) * 6);
+    indices.reserve(static_cast<size_t>(nTheta - 1) * (nPhi - 1) * 6);
 
     for (int i = 0; i < nTheta - 1; ++i) {
         for (int j = 0; j < nPhi - 1; ++j) {

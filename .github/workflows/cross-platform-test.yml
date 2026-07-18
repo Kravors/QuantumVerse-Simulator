@@ -1,4 +1,9 @@
 name: Cross-Platform Tests
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on:
   push:

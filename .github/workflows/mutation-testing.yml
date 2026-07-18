@@ -1,4 +1,9 @@
 name: Mutation Testing
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 
 on:
   push:
