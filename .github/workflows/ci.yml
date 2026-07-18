@@ -22,7 +22,9 @@ jobs:
         target: desktop
         arch: msvc2022_64
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }} -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+      env:
+        Qt6_DIR: ${{ env.Qt6_DIR }}
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
     - name: Deploy Qt runtime

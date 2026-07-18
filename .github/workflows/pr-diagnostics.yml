@@ -47,6 +47,9 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ matrix.config }}
       
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
+      
       - name: Run tests
         run: cd build && ctest -C ${{ matrix.config }} --output-on-failure
       

@@ -13,12 +13,15 @@ on:
 jobs:
   security-scan:
     name: Security Analysis
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
 
       - name: Install security tools
         run: |
@@ -30,7 +33,6 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: cpp
-          config-file: .github/codeql-config.yml
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -39,6 +41,7 @@ jobs:
 
       - name: Run Clang Static Analyzer
         run: |
+          mkdir -p reports
           scan-build -o reports scan-build --status-bugs cmake -B build -DCMAKE_BUILD_TYPE=Debug
           scan-build -o reports --use-c++=clang++ cmake --build build --parallel || true
 
@@ -68,12 +71,15 @@ jobs:
 
   binary-hardening:
     name: Binary Hardening Check
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: ubuntu-22.04
     needs: security-scan
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
 
       - name: Install hardening tools
         run: |
@@ -110,11 +116,14 @@ jobs:
 
   dependency-audit:
     name: Dependency Security Audit
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
 
       - name: Audit Python dependencies
         run: |

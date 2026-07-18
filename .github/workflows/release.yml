@@ -14,8 +14,12 @@ jobs:
       with:
         version: 6.11.1
         arch: msvc2022_64
+    - name: Ensure reports directory exists
+      run: New-Item -ItemType Directory -Path reports -Force
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+      env:
+        Qt6_DIR: ${{ env.Qt6_DIR }}
     - name: Build
       run: cmake --build build --config Release --parallel
     - name: Deploy Qt runtime
@@ -24,12 +28,12 @@ jobs:
       run: |
         cd build/Release
         7z a ../../quantumverse_v${{ github.ref_name }}_win64.zip ^
-            quantumverse_qml.exe ^
-            quantumverse_imgui.exe ^
-            *.dll *.conf ^
-            qt.conf ^
-            plugins/ ^
-            qml/
+           quantumverse_qml.exe ^
+           quantumverse_imgui.exe ^
+           *.dll *.conf ^
+           qt.conf ^
+           plugins/ ^
+           qml/
     - name: Upload release artifact
       uses: actions/upload-artifact@v4
       with:

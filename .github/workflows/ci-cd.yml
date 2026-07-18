@@ -55,27 +55,54 @@ jobs:
             libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
             libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
             libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
-            ninja-build ccache python3 python3-pip
+            ninja-build ccache python3 python3-pip \
+            qt6-base-dev qt6-declarative-dev qt6-quickcontrols2-dev
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
         run: |
           brew install ninja ccache python3
           brew install jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
+          brew install qt6
 
       - name: Install Windows dependencies
         if: runner.os == 'Windows'
         run: |
           choco install ninja ccache --yes --no-progress
 
+      - name: Setup Qt (Windows)
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          target: desktop
+          arch: msvc2022_64
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
+
       - name: Configure CMake cache
         run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
-            -DQUANTUMVERSE_USE_QT=ON
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cmake -S . -B build \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
+              -DQUANTUMVERSE_BUILD_TESTS=ON \
+              -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
+              -DQUANTUMVERSE_USE_QT=ON \
+              -DCMAKE_PREFIX_PATH="$Qt6_DIR"
+          else
+            cmake -S . -B build \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
+              -DQUANTUMVERSE_BUILD_TESTS=ON \
+              -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
+              -DQUANTUMVERSE_USE_QT=ON
+          fi
+        env:
+          Qt6_DIR: ${{ runner.os == 'Windows' && env.Qt6_DIR || '' }}
 
       - name: Build
         run: cmake --build build --config Release --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)

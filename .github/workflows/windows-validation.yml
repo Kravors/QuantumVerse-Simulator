@@ -20,10 +20,25 @@ jobs:
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1.1
       
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          target: desktop
+          arch: msvc2022_64
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+      
+      - name: Ensure reports directory exists
+        run: New-Item -ItemType Directory -Path reports -Force
+      
       - name: Configure CMake
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
-            -DQUANTUMVERSE_USE_QML=${{ matrix.ui_backend == 'QML' }}
+            -DQUANTUMVERSE_USE_QML=${{ matrix.ui_backend == 'QML' }} `
+            -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
+        env:
+          Qt6_DIR: ${{ env.Qt6_DIR }}
       
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel

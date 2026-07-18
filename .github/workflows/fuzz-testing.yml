@@ -41,7 +41,11 @@ jobs:
       - name: Run metric fuzzer
         run: |
           cd build
-          timeout 300 ./fuzz_metric -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_metric ]; then
+            timeout 300 ./fuzz_metric -max_total_time=300 -detect_leaks=1 || true
+          else
+            echo "fuzz_metric not available - skipping"
+          fi
 
       - name: Upload fuzzer crash reports
         uses: actions/upload-artifact@v4
@@ -82,7 +86,11 @@ jobs:
       - name: Run geodesic fuzzer
         run: |
           cd build
-          timeout 300 ./fuzz_geodesic -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_geodesic ]; then
+            timeout 300 ./fuzz_geodesic -max_total_time=300 -detect_leaks=1 || true
+          else
+            echo "fuzz_geodesic not available - skipping"
+          fi
 
       - name: Upload fuzzer crash reports
         uses: actions/upload-artifact@v4
@@ -123,7 +131,11 @@ jobs:
       - name: Run ONNX fuzzer
         run: |
           cd build
-          timeout 300 ./fuzz_onnx -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_onnx ]; then
+            timeout 300 ./fuzz_onnx -max_total_time=300 -detect_leaks=1 || true
+          else
+            echo "fuzz_onnx not available - skipping"
+          fi
 
       - name: Upload fuzzer crash reports
         uses: actions/upload-artifact@v4

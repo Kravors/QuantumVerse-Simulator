@@ -40,6 +40,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang-tidy
       
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
+      
       - name: Configure CMake
         run: |
           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -58,6 +61,7 @@ jobs:
         with:
           name: clang-tidy-report
           path: |
+            reports/
             **/*.txt
             **/*.log
 
@@ -66,6 +70,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
       
       - name: Install Cppcheck
         run: |

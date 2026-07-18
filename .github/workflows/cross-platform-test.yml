@@ -55,6 +55,9 @@ jobs:
         working-directory: build
         run: ctest -C ${{ matrix.build_type }} --output-on-failure -j 4
 
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
+
       - name: Run security tests
         working-directory: build
         run: ctest -C ${{ matrix.build_type }} -R SecurityTest --output-on-failure

@@ -8,29 +8,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install dependencies
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+      
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb
-          
+      
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
+      
       - name: Configure CMake
-        run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON
-        
+        run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+        env:
+          Qt6_DIR: ${{ env.Qt6_DIR }}
+      
       - name: Build
-        run: cmake --build build --target tests
-        
+        run: cmake --build build --config Release --parallel
+      
       - name: Run unit tests
         run: cd build && ctest --output-on-failure -L unit
-        
+      
       - name: Run integration tests
         run: cd build && ctest --output-on-failure -L integration
-        
+      
       - name: Run validation tests
         run: cd build && ctest --output-on-failure -L validation
-        
+      
       - name: Run benchmarks
         run: cd build && ./tests/benchmarks/run_benchmarks --benchmark_format=json > benchmarks.json
-        
+      
       - name: Check performance regression
         run: python scripts/check_performance.py benchmarks.json
 
@@ -42,17 +56,26 @@ jobs:
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.2'
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
           modules: 'qtdeclarative qtquickcontrols2'
           cache: true
+        env:
+          Qt6_DIR: ${{ env.Qt6_DIR }}
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb
 
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
+
       - name: Configure CMake
-        run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCTEST_PERFORMANCE_THRESHOLD=60 -DCTEST_PERFORMANCE_MAX_THRESHOLD=80
+        run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCTEST_PERFORMANCE_THRESHOLD=60 -DCTEST_PERFORMANCE_MAX_THRESHOLD=80 -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+        env:
+          Qt6_DIR: ${{ env.Qt6_DIR }}
 
       - name: Build performance targets
         run: cmake --build build --config Release --target qml_performance_baseline test_performance_gate
