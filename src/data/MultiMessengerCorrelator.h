@@ -2,10 +2,12 @@
  * @file MultiMessengerCorrelator.h
  * @brief Correlates live alerts from multiple messengers in real time
  *
- * Ingests findings from LIGO, IceCube, and TESS adapters and detects
- * coincident alerts based on spatial proximity (RA/Dec) and temporal
- * coincidence within configurable windows. Emits a correlation event
- * whenever a multi-messenger coincidence is identified.
+ * Ingests findings from LIGO, IceCube, TESS, Fermi GBM, and Swift BAT
+ * adapters and detects coincident alerts based on spatial proximity (RA/Dec)
+ * and temporal coincidence within configurable windows. Emits a correlation
+ * event whenever a multi-messenger coincidence is identified, and a dedicated
+ * follow-up trigger when a gravitational-wave alert coincides with an
+ * electromagnetic transient.
  */
 
 #ifndef QUANTUMVERSE_MULTI_MESSENGER_CORRELATOR_H
@@ -74,22 +76,29 @@ public:
     /** @brief Set time window in seconds (default 86400 = 24h). */
     void setTimeWindowSec(double sec);
 
-signals:
-    void spatialThresholdDegChanged();
-    void timeWindowSecChanged();
-    void correlationCountChanged();
-    /** @brief Emitted when a new multi-messenger correlation is detected. */
-    void correlationDetected(const CorrelationEvent& correlation);
+    signals:
+        void spatialThresholdDegChanged();
+        void timeWindowSecChanged();
+        void correlationCountChanged();
+        /** @brief Emitted when a new multi-messenger correlation is detected. */
+        void correlationDetected(const CorrelationEvent& correlation);
+        /** @brief Emitted when a GW alert is correlated with an EM transient. */
+        void followUpTriggered(const CorrelationEvent& correlation);
 
-private:
-    struct Alert {
-        QString messenger;
-        double ra = 0.0;
-        double dec = 0.0;
-        double timestamp = 0.0;
-        double confidence = 0.0;
-        QString id;
-    };
+    private:
+        struct Alert {
+            QString messenger;
+            double ra = 0.0;
+            double dec = 0.0;
+            double timestamp = 0.0;
+            double confidence = 0.0;
+            QString id;
+        };
+
+        /** @brief Return true if the alert originated from a gravitational-wave observatory. */
+        bool isGW(const Alert& a) const;
+        /** @brief Return true if the alert originated from an electromagnetic observatory. */
+        bool isEM(const Alert& a) const;
 
     static double angularSeparationDeg(double ra1, double dec1, double ra2, double dec2);
     static QString severityToString(AlertSeverity sev);

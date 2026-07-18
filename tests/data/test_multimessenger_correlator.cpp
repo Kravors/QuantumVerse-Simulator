@@ -73,6 +73,37 @@ int main(int argc, char** argv)
     correlator.addAlert(icecube);
     assert(correlator.correlationCount() == 0 && "Should not correlate beyond tiny spatial threshold");
 
+    // --- followUpTriggered on GW + EM coincidence ---------------------------------
+    {
+        correlator.setSpatialThresholdDeg(2.0);
+        correlator.setTimeWindowSec(3600.0);
+        correlator.clear();
+
+        InstrumentFinding ligo2;
+        ligo2.id = "LIGO_2";
+        ligo2.instrumentName = "LIGO";
+        ligo2.confidence = 0.99;
+        ligo2.timestamp = 2000.0;
+        ligo2.location = Event4D(2000.0, 30.0, 40.0, 0.0);
+
+        InstrumentFinding fermi;
+        fermi.id = "Fermi_1";
+        fermi.instrumentName = "Fermi GBM (Live)";
+        fermi.confidence = 0.95;
+        fermi.timestamp = 2002.0;
+        fermi.location = Event4D(2002.0, 30.2, 40.2, 0.0);
+
+        QSignalSpy followUpSpy(&correlator, &MultiMessengerCorrelator::followUpTriggered);
+
+        correlator.addAlert(ligo2);
+        correlator.addAlert(fermi);
+
+        assert(followUpSpy.count() == 1 && "Should emit followUpTriggered for GW+EM coincidence");
+        const CorrelationEvent followUpEv = qvariant_cast<CorrelationEvent>(followUpSpy.value(0).at(0));
+        assert(followUpEv.messengers.contains("LIGO"));
+        assert(followUpEv.messengers.contains("Fermi"));
+    }
+
     std::cout << "All MultiMessengerCorrelator tests passed." << std::endl;
     return 0;
 }

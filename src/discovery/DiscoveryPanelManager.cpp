@@ -32,6 +32,8 @@ DiscoveryPanelManager::DiscoveryPanelManager(QObject* parent)
     m_correlator = std::make_unique<MultiMessengerCorrelator>(this);
     connect(m_correlator.get(), &MultiMessengerCorrelator::correlationDetected,
             this, &DiscoveryPanelManager::onCorrelationDetected);
+    connect(m_correlator.get(), &MultiMessengerCorrelator::followUpTriggered,
+            this, &DiscoveryPanelManager::onFollowUpTriggered);
 #endif
 }
 
@@ -166,6 +168,14 @@ void DiscoveryPanelManager::onCorrelationDetected(const CorrelationEvent& correl
 #ifdef QUANTUMVERSE_USE_QML
     emit correlationCountChanged();
     emit correlationsListChanged();
+#endif
+    Q_UNUSED(correlation);
+}
+
+void DiscoveryPanelManager::onFollowUpTriggered(const CorrelationEvent& correlation)
+{
+#ifdef QUANTUMVERSE_USE_QML
+    emit liveAlertProcessed(QStringLiteral("GW+EM follow-up: %1").arg(correlation.description));
 #endif
     Q_UNUSED(correlation);
 }
@@ -311,6 +321,21 @@ void DiscoveryPanelManager::ingestAlert(const QJsonObject& alertJson)
         finding.parameters["duration"] = parsed.fermi_gbm.duration;
         finding.parameters["peak_flux"] = parsed.fermi_gbm.peak_flux;
         finding.parameters["error_radius"] = parsed.fermi_gbm.error_radius;
+        break;
+    }
+    case AlertOrigin::Swift: {
+        finding.instrumentName = "Swift BAT (Live)";
+        finding.description = QStringLiteral("Live X-ray transient %1 (BAT rate=%2, XRT flux=%3)")
+            .arg(QString::fromStdString(parsed.swift_bat.trigger_id))
+            .arg(parsed.swift_bat.bat_rate)
+            .arg(parsed.swift_bat.xrt_flux)
+            .toStdString();
+        finding.confidence = alertConfidence(parsed.swift_bat.false_alarm_rate, parsed.swift_bat.confidence);
+        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+        finding.location = Event4D(finding.timestamp, parsed.swift_bat.ra, parsed.swift_bat.dec, 0.0);
+        finding.parameters["bat_rate"] = parsed.swift_bat.bat_rate;
+        finding.parameters["xrt_flux"] = parsed.swift_bat.xrt_flux;
+        finding.parameters["error_radius"] = parsed.swift_bat.error_radius;
         break;
     }
     default:

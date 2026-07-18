@@ -90,6 +90,10 @@ void MultiMessengerCorrelator::addAlert(const InstrumentFinding& finding)
         m_correlations.append(ev);
         emit correlationDetected(ev);
         emit correlationCountChanged();
+
+        if ((isGW(a) && isEM(other)) || (isGW(other) && isEM(a))) {
+            emit followUpTriggered(ev);
+        }
     }
 }
 
@@ -127,6 +131,18 @@ QString MultiMessengerCorrelator::severityToString(AlertSeverity sev)
     case AlertSeverity::CRITICAL: return "CRITICAL";
     }
     return "UNKNOWN";
+}
+
+bool MultiMessengerCorrelator::isGW(const Alert& a) const
+{
+    return a.messenger.contains("LIGO") || a.messenger.contains("GW") || a.messenger.contains("Virgo") || a.messenger.contains("KAGRA");
+}
+
+bool MultiMessengerCorrelator::isEM(const Alert& a) const
+{
+    return a.messenger.contains("Fermi") || a.messenger.contains("Swift") ||
+           a.messenger.contains("TESS") || a.messenger.contains("IceCube") ||
+           a.messenger.contains("Gamma") || a.messenger.contains("X-ray");
 }
 
 } // namespace quantumverse

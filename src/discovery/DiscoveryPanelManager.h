@@ -121,6 +121,9 @@ public slots:
     /** @brief Ingest a live alert JSON (from GCN Kafka) and process it through the discovery pipeline. */
     void ingestAlert(const QJsonObject& alertJson);
 
+    /** @brief Handle a GW+EM follow-up trigger from the correlator. */
+    void onFollowUpTriggered(const CorrelationEvent& correlation);
+
 signals:
     void activeInstrumentIndexChanged();
     void instrumentCountChanged();
@@ -136,6 +139,7 @@ signals:
     void scanComplete();
     void liveAlertProcessed(const QString& findingId);
     void anomalyDetected(const QJsonObject& anomaly);
+    void followUpTriggered(const CorrelationEvent& correlation);  // GW+EM coincidence
 
 private:
     std::vector<std::unique_ptr<DiscoveryInstrument>> m_instruments;
