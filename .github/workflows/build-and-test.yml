@@ -32,15 +32,24 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libglm-dev libeigen3-dev
-     
-    - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install glm eigen
+        sudo apt-get install -y libglm-dev libeigen3-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-xfixes0-dev libx11-xcb-dev libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion
+      
+    - name: Install Qt6 (Linux)
+      if: runner.os == 'Linux'
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.11.1'
+        target: 'desktop'
+        arch: 'linux_gcc_64'
+        modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+        cache: true
+      env:
+        Qt6_DIR: ${{ env.Qt6_DIR }}
     
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+      env:
+        Qt6_DIR: ${{ env.Qt6_DIR }}
     
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }}
