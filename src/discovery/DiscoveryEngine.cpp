@@ -369,4 +369,164 @@ double DiscoveryEngine::getAverageConfidence() const {
     return sum / discoveries.size();
 }
 
+// ============================================================================
+// Theory plugin stub implementations
+// ============================================================================
+
+FRLGravityPlugin::FRLGravityPlugin(double alpha, double n)
+    : alpha(alpha), n(n) {}
+
+std::string FRLGravityPlugin::getName() const { return "FRLGravity"; }
+std::string FRLGravityPlugin::getDescription() const { return "f(R) gravity with power-law modification"; }
+std::string FRLGravityPlugin::getFieldEquation() const { return "R + alpha * R^n = 0"; }
+
+MetricTensor FRLGravityPlugin::computeMetric(
+    const Event4D& location,
+    const std::map<std::string, double>& parameters
+) const {
+    (void)parameters;
+    double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+    double M = 1.0;
+    double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
+    double factor = 1.0 - rs / std::max(r, 1e-6);
+    MetricTensor m;
+    m.g[0][0] = -factor;
+    m.g[1][1] = 1.0 / factor;
+    m.g[2][2] = r * r;
+    m.g[3][3] = r * r * 1.0 * 1.0;
+    return m;
+}
+
+std::array<std::array<double, 4>, 4> FRLGravityPlugin::computeChristoffel(
+    const Event4D&, int, int, int
+) const {
+    return {{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}};
+}
+
+MetricTensor FRLGravityPlugin::computeRicciTensor(const Event4D&) const {
+    MetricTensor m;
+    m.g[0][0] = 0.0;
+    return m;
+}
+
+double FRLGravityPlugin::computeRicciScalar(const Event4D&) const { return 0.0; }
+double FRLGravityPlugin::computeKretschmannScalar(const Event4D&) const { return 0.0; }
+
+bool FRLGravityPlugin::predictsWormholes() const { return false; }
+bool FRLGravityPlugin::predictsNakedSingularities() const { return false; }
+bool FRLGravityPlugin::violatesEnergyConditions() const { return false; }
+bool FRLGravityPlugin::allowsTimeTravel() const { return false; }
+
+std::map<std::string, std::pair<double, double>> FRLGravityPlugin::getParameterRanges() const {
+    return {{"alpha", {-2.0, 2.0}}, {"n", {-2.0, 2.0}}};
+}
+
+std::unique_ptr<TheoryPlugin> FRLGravityPlugin::clone() const {
+    return std::make_unique<FRLGravityPlugin>(alpha, n);
+}
+
+BransDickePlugin::BransDickePlugin(double omega, double phi0)
+    : omega(omega), phi0(phi0) {}
+
+std::string BransDickePlugin::getName() const { return "BransDicke"; }
+std::string BransDickePlugin::getDescription() const { return "Brans-Dicke scalar-tensor theory"; }
+std::string BransDickePlugin::getFieldEquation() const { return "G_uv = 8pi/phi T_uv"; }
+
+MetricTensor BransDickePlugin::computeMetric(
+    const Event4D& location,
+    const std::map<std::string, double>& parameters
+) const {
+    (void)parameters;
+    double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+    double M = 1.0;
+    double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
+    double factor = 1.0 - rs / std::max(r, 1e-6);
+    MetricTensor m;
+    m.g[0][0] = -factor * phi0;
+    m.g[1][1] = 1.0 / factor;
+    m.g[2][2] = r * r;
+    m.g[3][3] = r * r * 1.0 * 1.0;
+    return m;
+}
+
+std::array<std::array<double, 4>, 4> BransDickePlugin::computeChristoffel(
+    const Event4D&, int, int, int
+) const {
+    return {{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}};
+}
+
+MetricTensor BransDickePlugin::computeRicciTensor(const Event4D&) const {
+    MetricTensor m;
+    m.g[0][0] = 0.0;
+    return m;
+}
+
+double BransDickePlugin::computeRicciScalar(const Event4D&) const { return 0.0; }
+double BransDickePlugin::computeKretschmannScalar(const Event4D&) const { return 0.0; }
+
+bool BransDickePlugin::predictsWormholes() const { return false; }
+bool BransDickePlugin::predictsNakedSingularities() const { return false; }
+bool BransDickePlugin::violatesEnergyConditions() const { return false; }
+bool BransDickePlugin::allowsTimeTravel() const { return false; }
+
+std::map<std::string, std::pair<double, double>> BransDickePlugin::getParameterRanges() const {
+    return {{"omega", {1.0, 100000.0}}, {"phi0", {0.1, 10.0}}};
+}
+
+std::unique_ptr<TheoryPlugin> BransDickePlugin::clone() const {
+    return std::make_unique<BransDickePlugin>(omega, phi0);
+}
+
+LQGPlugin::LQGPlugin(double gamma, double lambda)
+    : gamma(gamma), lambda(lambda) {}
+
+std::string LQGPlugin::getName() const { return "LQG"; }
+std::string LQGPlugin::getDescription() const { return "Loop Quantum Gravity effective polymer-corrected metric"; }
+std::string LQGPlugin::getFieldEquation() const { return "R_uv - 1/2 R g_uv + Lambda g_uv = 0"; }
+
+MetricTensor LQGPlugin::computeMetric(
+    const Event4D& location,
+    const std::map<std::string, double>& parameters
+) const {
+    (void)parameters;
+    double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+    double M = 1.0;
+    double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
+    double factor = 1.0 - rs / std::max(r, 1e-6);
+    MetricTensor m;
+    m.g[0][0] = -factor * (1.0 + lambda / std::max(r, 1e-6));
+    m.g[1][1] = 1.0 / factor;
+    m.g[2][2] = r * r;
+    m.g[3][3] = r * r * 1.0 * 1.0;
+    return m;
+}
+
+std::array<std::array<double, 4>, 4> LQGPlugin::computeChristoffel(
+    const Event4D&, int, int, int
+) const {
+    return {{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}};
+}
+
+MetricTensor LQGPlugin::computeRicciTensor(const Event4D&) const {
+    MetricTensor m;
+    m.g[0][0] = 0.0;
+    return m;
+}
+
+double LQGPlugin::computeRicciScalar(const Event4D&) const { return 0.0; }
+double LQGPlugin::computeKretschmannScalar(const Event4D&) const { return 0.0; }
+
+bool LQGPlugin::predictsWormholes() const { return false; }
+bool LQGPlugin::predictsNakedSingularities() const { return false; }
+bool LQGPlugin::violatesEnergyConditions() const { return false; }
+bool LQGPlugin::allowsTimeTravel() const { return false; }
+
+std::map<std::string, std::pair<double, double>> LQGPlugin::getParameterRanges() const {
+    return {{"gamma", {0.1, 0.5}}, {"lambda", {1e-40, 1e-30}}};
+}
+
+std::unique_ptr<TheoryPlugin> LQGPlugin::clone() const {
+    return std::make_unique<LQGPlugin>(gamma, lambda);
+}
+
 } // namespace quantumverse

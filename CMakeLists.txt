@@ -1271,6 +1271,34 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_discovery_pipeline PRIVATE dilaton)
     add_test(NAME DiscoveryPipelineIntegrationTest COMMAND test_discovery_pipeline)
 
+    # 6.6 Theory discovery agent (Phase 22.1)
+    add_executable(test_theory_discovery_agent
+        tests/discovery/test_theory_discovery_agent.cpp
+        src/discovery/TheoryDiscoveryAgent.cpp
+        src/discovery/TheoryParameterSpace.cpp
+        src/discovery/RLDiscoveryAgent.cpp
+        src/discovery/TheoryManager.cpp
+        src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
+        src/discovery/GWMemoryDetector.cpp
+        src/discovery/DiscoveryEngine.cpp
+        src/physics/CurvatureCalculator.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+    )
+    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton)
+    add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
+
     # 6.5 Discovery robustness & fallback handling
     add_executable(test_discovery_robustness
         tests/discovery/test_discovery_robustness.cpp

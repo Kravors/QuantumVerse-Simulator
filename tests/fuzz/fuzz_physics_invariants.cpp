@@ -23,7 +23,6 @@
  *   ./build/fuzz_physics_invariants -max_total_time=600
  */
 
-#define _CRT_SECURE_NO_WARNINGS
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/FRWMetric.h"

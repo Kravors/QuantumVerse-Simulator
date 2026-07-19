@@ -77,6 +77,7 @@ private:
     int episode_count = 0;
     mutable std::mt19937 rng;
     
+protected:
     std::vector<double> normalizeParams(const std::vector<double>& params) const;
     std::vector<double> denormalizeParams(const std::vector<double>& normalized) const;
     double computeReward(const RLState& state) const;
