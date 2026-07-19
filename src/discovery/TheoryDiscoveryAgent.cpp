@@ -119,6 +119,24 @@ static void extractCosmologicalParams(
     } else if (theory_type == TheoryParameterSpace::TheoryType::LOOP_QUANTUM_GRAVITY) {
         // LQG polymer corrections are negligible at cosmological scales
         // Use Planck values as baseline
+    } else if (theory_type == TheoryParameterSpace::TheoryType::TE_VES) {
+        double K = param_map.count("K") ? param_map.at("K") : 0.3;
+        // TeVeS: modified gravity reduces effective dark energy need
+        out_omegaLambda -= 0.02 * K;
+        out_omegaLambda = std::max(0.0, std::min(1.0, out_omegaLambda));
+    } else if (theory_type == TheoryParameterSpace::TheoryType::EINSTEIN_AETHER) {
+        double c1 = param_map.count("c1") ? param_map.at("c1") : 0.0;
+        double c2 = param_map.count("c2") ? param_map.at("c2") : 0.0;
+        double c3 = param_map.count("c3") ? param_map.at("c3") : 0.0;
+        double c_hat = (c1 + c2 + c3) / 3.0;
+        // Einstein-Aether: effective coupling modifies H0
+        out_H0 *= (1.0 + 0.1 * c_hat);
+    } else if (theory_type == TheoryParameterSpace::TheoryType::HORNDESKI) {
+        double c_G = param_map.count("c_G") ? param_map.at("c_G") : 0.0;
+        double alpha_K = param_map.count("alpha_K") ? param_map.at("alpha_K") : 0.0;
+        // Horndeski: PPN deviation and kinetic braiding modify expansion
+        out_H0 *= (1.0 + 0.05 * c_G);
+        out_omegaM *= (1.0 + 0.1 * alpha_K);
     }
 }
 
@@ -129,8 +147,8 @@ static void extractCosmologicalParams(
 TheoryDiscoveryAgent::TheoryDiscoveryAgent(TheoryParameterSpace::TheoryType theory_type)
     : RLDiscoveryAgent(
           TheoryParameterSpace(theory_type).getParameterDimension(),
-          []() -> std::vector<std::pair<double, double>> {
-              TheoryParameterSpace ps(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+          [theory_type]() -> std::vector<std::pair<double, double>> {
+              TheoryParameterSpace ps(theory_type);
               std::vector<std::pair<double, double>> ranges;
               for (const auto& p : ps.getParameters()) {
                   ranges.emplace_back(p.min, p.max);
@@ -326,9 +344,24 @@ std::unique_ptr<TheoryPlugin> TheoryDiscoveryAgent::instantiateTheory(
         double phi0 = param_map.count("phi0") ? param_map.at("phi0") : 1.0;
         return std::make_unique<BransDickePlugin>(omega, phi0);
     } else if (theory_name == "LQG") {
-        double immirzi = param_map.count("gamma") ? param_map.at("gamma") : 0.2375;
+        double gamma_param = param_map.count("gamma") ? param_map.at("gamma") : 0.2375;
         double lambda = param_map.count("lambda") ? param_map.at("lambda") : 1.616e-35;
-        return std::make_unique<LQGPlugin>(immirzi, lambda);
+        return std::make_unique<LQGPlugin>(gamma_param, lambda);
+    } else if (theory_name == "TeVeS") {
+        double K = param_map.count("K") ? param_map.at("K") : 0.3;
+        double mu = param_map.count("mu") ? param_map.at("mu") : 1e-55;
+        double sigma = param_map.count("sigma") ? param_map.at("sigma") : 1.0;
+        return std::make_unique<TeVeSPlugin>(K, mu, sigma);
+    } else if (theory_name == "EinsteinAether") {
+        double c1 = param_map.count("c1") ? param_map.at("c1") : 0.0;
+        double c2 = param_map.count("c2") ? param_map.at("c2") : 0.0;
+        double c3 = param_map.count("c3") ? param_map.at("c3") : 0.0;
+        return std::make_unique<EinsteinAetherPlugin>(c1, c2, c3);
+    } else if (theory_name == "Horndeski") {
+        double c_G = param_map.count("c_G") ? param_map.at("c_G") : 0.0;
+        double alpha_K = param_map.count("alpha_K") ? param_map.at("alpha_K") : 0.0;
+        double alpha_B = param_map.count("alpha_B") ? param_map.at("alpha_B") : 0.0;
+        return std::make_unique<HorndeskiPlugin>(c_G, alpha_K, alpha_B);
     }
     return nullptr;
 }
@@ -381,6 +414,19 @@ double TheoryDiscoveryAgent::computeGW170817Chi2(
         c_gw = C_LIGHT * std::sqrt(std::max(0.01, ratio));
     } else if (param_space_.getTheoryType() == TheoryParameterSpace::TheoryType::LOOP_QUANTUM_GRAVITY) {
         c_gw = C_LIGHT;
+    } else if (param_space_.getTheoryType() == TheoryParameterSpace::TheoryType::TE_VES) {
+        double K = params.count("K") ? params.at("K") : 0.3;
+        double mu = params.count("mu") ? params.at("mu") : 1e-55;
+        c_gw = C_LIGHT * std::sqrt(1.0 + 0.05 * K * std::log10(std::abs(mu) + 1e-60));
+    } else if (param_space_.getTheoryType() == TheoryParameterSpace::TheoryType::EINSTEIN_AETHER) {
+        double c1 = params.count("c1") ? params.at("c1") : 0.0;
+        double c2 = params.count("c2") ? params.at("c2") : 0.0;
+        double c3 = params.count("c3") ? params.at("c3") : 0.0;
+        double c_hat = (c1 + c2 + c3) / 3.0;
+        c_gw = C_LIGHT * std::sqrt(1.0 + 0.1 * c_hat);
+    } else if (param_space_.getTheoryType() == TheoryParameterSpace::TheoryType::HORNDESKI) {
+        double c_G = params.count("c_G") ? params.at("c_G") : 0.0;
+        c_gw = C_LIGHT * std::sqrt(1.0 + 0.2 * c_G);
     }
 
     double observed_delay = 1.74;
@@ -429,6 +475,21 @@ double TheoryDiscoveryAgent::computeGRBaselineChi2() const {
         case TheoryParameterSpace::TheoryType::LOOP_QUANTUM_GRAVITY:
             // GR limit: gamma = 0, lambda = 0 (no polymer corrections)
             gr_params = {0.0, 0.0};
+            break;
+
+        case TheoryParameterSpace::TheoryType::TE_VES:
+            // GR limit: K -> 0, mu -> 0, sigma -> 0
+            gr_params = {0.0, 0.0, 0.0};
+            break;
+
+        case TheoryParameterSpace::TheoryType::EINSTEIN_AETHER:
+            // GR limit: c1 = 0, c2 = 0, c3 = 0
+            gr_params = {0.0, 0.0, 0.0};
+            break;
+
+        case TheoryParameterSpace::TheoryType::HORNDESKI:
+            // GR limit: c_G = 0, alpha_K = 0, alpha_B = 0
+            gr_params = {0.0, 0.0, 0.0};
             break;
 
         case TheoryParameterSpace::TheoryType::CUSTOM:

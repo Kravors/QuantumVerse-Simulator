@@ -144,6 +144,38 @@ int main() {
                   << result.total_reward << std::endl;
     }
 
+    // --- 12. TeVeS agent construction and evaluation ------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::TE_VES);
+        std::vector<double> params = {0.3, 1e-55, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("tev_reward", result.total_reward);
+        assertFinite("tev_obs_chi2", result.observational_chi2);
+        assert(result.theory_name == "TeVeS");
+        std::cout << "  TeVeS reward = " << result.total_reward
+                  << " chi2 = " << result.observational_chi2 << std::endl;
+    }
+
+    // --- 13. Einstein-Aether agent construction and evaluation --------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::EINSTEIN_AETHER);
+        std::vector<double> params = {0.0, 0.0, 0.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("ea_reward", result.total_reward);
+        assert(result.theory_name == "EinsteinAether");
+        std::cout << "  Einstein-Aether reward = " << result.total_reward << std::endl;
+    }
+
+    // --- 14. Horndeski agent construction and evaluation --------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::HORNDESKI);
+        std::vector<double> params = {0.0, 0.0, 0.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("hor_reward", result.total_reward);
+        assert(result.theory_name == "Horndeski");
+        std::cout << "  Horndeski reward = " << result.total_reward << std::endl;
+    }
+
     // --- 12. Observational chi2: near-GR f(R) should give finite chi2 ------------
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
@@ -251,6 +283,55 @@ int main() {
         // Near-GR should give log BF close to 0 (no strong preference either way)
         std::cout << "  Pure GR f(R) log BF = " << bf_result.log_bayes_factor
                   << ", BF = " << bf_result.bayes_factor
+                  << ", preferred = " << bf_result.preferred_model << std::endl;
+    }
+
+    // --- 21. GR baseline chi2 for TeVeS -------------------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::TE_VES);
+        double chi2 = agent.computeGRBaselineChi2();
+        assertFinite("tev_gr_chi2", chi2);
+        assert(chi2 >= 0.0);
+        std::cout << "  TeVeS GR baseline chi2 = " << chi2 << std::endl;
+    }
+
+    // --- 22. GR baseline chi2 for Einstein-Aether ---------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::EINSTEIN_AETHER);
+        double chi2 = agent.computeGRBaselineChi2();
+        assertFinite("ea_gr_chi2", chi2);
+        assert(chi2 >= 0.0);
+        std::cout << "  Einstein-Aether GR baseline chi2 = " << chi2 << std::endl;
+    }
+
+    // --- 23. GR baseline chi2 for Horndeski ---------------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::HORNDESKI);
+        double chi2 = agent.computeGRBaselineChi2();
+        assertFinite("hor_gr_chi2", chi2);
+        assert(chi2 >= 0.0);
+        std::cout << "  Horndeski GR baseline chi2 = " << chi2 << std::endl;
+    }
+
+    // --- 24. Bayes factor for Einstein-Aether GR limit ----------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::EINSTEIN_AETHER);
+        std::vector<double> gr_params = {0.0, 0.0, 0.0};
+        auto bf_result = agent.computeBayesFactor(gr_params);
+        assertFinite("ea_log_bf", bf_result.log_bayes_factor);
+        assert(bf_result.bayes_factor > 0.0);
+        std::cout << "  Einstein-Aether GR log BF = " << bf_result.log_bayes_factor
+                  << ", preferred = " << bf_result.preferred_model << std::endl;
+    }
+
+    // --- 25. Bayes factor for Horndeski GR limit ----------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::HORNDESKI);
+        std::vector<double> gr_params = {0.0, 0.0, 0.0};
+        auto bf_result = agent.computeBayesFactor(gr_params);
+        assertFinite("hor_log_bf", bf_result.log_bayes_factor);
+        assert(bf_result.bayes_factor > 0.0);
+        std::cout << "  Horndeski GR log BF = " << bf_result.log_bayes_factor
                   << ", preferred = " << bf_result.preferred_model << std::endl;
     }
 

@@ -37,6 +37,42 @@ TheoryParameterSpace::TheoryParameterSpace(TheoryType type)
             param_names_ = {"gamma", "lambda"};
             break;
 
+        case TheoryType::TE_VES:
+            parameters_ = {
+                TheoryParameter("K",    0.1, 0.5, 0.3,
+                                "TeVeS vector-tensor coupling", "dimensionless"),
+                TheoryParameter("mu",   1e-60, 1e-50, 1e-55,
+                                "Vector field mass scale", "m^-1"),
+                TheoryParameter("sigma", 0.1, 10.0, 1.0,
+                                "TeVeS scalar coupling", "dimensionless")
+            };
+            param_names_ = {"K", "mu", "sigma"};
+            break;
+
+        case TheoryType::EINSTEIN_AETHER:
+            parameters_ = {
+                TheoryParameter("c1", -2.0, 2.0, 0.0,
+                                "Einstein-Aether coupling c1", "dimensionless"),
+                TheoryParameter("c2", -2.0, 2.0, 0.0,
+                                "Einstein-Aether coupling c2", "dimensionless"),
+                TheoryParameter("c3", -2.0, 2.0, 0.0,
+                                "Einstein-Aether coupling c3", "dimensionless")
+            };
+            param_names_ = {"c1", "c2", "c3"};
+            break;
+
+        case TheoryType::HORNDESKI:
+            parameters_ = {
+                TheoryParameter("c_G",    -1.0, 1.0, 0.0,
+                                "Horndeski PPN deviation", "dimensionless"),
+                TheoryParameter("alpha_K", 0.0, 2.0, 0.0,
+                                "Kinetic braiding parameter", "dimensionless"),
+                TheoryParameter("alpha_B", 0.0, 2.0, 0.0,
+                                "Braiding parameter", "dimensionless")
+            };
+            param_names_ = {"c_G", "alpha_K", "alpha_B"};
+            break;
+
         case TheoryType::CUSTOM:
         default:
             parameters_ = {
@@ -93,6 +129,12 @@ std::string TheoryParameterSpace::getTheoryName() const {
             return "BransDicke";
         case TheoryType::LOOP_QUANTUM_GRAVITY:
             return "LQG";
+        case TheoryType::TE_VES:
+            return "TeVeS";
+        case TheoryType::EINSTEIN_AETHER:
+            return "EinsteinAether";
+        case TheoryType::HORNDESKI:
+            return "Horndeski";
         case TheoryType::CUSTOM:
         default:
             return "CustomTheory";

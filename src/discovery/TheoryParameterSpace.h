@@ -33,6 +33,9 @@ struct TheoryParameter {
  *   - f(R): power-law exponent n and coupling alpha
  *   - Brans-Dicke: omega and phi0
  *   - LQG: Immirzi parameter gamma and polymer scale lambda
+ *   - TeVeS: coupling K, vector mass mu, scalar coupling sigma
+ *   - Einstein-Aether: aether couplings c1, c2, c3
+ *   - Horndeski: PPN deviation c_G, kinetic braiding alpha_K, braiding alpha_B
  */
 class TheoryParameterSpace {
 public:
@@ -40,6 +43,9 @@ public:
         FR_GRAVITY,
         BRANS_DICKE,
         LOOP_QUANTUM_GRAVITY,
+        TE_VES,
+        EINSTEIN_AETHER,
+        HORNDESKI,
         CUSTOM
     };
 

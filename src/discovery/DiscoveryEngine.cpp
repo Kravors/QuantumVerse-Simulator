@@ -529,4 +529,176 @@ std::unique_ptr<TheoryPlugin> LQGPlugin::clone() const {
     return std::make_unique<LQGPlugin>(gamma, lambda);
 }
 
+// ============================================================================
+// TeVeS Plugin
+// ============================================================================
+
+TeVeSPlugin::TeVeSPlugin(double K, double mu, double sigma)
+    : K(K), mu(mu), sigma(sigma) {}
+
+std::string TeVeSPlugin::getName() const { return "TeVeS"; }
+std::string TeVeSPlugin::getDescription() const { return "Tensor-Vector-Scalar gravity"; }
+std::string TeVeSPlugin::getFieldEquation() const { return "G_uv + u_uv = 8pi T_uv"; }
+
+MetricTensor TeVeSPlugin::computeMetric(
+    const Event4D& location,
+    const std::map<std::string, double>& parameters
+) const {
+    (void)parameters;
+    double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+    double M = 1.0;
+    double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
+    double factor = 1.0 - rs / std::max(r, 1e-6);
+    double scalar_mod = 1.0 + sigma * (1.0 - std::exp(-K * r));
+    MetricTensor m;
+    m.g[0][0] = -factor * scalar_mod;
+    m.g[1][1] = 1.0 / factor;
+    m.g[2][2] = r * r;
+    m.g[3][3] = r * r * std::sin(std::atan2(location.y, location.x)) *
+                 std::sin(std::atan2(location.y, location.x));
+    return m;
+}
+
+std::array<std::array<double, 4>, 4> TeVeSPlugin::computeChristoffel(
+    const Event4D&, int, int, int
+) const {
+    return {{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}};
+}
+
+MetricTensor TeVeSPlugin::computeRicciTensor(const Event4D&) const {
+    MetricTensor m;
+    m.g[0][0] = 0.0;
+    return m;
+}
+
+double TeVeSPlugin::computeRicciScalar(const Event4D&) const { return 0.0; }
+double TeVeSPlugin::computeKretschmannScalar(const Event4D&) const { return 0.0; }
+
+bool TeVeSPlugin::predictsWormholes() const { return false; }
+bool TeVeSPlugin::predictsNakedSingularities() const { return false; }
+bool TeVeSPlugin::violatesEnergyConditions() const { return false; }
+bool TeVeSPlugin::allowsTimeTravel() const { return false; }
+
+std::map<std::string, std::pair<double, double>> TeVeSPlugin::getParameterRanges() const {
+    return {{"K", {0.1, 0.5}}, {"mu", {1e-60, 1e-50}}, {"sigma", {0.1, 10.0}}};
+}
+
+std::unique_ptr<TheoryPlugin> TeVeSPlugin::clone() const {
+    return std::make_unique<TeVeSPlugin>(K, mu, sigma);
+}
+
+// ============================================================================
+// Einstein-Aether Plugin
+// ============================================================================
+
+EinsteinAetherPlugin::EinsteinAetherPlugin(double c1, double c2, double c3)
+    : c1(c1), c2(c2), c3(c3) {}
+
+std::string EinsteinAetherPlugin::getName() const { return "EinsteinAether"; }
+std::string EinsteinAetherPlugin::getDescription() const { return "Einstein-Aether theory with preferred timelike vector field"; }
+std::string EinsteinAetherPlugin::getFieldEquation() const { return "G_uv + u_uv + c_ij pi^ij = 8pi T_uv"; }
+
+MetricTensor EinsteinAetherPlugin::computeMetric(
+    const Event4D& location,
+    const std::map<std::string, double>& parameters
+) const {
+    (void)parameters;
+    double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+    double M = 1.0;
+    double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
+    double factor = 1.0 - rs / std::max(r, 1e-6);
+    double c_eff = (c1 + c2 + c3) / 3.0;
+    MetricTensor m;
+    m.g[0][0] = -factor / (1.0 + 0.1 * c_eff);
+    m.g[1][1] = 1.0 / factor;
+    m.g[2][2] = r * r;
+    m.g[3][3] = r * r * 1.0 * 1.0;
+    return m;
+}
+
+std::array<std::array<double, 4>, 4> EinsteinAetherPlugin::computeChristoffel(
+    const Event4D&, int, int, int
+) const {
+    return {{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}};
+}
+
+MetricTensor EinsteinAetherPlugin::computeRicciTensor(const Event4D&) const {
+    MetricTensor m;
+    m.g[0][0] = 0.0;
+    return m;
+}
+
+double EinsteinAetherPlugin::computeRicciScalar(const Event4D&) const { return 0.0; }
+double EinsteinAetherPlugin::computeKretschmannScalar(const Event4D&) const { return 0.0; }
+
+bool EinsteinAetherPlugin::predictsWormholes() const { return false; }
+bool EinsteinAetherPlugin::predictsNakedSingularities() const { return false; }
+bool EinsteinAetherPlugin::violatesEnergyConditions() const { return false; }
+bool EinsteinAetherPlugin::allowsTimeTravel() const { return false; }
+
+std::map<std::string, std::pair<double, double>> EinsteinAetherPlugin::getParameterRanges() const {
+    return {{"c1", {-2.0, 2.0}}, {"c2", {-2.0, 2.0}}, {"c3", {-2.0, 2.0}}};
+}
+
+std::unique_ptr<TheoryPlugin> EinsteinAetherPlugin::clone() const {
+    return std::make_unique<EinsteinAetherPlugin>(c1, c2, c3);
+}
+
+// ============================================================================
+// Horndeski Plugin
+// ============================================================================
+
+HorndeskiPlugin::HorndeskiPlugin(double c_G, double alpha_K, double alpha_B)
+    : c_G(c_G), alpha_K(alpha_K), alpha_B(alpha_B) {}
+
+std::string HorndeskiPlugin::getName() const { return "Horndeski"; }
+std::string HorndeskiPlugin::getDescription() const { return "Horndeski scalar-tensor theory"; }
+std::string HorndeskiPlugin::getFieldEquation() const { return "G_uv + G2 phi_uv + G3 box phi phi_uv = 8pi T_uv"; }
+
+MetricTensor HorndeskiPlugin::computeMetric(
+    const Event4D& location,
+    const std::map<std::string, double>& parameters
+) const {
+    (void)parameters;
+    double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+    double M = 1.0;
+    double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
+    double factor = 1.0 - rs / std::max(r, 1e-6);
+    double scalar_mod = 1.0 + 0.1 * c_G + 0.05 * alpha_K / std::max(r, 1e-6);
+    MetricTensor m;
+    m.g[0][0] = -factor * scalar_mod;
+    m.g[1][1] = 1.0 / factor;
+    m.g[2][2] = r * r;
+    m.g[3][3] = r * r * 1.0 * 1.0;
+    return m;
+}
+
+std::array<std::array<double, 4>, 4> HorndeskiPlugin::computeChristoffel(
+    const Event4D&, int, int, int
+) const {
+    return {{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}};
+}
+
+MetricTensor HorndeskiPlugin::computeRicciTensor(const Event4D&) const {
+    MetricTensor m;
+    m.g[0][0] = 0.0;
+    return m;
+}
+
+double HorndeskiPlugin::computeRicciScalar(const Event4D&) const { return 0.0; }
+double HorndeskiPlugin::computeKretschmannScalar(const Event4D&) const { return 0.0; }
+
+bool HorndeskiPlugin::predictsWormholes() const { return false; }
+bool HorndeskiPlugin::predictsNakedSingularities() const { return false; }
+bool HorndeskiPlugin::violatesEnergyConditions() const { return false; }
+bool HorndeskiPlugin::allowsTimeTravel() const { return false; }
+
+std::map<std::string, std::pair<double, double>> HorndeskiPlugin::getParameterRanges() const {
+    return {{"c_G", {-1.0, 1.0}}, {"alpha_K", {0.0, 2.0}}, {"alpha_B", {0.0, 2.0}}};
+}
+
+std::unique_ptr<TheoryPlugin> HorndeskiPlugin::clone() const {
+    return std::make_unique<HorndeskiPlugin>(c_G, alpha_K, alpha_B);
+}
+
 } // namespace quantumverse

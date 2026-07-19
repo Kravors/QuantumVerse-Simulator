@@ -413,6 +413,120 @@ public:
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
+class TeVeSPlugin : public TheoryPlugin {
+    // Tensor-Vector-Scalar gravity (Bekenstein)
+private:
+    double K;      // Vector-tensor coupling
+    double mu;     // Vector field mass scale
+    double sigma;  // Scalar coupling
+    
+public:
+    TeVeSPlugin(double K = 0.3, double mu = 1e-55, double sigma = 1.0);
+    
+    std::string getName() const override;
+    std::string getDescription() const override;
+    std::string getFieldEquation() const override;
+    
+    MetricTensor computeMetric(
+        const Event4D& location,
+        const std::map<std::string, double>& parameters
+    ) const override;
+    
+    std::array<std::array<double, 4>, 4> computeChristoffel(
+        const Event4D& location,
+        int rho, int mu, int nu
+    ) const override;
+    
+    MetricTensor computeRicciTensor(const Event4D& location) const override;
+    double computeRicciScalar(const Event4D& location) const override;
+    double computeKretschmannScalar(const Event4D& location) const override;
+    
+    bool predictsWormholes() const override;
+    bool predictsNakedSingularities() const override;
+    bool violatesEnergyConditions() const override;
+    bool allowsTimeTravel() const override;
+    
+    std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
+    
+    std::unique_ptr<TheoryPlugin> clone() const override;
+};
+
+class EinsteinAetherPlugin : public TheoryPlugin {
+    // Einstein-Aether theory with preferred timelike vector field
+private:
+    double c1; // Aether coupling c1
+    double c2; // Aether coupling c2
+    double c3; // Aether coupling c3
+    
+public:
+    EinsteinAetherPlugin(double c1 = 0.0, double c2 = 0.0, double c3 = 0.0);
+    
+    std::string getName() const override;
+    std::string getDescription() const override;
+    std::string getFieldEquation() const override;
+    
+    MetricTensor computeMetric(
+        const Event4D& location,
+        const std::map<std::string, double>& parameters
+    ) const override;
+    
+    std::array<std::array<double, 4>, 4> computeChristoffel(
+        const Event4D& location,
+        int rho, int mu, int nu
+    ) const override;
+    
+    MetricTensor computeRicciTensor(const Event4D& location) const override;
+    double computeRicciScalar(const Event4D& location) const override;
+    double computeKretschmannScalar(const Event4D& location) const override;
+    
+    bool predictsWormholes() const override;
+    bool predictsNakedSingularities() const override;
+    bool violatesEnergyConditions() const override;
+    bool allowsTimeTravel() const override;
+    
+    std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
+    
+    std::unique_ptr<TheoryPlugin> clone() const override;
+};
+
+class HorndeskiPlugin : public TheoryPlugin {
+    // Horndeski scalar-tensor theory
+private:
+    double c_G;    // PPN deviation parameter
+    double alpha_K; // Kinetic braiding
+    double alpha_B; // Braiding parameter
+    
+public:
+    HorndeskiPlugin(double c_G = 0.0, double alpha_K = 0.0, double alpha_B = 0.0);
+    
+    std::string getName() const override;
+    std::string getDescription() const override;
+    std::string getFieldEquation() const override;
+    
+    MetricTensor computeMetric(
+        const Event4D& location,
+        const std::map<std::string, double>& parameters
+    ) const override;
+    
+    std::array<std::array<double, 4>, 4> computeChristoffel(
+        const Event4D& location,
+        int rho, int mu, int nu
+    ) const override;
+    
+    MetricTensor computeRicciTensor(const Event4D& location) const override;
+    double computeRicciScalar(const Event4D& location) const override;
+    double computeKretschmannScalar(const Event4D& location) const override;
+    
+    bool predictsWormholes() const override;
+    bool predictsNakedSingularities() const override;
+    bool violatesEnergyConditions() const override;
+    bool allowsTimeTravel() const override;
+    
+    std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
+    
+    std::unique_ptr<TheoryPlugin> clone() const override;
+};
+
 /**
  * TheoryManager - Manages collection of theory plugins
  */
