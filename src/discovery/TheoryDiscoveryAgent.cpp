@@ -170,7 +170,8 @@ TheoryDiscoveryAgent::TheoryDiscoveryAgent(TheoryParameterSpace::TheoryType theo
       best_reward_so_far_(-std::numeric_limits<double>::infinity()),
       active_learning_enabled_(false),
       active_learning_mode_(ActiveLearningMode::UNCERTAINTY),
-      surrogate_(std::make_unique<TheorySurrogate>())
+      surrogate_(std::make_unique<TheorySurrogate>()),
+      multi_objective_mode_(false)
 {
     best_result_ = DiscoveryResult{};
 }
@@ -274,6 +275,19 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
         surrogate_->addTrainingPoint(params, result.total_reward);
     }
 
+    // Update Pareto archive if multi-objective mode is enabled
+    if (multi_objective_mode_) {
+        ParetoPoint point(
+            params,
+            computeObjectives(result),
+            result.total_reward,
+            result.lorentzian_valid,
+            result.near_singularity,
+            result.theory_name
+        );
+        updateParetoArchive(point);
+    }
+
     return result;
 }
 
@@ -305,6 +319,48 @@ std::vector<double> TheoryDiscoveryAgent::discoverBestTheory(int max_steps) {
 
         if (best_params.empty()) {
             best_params = std::vector<double>(param_space_.getParameterDimension(), 0.0);
+        }
+
+        auto final_result = evaluateTheory(best_params);
+        best_result_ = final_result;
+
+        return best_params;
+    }
+
+    if (multi_objective_mode_) {
+        // Multi-objective Pareto-guided search
+        std::vector<double> best_params;
+        double best_reward = -std::numeric_limits<double>::infinity();
+
+        for (int step = 0; step < max_steps; ++step) {
+            std::vector<double> candidate_norm;
+            if (step == 0) {
+                candidate_norm = std::vector<double>(param_space_.getParameterDimension(), 0.0);
+            } else {
+                candidate_norm = selectNextActiveLearningPoint();
+            }
+
+            std::vector<double> candidate_physical = denormalizeParams(candidate_norm);
+            auto result = evaluateTheory(candidate_physical);
+
+            if (result.total_reward > best_reward) {
+                best_reward = result.total_reward;
+                best_params = candidate_physical;
+            }
+        }
+
+        if (best_params.empty()) {
+            best_params = std::vector<double>(param_space_.getParameterDimension(), 0.0);
+        }
+
+        // Prefer a Pareto-optimal solution if the archive is non-empty
+        if (!pareto_archive_.empty()) {
+            for (const auto& point : pareto_archive_) {
+                if (point.total_reward > best_reward) {
+                    best_reward = point.total_reward;
+                    best_params = point.parameters;
+                }
+            }
         }
 
         auto final_result = evaluateTheory(best_params);
@@ -698,6 +754,83 @@ std::vector<double> TheoryDiscoveryAgent::selectNextActiveLearningPoint() const 
     }
 
     return best_point;
+}
+
+// ============================================================================
+// Multi-Objective Pareto Optimization
+// ============================================================================
+
+TheoryDiscoveryAgent::ParetoPoint::ParetoPoint(
+    const std::vector<double>& params,
+    const std::vector<double>& objs,
+    double reward,
+    bool valid,
+    bool singular,
+    const std::string& name
+) : parameters(params),
+    objectives(objs),
+    total_reward(reward),
+    lorentzian_valid(valid),
+    near_singularity(singular),
+    theory_name(name) {}
+
+bool TheoryDiscoveryAgent::dominates(
+    const ParetoPoint& a,
+    const ParetoPoint& b
+) {
+    if (a.objectives.size() != b.objectives.size()) return false;
+    bool at_least_one_better = false;
+    for (size_t i = 0; i < a.objectives.size(); ++i) {
+        if (a.objectives[i] > b.objectives[i]) return false;
+        if (a.objectives[i] < b.objectives[i]) at_least_one_better = true;
+    }
+    return at_least_one_better;
+}
+
+void TheoryDiscoveryAgent::setMultiObjectiveEnabled(bool enabled) {
+    multi_objective_mode_ = enabled;
+    if (!enabled) {
+        resetParetoArchive();
+    }
+}
+
+std::vector<TheoryDiscoveryAgent::ParetoPoint> TheoryDiscoveryAgent::getParetoFront() const {
+    return pareto_archive_;
+}
+
+void TheoryDiscoveryAgent::resetParetoArchive() {
+    pareto_archive_.clear();
+}
+
+std::vector<double> TheoryDiscoveryAgent::computeObjectives(const DiscoveryResult& result) const {
+    std::vector<double> objectives;
+    objectives.reserve(4);
+
+    objectives.push_back(result.observational_chi2);
+    objectives.push_back(result.theoretical_penalty);
+    objectives.push_back(result.simplicity_penalty);
+    objectives.push_back(result.near_singularity ? 1000.0 : 0.0);
+
+    return objectives;
+}
+
+void TheoryDiscoveryAgent::updateParetoArchive(const ParetoPoint& point) const {
+    std::vector<ParetoPoint> new_archive;
+    bool is_dominated = false;
+
+    for (const auto& existing : pareto_archive_) {
+        if (dominates(existing, point)) {
+            is_dominated = true;
+        }
+        if (!dominates(point, existing)) {
+            new_archive.push_back(existing);
+        }
+    }
+
+    if (!is_dominated) {
+        new_archive.push_back(point);
+        pareto_archive_ = std::move(new_archive);
+    }
 }
 
 } // namespace discovery

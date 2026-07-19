@@ -184,6 +184,80 @@ public:
         const std::map<std::string, double>& params
     ) const;
 
+    /**
+     * @brief Multi-objective Pareto point.
+     */
+    struct ParetoPoint {
+        std::vector<double> parameters;
+        std::vector<double> objectives;
+        double total_reward = 0.0;
+        bool lorentzian_valid = false;
+        bool near_singularity = false;
+        std::string theory_name;
+
+        ParetoPoint() = default;
+        ParetoPoint(
+            const std::vector<double>& params,
+            const std::vector<double>& objs,
+            double reward,
+            bool valid,
+            bool singular,
+            const std::string& name
+        );
+    };
+
+    /**
+     * @brief Enable or disable multi-objective Pareto optimization.
+     * When enabled, discoverBestTheory maintains a Pareto archive of
+     * non-dominated solutions across multiple objectives.
+     */
+    void setMultiObjectiveEnabled(bool enabled);
+
+    /**
+     * @brief Check if multi-objective Pareto optimization is enabled.
+     */
+    bool isMultiObjectiveEnabled() const { return multi_objective_mode_; }
+
+    /**
+     * @brief Get the current Pareto front (non-dominated solutions).
+     * @return Vector of ParetoPoint representing the current front.
+     */
+    std::vector<ParetoPoint> getParetoFront() const;
+
+    /**
+     * @brief Clear the Pareto archive.
+     */
+    void resetParetoArchive();
+
+    /**
+     * @brief Compute objective vector from a DiscoveryResult.
+     * Objectives (all minimized):
+     *   0: observational chi-squared
+     *   1: theoretical penalty
+     *   2: simplicity penalty
+     *   3: near-singularity penalty (0 or 1000)
+     * @param result DiscoveryResult from evaluateTheory.
+     * @return Vector of objective values.
+     */
+    std::vector<double> computeObjectives(const DiscoveryResult& result) const;
+
+    /**
+     * @brief Check Pareto dominance between two points.
+     * Point a dominates b if a is no worse in all objectives and strictly better in at least one.
+     * @param a First Pareto point.
+     * @param b Second Pareto point.
+     * @return True if a dominates b.
+     */
+    static bool dominates(const ParetoPoint& a, const ParetoPoint& b);
+
+    /**
+     * @brief Update Pareto archive with a new candidate point.
+     * Removes any existing points dominated by the new point,
+     * and discards the new point if it is dominated.
+     * @param point New candidate Pareto point.
+     */
+    void updateParetoArchive(const ParetoPoint& point) const;
+
 private:
     // Override to provide physics-grounded simulation
     RLState runSimulation(const std::vector<double>& params) const;
@@ -211,6 +285,10 @@ private:
     bool symbolic_verification_enabled_;
     mutable DiscoveryResult best_result_;
     mutable double best_reward_so_far_;
+
+    // Multi-objective Pareto state
+    bool multi_objective_mode_;
+    mutable std::vector<ParetoPoint> pareto_archive_;
 
     // Active learning state
     bool active_learning_enabled_;

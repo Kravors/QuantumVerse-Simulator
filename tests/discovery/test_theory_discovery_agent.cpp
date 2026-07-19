@@ -503,6 +503,118 @@ int main() {
     // --- 36. Active learning: evaluation count tracks precisely ---------------------
     test_evaluation_count_tracks();
 
+    // --- 37. Multi-objective Pareto: disabled by default ---------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        assert(!agent.isMultiObjectiveEnabled());
+        std::cout << "  Multi-objective mode disabled by default." << std::endl;
+    }
+
+    // --- 38. Multi-objective Pareto: enable/disable toggle -------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setMultiObjectiveEnabled(true);
+        assert(agent.isMultiObjectiveEnabled());
+        agent.setMultiObjectiveEnabled(false);
+        assert(!agent.isMultiObjectiveEnabled());
+        std::cout << "  Multi-objective toggle works." << std::endl;
+    }
+
+    // --- 39. Multi-objective Pareto: objectives extracted correctly ----------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setMultiObjectiveEnabled(true);
+        std::vector<double> params = {0.5, 1.0};
+        auto result = agent.evaluateTheory(params);
+        auto objectives = agent.computeObjectives(result);
+        assert(objectives.size() == 4);
+        assertFinite("obj_chi2", objectives[0]);
+        assertFinite("obj_penalty", objectives[1]);
+        assertFinite("obj_simplicity", objectives[2]);
+        assert(objectives[3] == 0.0 || objectives[3] == 1000.0);
+        std::cout << "  Objectives: chi2=" << objectives[0]
+                  << " penalty=" << objectives[1]
+                  << " simplicity=" << objectives[2]
+                  << " singularity=" << objectives[3] << std::endl;
+    }
+
+    // --- 40. Multi-objective Pareto: dominance checks -----------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        TheoryDiscoveryAgent::ParetoPoint a(
+            {0.1, 1.0}, {1.0, 0.5, 0.02, 0.0}, -1.5, true, false, "A"
+        );
+        TheoryDiscoveryAgent::ParetoPoint b(
+            {0.5, 1.0}, {2.0, 1.0, 0.02, 0.0}, -2.0, true, false, "B"
+        );
+        assert(TheoryDiscoveryAgent::dominates(a, b) && "A should dominate B");
+        assert(!TheoryDiscoveryAgent::dominates(b, a) && "B should not dominate A");
+
+        TheoryDiscoveryAgent::ParetoPoint c(
+            {0.3, 1.0}, {1.0, 0.5, 0.02, 0.0}, -1.5, true, false, "C"
+        );
+        assert(!TheoryDiscoveryAgent::dominates(a, c) && "A and C should be non-dominated");
+        assert(!TheoryDiscoveryAgent::dominates(c, a) && "C and A should be non-dominated");
+        std::cout << "  Pareto dominance logic verified." << std::endl;
+    }
+
+    // --- 41. Multi-objective Pareto: archive maintains non-dominated front ---------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setMultiObjectiveEnabled(true);
+
+        // Add some evaluated points
+        std::vector<double> p1 = {0.1, 1.0};
+        std::vector<double> p2 = {0.5, 1.0};
+        std::vector<double> p3 = {0.3, 1.0};
+        agent.evaluateTheory(p1);
+        agent.evaluateTheory(p2);
+        agent.evaluateTheory(p3);
+
+        auto front = agent.getParetoFront();
+        assert(!front.empty() && "Pareto front should not be empty after evaluations");
+
+        // Verify all points in front are non-dominated
+        for (size_t i = 0; i < front.size(); ++i) {
+            for (size_t j = 0; j < front.size(); ++j) {
+                if (i != j) {
+                    assert(!TheoryDiscoveryAgent::dominates(front[i], front[j]) ||
+                           TheoryDiscoveryAgent::dominates(front[j], front[i]));
+                }
+            }
+        }
+        std::cout << "  Pareto front size = " << front.size() << std::endl;
+    }
+
+    // --- 42. Multi-objective Pareto: reset clears archive -------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setMultiObjectiveEnabled(true);
+        agent.evaluateTheory({0.2, 1.0});
+        assert(!agent.getParetoFront().empty());
+        agent.resetParetoArchive();
+        assert(agent.getParetoFront().empty());
+        std::cout << "  Pareto archive reset works." << std::endl;
+    }
+
+    // --- 43. Multi-objective Pareto: discoverBestTheory uses Pareto archive -------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+        agent.setMultiObjectiveEnabled(true);
+        std::vector<double> p1 = {10000.0, 1.0};
+        std::vector<double> p2 = {50000.0, 0.5};
+        agent.evaluateTheory(p1);
+        agent.evaluateTheory(p2);
+        auto best = agent.discoverBestTheory(5);
+        assert(!best.empty());
+        for (size_t i = 0; i < best.size(); ++i) {
+            assertFinite("pareto_best_param[" + std::to_string(i) + "]", best[i]);
+        }
+        std::cout << "  Multi-objective best params:";
+        for (double p : best) std::cout << " " << p;
+        std::cout << std::endl;
+    }
+
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
 }
