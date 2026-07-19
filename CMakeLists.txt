@@ -645,6 +645,20 @@ if(QUANTUMVERSE_BUILD_TESTS)
         TIMEOUT 300
     )
 
+    # Phase 21.3: Fuzz-driven formal verification of physics invariants
+    add_executable(fuzz_physics_invariants
+        tests/fuzz/fuzz_physics_invariants.cpp
+        src/physics/CurvatureCalculator.cpp
+    )
+    target_link_libraries(fuzz_physics_invariants PRIVATE dilaton)
+    add_test(NAME FuzzPhysicsInvariantsTest COMMAND fuzz_physics_invariants)
+    set_tests_properties(FuzzPhysicsInvariantsTest PROPERTIES
+        LABELS "fuzz;physics"
+        TIMEOUT 120
+        WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+        ENVIRONMENT "PATH=${QT_RUNTIME_DEST};$ENV{PATH};FUZZ_CYCLES=100"
+    )
+
     # Performance regression gate: actual benchmark measurements
     add_executable(test_performance_regression
         tests/test_performance_regression.cpp
@@ -1004,6 +1018,88 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_autodiff_validation PRIVATE dilaton)
     add_test(NAME AutoDiffValidationTest COMMAND test_autodiff_validation)
 
+    # Phase 18: Physics & Spacetime Absolute Correctness
+    # 18.1 Exhaustive exact solution validation (60 test functions)
+    add_executable(test_full_exact_solutions
+        tests/physics/test_full_exact_solutions.cpp
+        src/physics/CurvatureCalculator.cpp
+        src/physics/GeodesicDeviation.cpp
+        src/spacetime/DilatonMetric.cpp
+    )
+    target_link_libraries(test_full_exact_solutions PRIVATE dilaton)
+    add_test(NAME FullExactSolutionsTest COMMAND test_full_exact_solutions)
+
+    # Quick geodesic diagnostic
+    add_executable(test_geodesic_quick tests/physics/test_geodesic_quick.cpp)
+    target_link_libraries(test_geodesic_quick PRIVATE dilaton)
+    add_test(NAME GeodesicQuickTest COMMAND test_geodesic_quick)
+
+    # 18.2 Numerical convergence & error analysis
+    add_executable(test_numerical_convergence
+        tests/physics/test_numerical_convergence.cpp
+        src/physics/CurvatureCalculator.cpp
+    )
+    target_link_libraries(test_numerical_convergence PRIVATE dilaton)
+    add_test(NAME NumericalConvergenceTest COMMAND test_numerical_convergence)
+
+    # 18.3 Conservation laws & invariant monitoring
+    add_executable(test_conservation_laws
+        tests/physics/test_conservation_laws.cpp
+        src/physics/CurvatureCalculator.cpp
+        src/physics/GeodesicDeviation.cpp
+    )
+    target_link_libraries(test_conservation_laws PRIVATE dilaton)
+    add_test(NAME ConservationLawsTest COMMAND test_conservation_laws)
+
+    # 18.4 Singularity & extreme regime robustness
+    add_executable(test_extreme_regimes
+        tests/physics/test_extreme_regimes.cpp
+        src/physics/PhysicsValidator.cpp
+        src/physics/CurvatureCalculator.cpp
+        src/spacetime/DilatonMetric.cpp
+    )
+    target_link_libraries(test_extreme_regimes PRIVATE dilaton)
+    add_test(NAME ExtremeRegimesTest COMMAND test_extreme_regimes)
+
+    # Phase 19: Cosmological Consistency & Observational Data
+    # 19.1 FRW cosmological consistency (30 test functions)
+    add_executable(test_flrw_consistency
+        tests/cosmology/test_flrw_consistency.cpp
+        src/physics/CurvatureCalculator.cpp
+    )
+    target_link_libraries(test_flrw_consistency PRIVATE dilaton)
+    add_test(NAME FLRWConsistencyTest COMMAND test_flrw_consistency)
+
+    # Phase 21.2: Observational Data Cross-Validation
+    # 21.2.1 Pantheon+ SNe Ia ΛCDM χ² + 21.2.3 GW170817 time delay
+    add_executable(test_observational_data
+        tests/validation/test_observational_data.cpp
+        src/data/MultiMessengerCorrelator.cpp
+    )
+    target_link_libraries(test_observational_data PRIVATE dilaton Qt6::Core Qt6::Test)
+    set_target_properties(test_observational_data PROPERTIES AUTOMOC ON)
+    add_test(NAME ObservationalDataTest COMMAND test_observational_data)
+    set_tests_properties(ObservationalDataTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+    )
+
+    # 19.2 Signal/data fidelity across multi-messenger pipeline (25 test functions)
+    add_executable(test_signal_fidelity
+        tests/data/test_signal_fidelity.cpp
+        src/data/GCNNoticeParser.cpp
+        src/data/MultiMessengerCorrelator.cpp
+        src/data/AlertRouter.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+    )
+    target_link_libraries(test_signal_fidelity PRIVATE dilaton Qt6::Core Qt6::Test)
+    set_target_properties(test_signal_fidelity PROPERTIES AUTOMOC ON)
+    add_test(NAME SignalFidelityTest COMMAND test_signal_fidelity)
+    set_tests_properties(SignalFidelityTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+    )
+
     # Phase 4: Rendering & Animation Correctness
     # 4.1 Visual regression via headless screenshot
     add_executable(test_visual_regression tests/rendering/test_visual_regression.cpp)
@@ -1040,6 +1136,48 @@ if(QUANTUMVERSE_BUILD_TESTS)
         WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
         ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
         TIMEOUT 120
+    )
+
+    # Phase 20: Viewport Physics Verification
+    # 20.1 Grid deformation via headless screenshot
+    add_executable(test_grid_deformation tests/rendering/test_grid_deformation.cpp)
+    target_link_libraries(test_grid_deformation PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+    set_target_properties(test_grid_deformation PROPERTIES AUTOMOC ON)
+    add_test(NAME GridDeformationTest COMMAND test_grid_deformation)
+    set_tests_properties(GridDeformationTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        TIMEOUT 120
+    )
+    if(TARGET deploy_qt_runtime)
+        add_dependencies(test_grid_deformation deploy_qt_runtime)
+    endif()
+
+    # 20.2 Geodesic rendering accuracy
+    add_executable(test_geodesic_rendering tests/rendering/test_geodesic_rendering.cpp)
+    target_link_libraries(test_geodesic_rendering PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+    set_target_properties(test_geodesic_rendering PROPERTIES AUTOMOC ON)
+    add_test(NAME GeodesicRenderingTest COMMAND test_geodesic_rendering)
+    set_tests_properties(GeodesicRenderingTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        TIMEOUT 120
+    )
+    if(TARGET deploy_qt_runtime)
+        add_dependencies(test_geodesic_rendering deploy_qt_runtime)
+    endif()
+
+    # 20.3 Light cone & causality
+    add_executable(test_lightcone_rendering
+        tests/rendering/test_lightcone_rendering.cpp
+        src/spacetime/LightCone.cpp
+    )
+    target_link_libraries(test_lightcone_rendering PRIVATE Qt6::Core Qt6::Gui Qt6::Test dilaton)
+    set_target_properties(test_lightcone_rendering PROPERTIES AUTOMOC ON)
+    add_test(NAME LightConeRenderingTest COMMAND test_lightcone_rendering)
+    set_tests_properties(LightConeRenderingTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
     )
 endif()
 
@@ -1194,6 +1332,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
         target_link_libraries(test_em_bright_gw_counterpart_detector PRIVATE dilaton)
         add_test(NAME EMBrightGWCounterpartDetectorTest COMMAND test_em_bright_gw_counterpart_detector)
     endif()
+
+    # Phase 21: Symbolic verification companion binary
+    add_executable(test_symbolic_verify tests/validation/test_symbolic_verify.cpp)
+    target_link_libraries(test_symbolic_verify PRIVATE dilaton)
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues
