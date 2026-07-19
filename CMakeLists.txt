@@ -651,6 +651,9 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/physics/CurvatureCalculator.cpp
     )
     target_link_libraries(fuzz_physics_invariants PRIVATE dilaton)
+    if(MSVC)
+        target_compile_definitions(fuzz_physics_invariants PRIVATE _CRT_SECURE_NO_WARNINGS=1)
+    endif()
     add_test(NAME FuzzPhysicsInvariantsTest COMMAND fuzz_physics_invariants)
     set_tests_properties(FuzzPhysicsInvariantsTest PROPERTIES
         LABELS "fuzz;physics"
@@ -862,112 +865,114 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
     endif()
 
-    # Phase 12: Fermi GBM adapter unit test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_fermi_gbm_adapter.cpp)
-        add_executable(test_fermi_gbm_adapter
-            tests/data/test_fermi_gbm_adapter.cpp
-            src/data/FermiGBMAdapter.cpp
-        )
-        target_link_libraries(test_fermi_gbm_adapter PRIVATE dilaton Qt6::Core)
-        add_test(NAME FermiGBMAdapterTest COMMAND test_fermi_gbm_adapter)
-    endif()
+    if(TARGET quantumverse_qml)
+        # Phase 12: Fermi GBM adapter unit test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_fermi_gbm_adapter.cpp)
+            add_executable(test_fermi_gbm_adapter
+                tests/data/test_fermi_gbm_adapter.cpp
+                src/data/FermiGBMAdapter.cpp
+            )
+            target_link_libraries(test_fermi_gbm_adapter PRIVATE dilaton Qt6::Core)
+            add_test(NAME FermiGBMAdapterTest COMMAND test_fermi_gbm_adapter)
+        endif()
 
-    # Phase 12: Swift BAT adapter unit test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_swift_bat_adapter.cpp)
-        add_executable(test_swift_bat_adapter
-            tests/data/test_swift_bat_adapter.cpp
-            src/data/SwiftBATAdapter.cpp
-        )
-        target_link_libraries(test_swift_bat_adapter PRIVATE dilaton Qt6::Core)
-        add_test(NAME SwiftBATAdapterTest COMMAND test_swift_bat_adapter)
-    endif()
+        # Phase 12: Swift BAT adapter unit test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_swift_bat_adapter.cpp)
+            add_executable(test_swift_bat_adapter
+                tests/data/test_swift_bat_adapter.cpp
+                src/data/SwiftBATAdapter.cpp
+            )
+            target_link_libraries(test_swift_bat_adapter PRIVATE dilaton Qt6::Core)
+            add_test(NAME SwiftBATAdapterTest COMMAND test_swift_bat_adapter)
+        endif()
 
-    # Phase 12: GCN parser unit test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_parser.cpp)
-        add_executable(test_gcn_parser
-            tests/data/test_gcn_parser.cpp
-            src/data/GCNNoticeParser.cpp
-        )
-        target_link_libraries(test_gcn_parser PRIVATE dilaton Qt6::Core)
-        add_test(NAME GCNParserTest COMMAND test_gcn_parser)
-    endif()
+        # Phase 12: GCN parser unit test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_parser.cpp)
+            add_executable(test_gcn_parser
+                tests/data/test_gcn_parser.cpp
+                src/data/GCNNoticeParser.cpp
+            )
+            target_link_libraries(test_gcn_parser PRIVATE dilaton Qt6::Core)
+            add_test(NAME GCNParserTest COMMAND test_gcn_parser)
+        endif()
 
-    # Phase 12: Kafka listener integration test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_kafka_listener.cpp)
-        add_executable(test_kafka_listener
-            tests/data/test_kafka_listener.cpp
-            src/data/KafkaAlertListener.cpp
-            src/data/GCNNoticeParser.cpp
-            src/data/AlertRouter.cpp
-            src/data/AlertListener.cpp
-            src/data/LIGOAdapter.cpp
-            src/data/IceCubeAdapter.cpp
-            src/data/TESSAlertAdapter.cpp
-            src/data/FermiGBMAdapter.cpp
-        )
-        target_link_libraries(test_kafka_listener PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
-        set_target_properties(test_kafka_listener PROPERTIES AUTOMOC ON)
-        add_test(NAME KafkaListenerTest COMMAND test_kafka_listener)
-    endif()
+        # Phase 12: Kafka listener integration test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_kafka_listener.cpp)
+            add_executable(test_kafka_listener
+                tests/data/test_kafka_listener.cpp
+                src/data/KafkaAlertListener.cpp
+                src/data/GCNNoticeParser.cpp
+                src/data/AlertRouter.cpp
+                src/data/AlertListener.cpp
+                src/data/LIGOAdapter.cpp
+                src/data/IceCubeAdapter.cpp
+                src/data/TESSAlertAdapter.cpp
+                src/data/FermiGBMAdapter.cpp
+            )
+            target_link_libraries(test_kafka_listener PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
+            set_target_properties(test_kafka_listener PROPERTIES AUTOMOC ON)
+            add_test(NAME KafkaListenerTest COMMAND test_kafka_listener)
+        endif()
 
-    # Phase 12c: GCN archive replay stream test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_replay.cpp)
-        add_executable(test_gcn_replay
-            tests/data/test_gcn_replay.cpp
-            src/data/GCNReplayStream.cpp
-            src/data/GCNNoticeParser.cpp
-        )
-        target_link_libraries(test_gcn_replay PRIVATE dilaton Qt6::Core Qt6::Test)
-        set_target_properties(test_gcn_replay PROPERTIES AUTOMOC ON)
-        add_test(NAME GCNReplayStreamTest COMMAND test_gcn_replay)
-    endif()
+        # Phase 12c: GCN archive replay stream test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_replay.cpp)
+            add_executable(test_gcn_replay
+                tests/data/test_gcn_replay.cpp
+                src/data/GCNReplayStream.cpp
+                src/data/GCNNoticeParser.cpp
+            )
+            target_link_libraries(test_gcn_replay PRIVATE dilaton Qt6::Core Qt6::Test)
+            set_target_properties(test_gcn_replay PROPERTIES AUTOMOC ON)
+            add_test(NAME GCNReplayStreamTest COMMAND test_gcn_replay)
+        endif()
 
-    # Phase 12d: GCN broker connectivity smoke test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_broker_connectivity.cpp)
-        add_executable(test_gcn_broker_connectivity
-            tests/data/test_gcn_broker_connectivity.cpp
-            src/data/KafkaAlertListener.cpp
-            src/data/GCNNoticeParser.cpp
-            src/data/AlertRouter.cpp
-            src/data/AlertListener.cpp
-        )
-        target_link_libraries(test_gcn_broker_connectivity PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
-        set_target_properties(test_gcn_broker_connectivity PROPERTIES AUTOMOC ON)
-        add_test(NAME GCNBrokerConnectivityTest COMMAND test_gcn_broker_connectivity)
-    endif()
+        # Phase 12d: GCN broker connectivity smoke test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_broker_connectivity.cpp)
+            add_executable(test_gcn_broker_connectivity
+                tests/data/test_gcn_broker_connectivity.cpp
+                src/data/KafkaAlertListener.cpp
+                src/data/GCNNoticeParser.cpp
+                src/data/AlertRouter.cpp
+                src/data/AlertListener.cpp
+            )
+            target_link_libraries(test_gcn_broker_connectivity PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
+            set_target_properties(test_gcn_broker_connectivity PROPERTIES AUTOMOC ON)
+            add_test(NAME GCNBrokerConnectivityTest COMMAND test_gcn_broker_connectivity)
+        endif()
 
-    # Phase 13: Multi-messenger correlator test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_multimessenger_correlator.cpp)
-        add_executable(test_multimessenger_correlator
-            tests/data/test_multimessenger_correlator.cpp
-            src/data/MultiMessengerCorrelator.cpp
-            src/discovery/DiscoveryPanelManager.cpp
-            src/discovery/DiscoveryEngine.cpp
-            src/data/GCNNoticeParser.cpp
-            src/ml/CurvatureNormalizingFlow.cpp
-        )
-        target_link_libraries(test_multimessenger_correlator PRIVATE dilaton Qt6::Core Qt6::Test)
-        target_compile_definitions(test_multimessenger_correlator PRIVATE QUANTUMVERSE_USE_QML)
-        set_target_properties(test_multimessenger_correlator PROPERTIES AUTOMOC ON)
-        add_test(NAME MultiMessengerCorrelatorTest COMMAND test_multimessenger_correlator)
-    endif()
+        # Phase 13: Multi-messenger correlator test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_multimessenger_correlator.cpp)
+            add_executable(test_multimessenger_correlator
+                tests/data/test_multimessenger_correlator.cpp
+                src/data/MultiMessengerCorrelator.cpp
+                src/discovery/DiscoveryPanelManager.cpp
+                src/discovery/DiscoveryEngine.cpp
+                src/data/GCNNoticeParser.cpp
+                src/ml/CurvatureNormalizingFlow.cpp
+            )
+            target_link_libraries(test_multimessenger_correlator PRIVATE dilaton Qt6::Core Qt6::Test)
+            target_compile_definitions(test_multimessenger_correlator PRIVATE QUANTUMVERSE_USE_QML)
+            set_target_properties(test_multimessenger_correlator PROPERTIES AUTOMOC ON)
+            add_test(NAME MultiMessengerCorrelatorTest COMMAND test_multimessenger_correlator)
+        endif()
 
-    # Phase 12b: DiscoveryPanelManager live ingest test
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_discovery_panel_manager.cpp)
-        add_executable(test_discovery_panel_manager
-            tests/test_discovery_panel_manager.cpp
-            src/discovery/DiscoveryPanelManager.cpp
-            src/discovery/DiscoveryEngine.cpp
-            src/data/GCNNoticeParser.cpp
-            src/data/MultiMessengerCorrelator.cpp
-            src/ml/CurvatureNormalizingFlow.cpp
-        )
-        target_link_libraries(test_discovery_panel_manager PRIVATE dilaton Qt6::Core Qt6::Test)
-        target_compile_definitions(test_discovery_panel_manager PRIVATE QUANTUMVERSE_USE_QML)
-        set_target_properties(test_discovery_panel_manager PROPERTIES AUTOMOC ON)
-        add_test(NAME DiscoveryPanelManagerIngestTest COMMAND test_discovery_panel_manager)
-    endif()
+        # Phase 12b: DiscoveryPanelManager live ingest test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_discovery_panel_manager.cpp)
+            add_executable(test_discovery_panel_manager
+                tests/test_discovery_panel_manager.cpp
+                src/discovery/DiscoveryPanelManager.cpp
+                src/discovery/DiscoveryEngine.cpp
+                src/data/GCNNoticeParser.cpp
+                src/data/MultiMessengerCorrelator.cpp
+                src/ml/CurvatureNormalizingFlow.cpp
+            )
+            target_link_libraries(test_discovery_panel_manager PRIVATE dilaton Qt6::Core Qt6::Test)
+            target_compile_definitions(test_discovery_panel_manager PRIVATE QUANTUMVERSE_USE_QML)
+            set_target_properties(test_discovery_panel_manager PROPERTIES AUTOMOC ON)
+            add_test(NAME DiscoveryPanelManagerIngestTest COMMAND test_discovery_panel_manager)
+        endif()
 
+    endif()
     # End-to-end discovery workflow test
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_e2e_discovery.cpp)
         add_executable(test_e2e_discovery
@@ -1070,115 +1075,118 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_flrw_consistency PRIVATE dilaton)
     add_test(NAME FLRWConsistencyTest COMMAND test_flrw_consistency)
 
-    # Phase 21.2: Observational Data Cross-Validation
-    # 21.2.1 Pantheon+ SNe Ia ΛCDM χ² + 21.2.3 GW170817 time delay
-    add_executable(test_observational_data
-        tests/validation/test_observational_data.cpp
-        src/data/MultiMessengerCorrelator.cpp
-    )
-    target_link_libraries(test_observational_data PRIVATE dilaton Qt6::Core Qt6::Test)
-    set_target_properties(test_observational_data PROPERTIES AUTOMOC ON)
-    add_test(NAME ObservationalDataTest COMMAND test_observational_data)
-    set_tests_properties(ObservationalDataTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-    )
+    if(TARGET quantumverse_qml)
+        # Phase 21.2: Observational Data Cross-Validation
+        # 21.2.1 Pantheon+ SNe Ia ΛCDM χ² + 21.2.3 GW170817 time delay
+        add_executable(test_observational_data
+            tests/validation/test_observational_data.cpp
+            src/data/MultiMessengerCorrelator.cpp
+        )
+        target_link_libraries(test_observational_data PRIVATE dilaton Qt6::Core Qt6::Test)
+        set_target_properties(test_observational_data PROPERTIES AUTOMOC ON)
+        add_test(NAME ObservationalDataTest COMMAND test_observational_data)
+        set_tests_properties(ObservationalDataTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        )
 
-    # 19.2 Signal/data fidelity across multi-messenger pipeline (25 test functions)
-    add_executable(test_signal_fidelity
-        tests/data/test_signal_fidelity.cpp
-        src/data/GCNNoticeParser.cpp
-        src/data/MultiMessengerCorrelator.cpp
-        src/data/AlertRouter.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-    )
-    target_link_libraries(test_signal_fidelity PRIVATE dilaton Qt6::Core Qt6::Test)
-    set_target_properties(test_signal_fidelity PROPERTIES AUTOMOC ON)
-    add_test(NAME SignalFidelityTest COMMAND test_signal_fidelity)
-    set_tests_properties(SignalFidelityTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-    )
+        # 19.2 Signal/data fidelity across multi-messenger pipeline (25 test functions)
+        add_executable(test_signal_fidelity
+            tests/data/test_signal_fidelity.cpp
+            src/data/GCNNoticeParser.cpp
+            src/data/MultiMessengerCorrelator.cpp
+            src/data/AlertRouter.cpp
+            src/discovery/UltralightDMWaveInterferometer.cpp
+        )
+        target_link_libraries(test_signal_fidelity PRIVATE dilaton Qt6::Core Qt6::Test)
+        set_target_properties(test_signal_fidelity PROPERTIES AUTOMOC ON)
+        add_test(NAME SignalFidelityTest COMMAND test_signal_fidelity)
+        set_tests_properties(SignalFidelityTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        )
 
-    # Phase 4: Rendering & Animation Correctness
-    # 4.1 Visual regression via headless screenshot
-    add_executable(test_visual_regression tests/rendering/test_visual_regression.cpp)
-    target_link_libraries(test_visual_regression PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
-    set_target_properties(test_visual_regression PROPERTIES AUTOMOC ON)
-    add_test(NAME VisualRegressionTest COMMAND test_visual_regression)
-    set_tests_properties(VisualRegressionTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-    )
-    if(TARGET deploy_qt_runtime)
-        add_dependencies(test_visual_regression deploy_qt_runtime)
-    endif()
+        # Phase 4: Rendering & Animation Correctness
+        # 4.1 Visual regression via headless screenshot
+        add_executable(test_visual_regression tests/rendering/test_visual_regression.cpp)
+        target_link_libraries(test_visual_regression PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+        set_target_properties(test_visual_regression PROPERTIES AUTOMOC ON)
+        add_test(NAME VisualRegressionTest COMMAND test_visual_regression)
+        set_tests_properties(VisualRegressionTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        )
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_visual_regression deploy_qt_runtime)
+        endif()
 
-    # 4.2 Animation timing consistency
-    add_executable(test_animation_timing tests/rendering/test_animation_timing.cpp)
-    target_link_libraries(test_animation_timing PRIVATE Qt6::Core Qt6::Test)
-    set_target_properties(test_animation_timing PROPERTIES AUTOMOC ON)
-    add_test(NAME AnimationTimingTest COMMAND test_animation_timing)
-    set_tests_properties(AnimationTimingTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-        TIMEOUT 120
-    )
-    if(TARGET deploy_qt_runtime)
-        add_dependencies(test_animation_timing deploy_qt_runtime)
-    endif()
+        # 4.2 Animation timing consistency
+        add_executable(test_animation_timing tests/rendering/test_animation_timing.cpp)
+        target_link_libraries(test_animation_timing PRIVATE Qt6::Core Qt6::Test)
+        set_target_properties(test_animation_timing PROPERTIES AUTOMOC ON)
+        add_test(NAME AnimationTimingTest COMMAND test_animation_timing)
+        set_tests_properties(AnimationTimingTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            TIMEOUT 120
+        )
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_animation_timing deploy_qt_runtime)
+        endif()
 
-    # 4.3 GL strict audit: runs headless with --gl-strict and asserts exit 0
-    add_test(NAME GLStrictAuditTest COMMAND quantumverse_qml
-        --headless --frames 10 --gl-strict
-    )
-    set_tests_properties(GLStrictAuditTest PROPERTIES
-        WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-        TIMEOUT 120
-    )
+        # 4.3 GL strict audit: runs headless with --gl-strict and asserts exit 0
+        add_test(NAME GLStrictAuditTest COMMAND quantumverse_qml
+            --headless --frames 10 --gl-strict
+        )
+        set_tests_properties(GLStrictAuditTest PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            TIMEOUT 120
+        )
 
-    # Phase 20: Viewport Physics Verification
-    # 20.1 Grid deformation via headless screenshot
-    add_executable(test_grid_deformation tests/rendering/test_grid_deformation.cpp)
-    target_link_libraries(test_grid_deformation PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
-    set_target_properties(test_grid_deformation PROPERTIES AUTOMOC ON)
-    add_test(NAME GridDeformationTest COMMAND test_grid_deformation)
-    set_tests_properties(GridDeformationTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-        TIMEOUT 120
-    )
-    if(TARGET deploy_qt_runtime)
-        add_dependencies(test_grid_deformation deploy_qt_runtime)
-    endif()
+        # Phase 20: Viewport Physics Verification
+        # 20.1 Grid deformation via headless screenshot
+        add_executable(test_grid_deformation tests/rendering/test_grid_deformation.cpp)
+        target_link_libraries(test_grid_deformation PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+        set_target_properties(test_grid_deformation PROPERTIES AUTOMOC ON)
+        add_test(NAME GridDeformationTest COMMAND test_grid_deformation)
+        set_tests_properties(GridDeformationTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            TIMEOUT 120
+        )
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_grid_deformation deploy_qt_runtime)
+        endif()
 
-    # 20.2 Geodesic rendering accuracy
-    add_executable(test_geodesic_rendering tests/rendering/test_geodesic_rendering.cpp)
-    target_link_libraries(test_geodesic_rendering PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
-    set_target_properties(test_geodesic_rendering PROPERTIES AUTOMOC ON)
-    add_test(NAME GeodesicRenderingTest COMMAND test_geodesic_rendering)
-    set_tests_properties(GeodesicRenderingTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-        TIMEOUT 120
-    )
-    if(TARGET deploy_qt_runtime)
-        add_dependencies(test_geodesic_rendering deploy_qt_runtime)
-    endif()
+        # 20.2 Geodesic rendering accuracy
+        add_executable(test_geodesic_rendering tests/rendering/test_geodesic_rendering.cpp)
+        target_link_libraries(test_geodesic_rendering PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+        set_target_properties(test_geodesic_rendering PROPERTIES AUTOMOC ON)
+        add_test(NAME GeodesicRenderingTest COMMAND test_geodesic_rendering)
+        set_tests_properties(GeodesicRenderingTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            TIMEOUT 120
+        )
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_geodesic_rendering deploy_qt_runtime)
+        endif()
 
-    # 20.3 Light cone & causality
-    add_executable(test_lightcone_rendering
-        tests/rendering/test_lightcone_rendering.cpp
-        src/spacetime/LightCone.cpp
-    )
-    target_link_libraries(test_lightcone_rendering PRIVATE Qt6::Core Qt6::Gui Qt6::Test dilaton)
-    set_target_properties(test_lightcone_rendering PROPERTIES AUTOMOC ON)
-    add_test(NAME LightConeRenderingTest COMMAND test_lightcone_rendering)
-    set_tests_properties(LightConeRenderingTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-    )
+        # 20.3 Light cone & causality
+        add_executable(test_lightcone_rendering
+            tests/rendering/test_lightcone_rendering.cpp
+            src/spacetime/LightCone.cpp
+        )
+        target_link_libraries(test_lightcone_rendering PRIVATE Qt6::Core Qt6::Gui Qt6::Test dilaton)
+        set_target_properties(test_lightcone_rendering PROPERTIES AUTOMOC ON)
+        add_test(NAME LightConeRenderingTest COMMAND test_lightcone_rendering)
+        set_tests_properties(LightConeRenderingTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+        )
+endif()
+
 endif()
 
 # Phase 6: AI/Discovery Module Validation
