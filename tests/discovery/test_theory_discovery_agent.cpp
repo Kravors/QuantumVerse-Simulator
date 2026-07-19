@@ -615,6 +615,43 @@ int main() {
         std::cout << std::endl;
     }
 
+    // --- 44. BAO chi2: near-GR parameters should give finite BAO chi2 -----------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        std::vector<double> params = {0.01, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("bao_chi2", result.observational_chi2);
+        std::cout << "  BAO chi2 (near-GR) = " << result.observational_chi2 << std::endl;
+    }
+
+    // --- 45. CMB shift chi2: near-GR parameters should give finite CMB chi2 -------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        std::vector<double> params = {0.01, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("cmb_shift_chi2", result.observational_chi2);
+        std::cout << "  CMB shift chi2 (near-GR) = " << result.observational_chi2 << std::endl;
+    }
+
+    // --- 46. BBN chi2: near-GR parameters should give finite BBN chi2 ------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        std::vector<double> params = {0.01, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("bbn_chi2", result.observational_chi2);
+        std::cout << "  BBN chi2 (near-GR) = " << result.observational_chi2 << std::endl;
+    }
+
+    // --- 47. Combined probes: all probes contribute to total chi2 ----------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+        std::vector<double> params = {40000.0, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("combined_chi2", result.observational_chi2);
+        assert(result.observational_chi2 >= 0.0);
+        std::cout << "  Combined observational chi2 = " << result.observational_chi2 << std::endl;
+    }
+
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
 }

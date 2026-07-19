@@ -178,12 +178,6 @@ public:
      */
     double computeGRBaselineChi2() const;
 
-    // Helper: compute observational chi-squared for a given theory metric.
-    double computeObservationalChi2(
-        const MetricTensor& metric,
-        const std::map<std::string, double>& params
-    ) const;
-
     /**
      * @brief Multi-objective Pareto point.
      */
@@ -204,6 +198,24 @@ public:
             bool singular,
             const std::string& name
         );
+    };
+
+    /**
+     * @brief BAO distance data point.
+     */
+    struct BAODataPoint {
+        double z;
+        double dA_mpc;
+        double sigma_dA_mpc;
+    };
+
+    /**
+     * @brief BBN abundance data point.
+     */
+    struct BBNDataPoint {
+        double observed_value;
+        double sigma;
+        std::string isotope;
     };
 
     /**
@@ -240,6 +252,43 @@ public:
      * @return Vector of objective values.
      */
     std::vector<double> computeObjectives(const DiscoveryResult& result) const;
+
+    /**
+     * @brief Compute BAO distance chi-squared contribution.
+     * Compares predicted angular diameter distances at z=0.38, 0.51, 0.70, 1.48
+     * against representative SDSS/BOSS/eBOSS measurements.
+     * @param params Theory parameter map.
+     * @return Chi-squared value for BAO distances.
+     */
+    double computeBAOChi2(const std::map<std::string, double>& params) const;
+
+    /**
+     * @brief Compute CMB shift parameter R chi-squared contribution.
+     * R = sqrt(Omega_m H0^2) * d_A(z_rec) / c
+     * @param params Theory parameter map.
+     * @return Chi-squared value for CMB shift parameter.
+     */
+    double computeCMBShiftChi2(const std::map<std::string, double>& params) const;
+
+    /**
+     * @brief Compute BBN abundance chi-squared contribution.
+     * Validates deuterium D/H and helium-4 Y_p against observed values.
+     * @param params Theory parameter map.
+     * @return Chi-squared value for BBN abundances.
+     */
+    double computeBBNChi2(const std::map<std::string, double>& params) const;
+
+    /**
+     * @brief Compute the full observational chi-squared including all probes:
+     * Pantheon+ SNe, GW170817, BAO, CMB shift, BBN.
+     * @param metric Spacetime metric tensor.
+     * @param params Theory parameter map.
+     * @return Combined chi-squared value.
+     */
+    double computeObservationalChi2(
+        const MetricTensor& metric,
+        const std::map<std::string, double>& params
+    ) const;
 
     /**
      * @brief Check Pareto dominance between two points.

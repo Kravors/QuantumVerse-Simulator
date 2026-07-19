@@ -23,8 +23,10 @@ namespace discovery {
 static constexpr double PLANCK_H0 = 2.185e-18;        // 67.4 km/s/Mpc in s^-1
 static constexpr double PLANCK_OMEGA_M = 0.315;
 static constexpr double PLANCK_OMEGA_LAMBDA = 0.685;
+static constexpr double PLANCK_OMEGA_B = 0.049;       // physical baryon density
 static constexpr double C_LIGHT = 299792458.0;         // m/s
 static constexpr double MPC = 3.085677581e22;          // metres
+static constexpr double Z_REC = 1100.0;                // recombination redshift
 
 // ============================================================================
 // Pantheon+ sample: small representative subset (z, mu_obs, sigma_mu)
@@ -46,6 +48,37 @@ static const std::vector<PantheonSN> PANETHEON_SAMPLE = {
     {0.4980, 47.65, 0.32},
     {0.7920, 50.21, 0.38},
     {0.9980, 51.68, 0.42},
+};
+
+// ============================================================================
+// BAO sample: representative SDSS/BOSS/eBOSS data (z, d_A, sigma_dA)
+// d_A is angular diameter distance in Mpc.
+// ============================================================================
+struct BAODataPoint {
+    double z;
+    double dA_mpc;
+    double sigma_dA_mpc;
+};
+
+static const std::vector<BAODataPoint> BAO_SAMPLE = {
+    {0.38, 1512.0, 62.0},
+    {0.51, 2005.0, 72.0},
+    {0.70, 2515.0, 85.0},
+    {1.48, 3465.0, 155.0},
+};
+
+// ============================================================================
+// BBN abundances: observed values with uncertainties
+// ============================================================================
+struct BBNAbundance {
+    double observed_value;
+    double sigma;
+    std::string name;
+};
+
+static const std::vector<BBNAbundance> BBN_ABUNDANCES = {
+    {2.527e-5, 0.03e-5, "D/H"},
+    {0.245, 0.003, "Y_p"},
 };
 
 // ============================================================================
@@ -100,35 +133,33 @@ static void extractCosmologicalParams(
     TheoryParameterSpace::TheoryType theory_type,
     double& out_H0,
     double& out_omegaM,
-    double& out_omegaLambda
+    double& out_omegaLambda,
+    double& out_omegaB
 ) {
     out_H0 = PLANCK_H0;
     out_omegaM = PLANCK_OMEGA_M;
     out_omegaLambda = PLANCK_OMEGA_LAMBDA;
+    out_omegaB = PLANCK_OMEGA_B;
 
     // If theory provides explicit cosmological parameters, use them
     if (param_map.count("H0") > 0) out_H0 = param_map.at("H0");
     if (param_map.count("omegaM") > 0) out_omegaM = param_map.at("omegaM");
     if (param_map.count("omegaLambda") > 0) out_omegaLambda = param_map.at("omegaLambda");
+    if (param_map.count("omegaB") > 0) out_omegaB = param_map.at("omegaB");
 
     // Theory-specific modifications
     if (theory_type == TheoryParameterSpace::TheoryType::FR_GRAVITY) {
         double alpha = param_map.count("alpha") ? param_map.at("alpha") : 1.0;
         double n = param_map.count("n") ? param_map.at("n") : 1.0;
-        // f(R) = R + alpha R^n modifies effective dark energy density
-        // Map to a small shift in omegaLambda
         out_omegaLambda += 0.05 * alpha * std::pow(1e-30, std::max(0.0, n - 1.0));
         out_omegaLambda = std::max(0.0, std::min(1.0, out_omegaLambda));
     } else if (theory_type == TheoryParameterSpace::TheoryType::BRANS_DICKE) {
         double phi0 = param_map.count("phi0") ? param_map.at("phi0") : 1.0;
-        // Brans-Dicke: G_eff ~ 1/phi, so matter density scales as 1/phi
         out_omegaM /= std::max(0.01, phi0);
     } else if (theory_type == TheoryParameterSpace::TheoryType::LOOP_QUANTUM_GRAVITY) {
         // LQG polymer corrections are negligible at cosmological scales
-        // Use Planck values as baseline
     } else if (theory_type == TheoryParameterSpace::TheoryType::TE_VES) {
         double K = param_map.count("K") ? param_map.at("K") : 0.3;
-        // TeVeS: modified gravity reduces effective dark energy need
         out_omegaLambda -= 0.02 * K;
         out_omegaLambda = std::max(0.0, std::min(1.0, out_omegaLambda));
     } else if (theory_type == TheoryParameterSpace::TheoryType::EINSTEIN_AETHER) {
@@ -136,15 +167,16 @@ static void extractCosmologicalParams(
         double c2 = param_map.count("c2") ? param_map.at("c2") : 0.0;
         double c3 = param_map.count("c3") ? param_map.at("c3") : 0.0;
         double c_hat = (c1 + c2 + c3) / 3.0;
-        // Einstein-Aether: effective coupling modifies H0
         out_H0 *= (1.0 + 0.1 * c_hat);
     } else if (theory_type == TheoryParameterSpace::TheoryType::HORNDESKI) {
         double c_G = param_map.count("c_G") ? param_map.at("c_G") : 0.0;
         double alpha_K = param_map.count("alpha_K") ? param_map.at("alpha_K") : 0.0;
-        // Horndeski: PPN deviation and kinetic braiding modify expansion
         out_H0 *= (1.0 + 0.05 * c_G);
         out_omegaM *= (1.0 + 0.1 * alpha_K);
     }
+
+    // Enforce consistency: omegaB <= omegaM
+    out_omegaB = std::min(out_omegaB, out_omegaM);
 }
 
 // ============================================================================
@@ -476,16 +508,16 @@ double TheoryDiscoveryAgent::computeObservationalChi2(
 ) const {
     (void)metric;
 
-    // Extract effective cosmological parameters from the candidate theory
     double H0 = PLANCK_H0;
     double omegaM = PLANCK_OMEGA_M;
     double omegaLambda = PLANCK_OMEGA_LAMBDA;
-    extractCosmologicalParams(params, param_space_.getTheoryType(), H0, omegaM, omegaLambda);
+    double omegaB = PLANCK_OMEGA_B;
+    extractCosmologicalParams(params, param_space_.getTheoryType(), H0, omegaM, omegaLambda, omegaB);
 
-    // Compute chi-squared against embedded Pantheon+ sample
     double chi2 = 0.0;
-    int dof = static_cast<int>(PANETHEON_SAMPLE.size()) - 3; // 3 params effectively fixed
 
+    // Pantheon+ SNe Ia contribution
+    int dof = static_cast<int>(PANETHEON_SAMPLE.size()) - 3;
     for (const auto& sn : PANETHEON_SAMPLE) {
         double dL = luminosityDistanceMpc(sn.z, H0, omegaM, omegaLambda);
         double mu_theory = distanceModulus(dL);
@@ -495,8 +527,95 @@ double TheoryDiscoveryAgent::computeObservationalChi2(
         }
     }
 
+    // BAO angular diameter distances
+    chi2 += computeBAOChi2(params);
+
+    // CMB shift parameter
+    chi2 += computeCMBShiftChi2(params);
+
+    // BBN abundances
+    chi2 += computeBBNChi2(params);
+
     if (dof <= 0) dof = 1;
     return chi2 / static_cast<double>(dof);
+}
+
+// ============================================================================
+// Phase 27: Expanded Cosmological Probes
+// ============================================================================
+
+double TheoryDiscoveryAgent::computeBAOChi2(
+    const std::map<std::string, double>& params
+) const {
+    double H0 = PLANCK_H0;
+    double omegaM = PLANCK_OMEGA_M;
+    double omegaLambda = PLANCK_OMEGA_LAMBDA;
+    double omegaB = PLANCK_OMEGA_B;
+    extractCosmologicalParams(params, param_space_.getTheoryType(), H0, omegaM, omegaLambda, omegaB);
+
+    double chi2 = 0.0;
+    for (const auto& bao : BAO_SAMPLE) {
+        double dA_theory = comovingDistanceLCDM(bao.z, H0, omegaM, omegaLambda) / (1.0 + bao.z);
+        if (!std::isfinite(dA_theory) || bao.sigma_dA_mpc <= 0.0) continue;
+        double residual = bao.dA_mpc - dA_theory;
+        chi2 += (residual * residual) / (bao.sigma_dA_mpc * bao.sigma_dA_mpc);
+    }
+    return chi2;
+}
+
+double TheoryDiscoveryAgent::computeCMBShiftChi2(
+    const std::map<std::string, double>& params
+) const {
+    double H0 = PLANCK_H0;
+    double omegaM = PLANCK_OMEGA_M;
+    double omegaLambda = PLANCK_OMEGA_LAMBDA;
+    double omegaB = PLANCK_OMEGA_B;
+    extractCosmologicalParams(params, param_space_.getTheoryType(), H0, omegaM, omegaLambda, omegaB);
+
+    // CMB shift parameter: R = sqrt(Omega_m H0^2) * d_A(z_rec) / c
+    double dA_rec = comovingDistanceLCDM(Z_REC, H0, omegaM, omegaLambda) / (1.0 + Z_REC);
+    double R = std::sqrt(omegaM * H0 * H0) * dA_rec / C_LIGHT;
+
+    // Planck 2018 measured value: R = 1.75 +/- 0.02
+    double R_obs = 1.75;
+    double sigma_R = 0.02;
+    double residual = R_obs - R;
+    return (residual * residual) / (sigma_R * sigma_R);
+}
+
+double TheoryDiscoveryAgent::computeBBNChi2(
+    const std::map<std::string, double>& params
+) const {
+    double H0 = PLANCK_H0;
+    double omegaM = PLANCK_OMEGA_M;
+    double omegaLambda = PLANCK_OMEGA_LAMBDA;
+    double omegaB = PLANCK_OMEGA_B;
+    extractCosmologicalParams(params, param_space_.getTheoryType(), H0, omegaM, omegaLambda, omegaB);
+
+    double chi2 = 0.0;
+
+    // Physical baryon density omegaB = Omega_b * h^2
+    // h = H0 / (100 km/s/Mpc) = H0 / (100 * 1000 m/s / MPC)
+    // But we use omegaB directly as the parameter.
+    // Deuterium prediction (approximate): D/H ~ 2.53e-5 * (omegaB / 0.0224)^-1.6
+    double dh_pred = 2.53e-5 * std::pow(omegaB / 0.0224, -1.6);
+    // Helium-4 prediction (approximate): Y_p ~ 0.2485 + 0.0016 * ((omegaB - 0.0224) / 0.0013)
+    double yp_pred = 0.2485 + 0.0016 * ((omegaB - 0.0224) / 0.0013);
+
+    for (const auto& bbn : BBN_ABUNDANCES) {
+        double predicted = 0.0;
+        if (bbn.name == "D/H") {
+            predicted = dh_pred;
+        } else if (bbn.name == "Y_p") {
+            predicted = yp_pred;
+        }
+        if (std::isfinite(predicted) && bbn.sigma > 0.0) {
+            double residual = bbn.observed_value - predicted;
+            chi2 += (residual * residual) / (bbn.sigma * bbn.sigma);
+        }
+    }
+
+    return chi2;
 }
 
 double TheoryDiscoveryAgent::computeGW170817Chi2(
