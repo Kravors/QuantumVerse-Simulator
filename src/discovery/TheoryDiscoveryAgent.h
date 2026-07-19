@@ -5,6 +5,7 @@
 #include "TheoryParameterSpace.h"
 #include "discovery/DiscoveryEngine.h"
 #include "discovery/SymbolicMath.h"
+#include "discovery/TheorySurrogate.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
 #include "physics/CurvatureCalculator.h"
@@ -82,6 +83,49 @@ public:
      * @brief Get the best discovery result from the last run.
      */
     const DiscoveryResult& getBestResult() const;
+
+    /**
+     * @brief Active-learning configuration.
+     */
+    enum class ActiveLearningMode {
+        RANDOM,        ///< Pure random exploration (default)
+        UNCERTAINTY,   ///< Select points with highest predictive variance
+        EI             ///< Expected improvement over current best
+    };
+
+    /**
+     * @brief Enable or disable active learning.
+     * When enabled, discoverBestTheory uses the surrogate to guide search.
+     * @param enabled Whether to use active learning.
+     * @param mode Selection strategy (uncertainty sampling or EI).
+     */
+    void setActiveLearningEnabled(bool enabled, ActiveLearningMode mode = ActiveLearningMode::UNCERTAINTY);
+
+    /**
+     * @brief Check if active learning is enabled.
+     */
+    bool isActiveLearningEnabled() const { return active_learning_enabled_; }
+
+    /**
+     * @brief Number of evaluated theories in the current active-learning history.
+     */
+    size_t getEvaluationCount() const { return evaluation_history_.size(); }
+
+    /**
+     * @brief Get the surrogate model used for active learning.
+     */
+    const class TheorySurrogate* getSurrogate() const { return surrogate_.get(); }
+
+    /**
+     * @brief Clear active-learning history and retrain from scratch.
+     */
+    void resetActiveLearning();
+
+    /**
+     * @brief Select next point to evaluate using the active-learning acquisition function.
+     * @return Candidate parameter vector in normalized [0,1] space.
+     */
+    std::vector<double> selectNextActiveLearningPoint() const;
 
     /**
      * @brief Result of Bayesian model comparison.
@@ -167,6 +211,12 @@ private:
     bool symbolic_verification_enabled_;
     mutable DiscoveryResult best_result_;
     mutable double best_reward_so_far_;
+
+    // Active learning state
+    bool active_learning_enabled_;
+    ActiveLearningMode active_learning_mode_;
+    mutable std::vector<std::pair<std::vector<double>, double>> evaluation_history_;
+    mutable std::unique_ptr<TheorySurrogate> surrogate_;
 };
 
 } // namespace discovery

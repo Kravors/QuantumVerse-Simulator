@@ -1290,6 +1290,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         tests/discovery/test_theory_discovery_agent.cpp
         src/discovery/TheoryDiscoveryAgent.cpp
         src/discovery/TheoryParameterSpace.cpp
+        src/discovery/TheorySurrogate.cpp
         src/discovery/RLDiscoveryAgent.cpp
         src/discovery/TheoryManager.cpp
         src/discovery/DiscoveryPanelManager.cpp

@@ -335,6 +335,79 @@ int main() {
                   << ", preferred = " << bf_result.preferred_model << std::endl;
     }
 
+    // --- 26. Active learning: enable/disable toggle -------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+        assert(!agent.isActiveLearningEnabled());
+        agent.setActiveLearningEnabled(true);
+        assert(agent.isActiveLearningEnabled());
+        agent.setActiveLearningEnabled(false);
+        assert(!agent.isActiveLearningEnabled());
+        std::cout << "  Active learning toggle works." << std::endl;
+    }
+
+    // --- 27. Active learning: evaluation history recorded -------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setActiveLearningEnabled(true);
+        std::vector<double> params = {0.5, 0.5};
+        agent.evaluateTheory(params);
+        assert(agent.getEvaluationCount() >= 1);
+        std::cout << "  Active learning history size = "
+                  << agent.getEvaluationCount() << std::endl;
+    }
+
+    // --- 28. Active learning: surrogate trained and makes predictions --------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setActiveLearningEnabled(true);
+        std::vector<double> p1 = {0.1, 1.0};
+        std::vector<double> p2 = {1.0, 0.5};
+        agent.evaluateTheory(p1);
+        agent.evaluateTheory(p2);
+        assert(agent.getEvaluationCount() >= 2);
+        const TheorySurrogate* surr = agent.getSurrogate();
+        assert(surr != nullptr);
+        assert(surr->getTrainingSize() >= 2);
+        double mean = 0.0, std = 0.0;
+        surr->predict({0.0, 1.0}, mean, std);
+        assertFinite("surrogate_mean", mean);
+        assertFinite("surrogate_std", std);
+        assert(std >= 0.0);
+        std::cout << "  Surrogate mean = " << mean
+                  << " std = " << std << std::endl;
+    }
+
+    // --- 29. Active learning: reset clears history -------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::LOOP_QUANTUM_GRAVITY);
+        agent.setActiveLearningEnabled(true);
+        std::vector<double> params = {0.2375, 1.616e-35};
+        agent.evaluateTheory(params);
+        assert(agent.getEvaluationCount() >= 1);
+        agent.resetActiveLearning();
+        assert(agent.getEvaluationCount() == 0);
+        std::cout << "  Active learning reset works." << std::endl;
+    }
+
+    // --- 30. Active learning: discoverBestTheory guided by surrogate --------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+        agent.setActiveLearningEnabled(true, TheoryDiscoveryAgent::ActiveLearningMode::EI);
+        std::vector<double> p1 = {10000.0, 1.0};
+        std::vector<double> p2 = {50000.0, 0.5};
+        agent.evaluateTheory(p1);
+        agent.evaluateTheory(p2);
+        auto best = agent.discoverBestTheory(5);
+        assert(!best.empty());
+        for (size_t i = 0; i < best.size(); ++i) {
+            assertFinite("active_best_param[" + std::to_string(i) + "]", best[i]);
+        }
+        std::cout << "  Active learning best params:";
+        for (double p : best) std::cout << " " << p;
+        std::cout << std::endl;
+    }
+
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
 }

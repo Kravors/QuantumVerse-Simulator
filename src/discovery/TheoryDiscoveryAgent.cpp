@@ -6,6 +6,13 @@
 #include <iomanip>
 #include <sstream>
 #include <map>
+#include <random>
+#include <chrono>
+#ifdef _MSC_VER
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#endif
 
 namespace quantumverse {
 namespace discovery {
@@ -160,7 +167,10 @@ TheoryDiscoveryAgent::TheoryDiscoveryAgent(TheoryParameterSpace::TheoryType theo
       test_location_(0.0, 5.0, 0.0, 0.0),
       test_radius_(10.0),
       symbolic_verification_enabled_(true),
-      best_reward_so_far_(-std::numeric_limits<double>::infinity())
+      best_reward_so_far_(-std::numeric_limits<double>::infinity()),
+      active_learning_enabled_(false),
+      active_learning_mode_(ActiveLearningMode::UNCERTAINTY),
+      surrogate_(std::make_unique<TheorySurrogate>())
 {
     best_result_ = DiscoveryResult{};
 }
@@ -258,6 +268,12 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
         best_result_ = result;
     }
 
+    // Record for active learning
+    if (active_learning_enabled_) {
+        evaluation_history_.emplace_back(params, result.total_reward);
+        surrogate_->addTrainingPoint(params, result.total_reward);
+    }
+
     return result;
 }
 
@@ -265,7 +281,39 @@ std::vector<double> TheoryDiscoveryAgent::discoverBestTheory(int max_steps) {
     best_reward_so_far_ = -std::numeric_limits<double>::infinity();
     best_result_ = DiscoveryResult{};
 
-    // Run RL discovery using overridden runSimulation
+    if (active_learning_enabled_ && !evaluation_history_.empty()) {
+        // Active-learning guided search
+        std::vector<double> best_params;
+        double best_expected = -std::numeric_limits<double>::infinity();
+
+        for (int step = 0; step < max_steps; ++step) {
+            std::vector<double> candidate_norm;
+            if (step == 0) {
+                candidate_norm = std::vector<double>(param_space_.getParameterDimension(), 0.0);
+            } else {
+                candidate_norm = selectNextActiveLearningPoint();
+            }
+
+            // Denormalize to physical space for evaluation
+            std::vector<double> candidate_physical = denormalizeParams(candidate_norm);
+            auto result = evaluateTheory(candidate_physical);
+            if (result.total_reward > best_expected) {
+                best_expected = result.total_reward;
+                best_params = candidate_physical;
+            }
+        }
+
+        if (best_params.empty()) {
+            best_params = std::vector<double>(param_space_.getParameterDimension(), 0.0);
+        }
+
+        auto final_result = evaluateTheory(best_params);
+        best_result_ = final_result;
+
+        return best_params;
+    }
+
+    // Fall back to base RL discovery
     std::vector<double> best_params = RLDiscoveryAgent::discoverTheory(max_steps);
 
     // Final evaluation of best
@@ -573,6 +621,83 @@ TheoryDiscoveryAgent::BayesianComparisonResult TheoryDiscoveryAgent::computeBaye
     }
 
     return result;
+}
+
+// ============================================================================
+// Active Learning Implementation
+// ============================================================================
+
+void TheoryDiscoveryAgent::setActiveLearningEnabled(bool enabled, ActiveLearningMode mode) {
+    active_learning_enabled_ = enabled;
+    active_learning_mode_ = mode;
+    if (!enabled) {
+        resetActiveLearning();
+    }
+}
+
+void TheoryDiscoveryAgent::resetActiveLearning() {
+    evaluation_history_.clear();
+    if (surrogate_) {
+        surrogate_->clear();
+    }
+}
+
+std::vector<double> TheoryDiscoveryAgent::selectNextActiveLearningPoint() const {
+    int dim = param_space_.getParameterDimension();
+    std::vector<double> best_point;
+    double best_score = -std::numeric_limits<double>::infinity();
+
+    static thread_local std::mt19937 al_rng(static_cast<unsigned int>(
+        std::chrono::steady_clock::now().time_since_epoch().count()
+    ));
+
+    const int num_candidates = 500;
+
+    for (int i = 0; i < num_candidates; ++i) {
+        std::vector<double> candidate_norm(dim);
+        std::uniform_real_distribution<double> uniform(-1.0, 1.0);
+        for (int d = 0; d < dim; ++d) {
+            candidate_norm[d] = uniform(al_rng);
+        }
+
+        // Denormalize to physical space for surrogate evaluation
+        std::vector<double> physical = denormalizeParams(candidate_norm);
+
+        double mean = 0.0;
+        double std = 1.0;
+        surrogate_->predict(physical, mean, std);
+
+        double score = 0.0;
+        if (active_learning_mode_ == ActiveLearningMode::UNCERTAINTY) {
+            score = std;
+        } else if (active_learning_mode_ == ActiveLearningMode::EI) {
+            double best_observed = -std::numeric_limits<double>::infinity();
+            for (const auto& entry : evaluation_history_) {
+                if (entry.second > best_observed) {
+                    best_observed = entry.second;
+                }
+            }
+            if (best_observed == -std::numeric_limits<double>::infinity()) {
+                best_observed = 0.0;
+            }
+            double improvement = mean - best_observed;
+            double z = std > 1e-12 ? improvement / std : 0.0;
+            double cdf = 0.5 * (1.0 + std::erf(z / std::sqrt(2.0)));
+            double pdf = std > 1e-12 ? (1.0 / (std::sqrt(2.0 * M_PI) * std)) * std::exp(-0.5 * z * z) : 0.0;
+            score = improvement * cdf + std * pdf;
+        }
+
+        if (score > best_score) {
+            best_score = score;
+            best_point = candidate_norm;
+        }
+    }
+
+    if (best_point.empty()) {
+        best_point = std::vector<double>(dim, 0.0);
+    }
+
+    return best_point;
 }
 
 } // namespace discovery
