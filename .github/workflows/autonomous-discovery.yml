@@ -1,0 +1,153 @@
+name: Autonomous Theory Discovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      episodes:
+        description: 'Number of RL episodes to run'
+        required: false
+        default: '200'
+        type: string
+      theory:
+        description: 'Theory type to explore'
+        required: false
+        default: 'FR_GRAVITY'
+        type: choice
+        options:
+          - FR_GRAVITY
+          - BRANS_DICKE
+          - LOOP_QUANTUM_GRAVITY
+  schedule:
+    - cron: '0 2 * * 0'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      viable: ${{ steps.evaluate.outputs.viable }}
+      theory_name: ${{ steps.evaluate.outputs.theory_name }}
+      parameters: ${{ steps.evaluate.outputs.parameters }}
+      total_reward: ${{ steps.evaluate.outputs.total_reward }}
+      observational_chi2: ${{ steps.evaluate.outputs.observational_chi2 }}
+      theoretical_penalty: ${{ steps.evaluate.outputs.theoretical_penalty }}
+      lorentzian_valid: ${{ steps.evaluate.outputs.lorentzian_valid }}
+      near_singularity: ${{ steps.evaluate.outputs.near_singularity }}
+      result_json: ${{ steps.discovery.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3 python3-pip libgl1-mesa-dev
+
+      - name: Install Python packages
+        run: pip install sympy numpy
+
+      - name: Configure CMake (no Qt)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=OFF
+
+      - name: Build discovery runner
+        run: cmake --build build --config Release --target theory_discovery_runner --parallel
+
+      - name: Run autonomous discovery
+        id: discovery
+        run: |
+          EPISODES="${{ github.event.inputs.episodes || '200' }}"
+          THEORY="${{ github.event.inputs.theory || 'FR_GRAVITY' }}"
+          OUTPUT=$(./build/Release/theory_discovery_runner --episodes "$EPISODES" --theory "$THEORY")
+          echo "$OUTPUT" > discovery_result.json
+          {
+            echo "result<<EOF"
+            cat discovery_result.json
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Evaluate discovery result
+        id: evaluate
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          with open("discovery_result.json") as f:
+              data = json.load(f)
+
+          reward = data.get("total_reward", -1e9)
+          chi2 = data.get("observational_chi2", 1e9)
+          penalty = data.get("theoretical_penalty", 1e9)
+          valid = data.get("lorentzian_valid", False)
+          singular = data.get("near_singularity", True)
+
+          print(f"total_reward={reward}")
+          print(f"observational_chi2={chi2}")
+          print(f"theoretical_penalty={penalty}")
+          print(f"lorentzian_valid={valid}")
+          print(f"near_singularity={singular}")
+
+          viable = valid and not singular and chi2 < 10.0 and penalty < 500.0
+          print(f"viable={viable}")
+
+          with open(GITHUB_OUTPUT, "a") as f:
+              f.write(f"viable={'true' if viable else 'false'}\n")
+              f.write(f"theory_name={data.get('theory_name','')}\n")
+              params = ",".join(str(p) for p in data.get("parameters", []))
+              f.write(f"parameters={params}\n")
+              f.write(f"total_reward={reward}\n")
+              f.write(f"observational_chi2={chi2}\n")
+              f.write(f"theoretical_penalty={penalty}\n")
+              f.write(f"lorentzian_valid={'true' if valid else 'false'}\n")
+              f.write(f"near_singularity={'true' if singular else 'false'}\n")
+          PY
+
+      - name: Open discovery issue
+        if: steps.evaluate.outputs.viable == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          with open("discovery_result.json") as f:
+              data = json.load(f)
+
+          title = f"[Auto-Discovery] Candidate {data.get('theory_name','')} theory found (reward={data.get('total_reward', 0):.4f})"
+
+          body = f"""## Autonomous Discovery Result
+
+          The TheoryDiscoveryAgent discovered a candidate theory during the nightly run.
+
+          | Metric | Value |
+          |--------|-------|
+          | Theory | {data.get('theory_name','')} |
+          | Total reward | {data.get('total_reward', 0):.6f} |
+          | Observational chi2 | {data.get('observational_chi2', 0):.6f} |
+          | Theoretical penalty | {data.get('theoretical_penalty', 0):.6f} |
+          | Simplicity penalty | {data.get('simplicity_penalty', 0):.6f} |
+          | Lorentzian valid | {data.get('lorentzian_valid', False)} |
+          | Kretschmann non-neg | {data.get('kretschmann_nonneg', False)} |
+          | Near singularity | {data.get('near_singularity', False)} |
+
+          ### Parameters
+          ```
+          {', '.join(str(p) for p in data.get('parameters', []))}
+          ```
+
+          ### Raw JSON
+          ```json
+          {json.dumps(data, indent=2)}
+          ```
+
+          ---
+          *This issue was automatically generated by the QuantumVerse autonomous discovery pipeline.*
+          """
+
+          subprocess.run([
+              "gh", "issue", "create",
+              "--repo", os.environ["GITHUB_REPOSITORY"],
+              "--title", title,
+              "--body", body,
+              "--label", "autonomous-discovery"
+          ], check=True, env={**os.environ, "GH_TOKEN": os.environ["GITHUB_TOKEN"]})
+          PY
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}

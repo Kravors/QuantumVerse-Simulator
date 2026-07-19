@@ -662,6 +662,20 @@ if(QUANTUMVERSE_BUILD_TESTS)
         ENVIRONMENT "PATH=${QT_RUNTIME_DEST};$ENV{PATH};FUZZ_CYCLES=100"
     )
 
+    # Phase 22: Autonomous discovery runner (outputs JSON to stdout)
+    add_executable(theory_discovery_runner
+        tools/theory_discovery_runner.cpp
+        src/discovery/DiscoveryEngine.cpp
+        src/discovery/SymbolicMath.cpp
+        src/discovery/TheoryParameterSpace.cpp
+        src/discovery/TheoryDiscoveryAgent.cpp
+        src/discovery/RLDiscoveryAgent.cpp
+        src/discovery/TheoryManager.cpp
+        src/physics/CurvatureCalculator.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+    )
+    target_link_libraries(theory_discovery_runner PRIVATE dilaton)
+
     # Performance regression gate: actual benchmark measurements
     add_executable(test_performance_regression
         tests/test_performance_regression.cpp
