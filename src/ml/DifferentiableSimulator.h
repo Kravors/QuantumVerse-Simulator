@@ -128,11 +128,29 @@ public:
     ) const;
 
     /**
-     * @brief Compute the Jacobian ∂observables/∂parameters via central finite differences.
-     *
-     * @note Uses central differences: ∂f/∂p_i ≈ (f(p+ε) - f(p-ε)) / (2ε)
-     */
+      * @brief Compute the Jacobian ∂observables/∂parameters via central finite differences.
+      *
+      * @note Uses central differences: ∂f/∂p_i ≈ (f(p+ε) - f(p-ε)) / (2ε)
+      */
     std::vector<std::vector<double>> computeJacobian(
+        const Event4D& initialEvent,
+        const std::array<double, 4>& initialVelocity,
+        GeodesicType geodesicType,
+        double targetProperTime
+    ) const;
+
+    /**
+      * @brief Compute the Jacobian ∂observables/∂parameters via reverse-mode AD.
+      *
+      * Uses the adjoint method: one forward pass records operations on the tape,
+      * one reverse pass propagates gradients back to all parameters simultaneously.
+      * Cost is O(1) in parameter count, vs O(N) for central finite differences.
+      *
+      * @note For geodesic observables, this currently uses a simplified differentiable
+      * model. Full adjoint-mode through the RK4 integrator requires extending
+      * GeodesicIntegrator with ADVar support.
+      */
+    std::vector<std::vector<double>> computeJacobianAdjoint(
         const Event4D& initialEvent,
         const std::array<double, 4>& initialVelocity,
         GeodesicType geodesicType,

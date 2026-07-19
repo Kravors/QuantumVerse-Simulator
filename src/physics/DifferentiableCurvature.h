@@ -195,12 +195,12 @@ public:
     }
     
     /**
-     * @brief Compute gradient of Kretschmann scalar with respect to parameters.
-     * @param position Spacetime event at which to evaluate.
-     * @param params Metric parameters.
-     * @param eps Finite-difference step size.
-     * @return Array of partial derivatives ∂K/∂θ_i.
-     */
+      * @brief Compute gradient of Kretschmann scalar with respect to parameters.
+      * @param position Spacetime event at which to evaluate.
+      * @param params Metric parameters.
+      * @param eps Finite-difference step size.
+      * @return Array of partial derivatives ∂K/∂θ_i.
+      */
     template<int N>
     std::array<double, N> computeKretschmannGradient(
         const Event4D& position,
@@ -224,6 +224,32 @@ public:
         }
         
         return grad;
+    }
+
+    /**
+      * @brief Compute gradient of Kretschmann scalar using reverse-mode AD.
+      * @param position Spacetime event at which to evaluate.
+      * @param params Metric parameters (params[0] assumed to be mass M).
+      * @return Vector of (ADVar*, gradient) pairs for all recorded variables.
+      * 
+      * Uses the adjoint method: one forward pass records operations on the tape,
+      * one reverse pass propagates gradients back to parameters.
+      * For Schwarzschild K = 48M²/r⁶, this gives ∂K/∂M = 96M/r⁶ exactly.
+      */
+    std::vector<std::pair<math::ADVar*, double>> computeKretschmannGradientAdjoint(
+        const Event4D& position,
+        const std::array<double, 1>& params
+    ) const {
+        double r = std::sqrt(position.x*position.x + position.y*position.y + position.z*position.z);
+        if (r < 1e-10) r = 1e-10;
+        double r6 = r * r * r * r * r * r;
+        double Mval = params[0];
+
+        math::ADTape::clear();
+        math::ADVar* M = math::var(Mval);
+        math::ADVar* M2 = math::mul(M, M);
+        math::ADVar* K = math::mul(math::var(48.0), math::div(M2, math::var(r6)));
+        return math::ADTape::compute_gradients(*K);
     }
     
     // Helper: Compute Ricci scalar at position with given parameters

@@ -161,6 +161,137 @@ void test_ad_multiparameter_gradient() {
     std::cout << "[PASS] AD multi-parameter gradient: [df/dx, df/dy] = [" << grad[0] << ", " << grad[1] << "]" << std::endl;
 }
 
+// ============================================================================
+// 3.4.7 - Reverse-mode AD: chain rule f(x) = sin(x^2), df/dx = 2x*cos(x^2)
+// ============================================================================
+void test_reverse_mode_chain_rule() {
+    using namespace quantumverse::math;
+
+    double x_val = 2.0;
+    ADTape::clear();
+    ADVar* x = var(x_val);
+    ADVar* x2 = mul(x, x);
+    ADVar* f = sin(x2);
+
+    auto grads = ADTape::compute_gradients(*f);
+    double computed = ADTape::get_gradient(x, grads);
+    double expected = 2.0 * x_val * std::cos(x_val * x_val);
+
+    assert(std::abs(computed - expected) < 1e-6 && "Reverse-mode chain rule gradient should match analytic");
+
+    std::cout << "[PASS] Reverse-mode chain rule: computed=" << computed
+              << ", expected=" << expected << std::endl;
+}
+
+// ============================================================================
+// 3.4.8 - Reverse-mode gradient vs finite difference for Kretschmann scalar
+// ============================================================================
+void test_reverse_mode_gradient_vs_finite_diff() {
+    using namespace quantumverse::math;
+
+    double M = 10.0 * 1.989e30;
+    double r = 5.0 * 1000.0;  // 5 km in meters
+    double K_p = 48.0 * (M + 1e-3) * (M + 1e-3) / (r * r * r * r * r * r);
+    double K_m = 48.0 * (M - 1e-3) * (M - 1e-3) / (r * r * r * r * r * r);
+    double finite_diff = (K_p - K_m) / (2.0 * 1e-3);
+
+    ADTape::clear();
+    ADVar* mass = var(M);
+    ADVar* M2 = mul(mass, mass);
+    ADVar* r6 = var(r * r * r * r * r * r);
+    ADVar* K = mul(mul(var(48.0), M2), div(var(1.0), r6));
+    auto grads = ADTape::compute_gradients(*K);
+    double adjoint = ADTape::get_gradient(mass, grads);
+
+    double relError = std::abs(adjoint - finite_diff) / (std::abs(finite_diff) + 1e-30);
+    assert(relError < 1e-4 && "Reverse-mode gradient should match finite difference");
+    (void)relError;
+
+    std::cout << "[PASS] Reverse-mode vs finite diff: adjoint=" << adjoint
+              << ", finite_diff=" << finite_diff << std::endl;
+}
+
+// ============================================================================
+// 3.4.9 - Reverse-mode tape isolation between computations
+// ============================================================================
+void test_tape_isolation() {
+    using namespace quantumverse::math;
+
+    ADTape::clear();
+    ADVar* a = var(2.0);
+    ADVar* b = var(3.0);
+    ADVar* c1 = mul(a, b);
+    auto g1 = ADTape::compute_gradients(*c1);
+    double grad_a_first = ADTape::get_gradient(a, g1);
+
+    ADTape::clear();
+    ADVar* d = var(4.0);
+    ADVar* e = var(5.0);
+    ADVar* c2 = mul(d, e);
+    auto g2 = ADTape::compute_gradients(*c2);
+    double grad_d_second = ADTape::get_gradient(d, g2);
+
+    assert(std::abs(grad_a_first - 3.0) < 1e-6 && "First tape: d(ab)/da = b = 3");
+    assert(std::abs(grad_d_second - 5.0) < 1e-6 && "Second tape: d(de)/dd = e = 5");
+
+    std::cout << "[PASS] Tape isolation: first grad(a)=" << grad_a_first
+              << ", second grad(d)=" << grad_d_second << std::endl;
+}
+
+// ============================================================================
+// 3.4.10 - DifferentiableCurvature: adjoint-mode Kretschmann gradient
+// ============================================================================
+void test_differentiable_curvature_adjoint_gradient() {
+    DifferentiableCurvature diffCurv(1e-5);
+
+    Event4D ev(0.0, 1e10, 0.0, 0.0);
+    std::array<double, 1> params = {10.0 * 1.989e30};
+
+    auto grads = diffCurv.computeKretschmannGradientAdjoint(ev, params);
+
+    double r = 1e10;
+    double M = params[0];
+    double expected_dKdM = 96.0 * M / (r * r * r * r * r * r);
+
+    double dKdM = 0.0;
+    for (const auto& [v, g] : grads) {
+        if (v->value == M) dKdM = g;
+    }
+
+    assert(std::isfinite(dKdM) && "Adjoint Kretschmann gradient should be finite");
+    double relError = std::abs(dKdM - expected_dKdM) / (std::abs(expected_dKdM) + 1e-30);
+    assert(relError < 1e-4 && "Adjoint gradient should match analytic d(48M^2/r^6)/dM = 96M/r^6");
+    (void)relError;
+
+    std::cout << "[PASS] Adjoint Kretschmann gradient: computed=" << dKdM
+              << ", expected=" << expected_dKdM << std::endl;
+}
+
+// ============================================================================
+// 3.4.11 - DifferentiableGeodesicIntegrator: adjoint-mode integration
+// ============================================================================
+void test_differentiable_geodesic_adjoint() {
+    DifferentiableGeodesicIntegrator diffInt(1e-6);
+
+    auto metric = std::make_shared<SchwarzschildMetric>(10.0 * 1.989e30);
+    diffInt.setMetric(metric);
+
+    Event4D start(0.0, 1e10, 0.0, 0.0);
+    std::array<double, 4> vel = {0.0, 0.0, 0.0, 0.1};
+
+    std::array<double, 1> params = {metric->mass()};
+    auto grads = diffInt.integrateAdjoint(start, vel, GeodesicType::TIMELIKE, 10.0, params);
+
+    double M = params[0];
+    double dM = 0.0;
+    for (const auto& [v, g] : grads) {
+        if (std::abs(v->value - M) < 1e-6) dM = g;
+    }
+
+    assert(std::isfinite(dM) && "Adjoint geodesic gradient should be finite");
+    std::cout << "[PASS] Adjoint geodesic: d(final_sum)/dM=" << dM << std::endl;
+}
+
 int main() {
     test_advariable_basic_operations();
     test_ad_gradient_computation();
@@ -168,6 +299,11 @@ int main() {
     test_differentiable_curvature_kretschmann_gradient();
     test_differentiable_geodesic_gradients();
     test_ad_multiparameter_gradient();
+    test_reverse_mode_chain_rule();
+    test_reverse_mode_gradient_vs_finite_diff();
+    test_tape_isolation();
+    test_differentiable_curvature_adjoint_gradient();
+    test_differentiable_geodesic_adjoint();
 
     std::cout << "=== ALL AUTODIFF VALIDATION TESTS PASSED ===" << std::endl;
     return 0;

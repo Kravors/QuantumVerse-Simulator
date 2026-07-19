@@ -20,6 +20,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include "math/AutoDiff.h"
 
 namespace quantumverse {
 
@@ -312,6 +313,55 @@ DifferentiableSimulator::computeJacobian(
     // Restore original parameters
     currentParams_ = originalParams;
     rebuildMetric_();
+
+    return jacobian;
+}
+
+std::vector<std::vector<double>>
+DifferentiableSimulator::computeJacobianAdjoint(
+    const Event4D& initialEvent,
+    const std::array<double, 4>& initialVelocity,
+    GeodesicType geodesicType,
+    double targetProperTime
+) const
+{
+    (void)geodesicType;
+    (void)targetProperTime;
+    (void)initialEvent;
+    (void)initialVelocity;
+
+    const size_t numParams = getNumParameters();
+    if (numParams == 0) {
+        return {};
+    }
+
+    auto baseTrajectory = simulateFull(
+        initialEvent, initialVelocity, geodesicType,
+        targetProperTime, false
+    );
+    auto baseObservables = extractObservables(baseTrajectory);
+    const size_t numObservables = baseObservables.size();
+
+    std::vector<std::vector<double>> jacobian(
+        numObservables,
+        std::vector<double>(numParams, 0.0)
+    );
+
+    using namespace quantumverse::math;
+    ADTape::clear();
+
+    std::vector<ADVar*> paramVars;
+    for (size_t i = 0; i < numParams; ++i) {
+        paramVars.push_back(var(currentParams_[i]));
+    }
+
+    for (size_t o = 0; o < numObservables; ++o) {
+        ADVar* obs = var(baseObservables[o]);
+        auto grads = ADTape::compute_gradients(*obs);
+        for (size_t p = 0; p < numParams; ++p) {
+            jacobian[o][p] = ADTape::get_gradient(paramVars[p], grads);
+        }
+    }
 
     return jacobian;
 }

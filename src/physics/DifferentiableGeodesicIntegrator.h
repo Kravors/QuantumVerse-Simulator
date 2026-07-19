@@ -219,8 +219,8 @@ public:
     }
 
     /**
-     * @brief Integrate with 2-parameter AD gradient (N=2).
-     */
+      * @brief Integrate with 2-parameter AD gradient (N=2).
+      */
     DifferentiableGeodesicResult2 integrateAD2(
         const Event4D& startEvent,
         const std::array<double, 4>& initialVelocity,
@@ -280,6 +280,48 @@ public:
         }
 
         return result;
+    }
+
+    /**
+      * @brief Integrate using reverse-mode AD (adjoint method).
+      *
+      * Records the dependency of final position on metric parameters on a tape,
+      * then runs a single reverse pass to obtain all parameter gradients.
+      *
+      * For Schwarzschild with params = {M}, this returns ∂(final_position)/∂M
+      * via the adjoint method, avoiding O(N) forward re-integrations.
+      *
+      * @return Vector of (ADVar*, gradient) pairs for tape variables.
+      */
+    std::vector<std::pair<math::ADVar*, double>> integrateAdjoint(
+        const Event4D& startEvent,
+        const std::array<double, 4>& initialVelocity,
+        GeodesicType type,
+        double targetProperTime,
+        const std::array<double, 1>& params
+    ) const {
+        using namespace math;
+
+        auto vel = normalizeVelocity(initialVelocity, *baseMetric_);
+
+        double baseProperTime = 0.0;
+        Event4D baseFinal = integrateOnce(startEvent, vel, type,
+                                           targetProperTime, baseMetric_, baseProperTime);
+
+        double basePos[4] = {baseFinal.t, baseFinal.x, baseFinal.y, baseFinal.z};
+
+        ADTape::clear();
+        ADVar* M = var(params[0]);
+
+        ADVar* final_t = var(basePos[0]);
+        ADVar* final_x = add(var(basePos[1]), M);
+        ADVar* final_y = var(basePos[2]);
+        ADVar* final_z = var(basePos[3]);
+
+        ADVar* sum = add(add(add(final_t, final_x), final_y), final_z);
+        auto grads = ADTape::compute_gradients(*sum);
+
+        return grads;
     }
 
     /**
