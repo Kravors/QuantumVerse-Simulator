@@ -1197,19 +1197,25 @@ if(QUANTUMVERSE_BUILD_TESTS)
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues
-find_program(GLSLANGVALIDATOR glslangValidator REQUIRED)
+find_program(GLSLANGVALIDATOR glslangValidator)
+
 file(GLOB_RECURSE SHADER_FILES
     "${CMAKE_SOURCE_DIR}/data/shaders/*.vert"
     "${CMAKE_SOURCE_DIR}/data/shaders/*.frag"
 )
-add_custom_target(validate_shaders
-    COMMAND PowerShell -ExecutionPolicy Bypass -File "${CMAKE_SOURCE_DIR}/scripts/validate_shaders.ps1"
-        -ValidatorPath "${GLSLANGVALIDATOR}"
-        -ShaderRoot "${CMAKE_SOURCE_DIR}/data/shaders"
-        ${SHADER_FILES}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Validating all shaders with glslangValidator"
-)
+
+if(GLSLANGVALIDATOR)
+    add_custom_target(validate_shaders
+        COMMAND PowerShell -ExecutionPolicy Bypass -File "${CMAKE_SOURCE_DIR}/scripts/validate_shaders.ps1"
+            -ValidatorPath "${GLSLANGVALIDATOR}"
+            -ShaderRoot "${CMAKE_SOURCE_DIR}/data/shaders"
+            ${SHADER_FILES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Validating all shaders with glslangValidator"
+    )
+else()
+    message(STATUS "glslangValidator not found - shader validation target disabled")
+endif()
 
 # Install rules for packaging
 if(WIN32)
