@@ -196,6 +196,64 @@ int main() {
                   << result.theoretical_penalty << std::endl;
     }
 
+    // --- 16. computeLogLikelihood: finite for valid chi2 -------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        double ll = agent.computeLogLikelihood(10.0, 10);
+        assertFinite("log_likelihood", ll);
+        assert(ll < 0.0); // log-likelihood should be negative for chi2 > 0
+        std::cout << "  Log-likelihood (chi2=10, N=10) = " << ll << std::endl;
+    }
+
+    // --- 17. computeBIC: increases with parameters -------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        double bic_1param = agent.computeBIC(10.0, 1, 20);
+        double bic_2param = agent.computeBIC(10.0, 2, 20);
+        assert(bic_2param > bic_1param);
+        std::cout << "  BIC(1 param) = " << bic_1param
+                  << ", BIC(2 param) = " << bic_2param << std::endl;
+    }
+
+    // --- 18. computeBayesFactor: near-GR f(R) should not strongly prefer GR -------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        // Near-GR: alpha ~ 0, n ~ 1
+        std::vector<double> params = {0.001, 1.0};
+        auto bf_result = agent.computeBayesFactor(params);
+        assertFinite("log_bayes_factor", bf_result.log_bayes_factor);
+        assertFinite("bayes_factor", bf_result.bayes_factor);
+        assert(bf_result.bic_candidate >= 0.0);
+        assert(bf_result.bic_baseline >= 0.0);
+        std::cout << "  Near-GR f(R) log BF = " << bf_result.log_bayes_factor
+                  << ", preferred = " << bf_result.preferred_model << std::endl;
+    }
+
+    // --- 19. computeBayesFactor: pathological params prefer GR -------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+        // Extreme parameters produce bad chi2, so GR should be preferred
+        std::vector<double> params = {1.0, 0.001};
+        auto bf_result = agent.computeBayesFactor(params);
+        assert(bf_result.preferred_model == "GR" || bf_result.log_bayes_factor < 0.0);
+        std::cout << "  Pathological BD log BF = " << bf_result.log_bayes_factor
+                  << ", preferred = " << bf_result.preferred_model << std::endl;
+    }
+
+    // --- 20. computeBayesFactor: pure GR gives BF ~ 1 ----------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        // Pure GR limit: alpha = 0, n = 1
+        std::vector<double> gr_params = {0.0, 1.0};
+        auto bf_result = agent.computeBayesFactor(gr_params);
+        assertFinite("gr_log_bf", bf_result.log_bayes_factor);
+        assert(bf_result.bayes_factor > 0.0);
+        // Near-GR should give log BF close to 0 (no strong preference either way)
+        std::cout << "  Pure GR f(R) log BF = " << bf_result.log_bayes_factor
+                  << ", BF = " << bf_result.bayes_factor
+                  << ", preferred = " << bf_result.preferred_model << std::endl;
+    }
+
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
 }

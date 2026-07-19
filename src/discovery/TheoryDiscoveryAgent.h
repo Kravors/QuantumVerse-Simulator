@@ -84,9 +84,57 @@ public:
     const DiscoveryResult& getBestResult() const;
 
     /**
-     * @brief Compute observational chi-squared for a given theory metric.
-     * Uses embedded Pantheon+ sample against Planck 2018 flat LCDM baseline.
+     * @brief Result of Bayesian model comparison.
      */
+    struct BayesianComparisonResult {
+        double log_likelihood = 0.0;       ///< Log-likelihood from chi-squared
+        double bic_candidate = 0.0;        ///< Bayesian Information Criterion for candidate
+        double bic_baseline = 0.0;         ///< BIC for GR baseline
+        double log_bayes_factor = 0.0;     ///< log(BF) where BF = P(data|candidate)/P(data|GR)
+        double bayes_factor = 1.0;         ///< Bayes factor (clamped to avoid overflow)
+        std::string preferred_model;       ///< "candidate", "GR", or "inconclusive"
+        double evidence_ratio = 1.0;       ///< P(data|candidate) / P(data|GR)
+    };
+
+    /**
+     * @brief Compute log-likelihood from observational chi-squared.
+     * Uses Gaussian approximation: log L = -0.5 * chi2 * N (up to constant).
+     * @param chi2 Observational chi-squared value.
+     * @param n_data Number of data points.
+     * @return Log-likelihood (higher is better).
+     */
+    double computeLogLikelihood(double chi2, int n_data) const;
+
+    /**
+     * @brief Compute Bayesian Information Criterion (BIC).
+     * BIC = chi2 + k * log(N), where k = number of parameters, N = data points.
+     * Lower BIC indicates better model after penalizing complexity.
+     * @param chi2 Chi-squared value.
+     * @param n_params Number of free parameters.
+     * @param n_data Number of data points.
+     * @return BIC value.
+     */
+    double computeBIC(double chi2, int n_params, int n_data) const;
+
+    /**
+     * @brief Compute Bayes factor comparing candidate theory to GR baseline.
+     * Uses BIC approximation: log BF = (BIC_GR - BIC_candidate) / 2.
+     * BF > 1 favors candidate; BF < 1 favors GR.
+     * @param candidate_params Candidate theory parameters (normalized).
+     * @return BayesianComparisonResult with all metrics.
+     */
+    BayesianComparisonResult computeBayesFactor(
+        const std::vector<double>& candidate_params
+    ) const;
+
+    /**
+     * @brief Compute GR baseline chi-squared for current theory type.
+     * Returns chi2 for the pure-GR limit of the theory.
+     * @return Chi-squared for GR baseline.
+     */
+    double computeGRBaselineChi2() const;
+
+    // Helper: compute observational chi-squared for a given theory metric.
     double computeObservationalChi2(
         const MetricTensor& metric,
         const std::map<std::string, double>& params

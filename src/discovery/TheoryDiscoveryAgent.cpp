@@ -395,5 +395,124 @@ double TheoryDiscoveryAgent::computeGW170817Chi2(
     return chi2;
 }
 
+// ============================================================================
+// Bayesian Model Comparison
+// ============================================================================
+
+double TheoryDiscoveryAgent::computeLogLikelihood(double chi2, int n_data) const {
+    if (n_data <= 0) return -std::numeric_limits<double>::infinity();
+    if (!std::isfinite(chi2) || chi2 < 0.0) return -std::numeric_limits<double>::infinity();
+    return -0.5 * chi2;
+}
+
+double TheoryDiscoveryAgent::computeBIC(double chi2, int n_params, int n_data) const {
+    if (!std::isfinite(chi2) || chi2 < 0.0) return std::numeric_limits<double>::infinity();
+    if (n_data <= 1) n_data = 2;
+    return chi2 + static_cast<double>(n_params) * std::log(static_cast<double>(n_data));
+}
+
+double TheoryDiscoveryAgent::computeGRBaselineChi2() const {
+    // Compute chi2 for the pure-GR limit of the current theory type
+    std::vector<double> gr_params;
+
+    switch (param_space_.getTheoryType()) {
+        case TheoryParameterSpace::TheoryType::FR_GRAVITY:
+            // GR limit: alpha = 0 (no f(R) modification), n = 1 (pure R term)
+            gr_params = {0.0, 1.0};
+            break;
+
+        case TheoryParameterSpace::TheoryType::BRANS_DICKE:
+            // GR limit: omega -> infinity, phi0 = 1
+            gr_params = {1.0e6, 1.0};
+            break;
+
+        case TheoryParameterSpace::TheoryType::LOOP_QUANTUM_GRAVITY:
+            // GR limit: gamma = 0, lambda = 0 (no polymer corrections)
+            gr_params = {0.0, 0.0};
+            break;
+
+        case TheoryParameterSpace::TheoryType::CUSTOM:
+        default:
+            gr_params = std::vector<double>(param_space_.getParameterDimension(), 0.0);
+            break;
+    }
+
+    auto param_map = param_space_.parameterVectorToMap(gr_params);
+    auto plugin = instantiateTheory(gr_params);
+    if (!plugin) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    MetricTensor metric = plugin->computeMetric(test_location_, param_map);
+    double chi2 = computeObservationalChi2(metric, param_map);
+    chi2 += computeGW170817Chi2(metric, param_map);
+    return chi2;
+}
+
+TheoryDiscoveryAgent::BayesianComparisonResult TheoryDiscoveryAgent::computeBayesFactor(
+    const std::vector<double>& candidate_params
+) const {
+    BayesianComparisonResult result;
+
+    // Compute candidate chi2
+    auto candidate_map = param_space_.parameterVectorToMap(candidate_params);
+    auto candidate_plugin = instantiateTheory(candidate_params);
+    if (!candidate_plugin) {
+        result.log_bayes_factor = -std::numeric_limits<double>::infinity();
+        result.bayes_factor = 0.0;
+        result.preferred_model = "GR";
+        return result;
+    }
+
+    MetricTensor candidate_metric = candidate_plugin->computeMetric(test_location_, candidate_map);
+    double candidate_chi2 = computeObservationalChi2(candidate_metric, candidate_map);
+    candidate_chi2 += computeGW170817Chi2(candidate_metric, candidate_map);
+
+    // Compute GR baseline chi2
+    double gr_chi2 = computeGRBaselineChi2();
+
+    // Number of data points (Pantheon+ sample + GW170817)
+    int n_data = static_cast<int>(PANETHEON_SAMPLE.size()) + 1;
+    int n_params = static_cast<int>(candidate_params.size());
+    int n_gr_params = 0; // GR has no extra free parameters
+
+    // Compute log-likelihoods
+    result.log_likelihood = computeLogLikelihood(candidate_chi2, n_data);
+
+    // Compute BICs
+    result.bic_candidate = computeBIC(candidate_chi2, n_params, n_data);
+    result.bic_baseline = computeBIC(gr_chi2, n_gr_params, n_data);
+
+    // Bayes factor via BIC approximation: log BF = (BIC_GR - BIC_candidate) / 2
+    result.log_bayes_factor = (result.bic_baseline - result.bic_candidate) / 2.0;
+
+    // Clamp to avoid overflow in exp
+    const double LOG_BF_MAX = 700.0;
+    const double LOG_BF_MIN = -700.0;
+    if (result.log_bayes_factor > LOG_BF_MAX) {
+        result.bayes_factor = std::numeric_limits<double>::infinity();
+    } else if (result.log_bayes_factor < LOG_BF_MIN) {
+        result.bayes_factor = 0.0;
+    } else {
+        result.bayes_factor = std::exp(result.log_bayes_factor);
+    }
+
+    // Evidence ratio (same as BF for this two-model comparison)
+    result.evidence_ratio = result.bayes_factor;
+
+    // Determine preferred model
+    // BF > 1: candidate preferred; BF < 1: GR preferred
+    // Use Jeffreys scale: |log BF| > 1 is "substantial", > 2 is "strong", > 3 is "decisive"
+    if (result.log_bayes_factor > 2.0) {
+        result.preferred_model = "candidate";
+    } else if (result.log_bayes_factor < -2.0) {
+        result.preferred_model = "GR";
+    } else {
+        result.preferred_model = "inconclusive";
+    }
+
+    return result;
+}
+
 } // namespace discovery
 } // namespace quantumverse
