@@ -29,6 +29,83 @@ void assertFinite(const std::string& label, double v) {
 }
 }
 
+void test_active_learning_disabled_by_default() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    assert(!agent.isActiveLearningEnabled() && "Active learning should be disabled by default");
+}
+
+void test_active_learning_enable_toggle() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
+    assert(agent.isActiveLearningEnabled() && "Active learning should be enabled after set(true)");
+    agent.setActiveLearningEnabled(false);
+    assert(!agent.isActiveLearningEnabled() && "Active learning should be disabled after set(false)");
+}
+
+void test_surrogate_prediction_after_training() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
+
+    std::vector<double> p1 = {0.1, 1.0};
+    std::vector<double> p2 = {0.3, 1.5};
+    std::vector<double> p3 = {0.5, 2.0};
+    agent.evaluateTheory(p1);
+    agent.evaluateTheory(p2);
+    agent.evaluateTheory(p3);
+
+    const TheorySurrogate* surrogate = agent.getSurrogate();
+    assert(surrogate != nullptr);
+    assert(surrogate->getTrainingSize() >= 3);
+
+    double mean = 0.0, std = 0.0;
+    surrogate->predict({0.2, 1.2}, mean, std);
+    assert(std::isfinite(mean) && "Prediction mean should be finite");
+    assert(std::isfinite(std) && "Prediction std should be finite");
+    assert(std >= 0.0 && "Predictive std should be non-negative");
+}
+
+void test_uncertainty_sampling_selects_point() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
+
+    for (int i = 0; i < 10; ++i) {
+        std::vector<double> p = {0.1 + 0.05 * i, 1.0 + 0.1 * i};
+        agent.evaluateTheory(p);
+    }
+
+    agent.setActiveLearningEnabled(
+        true, TheoryDiscoveryAgent::ActiveLearningMode::UNCERTAINTY);
+    std::vector<double> next = agent.selectNextActiveLearningPoint();
+    assert(next.size() == 2);
+    assert(next[0] >= -2.0 && next[0] <= 2.0);
+    assert(next[1] >= -2.0 && next[1] <= 2.0);
+}
+
+void test_expected_improvement_selects_point() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
+
+    for (int i = 0; i < 10; ++i) {
+        std::vector<double> p = {0.1 + 0.05 * i, 1.0 + 0.1 * i};
+        agent.evaluateTheory(p);
+    }
+
+    agent.setActiveLearningEnabled(true, TheoryDiscoveryAgent::ActiveLearningMode::EI);
+    std::vector<double> next = agent.selectNextActiveLearningPoint();
+    assert(next.size() == 2);
+    assert(next[0] >= -2.0 && next[0] <= 2.0);
+    assert(next[1] >= -2.0 && next[1] <= 2.0);
+}
+
+void test_evaluation_count_tracks() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    assert(agent.getEvaluationCount() == 0u);
+    agent.evaluateTheory({0.2, 1.0});
+    assert(agent.getEvaluationCount() == 1u);
+    agent.evaluateTheory({0.3, 1.5});
+    assert(agent.getEvaluationCount() == 2u);
+}
+
 int main() {
     std::cout << "=== TheoryDiscoveryAgentTest ===" << std::endl;
 
@@ -407,6 +484,24 @@ int main() {
         for (double p : best) std::cout << " " << p;
         std::cout << std::endl;
     }
+
+    // --- 31. Active learning: disabled by default ----------------------------------
+    test_active_learning_disabled_by_default();
+
+    // --- 32. Active learning: enable/disable toggle ---------------------------------
+    test_active_learning_enable_toggle();
+
+    // --- 33. Active learning: surrogate prediction after training -------------------
+    test_surrogate_prediction_after_training();
+
+    // --- 34. Active learning: uncertainty sampling selects valid point ---------------
+    test_uncertainty_sampling_selects_point();
+
+    // --- 35. Active learning: expected improvement selects valid point ---------------
+    test_expected_improvement_selects_point();
+
+    // --- 36. Active learning: evaluation count tracks precisely ---------------------
+    test_evaluation_count_tracks();
 
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
