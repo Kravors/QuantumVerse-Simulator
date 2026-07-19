@@ -461,7 +461,7 @@ public:
             // Check if step was rejected
             if (y_new == y && adaptive) {
                 stepSize = newStep;
-                if (stepSize < minStepSize) break;
+                if (stepSize <= minStepSize) break;
                 continue;
             }
 

@@ -237,6 +237,8 @@ std::array<std::array<std::array<double, 4>, 4>, 4> PhysicsValidator::computeChr
     const Event4D& position,
     double h)
 {
+    (void)position;
+    (void)h;
     std::array<std::array<std::array<double, 4>, 4>, 4> christoffel{};
 
     // For a constant metric (like Minkowski), all Christoffel symbols are zero

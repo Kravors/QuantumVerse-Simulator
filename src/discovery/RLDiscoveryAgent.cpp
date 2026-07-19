@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <random>
+#include <filesystem>
 
 namespace quantumverse {
 namespace discovery {
@@ -264,6 +265,8 @@ double RLDiscoveryAgent::getAverageReward(int window_size) const {
 }
 
 void RLDiscoveryAgent::savePolicy(const std::string& path) const {
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
     std::ofstream file(path);
     if (!file.is_open()) throw std::runtime_error("Cannot open file: " + path);
     auto params = policy->getParameters();
