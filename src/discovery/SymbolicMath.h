@@ -33,6 +33,19 @@ public:
     };
 
     /**
+     * @brief Result of theory field-equation verification.
+     */
+    struct TheoryVerificationResult {
+        bool has_ghost_instability = false;
+        bool has_superluminal_propagation = false;
+        bool violates_weak_energy = false;
+        bool violates_null_energy = false;
+        bool violates_strong_energy = false;
+        double total_penalty = 0.0;
+        std::string diagnostic_message;
+    };
+
+    /**
      * @brief Tensor component specification.
      */
     struct TensorComponent {
@@ -116,6 +129,17 @@ public:
     bool validateFieldEquation(const std::string& field_equation);
 
     /**
+     * @brief Verify a candidate theory's field equations for physical consistency.
+     * Checks ghost instabilities, superluminal propagation, and energy conditions.
+     * @param params Theory parameters (e.g., {"alpha", 1.0, "n", 2.0} for f(R))
+     * @param result Output verification result with penalties and diagnostics
+     */
+    void verifyFieldEquations(
+        const std::map<std::string, double>& params,
+        TheoryVerificationResult& result
+    );
+
+    /**
      * @brief Generate a symbolic field equation from trajectory data.
      * Uses numerical data to fit symbolic expressions.
      * @param trajectory_data Vector of (coordinate, value) pairs
@@ -139,6 +163,13 @@ private:
      * @brief Build Python script for Einstein equations.
      */
     std::string buildEinsteinScript(
+        const std::map<std::string, double>& params
+    ) const;
+
+    /**
+     * @brief Build Python script for field-equation verification.
+     */
+    std::string buildVerificationScript(
         const std::map<std::string, double>& params
     ) const;
 

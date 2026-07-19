@@ -1291,7 +1291,9 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/RecombinationConstantVariationImager.cpp
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
-        src/discovery/GWMemoryDetector.cpp
+        src/discovery/FRBDispersionScanner.cpp
+        src/discovery/CosmicShearScanner.cpp
+        src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp

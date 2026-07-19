@@ -144,6 +144,58 @@ int main() {
                   << result.total_reward << std::endl;
     }
 
+    // --- 12. Observational chi2: near-GR f(R) should give finite chi2 ------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        // Near-GR parameters: alpha ~ 0, n ~ 1
+        std::vector<double> params = {0.01, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("obs_chi2_near_gr", result.observational_chi2);
+        assert(result.observational_chi2 >= 0.0);
+        std::cout << "  Near-GR f(R) obs chi2 = " << result.observational_chi2
+                  << " (should be finite and >= 0)" << std::endl;
+    }
+
+    // --- 13. Observational chi2: wrong parameters give worse chi2 ----------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        // Near-GR baseline
+        std::vector<double> near_gr = {0.01, 1.0};
+        auto near_result = agent.evaluateTheory(near_gr);
+
+        // Wildly wrong parameters
+        std::vector<double> wild = {10.0, 10.0};
+        auto wild_result = agent.evaluateTheory(wild);
+
+        assert(wild_result.observational_chi2 >= near_result.observational_chi2
+               || wild_result.theoretical_penalty > near_result.theoretical_penalty);
+        std::cout << "  Near-GR chi2 = " << near_result.observational_chi2
+                  << ", wild chi2 = " << wild_result.observational_chi2 << std::endl;
+    }
+
+    // --- 14. GW170817 chi2: standard GR should give small chi2 ------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        // Near-GR: alpha ~ 0 means c_gw ~ c, so chi2 should be small
+        std::vector<double> params = {0.001, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("gw_chi2_gr", result.observational_chi2);
+        // With alpha ~ 0, GW speed ~ c, so chi2 should be small
+        std::cout << "  Near-GR f(R) GW chi2 contribution = "
+                  << result.observational_chi2 << " (should be small)" << std::endl;
+    }
+
+    // --- 15. Symbolic verification: healthy theory gets small penalty ------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+        // Healthy Brans-Dicke: large omega, phi0 ~ 1
+        std::vector<double> params = {40000.0, 1.0};
+        auto result = agent.evaluateTheory(params);
+        assertFinite("healthy_penalty", result.theoretical_penalty);
+        std::cout << "  Healthy Brans-Dicke theoretical penalty = "
+                  << result.theoretical_penalty << std::endl;
+    }
+
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
 }

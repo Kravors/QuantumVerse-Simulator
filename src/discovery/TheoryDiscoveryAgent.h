@@ -108,7 +108,10 @@ private:
     ) const;
 
     // Helper: compute GW170817 time-delay chi2 contribution
-    double computeGW170817Chi2(const MetricTensor& metric) const;
+    double computeGW170817Chi2(
+        const MetricTensor& metric,
+        const std::map<std::string, double>& params
+    ) const;
 
     TheoryParameterSpace param_space_;
     Event4D test_location_;

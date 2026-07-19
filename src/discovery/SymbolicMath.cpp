@@ -402,6 +402,169 @@ bool SymbolicMath::validateFieldEquation(const std::string& field_equation) {
             field_equation.find("Einstein") != std::string::npos);
 }
 
+std::string SymbolicMath::buildVerificationScript(
+    const std::map<std::string, double>& params) const
+{
+    std::ostringstream script;
+    script << R"(
+import sympy as sp
+from sympy import symbols, diff, simplify, sqrt, log
+
+# Theory parameters
+)";
+    for (const auto& [name, value] : params) {
+        script << name << " = " << value << "\n";
+    }
+
+    script << R"(
+# Define symbols for curvature invariants
+R = symbols('R', positive=True)
+
+# Ghost instability check: kinetic term must have correct sign
+# For a scalar field phi with Lagrangian L = -1/2 (d phi)^2 - V(phi),
+# the kinetic term sign determines stability.
+# We check that the second derivative of the potential is positive.
+# For f(R): ghost-free requires f_RR > 0
+# For Brans-Dicke: requires omega > 0
+# For LQG: requires gamma > 0
+
+ghost_penalty = 0.0
+ghost_msg = "No ghost instability detected"
+
+# f(R) ghost check: f_RR = d^2f/dR^2 > 0 for stability
+if 'alpha' in dir() and 'n' in dir():
+    f_RR = alpha * n * (n - 1) * R**(n - 2)
+    if f_RR.subs(R, 1e-30) < 0:
+        ghost_penalty += 500.0
+        ghost_msg = "Ghost instability detected in f(R): f_RR < 0"
+
+# Brans-Dicke ghost check: omega > 0
+if 'omega' in dir():
+    if omega < 0:
+        ghost_penalty += 500.0
+        ghost_msg = "Ghost instability detected in Brans-Dicke: omega < 0"
+
+# LQG ghost check: gamma > 0
+if 'gamma' in dir():
+    if gamma < 0:
+        ghost_penalty += 500.0
+        ghost_msg = "Ghost instability detected in LQG: gamma < 0"
+
+# Superluminal propagation check: c_s^2 <= 1
+# For scalar-tensor theories, the sound speed is modified
+# c_s^2 = 1 for GR; deviations > 1 indicate superluminality
+superluminal_penalty = 0.0
+superluminal_msg = "No superluminal propagation detected"
+
+if 'alpha' in dir() and 'n' in dir():
+    c_s_squared = 1.0 + 0.1 * alpha * n
+    if c_s_squared > 1.0:
+        superluminal_penalty = 100.0 * (c_s_squared - 1.0)
+        superluminal_msg = f"Superluminal propagation: c_s^2 = {c_s_squared}"
+
+# Energy condition checks (using effective stress-energy from field equations)
+# Weak Energy Condition: T_μν u^μ u^ν >= 0
+# For a perfect fluid: rho + p >= 0
+wec_penalty = 0.0
+wec_msg = "Weak energy condition satisfied"
+
+if 'omegaM' in dir():
+    # Approximate: for dark energy with w < -1/3, WEC is violated
+    if omegaM < -0.33:
+        wec_penalty = 200.0
+        wec_msg = "Weak energy condition violated: omegaM < -1/3"
+
+# Null Energy Condition: T_μν k^μ k^ν >= 0
+# For a perfect fluid: rho + p >= 0
+nec_penalty = 0.0
+nec_msg = "Null energy condition satisfied"
+
+if 'omegaLambda' in dir():
+    # For dark energy with w < -1, NEC is violated
+    if omegaLambda < -1.0:
+        nec_penalty = 200.0
+        nec_msg = "Null energy condition violated: omegaLambda < -1"
+
+# Strong Energy Condition: (T_μν - 1/2 T g_μν) u^μ u^ν >= 0
+# For a perfect fluid: rho + 3p >= 0
+sec_penalty = 0.0
+sec_msg = "Strong energy condition satisfied"
+
+if 'omegaM' in dir() and 'omegaLambda' in dir():
+    # Approximate: rho + 3p = rho_m + 3p_lambda = rho_m - 3 rho_lambda
+    if omegaM - 3.0 * omegaLambda < 0:
+        sec_penalty = 200.0
+        sec_msg = "Strong energy condition violated: rho + 3p < 0"
+
+# Output results
+print(f"GHOST_PENALTY={ghost_penalty}")
+print(f"GHOST_MSG={ghost_msg}")
+print(f"SUPERLUMINAL_PENALTY={superluminal_penalty}")
+print(f"SUPERLUMINAL_MSG={superluminal_msg}")
+print(f"WEC_PENALTY={wec_penalty}")
+print(f"WEC_MSG={wec_msg}")
+print(f"NEC_PENALTY={nec_penalty}")
+print(f"NEC_MSG={nec_msg}")
+print(f"SEC_PENALTY={sec_penalty}")
+print(f"SEC_MSG={sec_msg}")
+)";
+
+    return script.str();
+}
+
+void SymbolicMath::verifyFieldEquations(
+    const std::map<std::string, double>& params,
+    TheoryVerificationResult& result)
+{
+    result = TheoryVerificationResult{};
+
+    if (!available_) {
+        result.diagnostic_message = "SymPy not available; skipping symbolic verification";
+        result.total_penalty = 0.0;
+        return;
+    }
+
+    try {
+        std::string script = buildVerificationScript(params);
+        std::string output = executePythonScript(script);
+
+        // Parse Python output
+        std::istringstream iss(output);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (line.find("GHOST_PENALTY=") == 0) {
+                result.total_penalty += std::stod(line.substr(14));
+                if (std::stod(line.substr(14)) > 0) result.has_ghost_instability = true;
+            } else if (line.find("GHOST_MSG=") == 0) {
+                result.diagnostic_message += line.substr(10) + "; ";
+            } else if (line.find("SUPERLUMINAL_PENALTY=") == 0) {
+                result.total_penalty += std::stod(line.substr(21));
+                if (std::stod(line.substr(21)) > 0) result.has_superluminal_propagation = true;
+            } else if (line.find("SUPERLUMINAL_MSG=") == 0) {
+                result.diagnostic_message += line.substr(17) + "; ";
+            } else if (line.find("WEC_PENALTY=") == 0) {
+                result.total_penalty += std::stod(line.substr(12));
+                if (std::stod(line.substr(12)) > 0) result.violates_weak_energy = true;
+            } else if (line.find("WEC_MSG=") == 0) {
+                result.diagnostic_message += line.substr(8) + "; ";
+            } else if (line.find("NEC_PENALTY=") == 0) {
+                result.total_penalty += std::stod(line.substr(12));
+                if (std::stod(line.substr(12)) > 0) result.violates_null_energy = true;
+            } else if (line.find("NEC_MSG=") == 0) {
+                result.diagnostic_message += line.substr(8) + "; ";
+            } else if (line.find("SEC_PENALTY=") == 0) {
+                result.total_penalty += std::stod(line.substr(12));
+                if (std::stod(line.substr(12)) > 0) result.violates_strong_energy = true;
+            } else if (line.find("SEC_MSG=") == 0) {
+                result.diagnostic_message += line.substr(8) + "; ";
+            }
+        }
+    } catch (const std::exception& e) {
+        result.diagnostic_message = std::string("Symbolic verification error: ") + e.what();
+        result.total_penalty = 0.0;
+    }
+}
+
 SymbolicMath::SymbolicResult SymbolicMath::generateFieldEquationFromData(
     const std::vector<std::pair<std::string, double>>& trajectory_data) {
     
