@@ -46,13 +46,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install pybind11
 
-      - name: Install Qt6
+      - name: Install Qt6 (Linux)
+        if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
           version: '6.11.1'
           target: 'desktop'
           arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
+      - name: Install Qt6 (Windows)
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: msvc2022_64
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
+      - name: Install Qt6 (macOS)
+        if: runner.os == 'macOS'
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'macos_arm64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
 
