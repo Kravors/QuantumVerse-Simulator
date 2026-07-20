@@ -69,7 +69,6 @@ jobs:
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         id: setup_qt
-        id: setup_qt
         with:
           version: '6.11.1'
           target: 'desktop'

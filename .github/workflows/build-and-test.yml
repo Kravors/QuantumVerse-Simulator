@@ -37,7 +37,7 @@ jobs:
     - name: Install Qt6 (Linux)
       if: runner.os == 'Linux'
       uses: jurplel/install-qt-action@v4
-        id: setup_qt
+      id: setup_qt
       with:
         version: '6.11.1'
         target: 'desktop'

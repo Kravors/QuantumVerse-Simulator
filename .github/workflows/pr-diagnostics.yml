@@ -134,13 +134,14 @@ jobs:
             sudo apt-get install -y libgl-dev libglu1-mesa-dev libx11-dev libxrandr-dev xorg-dev libboost-all-dev
         - name: Install Qt6
           uses: jurplel/install-qt-action@v4
-        id: setup_qt
+          id: setup_qt
           with:
             version: '6.11.1'
             target: 'desktop'
             arch: 'linux_gcc_64'
             modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
-            cache: true        - name: Configure CMake with all optional deps
+             cache: true
+        - name: Configure CMake with all optional deps
           run: |
              cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" -DCMAKE_BUILD_TYPE=Release
         - name: Build
