@@ -47,7 +47,7 @@ jobs:
           pip install pybind11
 
       - name: Configure CMake
-        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_ONNX=OFF
+        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel 4

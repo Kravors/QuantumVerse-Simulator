@@ -75,18 +75,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Build
+    - name: Build physics tests
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+        cmake --build build --config Release --parallel
     
     - name: Run physics validation
       working-directory: build
-      run: |
-        ./test_mercury_precession
-        ./test_light_deflection
-        ./test_gravitational_redshift
-        ./test_frame_dragging
+      run: ctest -C Release -R "MercuryPrecessionTest|LightDeflectionTest|GravitationalRedshiftTest|FrameDraggingTest" --output-on-failure
 
   code-quality:
     runs-on: ubuntu-latest

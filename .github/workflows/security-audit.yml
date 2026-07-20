@@ -47,8 +47,8 @@ jobs:
       - name: Run Clang Static Analyzer
         run: |
           mkdir -p reports
-          scan-build -o reports scan-build --status-bugs cmake -B build -DCMAKE_BUILD_TYPE=Debug
-          scan-build -o reports --use-c++=clang++ cmake --build build --parallel || true
+          scan-build -o reports --status-bugs cmake -B build -DCMAKE_BUILD_TYPE=Debug
+          scan-build -o reports --use-c++=clang++ cmake --build build --parallel
 
       - name: Run Cppcheck with security focus
         run: |

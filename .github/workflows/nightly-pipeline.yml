@@ -33,9 +33,7 @@ jobs:
          run: |
            cmake -B build -DCMAKE_BUILD_TYPE=Release \
              -DQUANTUMVERSE_BUILD_TESTS=ON \
-             -DQUANTUMVERSE_USE_COVERAGE=ON \
-             -DQUANTUMVERSE_USE_RAPIDCHECK=ON \
-             -DQUANTUMVERSE_USE_BOOST_MULTIPRECISION=ON
+             -DQUANTUMVERSE_USE_COVERAGE=ON
 
       - name: Build
         run: cmake --build build --config Release --parallel
@@ -72,7 +70,7 @@ jobs:
 
   nightly-windows:
     name: Nightly Windows Build
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:

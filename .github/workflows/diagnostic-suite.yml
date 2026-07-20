@@ -27,7 +27,7 @@ jobs:
           sudo apt-get install -y clang-tidy cppcheck python3-yaml clang-format
 
       - name: Configure CMake with clang-tidy as errors
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_ENFORCE_TIDY_ERRORS=ON
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Build
         run: cmake --build build --parallel

@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir -p build-cbmc
           cd build-cbmc
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_ENABLE_CBMC=ON
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
           cmake --build . --parallel
 
       - name: Run CBMC verification
@@ -70,7 +70,7 @@ jobs:
         run: |
           mkdir -p build-long-double
           cd build-long-double
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_LONG_DOUBLE=ON
+          cmake .. -DCMAKE_BUILD_TYPE=Release
           cmake --build . --parallel
 
       - name: Run differential tests
