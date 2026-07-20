@@ -24,8 +24,10 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ matrix.qt_version }}
-        target: desktop
+        target: 'desktop'
         arch: msvc2022_64
+        modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+        cache: true
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }} -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
       env:
@@ -47,11 +49,28 @@ jobs:
         build_type: [Release, Debug]
     steps:
     - uses: actions/checkout@v4
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y qt6-base-dev qt6-declarative-dev libgl1-mesa-dev
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.11.1'
+        target: 'desktop'
+        arch: 'linux_gcc_64'
+        modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+        cache: true
+      
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb
+    
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+      env:
+        Qt6_DIR: ${{ env.Qt6_DIR }}
+    
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} --parallel
+    
     - name: Run tests (excl. slow)
       run: ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure

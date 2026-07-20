@@ -18,8 +18,11 @@ jobs:
     - name: Setup Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.11.1
+        version: '6.11.1'
+        target: 'desktop'
         arch: msvc2022_64
+        modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+        cache: true
     - name: Build with ASan
       run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON
     - name: Build
