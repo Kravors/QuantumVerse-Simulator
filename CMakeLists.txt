@@ -665,6 +665,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
     # Phase 22: Autonomous discovery runner (outputs JSON to stdout)
     add_executable(theory_discovery_runner
         tools/theory_discovery_runner.cpp
+        src/discovery/TheorySurrogate.cpp
         src/discovery/DiscoveryEngine.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/TheoryParameterSpace.cpp
