@@ -18,6 +18,7 @@
 #endif
 #include <cmath>
 #include <limits>
+#include <algorithm>
 
 // Fallback M_PI definition for platforms where _USE_MATH_DEFINES doesn't work
 #ifndef M_PI
