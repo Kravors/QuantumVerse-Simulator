@@ -91,28 +91,28 @@ jobs:
       - name: Compare results
         run: |
           python3 << 'EOF'
-import subprocess
-import sys
-import os
+          import subprocess
+          import sys
+          import os
 
-def run_test(build_dir):
-    binary = f"{build_dir}/test_differential"
-    if not os.path.exists(binary):
-        print(f"::warning::Differential test binary not found: {binary}")
-        return "", "binary not found", 0
-    result = subprocess.run(
-        [binary],
-        capture_output=True, text=True
-    )
-    return result.stdout, result.stderr, result.returncode
+          def run_test(build_dir):
+              binary = f"{build_dir}/test_differential"
+              if not os.path.exists(binary):
+                  print(f"::warning::Differential test binary not found: {binary}")
+                  return "", "binary not found", 0
+              result = subprocess.run(
+                  [binary],
+                  capture_output=True, text=True
+              )
+              return result.stdout, result.stderr, result.returncode
 
-double_out, double_err, double_code = run_test("build-double")
-ld_out, ld_err, ld_code = run_test("build-long-double")
+          double_out, double_err, double_code = run_test("build-double")
+          ld_out, ld_err, ld_code = run_test("build-long-double")
 
-if double_code != 0 or ld_code != 0:
-    print(f"::warning::Differential test binary not available in both builds")
-    print(f"Double: {double_code}, Long Double: {ld_code}")
-    sys.exit(0)
+          if double_code != 0 or ld_code != 0:
+              print(f"::warning::Differential test binary not available in both builds")
+              print(f"Double: {double_code}, Long Double: {ld_code}")
+              sys.exit(0)
 
-print("Differential tests passed - both variants agree")
-EOF
+          print("Differential tests passed - both variants agree")
+          EOF

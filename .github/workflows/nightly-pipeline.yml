@@ -30,7 +30,7 @@ jobs:
             ninja-build ccache clang-tidy cppcheck
 
       - name: Configure CMake
-         run: |
+        run: |
            cmake -B build -DCMAKE_BUILD_TYPE=Release \
              -DQUANTUMVERSE_BUILD_TESTS=ON \
              -DQUANTUMVERSE_USE_COVERAGE=ON

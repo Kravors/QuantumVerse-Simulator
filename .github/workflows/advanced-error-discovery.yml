@@ -190,14 +190,14 @@ jobs:
         run: |
           echo "Chaos testing: Simulating memory pressure and network latency"
           python3 -c "
-import random
-random.seed(42)
-for i in range(10):
-    if random.random() < 0.1:
-        print(f'Injecting fault #{i}')
-    else:
-        print(f'Test iteration #{i}')
-"
+          import random
+          random.seed(42)
+          for i in range(10):
+              if random.random() < 0.1:
+                  print(f'Injecting fault #{i}')
+              else:
+                  print(f'Test iteration #{i}')
+          "
       
       - name: Run tests under stress
         working-directory: build
@@ -222,25 +222,25 @@ for i in range(10):
       - name: Generate report
         run: |
           python3 -c "
-import json
-from datetime import datetime
+          import json
+          from datetime import datetime
 
-report = {
-    'timestamp': datetime.now().isoformat(),
-    'status': 'completed',
-    'components': {
-        'cbmc': 'verified',
-        'differential': 'passed',
-        'runtime': 'monitoring',
-        'fuzz': 'completed'
-    },
-    'violations': 0,
-    'coverage': 'see artifacts'
-}
+          report = {
+              'timestamp': datetime.now().isoformat(),
+              'status': 'completed',
+              'components': {
+                  'cbmc': 'verified',
+                  'differential': 'passed',
+                  'runtime': 'monitoring',
+                  'fuzz': 'completed'
+              },
+              'violations': 0,
+              'coverage': 'see artifacts'
+          }
 
-with open('error_report.json', 'w') as f:
-    json.dump(report, f, indent=2)
-"
+          with open('error_report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+          "
       
       - name: Upload report
         uses: actions/upload-artifact@v4

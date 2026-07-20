@@ -44,44 +44,44 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python3 << 'EOF'
-import os
-import openai
-import subprocess
+          import os
+          import openai
+          import subprocess
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+          openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-pr_diff = subprocess.getoutput("git diff origin/main...HEAD --stat")
-changed_files = [f for f in pr_diff.split('\n') if f.strip() and not f.startswith(' ')]
+          pr_diff = subprocess.getoutput("git diff origin/main...HEAD --stat")
+          changed_files = [f for f in pr_diff.split('\n') if f.strip() and not f.startswith(' ')]
 
-if not openai.api_key:
-    print("::warning::OPENAI_API_KEY not set - skipping AI review")
-    exit(0)
+          if not openai.api_key:
+              print("::warning::OPENAI_API_KEY not set - skipping AI review")
+              exit(0)
 
-prompt = f"""
-Review this C++17 code for bugs, performance issues, and style violations.
-Focus on: memory safety, undefined behavior, physics correctness, and GR validation.
+          prompt = f"""
+          Review this C++17 code for bugs, performance issues, and style violations.
+          Focus on: memory safety, undefined behavior, physics correctness, and GR validation.
 
-Changed files:
-{pr_diff[:3000]}
+          Changed files:
+          {pr_diff[:3000]}
 
-Provide a brief summary of issues found.
-"""
+          Provide a brief summary of issues found.
+          """
 
-try:
-    response = openai.ChatCompletion.create(
-        model="gpt-4-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=500
-    )
-    review = response.choices[0].message['content']
-    print(review)
-    
-    with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-        f.write(f"### AI Code Review\n\n{review}\n\n")
-except Exception as e:
-    print(f"AI review failed: {e}")
-    print("::warning::AI review failed")
-EOF
+          try:
+              response = openai.ChatCompletion.create(
+                  model="gpt-4-turbo",
+                  messages=[{"role": "user", "content": prompt}],
+                  max_tokens=500
+              )
+              review = response.choices[0].message['content']
+              print(review)
+              
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+                  f.write(f"### AI Code Review\n\n{review}\n\n")
+          except Exception as e:
+              print(f"AI review failed: {e}")
+              print("::warning::AI review failed")
+          EOF
 
       - name: Comment on PR
         uses: actions/github-script@v7

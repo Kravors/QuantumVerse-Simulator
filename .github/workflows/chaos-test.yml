@@ -40,25 +40,25 @@ jobs:
       - name: Analyze results
         run: |
           python3 << 'EOF'
-import json
-import sys
+          import json
+          import sys
 
-try:
-    with open('chaos-journal.json', 'r') as f:
-        journal = json.load(f)
-    
-    experiment = journal.get('experiment', {})
-    results = experiment.get('results', [])
-    
-    failures = [r for r in results if r.get('status') != 'success']
-    
-    if failures:
-        print(f"::warning::{len(failures)} chaos experiments failed")
-        for f in failures:
-            print(f"  - {f.get('name')}: {f.get('message', 'unknown error')}")
-    else:
-        print("All chaos experiments passed")
-        
-except Exception as e:
-    print(f"Could not analyze journal: {e}")
-EOF
+          try:
+              with open('chaos-journal.json', 'r') as f:
+                  journal = json.load(f)
+              
+              experiment = journal.get('experiment', {})
+              results = experiment.get('results', [])
+              
+              failures = [r for r in results if r.get('status') != 'success']
+              
+              if failures:
+                  print(f"::warning::{len(failures)} chaos experiments failed")
+                  for f in failures:
+                      print(f"  - {f.get('name')}: {f.get('message', 'unknown error')}")
+              else:
+                  print("All chaos experiments passed")
+                  
+           except Exception as e:
+               print(f"Could not analyze journal: {e}")
+          EOF
