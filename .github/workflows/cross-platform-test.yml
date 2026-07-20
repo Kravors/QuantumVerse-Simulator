@@ -116,9 +116,22 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Install Qt6 (Windows)
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: msvc2022_64
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
+      - name: Add Qt to PATH (Windows)
+        run: echo "${{ steps.setup_qt.outputs.Qt6_DIR }}\bin" >> $GITHUB_PATH
+
       - name: Configure and Build
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release --parallel 4
 
       - name: Run all tests
