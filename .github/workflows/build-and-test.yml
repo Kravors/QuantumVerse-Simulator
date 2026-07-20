@@ -37,19 +37,36 @@ jobs:
     - name: Install Qt6 (Linux)
       if: runner.os == 'Linux'
       uses: jurplel/install-qt-action@v4
+        id: setup_qt
       with:
         version: '6.11.1'
         target: 'desktop'
         arch: 'linux_gcc_64'
         modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
         cache: true
-      env:
-        Qt6_DIR: ${{ env.Qt6_DIR }}
-    
+      
+    - name: Install Qt6 (Windows)
+      if: runner.os == 'Windows'
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.11.1'
+        target: 'desktop'
+        arch: msvc2022_64
+        modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+        cache: true
+      
+    - name: Install Qt6 (macOS)
+      if: runner.os == 'macOS'
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.11.1'
+        target: 'desktop'
+        arch: 'clang_64'
+        modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+        cache: true
+      
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
-      env:
-        Qt6_DIR: ${{ env.Qt6_DIR }}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }}

@@ -65,6 +65,7 @@ jobs:
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
+        id: setup_qt
         with:
           version: '6.11.1'
           target: 'desktop'
@@ -114,10 +115,7 @@ jobs:
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
             -DQUANTUMVERSE_USE_QT=ON \
-            -DCMAKE_PREFIX_PATH="$Qt6_DIR"
-        env:
-          Qt6_DIR: ${{ env.Qt6_DIR }}
-
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build --config Release --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 

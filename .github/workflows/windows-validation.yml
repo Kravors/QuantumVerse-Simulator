@@ -27,6 +27,8 @@ jobs:
       
       - name: Setup Qt
         uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        id: setup_qt
         with:
           version: '6.11.1'
           target: desktop
@@ -40,11 +42,9 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -DQUANTUMVERSE_USE_QT=ON `
             -DQUANTUMVERSE_USE_QML=${{ matrix.ui_backend == 'QML' }} `
-            -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
-        env:
-          Qt6_DIR: ${{ env.Qt6_DIR }}
-      
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"      
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel
       
@@ -69,9 +69,18 @@ jobs:
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1.1
       
-      - name: Configure with ASan
-        run: cmake -B build_asan -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: desktop
+          arch: msvc2022_64
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
       
+      - name: Configure with ASan
+        run: cmake -B build_asan -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"      
       - name: Build with ASan
         run: cmake --build build_asan --config Debug --parallel
       

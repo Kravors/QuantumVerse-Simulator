@@ -91,11 +91,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y checksec
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure and Build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --parallel
-
       - name: Check binary hardening
         run: |
           # Check for stack protection, ASLR, NX bit, etc.

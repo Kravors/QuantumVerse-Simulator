@@ -34,14 +34,26 @@ jobs:
             libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
             ninja-build ccache
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure CMake with ASan
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_ASAN=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=address -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
-
       - name: Build
         run: cmake --build build --config Debug --parallel
 
@@ -81,14 +93,25 @@ jobs:
             libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
             ninja-build ccache
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure CMake with UBSan
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_UBSAN=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=undefined -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=undefined"
-
       - name: Build
         run: cmake --build build --config Debug --parallel
 
@@ -125,14 +148,25 @@ jobs:
             libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
             ninja-build ccache
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure CMake with TSan
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_TSAN=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=thread -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=thread"
-
       - name: Build
         run: cmake --build build --config Debug --parallel
 
@@ -153,23 +187,30 @@ jobs:
   asan-windows:
     continue-on-error: true
     name: AddressSanitizer (Windows)
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Setup MSVC with ASan
-        run: |
-          echo "ASan enabled via CMake flags"
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: desktop
+          arch: msvc2022_64
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
 
       - name: Configure CMake with ASan
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A x64 `
             -DCMAKE_BUILD_TYPE=Debug `
             -DQUANTUMVERSE_BUILD_TESTS=ON `
-            -DQUANTUMVERSE_USE_ASAN=ON
-
+            -DQUANTUMVERSE_USE_ASAN=ON `
+            -DQUANTUMVERSE_USE_QT=ON `
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build --config Debug --parallel
 
@@ -202,14 +243,25 @@ jobs:
           brew install ninja ccache
           brew install jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'clang_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure CMake with ASan
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_ASAN=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=address -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
-
       - name: Build
         run: cmake --build build --config Debug --parallel
 

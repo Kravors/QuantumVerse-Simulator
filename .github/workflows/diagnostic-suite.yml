@@ -66,6 +66,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev valgrind
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure CMake
         run: |
           case ${{ matrix.sanitizer }} in
@@ -73,8 +84,7 @@ jobs:
             ubsan) FLAGS="-DQUANTUMVERSE_USE_UBSAN=ON" ;;
             tsan) FLAGS="-DQUANTUMVERSE_USE_TSAN=ON" ;;
           esac
-          cmake -B build_${{ matrix.sanitizer }} -DCMAKE_BUILD_TYPE=Debug $FLAGS -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_COVERAGE=ON
-
+          cmake -B build_${{ matrix.sanitizer }} -DCMAKE_BUILD_TYPE=Debug $FLAGS -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build_${{ matrix.sanitizer }} --parallel
 
@@ -112,11 +122,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-pyautogui python3-pil python3-imagehash
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure and build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --parallel
-
       - name: Run UI tests
         run: python3 scripts/diagnose_all.py --ui --report-format html
 
@@ -140,9 +159,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang valgrind
 
-      - name: Configure CMake with fuzzing
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
 
+      - name: Configure CMake with fuzzing
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build --parallel
 
@@ -169,9 +197,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lcov gcovr
 
-      - name: Configure CMake with coverage
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_BUILD_TESTS=ON
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
 
+      - name: Configure CMake with coverage
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build --parallel
 
@@ -219,11 +256,20 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure and build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --parallel
-
       - name: Run benchmarks
         run: python3 scripts/diagnose_all.py --bench --report-format html
 

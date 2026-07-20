@@ -27,11 +27,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cbmc
       
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+      
       - name: Build verification tests
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build --config Release
-      
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake --build build --config Release      
       - name: Run CBMC verification
         working-directory: build
         run: |
@@ -56,9 +66,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+      
       - name: Build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release
       
       - name: Run differential tests
@@ -85,13 +105,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+      
       - name: Build with sanitizers
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_USE_ASAN=ON \
-            -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build --config Debug
-      
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake --build build --config Debug      
       - name: Run tests with runtime monitoring
         working-directory: build
         run: |
@@ -107,10 +138,22 @@ jobs:
         run: |
           sudo apt-get install -y clang
       
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+      
       - name: Build fuzzer
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
-            -DQUANTUMVERSE_USE_FUZZER=ON
+            -DQUANTUMVERSE_USE_FUZZER=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Debug
       
       - name: Run fuzzers for 60 seconds

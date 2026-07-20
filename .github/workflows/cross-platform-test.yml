@@ -46,8 +46,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install pybind11
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        id: setup_qt
+        with:
+          version: '6.11.1'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          cache: true
+
       - name: Configure CMake
-        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF
+        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel 4
