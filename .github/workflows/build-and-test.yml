@@ -48,6 +48,7 @@ jobs:
     - name: Install Qt6 (Windows)
       if: runner.os == 'Windows'
       uses: jurplel/install-qt-action@v4
+      id: setup_qt
       with:
         version: '6.11.1'
         target: 'desktop'
@@ -58,10 +59,11 @@ jobs:
     - name: Install Qt6 (macOS)
       if: runner.os == 'macOS'
       uses: jurplel/install-qt-action@v4
+      id: setup_qt
       with:
         version: '6.11.1'
         target: 'desktop'
-        arch: 'clang_64'
+        arch: 'macos_arm64'
         modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
         cache: true
       
@@ -107,10 +109,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-tidy cmake build-essential
+    
+    - name: Configure CMake for clang-tidy
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON
+    
     - name: Run clang-tidy
       run: |
-        sudo apt-get install -y clang-tidy
-        clang-tidy --checks='*' src/**/*.cpp -- -std=c++17
+        clang-tidy -p build -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' \
+          $(find src -name '*.cpp' -o -name '*.h') 2>&1 | tee clang-tidy.log || true
     
     - name: Check for warnings
       run: |

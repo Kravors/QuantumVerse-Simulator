@@ -41,20 +41,22 @@ jobs:
       - name: Install Qt6 (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
+        id: setup_qt
         with:
           version: '6.11.1'
           target: 'desktop'
           arch: msvc2022_64
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
-      
+        
       - name: Install Qt6 (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
+        id: setup_qt
         with:
           version: '6.11.1'
           target: 'desktop'
-          arch: 'clang_64'
+          arch: 'macos_arm64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
       

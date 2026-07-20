@@ -22,16 +22,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install CBMC
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cbmc
+          sudo apt-get install -y build-essential cmake cbmc
 
-      - name: Build with CBMC
+      - name: Configure CMake
         run: |
           mkdir -p build-cbmc
           cd build-cbmc
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build with CBMC
+        run: |
+          cd build-cbmc
           cmake --build . --parallel
 
       - name: Run CBMC verification
@@ -41,7 +45,7 @@ jobs:
             --bounds-check --pointer-check --unwind 10 \
             --32-bit --xml-ui \
             --object-bits 32
-          
+            
           cbmc tests/verification/harness_geodesic.cpp \
             --bounds-check --pointer-check --unwind 10 \
             --32-bit
@@ -59,18 +63,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
       - name: Build double precision
         run: |
           mkdir -p build-double
           cd build-double
-          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build . --parallel
 
       - name: Build long double precision
         run: |
           mkdir -p build-long-double
           cd build-long-double
-          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build . --parallel
 
       - name: Run differential tests

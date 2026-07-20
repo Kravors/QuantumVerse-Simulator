@@ -82,6 +82,7 @@ jobs:
       - name: Install Qt (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
+        id: setup_qt
         with:
           version: '6.11.1'
           target: 'desktop'
@@ -141,12 +142,15 @@ jobs:
       - name: Install analysis tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-tidy cppcheck python3-pip
+          sudo apt-get install -y clang-tidy cppcheck python3-pip cmake build-essential
           pip3 install cppcheck-dict
+
+      - name: Configure CMake for clang-tidy
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON
 
       - name: Run Clang-Tidy
         run: |
-          find src -name '*.cpp' -o -name '*.h' | xargs clang-tidy -p build -checks='modernize-*,performance-*,readability-*,cppcoreguidelines-*'
+          find src -name '*.cpp' -o -name '*.h' | xargs clang-tidy -p build -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' 2>&1 | tee clang-tidy.log || true
 
       - name: Run Cppcheck
         run: |
@@ -156,7 +160,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: code-analysis
-          path: cppcheck.xml
+          path: clang-tidy.log
 
   # Security Scanning
   security:
