@@ -51,7 +51,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.11.0'
           target: 'desktop'
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
@@ -62,7 +62,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.11.0'
           target: 'desktop'
           arch: msvc2022_64
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
@@ -77,7 +77,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.11.0'
           target: 'desktop'
           arch: 'macos_arm64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
@@ -120,7 +120,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.11.0'
           target: 'desktop'
           arch: msvc2022_64
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
