@@ -68,6 +68,10 @@ jobs:
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
 
+      - name: Add Qt to PATH (Windows)
+        if: runner.os == 'Windows'
+        run: echo "${{ steps.setup_qt.outputs.Qt6_DIR }}\bin" >> $GITHUB_PATH
+
       - name: Install Qt6 (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
