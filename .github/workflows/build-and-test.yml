@@ -15,6 +15,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         build_type: [Release, Debug]
@@ -64,6 +65,7 @@ jobs:
       with:
         version: '6.11.0'
         target: 'desktop'
+        host: 'macos'
         arch: 'macos_arm64'
         modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
         cache: true

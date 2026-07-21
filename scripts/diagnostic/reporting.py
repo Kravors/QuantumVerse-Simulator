@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 class ReportGenerator:
     def __init__(self, config: Dict[str, Any], project_root: str) -> None:
@@ -44,7 +44,7 @@ class ReportGenerator:
             summary = self.generate_summary()
         html = ["<html><head><title>QuantumVerse Diagnostic Report</title></head><body>",
                 "<h1>QuantumVerse Diagnostic Report</h1>",
-                f"<p>Generated: {datetime.utcnow().isoformat()}Z</p>"]
+                f"<p>Generated: {datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')}</p>"]
         for category, data in summary.items():
             html.append(f"<h2>{category}</h2>")
             html.append(f"<p>Passed: {data['passed']}, Failed: {data['failed']}, Skipped: {data['skipped']}</p>")
@@ -52,7 +52,7 @@ class ReportGenerator:
         return "\n".join(html)
 
     def generate_json_report(self) -> Dict[str, Any]:
-        return {"timestamp": datetime.utcnow().isoformat() + "Z", "summary": self.generate_summary(), "results": self.results}
+        return {"timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), "summary": self.generate_summary(), "results": self.results}
 
     def save_report(self, format_type: str, content: Any, output_path: Optional[str] = None) -> str:
         if output_path is None:

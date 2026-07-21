@@ -268,7 +268,7 @@ jobs:
       - name: Run tests with ASan
         working-directory: build
         run: |
-          export ASAN_OPTIONS=detect_leaks=1:abort_on_error=1: symbolize=1
+          export ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:symbolize=1
           ctest --output-on-failure -j $(sysctl -n hw.ncpu)
 
       - name: Upload ASan report

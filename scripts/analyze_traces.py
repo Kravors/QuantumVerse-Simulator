@@ -9,8 +9,12 @@ from pathlib import Path
 def load_baseline(path: str) -> dict:
     p = Path(path)
     if p.exists():
-        with open(p, "r") as f:
-            return json.load(f)
+        try:
+            with open(p, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Failed to load baseline: {e}")
+            return {}
     return {}
 
 
@@ -47,7 +51,7 @@ def analyze_log(log_path: str, baseline: dict, threshold: float = 5.0) -> dict:
     return report
 
 
-def save_baseline(log_path: str, baseline_path: str) -> None:
+def save_baseline(log_path: str, baseline_path: str) -> int:
     baseline = {}
     try:
         with open(log_path, "r") as f:
@@ -65,11 +69,12 @@ def save_baseline(log_path: str, baseline_path: str) -> None:
                     baseline[name] = {"time_ms": value}
     except FileNotFoundError:
         print(f"Log file not found: {log_path}")
-        return
+        return 1
     Path(baseline_path).parent.mkdir(parents=True, exist_ok=True)
     with open(baseline_path, "w") as f:
         json.dump(baseline, f, indent=2)
     print(f"Baseline saved to: {baseline_path}")
+    return 0
 
 
 def generate_html(report: dict) -> str:
@@ -102,11 +107,19 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.save_baseline:
-        save_baseline(args.log, args.baseline_path)
-        return 0
+        return save_baseline(args.log, args.baseline_path)
+
+    log_path = Path(args.log)
+    if not log_path.exists():
+        print(f"ERROR: log file not found: {args.log}")
+        return 1
 
     baseline = load_baseline(args.baseline_path) if args.compare_baseline else {}
     report = analyze_log(args.log, baseline, threshold=args.threshold)
+
+    if report.get("error"):
+        print(f"ERROR: {report['error']}")
+        return 1
 
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     if args.format == "html":

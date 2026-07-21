@@ -14,6 +14,7 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-20.04]
         build_type: [Release]
@@ -80,12 +81,26 @@ jobs:
         with:
           version: '6.11.0'
           target: 'desktop'
+          host: 'macos'
           arch: 'macos_arm64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
 
-      - name: Configure CMake
+      - name: Add Qt to PATH (macOS)
+        if: runner.os == 'macOS'
+        run: echo "${{ steps.setup_qt_macos.outputs.Qt6_DIR }}/bin" >> $GITHUB_PATH
+
+      - name: Configure CMake (Linux)
+        if: runner.os == 'Linux'
         run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
+
+      - name: Configure CMake (macOS)
+        if: runner.os == 'macOS'
+        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_macos.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel 4

@@ -6,8 +6,8 @@ import shutil
 from pathlib import Path
 
 
-GOLDEN_DIR = Path("scripts/test_data/golden_master")
-CURRENT_DIR = Path("scripts/test_data/current")
+GOLDEN_DIR = Path(__file__).resolve().parent.parent / "test_data" / "golden_master"
+CURRENT_DIR = Path(__file__).resolve().parent.parent / "test_data" / "current"
 
 
 def get_test_paths(test_name: str) -> tuple:
@@ -31,11 +31,11 @@ def run_test(test_name: str, update_golden: bool = False) -> int:
 
     if not golden.exists():
         print(f"Golden master not found: {golden}")
-        return 0
+        return 1
 
     if not current.exists():
-        print(f"Current screenshot not found: {current} - skipping comparison")
-        return 0
+        print(f"Current screenshot not found: {current}")
+        return 1
 
     golden_hash = hashlib.sha256(golden.read_bytes()).hexdigest()
     current_hash = hashlib.sha256(current.read_bytes()).hexdigest()

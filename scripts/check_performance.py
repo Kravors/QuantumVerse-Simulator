@@ -45,7 +45,8 @@ def main() -> int:
 
     data = load_benchmarks(args.benchmarks)
     if not data:
-        return 0
+        print("ERROR: benchmark file missing or empty")
+        return 1
     return check(data, threshold_ms=args.threshold, max_threshold_ms=args.max_threshold)
 
 

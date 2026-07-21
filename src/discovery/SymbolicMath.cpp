@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <stdexcept>
+#include <cstdio>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -53,31 +54,46 @@ bool SymbolicMath::isAvailable() const {
 
 std::string SymbolicMath::executePythonScript(const std::string& script) const {
     std::string result;
-    
+    std::string temp_path;
+
 #ifdef _WIN32
-    // Windows: Use CreateProcess
-    std::string cmd = "python -c \"" + script + "\" 2>&1";
-    FILE* pipe = _popen(cmd.c_str(), "r");
-    if (!pipe) {
-        return {};
-    }
-    char buffer[128];
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-        result += buffer;
-    }
-    _pclose(pipe);
+    char temp_dir[MAX_PATH];
+    char temp_file[MAX_PATH];
+    GetTempPathA(MAX_PATH, temp_dir);
+    GetTempFileNameA(temp_dir, "qvpy", 0, temp_file);
+    temp_path = temp_file;
 #else
-    // Unix: Use popen
-    FILE* pipe = popen(("python3 -c '" + script + "' 2>&1").c_str(), "r");
+    temp_path = "/tmp/quantumverse_py_" + std::to_string(static_cast<int>(getpid())) + ".py";
+#endif
+
+    {
+        std::ofstream out(temp_path);
+        if (!out.is_open()) {
+            return {};
+        }
+        out << script;
+    }
+
+    std::string command = python_path_ + " \"" + temp_path + "\" 2>&1";
+
+#ifdef _WIN32
+    FILE* pipe = _popen(command.c_str(), "r");
+#else
+    FILE* pipe = popen(command.c_str(), "r");
+#endif
     if (pipe) {
         char buffer[128];
         while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
             result += buffer;
         }
+#ifdef _WIN32
+        _pclose(pipe);
+#else
         pclose(pipe);
-    }
 #endif
-    
+    }
+
+    std::remove(temp_path.c_str());
     return result;
 }
 
