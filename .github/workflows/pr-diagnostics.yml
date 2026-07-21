@@ -30,7 +30,7 @@ jobs:
       - name: Install Qt6 (Linux)
         if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_linux
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -41,7 +41,7 @@ jobs:
       - name: Install Qt6 (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_windows
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -49,11 +49,11 @@ jobs:
           arch: msvc2022_64
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
-        
+          
       - name: Install Qt6 (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_macos
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -74,13 +74,13 @@ jobs:
       
       - name: Configure CMake
         run: |
-          cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }} -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }} -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
         shell: powershell
         if: runner.os == 'Windows'
       
       - name: Configure CMake (Unix)
         run: |
-          cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
         if: runner.os != 'Windows'
       
       - name: Build
@@ -112,7 +112,7 @@ jobs:
       
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_linux
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -121,7 +121,7 @@ jobs:
           cache: true      
       - name: Build with sanitizers
         run: |
-          cmake -B build -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_TSAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_TSAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
           cmake --build build
       - name: Run sanitizer tests
         run: cd build && ctest --output-on-failure
@@ -137,7 +137,7 @@ jobs:
             sudo apt-get install -y libgl-dev libglu1-mesa-dev libx11-dev libxrandr-dev xorg-dev libboost-all-dev
         - name: Install Qt6
           uses: jurplel/install-qt-action@v4
-          id: setup_qt
+          id: setup_qt_linux
           with:
             version: '6.11.0'
             target: 'desktop'
@@ -146,7 +146,7 @@ jobs:
             cache: true
         - name: Configure CMake with all optional deps
           run: |
-             cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" -DCMAKE_BUILD_TYPE=Release
+             cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}" -DCMAKE_BUILD_TYPE=Release
         - name: Build
           run: cmake --build build --parallel
         - name: Run tests

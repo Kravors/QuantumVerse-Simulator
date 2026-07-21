@@ -49,7 +49,7 @@ jobs:
       - name: Install Qt6 (Linux)
         if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_linux
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -60,7 +60,7 @@ jobs:
       - name: Install Qt6 (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_windows
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -71,12 +71,12 @@ jobs:
 
       - name: Add Qt to PATH (Windows)
         if: runner.os == 'Windows'
-        run: echo "${{ steps.setup_qt.outputs.Qt6_DIR }}\bin" >> $GITHUB_PATH
+        run: echo "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}\bin" >> $GITHUB_PATH
 
       - name: Install Qt6 (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_macos
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -85,7 +85,7 @@ jobs:
           cache: true
 
       - name: Configure CMake
-        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel 4

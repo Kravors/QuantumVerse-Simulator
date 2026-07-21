@@ -59,13 +59,13 @@ jobs:
           sudo apt-get install -y \
             libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
             libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
-            libsqlite3-dev libharfbuzz-dev libb2-dev double-conversion \
+            libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev \
             ninja-build ccache python3 python3-pip
 
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_linux
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -82,7 +82,7 @@ jobs:
       - name: Install Qt (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
-        id: setup_qt
+        id: setup_qt_macos
         with:
           version: '6.11.0'
           target: 'desktop'
@@ -98,6 +98,7 @@ jobs:
       - name: Setup Qt (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
+        id: setup_qt_windows
         with:
           version: '6.11.0'
           target: desktop
@@ -117,7 +118,28 @@ jobs:
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
             -DQUANTUMVERSE_USE_QT=ON \
-            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
+        if: runner.os == 'Linux'
+      - name: Configure CMake cache (macOS)
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_macos.outputs.Qt6_DIR }}"
+        if: runner.os == 'macOS'
+      - name: Configure CMake cache (Windows)
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
+        if: runner.os == 'Windows'
       - name: Build
         run: cmake --build build --config Release --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 

@@ -11,8 +11,12 @@ def load_benchmarks(path: str) -> dict:
     if not p.exists():
         print(f"Benchmark file not found: {path}")
         return {}
-    with open(p, "r") as f:
-        return json.load(f)
+    try:
+        with open(p, "r") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Failed to load benchmarks: {e}")
+        return {}
 
 
 def check(benchmarks: dict, threshold_ms: float = 60.0, max_threshold_ms: float = 250.0) -> int:
