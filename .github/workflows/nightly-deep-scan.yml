@@ -97,7 +97,7 @@ jobs:
             libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
             libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev \
             ninja-build ccache python3-pip
-          pip3 install numpy
+          pip3 install numpy pyyaml
 
       - name: Configure and build
         run: |

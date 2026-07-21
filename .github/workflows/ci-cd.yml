@@ -86,7 +86,7 @@ jobs:
         with:
           version: '6.11.0'
           target: 'desktop'
-          host: 'macos'
+          host: 'mac'
           arch: 'macos_arm64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true

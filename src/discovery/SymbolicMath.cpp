@@ -21,15 +21,46 @@
 
 namespace quantumverse {
 
+static std::string findPython() {
+    const char* candidates[] = {"python3", "python", nullptr};
+    for (int i = 0; candidates[i] != nullptr; ++i) {
+        std::string cmd = std::string(candidates[i]) + " -c \"print('OK')\" 2>&1";
+#ifdef _WIN32
+        FILE* pipe = _popen(cmd.c_str(), "r");
+#else
+        FILE* pipe = popen(cmd.c_str(), "r");
+#endif
+        if (pipe) {
+            char buffer[128] = {0};
+            std::string output;
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+#ifdef _WIN32
+            _pclose(pipe);
+#else
+            pclose(pipe);
+#endif
+            if (output.find("OK") != std::string::npos) {
+                return candidates[i];
+            }
+        }
+    }
+    return {};
+}
+
 // ============================================================================
 // SymbolicMath Implementation
 // ============================================================================
 
 SymbolicMath::SymbolicMath()
     : available_(false)
-    , python_path_("python3")
+    , python_path_(findPython())
 {
-    // Check if Python and SymPy are available
+    if (python_path_.empty()) {
+        return;
+    }
+
     std::string check_script = R"(
 import sys
 try:

@@ -51,10 +51,10 @@ jobs:
       
       - name: Check performance regression
         run: |
-          if [ -f scripts/check_performance.py ]; then
+          if [ -f scripts/check_performance.py ] && [ -f benchmarks.json ]; then
             python scripts/check_performance.py benchmarks.json
           else
-            echo "Performance regression script not found, skipping"
+            echo "Performance regression check skipped (script or benchmarks.json not found)"
           fi
 
   performance-gate:

@@ -249,6 +249,7 @@ jobs:
         with:
           version: '6.11.0'
           target: 'desktop'
+          host: 'mac'
           arch: 'clang_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true

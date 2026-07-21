@@ -119,7 +119,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pyautogui python3-pil python3-imagehash
+          sudo apt-get install -y python3-pyautogui python3-pil python3-imagehash python3-yaml
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -153,10 +153,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Clang
+      - name: Install Clang and Python deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang valgrind
+          sudo apt-get install -y clang valgrind python3-yaml
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -264,6 +264,9 @@ jobs:
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
 
       - name: Configure and build
         run: |
