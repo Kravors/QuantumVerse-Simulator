@@ -26,6 +26,7 @@ jobs:
       with:
         version: ${{ matrix.qt_version }}
         target: 'desktop'
+        host: 'windows'
         arch: msvc2022_64
         modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
         cache: true

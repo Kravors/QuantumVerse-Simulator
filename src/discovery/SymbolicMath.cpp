@@ -58,13 +58,14 @@ std::string SymbolicMath::executePythonScript(const std::string& script) const {
     // Windows: Use CreateProcess
     std::string cmd = "python -c \"" + script + "\" 2>&1";
     FILE* pipe = _popen(cmd.c_str(), "r");
-    if (pipe) {
-        char buffer[128];
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            result += buffer;
-        }
-        _pclose(pipe);
+    if (!pipe) {
+        return {};
     }
+    char buffer[128];
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result += buffer;
+    }
+    _pclose(pipe);
 #else
     // Unix: Use popen
     FILE* pipe = popen(("python3 -c '" + script + "' 2>&1").c_str(), "r");
