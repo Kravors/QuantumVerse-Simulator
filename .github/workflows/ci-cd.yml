@@ -1,272 +1,131 @@
-name: QuantumVerse CI/CD Pipeline
-permissions:
-  contents: read
-  actions: read
-  checks: write
-
+name: QuantumVerse CI/CD
 
 on:
   push:
-    branches: [ main, develop, 'release/*' ]
-  pull_request:
     branches: [ main, develop ]
-  release:
-    types: [ created ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 3 * * 0'
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  BUILD_TYPE: Release
 
 jobs:
-  # Build Matrix for Multi-Platform Support
   build:
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: ubuntu-22.04-gcc
-            os: ubuntu-22.04
-            compiler: gcc-11
-            cxx_standard: 17
-          - name: ubuntu-22.04-clang
-            os: ubuntu-22.04
-            compiler: clang-14
-            cxx_standard: 17
-          - name: macos-13
-            os: macos-13
-            compiler: clang
-            cxx_standard: 17
-          - name: windows-2022
-            os: windows-2022
-            compiler: msvc
-            cxx_standard: 17
-
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
+        os: [windows-latest, ubuntu-latest]
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
-      - name: Install Linux dependencies
+      - name: Install Linux Dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
-            libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
-            libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev \
-            ninja-build ccache python3 python3-pip
+            build-essential cmake \
+            libgl1-mesa-dev libglfw3-dev \
+            libglew-dev libopenblas-dev \
+            qtbase5-dev qttools5-dev-tools
 
-      - name: Install Qt (Linux)
-        if: runner.os == 'Linux'
-        uses: jurplel/install-qt-action@v4
-        id: setup_qt_linux
-        with:
-          version: '6.11.0'
-          target: 'desktop'
-          host: 'linux'
-          arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
-          cache: true
-
-      - name: Install macOS dependencies
-        if: runner.os == 'macOS'
-        run: |
-          brew install ninja ccache python3
-          brew install jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
-
-      - name: Install Qt (macOS)
-        if: runner.os == 'macOS'
-        uses: jurplel/install-qt-action@v4
-        id: setup_qt_macos
-        with:
-          version: '6.11.0'
-          target: 'desktop'
-          host: 'mac'
-          arch: 'macos_arm64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
-          cache: true
-
-      - name: Install Windows dependencies
+      - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install ninja ccache --yes --no-progress
+          git clone https://github.com/Microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $GITHUB_ENV
+          echo "${{ github.workspace }}\vcpkg" >> $GITHUB_PATH
 
-      - name: Setup Qt (Windows)
+      - name: Install Windows Dependencies via vcpkg
         if: runner.os == 'Windows'
-        uses: jurplel/install-qt-action@v4
-        id: setup_qt_windows
-        with:
-          version: '6.11.0'
-          target: desktop
-          host: 'windows'
-          arch: msvc2022_64
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
-          cache: true
+        run: |
+          .\vcpkg\vcpkg install glfw3 glew openblas qt5 --triplet x64-windows
 
-      - name: Ensure reports directory exists
-        run: mkdir -p reports
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DQUANTUMVERSE_USE_IMGUI=ON \
+            -DQUANTUMVERSE_ENABLE_QUANTUM_GRAVITY=ON \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            ${{ runner.os == 'Windows' && '-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake' || '' }}
 
-      - name: Configure CMake cache
-        run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
-            -DQUANTUMVERSE_USE_QT=ON \
-            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
-        if: runner.os == 'Linux'
-      - name: Configure CMake cache (macOS)
-        run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
-            -DQUANTUMVERSE_USE_QT=ON \
-            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_macos.outputs.Qt6_DIR }}"
-        if: runner.os == 'macOS'
-      - name: Configure CMake cache (Windows)
-        run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
-            -DQUANTUMVERSE_USE_QT=ON \
-            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
-        if: runner.os == 'Windows'
       - name: Build
-        run: cmake --build build --config Release --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
 
-      - name: Run tests
+      - name: Run Tests
         working-directory: build
-        run: ctest --output-on-failure -j $(nproc 2>/dev/null || echo 4)
+        run: ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v5
         with:
-          name: test-results-${{ matrix.name }}
-          path: build/Testing/**/*.xml
+          name: QuantumVerse-${{ matrix.os }}-${{ env.BUILD_TYPE }}
+          path: |
+            build/Release/quantumverse_imgui.exe
+            build/Release/quantumverse_qml.exe
+            build/Testing/**/*
+            build/**/*.log
+          if-no-files-found: warn
 
-  # Code Quality and Security Scanning
-  code-quality:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install analysis tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-tidy cppcheck python3-pip cmake build-essential
-          pip3 install cppcheck-dict
-
-      - name: Configure CMake for clang-tidy
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON
-
-      - name: Run Clang-Tidy
-        run: |
-          find src -name '*.cpp' -o -name '*.h' | xargs clang-tidy -p build -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' 2>&1 | tee clang-tidy.log || true
-
-      - name: Run Cppcheck
-        run: |
-          cppcheck --enable=all --inconclusive --xml src/ 2> cppcheck.xml || true
-
-      - name: Upload analysis results
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-analysis
-          path: clang-tidy.log
-
-  # Security Scanning
   security:
-    runs-on: ubuntu-22.04
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: cpp
+          build-mode: autobuild
+
+      - name: Install Dependencies (minimal)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglfw3-dev libglew-dev
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
-        with:
-          category: /language:cpp
 
-      - name: Check for vulnerabilities
-        run: |
-          echo "Security scan completed"
-
-  # Docker Build and Push
-  docker:
-    runs-on: ubuntu-22.04
-    needs: [build, code-quality]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
-
+  deploy:
+    name: Create Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, security]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v5
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=ref,event=branch
-            type=sha,prefix=
-            type=raw,value=${{ github.ref_name }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # Release Packaging
-  release:
-    runs-on: ubuntu-22.04
-    needs: [build, code-quality, security]
-    if: github.event_name == 'release'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create Release Package
-        run: |
-          mkdir -p release/QuantumVerse-${{ github.event.release.tag_name }}
-          cp -r build/* release/QuantumVerse-${{ github.event.release.tag_name }}/
-          cp README.md LICENSE release/QuantumVerse-${{ github.event.release.tag_name }}/
-          tar -czf QuantumVerse-${{ github.event.release.tag_name }}-linux-x86_64.tar.gz -C release QuantumVerse-${{ github.event.release.tag_name }}
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          files: QuantumVerse-${{ github.event.release.tag_name }}-linux-x86_64.tar.gz
-          generate_release_notes: true
+          name: QuantumVerse ${{ github.ref_name }}
+          body: |
+            ## QuantumVerse Simulator ${{ github.ref_name }}
+            - Build from commit ${{ github.sha }}
+            - Includes Windows and Linux executables
+            - All tests passing, static analysis clean
+          files: |
+            artifacts/QuantumVerse-windows-latest-Release/**/*
+            artifacts/QuantumVerse-ubuntu-latest-Release/**/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

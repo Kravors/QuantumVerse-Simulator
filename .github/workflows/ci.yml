@@ -19,7 +19,7 @@ jobs:
         build_type: [Release, Debug]
         qt_version: [6.11.0]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup Qt
       uses: jurplel/install-qt-action@v4
       id: setup_qt
@@ -47,8 +47,9 @@ jobs:
     strategy:
       matrix:
         build_type: [Release, Debug]
+        qt_version: [6.11.0]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Install Qt (Linux)
       uses: jurplel/install-qt-action@v4
