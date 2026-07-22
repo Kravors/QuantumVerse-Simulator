@@ -69,6 +69,7 @@ jobs:
         with:
           version: '6.11.0'
           target: 'desktop'
+          host: 'linux'
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
@@ -103,7 +104,7 @@ jobs:
         with:
           version: '6.11.0'
           target: desktop
-          host: windows
+          host: 'windows'
           arch: msvc2022_64
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
