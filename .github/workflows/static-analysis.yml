@@ -113,15 +113,13 @@ jobs:
       - uses: actions/checkout@v5
       
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: cpp
-      
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+          build-mode: autobuild
       
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
       
       - name: Upload CodeQL Report
         uses: actions/upload-artifact@v5

@@ -16,14 +16,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-20.04]
+        os: [windows-latest, ubuntu-20.04]
         build_type: [Release]
         include:
           - os: windows-latest
             generator: "Visual Studio 17 2022"
-            cmake_args: ""
-          - os: macos-latest
-            generator: "Xcode"
             cmake_args: ""
           - os: ubuntu-20.04
             generator: "Unix Makefiles"

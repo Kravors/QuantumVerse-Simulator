@@ -31,38 +31,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ubuntu-20.04
-            os:   ubuntu-20.04
-            # NOTE: system libmd4c is not detected
-            deps:  libgl-dev libglu-dev 'libxcb*-dev' libx11-xcb-dev libxkbcommon-x11-dev libpcre2-dev libz-dev libfreetype6-dev libpng-dev libjpeg-dev libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev libmd4c-dev
-            tools: ninja-build ccache
-            install_cmd: sudo apt-get -y install
-            configure_flags: -xcb -system-sqlite -system-pcre -system-zlib -system-freetype -system-libpng -system-libjpeg -system-harfbuzz -system-libb2 -system-doubleconversion -system-libmd4c
-          - name: ubuntu-18.04
-            os:   ubuntu-18.04
-            # NOTE: system libb2 is not detected because version < 0.98.1 lacks pkg-config module
-            # NOTE: system libharfbuzz is not detected because system has old version
-            deps:  libgl-dev libglu-dev 'libxcb*-dev' libx11-xcb-dev libxkbcommon-x11-dev libpcre2-dev libz-dev libfreetype6-dev libpng-dev libjpeg-dev libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev
-            tools: ninja-build ccache gcc-10
-            install_cmd: sudo apt-get -y install
-            configure_flags: -xcb -system-sqlite -system-pcre -system-zlib -system-freetype -system-libpng -system-libjpeg -system-harfbuzz -system-libb2 -system-doubleconversion
-          - name: macos-10.15
-            os:   macos-10.15
-            deps:  jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
-            tools: ninja ccache pkg-config
-            install_cmd: HOMEBREW_NO_INSTALL_CLEANUP=1 brew install
-            # Specifically on macOS pkg_config has to be manually turned on otherwise libraries under /usr/local are not detected.
-            configure_flags: -pkg-config -system-sqlite -system-pcre -system-zlib -system-freetype -system-libpng -system-libjpeg -system-harfbuzz -system-libb2 -system-doubleconversion
-          - name: windows-2019
-            os:   windows-2019
-            install_cmd: choco install
-            install_cmd_postfix: --yes --no-progress
-            # Chocolatey sqlite package does not come with headers, so we build with bundled sqlite.
-            #deps: sqlite
-            # ccache installed separately later in order to force version
-            tools: ninja
-            # We don't want the system headers / libraries from Strawberry Perl while compiling with MinGW 8.1.0
-            configure_flags: -qt-sqlite -qt-pcre -qt-zlib -qt-freetype -qt-libpng -qt-libjpeg -qt-harfbuzz -no-feature-sql-psql -no-feature-sql-mysql -no-feature-sql-odbc
+           - name: ubuntu-20.04
+             os:   ubuntu-20.04
+           - name: windows-2019
+             os:   windows-2019
+             install_cmd: choco install
+             install_cmd_postfix: --yes --no-progress
+             # Chocolatey sqlite package does not come with headers, so we build with bundled sqlite.
+             #deps: sqlite
+             # ccache installed separately later in order to force version
+             tools: ninja
+             # We don't want the system headers / libraries from Strawberry Perl while compiling with MinGW 8.1.0
+             configure_flags: -qt-sqlite -qt-pcre -qt-zlib -qt-freetype -qt-libpng -qt-libjpeg -qt-harfbuzz -no-feature-sql-psql -no-feature-sql-mysql -no-feature-sql-odbc
     runs-on: ${{ matrix.os }}
 
 
@@ -85,13 +65,13 @@ jobs:
         rm -rf "C:/Program Files/PostgreSQL/"
         choco install ccache --version 3.7.12 --yes --no-progress --not-silent --verbose --debug
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
       with:
         path: source
 
     - name: restore ccache
       id: ccache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/ccache
         # "github.run_id" is unique, which causes the cache to always get

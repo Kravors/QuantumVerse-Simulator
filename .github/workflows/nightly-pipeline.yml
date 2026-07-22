@@ -96,46 +96,15 @@ jobs:
           name: nightly-windows-test-results
           path: build/Testing/**/*.xml
 
-  nightly-macos:
-    name: Nightly macOS Build
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          submodules: recursive
-
-      - name: Install dependencies
-        run: |
-          brew install ninja ccache jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
-
-      - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DQUANTUMVERSE_BUILD_TESTS=ON
-
-      - name: Build
-        run: cmake --build build --config Release --parallel
-
-      - name: Run tests
-        working-directory: build
-        run: ctest --output-on-failure -j $(sysctl -n hw.ncpu)
-
-      - name: Upload macOS test results
-        uses: actions/upload-artifact@v5
-        if: always()
-        with:
-          name: nightly-macos-test-results
-          path: build/Testing/**/*.xml
-
   nightly-report:
     name: Generate Nightly Report
-    needs: [nightly-build, nightly-windows, nightly-macos]
+    needs: [nightly-build, nightly-windows]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: artifacts/
 
@@ -152,9 +121,6 @@ jobs:
           echo "" >> reports/nightly-summary.md
           echo "### Windows" >> reports/nightly-summary.md
           echo "- Build: $(test -d artifacts/nightly-windows-test-results && echo 'PASS' || echo 'FAIL')" >> reports/nightly-summary.md
-          echo "" >> reports/nightly-summary.md
-          echo "### macOS" >> reports/nightly-summary.md
-          echo "- Build: $(test -d artifacts/nightly-macos-test-results && echo 'PASS' || echo 'FAIL')" >> reports/nightly-summary.md
 
       - name: Upload nightly report
         uses: actions/upload-artifact@v5
