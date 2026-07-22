@@ -76,6 +76,10 @@ jobs:
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }}
     
+    - name: Deploy Qt runtime (Windows)
+      if: runner.os == 'Windows'
+      run: cmake --build build --config ${{ matrix.build_type }} --target deploy_qt_runtime
+    
     - name: Run tests
       working-directory: build
       run: ctest -C ${{ matrix.build_type }} --output-on-failure

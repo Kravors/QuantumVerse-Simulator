@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <cstdio>
+#include <unordered_set>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -47,6 +48,24 @@ static std::string findPython() {
         }
     }
     return {};
+}
+
+static bool isPythonKeyword(const std::string& name) {
+    static const std::unordered_set<std::string> keywords = {
+        "False", "None", "True", "and", "as", "assert", "async", "await",
+        "break", "class", "continue", "def", "del", "elif", "else", "except",
+        "finally", "for", "from", "global", "if", "import", "in", "is",
+        "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try",
+        "while", "with", "yield"
+    };
+    return keywords.count(name) > 0;
+}
+
+static std::string safePythonVar(const std::string& name) {
+    if (isPythonKeyword(name)) {
+        return "param_" + name;
+    }
+    return name;
 }
 
 // ============================================================================
@@ -144,7 +163,7 @@ x = sp.Matrix([t, r, theta, phi])
 )";
     
     for (const auto& [name, value] : params) {
-        script << name << " = " << value << "\n";
+        script << safePythonVar(name) << " = " << value << "\n";
     }
     
     script << R"(
@@ -461,7 +480,7 @@ from sympy import symbols, diff, simplify, sqrt, log
 # Theory parameters
 )";
     for (const auto& [name, value] : params) {
-        script << name << " = " << value << "\n";
+        script << safePythonVar(name) << " = " << value << "\n";
     }
 
     script << R"(

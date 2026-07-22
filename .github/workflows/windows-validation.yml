@@ -48,6 +48,9 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel
       
+      - name: Deploy Qt runtime
+        run: cmake --build build --config ${{ matrix.build_type }} --target deploy_qt_runtime
+      
       - name: Run Tests
         working-directory: build
         run: ctest -C ${{ matrix.build_type }} --output-on-failure
