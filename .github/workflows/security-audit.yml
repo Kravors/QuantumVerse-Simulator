@@ -21,7 +21,7 @@ jobs:
     name: Security Analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
           fetch-depth: 0
@@ -69,7 +69,7 @@ jobs:
           echo "Secret scan completed"
 
       - name: Upload security reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: security-reports
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: security-scan
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -96,7 +96,7 @@ jobs:
           sudo apt-get install -y checksec
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -126,7 +126,7 @@ jobs:
           done
 
       - name: Upload hardening report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: binary-hardening-report
@@ -136,7 +136,7 @@ jobs:
     name: Dependency Security Audit
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -160,7 +160,7 @@ jobs:
           echo "Dependency audit completed"
 
       - name: Upload dependency report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: dependency-audit-report

@@ -9,7 +9,7 @@ jobs:
   certify:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: actions/setup-python@v5
       with:
         python-version: '3.12'
@@ -38,7 +38,7 @@ jobs:
         ctest --test-dir build -C Release -R ObservationalDataTest -N | tail -1 >> cert_report.md
         echo "### Fuzz Testing" >> cert_report.md
         echo "Fuzzer ran for 10 minutes without invariant violation." >> cert_report.md
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: certification-report
         path: cert_report.md

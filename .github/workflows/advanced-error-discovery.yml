@@ -20,7 +20,7 @@ jobs:
     name: CBMC Bounded Model Checking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install CBMC
         run: |
@@ -28,7 +28,7 @@ jobs:
           sudo apt-get install -y cbmc
       
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -54,7 +54,7 @@ jobs:
           fi
           
       - name: Upload CBMC report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cbmc-report
           path: build/cbmc_report.xml
@@ -63,10 +63,10 @@ jobs:
     name: Differential Testing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -102,10 +102,10 @@ jobs:
     name: Runtime Invariant Monitoring
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -131,14 +131,14 @@ jobs:
     name: Hybrid Fuzz Testing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install dependencies
         run: |
           sudo apt-get install -y clang
       
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -175,7 +175,7 @@ jobs:
           fi
       
       - name: Upload fuzz corpus
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: fuzz-corpus
           path: build/*.corpus
@@ -184,10 +184,10 @@ jobs:
     name: Chaos Engineering
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -229,7 +229,7 @@ jobs:
     needs: [cbmc-verification, differential-testing, runtime-monitoring]
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Ensure reports directory exists
         run: mkdir -p reports
@@ -258,7 +258,7 @@ jobs:
           "
       
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: error-detection-report
           path: error_report.json

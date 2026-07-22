@@ -17,7 +17,7 @@ jobs:
     name: Static Analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -44,7 +44,7 @@ jobs:
         run: mkdir -p reports
 
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: static-analysis-report
           path: diagnostic_report.json
@@ -57,7 +57,7 @@ jobs:
       matrix:
         sanitizer: [asan, ubsan, tsan]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -67,7 +67,7 @@ jobs:
           sudo apt-get install -y libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev valgrind
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -100,7 +100,7 @@ jobs:
         shell: bash
 
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.sanitizer }}-report
           path: |
@@ -112,7 +112,7 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -122,7 +122,7 @@ jobs:
           sudo apt-get install -y python3-pyautogui python3-pil python3-imagehash python3-yaml
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -139,7 +139,7 @@ jobs:
         run: python3 scripts/diagnose_all.py --ui --report-format html
 
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ui-test-report
           path: diagnostic_report.html
@@ -149,7 +149,7 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -159,7 +159,7 @@ jobs:
           sudo apt-get install -y clang valgrind python3-yaml
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -177,7 +177,7 @@ jobs:
         run: python3 scripts/diagnose_all.py --fuzz --report-format html
 
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: fuzz-test-report
           path: diagnostic_report.html
@@ -187,7 +187,7 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -197,7 +197,7 @@ jobs:
           sudo apt-get install -y lcov gcovr
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -238,7 +238,7 @@ jobs:
           fi
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report
           path: |
@@ -251,12 +251,12 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -276,7 +276,7 @@ jobs:
         run: python3 scripts/diagnose_all.py --bench --report-format html
 
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: performance-report
           path: diagnostic_report.html
@@ -286,7 +286,7 @@ jobs:
     needs: [static-analysis, sanitizer-tests, ui-tests, fuzz-tests, performance]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -315,7 +315,7 @@ jobs:
             });
 
       - name: Upload final report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: diagnostic-report
           path: diagnostic_report.html

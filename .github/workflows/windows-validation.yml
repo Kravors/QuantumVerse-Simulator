@@ -20,13 +20,13 @@ jobs:
         ui_backend: [QML]
      
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1.1
       
       - name: Setup Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -57,7 +57,7 @@ jobs:
       
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-${{ matrix.build_type }}-${{ matrix.ui_backend }}
           path: build/Testing/
@@ -67,13 +67,13 @@ jobs:
     needs: build-and-test
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1.1
       
       - name: Setup Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -98,7 +98,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Run Smoke Test
         run: |
@@ -117,7 +117,7 @@ jobs:
     needs: build-and-test
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Clang
         uses: ilammy/msvc-dev-cmd@v1
@@ -140,7 +140,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Run AppVerifier Soak (1 hour)
         run: .\scripts\appverifier_soak_test.ps1 -Duration 60

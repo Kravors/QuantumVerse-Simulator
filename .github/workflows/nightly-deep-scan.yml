@@ -15,7 +15,7 @@ jobs:
     name: Sanitizer Deep Scan
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -72,7 +72,7 @@ jobs:
           done
 
       - name: Upload sanitizer and valgrind reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: nightly-sanitizer-reports
@@ -85,7 +85,7 @@ jobs:
     name: Nightly Benchmarks
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -120,7 +120,7 @@ jobs:
           python3 scripts/analyze_traces.py --compare-baseline tests/baselines/performance_baseline.json || true
 
       - name: Upload benchmark reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: nightly-benchmark-reports
@@ -132,7 +132,7 @@ jobs:
     name: Golden Master UI Tests
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -159,7 +159,7 @@ jobs:
           python3 scripts/golden_master_test.py ui_physics_viewport || true
 
       - name: Upload golden master diff
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: golden-master-diff
@@ -174,7 +174,7 @@ jobs:
           done
 
       - name: Upload golden master updates
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: success()
         with:
           name: nightly-golden-masters
@@ -185,7 +185,7 @@ jobs:
     name: Nightly Differential Fuzzing
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -211,7 +211,7 @@ jobs:
           timeout 14400 ./fuzz_differential -max_total_time=14400 -detect_leaks=1 || true
 
       - name: Upload fuzz corpus and crashes
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: nightly-fuzz-results

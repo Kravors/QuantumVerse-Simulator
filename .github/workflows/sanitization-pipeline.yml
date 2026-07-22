@@ -21,7 +21,7 @@ jobs:
     name: AddressSanitizer (Linux)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -35,7 +35,7 @@ jobs:
             ninja-build ccache
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -66,7 +66,7 @@ jobs:
         run: mkdir -p reports
 
       - name: Upload ASan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: asan-report-linux
@@ -79,7 +79,7 @@ jobs:
     name: UndefinedBehaviorSanitizer (Linux)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -93,7 +93,7 @@ jobs:
             ninja-build ccache
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -121,7 +121,7 @@ jobs:
           ctest --output-on-failure -j $(nproc)
 
       - name: Upload UBSan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: ubsan-report-linux
@@ -134,7 +134,7 @@ jobs:
     name: ThreadSanitizer (Linux)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -148,7 +148,7 @@ jobs:
             ninja-build ccache
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -175,7 +175,7 @@ jobs:
           ctest --output-on-failure -j 2  # TSan requires single-threaded execution
 
       - name: Upload TSan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: tsan-report-linux
@@ -188,12 +188,12 @@ jobs:
     name: AddressSanitizer (Windows)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
       - name: Setup Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -221,7 +221,7 @@ jobs:
           ctest -C Debug --output-on-failure -j 4
 
       - name: Upload ASan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: asan-report-windows
@@ -234,7 +234,7 @@ jobs:
     name: AddressSanitizer (macOS)
     runs-on: macos-13
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -244,7 +244,7 @@ jobs:
           brew install jpeg sqlite libpng pcre2 harfbuzz freetype libb2 double-conversion
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -273,7 +273,7 @@ jobs:
           ctest --output-on-failure -j $(sysctl -n hw.ncpu)
 
       - name: Upload ASan report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: asan-report-macos

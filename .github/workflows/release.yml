@@ -13,9 +13,9 @@ jobs:
   package-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup Qt
-      uses: jurplel/install-qt-action@v4
+      uses: jurplel/install-qt-action@v5
       id: setup_qt
       with:
         version: '6.11.0'
@@ -42,7 +42,7 @@ jobs:
            plugins/ ^
            qml/
     - name: Upload release artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: quantumverse-windows
         path: quantumverse_v${{ github.ref_name }}_win64.zip

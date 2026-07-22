@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install Qt6 (Linux)
         if: runner.os == 'Linux'
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt_linux
         with:
           version: '6.11.0'
@@ -60,7 +60,7 @@ jobs:
 
       - name: Install Qt6 (Windows)
         if: runner.os == 'Windows'
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt_windows
         with:
           version: '6.11.0'
@@ -76,7 +76,7 @@ jobs:
 
       - name: Install Qt6 (macOS)
         if: runner.os == 'macOS'
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt_macos
         with:
           version: '6.11.0'
@@ -127,13 +127,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install Qt6 (Windows)
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v5
         id: setup_qt
         with:
           version: '6.11.0'
@@ -162,7 +162,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Clang-Tidy
         run: sudo apt-get install -y clang-tidy

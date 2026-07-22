@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install chaos toolkit
         run: |
@@ -32,7 +32,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload chaos journal
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: chaos-journal
           path: chaos-journal.json

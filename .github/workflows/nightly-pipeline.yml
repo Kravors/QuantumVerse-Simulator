@@ -16,7 +16,7 @@ jobs:
     name: Nightly Build and Test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -56,7 +56,7 @@ jobs:
           genhtml coverage.info --output-directory coverage_report
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: nightly-coverage-report
           path: coverage_report/
@@ -72,7 +72,7 @@ jobs:
     name: Nightly Windows Build
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -90,7 +90,7 @@ jobs:
         run: ctest -C Release --output-on-failure -j 4
 
       - name: Upload Windows test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: nightly-windows-test-results
@@ -100,7 +100,7 @@ jobs:
     name: Nightly macOS Build
     runs-on: macos-13
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -121,7 +121,7 @@ jobs:
         run: ctest --output-on-failure -j $(sysctl -n hw.ncpu)
 
       - name: Upload macOS test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: nightly-macos-test-results
@@ -132,7 +132,7 @@ jobs:
     needs: [nightly-build, nightly-windows, nightly-macos]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -157,7 +157,7 @@ jobs:
           echo "- Build: $(test -d artifacts/nightly-macos-test-results && echo 'PASS' || echo 'FAIL')" >> reports/nightly-summary.md
 
       - name: Upload nightly report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: nightly-summary-report
           path: reports/nightly-summary.md
@@ -166,7 +166,7 @@ jobs:
     name: 24-Hour Soak Test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -198,7 +198,7 @@ jobs:
           echo "Memory check placeholder - implement detailed memory tracking"
 
       - name: Upload soak test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: soak-test-results

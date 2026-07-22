@@ -14,9 +14,9 @@ jobs:
   deep-validation:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup Qt
-      uses: jurplel/install-qt-action@v4
+      uses: jurplel/install-qt-action@v5
       id: setup_qt
       with:
         version: '6.11.0'
