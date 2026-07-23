@@ -29,6 +29,8 @@ option(QUANTUMVERSE_USE_VR "Build VR/OpenXR backend" OFF)
 option(QUANTUMVERSE_USE_KAFKA "Build Kafka/GCN live ingest" OFF)
 option(QUANTUMVERSE_USE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(QUANTUMVERSE_USE_ASAN "Build with AddressSanitizer" OFF)
+option(QUANTUMVERSE_USE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
+option(QUANTUMVERSE_USE_TSAN "Build with ThreadSanitizer" OFF)
 
 # Sanitizer configuration
 if(QUANTUMVERSE_USE_ASAN)
@@ -40,6 +42,28 @@ if(QUANTUMVERSE_USE_ASAN)
         add_link_options(-fsanitize=address)
     endif()
     message(STATUS "AddressSanitizer enabled")
+endif()
+
+if(QUANTUMVERSE_USE_UBSAN)
+    if(MSVC)
+        add_compile_options(/fsanitize=undefined)
+        add_link_options(/fsanitize=undefined)
+    else()
+        add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=undefined)
+    endif()
+    message(STATUS "UndefinedBehaviorSanitizer enabled")
+endif()
+
+if(QUANTUMVERSE_USE_TSAN)
+    if(MSVC)
+        add_compile_options(/fsanitize=thread)
+        add_link_options(/fsanitize=thread)
+    else()
+        add_compile_options(-fsanitize=thread -g)
+        add_link_options(-fsanitize=thread)
+    endif()
+    message(STATUS "ThreadSanitizer enabled")
 endif()
 
 # Performance regression gate thresholds (ms) for the QML headless baseline.
@@ -229,24 +253,26 @@ if(QUANTUMVERSE_USE_QT)
         AUTOUIC ON
     )
 
-    # Deploy Qt runtime files to the build output directory so test executables
-    # and headless runs can find DLLs/plugins without requiring Qt on PATH.
-    set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}/Release")
-    add_custom_target(deploy_qt_runtime
-        COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
-        COMMAND "${QT_HOST_PATH}/bin/windeployqt.exe"
-            --release
-            --qmldir "${CMAKE_SOURCE_DIR}/src"
-            --no-compiler-runtime
-            --no-translations
-            "${QT_RUNTIME_DEST}/quantumverse_qml.exe"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${QT_HOST_PATH}/bin/Qt6Test.dll"
-            "${QT_RUNTIME_DEST}/"
-        COMMENT "Running windeployqt on quantumverse_qml.exe to populate ${QT_RUNTIME_DEST}"
-    )
-    add_dependencies(deploy_qt_runtime quantumverse_qml)
+    if(WIN32)
+        # Deploy Qt runtime files to the build output directory so test executables
+        # and headless runs can find DLLs/plugins without requiring Qt on PATH.
+        set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}/Release")
+        add_custom_target(deploy_qt_runtime
+            COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
+            COMMAND "${QT_HOST_PATH}/bin/windeployqt.exe"
+                --release
+                --qmldir "${CMAKE_SOURCE_DIR}/src"
+                --no-compiler-runtime
+                --no-translations
+                "${QT_RUNTIME_DEST}/quantumverse_qml.exe"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${QT_HOST_PATH}/bin/Qt6Test.dll"
+                "${QT_RUNTIME_DEST}/"
+            COMMENT "Running windeployqt on quantumverse_qml.exe to populate ${QT_RUNTIME_DEST}"
+        )
+        add_dependencies(deploy_qt_runtime quantumverse_qml)
+    endif()
 
 
     # Optional per-stage render timers (QmlGlRenderer). Off by default so the
@@ -271,7 +297,9 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             LABELS "performance;qt"
         )
-        add_dependencies(qml_performance_baseline deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(qml_performance_baseline deploy_qt_runtime)
+        endif()
 
         # TDD contract test for the performance gate: validates parse/threshold
         # logic and (when built) that the baseline executable returns exit 0.
@@ -288,7 +316,9 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             LABELS "performance;qt"
         )
-        add_dependencies(test_performance_gate deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_performance_gate deploy_qt_runtime)
+        endif()
 
         # P3-3 contract test: verifies GL_CHECK() is compiled out in Release
         # builds (no-op) and active in Debug. Compile-time guarantee via
@@ -310,7 +340,9 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             LABELS "performance;qt"
         )
-        add_dependencies(test_gl_check deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_gl_check deploy_qt_runtime)
+        endif()
 
         # FindingsModel unit test (requires Qt for QAbstractListModel)
         add_executable(test_findings_model
@@ -328,7 +360,9 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
         )
-        add_dependencies(test_findings_model deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_findings_model deploy_qt_runtime)
+        endif()
 
         # FindingsModel filtering / sorting / detail-view test
         add_executable(test_findings_model_filtering
@@ -346,7 +380,9 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
         )
-        add_dependencies(test_findings_model_filtering deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_findings_model_filtering deploy_qt_runtime)
+        endif()
 
         # Multi-messenger alert wiring test (LIGO/IceCube -> FindingsModel)
         add_executable(test_multimessenger_ui
@@ -366,7 +402,9 @@ if(QUANTUMVERSE_USE_QT)
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
         )
-        add_dependencies(test_multimessenger_ui deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_multimessenger_ui deploy_qt_runtime)
+        endif()
 
         # 5.1 QmlGlViewport isolation test
         add_executable(test_viewport_isolation
@@ -392,9 +430,10 @@ if(QUANTUMVERSE_USE_QT)
             Qt6::OpenGLWidgets
             Qt6::Test
             dilaton
-            opengl32
-            dbghelp
         )
+        if(WIN32)
+            target_link_libraries(test_viewport_isolation PRIVATE opengl32 dbghelp)
+        endif()
         set_target_properties(test_viewport_isolation PROPERTIES AUTOMOC ON)
         target_compile_definitions(test_viewport_isolation PRIVATE QUANTUMVERSE_USE_QML)
         target_include_directories(test_viewport_isolation PRIVATE
@@ -407,7 +446,9 @@ if(QUANTUMVERSE_USE_QT)
             ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
             ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
         )
-        add_dependencies(test_viewport_isolation deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_viewport_isolation deploy_qt_runtime)
+        endif()
 
         # 5.3 Interaction stress test (rapid mouse/wheel input + property toggles)
         add_executable(test_interaction_stress
@@ -433,9 +474,10 @@ if(QUANTUMVERSE_USE_QT)
             Qt6::OpenGLWidgets
             Qt6::Test
             dilaton
-            opengl32
-            dbghelp
         )
+        if(WIN32)
+            target_link_libraries(test_interaction_stress PRIVATE opengl32 dbghelp)
+        endif()
         set_target_properties(test_interaction_stress PROPERTIES AUTOMOC ON)
         target_compile_definitions(test_interaction_stress PRIVATE QUANTUMVERSE_USE_QML)
         target_include_directories(test_interaction_stress PRIVATE
@@ -449,7 +491,9 @@ if(QUANTUMVERSE_USE_QT)
             ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
             TIMEOUT 120
         )
-        add_dependencies(test_interaction_stress deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_interaction_stress deploy_qt_runtime)
+        endif()
 
         # 5.4 Resize/toggle stress test (FBO recreation + panel toggling)
         add_executable(test_resize_stress
@@ -475,9 +519,10 @@ if(QUANTUMVERSE_USE_QT)
             Qt6::OpenGLWidgets
             Qt6::Test
             dilaton
-            opengl32
-            dbghelp
         )
+        if(WIN32)
+            target_link_libraries(test_resize_stress PRIVATE opengl32 dbghelp)
+        endif()
         set_target_properties(test_resize_stress PROPERTIES AUTOMOC ON)
         target_compile_definitions(test_resize_stress PRIVATE QUANTUMVERSE_USE_QML)
         target_include_directories(test_resize_stress PRIVATE
@@ -491,7 +536,9 @@ if(QUANTUMVERSE_USE_QT)
             ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
             TIMEOUT 120
         )
-        add_dependencies(test_resize_stress deploy_qt_runtime)
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_resize_stress deploy_qt_runtime)
+        endif()
 
         # 5.5 Memory leak detection (requires ASan build)
         if(QUANTUMVERSE_USE_ASAN)
@@ -505,7 +552,9 @@ if(QUANTUMVERSE_USE_QT)
                 ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
                 TIMEOUT 120
             )
-            add_dependencies(test_memory_leak deploy_qt_runtime)
+            if(TARGET deploy_qt_runtime)
+                add_dependencies(test_memory_leak deploy_qt_runtime)
+            endif()
         endif()
 
         # 5.6 Crash handler verification (Windows-only)
@@ -516,7 +565,9 @@ if(QUANTUMVERSE_USE_QT)
                 src/utils/TraceLogger.cpp
             )
             target_link_libraries(crash_helper PRIVATE dilaton)
-            add_dependencies(crash_helper deploy_qt_runtime)
+            if(TARGET deploy_qt_runtime)
+                add_dependencies(crash_helper deploy_qt_runtime)
+            endif()
 
             add_executable(test_crash_handler tests/utils/test_crash_handler.cpp)
             target_link_libraries(test_crash_handler PRIVATE Qt6::Core Qt6::Test)
@@ -563,7 +614,9 @@ if(QUANTUMVERSE_USE_QT)
             )
             add_test(NAME HUDToggleTest COMMAND test_hud_toggle)
             set_tests_properties(HUDToggleTest PROPERTIES TIMEOUT 30)
-            add_dependencies(test_hud_toggle deploy_qt_runtime)
+            if(TARGET deploy_qt_runtime)
+                add_dependencies(test_hud_toggle deploy_qt_runtime)
+            endif()
         endif()
     endif()
 endif()

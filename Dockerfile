@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y \
     libsqlite3-dev \
     libharfbuzz-dev \
     libb2-dev \
-    double-conversion \
+    libdouble-conversion-dev \
     qt6-base-dev \
     qt6-declarative-dev \
     qt6-quickcontrols2-dev \
