@@ -35,7 +35,7 @@ jobs:
             ninja-build ccache
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
           version: '6.11.0'
@@ -93,7 +93,7 @@ jobs:
             ninja-build ccache
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
           version: '6.11.0'
@@ -148,7 +148,7 @@ jobs:
             ninja-build ccache
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
           version: '6.11.0'
@@ -193,7 +193,7 @@ jobs:
           submodules: recursive
 
       - name: Setup Qt
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
           version: '6.11.0'

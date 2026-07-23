@@ -46,7 +46,7 @@ jobs:
 
       - name: Install Qt6 (Linux)
         if: runner.os == 'Linux'
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt_linux
         with:
           version: '6.11.0'
@@ -57,7 +57,7 @@ jobs:
 
       - name: Install Qt6 (Windows)
         if: runner.os == 'Windows'
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt_windows
         with:
           version: '6.11.0'
@@ -73,7 +73,7 @@ jobs:
 
       - name: Install Qt6 (macOS)
         if: runner.os == 'macOS'
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt_macos
         with:
           version: '6.11.0'
@@ -130,7 +130,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install Qt6 (Windows)
-        uses: jurplel/install-qt-action@v5
+        uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
           version: '6.11.0'
