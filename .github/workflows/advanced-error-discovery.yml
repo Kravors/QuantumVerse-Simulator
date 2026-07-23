@@ -31,8 +31,9 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.0'
+          version: '6.8.*'
           target: 'desktop'
+          host: 'linux'
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
@@ -69,8 +70,9 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.0'
+          version: '6.8.*'
           target: 'desktop'
+          host: 'linux'
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
@@ -108,8 +110,9 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.0'
+          version: '6.8.*'
           target: 'desktop'
+          host: 'linux'
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
@@ -141,8 +144,9 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.0'
+          version: '6.8.*'
           target: 'desktop'
+          host: 'linux'
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true
@@ -190,8 +194,9 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.0'
+          version: '6.8.*'
           target: 'desktop'
+          host: 'linux'
           arch: 'linux_gcc_64'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           cache: true

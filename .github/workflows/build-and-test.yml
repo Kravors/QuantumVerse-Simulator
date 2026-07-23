@@ -40,9 +40,10 @@ jobs:
       uses: jurplel/install-qt-action@v4
       id: setup_qt_linux
       with:
-        version: '6.11.0'
+        version: '6.8.*'
         target: 'desktop'
-        arch: 'linux_gcc_64'
+        host: 'linux'
+          arch: 'linux_gcc_64'
         modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
         cache: true
       
@@ -51,10 +52,10 @@ jobs:
       uses: jurplel/install-qt-action@v4
       id: setup_qt_windows
       with:
-        version: '6.11.0'
+        version: '6.8.*'
         target: 'desktop'
         host: 'windows'
-        arch: msvc2022_64
+        arch: 'win64_msvc2022_64'
         modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
         cache: true
       
@@ -63,7 +64,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       id: setup_qt_macos
       with:
-        version: '6.11.0'
+        version: '6.8.*'
         target: 'desktop'
         host: 'mac'
         arch: 'macos_arm64'

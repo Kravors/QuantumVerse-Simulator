@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release, Debug]
-        qt_version: [6.11.0]
+        qt_version: [6.8.*]
     steps:
     - uses: actions/checkout@v5
     - name: Setup Qt
@@ -27,7 +27,7 @@ jobs:
         version: ${{ matrix.qt_version }}
         target: 'desktop'
         host: 'windows'
-        arch: msvc2022_64
+        arch: 'win64_msvc2022_64'
         modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
         cache: true
     - name: Configure CMake
@@ -47,7 +47,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release, Debug]
-        qt_version: [6.11.0]
+        qt_version: [6.8.*]
     steps:
     - uses: actions/checkout@v5
     
