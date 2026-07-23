@@ -37,7 +37,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Install Qt6 (Windows)
@@ -49,7 +49,7 @@ jobs:
           target: 'desktop'
           host: 'windows'
           arch: 'win64_msvc2022_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
           
       - name: Install Qt6 (macOS)
@@ -61,7 +61,7 @@ jobs:
           target: 'desktop'
           host: 'mac'
           arch: 'macos_arm64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Install Windows dependencies
@@ -126,7 +126,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true      
       - name: Build with sanitizers
         run: |
@@ -152,7 +152,7 @@ jobs:
             target: 'desktop'
             host: 'linux'
           arch: 'linux_gcc_64'
-            modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
             cache: true
         - name: Configure CMake with all optional deps
           run: |

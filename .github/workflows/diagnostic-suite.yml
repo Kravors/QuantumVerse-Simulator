@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-tidy cppcheck python3-yaml clang-format
+          sudo apt-get install -y clang-tidy cppcheck python3-yaml clang-format libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -34,7 +34,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
 
       - name: Configure CMake with clang-tidy as errors
@@ -86,7 +86,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
 
       - name: Configure CMake
@@ -142,7 +142,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
 
       - name: Configure and build
@@ -180,7 +180,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
 
       - name: Configure CMake with fuzzing
@@ -219,7 +219,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
 
       - name: Configure CMake with coverage
@@ -279,7 +279,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
 
       - name: Install Python dependencies

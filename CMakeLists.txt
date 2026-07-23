@@ -222,9 +222,6 @@ if(QUANTUMVERSE_USE_QT)
         Qt6::Network
         dilaton
         ${LIBRDKAFKA_LIBRARIES}
-        opengl32
-        user32
-        gdi32
     )
     set_target_properties(quantumverse_qml PROPERTIES
         AUTOMOC ON

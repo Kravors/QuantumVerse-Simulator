@@ -35,7 +35,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Build verification tests
@@ -74,7 +74,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Build
@@ -114,7 +114,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Build with sanitizers
@@ -148,7 +148,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Build fuzzer
@@ -198,7 +198,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Build

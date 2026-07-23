@@ -21,7 +21,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       
       - name: Install system dependencies
@@ -71,7 +71,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
           cache: true
       - name: Install system dependencies
         run: |

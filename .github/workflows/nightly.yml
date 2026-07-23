@@ -23,7 +23,7 @@ jobs:
         target: 'desktop'
         host: 'windows'
         arch: 'win64_msvc2022_64'
-        modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+
         cache: true
     - name: Build with ASan
       run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
