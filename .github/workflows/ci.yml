@@ -20,6 +20,9 @@ jobs:
         qt_version: [6.8.*]
     steps:
     - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+
     - name: Setup Qt
       uses: jurplel/install-qt-action@v4
       id: setup_qt
@@ -50,7 +53,9 @@ jobs:
         qt_version: [6.8.*]
     steps:
     - uses: actions/checkout@v5
-    
+      with:
+        submodules: recursive
+
     - name: Install Qt (Linux)
       uses: jurplel/install-qt-action@v4
       id: setup_qt

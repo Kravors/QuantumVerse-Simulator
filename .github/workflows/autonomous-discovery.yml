@@ -39,6 +39,8 @@ jobs:
       result_json: ${{ steps.discovery.outputs.result }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y python3 python3-pip libgl1-mesa-dev

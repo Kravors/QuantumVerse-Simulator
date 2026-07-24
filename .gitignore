@@ -431,7 +431,6 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Large third-party libraries (too large for HTTP push)
-third_party/glad/
 third_party/glfw/
 third_party/onnxruntime_src/
 third_party/onnxruntime/

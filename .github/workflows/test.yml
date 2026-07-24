@@ -12,7 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      
+        with:
+          submodules: recursive
+
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         id: setup_qt
@@ -62,6 +64,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4

@@ -21,7 +21,9 @@ jobs:
      
     steps:
       - uses: actions/checkout@v5
-      
+        with:
+          submodules: recursive
+
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1.1
       
@@ -68,7 +70,9 @@ jobs:
     
     steps:
       - uses: actions/checkout@v5
-      
+        with:
+          submodules: recursive
+
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1.1
       
@@ -99,7 +103,9 @@ jobs:
     
     steps:
       - uses: actions/checkout@v5
-      
+        with:
+          submodules: recursive
+
       - name: Run Smoke Test
         run: |
           # Create a minimal deploy for testing
@@ -118,7 +124,9 @@ jobs:
     
     steps:
       - uses: actions/checkout@v5
-      
+        with:
+          submodules: recursive
+
       - name: Setup Clang
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -141,6 +149,8 @@ jobs:
     
     steps:
       - uses: actions/checkout@v5
-      
+        with:
+          submodules: recursive
+
       - name: Run AppVerifier Soak (1 hour)
         run: .\scripts\appverifier_soak_test.ps1 -Duration 60

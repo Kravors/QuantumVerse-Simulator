@@ -15,6 +15,9 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+
     - name: Setup Qt
       uses: jurplel/install-qt-action@v4
       id: setup_qt

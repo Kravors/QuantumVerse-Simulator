@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -104,7 +106,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      
+        with:
+          submodules: recursive
+
       - name: Analyze code churn
         run: |
           CHANGED_FILES=$(git diff --name-only origin/main...HEAD | wc -l)
