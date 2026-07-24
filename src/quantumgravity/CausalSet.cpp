@@ -172,7 +172,7 @@ std::vector<std::vector<int>> CausalSet::adjacencyMatrix() const {
 // ========== CausalSetDynamics implementation ==========
 
 CausalSetDynamics::CausalSetDynamics(CausalSet& cs_, double alpha_, double beta_)
-    : cs(cs_), alpha(alpha_), beta(beta_), uniformDist(0.0, 1.0) {}
+    : cs(cs_), rng(std::random_device{}()), uniformDist(0.0, 1.0), alpha(alpha_), beta(beta_) {}
 
 double CausalSetDynamics::birthProbability(const std::set<int>& past, double current_time) const {
     (void)current_time;

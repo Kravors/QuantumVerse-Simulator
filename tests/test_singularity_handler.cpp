@@ -34,6 +34,7 @@ int main() {
             SingularityHandler handler(type, 1.0, 0.0, 0.0);
             auto props = handler.getProperties();
             assert(props.type == type && "Type mismatch");
+            (void)props;
             std::cout << "  [PASS] " << static_cast<int>(type) << " initializes correctly" << std::endl;
         }
         std::cout << "[PASS] All black-hole types initialize without crash" << std::endl;
@@ -69,6 +70,7 @@ int main() {
         assert(!std::isnan(forces.radial_stretch) && "Radial stretch is NaN");
         assert(!std::isnan(forces.lateral_compression) && "Lateral compression is NaN");
         assert(!std::isnan(forces.spaghettification) && "Spaghettification is NaN");
+        (void)forces;
         std::cout << "[PASS] Tidal forces are finite at safe distance" << std::endl;
     }
 

@@ -346,8 +346,9 @@ void UI4D::endBodyPropertyEditing() {
                             }
                         }
                     }
+                }
                     
-                    // Check if anomaly detected
+                // Check if anomaly detected
                     if (curvature > anomalyDetectionThreshold) {
                         // Check if we already have an alert for this area
                         bool duplicate = false;
@@ -821,6 +822,7 @@ void UI4D::previousSliceMode(int viewIndex)
 
 namespace {
 
+#if 0
 /**
  * @brief Compute proper time along a world-line segment
  * @param metric The metric tensor at the evaluation point
@@ -844,6 +846,7 @@ double computeProperTimeInterval(const MetricTensor& metric, const Event4D& e1, 
     }
     return ds2;  // Negative for timelike, positive for spacelike
 }
+#endif
 
 /**
  * @brief Find the event on a world-line closest to a given proper time target
@@ -1113,6 +1116,9 @@ void SliceView::updateSlice()
                 }
             }
             break;
+        }
+
+        default: {
         }
     }
 }

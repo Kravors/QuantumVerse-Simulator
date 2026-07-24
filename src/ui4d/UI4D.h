@@ -999,6 +999,7 @@ public:
               
               // Sample curvature at selected event
              auto curvature = probe.sampleCurvature(currentMetric);
+             (void)curvature;
              
              // Display information
              // (In actual implementation, would render to screen)

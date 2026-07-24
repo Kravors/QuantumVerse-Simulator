@@ -57,11 +57,13 @@ int main() {
     }
     auto stdFindings = imager.analyze(metric, location, standard);
     assert(stdFindings.empty() && "False positive on standard spectrum");
+    (void)stdFindings;
 
     // --- Edge case: too few points -> no finding ----------------------------
     std::vector<quantumverse::Event4D> shortTraj(3);
     auto shortFindings = imager.analyze(metric, location, shortTraj);
     assert(shortFindings.empty() && "Short trajectory should yield no findings");
+    (void)shortFindings;
 
     std::cout << "All RecombinationConstantVariationImager tests passed." << std::endl;
     return 0;

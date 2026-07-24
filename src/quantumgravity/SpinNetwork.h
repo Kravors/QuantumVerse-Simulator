@@ -107,7 +107,7 @@ public:
      * @brief Construct a simple spin network from edge list
      */
     SpinNetwork(const std::vector<Edge>& edges_, const std::vector<Vertex>& vertices_)
-        : edges(edges_), vertices(vertices_) {}
+        : vertices(vertices_), edges(edges_) {}
     
     // Accessors
     const std::vector<Edge>& getEdges() const { return edges; }

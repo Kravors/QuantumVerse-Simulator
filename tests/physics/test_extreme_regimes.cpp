@@ -98,7 +98,7 @@ void test_frw_big_bang() {
 
     // H diverges as t->0, but implementation should clamp
     double H = frw.hubbleParameter(t_early);
-    assert(std::isfinite(H) || H == 0.0 && "Hubble should be finite or clamped");
+    assert(std::isfinite(H) || (H == 0.0));
     std::cout << "[PASS] FRW Big Bang: a(1e-10) = " << a << ", H = " << H << std::endl;
 }
 

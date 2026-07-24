@@ -39,9 +39,11 @@ void assertFinite(const std::string& label, double v) {
     (void)v;
 }
 
+#if 0
 Event4D makeTrajectoryPoint(double, double, double, double) {
     return Event4D(0.0, 0.0, 0.0, 0.0);
 }
+#endif
 
 std::vector<Event4D> makeGalacticTrajectory() {
     std::vector<Event4D> traj;

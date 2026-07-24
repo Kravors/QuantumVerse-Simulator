@@ -626,6 +626,7 @@ void test_einstein_zero_grid() {
                 maxG = std::max(maxG, std::abs(result.einstein[i][j]));
         assert(maxG < 1e-1 && "Einstein should be ~0 everywhere in vacuum");
     }
+    (void)maxG;
     std::cout << "[PASS] Einstein = 0 at " << points.size() << " grid points" << std::endl;
 }
 

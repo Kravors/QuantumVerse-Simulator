@@ -20,11 +20,13 @@ using namespace quantumverse;
 namespace {
 constexpr double kEps = 1e-9;
 
+#if 0
 void assertFinite(const std::string& label, double v) {
     assert(std::isfinite(v) && ("Non-finite value for " + label).c_str());
     (void)label;
     (void)v;
 }
+#endif
 
 std::vector<std::pair<std::vector<double>, double>> makePolynomialData() {
     std::vector<std::pair<std::vector<double>, double>> data;

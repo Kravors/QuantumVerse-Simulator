@@ -202,8 +202,8 @@ TheoryDiscoveryAgent::TheoryDiscoveryAgent(TheoryParameterSpace::TheoryType theo
       best_reward_so_far_(-std::numeric_limits<double>::infinity()),
       active_learning_enabled_(false),
       active_learning_mode_(ActiveLearningMode::UNCERTAINTY),
-      surrogate_(std::make_unique<TheorySurrogate>()),
-      multi_objective_mode_(false)
+       multi_objective_mode_(false),
+       surrogate_(std::make_unique<TheorySurrogate>())
 {
     best_result_ = DiscoveryResult{};
 }

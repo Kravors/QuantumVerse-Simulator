@@ -25,7 +25,7 @@ std::vector<double> RLState::toVector() const {
 
 RLState RLState::fromVector(const std::vector<double>& v, int param_dim) {
     RLState s;
-    if (v.size() >= param_dim + 5) {
+    if (v.size() >= static_cast<size_t>(param_dim + 5)) {
         s.normalized_params = std::vector<double>(v.begin(), v.begin() + param_dim);
         s.anomaly_score = v[param_dim];
         s.gr_deviation = v[param_dim + 1];
@@ -155,7 +155,7 @@ void PolicyNetwork::setParameters(const std::vector<double>& params) {
 
 // RLDiscoveryAgent implementation
 RLDiscoveryAgent::RLDiscoveryAgent(int param_dim_, const std::vector<std::pair<double, double>>& ranges)
-    : param_dim(param_dim_), param_ranges(ranges) {
+    : param_ranges(ranges), param_dim(param_dim_) {
     policy = std::make_unique<PolicyNetwork>(param_dim + 5, param_dim);
     std::random_device rd;
     rng.seed(rd());

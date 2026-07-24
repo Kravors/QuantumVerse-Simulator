@@ -139,9 +139,8 @@ public:
         double maxStep = 1.0,
         double safety = 0.9,
         int maxIter = 100000
-    ) : tolerance_(tol), minStepSize_(minStep), maxStepSize_(maxStep),
-        safetyFactor_(safety), maxIterations_(maxIter),
-        baseMetric_(std::make_shared<MetricTensor>()) {}
+    ) : baseMetric_(std::make_shared<MetricTensor>()), tolerance_(tol), minStepSize_(minStep),
+        maxStepSize_(maxStep), safetyFactor_(safety), maxIterations_(maxIter) {}
 
     virtual ~DifferentiableGeodesicIntegrator() = default;
 

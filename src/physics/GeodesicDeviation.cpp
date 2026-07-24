@@ -55,6 +55,7 @@ std::vector<JacobiField> GeodesicDeviation::solve(
     
     Event4D position = initial_position;
     Event4D velocity = initial_velocity;
+    (void)position; (void)velocity;
     Event4D deviation = initial_deviation;
     Event4D derivative = initial_derivative;
     

@@ -9,8 +9,8 @@ CurvatureCalculator::CurvatureCalculator(std::shared_ptr<MetricTensor> metric)
     , singularityTolerance_(1e10)
     , christoffelValid_(false)
     , riemannValid_(false)
-    , ricciValid_(false)
     , ricciScalarCache_(0.0)
+    , ricciValid_(false)
     , kretschmannCache_(0.0) {
     if (!currentMetric_) {
         currentMetric_ = std::make_shared<MetricTensor>();

@@ -156,6 +156,7 @@ ValidationResult PhysicsValidator::validateRicciConsistency(
     // Compute Ricci scalar via direct contraction of Riemann
     curvatureCalc_->computeRiemann(position);
     auto riemann = curvatureCalc_->getRiemann();
+    (void)riemann;
     auto ricci = curvatureCalc_->getRicci();
 
     // Direct contraction: R = g^μν R_μν
