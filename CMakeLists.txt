@@ -230,6 +230,7 @@ if(QUANTUMVERSE_USE_QT)
     target_include_directories(quantumverse_qml PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include
         ${LIBRDKAFKA_INCLUDE_DIRS}
     )
     target_link_libraries(quantumverse_qml PRIVATE
@@ -395,6 +396,7 @@ if(QUANTUMVERSE_USE_QT)
         target_include_directories(test_multimessenger_ui PRIVATE
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
         )
         target_link_libraries(test_multimessenger_ui PRIVATE Qt6::Core dilaton)
         add_test(NAME MultiMessengerUITest COMMAND test_multimessenger_ui)
@@ -439,6 +441,7 @@ if(QUANTUMVERSE_USE_QT)
         target_include_directories(test_viewport_isolation PRIVATE
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
         )
         add_test(NAME ViewportIsolationTest COMMAND test_viewport_isolation)
         set_tests_properties(ViewportIsolationTest PROPERTIES
@@ -483,6 +486,7 @@ if(QUANTUMVERSE_USE_QT)
         target_include_directories(test_interaction_stress PRIVATE
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
         )
         add_test(NAME InteractionStressTest COMMAND test_interaction_stress)
         set_tests_properties(InteractionStressTest PROPERTIES
@@ -528,6 +532,7 @@ if(QUANTUMVERSE_USE_QT)
         target_include_directories(test_resize_stress PRIVATE
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
         )
         add_test(NAME ResizeStressTest COMMAND test_resize_stress)
         set_tests_properties(ResizeStressTest PROPERTIES
@@ -611,6 +616,7 @@ if(QUANTUMVERSE_USE_QT)
             target_include_directories(test_hud_toggle PRIVATE
                 ${CMAKE_SOURCE_DIR}/src
                 ${CMAKE_SOURCE_DIR}/third_party
+                ${CMAKE_SOURCE_DIR}/third_party/glad/include
             )
             add_test(NAME HUDToggleTest COMMAND test_hud_toggle)
             set_tests_properties(HUDToggleTest PROPERTIES TIMEOUT 30)
