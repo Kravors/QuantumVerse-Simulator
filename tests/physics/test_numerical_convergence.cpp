@@ -210,6 +210,7 @@ void test_christoffel_fd_consistency() {
     // Analytic: g_rr = 1/(1-rs/r), dg_rr/dr = rs / (r*(r-rs)^2)
     double r = pos.x;
     double rs = 2.0 * M;
+    (void)rs;
     double dg_rr_dr_analytic = rs / (r * std::pow(r - rs, 2));
 
     assert(std::abs(dg_rr_dr_fd - dg_rr_dr_analytic) < 1e-4 &&
@@ -404,6 +405,7 @@ void test_kretschmann_scaling() {
         double expected_ratio = 1.0 / std::pow(scale, 6);
         double err = relError(ratio, expected_ratio);
         assert(err < 1e-12 && "Kretschmann should scale as 1/r^6");
+        (void)err;
     }
     std::cout << "[PASS] Kretschmann scales exactly as 1/r^6" << std::endl;
 }
@@ -448,6 +450,7 @@ void test_schwarzschild_weak_field() {
     double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
     double g_tt_exp = -(1.0 - rs / r);
     double grr_exp = 1.0 / (1.0 - rs / r);
+    (void)g_tt_exp; (void)grr_exp;
 
     assert(std::abs(g[0][0] - g_tt_exp) < 1e-10);
     assert(std::abs(g[1][1] - grr_exp) < 1e-10);
@@ -464,6 +467,7 @@ void test_schwarzschild_diagonal_at_large_r() {
     double r = 1e15;
     Event4D ev(0.0, r, 0.1, 0.2);
     auto g = sch.evaluate(ev);
+    (void)g;
 
     for (int i = 0; i < 4; i++)
         for (int j = i + 1; j < 4; j++)
@@ -575,6 +579,7 @@ void test_time_dilation_heatmap() {
         double z = handler.getGravitationalRedshift(ev);
         double z_expected = 1.0 / std::sqrt(1.0 - rs / r) - 1.0;
         assert(std::abs(z - z_expected) < 1e-10);
+        (void)z; (void)z_expected;
     }
     std::cout << "[PASS] Time dilation heatmap: redshift exact" << std::endl;
 }
@@ -592,6 +597,7 @@ void test_proper_time_static_observer() {
     double dtau = std::sqrt(-g[0][0]) * dt;
     double dtau_expected = std::sqrt(1.0 - 2.0 * M / (10.0 * M));
     assert(std::abs(dtau - dtau_expected) < 1e-10);
+    (void)dtau; (void)dtau_expected;
     std::cout << "[PASS] Proper time static observer exact" << std::endl;
 }
 
@@ -601,6 +607,7 @@ void test_proper_time_static_observer() {
 void test_schwarzschild_radius_formula() {
     double M = 2.5 * 1.989e30;
     double rs_expected = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
+    (void)rs_expected;
     SchwarzschildMetric sch(M);
     // Check via curvatureScalars at small r (where K diverges as 48M^2/r^6)
     double r_test = 1e3;
@@ -625,6 +632,7 @@ void test_schwarzschild_g_tt_at_horizon() {
     Event4D on_horizon(0.0, rs, M_PI / 2.0, 0.0);
     auto g = sch.evaluate(on_horizon);
     assert(std::abs(g[0][0] - 0.0) < 1e-10 && "g_tt should be 0 at horizon");
+    (void)g;
     std::cout << "[PASS] Schwarzschild g_tt = 0 at horizon" << std::endl;
 }
 
@@ -688,6 +696,7 @@ void test_schwarzschild_origin_safe() {
     auto g = sch.evaluate(near_origin);
     // At r=1e-6, should have huge curvature but finite metric
     assert(std::isfinite(g[0][0]) && "g_tt should be finite near origin");
+    (void)g;
     assert(std::isfinite(g[1][1]) && "g_rr should be finite near origin");
     std::cout << "[PASS] Schwarzschild near origin: metric finite (curvature huge)" << std::endl;
 }
@@ -717,6 +726,7 @@ void test_kretschmann_at_2rs() {
     assert(s.valid);
     double K_expected = 48.0 * std::pow(rs / 2.0, 2) / std::pow(2.0 * rs, 6);
     assert(relError(s.kretschmann, K_expected) < 1e-12);
+    (void)s; (void)K_expected;
     std::cout << "[PASS] Kretschmann at r=2rs exact" << std::endl;
 }
 

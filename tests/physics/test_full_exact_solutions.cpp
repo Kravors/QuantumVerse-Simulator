@@ -59,6 +59,7 @@ void test_schwarzschild_kretschmann_exact() {
             double K_expected = K_exact_coeff / std::pow(r, 6);
             double err = relError(scalars.kretschmann, K_expected);
             assert(err < 1e-12 && "Schwarzschild Kretschmann mismatch");
+            (void)err;
             assert(std::abs(scalars.ricciScalar) < 1e-6 && "Schwarzschild Ricci should be zero");
             count++;
         }
@@ -71,6 +72,7 @@ void test_schwarzschild_kretschmann_exact() {
 // ============================================================================
 void test_schwarzschild_ricci_zero() {
     double M = 10.0 * Event4D::G * 1.989e30 / (Event4D::C * Event4D::C);
+    (void)M;
     SchwarzschildMetric sch(1.989e30 * 10.0);
     auto metric = std::make_shared<SchwarzschildMetric>(1.989e30 * 10.0);
     CurvatureCalculator calc(metric);
@@ -88,6 +90,7 @@ void test_schwarzschild_ricci_zero() {
     for (const auto& ev : points) {
         auto result = calc.computeAll(ev);
         assert(std::isfinite(result.ricciScalar) && "Ricci scalar should be finite");
+        (void)result;
         assert(std::abs(result.ricciScalar) < 1e-6 && "Schwarzschild Ricci should be ~0");
     }
     std::cout << "[PASS] Schwarzschild Ricci=0 at " << points.size() << " points" << std::endl;
@@ -112,6 +115,7 @@ void test_schwarzschild_redshift() {
         double z_expected = 1.0 / std::sqrt(1.0 - rs / r) - 1.0;
         double err = relError(z, z_expected);
         assert(err < 1e-10 && "Schwarzschild redshift mismatch");
+        (void)err;
         count++;
     }
     std::cout << "[PASS] Schwarzschild gravitational redshift: " << count << " points" << std::endl;
@@ -184,6 +188,7 @@ void test_kerr_horizon_and_structure() {
         double r_plus = (rs + std::sqrt(delta_discriminant)) / 2.0;
         double r_minus = (rs - std::sqrt(delta_discriminant)) / 2.0;
         assert(r_plus > r_minus && "Outer horizon should be larger");
+        (void)r_minus;
         assert(r_plus > 0.0 && "Outer horizon should be positive");
 
         auto kerr = MetricTensor::kerr(M * Event4D::C * Event4D::C / Event4D::G,
@@ -216,6 +221,7 @@ void test_kerr_frame_dragging() {
         Event4D ev(0.0, r, 0.0, 0.0);
         double omega = handler.getFrameDraggingAngularVelocity(ev);
         assert(std::isfinite(omega) && "Frame dragging should be finite");
+        (void)omega;
         if (a > 0.0 && r > handler.getProperties().event_horizon_radius) {
             assert(omega > 0.0 && "Frame dragging should be positive for prograde");
         }
@@ -237,6 +243,7 @@ void test_reissner_nordstrom_horizon() {
 
         double r_plus_expected = (rs / 2.0) * (1.0 + std::sqrt(1.0 - q * q));
         double r_minus_expected = (rs / 2.0) * (1.0 - std::sqrt(1.0 - q * q));
+        (void)r_plus_expected; (void)r_minus_expected;
 
         SingularityHandler handler(SingularityType::REISSNER_NORDSTROM,
             M * Event4D::C * Event4D::C / Event4D::G, 0.0,
@@ -244,6 +251,7 @@ void test_reissner_nordstrom_horizon() {
 
         double r_plus_actual = handler.getProperties().event_horizon_radius;
         double r_minus_actual = handler.getProperties().inner_horizon_radius;
+        (void)r_plus_actual; (void)r_minus_actual;
 
         assert(std::abs(r_plus_actual - r_plus_expected) < 1e-6 && "RN outer horizon mismatch");
         assert(std::abs(r_minus_actual - r_minus_expected) < 1e-6 && "RN inner horizon mismatch");
@@ -266,6 +274,7 @@ void test_frw_matter_dominated_scale_factor() {
         double a_expected = std::pow(f, 2.0 / 3.0);
         double err = relError(a, a_expected);
         assert(err < 1e-12 && "FRW matter-dominated scale factor mismatch");
+        (void)err;
     }
     std::cout << "[PASS] FRW matter-dominated scale factor exact" << std::endl;
 }
@@ -284,6 +293,7 @@ void test_frw_hubble_parameter() {
         double H_expected = 2.0 / (3.0 * t);
         double err = relError(H, H_expected);
         assert(err < 1e-10 && "FRW Hubble parameter mismatch");
+        (void)err;
     }
     std::cout << "[PASS] FRW Hubble parameter exact" << std::endl;
 }
@@ -302,6 +312,7 @@ void test_frw_radiation_dominated() {
         double a_expected = std::pow(f, 0.5);
         double err = relError(a, a_expected);
         assert(err < 1e-12 && "FRW radiation-dominated scale factor mismatch");
+        (void)err;
     }
     std::cout << "[PASS] FRW radiation-dominated scale factor exact" << std::endl;
 }
@@ -319,6 +330,7 @@ void test_frw_de_sitter() {
         double a_expected = std::exp(H0 * t);
         double err = relError(a, a_expected);
         assert(err < 1e-12 && "de Sitter scale factor mismatch");
+        (void)err;
     }
     std::cout << "[PASS] FRW de Sitter exponential expansion exact" << std::endl;
 }
@@ -339,6 +351,7 @@ void test_frw_redshift_exact() {
         double z_analytic = std::pow(1.0 / f, 2.0 / 3.0) - 1.0;
         double err = relError(z_numeric, z_analytic);
         assert(err < 1e-12 && "FRW redshift mismatch");
+        (void)err;
     }
     std::cout << "[PASS] FRW redshift exact" << std::endl;
 }
@@ -364,6 +377,7 @@ void test_frw_deceleration_parameter() {
         double a_pp = (a_plus - 2.0 * a + a_minus) / (h * h);
         double q = -a * a_pp / (adot * adot + 1e-30);
         assert(std::abs(q - 0.5) < 1e-3 && "FRW matter-dominated q should be ~0.5");
+        (void)q;
     }
     std::cout << "[PASS] FRW deceleration parameter q=0.5 for matter-dominated" << std::endl;
 }
@@ -379,6 +393,7 @@ void test_dilaton_vacuum_ricci() {
     for (auto [xp, xm] : coords) {
         double R = vacuum.ricciScalar(xp, xm);
         assert(std::abs(R) < 1e-12 && "Dilaton vacuum Ricci should be zero");
+        (void)R;
         assert(vacuum.isVacuum());
         assert(!vacuum.isSingularity(xp, xm));
         assert(!vacuum.isApparentHorizon(xp, xm));
@@ -409,6 +424,7 @@ void test_dilaton_hawking_temperature() {
     double T_expected = 1.0 / (4.0 * M_PI * M);
     double err = relError(T, T_expected);
     assert(err < 1e-12 && "Dilaton Hawking temperature mismatch");
+    (void)err;
 
     DilatonMetric vacuum(0.5, 0.0);
     assert(vacuum.hawkingTemperature() == 0.0 && "Vacuum should have T=0");
@@ -427,10 +443,12 @@ void test_dilaton_fields() {
     double Omega = dm.conformalFactor(xp, xm);
     double Omega_expected = 1.0 + M * std::exp(2.0 * sigma) * xp * xm;
     assert(std::abs(Omega - Omega_expected) < 1e-12 && "Conformal factor mismatch");
+    (void)Omega;
 
     double phi = dm.dilaton(xp, xm);
     double phi_expected = -sigma + 0.5 * std::log(Omega_expected);
     assert(std::abs(phi - phi_expected) < 1e-12 && "Dilaton field mismatch");
+    (void)phi; (void)phi_expected;
 
     // Vacuum
     DilatonMetric vm(sigma, 0.0);
@@ -493,7 +511,7 @@ void test_kerr_equatorial_angular_velocity() {
         // M_geom = rs/2 = M in this test (since we set M=1 and rs=2)
         double M_geom = rs / 2.0;
         double Omega_expected = 1.0 / (a_frac * M_geom + std::pow(r, 1.5) / std::sqrt(M_geom));
-
+        (void)Omega_expected;
         // Integrate a timelike geodesic at r=10M
         auto kerr = MetricTensor::kerr(M * Event4D::C * Event4D::C / Event4D::G,
                                        a * M * Event4D::C * Event4D::C / Event4D::G,
@@ -544,7 +562,7 @@ void test_rn_kretschmann_regular() {
     double K_actual = handler.computeKretschmannAtRadius(r);
     assert(std::isfinite(K_actual) && "RN Kretschmann should be finite");
     assert(K_actual > 0.0 && "RN Kretschmann should be positive");
-    (void)K_expected;
+    (void)K_actual;
     std::cout << "[PASS] Reissner-Nordström Kretschmann finite and positive" << std::endl;
 }
 
@@ -558,6 +576,7 @@ void test_frw_age_of_universe() {
     double t0_actual = frw.ageOfUniverse();
     double err = relError(t0_actual, t0_expected);
     assert(err < 1e-6 && "FRW age of universe mismatch");
+    (void)err;
     std::cout << "[PASS] FRW age of universe ~ 2/(3H0)" << std::endl;
 }
 
@@ -575,6 +594,7 @@ void test_de_sitter_properties() {
         double a = frw.scaleFactor(t);
         double a_expected = std::exp(H0 * t);
         assert(relError(a, a_expected) < 1e-12 && "de Sitter a(t) mismatch");
+        (void)a_expected;
     }
     std::cout << "[PASS] de Sitter: constant H, exponential a(t)" << std::endl;
 }
@@ -602,6 +622,7 @@ void test_lorentzian_signature() {
         double d = g[1][1] * (g[2][2] * g[3][3]) - g[1][2] * (g[2][1] * g[3][3]);
         double full_det = g[0][0] * d;
         assert(full_det < 0.0 && "Schwarzschild determinant should be negative");
+        (void)full_det;
     }
     std::cout << "[PASS] Lorentzian signature verified for Minkowski and Schwarzschild" << std::endl;
 }
@@ -796,6 +817,7 @@ void test_schwarzschild_interval() {
     double dx = ev2.x - ev1.x;
     double ds2 = g[1][1] * dx * dx;
     assert(ds2 > 0.0 && "Spatial interval should be positive in Schwarzschild");
+    (void)ds2;
     std::cout << "[PASS] Schwarzschild interval positive for spatial separation" << std::endl;
 }
 
@@ -815,6 +837,7 @@ void test_kerr_ergosphere() {
     double r_ergo = handler.getProperties().ergosphere_radius;
     double r_horizon = handler.getProperties().event_horizon_radius;
     assert(r_ergo > r_horizon && "Ergosphere should extend beyond horizon");
+    (void)r_ergo; (void)r_horizon;
     assert(std::isfinite(r_ergo) && "Ergosphere radius should be finite");
     std::cout << "[PASS] Kerr ergosphere outside horizon" << std::endl;
 }
@@ -831,6 +854,7 @@ void test_dilaton_singularity_detection() {
     double xp = 1.0;
     double xm = -1.0 / (M * std::exp(2.0 * sigma));
     assert(dm.isSingularity(xp, xm, 1e-8) && "Should detect singularity");
+    (void)xp;
 
     xm = -2.0 * xm;  // further away
     assert(!dm.isSingularity(xp, xm, 1e-8) && "Should not detect singularity far away");
@@ -852,6 +876,7 @@ void test_schwarzschild_metric_formulas() {
         double g_tt_expected = -(1.0 - rs / r);
         double grr_expected = 1.0 / (1.0 - rs / r);
         assert(std::abs(g[0][0] - g_tt_expected) < 1e-10 && "g_tt formula mismatch");
+        (void)g; (void)g_tt_expected; (void)grr_expected;
         assert(std::abs(g[1][1] - grr_expected) < 1e-10 && "g_rr formula mismatch");
         assert(std::abs(g[2][2] - r * r) < 1e-6 && "g_thth formula mismatch");
         assert(std::abs(g[3][3] - r * r) < 1e-6 && "g_phiphi formula mismatch");
@@ -872,6 +897,7 @@ void test_frw_lambda_cdm() {
     for (double t : t_vals) {
         double a = frw.scaleFactor(t);
         assert(a > 0.0 && "Scale factor should be positive");
+        (void)a;
         assert(std::isfinite(a) && "Scale factor should be finite");
     }
     std::cout << "[PASS] FRW LambdaCDM scale factor finite and positive" << std::endl;
@@ -911,6 +937,7 @@ void test_regular_bh_finite_curvature() {
         assert(handler.isCurvatureFiniteAtOrigin());
         double K = handler.computeKretschmannAtRadius(1e-20);
         assert(std::isfinite(K) && K >= 0.0);
+        (void)K;
     }
     std::cout << "[PASS] Regular black holes have finite curvature at r=0" << std::endl;
 }
@@ -930,6 +957,7 @@ void test_schwarzschild_newtonian_limit() {
     double g_tt_newton = -(1.0 - rs / r);
     double grr_newton = 1.0 + rs / r;
     assert(std::abs(g[0][0] - g_tt_newton) < 1e-10);
+    (void)g; (void)g_tt_newton; (void)grr_newton;
     assert(std::abs(g[1][1] - grr_newton) < 1e-10);
     std::cout << "[PASS] Schwarzschild Newtonian limit at large r" << std::endl;
 }
@@ -954,8 +982,10 @@ void test_schwarzschild_parameter_grid() {
             Event4D ev(0.0, r, 0.0, 0.0);
             auto s = sch.curvatureScalars(ev);
             assert(s.valid);
+            (void)s;
             double K_exp = coeff / std::pow(r, 6);
             assert(relError(s.kretschmann, K_exp) < 1e-12);
+            (void)K_exp;
             count++;
         }
     }
@@ -976,6 +1006,7 @@ void test_schwarzschild_tidal_tensor() {
     double expected_rr = -2.0 * M / (r * r * r);
     double expected_tt = M / (r * r * r);
     double expected_pp = M / (r * r * r);
+    (void)expected_rr; (void)expected_tt; (void)expected_pp;
 
     assert(std::abs(tidal[0][0] - expected_rr) < 1e-6);
     assert(std::abs(tidal[1][1] - expected_tt) < 1e-6);
@@ -1011,6 +1042,7 @@ void test_frw_radiation_matter_equality() {
     // Just verify no crash at early times
     double a = frw.scaleFactor(t_eq);
     assert(a > 0.0 && a < 1.0 && "Scale factor at equality should be small");
+    (void)a;
     assert(std::isfinite(a));
     std::cout << "[PASS] FRW early-time (matter-radiation equality) stable" << std::endl;
 }
@@ -1024,6 +1056,7 @@ void test_proper_time_minkowski() {
     Event4D ev2(1.0, 0.0, 0.0, 0.0);
     double tau = mink.properTime(ev1, ev2);
     assert(std::abs(tau - 1.0) < 1e-10 && "Proper time in Minkowski should equal coordinate time");
+    (void)tau;
     std::cout << "[PASS] Proper time in Minkowski = coordinate time" << std::endl;
 }
 
@@ -1044,6 +1077,7 @@ void test_schwarzschild_redshift_infinity() {
         double z = handler.getGravitationalRedshift(ev);
         double z_expected = 1.0 / std::sqrt(1.0 - rs / r) - 1.0;
         assert(std::abs(z - z_expected) < 1e-10);
+        (void)z; (void)z_expected;
     }
     std::cout << "[PASS] Schwarzschild redshift to infinity exact" << std::endl;
 }
@@ -1056,6 +1090,7 @@ void test_schwarzschild_minkowski_limit() {
     SchwarzschildMetric sch(M_small);
     Event4D ev(0.0, 1e10, 0.0, 0.0);
     auto g = sch.evaluate(ev);
+    (void)g;
 
     MetricTensor mink;
     for (int i = 0; i < 4; i++)
@@ -1072,6 +1107,7 @@ void test_kerr_minkowski_limit() {
     double M = 1e-20;
     double rs = 2.0 * M;
     double a = 0.0;
+    (void)rs; (void)a;
     auto kerr = MetricTensor::kerr(M, 0.0, 1e5, M_PI / 2.0);
 
     MetricTensor mink;
@@ -1091,6 +1127,7 @@ void test_frw_minkowski_limit() {
     double t0 = 4.354e17;
     double a = frw.scaleFactor(t0);
     assert(std::abs(a - 1.0) < 1e-12 && "Scale factor at t0 should be 1.0");
+    (void)a;
     std::cout << "[PASS] FRW matter-dominated: a(t0)=1.0" << std::endl;
 }
 
@@ -1109,6 +1146,7 @@ void test_schwarzschild_angular_metric() {
             auto g = sch.evaluate(ev);
             double st = std::sin(theta);
             assert(std::abs(g[2][2] - ri * ri) < 1e-6);
+            (void)st;
             assert(std::abs(g[3][3] - ri * ri * st * st) < 1e-6);
         }
     }
@@ -1121,6 +1159,7 @@ void test_schwarzschild_angular_metric() {
 void test_schwarzschild_horizon_coordinate_singularity() {
     double M = 1.0;
     double rs = 2.0 * M;
+    (void)rs;
     SchwarzschildMetric sch(M * Event4D::C * Event4D::C / Event4D::G);
 
     // Just outside horizon
@@ -1128,11 +1167,13 @@ void test_schwarzschild_horizon_coordinate_singularity() {
     auto g_out = sch.evaluate(outside);
     assert(std::isfinite(g_out[1][1]) && "g_rr should be finite just outside horizon");
     assert(g_out[1][1] > 0.0 && "g_rr should be positive outside horizon");
+    (void)g_out;
 
     // Just inside horizon
     Event4D inside(0.0, rs * 0.999, M_PI / 2.0, 0.0);
     auto g_in = sch.evaluate(inside);
     assert(std::isfinite(g_in[1][1]) && "g_rr should be finite just inside horizon");
+    (void)g_in;
     assert(g_in[1][1] < 0.0 && "g_rr should be negative inside horizon");
     std::cout << "[PASS] Schwarzschild horizon coordinate behavior correct" << std::endl;
 }
@@ -1168,6 +1209,7 @@ void test_dilaton_ricci_scalar_exact() {
         double R_expected = 4.0 * M * std::exp(2.0 * sigma) / (A * A * A);
         double R_actual = dm.ricciScalar(xp, xm);
         assert(std::abs(R_actual - R_expected) < 1e-12);
+        (void)R_expected; (void)R_actual;
     }
     std::cout << "[PASS] Dilaton Ricci scalar exact formula" << std::endl;
 }
@@ -1182,6 +1224,7 @@ void test_dilaton_temperature_grid() {
         double T = dm.hawkingTemperature();
         double T_exp = 1.0 / (4.0 * M_PI * M);
         assert(std::abs(T - T_exp) < 1e-12);
+        (void)T; (void)T_exp;
     }
     std::cout << "[PASS] Dilaton Hawking temperature grid exact" << std::endl;
 }
@@ -1222,6 +1265,7 @@ void test_frw_angular_diameter_distance() {
     double t_emit = t0 * 0.9;
     double a_emit = frw.scaleFactor(t_emit);
     double z = 1.0 / a_emit - 1.0;
+    (void)z;
 
     // Check that a_emit < 1 for t_emit < t0
     assert(a_emit < 1.0 && "a_emit should be < 1 for past emission");
@@ -1294,6 +1338,7 @@ void test_frw_scale_factor_zero() {
     auto frw = FRWMetric::matterDominated(2.27e-18, t0);
     double a = frw.scaleFactor(0.0);
     assert(a == 0.0 && "Scale factor at t=0 should be 0");
+    (void)a;
     std::cout << "[PASS] FRW scale factor(0) = 0" << std::endl;
 }
 
@@ -1305,6 +1350,7 @@ void test_schwarzschild_kretschmann_divergence() {
     SchwarzschildMetric sch(M);
     std::vector<double> r = {1e-6, 1e-8, 1e-10, 1e-12};
     double K_prev = 0.0;
+    (void)K_prev;
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
         auto s = sch.curvatureScalars(ev);

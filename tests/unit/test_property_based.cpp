@@ -111,6 +111,7 @@ void test_metric_tensor_symmetry() {
             assert(std::abs(g[i][j] - g[j][i]) < 1e-12);
         }
     }
+    (void)g;
 
     auto kerrMetric = MetricTensor::kerr(1.989e30, 0.5 * 1.989e30 * 299792458.0, 1e10, M_PI / 2);
     for (int i = 0; i < 4; i++) {
@@ -168,6 +169,7 @@ void test_kretschmann_non_negativity() {
         auto scalars = sch.curvatureScalars(ev);
         assert(scalars.valid);
         assert(scalars.kretschmann >= 0.0);
+        (void)scalars;
     }
 }
 
@@ -220,6 +222,7 @@ void test_matrix4x4_transpose_double() {
             assert(tt(i, j) == m(i, j));
         }
     }
+    (void)tt;
 }
 
 void test_matrix4x4_minkowski_signature() {
@@ -237,6 +240,7 @@ void test_matrix4x4_minkowski_signature() {
             }
         }
     }
+    (void)eta;
 }
 
 void test_vector4d_timelike_classification() {
@@ -261,6 +265,7 @@ void test_matrix4x4_identity_properties() {
             }
         }
     }
+    (void)I;
 }
 
 int main() {

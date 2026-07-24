@@ -152,6 +152,7 @@ int main() {
             for (int j = 0; j < 4; j++)
                 for (int k = 0; k < 4; k++)
                     assert(std::abs(symbols[i][j][k]) < 1e-6 && "Minkowski Christoffel should be zero");
+        (void)symbols;
 
         std::cout << "[PASS] Christoffel symbols are zero in Minkowski spacetime" << std::endl;
     }

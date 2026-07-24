@@ -66,6 +66,7 @@ void test_frw_matter_scale_factor_exact() {
         double a_expected = std::pow(t / T0, 2.0 / 3.0);
         assert(a > 0.0 && "Scale factor should be positive");
         assert(relError(a, a_expected) < 1e-12 && "Matter-dominated scale factor mismatch");
+        (void)a; (void)a_expected;
         count++;
     }
     std::cout << "[PASS] FRW matter-dominated scale factor exact: " << count << " points" << std::endl;
@@ -84,6 +85,7 @@ void test_frw_radiation_scale_factor_exact() {
         double a_expected = std::pow(t / T0, 0.5);
         assert(a > 0.0 && "Scale factor should be positive");
         assert(relError(a, a_expected) < 1e-12 && "Radiation-dominated scale factor mismatch");
+        (void)a; (void)a_expected;
         count++;
     }
     std::cout << "[PASS] FRW radiation-dominated scale factor exact: " << count << " points" << std::endl;
@@ -102,6 +104,7 @@ void test_frw_de_sitter_exact() {
         double a_expected = std::exp(H0 * t);
         assert(std::isfinite(a) && "de Sitter scale factor should be finite");
         assert(relError(a, a_expected) < 1e-12 && "de Sitter scale factor mismatch");
+        (void)a; (void)a_expected;
         count++;
     }
     std::cout << "[PASS] FRW de Sitter exponential expansion exact: " << count << " points" << std::endl;
@@ -137,6 +140,7 @@ void test_frw_hubble_parameter_consistency() {
         double H_expected = adot / a;
         assert(std::isfinite(H) && H > 0.0 && "Hubble parameter should be finite and positive");
         assert(relError(H, H_expected) < 1e-6 && "Hubble parameter H = ȧ/a mismatch");
+        (void)H; (void)H_expected;
         count++;
     }
     std::cout << "[PASS] FRW Hubble parameter H = ȧ/a consistency: " << count << " points" << std::endl;
@@ -150,6 +154,7 @@ void test_frw_age_of_universe() {
     double t_age = frw.ageOfUniverse();
     double t_expected = 2.0 / (3.0 * H0);
     assert(std::abs(t_age - t_expected) < 1e-6 * t_expected && "Age of universe mismatch");
+    (void)t_age; (void)t_expected;
     std::cout << "[PASS] FRW age of universe = 2/(3H0) exact" << std::endl;
 }
 
@@ -208,6 +213,7 @@ void test_frw_comoving_distance() {
     double a = frw.scaleFactor(t);
     double chi = 1e9;  // comoving distance in meters
     double d_proper = a * chi;
+    (void)d_proper;
 
     assert(d_proper > 0.0 && "Proper distance should be positive");
     assert(std::isfinite(d_proper) && "Proper distance should be finite");
@@ -224,6 +230,7 @@ void test_frw_angular_diameter_distance() {
     double a_em = frw.scaleFactor(t_em);
     double chi = 1e9;
     double d_A = a_em * chi;
+    (void)d_A;
 
     assert(d_A > 0.0 && "Angular diameter distance should be positive");
     assert(std::isfinite(d_A) && "Angular diameter distance should be finite");
@@ -286,6 +293,7 @@ void test_frw_ricci_scalar_matter() {
     auto result = calc.computeAll(ev);
     (void)g;
     assert(std::isfinite(result.ricciScalar) && "Ricci scalar should be finite");
+    (void)result;
     std::cout << "[PASS] FRW Ricci scalar finite at t = " << t / T0 << " t0" << std::endl;
 }
 
@@ -361,6 +369,7 @@ void test_frw_g_tt_constant() {
     auto frw = FRWMetric::matterDominated(H0, T0);
     double c2 = Event4D::C * Event4D::C;
     std::vector<double> times = {T0 * 0.3, T0 * 0.6, T0, T0 * 1.5};
+    (void)c2;
 
     int count = 0;
     for (double t : times) {
@@ -394,6 +403,7 @@ void test_frw_g_rr_curvature_dependence() {
     double g_rr_flat = a * a / (1.0 - 0.0 * r * r);
     double g_rr_closed = a * a / (1.0 - 1.0 * r * r);
     double g_rr_open = a * a / (1.0 - (-1.0) * r * r);
+    (void)g_rr_flat; (void)g_rr_closed; (void)g_rr_open;
 
     assert(relError(g_flat.g[1][1], g_rr_flat) < 1e-10 && "Flat g_rr mismatch");
     assert(relError(g_open.g[1][1], g_rr_open) < 1e-10 && "Open g_rr mismatch");
@@ -408,6 +418,7 @@ void test_frw_lookback_time() {
     auto frw = FRWMetric::matterDominated(H0, T0);
     double z = 1.0;
     double a_em = 1.0 / (1.0 + z);
+    (void)a_em;
 
     // Matter-dominated lookback time ≈ (2/3H0) * [1 - 1/sqrt(1+z)]
     double t_lookback_expected = (2.0 / (3.0 * H0)) * (1.0 - 1.0 / std::sqrt(1.0 + z));
@@ -494,9 +505,11 @@ void test_frw_distance_duality() {
     double a_em = frw.scaleFactor(t_em);
     double z = (1.0 / a_em) - 1.0;
     double chi = 1e9;
+    (void)z;
 
     double d_A = a_em * chi;
     double d_L = d_A / (a_em * a_em);
+    (void)d_L;
 
     assert(relError(d_L, (1.0 + z) * (1.0 + z) * d_A) < 1e-12 && "Etherington distance duality violated");
     std::cout << "[PASS] FRW Etherington distance duality: d_L = (1+z)^2 d_A" << std::endl;
@@ -558,6 +571,7 @@ void test_frw_matter_radiation_equality() {
     double a_eq_mat = matter.scaleFactor(t_eq);
     double a_eq_rad = radiation.scaleFactor(t_eq);
     assert(relError(a_eq_mat, a_eq_rad) < 1e-12 && "Equality scale factors should match");
+    (void)a_eq_mat; (void)a_eq_rad;
     std::cout << "[PASS] FRW matter-radiation equality verified at t = " << t_eq / T0 << " t0" << std::endl;
 }
 

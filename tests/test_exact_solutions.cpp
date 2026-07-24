@@ -22,6 +22,7 @@ void test_schwarzschild_orbital_period_keplerian_limit() {
 
     SchwarzschildMetric sch(M);
     auto g = sch.evaluate(Event4D(0.0, r, 0.0, 0.0));
+    (void)g;
 
     GeodesicIntegrator integrator(1e-8);
     integrator.setMetric(std::make_shared<SchwarzschildMetric>(M));
@@ -60,6 +61,7 @@ void test_schwarzschild_photon_orbit() {
 
     SchwarzschildMetric sch(M);
     auto g = sch.evaluate(Event4D(0.0, b, 0.0, 0.0));
+    (void)g;
 
     GeodesicIntegrator integrator(1e-8);
     integrator.setMetric(std::make_shared<SchwarzschildMetric>(M));
@@ -83,6 +85,7 @@ void test_schwarzschild_photon_orbit() {
     double scalar = sch.curvatureScalars(Event4D(0.0, b, 0.0, 0.0)).kretschmann;
     (void)scalar;
     assert(fellIn || traj.size() > 10 && "Photon should either orbit or fall in near photon sphere");
+    (void)fellIn;
 
     std::cout << "[PASS] Schwarzschild photon orbit at b=3*sqrt(3)*M handled correctly" << std::endl;
 }

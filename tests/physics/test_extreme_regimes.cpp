@@ -130,9 +130,12 @@ void test_schwarzschild_tiny_mass() {
     auto g = sch.evaluate(ev);
     assert(std::isfinite(g[0][0]) && "g_tt should be finite");
     assert(std::isfinite(g[1][1]) && "g_rr should be finite");
+    (void)g;
     auto s = sch.curvatureScalars(ev);
     assert(s.valid);
     assert(std::isfinite(s.kretschmann));
+    (void)s;
+    (void)s;
     std::cout << "[PASS] Schwarzschild tiny mass (M=1e-50) stable" << std::endl;
 }
 
@@ -146,9 +149,12 @@ void test_schwarzschild_huge_mass() {
     auto g = sch.evaluate(ev);
     assert(std::isfinite(g[0][0]) && "g_tt should be finite");
     assert(std::isfinite(g[1][1]) && "g_rr should be finite");
+    (void)g;
     auto s = sch.curvatureScalars(ev);
     assert(s.valid);
     assert(std::isfinite(s.kretschmann));
+    (void)s;
+    (void)s;
     std::cout << "[PASS] Schwarzschild huge mass (M=1e50) stable" << std::endl;
 }
 
@@ -312,6 +318,7 @@ void test_schwarzschild_large_r_minkowski() {
     SchwarzschildMetric sch(M);
     Event4D ev(0.0, 1e20, 0.0, 0.0);
     auto g = sch.evaluate(ev);
+    (void)g;
 
     MetricTensor mink;
     for (int i = 0; i < 4; i++)
@@ -401,6 +408,7 @@ void test_dilaton_conformal_singularity() {
     // Check that conformal factor approaches zero
     double Omega = dm.conformalFactor(xp, xm);
     assert(std::abs(Omega) < 1e-6 && "Conformal factor should be near zero at singularity");
+    (void)Omega;
     std::cout << "[PASS] Dilaton conformal singularity detected" << std::endl;
 }
 
@@ -477,6 +485,7 @@ void test_curvature_diverges_at_origin() {
     SchwarzschildMetric sch(M);
     std::vector<double> r = {1e-3, 1e-6, 1e-9, 1e-12};
     double K_prev = 0.0;
+    (void)K_prev;
     for (double ri : r) {
         double r_meters = ri * Event4D::C * Event4D::C / Event4D::G;
         if (r_meters < 1e-15) continue;
@@ -500,6 +509,7 @@ void test_tidal_forces_increase_near_singularity() {
 
     std::vector<double> r_factors = {10.0, 5.0, 2.5, 1.5, 1.1};
     double stretch_prev = 0.0;
+    (void)stretch_prev;
     for (double f : r_factors) {
         double r = f * rs;
         if (r < rs * 1.01) continue;
@@ -540,6 +550,7 @@ void test_schwarzschild_infinity_minkowski() {
     double r = 1e30;
     Event4D ev(0.0, r, 0.0, 0.0);
     auto g = sch.evaluate(ev);
+    (void)g;
 
     MetricTensor mink;
     for (int i = 0; i < 4; i++)
@@ -577,6 +588,7 @@ void test_regular_bh_no_nan_at_origin() {
         auto forces = handler.computeTidalForces(origin);
         assert(!std::isnan(forces.radial_stretch));
         assert(!std::isnan(forces.lateral_compression));
+        (void)forces;
     }
     std::cout << "[PASS] Regular BHs: no NaN at r=0" << std::endl;
 }
@@ -617,6 +629,7 @@ void test_high_curvature_numerical_stability() {
         assert(std::isfinite(result.kretschmann));
         assert(std::isfinite(result.ricciScalar));
         assert(std::isfinite(result.maxRiemannComponent));
+        (void)result;
     }
     std::cout << "[PASS] High curvature numerical stability" << std::endl;
 }
@@ -660,6 +673,7 @@ void test_coordinate_system_robustness() {
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 assert(std::isfinite(g[i][j]) && "Metric should be finite at all angles");
+        (void)g;
     }
     std::cout << "[PASS] Coordinate system robustness at various angles" << std::endl;
 }

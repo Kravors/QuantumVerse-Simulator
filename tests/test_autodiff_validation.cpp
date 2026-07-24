@@ -24,24 +24,31 @@ void test_advariable_basic_operations() {
     auto sum = x + y;
     assert(std::abs(sum.getValue() - 5.0) < 1e-12 && "AD sum value");
     assert(std::abs(sum[0] - 0.0) < 1e-12 && "AD sum derivative w.r.t. independent var");
+    (void)sum;
 
     auto prod = x * y;
     assert(std::abs(prod.getValue() - 6.0) < 1e-12 && "AD product value");
+    (void)prod;
 
     auto sin_x = sin(x);
     assert(std::abs(sin_x.getValue() - std::sin(2.0)) < 1e-12 && "AD sin value");
+    (void)sin_x;
 
     auto cos_x = cos(x);
     assert(std::abs(cos_x.getValue() - std::cos(2.0)) < 1e-12 && "AD cos value");
+    (void)cos_x;
 
     auto exp_x = exp(x);
     assert(std::abs(exp_x.getValue() - std::exp(2.0)) < 1e-12 && "AD exp value");
+    (void)exp_x;
 
     auto log_x = log(x);
     assert(std::abs(log_x.getValue() - std::log(2.0)) < 1e-12 && "AD log value");
+    (void)log_x;
 
     auto sqrt_x = sqrt(x);
     assert(std::abs(sqrt_x.getValue() - std::sqrt(2.0)) < 1e-12 && "AD sqrt value");
+    (void)sqrt_x;
 
     std::cout << "[PASS] ADVariable basic operations and transcendental functions" << std::endl;
 }
@@ -138,6 +145,7 @@ void test_differentiable_geodesic_gradients() {
         assert(std::isfinite(result.finalPosition[i].getValue()) && "Final position component should be finite");
         assert(std::isfinite(result.finalPosition[i][0]) && "Final position gradient should be finite");
     }
+    (void)result;
 
     std::cout << "[PASS] DifferentiableGeodesicIntegrator produces finite gradients" << std::endl;
 }

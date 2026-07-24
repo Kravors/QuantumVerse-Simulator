@@ -107,6 +107,7 @@ void test_geodesic_deviation_tidal_tensor() {
     assert(std::abs(tidal[1][1] - expected_tt) < 1e-6 && "Tidal E_tt should match Schwarzschild");
     assert(std::abs(tidal[2][2] - expected_tt) < 1e-6 && "Tidal E_pp should match Schwarzschild");
     (void)expected_rr; (void)expected_tt;
+    (void)tidal;
 
     std::cout << "[PASS] Geodesic deviation tidal tensor matches Schwarzschild 1/r^3 law" << std::endl;
 }
