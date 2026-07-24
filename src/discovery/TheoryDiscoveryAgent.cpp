@@ -475,10 +475,77 @@ void TheoryDiscoveryAgent::ingestLiveAlert(const QJsonObject& alert) {
     obs.origin   = "GCN_Kafka";
     m_liveObservations.push_back(obs);
 
-    if (!best_result_.parameters.empty()) {
-        auto updated = evaluateTheory(best_result_.parameters);
-        best_result_.observational_chi2 = updated.observational_chi2;
-        best_result_.total_reward = updated.total_reward;
+    if (pareto_results_.empty()) {
+        if (!best_result_.parameters.empty()) {
+            auto updated = evaluateTheory(best_result_.parameters);
+            best_result_ = updated;
+            m_lastBayesResult_ = computeBayesFactor(best_result_.parameters);
+        }
+        return;
+    }
+
+    for (auto& result : pareto_results_) {
+        if (result.parameters.empty()) continue;
+        auto updated = evaluateTheory(result.parameters);
+        result.raw_observational_chi2 = updated.raw_observational_chi2;
+        result.observational_chi2 = updated.observational_chi2;
+        result.total_reward = updated.total_reward;
+        result.theoretical_penalty = updated.theoretical_penalty;
+        result.simplicity_penalty = updated.simplicity_penalty;
+        result.lorentzian_valid = updated.lorentzian_valid;
+        result.kretschmann_nonneg = updated.kretschmann_nonneg;
+        result.near_singularity = updated.near_singularity;
+        result.n_data_points = updated.n_data_points;
+    }
+
+    std::vector<ParetoPoint> new_archive;
+    std::vector<DiscoveryResult> new_results;
+    for (const auto& result : pareto_results_) {
+        ParetoPoint candidate(
+            result.parameters,
+            computeObjectives(result),
+            result.total_reward,
+            result.lorentzian_valid,
+            result.near_singularity,
+            result.theory_name
+        );
+
+        bool dominated = false;
+        for (const auto& existing : new_archive) {
+            if (dominates(existing, candidate)) {
+                dominated = true;
+                break;
+            }
+        }
+
+        if (!dominated) {
+            std::vector<ParetoPoint> filtered_archive;
+            std::vector<DiscoveryResult> filtered_results;
+            for (size_t i = 0; i < new_archive.size(); ++i) {
+                if (!dominates(candidate, new_archive[i])) {
+                    filtered_archive.push_back(new_archive[i]);
+                    filtered_results.push_back(new_results[i]);
+                }
+            }
+            new_archive = std::move(filtered_archive);
+            new_results = std::move(filtered_results);
+            new_archive.push_back(std::move(candidate));
+            new_results.push_back(result);
+        }
+    }
+
+    pareto_archive_ = std::move(new_archive);
+    pareto_results_ = std::move(new_results);
+    computeModelWeights();
+
+    if (!pareto_results_.empty()) {
+        auto best_it = std::max_element(
+            pareto_results_.begin(), pareto_results_.end(),
+            [](const DiscoveryResult& a, const DiscoveryResult& b) {
+                return a.total_reward < b.total_reward;
+            }
+        );
+        best_result_ = *best_it;
         m_lastBayesResult_ = computeBayesFactor(best_result_.parameters);
     }
 }

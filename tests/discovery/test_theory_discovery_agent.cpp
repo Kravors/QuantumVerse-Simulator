@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <numeric>
 #include <string>
 #include <vector>
 #include <QJsonObject>
@@ -907,6 +908,50 @@ int main() {
 
     // --- 57. Phase 29: EHVI improves hypervolume over evaluations ----------------
     test_ehvi_improves_hypervolume();
+
+    // --- 58. Phase 31: Live alert shifts BMA weights -----------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+        agent.setMultiObjectiveEnabled(true);
+        agent.setActiveLearningEnabled(false);
+
+        std::vector<double> p1 = {40000.0, 1.0};
+        std::vector<double> p2 = {50000.0, 1.0};
+        agent.evaluateTheory(p1);
+        agent.evaluateTheory(p2);
+
+        std::vector<double> weights_before = agent.getModelWeights();
+        assert(weights_before.size() == 2u);
+        double weight_sum_before = std::accumulate(weights_before.begin(), weights_before.end(), 0.0);
+        assert(std::abs(weight_sum_before - 1.0) < 1e-6);
+        (void)weight_sum_before;
+
+        QJsonObject alert;
+        alert["alert_type"] = "LIGO";
+        alert["luminosity_distance"] = 600.0;
+        alert["distance_error"] = 80.0;
+        alert["redshift"] = 0.15;
+        alert["origin"] = "LIGO";
+
+        agent.ingestLiveAlert(alert);
+        assert(agent.getLiveObservationCount() == 1u);
+
+        std::vector<double> weights_after = agent.getModelWeights();
+        assert(weights_after.size() == 2u);
+        double weight_sum_after = std::accumulate(weights_after.begin(), weights_after.end(), 0.0);
+        assert(std::abs(weight_sum_after - 1.0) < 1e-6);
+        (void)weight_sum_after;
+
+        bool weights_changed = false;
+        for (size_t i = 0; i < weights_before.size(); ++i) {
+            if (std::abs(weights_before[i] - weights_after[i]) > 1e-9) {
+                weights_changed = true;
+                break;
+            }
+        }
+        assert(weights_changed && "BMA weights should shift after live alert ingestion");
+        std::cout << "  Live alert weight shift verified.\n";
+    }
 
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
