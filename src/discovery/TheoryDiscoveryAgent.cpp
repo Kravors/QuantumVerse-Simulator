@@ -9,6 +9,9 @@
 #include <map>
 #include <random>
 #include <chrono>
+#include <array>
+#include <tuple>
+#include <numeric>
 #ifdef _MSC_VER
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -52,21 +55,17 @@ static const std::vector<PantheonSN> PANETHEON_SAMPLE = {
 };
 
 // ============================================================================
-// BAO sample: representative SDSS/BOSS/eBOSS data (z, d_A, sigma_dA)
-// d_A is angular diameter distance in Mpc.
+// BAO measurements (effective distance ratio D_V / r_d)
+// r_d = 147.09 Mpc (Planck 2018 sound horizon at drag epoch)
 // ============================================================================
-struct BAODataPoint {
-    double z;
-    double dA_mpc;
-    double sigma_dA_mpc;
-};
+static const std::array<std::tuple<double, double, double>, 4> BAO_DATA = {{
+    {0.38, 10.23, 0.17},   // SDSS DR7 LRG
+    {0.51, 13.36, 0.21},   // BOSS LOWZ
+    {0.70, 17.33, 0.26},   // BOSS CMASS
+    {1.48, 26.51, 1.93}    // eBOSS quasars
+}};
 
-static const std::vector<BAODataPoint> BAO_SAMPLE = {
-    {0.38, 1512.0, 62.0},
-    {0.51, 2005.0, 72.0},
-    {0.70, 2515.0, 85.0},
-    {1.48, 3465.0, 155.0},
-};
+static constexpr double RD_REF = 147.09; // Planck 2018 sound horizon Mpc
 
 // ============================================================================
 // BBN abundances: observed values with uncertainties
@@ -78,8 +77,8 @@ struct BBNAbundance {
 };
 
 static const std::vector<BBNAbundance> BBN_ABUNDANCES = {
-    {2.527e-5, 0.03e-5, "D/H"},
-    {0.245, 0.003, "Y_p"},
+    {2.545e-5, 0.025e-5, "D/H"},
+    {0.2449, 0.0040, "Y_p"},
 };
 
 // ============================================================================
@@ -124,6 +123,20 @@ static double luminosityDistanceMpc(double z, double H0,
 static double distanceModulus(double dL_mpc) {
     if (dL_mpc <= 0.0) return std::numeric_limits<double>::infinity();
     return 5.0 * std::log10(dL_mpc) + 25.0;
+}
+
+// ============================================================================
+// Helper: BAO effective distance D_V(z) in Mpc
+// D_V = [d_M^2 z c / H(z)]^(1/3), d_M = (1+z) d_A
+// ============================================================================
+static double baoEffectiveDistanceMpc(double z, double H0, double omegaM, double omegaLambda) {
+    if (z <= 0.0) return 0.0;
+    double dA = comovingDistanceLCDM(z, H0, omegaM, omegaLambda) / (1.0 + z);
+    double Hz = H0 * std::sqrt(omegaM * std::pow(1.0 + z, 3.0) + omegaLambda);
+    double c_over_H_mpc = C_LIGHT / Hz / MPC;
+    double dM = (1.0 + z) * dA;
+    double D_V = std::pow(dM * dM * z * c_over_H_mpc, 1.0/3.0);
+    return std::isfinite(D_V) ? D_V : 0.0;
 }
 
 // ============================================================================
@@ -203,8 +216,10 @@ TheoryDiscoveryAgent::TheoryDiscoveryAgent(TheoryParameterSpace::TheoryType theo
       best_reward_so_far_(-std::numeric_limits<double>::infinity()),
       active_learning_enabled_(false),
       active_learning_mode_(ActiveLearningMode::UNCERTAINTY),
+      m_acquisitionMode_(AcquisitionMode::UNCERTAINTY),
        multi_objective_mode_(false),
-       surrogate_(std::make_unique<TheorySurrogate>())
+       surrogate_(std::make_unique<TheorySurrogate>()),
+       m_objectiveSurrogates_(4)
 {
     best_result_ = DiscoveryResult{};
 }
@@ -273,11 +288,15 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
     }
 
     // Observational chi-squared
-    result.observational_chi2 = computeObservationalChi2(metric, param_map);
-
-    // GW170817 contribution
+    double raw_chi2 = computeObservationalChi2(metric, param_map);
     double gw_chi2 = computeGW170817Chi2(metric, param_map);
-    result.observational_chi2 += gw_chi2;
+    result.observational_chi2 = raw_chi2 + gw_chi2;
+    result.raw_observational_chi2 = raw_chi2 + gw_chi2;
+
+    int total_dof = static_cast<int>(PANETHEON_SAMPLE.size())
+                  + static_cast<int>(m_liveObservations.size())
+                  + static_cast<int>(BAO_DATA.size()) + 1 + 2 + 1;
+    result.n_data_points = total_dof > 0 ? total_dof : 1;
 
     // Symbolic field-equation verification
     if (symbolic_verification_enabled_) {
@@ -306,6 +325,11 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
     if (active_learning_enabled_) {
         evaluation_history_.emplace_back(params, result.total_reward);
         surrogate_->addTrainingPoint(params, result.total_reward);
+
+        auto objectives = computeObjectives(result);
+        for (size_t i = 0; i < m_objectiveSurrogates_.size() && i < objectives.size(); ++i) {
+            m_objectiveSurrogates_[i].addTrainingPoint(params, objectives[i]);
+        }
     }
 
     // Update Pareto archive if multi-objective mode is enabled
@@ -318,7 +342,7 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
             result.near_singularity,
             result.theory_name
         );
-        updateParetoArchive(point);
+        updateParetoArchive(point, result);
     }
 
     return result;
@@ -356,6 +380,10 @@ std::vector<double> TheoryDiscoveryAgent::discoverBestTheory(int max_steps) {
 
         auto final_result = evaluateTheory(best_params);
         best_result_ = final_result;
+
+        if (multi_objective_mode_) {
+            computeModelWeights();
+        }
 
         return best_params;
     }
@@ -406,10 +434,14 @@ std::vector<double> TheoryDiscoveryAgent::discoverBestTheory(int max_steps) {
     std::vector<double> best_params = RLDiscoveryAgent::discoverTheory(max_steps);
 
     // Final evaluation of best
-    auto final_result = evaluateTheory(best_params);
-    best_result_ = final_result;
+        auto final_result = evaluateTheory(best_params);
+        best_result_ = final_result;
 
-    return best_params;
+        if (multi_objective_mode_) {
+            computeModelWeights();
+        }
+
+        return best_params;
 }
 
 void TheoryDiscoveryAgent::setTestLocation(const Event4D& location) {
@@ -549,7 +581,7 @@ double TheoryDiscoveryAgent::computeObservationalChi2(
     double chi2 = 0.0;
 
     // Pantheon+ SNe Ia contribution
-    int dof = static_cast<int>(PANETHEON_SAMPLE.size()) - 3;
+    int dof = static_cast<int>(PANETHEON_SAMPLE.size());
     for (const auto& sn : PANETHEON_SAMPLE) {
         double dL = luminosityDistanceMpc(sn.z, H0, omegaM, omegaLambda);
         double mu_theory = distanceModulus(dL);
@@ -572,15 +604,17 @@ double TheoryDiscoveryAgent::computeObservationalChi2(
 
     // BAO angular diameter distances
     chi2 += computeBAOChi2(params);
+    dof += static_cast<int>(BAO_DATA.size());
 
     // CMB shift parameter
     chi2 += computeCMBShiftChi2(params);
+    dof += 1;
 
     // BBN abundances
     chi2 += computeBBNChi2(params);
+    dof += 2;
 
-    if (dof <= 0) dof = 1;
-    return chi2 / static_cast<double>(dof);
+    return dof > 0 ? chi2 / static_cast<double>(dof) : 1e9;
 }
 
 // ============================================================================
@@ -597,11 +631,18 @@ double TheoryDiscoveryAgent::computeBAOChi2(
     extractCosmologicalParams(params, param_space_.getTheoryType(), H0, omegaM, omegaLambda, omegaB);
 
     double chi2 = 0.0;
-    for (const auto& bao : BAO_SAMPLE) {
-        double dA_theory = comovingDistanceLCDM(bao.z, H0, omegaM, omegaLambda) / (1.0 + bao.z);
-        if (!std::isfinite(dA_theory) || bao.sigma_dA_mpc <= 0.0) continue;
-        double residual = bao.dA_mpc - dA_theory;
-        chi2 += (residual * residual) / (bao.sigma_dA_mpc * bao.sigma_dA_mpc);
+    for (const auto& bao : BAO_DATA) {
+        double z = std::get<0>(bao);
+        double dV_over_rd_obs = std::get<1>(bao);
+        double sigma = std::get<2>(bao);
+
+        double D_V = baoEffectiveDistanceMpc(z, H0, omegaM, omegaLambda);
+        double dV_over_rd_pred = D_V / RD_REF;
+
+        if (std::isfinite(dV_over_rd_pred) && sigma > 0.0) {
+            double residual = dV_over_rd_obs - dV_over_rd_pred;
+            chi2 += (residual * residual) / (sigma * sigma);
+        }
     }
     return chi2;
 }
@@ -619,11 +660,11 @@ double TheoryDiscoveryAgent::computeCMBShiftChi2(
     double dA_rec = comovingDistanceLCDM(Z_REC, H0, omegaM, omegaLambda) / (1.0 + Z_REC);
     double R = std::sqrt(omegaM * H0 * H0) * dA_rec / C_LIGHT;
 
-    // Planck 2018 measured value: R = 1.75 +/- 0.02
-    double R_obs = 1.75;
-    double sigma_R = 0.02;
-    double residual = R_obs - R;
-    return (residual * residual) / (sigma_R * sigma_R);
+    // Planck 2018 measured value: R = 1.7492 +/- 0.0049
+    static constexpr double CMB_SHIFT_R = 1.7492;
+    static constexpr double CMB_SHIFT_ERR = 0.0049;
+    double residual = CMB_SHIFT_R - R;
+    return (residual * residual) / (CMB_SHIFT_ERR * CMB_SHIFT_ERR);
 }
 
 double TheoryDiscoveryAgent::computeBBNChi2(
@@ -638,12 +679,10 @@ double TheoryDiscoveryAgent::computeBBNChi2(
     double chi2 = 0.0;
 
     // Physical baryon density omegaB = Omega_b * h^2
-    // h = H0 / (100 km/s/Mpc) = H0 / (100 * 1000 m/s / MPC)
-    // But we use omegaB directly as the parameter.
-    // Deuterium prediction (approximate): D/H ~ 2.53e-5 * (omegaB / 0.0224)^-1.6
-    double dh_pred = 2.53e-5 * std::pow(omegaB / 0.0224, -1.6);
-    // Helium-4 prediction (approximate): Y_p ~ 0.2485 + 0.0016 * ((omegaB - 0.0224) / 0.0013)
-    double yp_pred = 0.2485 + 0.0016 * ((omegaB - 0.0224) / 0.0013);
+    // Deuterium prediction: D/H ~ 2.58e-5 * (omegaB / 0.02225)^-1.62
+    double dh_pred = 2.58e-5 * std::pow(omegaB / 0.02225, -1.62);
+    // Helium-4 prediction: Y_p ~ 0.231 + 0.01 * ln(omegaB / 0.02225)
+    double yp_pred = 0.231 + 0.01 * std::log(omegaB / 0.02225);
 
     for (const auto& bbn : BBN_ABUNDANCES) {
         double predicted = 0.0;
@@ -858,9 +897,20 @@ void TheoryDiscoveryAgent::resetActiveLearning() {
     if (surrogate_) {
         surrogate_->clear();
     }
+    for (auto& surr : m_objectiveSurrogates_) {
+        surr.clear();
+    }
 }
 
 std::vector<double> TheoryDiscoveryAgent::selectNextActiveLearningPoint() const {
+    return selectNextActiveLearningPoint(m_acquisitionMode_);
+}
+
+void TheoryDiscoveryAgent::setAcquisitionMode(AcquisitionMode mode) {
+    m_acquisitionMode_ = mode;
+}
+
+std::vector<double> TheoryDiscoveryAgent::selectNextActiveLearningPoint(AcquisitionMode mode) const {
     int dim = param_space_.getParameterDimension();
     std::vector<double> best_point;
     double best_score = -std::numeric_limits<double>::infinity();
@@ -870,39 +920,96 @@ std::vector<double> TheoryDiscoveryAgent::selectNextActiveLearningPoint() const 
     ));
 
     const int num_candidates = 500;
+    std::uniform_real_distribution<double> uniform(-1.0, 1.0);
 
     for (int i = 0; i < num_candidates; ++i) {
         std::vector<double> candidate_norm(dim);
-        std::uniform_real_distribution<double> uniform(-1.0, 1.0);
         for (int d = 0; d < dim; ++d) {
             candidate_norm[d] = uniform(al_rng);
         }
 
-        // Denormalize to physical space for surrogate evaluation
         std::vector<double> physical = denormalizeParams(candidate_norm);
 
         double mean = 0.0;
         double std = 1.0;
-        surrogate_->predict(physical, mean, std);
+        if (surrogate_) {
+            surrogate_->predict(physical, mean, std);
+        }
 
         double score = 0.0;
-        if (active_learning_mode_ == ActiveLearningMode::UNCERTAINTY) {
-            score = std;
-        } else if (active_learning_mode_ == ActiveLearningMode::EI) {
-            double best_observed = -std::numeric_limits<double>::infinity();
-            for (const auto& entry : evaluation_history_) {
-                if (entry.second > best_observed) {
-                    best_observed = entry.second;
+        switch (mode) {
+            case AcquisitionMode::RANDOM:
+                score = 0.0;
+                break;
+            case AcquisitionMode::UNCERTAINTY:
+                score = std;
+                break;
+            case AcquisitionMode::EI: {
+                double best_observed = -std::numeric_limits<double>::infinity();
+                for (const auto& entry : evaluation_history_) {
+                    if (entry.second > best_observed) {
+                        best_observed = entry.second;
+                    }
                 }
+                if (best_observed == -std::numeric_limits<double>::infinity()) {
+                    best_observed = 0.0;
+                }
+                double improvement = mean - best_observed;
+                double z = std > 1e-12 ? improvement / std : 0.0;
+                double cdf = 0.5 * (1.0 + std::erf(z / std::sqrt(2.0)));
+                double pdf = std > 1e-12 ? (1.0 / (std::sqrt(2.0 * M_PI) * std)) * std::exp(-0.5 * z * z) : 0.0;
+                score = improvement * cdf + std * pdf;
+                break;
             }
-            if (best_observed == -std::numeric_limits<double>::infinity()) {
-                best_observed = 0.0;
+            case AcquisitionMode::EHVI: {
+                if (!multi_objective_mode_ || pareto_archive_.empty() || m_objectiveSurrogates_.size() < 4) {
+                    score = std;
+                } else {
+                    std::vector<double> means(4), stds(4);
+                    for (int obj = 0; obj < 4; ++obj) {
+                        m_objectiveSurrogates_[obj].predict(physical, means[obj], stds[obj]);
+                    }
+
+                    const int M = 50;
+                    double total_hvi = 0.0;
+                    std::normal_distribution<double> normal(0.0, 1.0);
+
+                    for (int m = 0; m < M; ++m) {
+                        std::vector<double> sample(4);
+                        for (int obj = 0; obj < 4; ++obj) {
+                            sample[obj] = means[obj] + stds[obj] * normal(al_rng);
+                        }
+
+                        double hvi = 0.0;
+                        for (const auto& p : pareto_archive_) {
+                            bool dominated = true;
+                            for (size_t k = 0; k < 4 && k < p.objectives.size(); ++k) {
+                                if (sample[k] > p.objectives[k]) {
+                                    dominated = false;
+                                    break;
+                                }
+                            }
+                            if (dominated) {
+                                double vol = 1.0;
+                                for (size_t k = 0; k < 4 && k < p.objectives.size(); ++k) {
+                                    double improvement = p.objectives[k] - sample[k];
+                                    if (improvement > 0) vol *= improvement;
+                                    else { vol = 0; break; }
+                                }
+                                hvi += vol;
+                            }
+                        }
+                        total_hvi += hvi;
+                    }
+                    score = total_hvi / M;
+                }
+                break;
             }
-            double improvement = mean - best_observed;
-            double z = std > 1e-12 ? improvement / std : 0.0;
-            double cdf = 0.5 * (1.0 + std::erf(z / std::sqrt(2.0)));
-            double pdf = std > 1e-12 ? (1.0 / (std::sqrt(2.0 * M_PI) * std)) * std::exp(-0.5 * z * z) : 0.0;
-            score = improvement * cdf + std * pdf;
+            case AcquisitionMode::UCB: {
+                double kappa = 2.0;
+                score = mean + kappa * std;
+                break;
+            }
         }
 
         if (score > best_score) {
@@ -916,6 +1023,22 @@ std::vector<double> TheoryDiscoveryAgent::selectNextActiveLearningPoint() const 
     }
 
     return best_point;
+}
+
+double TheoryDiscoveryAgent::computeHypervolume(const std::vector<ParetoPoint>& front, const std::vector<double>& refPoint) const {
+    if (front.empty() || refPoint.empty()) return 0.0;
+
+    double hv = 0.0;
+    for (const auto& p : front) {
+        double vol = 1.0;
+        for (size_t i = 0; i < refPoint.size() && i < p.objectives.size(); ++i) {
+            double diff = refPoint[i] - p.objectives[i];
+            if (diff > 0) vol *= diff;
+            else { vol = 0; break; }
+        }
+        hv += vol;
+    }
+    return hv;
 }
 
 // ============================================================================
@@ -962,6 +1085,8 @@ std::vector<TheoryDiscoveryAgent::ParetoPoint> TheoryDiscoveryAgent::getParetoFr
 
 void TheoryDiscoveryAgent::resetParetoArchive() {
     pareto_archive_.clear();
+    pareto_results_.clear();
+    model_weights_.clear();
 }
 
 std::vector<double> TheoryDiscoveryAgent::computeObjectives(const DiscoveryResult& result) const {
@@ -976,23 +1101,98 @@ std::vector<double> TheoryDiscoveryAgent::computeObjectives(const DiscoveryResul
     return objectives;
 }
 
-void TheoryDiscoveryAgent::updateParetoArchive(const ParetoPoint& point) const {
+void TheoryDiscoveryAgent::updateParetoArchive(const ParetoPoint& point, const DiscoveryResult& result) const {
     std::vector<ParetoPoint> new_archive;
+    std::vector<DiscoveryResult> new_results;
     bool is_dominated = false;
 
-    for (const auto& existing : pareto_archive_) {
-        if (dominates(existing, point)) {
+    for (size_t i = 0; i < pareto_archive_.size(); ++i) {
+        if (dominates(pareto_archive_[i], point)) {
             is_dominated = true;
         }
-        if (!dominates(point, existing)) {
-            new_archive.push_back(existing);
+        if (!dominates(point, pareto_archive_[i])) {
+            new_archive.push_back(pareto_archive_[i]);
+            new_results.push_back(pareto_results_[i]);
         }
     }
 
     if (!is_dominated) {
         new_archive.push_back(point);
-        pareto_archive_ = std::move(new_archive);
+        new_results.push_back(result);
     }
+
+    pareto_archive_ = std::move(new_archive);
+    pareto_results_ = std::move(new_results);
+}
+
+// ============================================================================
+// Phase 28: Bayesian Model Averaging
+// ============================================================================
+
+std::vector<double> TheoryDiscoveryAgent::computeModelWeights() const {
+    if (pareto_results_.empty()) {
+        model_weights_.clear();
+        return {};
+    }
+
+    std::vector<double> log_weights;
+    log_weights.reserve(pareto_results_.size());
+
+    for (const auto& result : pareto_results_) {
+        int k = static_cast<int>(result.parameters.size());
+        int n = result.n_data_points > 0 ? result.n_data_points : 2;
+        double bic = computeBIC(result.raw_observational_chi2, k, n);
+        log_weights.push_back(-0.5 * bic);
+    }
+
+    double max_log = *std::max_element(log_weights.begin(), log_weights.end());
+    double sum_exp = 0.0;
+    for (double lw : log_weights) {
+        sum_exp += std::exp(lw - max_log);
+    }
+    double log_sum = max_log + std::log(sum_exp);
+
+    std::vector<double> weights;
+    weights.reserve(log_weights.size());
+    for (double lw : log_weights) {
+        weights.push_back(std::exp(lw - log_sum));
+    }
+
+    model_weights_ = weights;
+    return weights;
+}
+
+double TheoryDiscoveryAgent::predictBMA(
+    const std::function<double(const DiscoveryResult&)>& quantity
+) const {
+    auto weights = computeModelWeights();
+    if (weights.empty() || pareto_results_.size() != weights.size()) {
+        return 0.0;
+    }
+
+    double prediction = 0.0;
+    for (size_t i = 0; i < pareto_results_.size(); ++i) {
+        prediction += weights[i] * quantity(pareto_results_[i]);
+    }
+    return prediction;
+}
+
+double TheoryDiscoveryAgent::predictiveVarianceBMA(
+    const std::function<double(const DiscoveryResult&)>& quantity
+) const {
+    auto weights = computeModelWeights();
+    if (weights.empty() || pareto_results_.size() != weights.size()) {
+        return 0.0;
+    }
+
+    double mean = predictBMA(quantity);
+    double variance = 0.0;
+    for (size_t i = 0; i < pareto_results_.size(); ++i) {
+        double q = quantity(pareto_results_[i]);
+        double diff = q - mean;
+        variance += weights[i] * diff * diff;
+    }
+    return variance;
 }
 
 } // namespace discovery

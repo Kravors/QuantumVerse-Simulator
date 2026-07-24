@@ -33,6 +33,8 @@ public:
         std::vector<double> parameters;
         double total_reward = 0.0;
         double observational_chi2 = 0.0;
+        double raw_observational_chi2 = 0.0;
+        int n_data_points = 0;
         double theoretical_penalty = 0.0;
         double simplicity_penalty = 0.0;
         bool lorentzian_valid = false;
@@ -81,6 +83,15 @@ public:
     void setSymbolicVerificationEnabled(bool enabled);
 
     /**
+     * @brief Denormalize parameters from [-1,1] to physical space.
+     * @param normalized Normalized parameter vector.
+     * @return Physical parameter vector.
+     */
+    std::vector<double> denormalizeParams(const std::vector<double>& normalized) const {
+        return RLDiscoveryAgent::denormalizeParams(normalized);
+    }
+
+    /**
      * @brief Update the agent's dataset with a new multi-messenger alert.
      * @param alert JSON object following the GCN schema (LIGO, Fermi, etc.)
      *
@@ -106,12 +117,29 @@ public:
     };
 
     /**
+     * @brief Acquisition function for active learning and multi-objective optimization.
+     */
+    enum class AcquisitionMode {
+        RANDOM,        ///< Pure random exploration
+        UNCERTAINTY,   ///< Select points with highest predictive variance
+        EI,            ///< Expected improvement over current best
+        EHVI,          ///< Expected hypervolume improvement (multi-objective)
+        UCB            ///< Upper confidence bound (scalarized)
+    };
+
+    /**
      * @brief Enable or disable active learning.
      * When enabled, discoverBestTheory uses the surrogate to guide search.
      * @param enabled Whether to use active learning.
      * @param mode Selection strategy (uncertainty sampling or EI).
      */
     void setActiveLearningEnabled(bool enabled, ActiveLearningMode mode = ActiveLearningMode::UNCERTAINTY);
+
+    /**
+     * @brief Set the acquisition mode for active learning point selection.
+     * @param mode Acquisition strategy (EHVI for multi-objective, UCB for scalarized).
+     */
+    void setAcquisitionMode(AcquisitionMode mode);
 
     /**
      * @brief Check if active learning is enabled.
@@ -135,9 +163,17 @@ public:
 
     /**
      * @brief Select next point to evaluate using the active-learning acquisition function.
+     * Uses the currently configured acquisition mode.
      * @return Candidate parameter vector in normalized [0,1] space.
      */
     std::vector<double> selectNextActiveLearningPoint() const;
+
+    /**
+     * @brief Select next point to evaluate using the specified acquisition mode.
+     * @param mode Acquisition strategy (EHVI for multi-objective, UCB for scalarized).
+     * @return Candidate parameter vector in normalized [0,1] space.
+     */
+    std::vector<double> selectNextActiveLearningPoint(AcquisitionMode mode) const;
 
     /**
      * @brief Result of Bayesian model comparison.
@@ -161,6 +197,32 @@ public:
      * @brief Number of live observations currently ingested.
      */
     size_t getLiveObservationCount() const { return m_liveObservations.size(); }
+
+    /**
+     * @brief Compute Bayesian posterior model weights for the current Pareto front.
+     * Uses BIC approximation: w_i = exp(-BIC_i/2) / sum_j exp(-BIC_j/2).
+     * @return Vector of posterior weights (sum to 1).
+     */
+    std::vector<double> computeModelWeights() const;
+
+    /**
+     * @brief Get the last computed model weights.
+     */
+    std::vector<double> getModelWeights() const { return model_weights_; }
+
+    /**
+     * @brief BMA prediction: weighted average of a scalar quantity across the Pareto front.
+     * @param quantity Lambda extracting a scalar from a DiscoveryResult.
+     * @return BMA-averaged prediction.
+     */
+    double predictBMA(const std::function<double(const DiscoveryResult&)>& quantity) const;
+
+    /**
+     * @brief BMA predictive variance: model uncertainty in the prediction.
+     * @param quantity Lambda extracting a scalar from a DiscoveryResult.
+     * @return Variance of the BMA prediction.
+     */
+    double predictiveVarianceBMA(const std::function<double(const DiscoveryResult&)>& quantity) const;
 
     /**
      * @brief Compute log-likelihood from observational chi-squared.
@@ -219,8 +281,16 @@ public:
             bool valid,
             bool singular,
             const std::string& name
-        );
+         );
     };
+
+    /**
+     * @brief Compute approximate hypervolume of a Pareto front.
+     * @param front Pareto front points.
+     * @param refPoint Reference point (worse than all objectives).
+     * @return Approximate hypervolume.
+     */
+    double computeHypervolume(const std::vector<ParetoPoint>& front, const std::vector<double>& refPoint) const;
 
     /**
      * @brief BAO distance data point.
@@ -336,8 +406,9 @@ public:
      * Removes any existing points dominated by the new point,
      * and discards the new point if it is dominated.
      * @param point New candidate Pareto point.
+     * @param result Corresponding DiscoveryResult for BMA bookkeeping.
      */
-    void updateParetoArchive(const ParetoPoint& point) const;
+    void updateParetoArchive(const ParetoPoint& point, const DiscoveryResult& result) const;
 
 private:
     // Override to provide physics-grounded simulation
@@ -370,12 +441,16 @@ private:
     // Multi-objective Pareto state
     bool multi_objective_mode_;
     mutable std::vector<ParetoPoint> pareto_archive_;
+    mutable std::vector<DiscoveryResult> pareto_results_;
+    mutable std::vector<double> model_weights_;
 
     // Active learning state
     bool active_learning_enabled_;
     ActiveLearningMode active_learning_mode_;
+    AcquisitionMode m_acquisitionMode_;
     mutable std::vector<std::pair<std::vector<double>, double>> evaluation_history_;
     mutable std::unique_ptr<TheorySurrogate> surrogate_;
+    mutable std::vector<TheorySurrogate> m_objectiveSurrogates_;
 
     // Live observational data
     std::vector<LiveObservation> m_liveObservations;

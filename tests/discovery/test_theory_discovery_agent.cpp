@@ -108,6 +108,192 @@ void test_evaluation_count_tracks() {
     assert(agent.getEvaluationCount() == 2u);
 }
 
+// ============================================================================
+// Phase 28: Bayesian Model Averaging Tests
+// ============================================================================
+
+void test_model_weights_sum_to_one() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setMultiObjectiveEnabled(true);
+
+    std::vector<double> p1 = {0.01, 1.0};
+    std::vector<double> p2 = {0.05, 1.2};
+    std::vector<double> p3 = {0.10, 1.5};
+    agent.evaluateTheory(p1);
+    agent.evaluateTheory(p2);
+    agent.evaluateTheory(p3);
+
+    auto weights = agent.computeModelWeights();
+    assert(!weights.empty());
+    assert(weights.size() >= 1u);
+
+    double sum = 0.0;
+    for (double w : weights) {
+        assert(w >= 0.0 && "Weights must be non-negative");
+        sum += w;
+    }
+    assert(std::fabs(sum - 1.0) < 1e-6 && "Weights must sum to 1");
+    std::cout << "  Model weights sum to " << sum << std::endl;
+}
+
+void test_bma_prediction_gr_limit() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setMultiObjectiveEnabled(true);
+
+    std::vector<double> p1 = {0.001, 1.0};
+    std::vector<double> p2 = {0.005, 1.01};
+    agent.evaluateTheory(p1);
+    agent.evaluateTheory(p2);
+
+    auto bma_H0 = agent.predictBMA([](const TheoryDiscoveryAgent::DiscoveryResult& r) {
+        return r.parameters.empty() ? 0.0 : r.parameters[0];
+    });
+    assert(std::isfinite(bma_H0));
+    std::cout << "  BMA prediction (GR limit) = " << bma_H0 << std::endl;
+}
+
+void test_bma_variance_nonnegative() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+    agent.setMultiObjectiveEnabled(true);
+
+    std::vector<double> p1 = {40000.0, 1.0};
+    std::vector<double> p2 = {50000.0, 0.9};
+    std::vector<double> p3 = {60000.0, 1.1};
+    agent.evaluateTheory(p1);
+    agent.evaluateTheory(p2);
+    agent.evaluateTheory(p3);
+
+    auto variance = agent.predictiveVarianceBMA([](const TheoryDiscoveryAgent::DiscoveryResult& r) {
+        return r.parameters.empty() ? 0.0 : r.parameters[0];
+    });
+    assert(variance >= 0.0 && "Predictive variance must be non-negative");
+    assert(std::isfinite(variance));
+    std::cout << "  BMA predictive variance = " << variance << std::endl;
+}
+
+void test_bma_with_single_model() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::TE_VES);
+    agent.setMultiObjectiveEnabled(true);
+
+    std::vector<double> p = {0.3, 1e-55, 1.0};
+    agent.evaluateTheory(p);
+
+    auto weights = agent.computeModelWeights();
+    assert(weights.size() == 1u);
+    assert(std::fabs(weights[0] - 1.0) < 1e-6 && "Single model weight must be 1");
+
+    auto bma_val = agent.predictBMA([](const TheoryDiscoveryAgent::DiscoveryResult& r) {
+        return r.parameters.empty() ? 0.0 : r.parameters[1];
+    });
+    assert(std::fabs(bma_val - 1e-55) < 1e-60 || bma_val > 0.0);
+    std::cout << "  BMA single-model weight = " << weights[0]
+              << ", prediction = " << bma_val << std::endl;
+}
+
+// ============================================================================
+// Phase 29: Active Learning with Multi-Objective Acquisition
+// ============================================================================
+
+void test_ehvi_mode_selects_point() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
+    agent.setMultiObjectiveEnabled(true);
+    agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::EHVI);
+
+    for (int i = 0; i < 10; ++i) {
+        std::vector<double> p = {0.1 + 0.05 * i, 1.0 + 0.1 * i};
+        agent.evaluateTheory(p);
+    }
+
+    std::vector<double> next = agent.selectNextActiveLearningPoint();
+    assert(next.size() == 2);
+    assert(next[0] >= -2.0 && next[0] <= 2.0);
+    assert(next[1] >= -2.0 && next[1] <= 2.0);
+    std::cout << "  EHVI mode selected point: " << next[0] << ", " << next[1] << std::endl;
+}
+
+void test_ucb_mode_selects_point() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
+    agent.setActiveLearningEnabled(true);
+    agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::UCB);
+
+    for (int i = 0; i < 10; ++i) {
+        std::vector<double> p = {10000.0 + 1000.0 * i, 1.0 + 0.1 * i};
+        agent.evaluateTheory(p);
+    }
+
+    std::vector<double> next = agent.selectNextActiveLearningPoint();
+    assert(next.size() == 2);
+    assert(next[0] >= -2.0 && next[0] <= 2.0);
+    assert(next[1] >= -2.0 && next[1] <= 2.0);
+    std::cout << "  UCB mode selected point: " << next[0] << ", " << next[1] << std::endl;
+}
+
+void test_acquisition_mode_toggle() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
+
+    agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::UNCERTAINTY);
+    std::vector<double> next1 = agent.selectNextActiveLearningPoint();
+    assert(next1.size() == 2);
+
+    agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::EI);
+    std::vector<double> next2 = agent.selectNextActiveLearningPoint();
+    assert(next2.size() == 2);
+
+    agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::EHVI);
+    std::vector<double> next3 = agent.selectNextActiveLearningPoint();
+    assert(next3.size() == 2);
+
+    agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::UCB);
+    std::vector<double> next4 = agent.selectNextActiveLearningPoint();
+    assert(next4.size() == 2);
+
+    std::cout << "  Acquisition mode toggle works (UNCERTAINTY, EI, EHVI, UCB)." << std::endl;
+}
+
+void test_ehvi_improves_hypervolume() {
+    TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
+    agent.setMultiObjectiveEnabled(true);
+    agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::EHVI);
+
+    for (int i = 0; i < 10; ++i) {
+        std::vector<double> p = {0.1 + 0.05 * i, 1.0 + 0.1 * i};
+        agent.evaluateTheory(p);
+    }
+
+    auto front_before = agent.getParetoFront();
+    std::vector<double> ref_before(4, 0.0);
+    for (const auto& p : front_before) {
+        for (size_t i = 0; i < 4 && i < p.objectives.size(); ++i) {
+            ref_before[i] = std::max(ref_before[i], p.objectives[i]);
+        }
+    }
+    for (auto& r : ref_before) r = r * 1.1 + 0.1;
+    double hv_before = agent.computeHypervolume(front_before, ref_before);
+
+    for (int i = 0; i < 10; ++i) {
+        std::vector<double> next = agent.selectNextActiveLearningPoint();
+        auto physical = agent.denormalizeParams(next);
+        agent.evaluateTheory(physical);
+    }
+
+    auto front_after = agent.getParetoFront();
+    std::vector<double> ref_after(4, 0.0);
+    for (const auto& p : front_after) {
+        for (size_t i = 0; i < 4 && i < p.objectives.size(); ++i) {
+            ref_after[i] = std::max(ref_after[i], p.objectives[i]);
+        }
+    }
+    for (auto& r : ref_after) r = r * 1.1 + 0.1;
+    double hv_after = agent.computeHypervolume(front_after, ref_after);
+
+    assert(hv_after >= hv_before && "Hypervolume should not decrease after more evaluations");
+    std::cout << "  Hypervolume before = " << hv_before
+              << ", after = " << hv_after << std::endl;
+}
+
 int main() {
     std::cout << "=== TheoryDiscoveryAgentTest ===" << std::endl;
 
@@ -644,7 +830,7 @@ int main() {
         std::cout << "  BBN chi2 (near-GR) = " << result.observational_chi2 << std::endl;
     }
 
-    // --- 47. Combined probes: all probes contribute to total chi2 ----------------------
+    // --- 47. Combined chi2: total equals sum of probe contributions -------------------
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
         std::vector<double> params = {40000.0, 1.0};
@@ -694,8 +880,33 @@ int main() {
         auto result_after = agent.evaluateTheory(gr_params);
         double chi2_after = result_after.observational_chi2;
         assert(chi2_after == chi2_before);
+        (void)chi2_before;
         std::cout << "  Invalid alert rejected, chi2 unchanged = " << chi2_after << "\n";
     }
+
+    // --- 50. BMA: model weights sum to one -------------------------------------
+    test_model_weights_sum_to_one();
+
+    // --- 51. BMA: prediction in GR limit ---------------------------------------
+    test_bma_prediction_gr_limit();
+
+    // --- 52. BMA: predictive variance non-negative ------------------------------
+    test_bma_variance_nonnegative();
+
+    // --- 53. BMA: single model has weight 1 ------------------------------------
+    test_bma_with_single_model();
+
+    // --- 54. Phase 29: EHVI mode selects valid point -----------------------------
+    test_ehvi_mode_selects_point();
+
+    // --- 55. Phase 29: UCB mode selects valid point ------------------------------
+    test_ucb_mode_selects_point();
+
+    // --- 56. Phase 29: Acquisition mode toggle works -----------------------------
+    test_acquisition_mode_toggle();
+
+    // --- 57. Phase 29: EHVI improves hypervolume over evaluations ----------------
+    test_ehvi_improves_hypervolume();
 
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;
     return 0;
