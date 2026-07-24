@@ -9,6 +9,7 @@
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
 #include "physics/CurvatureCalculator.h"
+#include <QJsonObject>
 #include <memory>
 
 namespace quantumverse {
@@ -80,6 +81,17 @@ public:
     void setSymbolicVerificationEnabled(bool enabled);
 
     /**
+     * @brief Update the agent's dataset with a new multi-messenger alert.
+     * @param alert JSON object following the GCN schema (LIGO, Fermi, etc.)
+     *
+     * The method parses the alert, extracts any usable cosmological
+     * information (luminosity distance, redshift, time delay), appends
+     * it to the internal dataset, and recomputes the Bayesian evidence
+     * for the current best theory.
+     */
+    void ingestLiveAlert(const QJsonObject& alert);
+
+    /**
      * @brief Get the best discovery result from the last run.
      */
     const DiscoveryResult& getBestResult() const;
@@ -139,6 +151,16 @@ public:
         std::string preferred_model;       ///< "candidate", "GR", or "inconclusive"
         double evidence_ratio = 1.0;       ///< P(data|candidate) / P(data|GR)
     };
+
+    /**
+     * @brief Get the last Bayesian comparison result from a live alert update.
+     */
+    const BayesianComparisonResult& getLastBayesResult() const;
+
+    /**
+     * @brief Number of live observations currently ingested.
+     */
+    size_t getLiveObservationCount() const { return m_liveObservations.size(); }
 
     /**
      * @brief Compute log-likelihood from observational chi-squared.
@@ -207,6 +229,16 @@ public:
         double z;
         double dA_mpc;
         double sigma_dA_mpc;
+    };
+
+    /**
+     * @brief Live multi-messenger observation (e.g., GW170817-like alert).
+     */
+    struct LiveObservation {
+        double redshift;
+        double mu_obs;    ///< Distance modulus (mag)
+        double mu_err;    ///< 1-sigma uncertainty on distance modulus (mag)
+        std::string origin;
     };
 
     /**
@@ -344,6 +376,10 @@ private:
     ActiveLearningMode active_learning_mode_;
     mutable std::vector<std::pair<std::vector<double>, double>> evaluation_history_;
     mutable std::unique_ptr<TheorySurrogate> surrogate_;
+
+    // Live observational data
+    std::vector<LiveObservation> m_liveObservations;
+    mutable BayesianComparisonResult m_lastBayesResult_;
 };
 
 } // namespace discovery

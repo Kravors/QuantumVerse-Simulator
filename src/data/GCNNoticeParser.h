@@ -108,6 +108,10 @@ struct ParsedGCNNotice {
     TESSAlertFields tess;
     FermiGBMAlertFields fermi_gbm;
     SwiftBATAlertFields swift_bat;
+    bool isValid = false;            ///< True when the notice contains usable cosmology data
+    double luminosityDistance = 0.0; ///< Mpc, from GW host-galaxy association
+    double redshift = 0.0;           ///< Spectroscopic redshift of the host
+    double distanceError = 0.0;      ///< 1-sigma uncertainty on luminosity distance (Mpc)
 };
 
 /**

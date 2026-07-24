@@ -1389,10 +1389,11 @@ endif()
         src/discovery/CosmicShearScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
+        src/data/GCNNoticeParser.cpp
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton)
+    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
 
     # 6.5 Discovery robustness & fallback handling

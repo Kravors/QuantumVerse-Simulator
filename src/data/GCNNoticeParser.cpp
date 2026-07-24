@@ -58,6 +58,12 @@ ParsedGCNNotice GCNNoticeParser::parse(const QJsonObject& json)
         out.gw.confidence = jsonDouble(json, "confidence");
         out.gw.ra = jsonDouble(json, "ra");
         out.gw.dec = jsonDouble(json, "dec");
+        out.luminosityDistance = jsonDouble(json, "luminosity_distance");
+        out.redshift = jsonDouble(json, "redshift");
+        out.distanceError = jsonDouble(json, "distance_error");
+        out.isValid = (out.luminosityDistance > 0.0
+                       && out.redshift >= 0.0
+                       && out.distanceError > 0.0);
         break;
     }
     case AlertOrigin::IceCube: {

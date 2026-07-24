@@ -8,6 +8,7 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <QJsonObject>
 
 #include "discovery/TheoryDiscoveryAgent.h"
 #include "discovery/DiscoveryEngine.h"
@@ -99,6 +100,7 @@ void test_expected_improvement_selects_point() {
 
 void test_evaluation_count_tracks() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+    agent.setActiveLearningEnabled(true);
     assert(agent.getEvaluationCount() == 0u);
     agent.evaluateTheory({0.2, 1.0});
     assert(agent.getEvaluationCount() == 1u);
@@ -650,6 +652,49 @@ int main() {
         assertFinite("combined_chi2", result.observational_chi2);
         assert(result.observational_chi2 >= 0.0);
         std::cout << "  Combined observational chi2 = " << result.observational_chi2 << std::endl;
+    }
+
+    // --- 48. Live alert ingestion adds observation -----------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setActiveLearningEnabled(false);
+        assert(agent.getLiveObservationCount() == 0u);
+
+        QJsonObject alert;
+        alert["alert_type"] = "LIGO";
+        alert["luminosity_distance"] = 400.0;
+        alert["distance_error"] = 50.0;
+        alert["redshift"] = 0.09;
+        alert["origin"] = "LIGO";
+
+        agent.ingestLiveAlert(alert);
+        assert(agent.getLiveObservationCount() == 1u);
+
+        agent.ingestLiveAlert(alert);
+        assert(agent.getLiveObservationCount() == 2u);
+
+        std::cout << "  Live observations ingested: " << agent.getLiveObservationCount() << "\n";
+    }
+
+    // --- 49. Invalid live alert is rejected -------------------------------------
+    {
+        TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
+        agent.setActiveLearningEnabled(false);
+
+        std::vector<double> gr_params = {0.0, 1.0};
+        auto result_before = agent.evaluateTheory(gr_params);
+        double chi2_before = result_before.observational_chi2;
+
+        QJsonObject bad_alert;
+        bad_alert["alert_type"] = "LIGO";
+        bad_alert["origin"] = "LIGO";
+
+        agent.ingestLiveAlert(bad_alert);
+
+        auto result_after = agent.evaluateTheory(gr_params);
+        double chi2_after = result_after.observational_chi2;
+        assert(chi2_after == chi2_before);
+        std::cout << "  Invalid alert rejected, chi2 unchanged = " << chi2_after << "\n";
     }
 
     std::cout << "All TheoryDiscoveryAgentTest checks passed." << std::endl;

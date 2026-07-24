@@ -1,4 +1,5 @@
 #include "TheoryDiscoveryAgent.h"
+#include "data/GCNNoticeParser.h"
 #include <cmath>
 #include <algorithm>
 #include <limits>
@@ -423,8 +424,39 @@ void TheoryDiscoveryAgent::setSymbolicVerificationEnabled(bool enabled) {
     symbolic_verification_enabled_ = enabled;
 }
 
+void TheoryDiscoveryAgent::ingestLiveAlert(const QJsonObject& alert) {
+    auto parsed = GCNNoticeParser::parse(alert);
+    if (!parsed.isValid) return;
+
+    double dl  = parsed.luminosityDistance;
+    double z   = parsed.redshift;
+    double err = parsed.distanceError;
+    if (dl <= 0.0 || err <= 0.0) return;
+
+    double mu_obs = 5.0 * std::log10(dl * 1e6) - 5.0;
+    double mu_err = (5.0 / std::log(10.0)) * (err / dl);
+
+    LiveObservation obs;
+    obs.redshift = z;
+    obs.mu_obs   = mu_obs;
+    obs.mu_err   = mu_err;
+    obs.origin   = "GCN_Kafka";
+    m_liveObservations.push_back(obs);
+
+    if (!best_result_.parameters.empty()) {
+        auto updated = evaluateTheory(best_result_.parameters);
+        best_result_.observational_chi2 = updated.observational_chi2;
+        best_result_.total_reward = updated.total_reward;
+        m_lastBayesResult_ = computeBayesFactor(best_result_.parameters);
+    }
+}
+
 const TheoryDiscoveryAgent::DiscoveryResult& TheoryDiscoveryAgent::getBestResult() const {
     return best_result_;
+}
+
+const TheoryDiscoveryAgent::BayesianComparisonResult& TheoryDiscoveryAgent::getLastBayesResult() const {
+    return m_lastBayesResult_;
 }
 
 bool TheoryDiscoveryAgent::validateMetricInvariants(const MetricTensor& metric) const {
@@ -526,6 +558,17 @@ double TheoryDiscoveryAgent::computeObservationalChi2(
             chi2 += (residual * residual) / (sn.sigma_mu * sn.sigma_mu);
         }
     }
+
+    // Live GW alert observations (e.g., LIGO/Virgo/KAGRA GCN notices)
+    for (const auto& obs : m_liveObservations) {
+        double dL = luminosityDistanceMpc(obs.redshift, H0, omegaM, omegaLambda);
+        double mu_theory = distanceModulus(dL);
+        double residual = obs.mu_obs - mu_theory;
+        if (std::isfinite(residual) && obs.mu_err > 0.0) {
+            chi2 += (residual * residual) / (obs.mu_err * obs.mu_err);
+        }
+    }
+    dof += static_cast<int>(m_liveObservations.size());
 
     // BAO angular diameter distances
     chi2 += computeBAOChi2(params);

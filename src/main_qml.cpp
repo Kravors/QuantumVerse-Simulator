@@ -83,6 +83,7 @@
 #include "discovery/GWMemoryDetector.h"
 #include "discovery/GWRingdownScanner.h"
 #include "discovery/EMBrightGWCounterpartDetector.h"
+#include "discovery/TheoryDiscoveryAgent.h"
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
 #include "utils/FrameDiagnostics.h"
@@ -595,6 +596,14 @@ int main(int argc, char* argv[])
             QVariant::fromValue(kafkaListener.get()));
         rootContext->setContextProperty("alertRouter",
             QVariant::fromValue(alertRouter.get()));
+
+        auto theoryAgent = std::make_shared<quantumverse::TheoryDiscoveryAgent>();
+        QObject::connect(alertRouter.get(), &quantumverse::AlertRouter::parsedAlertReady,
+            [theoryAgent](const QJsonObject& alert, quantumverse::AlertOrigin origin) {
+                if (origin == quantumverse::AlertOrigin::LIGO) {
+                    theoryAgent->ingestLiveAlert(alert);
+                }
+            });
 
         auto replayStream = std::make_shared<quantumverse::GCNReplayStream>();
         QObject::connect(replayStream.get(), &quantumverse::GCNReplayStream::alertAvailable,
