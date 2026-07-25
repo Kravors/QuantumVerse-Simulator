@@ -96,10 +96,12 @@ void test_adjoint_state_gradient() {
     auto result = integrator.computeStateGradient(start, vel, GeodesicType::TIMELIKE, 0.01);
 
     assert(result.first.size() == 8 && "Final state should have 8 components");
-    assert(result.second.size() == 8 && "Gradient should have 8 components");
-    assert(std::isfinite(result.second[1]) && "dr/dM should be finite");
+    assert(!result.second.empty() && "Gradient matrix should not be empty");
+    assert(result.second.size() == 8 && "Gradient matrix should have 8 rows");
+    assert(result.second[0].size() >= 1 && "Gradient matrix should have at least 1 column");
+    assert(std::isfinite(result.second[1][0]) && "dr/dM should be finite");
 
-    std::cout << "  dr/dM = " << result.second[1] << "\n";
+    std::cout << "  dr/dM = " << result.second[1][0] << "\n";
 }
 
 int main() {

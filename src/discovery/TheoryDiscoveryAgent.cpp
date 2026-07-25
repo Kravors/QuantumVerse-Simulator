@@ -893,55 +893,90 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
 
     const double eps = 1e-6;
 
-    for (int i = 0; i < dim; ++i) {
-        if (i >= static_cast<int>(param_list.size())) break;
+    auto param_map = param_space_.parameterVectorToMap(params);
+    std::string theory_name = param_space_.getTheoryName();
 
-        double lo = param_list[i].min;
-        double hi = param_list[i].max;
-        double range = hi - lo;
-        if (range <= 0.0) range = 1.0;
+    std::unique_ptr<TheoryPlugin> plugin;
+    if (theory_name == "FRLGravity") {
+        double alpha = param_map.count("alpha") ? param_map.at("alpha") : 1.0;
+        double n = param_map.count("n") ? param_map.at("n") : 1.0;
+        plugin = std::make_unique<FRLGravityPlugin>(alpha, n);
+    } else if (theory_name == "BransDicke") {
+        double omega = param_map.count("omega") ? param_map.at("omega") : 40000.0;
+        double phi0 = param_map.count("phi0") ? param_map.at("phi0") : 1.0;
+        plugin = std::make_unique<BransDickePlugin>(omega, phi0);
+    } else if (theory_name == "LQG") {
+        double gamma_param = param_map.count("gamma") ? param_map.at("gamma") : 0.2375;
+        double lambda = param_map.count("lambda") ? param_map.at("lambda") : 1.616e-35;
+        plugin = std::make_unique<LQGPlugin>(gamma_param, lambda);
+    } else if (theory_name == "TeVeS") {
+        double K = param_map.count("K") ? param_map.at("K") : 0.3;
+        double mu = param_map.count("mu") ? param_map.at("mu") : 1e-55;
+        double sigma = param_map.count("sigma") ? param_map.at("sigma") : 1.0;
+        plugin = std::make_unique<TeVeSPlugin>(K, mu, sigma);
+    } else if (theory_name == "EinsteinAether") {
+        double c1 = param_map.count("c1") ? param_map.at("c1") : 0.0;
+        double c2 = param_map.count("c2") ? param_map.at("c2") : 0.0;
+        double c3 = param_map.count("c3") ? param_map.at("c3") : 0.0;
+        plugin = std::make_unique<EinsteinAetherPlugin>(c1, c2, c3);
+    } else if (theory_name == "Horndeski") {
+        double c_G = param_map.count("c_G") ? param_map.at("c_G") : 0.0;
+        double alpha_K = param_map.count("alpha_K") ? param_map.at("alpha_K") : 0.0;
+        double alpha_B = param_map.count("alpha_B") ? param_map.at("alpha_B") : 0.0;
+        plugin = std::make_unique<HorndeskiPlugin>(c_G, alpha_K, alpha_B);
+    }
 
-        const std::string& name = param_list[i].name;
-        bool is_mass_param = (name == "M" || name == "mass");
+    if (!plugin) {
+        for (int i = 0; i < dim; ++i) {
+            double lo = param_list[i].min;
+            double hi = param_list[i].max;
+            double range = hi - lo;
+            if (range <= 0.0) range = 1.0;
+            double h = std::max(eps, range * 1e-6);
+            std::vector<double> p_plus = params;
+            p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
+            double chi2_plus = evaluateTheory(p_plus).observational_chi2;
+            std::vector<double> p_minus = params;
+            p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
+            double chi2_minus = evaluateTheory(p_minus).observational_chi2;
+            grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
+        }
+        return grad;
+    }
 
-        if (is_mass_param) {
-            try {
-                physics::AdjointGeodesicIntegrator integrator(params[i], 1e-6, 1e-10, 0.5, 0.9, 100000);
-                Event4D start(0.0, 10.0, 0.0, 0.0);
-                std::array<double, 4> vel = {1.0, -0.1, 0.0, 0.0};
+    MetricTensor metric = plugin->computeMetric(test_location_, param_map);
+    auto metric_ptr = std::make_shared<MetricTensor>(std::move(metric));
 
-                auto state_grad = integrator.computeStateGradient(
-                    start, vel, GeodesicType::TIMELIKE, 0.01
-                );
+    try {
+        physics::AdjointGeodesicIntegrator integrator(
+            metric_ptr,
+            params,
+            1e-6, 1e-10, 0.5, 0.9, 100000
+        );
+        Event4D start(0.0, 10.0, 0.0, 0.0);
+        std::array<double, 4> vel = {1.0, -0.1, 0.0, 0.0};
 
-                if (state_grad.second.size() >= 2) {
-                    double dr_dM = state_grad.second[1];
-                    if (std::isfinite(dr_dM)) {
-                        grad[i] = dr_dM * 1e-3;
-                    }
+        auto state_grad = integrator.computeStateGradient(
+            start, vel, GeodesicType::TIMELIKE, 0.01
+        );
+
+        if (!state_grad.second.empty() && state_grad.second[0].size() == dim) {
+            for (int i = 0; i < dim; ++i) {
+                if (state_grad.second[1][i] != 0.0 && std::isfinite(state_grad.second[1][i])) {
+                    grad[i] = state_grad.second[1][i] * 1e-3;
                 }
-
-                if (!std::isfinite(grad[i]) || grad[i] == 0.0) {
-                    double h = std::max(eps, range * 1e-6);
-                    std::vector<double> p_plus = params;
-                    p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
-                    double chi2_plus = evaluateTheory(p_plus).observational_chi2;
-                    std::vector<double> p_minus = params;
-                    p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
-                    double chi2_minus = evaluateTheory(p_minus).observational_chi2;
-                    grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
-                }
-            } catch (...) {
-                double h = std::max(eps, range * 1e-6);
-                std::vector<double> p_plus = params;
-                p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
-                double chi2_plus = evaluateTheory(p_plus).observational_chi2;
-                std::vector<double> p_minus = params;
-                p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
-                double chi2_minus = evaluateTheory(p_minus).observational_chi2;
-                grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
             }
-        } else {
+        }
+    } catch (...) {
+        // Fall through to FD
+    }
+
+    for (int i = 0; i < dim; ++i) {
+        if (!std::isfinite(grad[i]) || grad[i] == 0.0) {
+            double lo = param_list[i].min;
+            double hi = param_list[i].max;
+            double range = hi - lo;
+            if (range <= 0.0) range = 1.0;
             double h = std::max(eps, range * 1e-6);
             std::vector<double> p_plus = params;
             p_plus[i] = std::max(lo, std::min(hi, params[i] + h));

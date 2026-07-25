@@ -15,11 +15,14 @@
 #include <cmath>
 #include <memory>
 #include "Event4D.h"
+#include "../math/AutoDiff.h"
 
 namespace quantumverse {
 
 // Forward declaration
 class StressEnergyTensor;
+
+using RVar = math::ADVar*;  ///< Tape-based scalar for reverse-mode AD
 
 /**
  * @brief Curvature invariants at a spacetime event.
@@ -134,6 +137,67 @@ public:
      */
     virtual CurvatureScalars curvatureScalars(const Event4D& /*event*/) const {
         return CurvatureScalars{};  // invalid by default
+    }
+
+    /**
+     * @brief Evaluate metric in reverse-mode AD form at a position.
+     *
+     * Subclasses override to provide analytic tape-based metric components.
+     * The default implementation evaluates the double metric and wraps each
+     * component as a tape constant (zero gradient w.r.t. parameters).
+     *
+     * @param pos Position in integration coordinates [t, r, theta, phi] as tape variables.
+     * @param params Differentiable parameters as tape variables.
+     * @return 4x4 metric tensor with AD-typed components g_μν.
+     */
+    virtual std::array<std::array<RVar, 4>, 4> evaluateAD(
+        const std::array<RVar, 4>& pos,
+        const std::vector<RVar>& params
+    ) const {
+        (void)params;
+        Event4D event(pos[0]->value, pos[1]->value, pos[2]->value, pos[3]->value);
+        auto g_double = evaluate(event);
+        std::array<std::array<RVar, 4>, 4> result{};
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+                result[i][j] = math::ADTape::record(g_double[i][j], nullptr);
+        return result;
+    }
+
+    /**
+     * @brief Compute full Christoffel symbol array in reverse-mode AD form.
+     *
+     * Subclasses override with analytic tape-based Christoffel symbols.
+     * The default implementation returns tape constants (zero gradient).
+     *
+     * @param pos Position as tape variables.
+     * @param params Differentiable parameters as tape variables.
+     * @return Christoffel symbols Γ^rho_mu_nu with AD-typed components.
+     */
+    virtual std::array<std::array<std::array<RVar, 4>, 4>, 4> computeChristoffelAD(
+        const std::array<RVar, 4>& pos,
+        const std::vector<RVar>& params
+    ) const {
+        (void)params;
+        Event4D event(pos[0]->value, pos[1]->value, pos[2]->value, pos[3]->value);
+        auto Gamma = computeFullChristoffel(event);
+        std::array<std::array<std::array<RVar, 4>, 4>, 4> result{};
+        for (int rho = 0; rho < 4; ++rho)
+            for (int mu = 0; mu < 4; ++mu)
+                for (int nu = 0; nu < 4; ++nu)
+                    result[rho][mu][nu] = math::ADTape::record(Gamma[rho][mu][nu], nullptr);
+        return result;
+    }
+
+    /**
+     * @brief Full Christoffel array at an event (double precision).
+     *
+     * Used as fallback for AD computation when analytic override is absent.
+     */
+    virtual std::array<std::array<std::array<double, 4>, 4>, 4> computeFullChristoffel(
+        const Event4D&
+    ) const {
+        return {{{{{0.0}}}}};
     }
 
     // Virtual destructor for proper polymorphic cleanup
@@ -410,6 +474,128 @@ public:
         s.weylSquared = K;      // vacuum: Riemann == Weyl
         s.valid = true;
         return s;
+    }
+
+    std::array<std::array<RVar, 4>, 4> evaluateAD(
+        const std::array<RVar, 4>& pos,
+        const std::vector<RVar>& params
+    ) const override {
+        RVar r = pos[1];
+        RVar theta = pos[2];
+
+        RVar M = params.empty() ? math::ADTape::record(m_mass, nullptr) : params[0];
+        RVar rs = math::mul(M, math::ADTape::record(2.0 * Event4D::G / (Event4D::C * Event4D::C), nullptr));
+        RVar factor = math::sub(math::ADTape::record(1.0, nullptr), math::div(rs, r));
+        RVar g_tt = math::neg(factor);
+        RVar g_rr = math::div(math::ADTape::record(1.0, nullptr), factor);
+        RVar g_thetatheta = math::mul(r, r);
+        RVar sin_theta = math::sin(theta);
+        RVar g_phiphi = math::mul(g_thetatheta, math::mul(sin_theta, sin_theta));
+
+        std::array<std::array<RVar, 4>, 4> result{};
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+                result[i][j] = math::ADTape::record(0.0, nullptr);
+
+        result[0][0] = g_tt;
+        result[1][1] = g_rr;
+        result[2][2] = g_thetatheta;
+        result[3][3] = g_phiphi;
+        return result;
+    }
+
+    std::array<std::array<std::array<RVar, 4>, 4>, 4> computeChristoffelAD(
+        const std::array<RVar, 4>& pos,
+        const std::vector<RVar>& params
+    ) const override {
+        RVar r = pos[1];
+        RVar theta = pos[2];
+
+        RVar M = params.empty() ? math::ADTape::record(m_mass, nullptr) : params[0];
+        RVar rs = math::mul(M, math::ADTape::record(2.0 * Event4D::G / (Event4D::C * Event4D::C), nullptr));
+        RVar r_minus_rs = math::sub(r, rs);
+        RVar r_inv = math::div(math::ADTape::record(1.0, nullptr), r);
+        RVar r2 = math::mul(r, r);
+        RVar r3 = math::mul(r2, r);
+        RVar sin_theta = math::sin(theta);
+        RVar cos_theta = math::cos(theta);
+        RVar sin2 = math::mul(sin_theta, sin_theta);
+
+        RVar two_r = math::mul(math::ADTape::record(2.0, nullptr), r);
+        RVar Gamma_t_tr = math::div(rs, math::mul(two_r, r_minus_rs));
+        RVar Gamma_r_tt = math::div(math::mul(rs, r_minus_rs), math::mul(r3, math::ADTape::record(2.0, nullptr)));
+        RVar Gamma_r_rr = math::neg(Gamma_t_tr);
+        RVar Gamma_r_thetatheta = math::neg(r_minus_rs);
+        RVar Gamma_r_phiphi = math::neg(math::mul(r_minus_rs, sin2));
+        RVar Gamma_theta_rtheta = r_inv;
+        RVar Gamma_theta_phiphi = math::neg(math::mul(sin_theta, cos_theta));
+        RVar Gamma_phi_rphi = r_inv;
+        RVar Gamma_phi_thetaphi = math::div(cos_theta, sin_theta);
+
+        std::array<std::array<std::array<RVar, 4>, 4>, 4> Gamma{};
+        for (int l = 0; l < 4; ++l)
+            for (int m = 0; m < 4; ++m)
+                for (int n = 0; n < 4; ++n)
+                    Gamma[l][m][n] = math::ADTape::record(0.0, nullptr);
+
+        Gamma[0][1][0] = Gamma[0][0][1] = Gamma_t_tr;
+        Gamma[1][0][0] = Gamma_r_tt;
+        Gamma[1][1][1] = Gamma_r_rr;
+        Gamma[1][2][2] = Gamma_r_thetatheta;
+        Gamma[1][3][3] = Gamma_r_phiphi;
+        Gamma[2][1][2] = Gamma[2][2][1] = Gamma_theta_rtheta;
+        Gamma[2][3][3] = Gamma_theta_phiphi;
+        Gamma[3][1][3] = Gamma[3][3][1] = Gamma_phi_rphi;
+        Gamma[3][2][3] = Gamma[3][3][2] = Gamma_phi_thetaphi;
+
+        return Gamma;
+    }
+
+    std::array<std::array<std::array<double, 4>, 4>, 4> computeFullChristoffel(
+        const Event4D& event
+    ) const override {
+        double x = event.x, y = event.y, z = event.z;
+        double r = std::sqrt(x * x + y * y + z * z);
+        const double minR = 1e-9;
+        if (r < minR) r = minR;
+
+        const double c2 = Event4D::C * Event4D::C;
+        double rs = 2.0 * Event4D::G * m_mass / c2;
+        double r_minus_rs = r - rs;
+        double r_inv = 1.0 / r;
+        double r2 = r * r;
+        double r3 = r2 * r;
+        double sin_theta = std::sin(std::acos(std::max(-1.0, std::min(1.0, z / r))));
+        double cos_theta = std::cos(std::acos(std::max(-1.0, std::min(1.0, z / r))));
+        double sin2 = sin_theta * sin_theta;
+
+        double Gamma_t_tr = rs / (2.0 * r * r_minus_rs);
+        double Gamma_r_tt = rs * r_minus_rs / (2.0 * r3);
+        double Gamma_r_rr = -Gamma_t_tr;
+        double Gamma_r_thetatheta = -r_minus_rs;
+        double Gamma_r_phiphi = -r_minus_rs * sin2;
+        double Gamma_theta_rtheta = r_inv;
+        double Gamma_theta_phiphi = -sin_theta * cos_theta;
+        double Gamma_phi_rphi = r_inv;
+        double Gamma_phi_thetaphi = cos_theta / sin_theta;
+
+        std::array<std::array<std::array<double, 4>, 4>, 4> Gamma{};
+        for (int l = 0; l < 4; ++l)
+            for (int m = 0; m < 4; ++m)
+                for (int n = 0; n < 4; ++n)
+                    Gamma[l][m][n] = 0.0;
+
+        Gamma[0][1][0] = Gamma[0][0][1] = Gamma_t_tr;
+        Gamma[1][0][0] = Gamma_r_tt;
+        Gamma[1][1][1] = Gamma_r_rr;
+        Gamma[1][2][2] = Gamma_r_thetatheta;
+        Gamma[1][3][3] = Gamma_r_phiphi;
+        Gamma[2][1][2] = Gamma[2][2][1] = Gamma_theta_rtheta;
+        Gamma[2][3][3] = Gamma_theta_phiphi;
+        Gamma[3][1][3] = Gamma[3][3][1] = Gamma_phi_rphi;
+        Gamma[3][2][3] = Gamma[3][3][2] = Gamma_phi_thetaphi;
+
+        return Gamma;
     }
 
 private:

@@ -1465,6 +1465,38 @@ endif()
     target_link_libraries(test_adjoint_gradient_optimizer PRIVATE dilaton Qt6::Core)
     add_test(NAME AdjointGradientOptimizerTest COMMAND test_adjoint_gradient_optimizer)
 
+    # Phase 33.6: Generalized adjoint integrator
+    add_executable(test_generalized_adjoint
+        tests/physics/test_generalized_adjoint.cpp
+        src/discovery/TheoryDiscoveryAgent.cpp
+        src/discovery/TheoryParameterSpace.cpp
+        src/discovery/TheorySurrogate.cpp
+        src/discovery/RLDiscoveryAgent.cpp
+        src/discovery/TheoryManager.cpp
+        src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
+        src/discovery/FRBDispersionScanner.cpp
+        src/discovery/CosmicShearScanner.cpp
+        src/discovery/SymbolicMath.cpp
+        src/discovery/DiscoveryEngine.cpp
+        src/data/GCNNoticeParser.cpp
+        src/physics/CurvatureCalculator.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+    )
+    target_link_libraries(test_generalized_adjoint PRIVATE dilaton Qt6::Core)
+    add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
+
     # 6.5 Discovery robustness & fallback handling
     add_executable(test_discovery_robustness
         tests/discovery/test_discovery_robustness.cpp
