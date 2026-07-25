@@ -1399,6 +1399,7 @@ endif()
     add_test(NAME DiscoveryPipelineIntegrationTest COMMAND test_discovery_pipeline)
 
     # 6.6 Theory discovery agent (Phase 22.1)
+    if(QUANTUMVERSE_USE_QT)
     add_executable(test_theory_discovery_agent
         tests/discovery/test_theory_discovery_agent.cpp
         src/discovery/TheoryDiscoveryAgent.cpp
@@ -1530,6 +1531,7 @@ endif()
     )
     target_link_libraries(test_generalized_adjoint PRIVATE dilaton Qt6::Core)
     add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
+    endif()
 
     # 6.5 Discovery robustness & fallback handling
     add_executable(test_discovery_robustness

@@ -25,28 +25,35 @@ jobs:
         target: 'desktop'
         host: 'windows'
         arch: 'win64_msvc2022_64'
-
         cache: true
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
     - name: Ensure reports directory exists
       run: New-Item -ItemType Directory -Path reports -Force
+
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+
     - name: Build
       run: cmake --build build --config Release --parallel 2
+
     - name: Deploy Qt runtime
       run: cmake --build build --config Release --target deploy_qt_runtime
+
     - name: Package as zip
       run: |
         cd build/Release
         7z a ../../quantumverse_v${{ github.ref_name }}_win64.zip ^
-           quantumverse_qml.exe ^
-           *.dll *.conf ^
-           qt.conf ^
-           plugins/ ^
-           qml/
+          quantumverse_qml.exe ^
+          *.dll *.conf ^
+          qt.conf ^
+          plugins/ ^
+          qml/
+
     - name: Upload release artifact
       uses: actions/upload-artifact@v5
       with:
         name: quantumverse-windows
         path: quantumverse_v${{ github.ref_name }}_win64.zip
-

@@ -27,37 +27,55 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Linux Dependencies
+      - name: Install Qt6 (Linux)
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake \
-            libgl1-mesa-dev libglfw3-dev \
-            libglew-dev libopenblas-dev \
-            qtbase5-dev qttools5-dev-tools
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt_linux
+        with:
+          version: '6.8.*'
+          target: 'desktop'
+          host: 'linux'
+          arch: 'linux_gcc_64'
+          cache: true
 
-      - name: Setup vcpkg (Windows)
+      - name: Install Qt6 (Windows)
         if: runner.os == 'Windows'
-        run: |
-          git clone https://github.com/Microsoft/vcpkg.git
-          .\vcpkg\bootstrap-vcpkg.bat
-          echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $GITHUB_ENV
-          echo "${{ github.workspace }}\vcpkg" >> $GITHUB_PATH
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt_windows
+        with:
+          version: '6.8.*'
+          target: 'desktop'
+          host: 'windows'
+          arch: 'win64_msvc2022_64'
+          cache: true
 
-      - name: Install Windows Dependencies via vcpkg
+      - name: Add MSBuild to PATH (Windows)
+        uses: microsoft/setup-msbuild@v2
         if: runner.os == 'Windows'
-        run: |
-          .\vcpkg\vcpkg install glfw3 glew openblas qt5 --triplet x64-windows
 
-      - name: Configure CMake
+      - name: Configure CMake (Linux)
+        if: runner.os == 'Linux'
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DQUANTUMVERSE_USE_IMGUI=ON \
             -DQUANTUMVERSE_ENABLE_QUANTUM_GRAVITY=ON \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
-            ${{ runner.os == 'Windows' && '-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake' || '' }}
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DQUANTUMVERSE_USE_IMGUI=ON \
+            -DQUANTUMVERSE_ENABLE_QUANTUM_GRAVITY=ON \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -G "Visual Studio 17 2022" \
+            -A x64 \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
@@ -88,16 +106,32 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.8.*'
+          target: 'desktop'
+          host: 'linux'
+          arch: 'linux_gcc_64'
+          cache: true
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: cpp
-          build-mode: autobuild
+          build-mode: manual
 
-      - name: Install Dependencies (minimal)
+      - name: Configure CMake
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libglfw3-dev libglew-dev
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 2
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -131,4 +165,3 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
