@@ -1110,6 +1110,11 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_geodesic_quick PRIVATE dilaton)
     add_test(NAME GeodesicQuickTest COMMAND test_geodesic_quick)
 
+    # Phase 33: Adjoint geodesic integrator
+    add_executable(test_adjoint_geodesic tests/physics/test_adjoint_geodesic.cpp)
+    target_link_libraries(test_adjoint_geodesic PRIVATE dilaton)
+    add_test(NAME AdjointGeodesicTest COMMAND test_adjoint_geodesic)
+
     # 18.2 Numerical convergence & error analysis
     add_executable(test_numerical_convergence
         tests/physics/test_numerical_convergence.cpp
@@ -1395,6 +1400,38 @@ endif()
     )
     target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
+
+    # Phase 33: Gradient-based theory optimizer
+    add_executable(test_gradient_optimizer
+        tests/discovery/test_gradient_optimizer.cpp
+        src/discovery/TheoryDiscoveryAgent.cpp
+        src/discovery/TheoryParameterSpace.cpp
+        src/discovery/TheorySurrogate.cpp
+        src/discovery/RLDiscoveryAgent.cpp
+        src/discovery/TheoryManager.cpp
+        src/discovery/DiscoveryPanelManager.cpp
+        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+        src/discovery/GalacticRotationCurveScanner.cpp
+        src/discovery/FineStructureConstantDriftObservatory.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+        src/discovery/CMBLensingScanner.cpp
+        src/discovery/PTAScanner.cpp
+        src/discovery/FRBDispersionScanner.cpp
+        src/discovery/CosmicShearScanner.cpp
+        src/discovery/SymbolicMath.cpp
+        src/discovery/DiscoveryEngine.cpp
+        src/data/GCNNoticeParser.cpp
+        src/physics/CurvatureCalculator.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+    )
+    target_link_libraries(test_gradient_optimizer PRIVATE dilaton Qt6::Core)
+    add_test(NAME GradientOptimizerTest COMMAND test_gradient_optimizer)
 
     # 6.5 Discovery robustness & fallback handling
     add_executable(test_discovery_robustness

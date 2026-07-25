@@ -481,6 +481,8 @@ public:
         }
         return 0.0;
     }
+
+    static const std::vector<ADVar*>& getVariables() { return variables; }
 };
 
 std::vector<ADVar*> ADTape::variables;

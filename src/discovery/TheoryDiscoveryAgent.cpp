@@ -882,6 +882,97 @@ double TheoryDiscoveryAgent::computeGRBaselineChi2() const {
     return chi2;
 }
 
+TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient(
+    size_t maxIterations,
+    double learningRate,
+    double tolerance
+) {
+    const double eps = 1e-6;
+
+    std::vector<double> params;
+    if (!best_result_.parameters.empty()) {
+        params = best_result_.parameters;
+    } else {
+        int dim = param_space_.getParameterDimension();
+        params.resize(dim, 0.0);
+        auto param_list = param_space_.getParameters();
+        for (int i = 0; i < dim && i < static_cast<int>(param_list.size()); ++i) {
+            params[i] = param_list[i].default_value;
+        }
+    }
+
+    auto param_list = param_space_.getParameters();
+    int dim = static_cast<int>(params.size());
+
+    double prev_chi2 = evaluateTheory(params).observational_chi2;
+    DiscoveryResult best_result = evaluateTheory(params);
+    double best_reward = best_result.total_reward;
+
+    for (size_t iter = 0; iter < maxIterations; ++iter) {
+        std::vector<double> grad(dim, 0.0);
+
+        for (int i = 0; i < dim; ++i) {
+            if (i >= static_cast<int>(param_list.size())) break;
+
+            double lo = param_list[i].min;
+            double hi = param_list[i].max;
+            double range = hi - lo;
+            if (range <= 0.0) range = 1.0;
+            double h = std::max(eps, range * 1e-6);
+
+            double saved = params[i];
+            params[i] = std::max(lo, std::min(hi, saved + h));
+            double chi2_plus = evaluateTheory(params).observational_chi2;
+
+            params[i] = std::max(lo, std::min(hi, saved - h));
+            double chi2_minus = evaluateTheory(params).observational_chi2;
+
+            params[i] = saved;
+            grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
+        }
+
+        for (int i = 0; i < dim; ++i) {
+            if (i >= static_cast<int>(param_list.size())) break;
+            double lo = param_list[i].min;
+            double hi = param_list[i].max;
+            params[i] = std::max(lo, std::min(hi, params[i] - learningRate * grad[i]));
+        }
+
+        auto result = evaluateTheory(params);
+        double current_chi2 = result.observational_chi2;
+        double current_reward = result.total_reward;
+
+        if (current_reward > best_reward) {
+            best_reward = current_reward;
+            best_result = result;
+        }
+
+        if (std::abs(prev_chi2 - current_chi2) < tolerance) {
+            break;
+        }
+        prev_chi2 = current_chi2;
+    }
+
+    best_result_ = best_result;
+    best_reward_so_far_ = best_reward;
+
+    if (multi_objective_mode_) {
+        ParetoPoint point(
+            best_result.parameters,
+            computeObjectives(best_result),
+            best_result.total_reward,
+            best_result.lorentzian_valid,
+            best_result.near_singularity,
+            best_result.theory_name
+        );
+        updateParetoArchive(point, best_result);
+        computeModelWeights();
+    }
+
+    m_lastBayesResult_ = computeBayesFactor(best_result.parameters);
+    return best_result;
+}
+
 TheoryDiscoveryAgent::BayesianComparisonResult TheoryDiscoveryAgent::computeBayesFactor(
     const std::vector<double>& candidate_params
 ) const {

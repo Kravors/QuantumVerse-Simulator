@@ -263,6 +263,25 @@ public:
     double computeGRBaselineChi2() const;
 
     /**
+     * @brief Gradient-based optimization of theory parameters.
+     *
+     * Uses central finite differences on evaluateTheory to minimize the
+     * observational chi-squared (and total reward). After convergence, the
+     * best parameters are stored in best_result_ and optionally added to the
+     * Pareto archive.
+     *
+     * @param maxIterations Maximum gradient-descent iterations.
+     * @param learningRate Initial step size for parameter updates.
+     * @param tolerance Convergence threshold on chi-squared improvement.
+     * @return Final DiscoveryResult after optimization.
+     */
+    DiscoveryResult optimizeWithGradient(
+        size_t maxIterations = 50,
+        double learningRate = 0.01,
+        double tolerance = 1e-4
+    );
+
+    /**
      * @brief Multi-objective Pareto point.
      */
     struct ParetoPoint {
