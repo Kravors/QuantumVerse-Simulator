@@ -5,6 +5,9 @@
 
 #include "DiscoveryPanelManager.h"
 #include "DiscoveryEngine.h"
+#ifdef QUANTUMVERSE_USE_QML
+#include "DiscoveryResultJson.h"
+#endif
 #include "data/AlertToFinding.h"
 #ifdef QUANTUMVERSE_USE_QML
 #include "data/MultiMessengerCorrelator.h"
@@ -451,6 +454,24 @@ QVariantList DiscoveryPanelManager::findingsList() const
         item["timestamp"] = f.timestamp;
         list.append(item);
     }
+    return list;
+}
+
+QVariantList DiscoveryPanelManager::paretoFront() const
+{
+    QVariantList list;
+    const auto& pareto = m_engine.getParetoFront();
+    for (const auto& r : pareto) {
+        list.append(discoveryResultToJson(r));
+    }
+    return list;
+}
+
+QVariantList DiscoveryPanelManager::bmaWeights() const
+{
+    QVariantList list;
+    const auto weights = m_engine.getModelWeights();
+    for (double w : weights) list.append(w);
     return list;
 }
 

@@ -618,9 +618,10 @@ void test_einstein_zero_grid() {
     for (double th = 0.1; th < M_PI; th += 0.5)
         points.push_back(Event4D(0.0, 1e8, th, 0.0));
 
+    double maxG = 0.0;
     for (const auto& ev : points) {
         auto result = calc.computeAll(ev);
-        double maxG = 0.0;
+        maxG = 0.0;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 maxG = std::max(maxG, std::abs(result.einstein[i][j]));

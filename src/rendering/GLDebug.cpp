@@ -8,7 +8,7 @@
 
 // Include GL headers in implementation only
 #define GL_SILENCE_DEPRECATION
-#include "../../third_party/glad/glad.h"
+#include "glad.h"
 #include <GL/gl.h>
 
 namespace quantumverse {

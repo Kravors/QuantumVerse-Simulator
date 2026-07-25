@@ -1,5 +1,7 @@
 #include "TheoryDiscoveryAgent.h"
+#ifdef QUANTUMVERSE_USE_QML
 #include "data/GCNNoticeParser.h"
+#endif
 #include "physics/AdjointGeodesicIntegrator.h"
 #include <cmath>
 #include <algorithm>
@@ -457,6 +459,7 @@ void TheoryDiscoveryAgent::setSymbolicVerificationEnabled(bool enabled) {
     symbolic_verification_enabled_ = enabled;
 }
 
+#ifdef QUANTUMVERSE_USE_QML
 void TheoryDiscoveryAgent::ingestLiveAlert(const QJsonObject& alert) {
     auto parsed = GCNNoticeParser::parse(alert);
     if (!parsed.isValid) return;
@@ -550,6 +553,7 @@ void TheoryDiscoveryAgent::ingestLiveAlert(const QJsonObject& alert) {
         m_lastBayesResult_ = computeBayesFactor(best_result_.parameters);
     }
 }
+#endif
 
 const TheoryDiscoveryAgent::DiscoveryResult& TheoryDiscoveryAgent::getBestResult() const {
     return best_result_;

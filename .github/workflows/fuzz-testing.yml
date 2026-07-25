@@ -36,7 +36,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
 
       - name: Build fuzzer
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
 
       - name: Run metric fuzzer
         run: |
@@ -76,7 +76,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
 
       - name: Build fuzzer
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
 
       - name: Run geodesic fuzzer
         run: |
@@ -116,7 +116,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang-17 -DCMAKE_CXX_COMPILER=clang++-17 -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
 
       - name: Build fuzzer
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
 
       - name: Run ONNX fuzzer
         run: |
@@ -135,3 +135,4 @@ jobs:
           path: |
             build/crash-*
             *.log
+

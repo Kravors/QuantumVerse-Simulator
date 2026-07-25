@@ -53,7 +53,7 @@ jobs:
         run: |
           mkdir -p reports
           scan-build -o reports --status-bugs cmake -B build -DCMAKE_BUILD_TYPE=Debug
-          scan-build -o reports --use-c++=clang++ cmake --build build --parallel
+          scan-build -o reports --use-c++=clang++ cmake --build build --parallel 2
 
       - name: Run Cppcheck with security focus
         run: |
@@ -110,7 +110,7 @@ jobs:
       - name: Configure and Build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --parallel
+          cmake --build build --parallel 2
       - name: Check binary hardening
         run: |
           # Check for stack protection, ASLR, NX bit, etc.
@@ -169,3 +169,4 @@ jobs:
           path: |
             *.log
             *.txt
+

@@ -231,6 +231,8 @@ private:
     std::vector<DiscoveryResult> getDiscoveriesByType(const std::string& type) const;
     const std::vector<Hypothesis>& getHypotheses() const;
     std::vector<Hypothesis> getActiveHypotheses() const;
+    std::vector<DiscoveryResult> getParetoFront() const;
+    std::vector<double> getModelWeights() const;
     
     // Validation against known physics
     bool validateAgainstGR(const DiscoveryResult& result);

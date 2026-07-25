@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "../third_party/glad/glad.h"
+#include "glad.h"
 
 #include <QDebug>
 

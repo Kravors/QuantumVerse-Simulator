@@ -52,7 +52,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=OFF
 
       - name: Build discovery runner
-        run: cmake --build build --config Release --target theory_discovery_runner --parallel
+        run: cmake --build build --config Release --target theory_discovery_runner --parallel 2
 
       - name: Run autonomous discovery
         id: discovery
@@ -153,3 +153,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+

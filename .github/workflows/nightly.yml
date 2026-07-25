@@ -31,7 +31,7 @@ jobs:
     - name: Build with ASan
       run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     - name: Build
-      run: cmake --build build --config Debug --parallel
+      run: cmake --build build --config Debug --parallel 2
     - name: Deploy Qt runtime
       run: cmake --build build --config Debug --target deploy_qt_runtime
     - name: Full test suite
@@ -43,3 +43,4 @@ jobs:
         if (Test-Path .\fuzz_geodesic_differential.exe) { .\fuzz_geodesic_differential.exe --max_time=600 }
     - name: Run shader validation
       run: cmake --build build --target validate_shaders
+

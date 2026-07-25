@@ -36,7 +36,7 @@ jobs:
              -DQUANTUMVERSE_USE_COVERAGE=ON
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Release --parallel 2
 
       - name: Run all tests
         working-directory: build
@@ -76,6 +76,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
       - name: Configure CMake
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A x64 `
@@ -83,7 +86,7 @@ jobs:
             -DQUANTUMVERSE_BUILD_TESTS=ON
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Release --parallel 2
 
       - name: Run tests
         working-directory: build
@@ -149,7 +152,7 @@ jobs:
             -DQUANTUMVERSE_BUILD_TESTS=ON
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Release --parallel 2
 
       - name: Run 24-hour stress test
         run: |
@@ -173,3 +176,4 @@ jobs:
           path: |
             build/Testing/**/*.xml
             *.log
+

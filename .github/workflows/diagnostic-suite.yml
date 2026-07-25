@@ -42,7 +42,7 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
 
       - name: Run clang-tidy with warnings-as-errors
         run: |
@@ -98,7 +98,7 @@ jobs:
           esac
           cmake -B build_${{ matrix.sanitizer }} -DCMAKE_BUILD_TYPE=Debug $FLAGS -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
-        run: cmake --build build_${{ matrix.sanitizer }} --parallel
+        run: cmake --build build_${{ matrix.sanitizer }} --parallel 2
 
       - name: Run tests with sanitizers (fail-fast)
         working-directory: build_${{ matrix.sanitizer }}
@@ -148,7 +148,7 @@ jobs:
       - name: Configure and build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --parallel
+          cmake --build build --parallel 2
       - name: Run UI tests
         run: python3 scripts/diagnose_all.py --ui --report-format html
 
@@ -186,7 +186,7 @@ jobs:
       - name: Configure CMake with fuzzing
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
 
       - name: Run fuzz tests
         run: python3 scripts/diagnose_all.py --fuzz --report-format html
@@ -225,7 +225,7 @@ jobs:
       - name: Configure CMake with coverage
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
 
       - name: Run tests with coverage
         working-directory: build
@@ -288,7 +288,7 @@ jobs:
       - name: Configure and build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --parallel
+          cmake --build build --parallel 2
       - name: Run benchmarks
         run: python3 scripts/diagnose_all.py --bench --report-format html
 
@@ -336,3 +336,4 @@ jobs:
         with:
           name: diagnostic-report
           path: diagnostic_report.html
+

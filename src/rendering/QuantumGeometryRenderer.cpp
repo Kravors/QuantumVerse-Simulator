@@ -6,7 +6,7 @@
  * methods are stubs until CDT/SpinFoam/GFT/CausalSet engines are fully integrated.
  */
 
-#include "../../third_party/glad/glad.h"
+#include "glad.h"
 
 #include "QuantumGeometryRenderer.h"
 #include "../ui4d/UI4D.h"  // For full Camera4D definition

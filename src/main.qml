@@ -745,6 +745,47 @@ ApplicationWindow {
                     }
                 }
 
+                // Multi-user collaboration panel
+                Pane {
+                    Layout.fillWidth: true
+                    visible: signalingClient && signalingClient.isConnected
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 4
+
+                        Label { text: "Multi-User Collaboration"; font.bold: true; font.pixelSize: 12 }
+
+                        RowLayout {
+                            spacing: 6
+
+                            Button {
+                                text: sharedSession && sharedSession.isActive ? "⏹ Stop Sharing" : "▶ Share Session"
+                                Layout.fillWidth: true
+                                onClicked: {
+                                    if (sharedSession) {
+                                        sharedSession.setActive(!sharedSession.isActive)
+                                    }
+                                }
+                            }
+                        }
+
+                        Label {
+                            text: "Session: " + (sharedSession ? sharedSession.sessionId : "—")
+                            font.pixelSize: 10
+                            color: "#888"
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: "Peers: " + (signalingClient ? signalingClient.peerCount : 0)
+                            font.pixelSize: 10
+                            color: "#888"
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+
                 Label {
                     text: discoveryPanelManager && discoveryPanelManager.scanRunning
                         ? "Scanning... " + Math.round(discoveryPanelManager.scanProgress * 100) + "%"

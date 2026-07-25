@@ -36,7 +36,7 @@ jobs:
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_USE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }} -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }} --parallel
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel 2
     - name: Deploy Qt runtime
       run: cmake --build build --config ${{ matrix.build_type }} --target deploy_qt_runtime
     - name: Run tests (excl. slow)
@@ -76,7 +76,8 @@ jobs:
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }} --parallel
+      run: cmake --build build --config ${{ matrix.build_type }} --parallel 2
     
     - name: Run tests (excl. slow)
       run: ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure
+

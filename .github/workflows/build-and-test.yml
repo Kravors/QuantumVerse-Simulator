@@ -106,7 +106,7 @@ jobs:
       - name: Build physics tests
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build --config Release --parallel
+          cmake --build build --config Release --parallel 2
 
       - name: Run physics validation
         working-directory: build
@@ -144,3 +144,4 @@ jobs:
         with:
           name: clang-tidy-report
           path: clang-tidy.log
+

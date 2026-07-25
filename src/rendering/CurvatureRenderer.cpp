@@ -9,7 +9,7 @@
 
 // glad.h MUST be first to provide OpenGL function prototypes
 // before any system <GL/gl.h> is pulled in by other headers
-#include "../../third_party/glad/glad.h"
+#include "glad.h"
 
 #include "CurvatureRenderer.h"
 #include "../physics/CurvatureCalculator.h"

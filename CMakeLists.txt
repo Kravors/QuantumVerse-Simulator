@@ -126,7 +126,7 @@ endif()
 
 # Qt/QML configuration
 if(QUANTUMVERSE_USE_QT)
-    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick OpenGL OpenGLWidgets QuickControls2 QuickTemplates2 QuickLayouts Network Test)
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick OpenGL OpenGLWidgets QuickControls2 QuickTemplates2 QuickLayouts Network WebSockets Test)
 
     if(Qt6Core_DIR)
         get_filename_component(QT_HOST_PATH "${Qt6Core_DIR}/../../.." ABSOLUTE)
@@ -137,6 +137,25 @@ if(QUANTUMVERSE_USE_QT)
 
     # Compile Qt resources
     qt_add_resources(RESOURCES_QRC ${RESOURCES_QRC})
+
+    # Multi-user collaboration library
+    add_library(quantumverse_multi_user STATIC
+        src/vr/SignalingClient.cpp
+        src/vr/SharedSession.cpp
+    )
+    target_include_directories(quantumverse_multi_user PUBLIC
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
+    )
+    target_link_libraries(quantumverse_multi_user PUBLIC
+        Qt6::Core
+        Qt6::Network
+        Qt6::WebSockets
+        dilaton
+    )
+    set_target_properties(quantumverse_multi_user PROPERTIES
+        AUTOMOC ON
+    )
 
     add_executable(quantumverse_qml
         src/main_qml.cpp
@@ -208,6 +227,7 @@ if(QUANTUMVERSE_USE_QT)
         ${RESOURCES_QRC}
     )
     target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_QML)
+    target_link_libraries(quantumverse_qml PRIVATE quantumverse_multi_user)
     if(QUANTUMVERSE_USE_VR)
         target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_VR)
         target_sources(quantumverse_qml PRIVATE
@@ -231,6 +251,7 @@ if(QUANTUMVERSE_USE_QT)
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party
         ${CMAKE_SOURCE_DIR}/third_party/glad/include
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         ${LIBRDKAFKA_INCLUDE_DIRS}
     )
     target_link_libraries(quantumverse_qml PRIVATE
@@ -245,6 +266,7 @@ if(QUANTUMVERSE_USE_QT)
         Qt6::OpenGL
         Qt6::OpenGLWidgets
         Qt6::Network
+        Qt6::WebSockets
         dilaton
         ${LIBRDKAFKA_LIBRARIES}
     )
@@ -328,6 +350,8 @@ if(QUANTUMVERSE_USE_QT)
         target_include_directories(test_gl_check PRIVATE
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
         target_link_libraries(test_gl_check PRIVATE Qt6::Core)
         if(MSVC)
@@ -397,6 +421,7 @@ if(QUANTUMVERSE_USE_QT)
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
         target_link_libraries(test_multimessenger_ui PRIVATE Qt6::Core dilaton)
         add_test(NAME MultiMessengerUITest COMMAND test_multimessenger_ui)
@@ -442,6 +467,7 @@ if(QUANTUMVERSE_USE_QT)
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
         add_test(NAME ViewportIsolationTest COMMAND test_viewport_isolation)
         set_tests_properties(ViewportIsolationTest PROPERTIES
@@ -487,6 +513,7 @@ if(QUANTUMVERSE_USE_QT)
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
         add_test(NAME InteractionStressTest COMMAND test_interaction_stress)
         set_tests_properties(InteractionStressTest PROPERTIES
@@ -533,6 +560,7 @@ if(QUANTUMVERSE_USE_QT)
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
         add_test(NAME ResizeStressTest COMMAND test_resize_stress)
         set_tests_properties(ResizeStressTest PROPERTIES
@@ -617,6 +645,7 @@ if(QUANTUMVERSE_USE_QT)
                 ${CMAKE_SOURCE_DIR}/src
                 ${CMAKE_SOURCE_DIR}/third_party
                 ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
             )
             add_test(NAME HUDToggleTest COMMAND test_hud_toggle)
             set_tests_properties(HUDToggleTest PROPERTIES TIMEOUT 30)
@@ -1378,6 +1407,7 @@ endif()
         src/discovery/RLDiscoveryAgent.cpp
         src/discovery/TheoryManager.cpp
         src/discovery/DiscoveryPanelManager.cpp
+        src/data/MultiMessengerCorrelator.cpp
         src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
@@ -1398,7 +1428,9 @@ endif()
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
+    target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QML)
+    set_target_properties(test_theory_discovery_agent PROPERTIES AUTOMOC ON)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
 
     # Phase 33: Gradient-based theory optimizer
@@ -1410,6 +1442,7 @@ endif()
         src/discovery/RLDiscoveryAgent.cpp
         src/discovery/TheoryManager.cpp
         src/discovery/DiscoveryPanelManager.cpp
+        src/data/MultiMessengerCorrelator.cpp
         src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
@@ -1430,7 +1463,8 @@ endif()
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_gradient_optimizer PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_gradient_optimizer PRIVATE dilaton Qt6::Core Qt6::Test)
+    set_target_properties(test_gradient_optimizer PROPERTIES AUTOMOC ON)
     add_test(NAME GradientOptimizerTest COMMAND test_gradient_optimizer)
 
     # Phase 33.5: Adjoint gradient optimizer
@@ -1570,6 +1604,15 @@ endif()
     # Phase 21: Symbolic verification companion binary
     add_executable(test_symbolic_verify tests/validation/test_symbolic_verify.cpp)
     target_link_libraries(test_symbolic_verify PRIVATE dilaton)
+
+    # Multi-user collaboration tests
+    add_executable(test_shared_session tests/unit/test_shared_session.cpp)
+    target_link_libraries(test_shared_session PRIVATE dilaton quantumverse_multi_user)
+    add_test(NAME SharedSessionTest COMMAND test_shared_session)
+
+    add_executable(test_signaling_client tests/unit/test_signaling_client.cpp)
+    target_link_libraries(test_signaling_client PRIVATE dilaton quantumverse_multi_user)
+    add_test(NAME SignalingClientTest COMMAND test_signaling_client)
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues

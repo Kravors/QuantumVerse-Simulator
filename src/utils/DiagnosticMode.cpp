@@ -8,7 +8,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "../../third_party/glad/glad.h"
+#include "glad.h"
 
 #ifdef _WIN32
     #include <windows.h>

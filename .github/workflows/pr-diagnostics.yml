@@ -71,7 +71,10 @@ jobs:
         run: |
           # OpenGL and Windows SDK are included with Visual Studio Build Tools
           echo "Using pre-installed Windows SDK and OpenGL"
-      
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+       
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
         run: |
@@ -164,7 +167,7 @@ jobs:
           run: |
              cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}" -DCMAKE_BUILD_TYPE=Release
         - name: Build
-          run: cmake --build build --parallel
+          run: cmake --build build --parallel 2
         - name: Run tests
           run: cd build && ctest --output-on-failure
 
@@ -182,3 +185,4 @@ jobs:
            path: ./
            base: ${{ github.event.pull_request.base.sha }}
            head: ${{ github.event.pull_request.head.sha }}
+

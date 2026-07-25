@@ -65,6 +65,8 @@ class DiscoveryPanelManager : public QObject
     Q_PROPERTY(QVariantMap activeInstrumentInfo READ activeInstrumentInfo NOTIFY activeInstrumentInfoChanged)
     Q_PROPERTY(int correlationCount READ correlationCount NOTIFY correlationCountChanged)
     Q_PROPERTY(QVariantList correlationsList READ correlationsList NOTIFY correlationsListChanged)
+    Q_PROPERTY(QVariantList paretoFront READ paretoFront NOTIFY paretoFrontChanged)
+    Q_PROPERTY(QVariantList bmaWeights READ bmaWeights NOTIFY bmaWeightsChanged)
 
 public:
     explicit DiscoveryPanelManager(QObject* parent = nullptr);
@@ -101,6 +103,8 @@ public:
     QVariantMap activeInstrumentInfo() const;
     int correlationCount() const;
     QVariantList correlationsList() const;
+    QVariantList paretoFront() const;
+    QVariantList bmaWeights() const;
 
     /** @brief Access the underlying multi-messenger correlator. */
     MultiMessengerCorrelator* correlator() const { return m_correlator.get(); }
@@ -135,6 +139,8 @@ signals:
     void activeInstrumentInfoChanged();
     void correlationCountChanged();
     void correlationsListChanged();
+    void paretoFrontChanged();
+    void bmaWeightsChanged();
     void newFindingDiscovered(const QString& instrumentName, const QString& description, double confidence);
     void scanComplete();
     void liveAlertProcessed(const QString& findingId);

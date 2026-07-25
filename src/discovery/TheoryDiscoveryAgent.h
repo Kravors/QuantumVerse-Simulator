@@ -9,8 +9,10 @@
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
 #include "physics/CurvatureCalculator.h"
-#include <QJsonObject>
 #include <memory>
+#ifdef QUANTUMVERSE_USE_QML
+#include <QJsonObject>
+#endif
 
 namespace quantumverse {
 namespace physics {
@@ -106,7 +108,9 @@ public:
      * it to the internal dataset, and recomputes the Bayesian evidence
      * for the current best theory.
      */
+#ifdef QUANTUMVERSE_USE_QML
     void ingestLiveAlert(const QJsonObject& alert);
+#endif
 
     /**
      * @brief Get the best discovery result from the last run.

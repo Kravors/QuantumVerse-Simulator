@@ -38,7 +38,7 @@ jobs:
         run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Release --parallel 2
       
       - name: Run unit tests
         run: cd build && ctest --output-on-failure -L unit
@@ -96,3 +96,4 @@ jobs:
           export QT_QPA_PLATFORM=offscreen
           cd build
           ctest -C Release -R "Performance" --output-on-failure
+

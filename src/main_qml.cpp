@@ -8,7 +8,7 @@
 
 // glad.h MUST be included before any Qt OpenGL headers to prevent
 // system <GL/gl.h> from conflicting with glad's OpenGL loader.
-#include "../third_party/glad/glad.h"
+#include "glad.h"
 
 // Define NOMINMAX before including windows.h to prevent min/max macro conflicts
 #define NOMINMAX
@@ -84,6 +84,8 @@
 #include "discovery/GWRingdownScanner.h"
 #include "discovery/EMBrightGWCounterpartDetector.h"
 #include "discovery/TheoryDiscoveryAgent.h"
+#include "vr/SignalingClient.h"
+#include "vr/SharedSession.h"
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
 #include "utils/FrameDiagnostics.h"
@@ -159,6 +161,8 @@ int main(int argc, char* argv[])
     QString screenshotPath;
     QString frameTimesPath;
     QString diagnosticsPath;
+    QString signalingServerUrl;
+    QString sessionId;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
@@ -178,6 +182,10 @@ int main(int argc, char* argv[])
             gcnTestMode = true;
         } else if (strcmp(argv[i], "--gcn-prod") == 0) {
             gcnProdMode = true;
+        } else if (strcmp(argv[i], "--signaling-server") == 0 && i + 1 < argc) {
+            signalingServerUrl = argv[++i];
+        } else if (strcmp(argv[i], "--session-id") == 0 && i + 1 < argc) {
+            sessionId = argv[++i];
         }
     }
     if (!screenshotPath.isEmpty() && headlessFrames <= 0) {
@@ -611,6 +619,51 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("replayStream",
             QVariant::fromValue(replayStream.get()));
 #endif
+
+        // Multi-user collaboration: signaling client and shared session
+        auto signalingClient = std::make_shared<quantumverse::vr::SignalingClient>();
+        auto sharedSession = std::make_shared<quantumverse::SharedSession>();
+
+        sharedSession->setSignalingClient(signalingClient.get());
+
+        QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::connected,
+            [signalingClient, sessionId, sharedSession]() mutable {
+                qDebug() << "Signaling: connected to server, session=" << sessionId;
+                if (!sessionId.isEmpty()) {
+                    sharedSession->setSessionId(sessionId);
+                }
+            });
+
+        QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::peerJoined,
+            [](const QString& clientId, const QString& clientName) {
+                qDebug() << "Signaling: peer joined" << clientId << clientName;
+            });
+
+        QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::peerLeft,
+            [](const QString& clientId) {
+                qDebug() << "Signaling: peer left" << clientId;
+            });
+
+        QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::stateReceived,
+            [sharedSession](const QString& senderId, const QJsonObject& stateJson) {
+                sharedSession->applyPeerState(senderId, stateJson);
+            });
+
+        if (!signalingServerUrl.isEmpty()) {
+            QString effectiveSessionId = sessionId;
+            if (effectiveSessionId.isEmpty()) {
+                effectiveSessionId = "default";
+            }
+            signalingClient->connectToServer(signalingServerUrl, effectiveSessionId);
+            qDebug() << "QuantumVerse: Connecting to signaling server" << signalingServerUrl
+                     << "session=" << effectiveSessionId;
+        }
+
+        rootContext->setContextProperty("signalingClient",
+            QVariant::fromValue(signalingClient.get()));
+        rootContext->setContextProperty("sharedSession",
+            QVariant::fromValue(sharedSession.get()));
+
         rootContext->setContextProperty("planckContainer",
             QVariant::fromValue(planckContainer));
 

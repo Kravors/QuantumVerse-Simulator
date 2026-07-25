@@ -32,7 +32,7 @@ jobs:
           git clone https://github.com/mull-project/mull.git
           cd mull
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DMULL_ENABLE_TESTS=OFF
-          cmake --build build --parallel
+          cmake --build build --parallel 2
           sudo cmake --install build --prefix /usr/local
 
       - name: Install dependencies
@@ -52,7 +52,7 @@ jobs:
             -DCMAKE_C_COMPILER=clang-17
 
       - name: Build
-        run: cmake --build build --config Debug --parallel
+        run: cmake --build build --config Debug --parallel 2
 
       - name: Run mutation testing on core modules
         run: |
@@ -120,3 +120,4 @@ jobs:
               echo "WARNING: Mutation score $SCORE% is below threshold of 80%"
             fi
           fi
+

@@ -11,7 +11,7 @@
 #include <windows.h>
 
 // glad.h MUST be first after Windows headers to provide OpenGL function prototypes
-#include "../../third_party/glad/glad.h"
+#include "glad.h"
 
 // stb_image for loading image files
 #pragma warning(push, 0)

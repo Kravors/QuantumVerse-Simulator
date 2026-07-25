@@ -243,6 +243,14 @@ std::vector<DiscoveryResult> DiscoveryEngine::getDiscoveriesByType(const std::st
     return filtered;
 }
 
+std::vector<DiscoveryResult> DiscoveryEngine::getParetoFront() const {
+    return discoveries;
+}
+
+std::vector<double> DiscoveryEngine::getModelWeights() const {
+    return {};
+}
+
 const std::vector<Hypothesis>& DiscoveryEngine::getHypotheses() const {
     return hypotheses;
 }

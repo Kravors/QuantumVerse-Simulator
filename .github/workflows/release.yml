@@ -32,7 +32,7 @@ jobs:
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     - name: Build
-      run: cmake --build build --config Release --parallel
+      run: cmake --build build --config Release --parallel 2
     - name: Deploy Qt runtime
       run: cmake --build build --config Release --target deploy_qt_runtime
     - name: Package as zip
@@ -49,3 +49,4 @@ jobs:
       with:
         name: quantumverse-windows
         path: quantumverse_v${{ github.ref_name }}_win64.zip
+

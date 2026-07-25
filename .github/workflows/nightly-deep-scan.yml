@@ -35,7 +35,7 @@ jobs:
             -DQUANTUMVERSE_USE_ASAN=ON \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=address -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
-          cmake --build build --config Debug --parallel
+          cmake --build build --config Debug --parallel 2
           export ASAN_OPTIONS=detect_leaks=1:abort_on_error=0:symbolize=1:log_path=asan_report
           timeout 14400 ctest --output-on-failure -j $(nproc)
 
@@ -46,7 +46,7 @@ jobs:
             -DQUANTUMVERSE_USE_UBSAN=ON \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=undefined -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=undefined"
-          cmake --build build --config Debug --parallel
+          cmake --build build --config Debug --parallel 2
           export UBSAN_OPTIONS=abort_on_error=0:print_stacktrace=1:log_path=ubsan_report
           timeout 14400 ctest --output-on-failure -j $(nproc)
 
@@ -57,13 +57,13 @@ jobs:
             -DQUANTUMVERSE_USE_TSAN=ON \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=thread -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=thread"
-          cmake --build build --config Debug --parallel
+          cmake --build build --config Debug --parallel 2
           timeout 14400 ctest --output-on-failure -j 2
 
       - name: Valgrind nightly
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build --config Release --parallel
+          cmake --build build --config Release --parallel 2
           mkdir -p valgrind-reports
           for test in $(find build -name "test_*" -type f -executable | head -20); do
             valgrind --leak-check=full --show-leak-kinds=all \
@@ -103,7 +103,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build --config Release --parallel
+          cmake --build build --config Release --parallel 2
 
       - name: Run performance baseline tests
         working-directory: build
@@ -150,7 +150,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build --config Release --parallel
+          cmake --build build --config Release --parallel 2
 
       - name: Run golden master tests
         run: |
@@ -203,7 +203,7 @@ jobs:
             -DQUANTUMVERSE_USE_FUZZER=ON \
             -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_COMPILER=clang
-          cmake --build build --parallel
+          cmake --build build --parallel 2
 
       - name: Differential fuzzing
         run: |
@@ -218,3 +218,4 @@ jobs:
           path: |
             crash-*
             *.log
+

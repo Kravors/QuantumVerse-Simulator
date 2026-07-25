@@ -49,10 +49,11 @@ void test_adjoint_gradient_nonzero() {
 
     auto result = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 0.5);
 
-    assert(result.dState_dMass.size() == 8 && "Gradient vector should have 8 components");
-    assert(std::isfinite(result.dState_dMass[1]) && "dr/dM should be finite");
+    assert(result.dState_dParams.size() == 8 && "Gradient matrix should have 8 rows");
+    assert(result.dState_dParams[0].size() == 1 && "Gradient matrix should have 1 column (mass)");
+    assert(std::isfinite(result.dState_dParams[1][0]) && "dr/dM should be finite");
 
-    std::cout << "  dr/dM = " << result.dState_dMass[1] << "\n";
+    std::cout << "  dr/dM = " << result.dState_dParams[1][0] << "\n";
 }
 
 void test_adjoint_vs_finite_difference() {
@@ -65,7 +66,7 @@ void test_adjoint_vs_finite_difference() {
     auto fd_grad = integrator.computePositionGradientFD(start, vel, GeodesicType::TIMELIKE, 0.5, 1e-6);
 
     // Compare dr/dM from adjoint vs finite difference
-    double adjoint_dr_dM = adjoint_result.dState_dMass[1];
+    double adjoint_dr_dM = adjoint_result.dState_dParams[1][0];
     double fd_dr_dM = fd_grad[1];
 
     assert(std::isfinite(fd_dr_dM) && "FD gradient should be finite");

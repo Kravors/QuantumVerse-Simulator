@@ -5,7 +5,7 @@
 
 // glad.h MUST be first to provide OpenGL function prototypes
 // before any system <GL/gl.h> is pulled in by other headers
-#include "../../third_party/glad/glad.h"
+#include "glad.h"
 
 #include "CelestialBodyRenderer.h"
 #include "../spacetime/Event4D.h"
@@ -470,11 +470,6 @@ bool compileShader(GLuint& program, const char* vertSrc, const char* fragSrc)
 
 void CelestialBodyRenderer::initializeGL()
 {
-    if (!gladLoadGL()) {
-        std::cerr << "CelestialBodyRenderer: Failed to load GLAD" << std::endl;
-        return;
-    }
-
     generateSphereVAO();
 
     // Compile shaders

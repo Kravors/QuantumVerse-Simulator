@@ -38,7 +38,7 @@ jobs:
       - name: Build with CBMC
         run: |
           cd build-cbmc
-          cmake --build . --parallel
+          cmake --build . --parallel 2
 
       - name: Run CBMC verification
         run: |
@@ -77,14 +77,14 @@ jobs:
           mkdir -p build-double
           cd build-double
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-          cmake --build . --parallel
+          cmake --build . --parallel 2
 
       - name: Build long double precision
         run: |
           mkdir -p build-long-double
           cd build-long-double
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-          cmake --build . --parallel
+          cmake --build . --parallel 2
 
       - name: Run differential tests
         run: |
@@ -129,3 +129,4 @@ jobs:
 
           print("Differential tests passed - both variants agree")
           EOF
+

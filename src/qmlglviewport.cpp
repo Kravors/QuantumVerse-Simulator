@@ -6,7 +6,7 @@
  * hardware-accelerated OpenGL rendering within QML layouts.
  */
 
-#include "../third_party/glad/glad.h"
+#include "glad.h"
 
 // Qt headers MUST be included outside any namespace block, since Qt uses
 // QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
@@ -2178,6 +2178,50 @@ void QmlGlViewport::updateVRControllerInput()
 }
 #endif
 
+#ifdef QUANTUMVERSE_USE_VR
+void QmlGlViewport::updateRemoteParticipant(const QString& id, const QString& name, const QVariantList& cameraMatrix, const QVariantList& position, bool vrActive)
+{
+    auto it = std::find_if(m_remoteParticipants.begin(), m_remoteParticipants.end(),
+                           [&id](const RemoteParticipant& p) { return QString::fromStdString(p.id) == id; });
+    if (it != m_remoteParticipants.end()) {
+        it->name = name.toStdString();
+        for (size_t i = 0; i < 16 && i < static_cast<size_t>(cameraMatrix.size()); ++i)
+            it->cameraMatrix[i] = cameraMatrix[i].toFloat();
+        for (size_t i = 0; i < 3 && i < static_cast<size_t>(position.size()); ++i)
+            it->position[i] = position[i].toFloat();
+        it->vrActive = vrActive;
+        it->lastUpdateTime = QDateTime::currentSecsSinceEpoch();
+    } else {
+        RemoteParticipant p;
+        p.id = id.toStdString();
+        p.name = name.toStdString();
+        for (size_t i = 0; i < 16 && i < static_cast<size_t>(cameraMatrix.size()); ++i)
+            p.cameraMatrix[i] = cameraMatrix[i].toFloat();
+        for (size_t i = 0; i < 3 && i < static_cast<size_t>(position.size()); ++i)
+            p.position[i] = position[i].toFloat();
+        p.vrActive = vrActive;
+        p.lastUpdateTime = QDateTime::currentSecsSinceEpoch();
+        m_remoteParticipants.push_back(std::move(p));
+    }
+}
+
+void QmlGlViewport::removeRemoteParticipant(const QString& id)
+{
+    m_remoteParticipants.erase(
+        std::remove_if(m_remoteParticipants.begin(), m_remoteParticipants.end(),
+                       [&id](const RemoteParticipant& p) { return QString::fromStdString(p.id) == id; }),
+        m_remoteParticipants.end()
+    );
+}
+
+void QmlGlViewport::setShowGhostCameras(bool show)
+{
+    if (m_showGhostCameras == show) return;
+    m_showGhostCameras = show;
+    emit showGhostCamerasChanged();
+}
+#endif
+
 void QmlGlViewport::renderGL()
 {
     // [DIAG] Count renderGL invocations to confirm the render loop runs
@@ -2256,6 +2300,33 @@ void QmlGlViewport::renderGL()
                                             m_renderer->getProjectionMatrix().constData());
         }
 
+        // Render remote participant ghost cameras
+        if (m_showGhostCameras) {
+            for (const auto& peer : m_remoteParticipants) {
+                if (!peer.vrActive) continue;
+                glPushMatrix();
+                glMultMatrixf(peer.cameraMatrix.data());
+                glColor4f(0.3f, 0.8f, 1.0f, 0.35f);
+                glLineWidth(2.0f);
+                glBegin(GL_LINES);
+                float s = 0.15f;
+                glVertex3f(-s, -s, -s); glVertex3f( s, -s, -s);
+                glVertex3f( s, -s, -s); glVertex3f( s,  s, -s);
+                glVertex3f( s,  s, -s); glVertex3f(-s,  s, -s);
+                glVertex3f(-s,  s, -s); glVertex3f(-s, -s, -s);
+                glVertex3f(-s, -s,  s); glVertex3f( s, -s,  s);
+                glVertex3f( s, -s,  s); glVertex3f( s,  s,  s);
+                glVertex3f( s,  s,  s); glVertex3f(-s,  s,  s);
+                glVertex3f(-s,  s,  s); glVertex3f(-s, -s,  s);
+                glVertex3f(-s, -s, -s); glVertex3f(-s, -s,  s);
+                glVertex3f( s, -s, -s); glVertex3f( s, -s,  s);
+                glVertex3f( s,  s, -s); glVertex3f( s,  s,  s);
+                glVertex3f(-s,  s, -s); glVertex3f(-s,  s,  s);
+                glEnd();
+                glPopMatrix();
+            }
+        }
+
         // Right eye: right half of FBO
         glViewport(eyeW, 0, eyeW, eyeH);
         glScissor(eyeW, 0, eyeW, eyeH);
@@ -2267,6 +2338,33 @@ void QmlGlViewport::renderGL()
         if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
             m_celestialBodyRenderer->render(m_renderer->getViewMatrix().constData(),
                                             m_renderer->getProjectionMatrix().constData());
+        }
+
+        // Render remote participant ghost cameras
+        if (m_showGhostCameras) {
+            for (const auto& peer : m_remoteParticipants) {
+                if (!peer.vrActive) continue;
+                glPushMatrix();
+                glMultMatrixf(peer.cameraMatrix.data());
+                glColor4f(0.3f, 0.8f, 1.0f, 0.35f);
+                glLineWidth(2.0f);
+                glBegin(GL_LINES);
+                float s = 0.15f;
+                glVertex3f(-s, -s, -s); glVertex3f( s, -s, -s);
+                glVertex3f( s, -s, -s); glVertex3f( s,  s, -s);
+                glVertex3f( s,  s, -s); glVertex3f(-s,  s, -s);
+                glVertex3f(-s,  s, -s); glVertex3f(-s, -s, -s);
+                glVertex3f(-s, -s,  s); glVertex3f( s, -s,  s);
+                glVertex3f( s, -s,  s); glVertex3f( s,  s,  s);
+                glVertex3f( s,  s,  s); glVertex3f(-s,  s,  s);
+                glVertex3f(-s,  s,  s); glVertex3f(-s, -s,  s);
+                glVertex3f(-s, -s, -s); glVertex3f(-s, -s,  s);
+                glVertex3f( s, -s, -s); glVertex3f( s, -s,  s);
+                glVertex3f( s,  s, -s); glVertex3f( s,  s,  s);
+                glVertex3f(-s,  s, -s); glVertex3f(-s,  s,  s);
+                glEnd();
+                glPopMatrix();
+            }
         }
 
         glDisable(GL_SCISSOR_TEST);

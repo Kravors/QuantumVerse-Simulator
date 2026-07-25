@@ -12,7 +12,7 @@
 #ifndef QMLGLVIEWPORT_H
 #define QMLGLVIEWPORT_H
 
-#include "../third_party/glad/glad.h"
+#include "glad.h"
 
 // Qt headers MUST be included outside any namespace, because Qt uses
 // QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros that break when nested
@@ -379,12 +379,21 @@ private:
 
     // VR head tracking state
 #ifdef QUANTUMVERSE_USE_VR
-    quantumverse::vr::HeadPose m_headPose;
-    bool m_hasHeadPose = false;
-    bool m_vrActive = false;
-    quantumverse::vr::VRConfig m_vrConfig;
-    QOpenGLFramebufferObject* m_vrFboLeft = nullptr;
-    QOpenGLFramebufferObject* m_vrFboRight = nullptr;
+     // Multi-user remote participants (ghost cameras)
+     struct RemoteParticipant {
+         std::string id;
+         std::string name;
+         std::array<float, 16> cameraMatrix;
+         std::array<float, 3> position;
+         bool vrActive = false;
+         double lastUpdateTime = 0.0;
+     };
+     std::vector<RemoteParticipant> m_remoteParticipants;
+     bool m_showGhostCameras = true;
+
+     Q_PROPERTY(bool showGhostCameras READ showGhostCameras WRITE setShowGhostCameras NOTIFY showGhostCamerasChanged)
+     Q_INVOKABLE void updateRemoteParticipant(const QString& id, const QString& name, const QVariantList& cameraMatrix, const QVariantList& position, bool vrActive);
+     Q_INVOKABLE void removeRemoteParticipant(const QString& id);
 #endif
 
     // Pointers to core renderers (non-owning)
@@ -493,12 +502,14 @@ public:
     float simulationTime() const { return m_simulationTime; }
     float frameRate() const;
 #ifdef QUANTUMVERSE_USE_VR
-    bool vrEnabled() const { return m_vrEnabled; }
-    bool vrActive() const { return m_vrActive; }
-    float vrIpd() const { return m_vrIpd; }
-    void setVrEnabled(bool enabled);
-    void setVrActive(bool active);
-    void setVrIpd(float ipd);
+     bool vrEnabled() const { return m_vrEnabled; }
+     bool vrActive() const { return m_vrActive; }
+     float vrIpd() const { return m_vrIpd; }
+     void setVrEnabled(bool enabled);
+     void setVrActive(bool active);
+     void setVrIpd(float ipd);
+     bool showGhostCameras() const { return m_showGhostCameras; }
+     void setShowGhostCameras(bool show);
 #endif
 
     // --- Curvature probe readout (wired to the live metric) -------------
@@ -564,8 +575,10 @@ public:
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);
 #ifdef QUANTUMVERSE_USE_VR
-     Q_INVOKABLE void toggleVR();
-     Q_INVOKABLE void updateVRControllerInput();
+      Q_INVOKABLE void toggleVR();
+      Q_INVOKABLE void updateVRControllerInput();
+      Q_INVOKABLE void updateRemoteParticipant(const QString& id, const QString& name, const QVariantList& cameraMatrix, const QVariantList& position, bool vrActive);
+      Q_INVOKABLE void removeRemoteParticipant(const QString& id);
 #endif
 
 signals:
@@ -586,9 +599,10 @@ signals:
     void camera4DAdapterChanged();
     void probeChanged();
 #ifdef QUANTUMVERSE_USE_VR
-    void vrEnabledChanged();
-    void vrActiveChanged();
-    void vrIpdChanged();
+     void vrEnabledChanged();
+     void vrActiveChanged();
+     void vrIpdChanged();
+     void showGhostCamerasChanged();
 #endif
 
 public slots:
@@ -648,10 +662,22 @@ private:
     bool m_probeValid = false;
 
 #ifdef QUANTUMVERSE_USE_VR
-    // VR state
-    bool m_vrEnabled = false;
-    bool m_vrActive = false;
-    float m_vrIpd = 0.063f;
+     // VR state
+     bool m_vrEnabled = false;
+     bool m_vrActive = false;
+     float m_vrIpd = 0.063f;
+
+     // Multi-user remote participants (ghost cameras)
+     struct RemoteParticipant {
+         std::string id;
+         std::string name;
+         std::array<float, 16> cameraMatrix;
+         std::array<float, 3> position;
+         bool vrActive = false;
+         double lastUpdateTime = 0.0;
+     };
+     std::vector<RemoteParticipant> m_remoteParticipants;
+     bool m_showGhostCameras = true;
 #endif
 
     // Qt 6 RHI fallback: managed FBO and texture state

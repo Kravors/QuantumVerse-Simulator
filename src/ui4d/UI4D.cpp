@@ -346,7 +346,6 @@ void UI4D::endBodyPropertyEditing() {
                             }
                         }
                     }
-                }
                     
                 // Check if anomaly detected
                     if (curvature > anomalyDetectionThreshold) {
