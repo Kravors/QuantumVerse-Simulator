@@ -1,5 +1,6 @@
 #include "TheoryDiscoveryAgent.h"
 #include "data/GCNNoticeParser.h"
+#include "physics/AdjointGeodesicIntegrator.h"
 #include <cmath>
 #include <algorithm>
 #include <limits>
@@ -882,13 +883,84 @@ double TheoryDiscoveryAgent::computeGRBaselineChi2() const {
     return chi2;
 }
 
+std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
+    const std::vector<double>& params
+) const {
+    std::vector<double> grad;
+    auto param_list = param_space_.getParameters();
+    int dim = static_cast<int>(params.size());
+    grad.resize(dim, 0.0);
+
+    const double eps = 1e-6;
+
+    for (int i = 0; i < dim; ++i) {
+        if (i >= static_cast<int>(param_list.size())) break;
+
+        double lo = param_list[i].min;
+        double hi = param_list[i].max;
+        double range = hi - lo;
+        if (range <= 0.0) range = 1.0;
+
+        const std::string& name = param_list[i].name;
+        bool is_mass_param = (name == "M" || name == "mass");
+
+        if (is_mass_param) {
+            try {
+                physics::AdjointGeodesicIntegrator integrator(params[i], 1e-6, 1e-10, 0.5, 0.9, 100000);
+                Event4D start(0.0, 10.0, 0.0, 0.0);
+                std::array<double, 4> vel = {1.0, -0.1, 0.0, 0.0};
+
+                auto state_grad = integrator.computeStateGradient(
+                    start, vel, GeodesicType::TIMELIKE, 0.01
+                );
+
+                if (state_grad.second.size() >= 2) {
+                    double dr_dM = state_grad.second[1];
+                    if (std::isfinite(dr_dM)) {
+                        grad[i] = dr_dM * 1e-3;
+                    }
+                }
+
+                if (!std::isfinite(grad[i]) || grad[i] == 0.0) {
+                    double h = std::max(eps, range * 1e-6);
+                    std::vector<double> p_plus = params;
+                    p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
+                    double chi2_plus = evaluateTheory(p_plus).observational_chi2;
+                    std::vector<double> p_minus = params;
+                    p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
+                    double chi2_minus = evaluateTheory(p_minus).observational_chi2;
+                    grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
+                }
+            } catch (...) {
+                double h = std::max(eps, range * 1e-6);
+                std::vector<double> p_plus = params;
+                p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
+                double chi2_plus = evaluateTheory(p_plus).observational_chi2;
+                std::vector<double> p_minus = params;
+                p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
+                double chi2_minus = evaluateTheory(p_minus).observational_chi2;
+                grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
+            }
+        } else {
+            double h = std::max(eps, range * 1e-6);
+            std::vector<double> p_plus = params;
+            p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
+            double chi2_plus = evaluateTheory(p_plus).observational_chi2;
+            std::vector<double> p_minus = params;
+            p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
+            double chi2_minus = evaluateTheory(p_minus).observational_chi2;
+            grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
+        }
+    }
+
+    return grad;
+}
+
 TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient(
     size_t maxIterations,
     double learningRate,
     double tolerance
 ) {
-    const double eps = 1e-6;
-
     std::vector<double> params;
     if (!best_result_.parameters.empty()) {
         params = best_result_.parameters;
@@ -909,27 +981,7 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient
     double best_reward = best_result.total_reward;
 
     for (size_t iter = 0; iter < maxIterations; ++iter) {
-        std::vector<double> grad(dim, 0.0);
-
-        for (int i = 0; i < dim; ++i) {
-            if (i >= static_cast<int>(param_list.size())) break;
-
-            double lo = param_list[i].min;
-            double hi = param_list[i].max;
-            double range = hi - lo;
-            if (range <= 0.0) range = 1.0;
-            double h = std::max(eps, range * 1e-6);
-
-            double saved = params[i];
-            params[i] = std::max(lo, std::min(hi, saved + h));
-            double chi2_plus = evaluateTheory(params).observational_chi2;
-
-            params[i] = std::max(lo, std::min(hi, saved - h));
-            double chi2_minus = evaluateTheory(params).observational_chi2;
-
-            params[i] = saved;
-            grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
-        }
+        std::vector<double> grad = computeAdjointGradient(params);
 
         for (int i = 0; i < dim; ++i) {
             if (i >= static_cast<int>(param_list.size())) break;

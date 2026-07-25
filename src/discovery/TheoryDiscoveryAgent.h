@@ -13,6 +13,12 @@
 #include <memory>
 
 namespace quantumverse {
+namespace physics {
+class AdjointGeodesicIntegrator;
+}
+}
+
+namespace quantumverse {
 namespace discovery {
 
 /**
@@ -280,6 +286,19 @@ public:
         double learningRate = 0.01,
         double tolerance = 1e-4
     );
+
+    /**
+     * @brief Compute parameter gradients using reverse-mode adjoint where
+     *        available, falling back to central finite differences otherwise.
+     *
+     * For Schwarzschild-like mass parameters, the adjoint geodesic integrator
+     * provides exact d(curvature)/d(param). For all other parameters, central
+     * finite differences on evaluateTheory are used.
+     *
+     * @param params Current theory parameters.
+     * @return Gradient vector w.r.t. each parameter.
+     */
+    std::vector<double> computeAdjointGradient(const std::vector<double>& params) const;
 
     /**
      * @brief Multi-objective Pareto point.

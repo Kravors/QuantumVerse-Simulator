@@ -401,7 +401,7 @@ std::array<std::array<double, M>, N> jacobian(
 
 // ========== Scalar Convenience Wrappers ==========
 
-double differentiate(
+inline double differentiate(
     const std::function<double(double)>& f,
     double x,
     double h = 1e-5
@@ -485,7 +485,7 @@ public:
     static const std::vector<ADVar*>& getVariables() { return variables; }
 };
 
-std::vector<ADVar*> ADTape::variables;
+inline std::vector<ADVar*> ADTape::variables;
 
 inline ADVar* var(double v) {
     return ADTape::record(v, nullptr);

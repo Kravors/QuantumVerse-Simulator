@@ -331,6 +331,69 @@ public:
     }
 
     /**
+     * @brief Compute gradient of the Kretschmann scalar w.r.t. mass at a location
+     *        using reverse-mode AD.
+     *
+     * K = 48 * (GM/c^2)^2 / r^6 for Schwarzschild.
+     *
+     * @param mass Schwarzschild mass parameter.
+     * @param location Spacetime location.
+     * @return dKretschmann/dM.
+     */
+    double computeCurvatureGradient(double mass, const Event4D& location) const {
+        ADTape::clear();
+
+        ADVar* M = ADTape::record(mass, nullptr);
+
+        double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+        const double minR = 1e-9;
+        if (r < minR) r = minR;
+
+        std::vector<ADVar*> pos(4);
+        pos[0] = ADTape::record(location.t, nullptr);
+        pos[1] = ADTape::record(r, nullptr);
+        pos[2] = ADTape::record(std::acos(std::max(-1.0, std::min(1.0, location.z / r))), nullptr);
+        pos[3] = ADTape::record(std::atan2(location.y, location.x), nullptr);
+
+        ADVar* rs = math::mul(M, constant(2.0 * Event4D::G / (Event4D::C * Event4D::C)));
+        ADVar* r_var = pos[1];
+        ADVar* r2 = math::mul(r_var, r_var);
+        ADVar* r4 = math::mul(r2, r2);
+        ADVar* r6 = math::mul(r4, r2);
+        ADVar* rs2 = math::mul(rs, rs);
+        ADVar* K = math::div(math::mul(constant(48.0), rs2), r6);
+
+        auto& tape_vars = ADTape::getVariables();
+        for (auto* var : tape_vars) var->grad = 0.0;
+        K->grad = 1.0;
+        for (auto it = tape_vars.rbegin(); it != tape_vars.rend(); ++it) {
+            if ((*it)->backward) (*it)->backward();
+        }
+
+        return M->grad;
+    }
+
+    /**
+     * @brief Compute gradient of the final geodesic state w.r.t. mass using
+     *        reverse-mode AD (wrapper around integrate).
+     *
+     * @param startEvent Initial spacetime event.
+     * @param initialVelocity Initial four-velocity.
+     * @param type Geodesic type.
+     * @param targetProperTime Integration duration.
+     * @return Pair of (finalState, d(finalState)/dM).
+     */
+    std::pair<std::vector<double>, std::vector<double>> computeStateGradient(
+        const Event4D& startEvent,
+        const std::array<double, 4>& initialVelocity,
+        GeodesicType type,
+        double targetProperTime
+    ) const {
+        auto result = integrate(startEvent, initialVelocity, type, targetProperTime);
+        return std::make_pair(result.finalState, result.dState_dMass);
+    }
+
+    /**
      * @brief Compute gradient of final spatial radius w.r.t. mass using
      *        central finite differences (for validation).
      */
