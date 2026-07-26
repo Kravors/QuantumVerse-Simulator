@@ -43,6 +43,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure CMake with ASan
@@ -102,6 +103,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure CMake with UBSan
@@ -158,6 +160,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure CMake with TSan
@@ -204,6 +207,7 @@ jobs:
           host: windows
           arch: 'win64_msvc2022_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Add MSBuild to PATH

@@ -54,6 +54,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Install Qt6 (Windows)
@@ -66,6 +67,7 @@ jobs:
           host: 'windows'
           arch: 'win64_msvc2022_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Add Qt to PATH (Windows)
@@ -82,6 +84,7 @@ jobs:
           host: 'mac'
           arch: 'macos_arm64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Add Qt to PATH (macOS)
@@ -141,6 +144,7 @@ jobs:
           host: 'windows'
           arch: 'win64_msvc2022_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Add Qt to PATH (Windows)

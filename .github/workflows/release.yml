@@ -25,6 +25,7 @@ jobs:
         target: 'desktop'
         host: 'windows'
         arch: 'win64_msvc2022_64'
+          modules: 'qtwebsockets'
         cache: true
 
     - name: Add MSBuild to PATH

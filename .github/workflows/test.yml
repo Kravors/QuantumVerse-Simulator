@@ -24,6 +24,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
       
       - name: Install system dependencies
@@ -76,6 +77,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
       - name: Install system dependencies
         run: |

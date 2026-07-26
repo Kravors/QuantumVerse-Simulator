@@ -38,6 +38,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
       
       - name: Build verification tests
@@ -79,6 +80,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
       
       - name: Build
@@ -121,6 +123,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
       
       - name: Build with sanitizers
@@ -157,6 +160,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
       
       - name: Build fuzzer
@@ -209,6 +213,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
       
       - name: Build

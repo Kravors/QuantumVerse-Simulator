@@ -29,7 +29,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y llvm-17 llvm-17-dev clang-17
-          git clone https://github.com/mull-project/mull.git
+          git clone --depth 1 --branch main https://github.com/mull-project/mull.git
           cd mull
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DMULL_ENABLE_TESTS=OFF
           cmake --build build --parallel 2

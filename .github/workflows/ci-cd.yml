@@ -36,6 +36,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Install Qt6 (Windows)
@@ -47,6 +48,7 @@ jobs:
           target: 'desktop'
           host: 'windows'
           arch: 'win64_msvc2022_64'
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Add MSBuild to PATH (Windows)
@@ -67,14 +69,14 @@ jobs:
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
         run: |
-          cmake -B build \
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-            -DQUANTUMVERSE_USE_IMGUI=ON \
-            -DQUANTUMVERSE_ENABLE_QUANTUM_GRAVITY=ON \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_USE_QT=ON \
-            -G "Visual Studio 17 2022" \
-            -A x64 \
+          cmake -B build `
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+            -DQUANTUMVERSE_USE_IMGUI=ON `
+            -DQUANTUMVERSE_ENABLE_QUANTUM_GRAVITY=ON `
+            -DQUANTUMVERSE_BUILD_TESTS=ON `
+            -DQUANTUMVERSE_USE_QT=ON `
+            -G "Visual Studio 17 2022" `
+            -A x64 `
             -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
 
       - name: Build
@@ -114,6 +116,7 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Initialize CodeQL

@@ -35,6 +35,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure CMake with clang-tidy as errors
@@ -87,6 +88,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure CMake
@@ -143,6 +145,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure and build
@@ -181,6 +184,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure CMake with fuzzing
@@ -220,6 +224,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Configure CMake with coverage
@@ -280,6 +285,7 @@ jobs:
           host: 'linux'
           arch: 'linux_gcc_64'
 
+          modules: 'qtwebsockets'
           cache: true
 
       - name: Install Python dependencies
