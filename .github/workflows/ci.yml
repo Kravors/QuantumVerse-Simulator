@@ -30,10 +30,9 @@ jobs:
         version: ${{ matrix.qt_version }}
         target: 'desktop'
         host: 'windows'
-        arch: 'win64_msvc2022_64'
-
-          modules: 'qtwebsockets'
-        cache: true
+         arch: 'win64_msvc2022_64'
+         modules: 'qtwebsockets'
+         cache: true
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_USE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }} -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     - name: Build
@@ -64,10 +63,9 @@ jobs:
         version: ${{ matrix.qt_version }}
         target: 'desktop'
         host: 'linux'
-        arch: 'linux_gcc_64'
-
-          modules: 'qtwebsockets'
-        cache: true
+         arch: 'linux_gcc_64'
+         modules: 'qtwebsockets'
+         cache: true
       
     - name: Install system dependencies
       run: |

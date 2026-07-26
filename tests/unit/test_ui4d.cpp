@@ -97,6 +97,7 @@ int main()
         auto sample = ui4d.getProbe().sampleCurvature(metric);
         assert(sample.kretschmann >= 0.0);
         assert(sample.ricci == 0.0);
+        (void)sample;
     }
 
     // --- Waypoints ------------------------------------------------------------

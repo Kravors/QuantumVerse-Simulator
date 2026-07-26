@@ -93,6 +93,7 @@ void test_kretschmann_non_negativity_random() {
         auto scalars = sch.curvatureScalars(ev);
         assert(scalars.valid);
         assert(scalars.kretschmann >= 0.0);
+        (void)scalars;
     }
 }
 
