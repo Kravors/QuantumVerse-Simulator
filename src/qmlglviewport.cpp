@@ -116,7 +116,6 @@ static bool initializeGlad()
         return false;
     }
 
-    using GLADloadproc = void* (*)(const char*);
     auto loader = [](const char* name) -> void* {
         QOpenGLContext* c = QOpenGLContext::currentContext();
         if (!c) return nullptr;
@@ -173,11 +172,11 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 , m_cameraAngleY(0.0f)
 , m_cameraPanX(0.0f)
 , m_cameraPanY(0.0f)
-, m_fbo(nullptr)
-, m_glInitialized(false)
+    , m_fbo(nullptr)
     , m_headlessTargetFrames(0)
     , m_headlessStatsLogged(false)
     , m_screenshotRequested(false)
+    , m_glInitialized(false)
 {
     // Initialize view matrix
     m_viewMatrix.setToIdentity();

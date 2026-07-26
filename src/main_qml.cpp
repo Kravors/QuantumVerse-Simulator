@@ -158,6 +158,8 @@ int main(int argc, char* argv[])
     bool glStrict = false;
     bool gcnTestMode = false;
     bool gcnProdMode = false;
+    (void)gcnTestMode;
+    (void)gcnProdMode;
     QString screenshotPath;
     QString frameTimesPath;
     QString diagnosticsPath;

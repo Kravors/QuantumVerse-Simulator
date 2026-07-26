@@ -430,6 +430,7 @@ public:
         };
 
         double base_pt = 0.0;
+        (void)base_pt;
         Event4D base_final;
         {
             GeodesicIntegrator gi;

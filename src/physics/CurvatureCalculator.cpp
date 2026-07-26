@@ -7,11 +7,11 @@ CurvatureCalculator::CurvatureCalculator(std::shared_ptr<MetricTensor> metric)
     : currentMetric_(std::move(metric))
     , fdStep_(1e-6)
     , singularityTolerance_(1e10)
+    , ricciScalarCache_(0.0)
+    , kretschmannCache_(0.0)
     , christoffelValid_(false)
     , riemannValid_(false)
-    , ricciScalarCache_(0.0)
-    , ricciValid_(false)
-    , kretschmannCache_(0.0) {
+    , ricciValid_(false) {
     if (!currentMetric_) {
         currentMetric_ = std::make_shared<MetricTensor>();
     }

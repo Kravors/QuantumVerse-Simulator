@@ -217,10 +217,10 @@ TheoryDiscoveryAgent::TheoryDiscoveryAgent(TheoryParameterSpace::TheoryType theo
       test_radius_(10.0),
       symbolic_verification_enabled_(true),
       best_reward_so_far_(-std::numeric_limits<double>::infinity()),
+      multi_objective_mode_(false),
       active_learning_enabled_(false),
       active_learning_mode_(ActiveLearningMode::UNCERTAINTY),
       m_acquisitionMode_(AcquisitionMode::UNCERTAINTY),
-       multi_objective_mode_(false),
        surrogate_(std::make_unique<TheorySurrogate>()),
        m_objectiveSurrogates_(4)
 {
@@ -964,7 +964,7 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
             start, vel, GeodesicType::TIMELIKE, 0.01
         );
 
-        if (!state_grad.second.empty() && state_grad.second[0].size() == dim) {
+        if (!state_grad.second.empty() && state_grad.second[0].size() == static_cast<size_t>(dim)) {
             for (int i = 0; i < dim; ++i) {
                 if (state_grad.second[1][i] != 0.0 && std::isfinite(state_grad.second[1][i])) {
                     grad[i] = state_grad.second[1][i] * 1e-3;
