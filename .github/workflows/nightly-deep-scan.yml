@@ -190,9 +190,9 @@ jobs:
           submodules: recursive
 
       - name: Install LLVM/Clang for fuzzing
-        uses: llvm-actions/install-llvm@v1
+        uses: KyleMayes/install-llvm-action@v2
         with:
-          version: '17'
+          version: "17.0"
 
       - name: Build fuzzers
         run: |

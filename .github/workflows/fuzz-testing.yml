@@ -26,9 +26,9 @@ jobs:
           submodules: recursive
 
       - name: Install LLVM/Clang for libFuzzer
-        uses: llvm-actions/install-llvm@v1
+        uses: KyleMayes/install-llvm-action@v2
         with:
-          version: '17'
+          version: "17.0"
 
       - name: Configure CMake with libFuzzer
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
@@ -64,9 +64,9 @@ jobs:
           submodules: recursive
 
       - name: Install LLVM/Clang for libFuzzer
-        uses: llvm-actions/install-llvm@v1
+        uses: KyleMayes/install-llvm-action@v2
         with:
-          version: '17'
+          version: "17.0"
 
       - name: Configure CMake with libFuzzer
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
@@ -102,9 +102,9 @@ jobs:
           submodules: recursive
 
       - name: Install LLVM/Clang for libFuzzer
-        uses: llvm-actions/install-llvm@v1
+        uses: KyleMayes/install-llvm-action@v2
         with:
-          version: '17'
+          version: "17.0"
 
       - name: Configure CMake with libFuzzer
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
