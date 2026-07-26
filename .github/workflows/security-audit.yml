@@ -35,14 +35,23 @@ jobs:
           sudo apt-get install -y clang-tools cppcheck python3-pip
           pip3 install bandit safety
 
-      - name: Run CodeQL Analysis
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: cpp
-          build-mode: autobuild
+          build-mode: manual
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --parallel 2
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
