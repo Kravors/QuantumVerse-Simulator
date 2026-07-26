@@ -112,30 +112,40 @@ jobs:
           name: cppcheck-report
           path: cppcheck-report.txt
 
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          submodules: recursive
+   codeql:
+     name: CodeQL Analysis
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v5
+         with:
+           submodules: recursive
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: cpp
-          build-mode: autobuild
-      
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-      
-      - name: Upload CodeQL Report
-        uses: actions/upload-artifact@v5
-        if: always()
-        with:
-          name: codeql-report
-          path: |
-            **/*.sarif
+       - name: Install build dependencies
+         run: |
+           sudo apt-get update
+           sudo apt-get install -y build-essential cmake
+
+       - name: Initialize CodeQL
+         uses: github/codeql-action/init@v4
+         with:
+           languages: cpp
+           build-mode: manual
+       
+       - name: Build with CodeQL
+         run: |
+           cmake -B build -DCMAKE_BUILD_TYPE=Release
+           cmake --build build --parallel 2
+
+       - name: Perform CodeQL Analysis
+         uses: github/codeql-action/analyze@v4
+       
+       - name: Upload CodeQL Report
+         uses: actions/upload-artifact@v5
+         if: always()
+         with:
+           name: codeql-report
+           path: |
+             **/*.sarif
 
   coverity:
     name: Coverity Scan
