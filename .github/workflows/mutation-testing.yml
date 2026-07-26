@@ -25,10 +25,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install LLVM/Clang
+        uses: llvm-actions/install-llvm@v1
+        with:
+          version: '17'
+
       - name: Install Mull
         run: |
-          sudo apt-get update
-          sudo apt-get install -y llvm-17 llvm-17-dev clang-17
           git clone --depth 1 --branch main https://github.com/mull-project/mull.git
           cd mull
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DMULL_ENABLE_TESTS=OFF
@@ -48,8 +51,8 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
-            -DCMAKE_CXX_COMPILER=clang++-17 \
-            -DCMAKE_C_COMPILER=clang-17
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang
 
       - name: Build
         run: cmake --build build --config Debug --parallel 2
