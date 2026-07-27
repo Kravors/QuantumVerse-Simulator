@@ -164,7 +164,6 @@ private:
     bool hypothesisTestingEnabled;
     
     // Validation thresholds
-    double minConfidenceThreshold;
     double maxAnomalyScore;
     
     // Callbacks for discovery notifications

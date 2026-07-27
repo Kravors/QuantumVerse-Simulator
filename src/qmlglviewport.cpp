@@ -39,8 +39,10 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#ifdef _WIN32
 #include <windows.h>  // for MessageBoxA
 #undef connect
+#endif
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
 #ifndef M_PI
@@ -172,11 +174,11 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 , m_cameraAngleY(0.0f)
 , m_cameraPanX(0.0f)
 , m_cameraPanY(0.0f)
-    , m_fbo(nullptr)
-    , m_headlessTargetFrames(0)
-    , m_headlessStatsLogged(false)
-    , m_screenshotRequested(false)
-    , m_glInitialized(false)
+, m_headlessTargetFrames(0)
+, m_headlessStatsLogged(false)
+, m_screenshotRequested(false)
+, m_fbo(nullptr)
+, m_glInitialized(false)
 {
     // Initialize view matrix
     m_viewMatrix.setToIdentity();
@@ -1766,8 +1768,6 @@ void QmlGlRenderer::renderHUD()
 QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     : QQuickItem(parent)
     , m_renderer(nullptr)
-    , m_fbo(nullptr)
-    , m_textureDirty(true)
     , m_showGrid(true)
     , m_showLightCones(false)
     , m_showGeodesics(true)
@@ -1781,6 +1781,8 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     , m_frameRate(0.0f)
     , m_frameCount(0)
     , m_lastFrameTime(0)
+    , m_fbo(nullptr)
+    , m_textureDirty(true)
 {
     std::ofstream("viewport_ctor.log") << "QmlGlViewport constructor called, parent=" << parent << std::endl;
     setObjectName("viewport");  // Required for findChild in main_qml.cpp

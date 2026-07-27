@@ -24,11 +24,7 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     std::cout << "=== GCNBrokerConnectivityTest ===" << std::endl;
 
-#ifndef HAVE_LIBRDKAFKA
-    std::cout << "SKIP: librdkafka not available at build time." << std::endl;
-    return 0;
-#endif
-
+#ifdef HAVE_LIBRDKAFKA
     GCNBrokerConfig config = GCNBrokerConfig::testStream();
     KafkaAlertListener listener(config);
 
@@ -63,5 +59,8 @@ int main(int argc, char** argv)
     std::cout << "PASS: Connected to GCN test broker at " << config.brokers.toStdString() << std::endl;
     std::cout << "Subscribed to " << config.topics.size() << " topics." << std::endl;
     std::cout << "All GCNBrokerConnectivityTest checks passed." << std::endl;
+#else
+    std::cout << "SKIP: librdkafka not available at build time." << std::endl;
+#endif
     return 0;
 }

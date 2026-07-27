@@ -10,7 +10,6 @@ DiscoveryEngine::DiscoveryEngine()
     : symbolicRegressionEnabled(false),
       anomalyDetectionEnabled(true),
       hypothesisTestingEnabled(false),
-      minConfidenceThreshold(0.95),
       maxAnomalyScore(50.0),
       curvatureFlow_(std::make_unique<CurvatureNormalizingFlow>()),
       curvatureModelPath_(""),

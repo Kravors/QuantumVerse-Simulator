@@ -8,7 +8,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 // glad.h MUST be first after Windows headers to provide OpenGL function prototypes
 #include "glad.h"

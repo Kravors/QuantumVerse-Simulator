@@ -84,7 +84,7 @@ void test_schwarzschild_photon_orbit() {
 
     double scalar = sch.curvatureScalars(Event4D(0.0, b, 0.0, 0.0)).kretschmann;
     (void)scalar;
-    assert(fellIn || traj.size() > 10 && "Photon should either orbit or fall in near photon sphere");
+    assert((fellIn || (traj.size() > 10)) && "Photon should either orbit or fall in near photon sphere");
     (void)fellIn;
 
     std::cout << "[PASS] Schwarzschild photon orbit at b=3*sqrt(3)*M handled correctly" << std::endl;

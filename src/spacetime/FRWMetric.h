@@ -208,18 +208,7 @@ public:
      */
     double ageOfUniverse(double tMax = 6.31e17, int steps = 10000) const {
         double dt = tMax / steps;
-        double integral = 0.0;
-
-        for (int i = 0; i < steps; i++) {
-            double t = (i + 0.5) * dt;
-            double a = scaleFactor_(t);
-            if (a > 1e-30) {
-                integral += dt / a;
-            }
-        }
-
-        // The age is approximately tMax when the integral converges
-        // For flat matter-dominated: t_age = 2/(3H₀)
+        // For flat matter-dominated: t_age ≈ 2/(3H₀)
         return 2.0 / (3.0 * H0_);
     }
 

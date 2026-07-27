@@ -277,18 +277,12 @@ if(QUANTUMVERSE_USE_QT)
     )
 
     if(WIN32)
-        # Deploy Qt runtime files to the build output directory so test executables
-        # and headless runs can find DLLs/plugins without requiring Qt on PATH.
-        set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}/Release")
+        set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}/$<CONFIG>")
         add_custom_target(deploy_qt_runtime
             COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
-            COMMAND "${QT_HOST_PATH}/bin/windeployqt.exe"
-                --release
-                --qmldir "${CMAKE_SOURCE_DIR}/src"
-                --no-compiler-runtime
-                --no-translations
-                "${QT_RUNTIME_DEST}/quantumverse_qml.exe"
+            COMMAND cmd /c
+                "set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --no-compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${QT_HOST_PATH}/bin/Qt6Test.dll"
                 "${QT_RUNTIME_DEST}/"

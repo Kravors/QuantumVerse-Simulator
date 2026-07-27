@@ -564,7 +564,7 @@ std::array<std::array<double, 4>, 4> CDTEngine::computeChristoffel(
     int rho, int mu, int nu
 ) const {
     // Christoffel symbols from effective metric
-    std::array<std::array<double, 4>, 4> gamma = {0};
+    std::array<std::array<double, 4>, 4> gamma{};
 
     (void)location;
 

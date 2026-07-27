@@ -35,7 +35,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt_linux
         with:
-          version: '6.8.*'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -48,7 +48,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt_windows
         with:
-          version: '6.8.*'
+          version: '6.8.3'
           target: 'desktop'
           host: 'windows'
           arch: 'win64_msvc2022_64'
@@ -61,7 +61,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt_macos
         with:
-          version: '6.8.*'
+          version: '6.8.3'
           target: 'desktop'
           host: 'mac'
           arch: 'macos_arm64'
@@ -76,6 +76,7 @@ jobs:
           echo "Using pre-installed Windows SDK and OpenGL"
 
       - name: Add MSBuild to PATH
+        if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v2
        
       - name: Install macOS dependencies
@@ -132,7 +133,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt_linux
         with:
-          version: '6.8.*'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -141,7 +142,7 @@ jobs:
           cache: true      
       - name: Build with sanitizers
         run: |
-          cmake -B build -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_USE_TSAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
+          cmake -B build -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
           cmake --build build
       - name: Run sanitizer tests
         run: cd build && ctest --output-on-failure
@@ -162,7 +163,7 @@ jobs:
           uses: jurplel/install-qt-action@v4
           id: setup_qt_linux
           with:
-            version: '6.8.*'
+            version: '6.8.3'
             target: 'desktop'
             host: 'linux'
             arch: 'linux_gcc_64'

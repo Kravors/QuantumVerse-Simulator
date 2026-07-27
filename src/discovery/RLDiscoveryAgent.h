@@ -70,7 +70,6 @@ private:
     std::unique_ptr<PolicyNetwork> policy;
     std::vector<std::pair<double, double>> param_ranges;
     int param_dim = 0;
-    double learning_rate = 0.01;
     double gamma = 0.99;
     double epsilon = 1.0;
     double total_reward = 0.0;

@@ -36,7 +36,7 @@ public:
     std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
         const std::vector<Event4D>& trajectory = {}) override;
 
-    std::vector<InstrumentFinding> analyzeGrid(const std::vector<PlanetaryGridResult>& gridResults);
+    std::vector<InstrumentFinding> analyzeGrid(const std::vector<PlanetaryGridResult>& gridResults) override;
 
     std::string getName() const override { return "ExoplanetaryTTVFifthForceHunter"; }
     std::string getDescription() const override

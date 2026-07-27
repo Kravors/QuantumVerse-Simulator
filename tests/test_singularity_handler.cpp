@@ -148,6 +148,7 @@ int main() {
             SingularityHandler handler(type, 1.0, 0.0, 0.0);
             Event4D center(0.0, 0.0, 0.0, 0.0);
             auto forces = handler.computeTidalForces(center);
+            (void)forces;
             assert(!std::isnan(forces.radial_stretch) && "Regular BH: radial stretch is NaN");
             assert(!std::isnan(forces.lateral_compression) && "Regular BH: lateral compression is NaN");
             std::cout << "  [PASS] " << static_cast<int>(type)

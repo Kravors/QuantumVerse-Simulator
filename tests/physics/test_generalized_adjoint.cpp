@@ -197,7 +197,7 @@ void test_generalized_adjoint_schwarzschild() {
 
     assert(std::fabs(legacy_result.finalState[1] - result.finalState[1]) < 1e-10 &&
            "Generalized and legacy integrators should agree on final state");
-    assert(std::fabs(legacy_result.dState_dMass[1] - result.dState_dParams[1][0]) < 1e-10 &&
+    assert(std::fabs(legacy_result.dState_dParams[1][0] - result.dState_dParams[1][0]) < 1e-10 &&
            "Generalized and legacy integrators should agree on gradient");
 }
 

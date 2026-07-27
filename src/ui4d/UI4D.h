@@ -74,10 +74,6 @@ private:
     double nearPlane;      // Near clipping plane
     double farPlane;       // Far clipping plane
     
-    // 4D projection matrix (4x4 for 4D->3D, then 3D->2D)
-    std::array<std::array<double, 4>, 4> projectionMatrix;
-    std::array<std::array<double, 4>, 4> viewMatrix;
-    
     void computeViewMatrix() {
         // Compute 4D view matrix from position, lookAt, and up vectors
         // This is a 4D analog of the lookAt transformation

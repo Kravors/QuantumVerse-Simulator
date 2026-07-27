@@ -10,10 +10,11 @@
 // system <GL/gl.h> from conflicting with glad's OpenGL loader.
 #include "glad.h"
 
-// Define NOMINMAX before including windows.h to prevent min/max macro conflicts
+#ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>  // for MessageBoxA
 #undef connect
+#endif
 
 // Qt headers MUST come before project headers to avoid namespace pollution.
 // Qt uses QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.

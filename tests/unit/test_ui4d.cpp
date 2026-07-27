@@ -95,9 +95,9 @@ int main()
     {
         auto metric = std::make_shared<MetricTensor>();
         auto sample = ui4d.getProbe().sampleCurvature(metric);
+        (void)sample;
         assert(sample.kretschmann >= 0.0);
         assert(sample.ricci == 0.0);
-        (void)sample;
     }
 
     // --- Waypoints ------------------------------------------------------------

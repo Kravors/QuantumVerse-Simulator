@@ -16,7 +16,9 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdio>
+#ifdef _WIN32
 #include <windows.h>  // Required for GetEnvironmentVariableA in isTruthyEnvironmentFlag
+#endif
 
 namespace quantumverse {
 

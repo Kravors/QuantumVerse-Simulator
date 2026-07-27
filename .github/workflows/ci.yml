@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release, Debug]
-        qt_version: [6.8.*]
+        qt_version: [6.8.3]
     steps:
     - uses: actions/checkout@v5
       with:
@@ -33,6 +33,11 @@ jobs:
         arch: 'win64_msvc2022_64'
         modules: 'qtwebsockets'
         cache: true
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+      with:
+        vs-version: '17.0'
+
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_USE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }} -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     - name: Build
@@ -50,7 +55,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release, Debug]
-        qt_version: [6.8.*]
+        qt_version: [6.8.3]
     steps:
     - uses: actions/checkout@v5
       with:

@@ -21,7 +21,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       id: setup_qt
       with:
-        version: '6.8.*'
+        version: '6.8.3'
         target: 'desktop'
         host: 'windows'
         arch: 'win64_msvc2022_64'
