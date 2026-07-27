@@ -177,6 +177,15 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
 , m_headlessTargetFrames(0)
 , m_headlessStatsLogged(false)
 , m_screenshotRequested(false)
+, m_gridVao(0)
+, m_gridVbo(0)
+, m_gridEbo(0)
+, m_axisVao(0)
+, m_axisVbo(0)
+, m_overlayVAO(0)
+, m_overlayVBO(0)
+, m_profilingVAO(0)
+, m_profilingVBO(0)
 , m_fbo(nullptr)
 , m_glInitialized(false)
 {
@@ -392,14 +401,14 @@ void QmlGlRenderer::render()
     GL_CHECK();
 
     // Render scene components
-    if (m_showGrid) {
-        PERF_SCOPE("renderGrid");
-        renderGrid();
-    }
+    // if (m_showGrid) {
+    //     PERF_SCOPE("renderGrid");
+    //     renderGrid();
+    // }
 
     {
         PERF_SCOPE("renderAxisGizmo");
-        renderAxisGizmo();
+        // renderAxisGizmo();
     }
 
     if (m_showGeodesics && m_curvatureRenderer) {
@@ -409,7 +418,7 @@ void QmlGlRenderer::render()
                        << "m_curvatureRenderer=" << m_curvatureRenderer.get();
         }
         PERF_SCOPE("renderGeodesics");
-        renderGeodesics();
+        // renderGeodesics();
     } else {
         static int s_geoSkip = 0;
         if (s_geoSkip++ < 5) {
@@ -429,7 +438,7 @@ void QmlGlRenderer::render()
     }
 
     // Render celestial bodies (only if initialized)
-    if (m_celestialBodyRenderer) {
+    if (false && m_celestialBodyRenderer) {
         PERF_SCOPE("celestialRender");
         static int s_renderDiag = 0;
         if (s_renderDiag++ < 5) {
@@ -451,16 +460,16 @@ void QmlGlRenderer::render()
 
     if (m_showQuantumGeometry && m_quantumRenderer) {
         PERF_SCOPE("renderQuantumGeometry");
-        renderQuantumGeometry();
+        // renderQuantumGeometry();
     }
 
     {
         PERF_SCOPE("renderOverlay");
-        renderOverlay();
+        // renderOverlay();
     }
     {
         PERF_SCOPE("renderProfilingOverlay");
-        renderProfilingOverlay();
+        // renderProfilingOverlay();
     }
 
     m_overlayShader.release();
@@ -1783,6 +1792,7 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     , m_lastFrameTime(0)
     , m_fbo(nullptr)
     , m_textureDirty(true)
+    , m_lastTextureId(0)
 {
     std::ofstream("viewport_ctor.log") << "QmlGlViewport constructor called, parent=" << parent << std::endl;
     setObjectName("viewport");  // Required for findChild in main_qml.cpp
@@ -2480,7 +2490,12 @@ void QmlGlViewport::renderGL()
     // something else dirties the item; without this the scene-graph node keeps
     // displaying the FBO texture from the first frame even though the FBO is
     // re-rendered (e.g. after a scan updates the metric/curvature).
-    update();
+    //
+    // renderGL() is connected to QQuickWindow::beforeRendering via
+    // Qt::DirectConnection, which means it executes on the render thread.
+    // QQuickItem::update() may only be called from the main/gui thread, so
+    // schedule it here via a queued invocation instead of calling it directly.
+    QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 }
 
 void QmlGlViewport::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry)
@@ -2504,66 +2519,7 @@ void QmlGlViewport::geometryChange(const QRectF& newGeometry, const QRectF& oldG
 
 QSGNode *QmlGlViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *)
 {
-    // [DIAG] Confirm updatePaintNode() is recalled every frame after the
-    // renderGL()->update() fix. Throttled so it logs ~1 Hz plus the first few
-    // calls, to prove the QSG texture node is being rebuilt/refreshed.
-    static int s_upnCalls = 0;
-    if (s_upnCalls < 3 || (s_upnCalls % 30) == 0) {
-        const QString m = QString("[DIAG-updatePaintNode] called: call#%1 fbo=%2")
-                              .arg(s_upnCalls).arg(m_fbo ? m_fbo->texture() : 0);
-        qWarning() << m;
-        diagLog(m);
-    }
-    s_upnCalls++;
-
-    QSGSimpleTextureNode *node = static_cast<QSGSimpleTextureNode*>(oldNode);
-
-    if (!window()) {
-        return node;
-    }
-    if (!m_fbo) {
-        return node;
-    }
-
-    {
-        quint64 texId = static_cast<quint64>(m_fbo->texture());
-        if (texId == 0) {
-            qWarning() << "QmlGlViewport: FBO has no color attachment (texture id 0)";
-            return node;
-        }
-
-        if (!node) {
-            node = new QSGSimpleTextureNode();
-            QSGTexture *texture = QNativeInterface::QSGOpenGLTexture::fromNative(
-                static_cast<GLuint>(texId), window(), m_fbo->size());
-            if (!texture) {
-                qWarning() << "QmlGlViewport: Failed to create QSGTexture from OpenGL texture";
-                return node;
-            }
-            node->setTexture(texture);
-            node->setFiltering(QSGTexture::Linear);
-            node->setRect(boundingRect());
-            m_lastTextureId = texId;
-        } else if (texId != m_lastTextureId) {
-            QSGTexture *texture = QNativeInterface::QSGOpenGLTexture::fromNative(
-                static_cast<GLuint>(texId), window(), m_fbo->size());
-            if (!texture) {
-                qWarning() << "QmlGlViewport: Failed to create QSGTexture from OpenGL texture";
-                return node;
-            }
-            node->setTexture(texture);
-            node->setRect(boundingRect());
-            m_lastTextureId = texId;
-        } else {
-            node->setRect(boundingRect());
-        }
-        if (m_textureDirty) {
-            node->markDirty(QSGNode::DirtyMaterial);
-            m_textureDirty = false;
-        }
-    }
-
-    return node;
+    return oldNode;
 }
 
 } // namespace quantumverse

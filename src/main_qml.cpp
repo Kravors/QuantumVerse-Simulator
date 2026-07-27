@@ -151,6 +151,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+
     // Headless detection - exit gracefully if no display (for CI environments)
     // But if --frames is specified, attempt headless benchmark rendering below.
     int headlessFrames = 0;
@@ -800,6 +801,8 @@ int main(int argc, char* argv[])
         std::cerr << "  - Curvature renderer initialized" << std::endl;
         std::cerr << "  - Ready for 4D navigation" << std::endl;
         std::cerr.flush();
+        std::cerr << "[DIAG] About to enter headless benchmark check, headlessFrames=" << headlessFrames << std::endl;
+        std::cerr.flush();
 
         if (headlessFrames > 0) {
             qDebug() << "Headless benchmark mode: rendering" << headlessFrames << "frames";
@@ -830,9 +833,10 @@ int main(int argc, char* argv[])
             double headlessMaxMs = 0.0;
             std::vector<double> frameDeltas;
 
-            QTimer* headlessTimer = new QTimer(&app);
-            headlessTimer->setInterval(16);
-            QObject::connect(headlessTimer, &QTimer::timeout, [&]() {
+            for (int f = 0; f < headlessFrames; ++f) {
+                if (!viewport) {
+                    break;
+                }
                 qint64 nowNs = elapsed.nsecsElapsed();
                 double frameMs = 0.0;
                 if (lastTickNs > 0) {
@@ -847,20 +851,17 @@ int main(int argc, char* argv[])
                 lastTickNs = nowNs;
                 headlessRendered++;
 
-                // Disable VR in headless mode
 #ifdef QUANTUMVERSE_USE_VR
                 if (viewport && viewport->vrActive()) {
                     viewport->setVrActive(false);
                 }
 #endif
 
-                // [DIAG] Drive continuous rendering in headless mode. The QML
-                // Timer that normally calls viewport.update() each frame is
-                // paused when the window is not the active window, so without
-                // this the render loop only runs a single frame.
                 if (viewport) {
                     viewport->update();
                 }
+                QCoreApplication::processEvents();
+                QThread::msleep(16);
 
                 if (frameDiagnostics.isEnabled()) {
                     quantumverse::utils::FrameSnapshot snap;
@@ -875,54 +876,29 @@ int main(int argc, char* argv[])
                     snap.gl_error_count = quantumverse::GLDebug::instance().getErrorCount();
                     frameDiagnostics.recordFrame(snap);
                 }
+            }
 
-                if (headlessRendered >= headlessFrames) {
-                    double avgMs = headlessTotalMs / headlessFrames;
-                    double fps = avgMs > 0.0 ? 1000.0 / avgMs : 0.0;
-                    qDebug() << "HeadlessPerformanceStats: frames=" << headlessRendered
-                             << "avg=" << avgMs << "ms min=" << headlessMinMs << "ms max=" << headlessMaxMs
-                             << "ms fps=" << fps;
-                    std::cerr << "HeadlessPerformanceStats: frames=" << headlessRendered
-                              << " avg=" << avgMs << "ms max=" << headlessMaxMs << "ms" << std::endl;
-                    std::cerr.flush();
-
-                    QFile file("headless_performance.log");
-                    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                        QTextStream out(&file);
-                        out << "Average frame time: " << avgMs << " ms, Max: " << headlessMaxMs
-                            << " ms, Min: " << headlessMinMs << " ms, FPS: " << fps
-                            << " (frames=" << headlessRendered << ")\n";
-                        file.close();
-                    } else {
-                        std::cerr << "Failed to open headless_performance.log" << std::endl;
-                        std::cerr.flush();
-                    }
-
-                    if (!frameTimesPath.isEmpty()) {
-                        QFile ftFile(frameTimesPath);
-                        if (ftFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                            QTextStream out(&ftFile);
-                            for (double dt : frameDeltas) {
-                                out << dt << "\n";
-                            }
-                            ftFile.close();
-                        } else {
-                            std::cerr << "Failed to open frame times file: "
-                                      << frameTimesPath.toStdString() << std::endl;
-                            std::cerr.flush();
-                        }
-                    }
-
-                    headlessTimer->stop();
-                    QTimer::singleShot(50, &app, &QApplication::quit);
-                }
-            });
-            headlessTimer->start();
-            QTimer::singleShot(headlessFrames * 100 + 5000, []() {
-                std::cerr << "Headless benchmark safety timeout - exiting\n";
+            if (headlessRendered > 0) {
+                double avgMs = headlessTotalMs / headlessRendered;
+                double fps = avgMs > 0.0 ? 1000.0 / avgMs : 0.0;
+                std::cerr << "HeadlessPerformanceStats: frames=" << headlessRendered
+                          << " avg=" << avgMs << "ms max=" << headlessMaxMs << "ms fps=" << fps << std::endl;
                 std::cerr.flush();
-                QCoreApplication::quit();
-            });
+
+                QFile file("headless_performance.log");
+                if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                    QTextStream out(&file);
+                    out << "Average frame time: " << avgMs << " ms, Max: " << headlessMaxMs
+                        << " ms, Min: " << headlessMinMs << " ms, FPS: " << fps
+                        << " (frames=" << headlessRendered << ")\n";
+                    file.close();
+                } else {
+                    std::cerr << "Failed to open headless_performance.log" << std::endl;
+                    std::cerr.flush();
+                }
+            }
+
+            QTimer::singleShot(50, &app, &QApplication::quit);
         }
 
         // Run the application
