@@ -240,12 +240,14 @@ CausalSetEngine::CausalSetEngine(
     double beta_,
     double planck_vol_,
     int initial_elements_
-) : alpha(alpha_),
+) : causal_set(),
+    dynamics(),
+    alpha(alpha_),
     beta(beta_),
     planck_volume(planck_vol_),
     num_elements(initial_elements_),
-    spectralDimension(2.0),  // Causal sets have d_s = 2 in some formulations
-    dimensionality(4.0),     // Target 4D spacetime
+    spectralDimension(2.0),
+    dimensionality(4.0),
     sprinkling_density(0.0),
     rng(std::random_device{}())
 {

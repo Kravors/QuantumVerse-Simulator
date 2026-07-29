@@ -37,6 +37,7 @@ void assertFinite(const std::string& label, double v) {
     assert(isFiniteDouble(v) && ("Non-finite value for " + label).c_str());
     (void)label;
     (void)v;
+    (void)isFiniteDouble;
 }
 
 #if 0

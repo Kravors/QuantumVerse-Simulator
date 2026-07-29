@@ -422,6 +422,8 @@ void test_metric_inverse_delta() {
                 delta += g_inv[mu][k] * g[k][nu];
             double expected = (mu == nu) ? 1.0 : 0.0;
             assert(std::abs(delta - expected) < 1e-10);
+            (void)delta;
+            (void)expected;
         }
     }
     std::cout << "[PASS] g^μν g_νσ = δ^μ_σ verified" << std::endl;
@@ -463,6 +465,8 @@ void test_frw_metric_determinant() {
     double det_expected = -Event4D::C * Event4D::C * a * a * a * a * a * a *
                           r * r * r * r * std::sin(ev.y) * std::sin(ev.y);
     assert(std::abs(det - det_expected) < 1e-6);
+    (void)det;
+    (void)det_expected;
     std::cout << "[PASS] FRW metric determinant exact" << std::endl;
 }
 
@@ -515,6 +519,7 @@ void test_jacobi_field() {
     assert(!jacobi.empty() && "Jacobi field should not be empty");
     for (const auto& j : jacobi) {
         assert(std::isfinite(j.xi.t) && "Jacobi xi.t should be finite");
+        (void)j;
     }
     std::cout << "[PASS] Jacobi field geodesic deviation: " << jacobi.size() << " points" << std::endl;
 }
@@ -553,6 +558,7 @@ void test_redshift_finite_outside_horizon() {
         Event4D ev(0.0, r, 0.0, 0.0);
         double z = handler.getGravitationalRedshift(ev);
         assert(std::isfinite(z) && z > 0.0 && "Redshift should be finite and positive");
+        (void)z;
     }
     std::cout << "[PASS] Redshift finite and positive outside horizon" << std::endl;
 }
@@ -749,6 +755,7 @@ void test_geodesic_equatorial_plane() {
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
 
     assert(!traj.empty());
+    (void)traj;
     for (const auto& step : traj) {
         assert(std::abs(step.event.y - M_PI / 2.0) < 0.1 &&
                "Geodesic should stay near equatorial plane");

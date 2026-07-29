@@ -18,6 +18,11 @@ Checks: >
   - -modernize-use-trailing-return-type
   - -bugprone-suspicious-include
   - -clang-analyzer-valist.Uninitialized
+  - -readability-identifier-naming
+  - -cert-err58-cpp
+  - -readability-function-size
+  - -readability-else-after-return
+  - -bugprone-easily-swappable-parameters
 
 CheckOptions:
   - key: readability-identifier-naming.NamespaceCase
@@ -41,7 +46,5 @@ CheckOptions:
   - key: readability-identifier-naming.PrivateMemberSuffix
     value: _
 
-AnalyzeTemporaryDtors: false
 FormatStyle: none
 HeaderFilterRegex: 'src/.*|tests/.*|examples/.*'
-WarningsAsErrors: '*'

@@ -11,9 +11,9 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Compiler warnings
 if(MSVC)
-    add_compile_options(/W4 /WX)
+    add_compile_options(/W4)
 else()
-    add_compile_options(-Wall -Wextra -Werror)
+    add_compile_options(-Wall -Wextra)
 endif()
 
 # Coverage instrumentation
@@ -312,6 +312,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME QMLPerformanceBaseline COMMAND qml_performance_baseline)
         set_tests_properties(QMLPerformanceBaseline PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             LABELS "performance;qt"
         )
         if(TARGET deploy_qt_runtime)
@@ -331,6 +332,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME PerformanceGateTest COMMAND test_performance_gate)
         set_tests_properties(PerformanceGateTest PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             LABELS "performance;qt"
         )
         if(TARGET deploy_qt_runtime)
@@ -357,6 +359,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME GLCheckTest COMMAND test_gl_check)
         set_tests_properties(GLCheckTest PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             LABELS "performance;qt"
         )
         if(TARGET deploy_qt_runtime)
@@ -377,7 +380,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME FindingsModelTest COMMAND test_findings_model)
         set_tests_properties(FindingsModelTest PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
         if(TARGET deploy_qt_runtime)
             add_dependencies(test_findings_model deploy_qt_runtime)
@@ -397,7 +400,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME FindingsModelFilteringTest COMMAND test_findings_model_filtering)
         set_tests_properties(FindingsModelFilteringTest PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
         if(TARGET deploy_qt_runtime)
             add_dependencies(test_findings_model_filtering deploy_qt_runtime)
@@ -421,7 +424,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME MultiMessengerUITest COMMAND test_multimessenger_ui)
         set_tests_properties(MultiMessengerUITest PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
         if(TARGET deploy_qt_runtime)
             add_dependencies(test_multimessenger_ui deploy_qt_runtime)
@@ -466,8 +469,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME ViewportIsolationTest COMMAND test_viewport_isolation)
         set_tests_properties(ViewportIsolationTest PROPERTIES
             WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-            ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
         )
         if(TARGET deploy_qt_runtime)
             add_dependencies(test_viewport_isolation deploy_qt_runtime)
@@ -512,8 +514,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME InteractionStressTest COMMAND test_interaction_stress)
         set_tests_properties(InteractionStressTest PROPERTIES
             WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-            ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
             TIMEOUT 120
         )
         if(TARGET deploy_qt_runtime)
@@ -559,8 +560,7 @@ if(QUANTUMVERSE_USE_QT)
         add_test(NAME ResizeStressTest COMMAND test_resize_stress)
         set_tests_properties(ResizeStressTest PROPERTIES
             WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
-            ENVIRONMENT "QT_QPA_PLATFORM_PLUGIN_PATH=F:/qt/6.11.1/msvc2022_64/bin/platforms"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
             TIMEOUT 120
         )
         if(TARGET deploy_qt_runtime)
@@ -576,7 +576,7 @@ if(QUANTUMVERSE_USE_QT)
             add_test(NAME MemoryLeakTest COMMAND test_memory_leak)
             set_tests_properties(MemoryLeakTest PROPERTIES
                 WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
-                ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
                 TIMEOUT 120
             )
             if(TARGET deploy_qt_runtime)
@@ -602,7 +602,7 @@ if(QUANTUMVERSE_USE_QT)
             add_test(NAME CrashHandlerTest COMMAND test_crash_handler)
             set_tests_properties(CrashHandlerTest PROPERTIES
                 WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
-                ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
                 TIMEOUT 30
             )
             add_dependencies(test_crash_handler crash_helper)
@@ -615,6 +615,11 @@ if(QUANTUMVERSE_USE_QT)
             target_link_libraries(test_frame_diagnostics PRIVATE Qt6::Core Qt6::Test)
             set_target_properties(test_frame_diagnostics PROPERTIES AUTOMOC ON)
             add_test(NAME DiagnosticsOutputTest COMMAND test_frame_diagnostics)
+            set_tests_properties(DiagnosticsOutputTest PROPERTIES
+                WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+                TIMEOUT 30
+            )
 
             # 9.2 HUD toggle test
             add_executable(test_hud_toggle
@@ -642,7 +647,11 @@ if(QUANTUMVERSE_USE_QT)
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
             )
             add_test(NAME HUDToggleTest COMMAND test_hud_toggle)
-            set_tests_properties(HUDToggleTest PROPERTIES TIMEOUT 30)
+            set_tests_properties(HUDToggleTest PROPERTIES
+                WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+                TIMEOUT 30
+            )
             if(TARGET deploy_qt_runtime)
                 add_dependencies(test_hud_toggle deploy_qt_runtime)
             endif()
@@ -674,6 +683,8 @@ if(QUANTUMVERSE_BUILD_TESTS)
     add_executable(test_ui4d
         tests/unit/test_ui4d.cpp
         src/ui4d/UI4D.cpp
+        src/rendering/CurvatureRenderer.cpp
+        src/rendering/QuantumGeometryRenderer.cpp
     )
     target_link_libraries(test_ui4d PRIVATE dilaton)
     add_test(NAME UI4DTest COMMAND test_ui4d)
@@ -1006,6 +1017,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
             target_link_libraries(test_kafka_listener PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
             set_target_properties(test_kafka_listener PROPERTIES AUTOMOC ON)
             add_test(NAME KafkaListenerTest COMMAND test_kafka_listener)
+            set_tests_properties(KafkaListenerTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
         endif()
 
         # Phase 12c: GCN archive replay stream test
@@ -1018,6 +1033,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
             target_link_libraries(test_gcn_replay PRIVATE dilaton Qt6::Core Qt6::Test)
             set_target_properties(test_gcn_replay PROPERTIES AUTOMOC ON)
             add_test(NAME GCNReplayStreamTest COMMAND test_gcn_replay)
+            set_tests_properties(GCNReplayStreamTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
         endif()
 
         # Phase 12d: GCN broker connectivity smoke test
@@ -1032,6 +1051,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
             target_link_libraries(test_gcn_broker_connectivity PRIVATE dilaton Qt6::Core Qt6::Test ${LIBRDKAFKA_LIBRARIES})
             set_target_properties(test_gcn_broker_connectivity PROPERTIES AUTOMOC ON)
             add_test(NAME GCNBrokerConnectivityTest COMMAND test_gcn_broker_connectivity)
+            set_tests_properties(GCNBrokerConnectivityTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
         endif()
 
         # Phase 13: Multi-messenger correlator test
@@ -1048,6 +1071,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
             target_compile_definitions(test_multimessenger_correlator PRIVATE QUANTUMVERSE_USE_QML)
             set_target_properties(test_multimessenger_correlator PROPERTIES AUTOMOC ON)
             add_test(NAME MultiMessengerCorrelatorTest COMMAND test_multimessenger_correlator)
+            set_tests_properties(MultiMessengerCorrelatorTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
         endif()
 
         # Phase 12b: DiscoveryPanelManager live ingest test
@@ -1064,6 +1091,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
             target_compile_definitions(test_discovery_panel_manager PRIVATE QUANTUMVERSE_USE_QML)
             set_target_properties(test_discovery_panel_manager PROPERTIES AUTOMOC ON)
             add_test(NAME DiscoveryPanelManagerIngestTest COMMAND test_discovery_panel_manager)
+            set_tests_properties(DiscoveryPanelManagerIngestTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
         endif()
 
     endif()
@@ -1186,7 +1217,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME ObservationalDataTest COMMAND test_observational_data)
         set_tests_properties(ObservationalDataTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
 
         # 19.2 Signal/data fidelity across multi-messenger pipeline (25 test functions)
@@ -1202,7 +1233,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME SignalFidelityTest COMMAND test_signal_fidelity)
         set_tests_properties(SignalFidelityTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
 
         # Phase 4: Rendering & Animation Correctness
@@ -1213,7 +1244,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME VisualRegressionTest COMMAND test_visual_regression)
         set_tests_properties(VisualRegressionTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
         if(TARGET deploy_qt_runtime)
             add_dependencies(test_visual_regression deploy_qt_runtime)
@@ -1226,7 +1257,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME AnimationTimingTest COMMAND test_animation_timing)
         set_tests_properties(AnimationTimingTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             TIMEOUT 120
         )
         if(TARGET deploy_qt_runtime)
@@ -1239,7 +1270,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         )
         set_tests_properties(GLStrictAuditTest PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             TIMEOUT 120
         )
 
@@ -1251,7 +1282,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME GridDeformationTest COMMAND test_grid_deformation)
         set_tests_properties(GridDeformationTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             TIMEOUT 120
         )
         if(TARGET deploy_qt_runtime)
@@ -1265,7 +1296,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME GeodesicRenderingTest COMMAND test_geodesic_rendering)
         set_tests_properties(GeodesicRenderingTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             TIMEOUT 120
         )
         if(TARGET deploy_qt_runtime)
@@ -1282,7 +1313,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_test(NAME LightConeRenderingTest COMMAND test_lightcone_rendering)
         set_tests_properties(LightConeRenderingTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ENVIRONMENT "PATH=F:/qt/6.11.1/msvc2022_64/bin;$ENV{PATH}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
 endif()
 

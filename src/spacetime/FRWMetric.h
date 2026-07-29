@@ -207,7 +207,7 @@ public:
      * @return Estimated age of the universe in seconds.
      */
     double ageOfUniverse(double tMax = 6.31e17, int steps = 10000) const {
-        double dt = tMax / steps;
+        (void)tMax; (void)steps;
         // For flat matter-dominated: t_age ≈ 2/(3H₀)
         return 2.0 / (3.0 * H0_);
     }
