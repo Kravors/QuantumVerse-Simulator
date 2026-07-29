@@ -142,12 +142,16 @@ int main(int argc, char* argv[])
     } catch (const std::system_error& e) {
         std::cerr << "FATAL: Threading support not available: " << e.what() << std::endl;
         std::cerr.flush();
+#ifdef _WIN32
         MessageBoxA(nullptr, e.what(), "QuantumVerse Fatal Error: Threading Support Missing", MB_ICONERROR);
+#endif
         return -1;
     } catch (const std::exception& e) {
         std::cerr << "FATAL: Early initialization error: " << e.what() << std::endl;
         std::cerr.flush();
+#ifdef _WIN32
         MessageBoxA(nullptr, e.what(), "QuantumVerse Fatal Error", MB_ICONERROR);
+#endif
         return -1;
     }
 
@@ -195,7 +199,11 @@ int main(int argc, char* argv[])
     if (!screenshotPath.isEmpty() && headlessFrames <= 0) {
         headlessFrames = 1;
     }
-    if (GetSystemMetrics(SM_CMONITORS) == 0 && headlessFrames <= 0) {
+    bool noDisplay = false;
+#ifdef _WIN32
+    noDisplay = GetSystemMetrics(SM_CMONITORS) == 0;
+#endif
+    if (noDisplay && headlessFrames <= 0) {
         std::cerr << "No display detected. Exiting gracefully (headless environment)." << std::endl;
         std::cerr.flush();
         return 0;
@@ -933,12 +941,16 @@ int main(int argc, char* argv[])
     } catch (const std::exception& e) {
         std::cerr << "FATAL EXCEPTION in main: " << e.what() << std::endl;
         std::cerr.flush();
+#ifdef _WIN32
         MessageBoxA(nullptr, e.what(), "QuantumVerse Fatal Error", MB_ICONERROR);
+#endif
         return -1;
     } catch (...) {
         std::cerr << "FATAL UNKNOWN EXCEPTION in main" << std::endl;
         std::cerr.flush();
+#ifdef _WIN32
         MessageBoxA(nullptr, "Unknown fatal error", "QuantumVerse Fatal Error", MB_ICONERROR);
+#endif
         return -1;
     }
 }
