@@ -686,6 +686,12 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/rendering/CurvatureRenderer.cpp
         src/rendering/QuantumGeometryRenderer.cpp
     )
+    target_include_directories(test_ui4d PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+    )
     target_link_libraries(test_ui4d PRIVATE dilaton)
     add_test(NAME UI4DTest COMMAND test_ui4d)
     
