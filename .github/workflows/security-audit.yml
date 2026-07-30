@@ -46,9 +46,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          host: 'linux'
+          arch: 'linux_gcc_64'
+          modules: 'qtwebsockets'
+          cache: true
+
       - name: Configure CMake
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -61,7 +72,7 @@ jobs:
       - name: Run Clang Static Analyzer
         run: |
           mkdir -p reports
-          scan-build -o reports --status-bugs cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON
+          scan-build -o reports --status-bugs cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           scan-build -o reports --use-c++=clang++ cmake --build build --parallel 2
 
       - name: Run Cppcheck with security focus

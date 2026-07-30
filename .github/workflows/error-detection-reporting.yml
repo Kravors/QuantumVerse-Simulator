@@ -79,6 +79,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
 
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v4
+      id: setup_qt
+      with:
+        version: '6.8.3'
+        target: 'desktop'
+        host: 'linux'
+        arch: 'linux_gcc_64'
+        modules: 'qtwebsockets'
+        cache: true
+
     - name: Configure with sanitizers
       run: |
         cmake -B build \
@@ -86,7 +97,8 @@ jobs:
           -DQUANTUMVERSE_USE_ASAN=ON \
           -DQUANTUMVERSE_USE_UBSAN=ON \
           -DQUANTUMVERSE_BUILD_TESTS=ON \
-          -DQUANTUMVERSE_USE_QT=ON
+          -DQUANTUMVERSE_USE_QT=ON \
+          -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     
     - name: Build
       run: cmake --build build --config Debug --parallel 2
@@ -120,8 +132,19 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
 
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v4
+      id: setup_qt
+      with:
+        version: '6.8.3'
+        target: 'desktop'
+        host: 'linux'
+        arch: 'linux_gcc_64'
+        modules: 'qtwebsockets'
+        cache: true
+
     - name: Configure
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     
     - name: Build
       run: cmake --build build --config Release --parallel 2
@@ -159,6 +182,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y lcov libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
     
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v4
+      id: setup_qt
+      with:
+        version: '6.8.3'
+        target: 'desktop'
+        host: 'linux'
+        arch: 'linux_gcc_64'
+        modules: 'qtwebsockets'
+        cache: true
+    
     - name: Configure with coverage
       run: |
         cmake -B build \
@@ -166,7 +200,8 @@ jobs:
           -DCMAKE_CXX_FLAGS="--coverage -O0 -g" \
           -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
           -DQUANTUMVERSE_BUILD_TESTS=ON \
-          -DQUANTUMVERSE_USE_QT=ON
+          -DQUANTUMVERSE_USE_QT=ON \
+          -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     
     - name: Build
       run: cmake --build build --config Debug --parallel 2

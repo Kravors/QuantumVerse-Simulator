@@ -685,6 +685,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/ui4d/UI4D.cpp
         src/rendering/CurvatureRenderer.cpp
         src/rendering/QuantumGeometryRenderer.cpp
+        third_party/glad/glad.cpp
     )
     target_include_directories(test_ui4d PRIVATE
         ${CMAKE_SOURCE_DIR}/src
@@ -698,6 +699,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
     endif()
     set_target_properties(test_ui4d PROPERTIES AUTOMOC ON)
     target_compile_definitions(test_ui4d PRIVATE QUANTUMVERSE_USE_QML)
+    add_test(NAME UI4DTest COMMAND test_ui4d)
     set_tests_properties(UI4DTest PROPERTIES
         WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
         ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
@@ -705,7 +707,6 @@ if(QUANTUMVERSE_BUILD_TESTS)
     if(TARGET deploy_qt_runtime)
         add_dependencies(test_ui4d deploy_qt_runtime)
     endif()
-    add_test(NAME UI4DTest COMMAND test_ui4d)
     
     # Fuzz differential testing
     option(QUANTUMVERSE_USE_FUZZER "Build fuzzer targets" OFF)
