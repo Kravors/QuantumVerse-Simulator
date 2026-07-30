@@ -37,14 +37,18 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-
           modules: 'qtwebsockets'
           cache: true
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
       
       - name: Build verification tests
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --config Release      
+          cmake --build build --config Release --parallel 2
       - name: Run CBMC verification
         working-directory: build
         run: |
@@ -79,14 +83,18 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-
           modules: 'qtwebsockets'
           cache: true
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
       
       - name: Build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --config Release
+          cmake --build build --config Release --parallel 2
       
       - name: Run differential tests
         working-directory: build
@@ -122,9 +130,13 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-
           modules: 'qtwebsockets'
           cache: true
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
       
       - name: Build with sanitizers
         run: |
@@ -133,7 +145,7 @@ jobs:
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_QT=ON \
             -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --config Debug      
+          cmake --build build --config Debug --parallel 2
       - name: Run tests with runtime monitoring
         working-directory: build
         run: |
@@ -149,8 +161,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
           sudo apt-get install -y clang
-      
+
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         id: setup_qt
@@ -159,9 +172,13 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-
           modules: 'qtwebsockets'
           cache: true
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
       
       - name: Build fuzzer
         run: |
@@ -169,7 +186,7 @@ jobs:
             -DQUANTUMVERSE_USE_FUZZER=ON \
             -DQUANTUMVERSE_USE_QT=ON \
             -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --config Debug
+          cmake --build build --config Debug --parallel 2
       
       - name: Run fuzzers for 60 seconds
         working-directory: build
@@ -212,14 +229,18 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-
           modules: 'qtwebsockets'
           cache: true
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
       
       - name: Build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --config Release
+          cmake --build build --config Release --parallel 2
       
       - name: Run chaos experiments
         run: |

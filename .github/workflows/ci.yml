@@ -68,9 +68,9 @@ jobs:
         version: ${{ matrix.qt_version }}
         target: 'desktop'
         host: 'linux'
-         arch: 'linux_gcc_64'
-         modules: 'qtwebsockets'
-         cache: true
+        arch: 'linux_gcc_64'
+        modules: 'qtwebsockets'
+        cache: true
       
     - name: Install system dependencies
       run: |

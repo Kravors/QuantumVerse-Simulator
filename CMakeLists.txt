@@ -675,7 +675,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         tests/unit/test_property_based.cpp
         src/quantumgravity/CDTEngine.cpp
     )
-    target_include_directories(test_property_based PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/build-appimage/QuantumVerse.AppDir/usr/include)
+    target_include_directories(test_property_based PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(test_property_based PRIVATE dilaton)
     add_test(NAME PropertyBasedTest COMMAND test_property_based)
 
@@ -692,16 +692,27 @@ if(QUANTUMVERSE_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/third_party/glad/include
         ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
     )
-    target_link_libraries(test_ui4d PRIVATE dilaton)
+    target_link_libraries(test_ui4d PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test dilaton)
+    if(WIN32)
+        target_link_libraries(test_ui4d PRIVATE opengl32 dbghelp)
+    endif()
+    set_target_properties(test_ui4d PROPERTIES AUTOMOC ON)
+    target_compile_definitions(test_ui4d PRIVATE QUANTUMVERSE_USE_QML)
+    set_tests_properties(UI4DTest PROPERTIES
+        WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
+    )
+    if(TARGET deploy_qt_runtime)
+        add_dependencies(test_ui4d deploy_qt_runtime)
+    endif()
     add_test(NAME UI4DTest COMMAND test_ui4d)
     
     # Fuzz differential testing
     option(QUANTUMVERSE_USE_FUZZER "Build fuzzer targets" OFF)
     if(QUANTUMVERSE_USE_FUZZER)
         add_executable(fuzz_geodesic_differential tests/fuzz/fuzz_geodesic_differential.cpp)
-        target_include_directories(fuzz_geodesic_differential PRIVATE 
+        target_include_directories(fuzz_geodesic_differential PRIVATE
             ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_SOURCE_DIR}/build-appimage/QuantumVerse.AppDir/usr/include
         )
         target_link_libraries(fuzz_geodesic_differential PRIVATE dilaton)
         target_compile_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer,libFuzzer)
@@ -710,7 +721,6 @@ if(QUANTUMVERSE_BUILD_TESTS)
         add_executable(fuzz_discovery_instruments tests/fuzz/fuzz_discovery_instruments.cpp)
         target_include_directories(fuzz_discovery_instruments PRIVATE
             ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_SOURCE_DIR}/build-appimage/QuantumVerse.AppDir/usr/include
         )
         target_link_libraries(fuzz_discovery_instruments PRIVATE dilaton)
         target_compile_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer,libFuzzer)
@@ -968,10 +978,16 @@ if(QUANTUMVERSE_BUILD_TESTS)
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_multimessenger.cpp)
         add_executable(test_multimessenger
             tests/test_multimessenger.cpp
-            src/data/MultiMessengerAdapter.cpp
-            src/data/LIGOAdapter.cpp
-            src/data/IceCubeAdapter.cpp
         )
+        if(EXISTS ${CMAKE_SOURCE_DIR}/src/data/MultiMessengerAdapter.cpp)
+            target_sources(test_multimessenger PRIVATE src/data/MultiMessengerAdapter.cpp)
+        endif()
+        if(EXISTS ${CMAKE_SOURCE_DIR}/src/data/LIGOAdapter.cpp)
+            target_sources(test_multimessenger PRIVATE src/data/LIGOAdapter.cpp)
+        endif()
+        if(EXISTS ${CMAKE_SOURCE_DIR}/src/data/IceCubeAdapter.cpp)
+            target_sources(test_multimessenger PRIVATE src/data/IceCubeAdapter.cpp)
+        endif()
         target_link_libraries(test_multimessenger PRIVATE dilaton)
         add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
     endif()
@@ -1108,6 +1124,8 @@ if(QUANTUMVERSE_BUILD_TESTS)
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_e2e_discovery.cpp)
         add_executable(test_e2e_discovery
             tests/test_e2e_discovery.cpp
+        )
+        foreach(_src IN ITEMS
             src/data/MultiMessengerAdapter.cpp
             src/data/LIGOAdapter.cpp
             src/data/IceCubeAdapter.cpp
@@ -1116,6 +1134,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
             src/ml/MetricGNN.cpp
             src/ml/BVHAcceleratedMetricQuery.cpp
         )
+            if(EXISTS ${CMAKE_SOURCE_DIR}/${_src})
+                target_sources(test_e2e_discovery PRIVATE ${_src})
+            endif()
+        endforeach()
         target_link_libraries(test_e2e_discovery PRIVATE dilaton)
         add_test(NAME E2EDiscoveryTest COMMAND test_e2e_discovery)
     endif()

@@ -53,7 +53,6 @@ jobs:
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
-
           modules: 'qtwebsockets'
           cache: true
 
@@ -66,7 +65,6 @@ jobs:
           target: 'desktop'
           host: 'windows'
           arch: 'win64_msvc2022_64'
-
           modules: 'qtwebsockets'
           cache: true
 
@@ -83,13 +81,18 @@ jobs:
           target: 'desktop'
           host: 'mac'
           arch: 'macos_arm64'
-
           modules: 'qtwebsockets'
           cache: true
 
       - name: Add Qt to PATH (macOS)
         if: runner.os == 'macOS'
         run: echo "${{ steps.setup_qt_macos.outputs.Qt6_DIR }}/bin" >> $GITHUB_PATH
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
 
       - name: Configure CMake (Linux)
         if: runner.os == 'Linux'
@@ -119,13 +122,10 @@ jobs:
       - name: Ensure reports directory exists
         run: mkdir -p reports
 
-      - name: Run security tests
+      - name: Run UI4D and performance tests
         working-directory: build
-        run: ctest -C ${{ matrix.build_type }} -R SecurityTest --output-on-failure
-
-      - name: Run performance tests
-        working-directory: build
-        run: ctest -C ${{ matrix.build_type }} -R PerformanceMonitorTest --output-on-failure
+        run: |
+          ctest -C ${{ matrix.build_type }} -R "UI4DTest|PerformanceGateTest" --output-on-failure
 
   # Windows-specific tests
   test-windows:
@@ -151,7 +151,6 @@ jobs:
           target: 'desktop'
           host: 'windows'
           arch: 'win64_msvc2022_64'
-
           modules: 'qtwebsockets'
           cache: true
 
@@ -160,8 +159,8 @@ jobs:
 
       - name: Configure and Build
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --config Release --parallel 4
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake --build build --config Release --parallel 2
 
       - name: Run all tests
         working-directory: build
