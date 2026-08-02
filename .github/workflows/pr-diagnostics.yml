@@ -86,7 +86,7 @@ jobs:
       
       - name: Configure CMake (Windows)
         run: |
-          cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }} -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
+          cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_BUILD_TYPE=${{ matrix.config }} -A x64 -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
         shell: powershell
         if: runner.os == 'Windows'
       

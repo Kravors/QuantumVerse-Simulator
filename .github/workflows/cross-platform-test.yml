@@ -20,10 +20,8 @@ jobs:
         build_type: [Release]
         include:
           - os: windows-latest
-            generator: "Visual Studio 17 2022"
             cmake_args: ""
           - os: ubuntu-20.04
-            generator: "Unix Makefiles"
             cmake_args: ""
 
     runs-on: ${{ matrix.os }}
@@ -96,7 +94,7 @@ jobs:
 
       - name: Configure CMake (Linux)
         if: runner.os == 'Linux'
-        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
 
       - name: Setup MSBuild (Windows)
         if: runner.os == 'Windows'
@@ -106,11 +104,11 @@ jobs:
 
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
-        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
 
       - name: Configure CMake (macOS)
         if: runner.os == 'macOS'
-        run: cmake -B build -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_macos.outputs.Qt6_DIR }}"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_USE_QML=OFF -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_macos.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel 2
@@ -159,7 +157,7 @@ jobs:
 
       - name: Configure and Build
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release --parallel 2
 
       - name: Run all tests

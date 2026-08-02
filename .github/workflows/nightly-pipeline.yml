@@ -81,7 +81,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64 `
+          cmake -B build -A x64 `
             -DCMAKE_BUILD_TYPE=Release `
             -DQUANTUMVERSE_BUILD_TESTS=ON
 
