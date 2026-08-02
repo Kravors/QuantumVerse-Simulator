@@ -157,7 +157,11 @@ std::string TraceLogger::getTimestamp() {
     
     std::ostringstream oss;
     std::tm tm_buf;
+#ifdef _WIN32
     localtime_s(&tm_buf, &time_t);
+#else
+    localtime_r(&time_t, &tm_buf);
+#endif
     oss << std::put_time(&tm_buf, "%Y-%m-%dT%H:%M:%S");
     oss << '.' << std::setfill('0') << std::setw(3) << ms.count() << 'Z';
     return oss.str();
