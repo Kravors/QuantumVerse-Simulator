@@ -685,6 +685,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/ui4d/UI4D.cpp
         src/rendering/CurvatureRenderer.cpp
         src/rendering/QuantumGeometryRenderer.cpp
+        src/physics/CurvatureCalculator.cpp
         third_party/glad/glad.cpp
     )
     target_include_directories(test_ui4d PRIVATE
