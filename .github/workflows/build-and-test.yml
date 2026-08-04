@@ -85,7 +85,15 @@ jobs:
 
       - name: Run tests
         working-directory: build
-        run: ctest -C ${{ matrix.build_type }} --output-on-failure
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest -C ${{ matrix.build_type }} --output-on-failure
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            export QT_QPA_PLATFORM=offscreen
+            ctest -C ${{ matrix.build_type }} --output-on-failure
+          else
+            ctest -C ${{ matrix.build_type }} --output-on-failure
+          fi
 
       - name: Ensure reports directory exists
         run: mkdir -p reports
@@ -113,7 +121,7 @@ jobs:
 
       - name: Run physics validation
         working-directory: build
-        run: ctest -C Release -R "MercuryPrecessionTest|LightDeflectionTest|GravitationalRedshiftTest|FrameDraggingTest" --output-on-failure
+        run: xvfb-run -a ctest -C Release -R "MercuryPrecessionTest|LightDeflectionTest|GravitationalRedshiftTest|FrameDraggingTest" --output-on-failure
 
   code-quality:
     runs-on: ubuntu-latest
@@ -147,4 +155,3 @@ jobs:
         with:
           name: clang-tidy-report
           path: clang-tidy.log
-

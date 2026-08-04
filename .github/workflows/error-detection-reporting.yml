@@ -268,6 +268,9 @@ jobs:
 
   windows-memory-analysis:
     runs-on: windows-2022
+    env:
+      QT_QPA_PLATFORM: offscreen
+
     needs: [static-analysis, sanitizer-tests, performance-baseline]
     
     steps:
@@ -326,4 +329,3 @@ jobs:
       with:
         name: error-detection-summary
         path: combined_report.md
-

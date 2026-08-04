@@ -13,6 +13,9 @@ on:
 jobs:
   deep-validation:
     runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+
     steps:
     - uses: actions/checkout@v5
       with:
@@ -47,4 +50,3 @@ jobs:
         if (Test-Path .\fuzz_geodesic_differential.exe) { .\fuzz_geodesic_differential.exe --max_time=600 }
     - name: Run shader validation
       run: cmake --build build --target validate_shaders
-

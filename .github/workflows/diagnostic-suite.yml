@@ -104,7 +104,7 @@ jobs:
 
       - name: Run tests with sanitizers (fail-fast)
         working-directory: build_${{ matrix.sanitizer }}
-        run: ctest --output-on-failure -j2
+        run: xvfb-run -a ctest --output-on-failure -j2
 
       - name: Run Valgrind memcheck (nightly only)
         if: github.event_name == 'schedule'
@@ -234,7 +234,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: build
-        run: ctest --output-on-failure -j2
+        run: xvfb-run -a ctest --output-on-failure -j2
 
       - name: Generate coverage report
         working-directory: build
@@ -342,4 +342,3 @@ jobs:
         with:
           name: diagnostic-report
           path: diagnostic_report.html
-

@@ -115,7 +115,15 @@ jobs:
 
       - name: Run tests
         working-directory: build
-        run: ctest -C ${{ matrix.build_type }} --output-on-failure -j 4
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest -C ${{ matrix.build_type }} --output-on-failure -j 4
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            export QT_QPA_PLATFORM=offscreen
+            ctest -C ${{ matrix.build_type }} --output-on-failure -j 4
+          else
+            ctest -C ${{ matrix.build_type }} --output-on-failure -j 4
+          fi
 
       - name: Ensure reports directory exists
         run: mkdir -p reports
@@ -128,6 +136,9 @@ jobs:
   # Windows-specific tests
   test-windows:
     runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+
     needs: test
 
     steps:
@@ -186,4 +197,3 @@ jobs:
         run: |
           sudo apt-get install -y cppcheck
           cppcheck --enable=all --std=c++17 --suppress=missingIncludeSystem src/utils/Security.cpp
-

@@ -40,7 +40,7 @@ jobs:
 
       - name: Run all tests
         working-directory: build
-        run: ctest --output-on-failure -j $(nproc)
+        run: xvfb-run -a ctest --output-on-failure -j $(nproc)
 
       - name: Run static analysis
         run: |
@@ -71,6 +71,9 @@ jobs:
   nightly-windows:
     name: Nightly Windows Build
     runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -176,4 +179,3 @@ jobs:
           path: |
             build/Testing/**/*.xml
             *.log
-

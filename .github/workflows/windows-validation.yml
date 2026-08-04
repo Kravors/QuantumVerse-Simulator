@@ -14,6 +14,9 @@ on:
 jobs:
   build-and-test:
     runs-on: windows-2022
+    env:
+      QT_QPA_PLATFORM: offscreen
+
     strategy:
       matrix:
         build_type: [Debug, Release]
@@ -67,6 +70,9 @@ jobs:
 
   sanitizer-check:
     runs-on: windows-2022
+    env:
+      QT_QPA_PLATFORM: offscreen
+
     needs: build-and-test
     
     steps:
@@ -156,4 +162,3 @@ jobs:
 
       - name: Run AppVerifier Soak (1 hour)
         run: .\scripts\appverifier_soak_test.ps1 -Duration 60
-

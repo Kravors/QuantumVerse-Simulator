@@ -87,7 +87,15 @@ jobs:
 
       - name: Run Tests
         working-directory: build
-        run: ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            export QT_QPA_PLATFORM=offscreen
+            ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+          else
+            ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v5
