@@ -315,6 +315,7 @@ if(QUANTUMVERSE_USE_QT)
             ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             LABELS "performance;qt"
         )
+        add_dependencies(qml_performance_baseline quantumverse_qml)
         if(TARGET deploy_qt_runtime)
             add_dependencies(qml_performance_baseline deploy_qt_runtime)
         endif()
@@ -335,6 +336,7 @@ if(QUANTUMVERSE_USE_QT)
             ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             LABELS "performance;qt"
         )
+        add_dependencies(test_performance_gate quantumverse_qml)
         if(TARGET deploy_qt_runtime)
             add_dependencies(test_performance_gate deploy_qt_runtime)
         endif()

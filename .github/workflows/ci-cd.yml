@@ -55,10 +55,6 @@ jobs:
         uses: microsoft/setup-msbuild@v2
         if: runner.os == 'Windows'
 
-      - name: Install Ninja (Windows)
-        if: runner.os == 'Windows'
-        run: choco install ninja
-
       - name: Configure CMake (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -74,7 +70,6 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cmake -B build `
-            -G "Ninja" `
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
             -DQUANTUMVERSE_USE_IMGUI=ON `
             -DQUANTUMVERSE_ENABLE_QUANTUM_GRAVITY=ON `

@@ -24,7 +24,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-tidy cppcheck python3-yaml clang-format libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb
+          sudo apt-get install -y clang-tidy cppcheck clang-format libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb
+          python3 -m pip install pyyaml
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -134,7 +135,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pyautogui python3-pil python3-imagehash python3-yaml
+          sudo apt-get install -y python3-pyautogui python3-pil python3-imagehash
+          python3 -m pip install pyyaml
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -173,7 +175,8 @@ jobs:
       - name: Install Clang and Python deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang valgrind python3-yaml
+          sudo apt-get install -y clang valgrind
+          python3 -m pip install pyyaml
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
