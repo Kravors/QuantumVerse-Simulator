@@ -2,12 +2,11 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <filesystem>
 
 #include "perf_gate.h"
-#include <QCoreApplication>
-#include <QDir>
 
-int main() {
+int main(int argc, char* argv[]) {
     const double avgThreshold = perf_gate::thresholdFromEnv(
         "QUANTUMVERSE_PERF_AVG_THRESHOLD_MS", PERF_AVG_THRESHOLD_DEFAULT);
     const double maxThreshold = perf_gate::thresholdFromEnv(
@@ -16,8 +15,15 @@ int main() {
     const char* logPath = "headless_performance.log";
     std::remove(logPath);
 
-    const QString exePath = QCoreApplication::applicationDirPath() + QDir::separator() + QStringLiteral("quantumverse_qml");
-    const std::string command = std::string("\"") + exePath.toStdString() + "\" --headless --frames 50";
+    std::filesystem::path exePath = std::filesystem::absolute(argv[0]).parent_path();
+
+#ifdef _WIN32
+    exePath /= "quantumverse_qml.exe";
+#else
+    exePath /= "quantumverse_qml";
+#endif
+
+    std::string command = std::string("\"") + exePath.string() + "\" --headless --frames 50";
     std::cerr << "Running: " << command << std::endl;
     const int ret = std::system(command.c_str());
     if (ret != 0) {

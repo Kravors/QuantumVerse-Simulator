@@ -85,6 +85,7 @@ jobs:
 
       - name: Run tests
         working-directory: build
+        shell: bash
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.build_type }} --output-on-failure

@@ -115,6 +115,7 @@ jobs:
 
       - name: Run tests
         working-directory: build
+        shell: bash
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.build_type }} --output-on-failure -j 4
@@ -130,6 +131,7 @@ jobs:
 
       - name: Run UI4D and performance tests
         working-directory: build
+        shell: bash
         run: |
           ctest -C ${{ matrix.build_type }} -R "UI4DTest|PerformanceGateTest" --output-on-failure
 

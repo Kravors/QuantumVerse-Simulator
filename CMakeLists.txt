@@ -302,7 +302,6 @@ if(QUANTUMVERSE_USE_QT)
     if(QUANTUMVERSE_BUILD_TESTS)
         add_executable(qml_performance_baseline tests/benchmark/qml_performance_baseline.cpp)
         target_include_directories(qml_performance_baseline PRIVATE ${CMAKE_SOURCE_DIR}/tests/benchmark)
-        target_link_libraries(qml_performance_baseline PRIVATE Qt6::Core)
         target_compile_definitions(qml_performance_baseline PRIVATE
             PERF_AVG_THRESHOLD_DEFAULT=${CTEST_PERFORMANCE_THRESHOLD}
             PERF_MAX_THRESHOLD_DEFAULT=${CTEST_PERFORMANCE_MAX_THRESHOLD}
@@ -310,7 +309,6 @@ if(QUANTUMVERSE_USE_QT)
         set_target_properties(qml_performance_baseline PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:quantumverse_qml>
         )
-        set_target_properties(qml_performance_baseline PROPERTIES AUTOMOC ON)
         add_test(NAME QMLPerformanceBaseline COMMAND qml_performance_baseline)
         set_tests_properties(QMLPerformanceBaseline PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
