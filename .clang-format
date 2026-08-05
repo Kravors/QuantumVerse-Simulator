@@ -44,7 +44,6 @@ AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: true
-AlwaysBreakCommentLines: false
 AlwaysBreakFollowingDefinitionInitializer: true
 AlwaysBreakStringLiterals: false
 BreakBeforeBinaryOperators: None
