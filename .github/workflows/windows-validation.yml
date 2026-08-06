@@ -28,8 +28,10 @@ jobs:
           submodules: recursive
 
       - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v1.1
-      
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+       
       - name: Setup Qt
         uses: jurplel/install-qt-action@v4
         id: setup_qt
@@ -41,7 +43,7 @@ jobs:
 
           modules: 'qtwebsockets'
           cache: true
-       
+        
       - name: Ensure reports directory exists
         run: New-Item -ItemType Directory -Path reports -Force
       
@@ -81,8 +83,10 @@ jobs:
           submodules: recursive
 
       - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v1.1
-      
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+       
       - name: Setup Qt
         uses: jurplel/install-qt-action@v4
         id: setup_qt
@@ -94,7 +98,7 @@ jobs:
 
           modules: 'qtwebsockets'
           cache: true
-       
+        
       - name: Configure with ASan
         run: cmake -B build_asan -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"      
       - name: Build with ASan
@@ -135,20 +139,31 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt
+        with:
+          version: '6.8.3'
+          target: desktop
+          host: windows
+          arch: 'win64_msvc2022_64'
+          modules: 'qtwebsockets'
+          cache: true
+
       - name: Setup Clang
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
       
       - name: Configure Fuzzer
-        run: cmake -B build_fuzz -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON
+        run: cmake -B build_fuzz -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       
       - name: Build Fuzzer
         run: cmake --build build_fuzz --config Debug --parallel 2
       
       - name: Run Short Fuzz
         working-directory: build_fuzz
-        run: .\Debug\fuzz_metric.exe -max_total_time=300
+        run: .\Debug\fuzz_instruments.exe -max_total_time=300
 
   appverifier-soak:
     runs-on: windows-2022
