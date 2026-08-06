@@ -16,7 +16,7 @@ jobs:
     name: Code Formatting Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -27,20 +27,29 @@ jobs:
       
       - name: Check Code Formatting
         run: |
-          # Check formatting for source files
-          clang-format --dry-run --Werror -style=file \
-            $(find src -name '*.cpp' -o -name '*.h') \
-            $(find tests -name '*.cpp' -o -name '*.h') \
-            $(find examples -name '*.cpp' -o -name '*.h') || exit 1
+          FORMAT_FILES=""
+          if [ -d src ]; then
+            FORMAT_FILES="$FORMAT_FILES $(find src -name '*.cpp' -o -name '*.h' ! -path './third_party/*')"
+          fi
+          if [ -d tests ]; then
+            FORMAT_FILES="$FORMAT_FILES $(find tests -name '*.cpp' -o -name '*.h')"
+          fi
+          if [ -d examples ]; then
+            FORMAT_FILES="$FORMAT_FILES $(find examples -name '*.cpp' -o -name '*.h')"
+          fi
+          if [ -z "$FORMAT_FILES" ]; then
+            echo "No source files found to check"
+            exit 0
+          fi
+          clang-format --dry-run --Werror -style=file $FORMAT_FILES
         env:
-          # Allow formatting differences in third-party code
           CLANG_FORMAT_IGNORE: "third_party"
 
   clang-tidy:
     name: Clang-Tidy Analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -48,7 +57,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-tidy
-      
+       
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt_clang_tidy
+        with:
+          version: '6.8.3'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          install-deps: 'true'
+          modules: 'qtimageformats qtsvg qt5compat qtwebsockets'
+       
       - name: Ensure reports directory exists
         run: mkdir -p reports
       
@@ -60,9 +80,8 @@ jobs:
           echo "Does CMakeLists.txt exist?"
           test -f CMakeLists.txt && echo "YES" || echo "NO"
       
-      - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+       - name: Configure CMake
+         run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
       
       - name: Run Clang-Tidy
         run: |
@@ -86,7 +105,7 @@ jobs:
     name: Cppcheck Analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -103,7 +122,7 @@ jobs:
           cppcheck --enable=all --inconclusive \
             --suppress=missingIncludeSystem \
             --error-exitcode=1 \
-            src/ 2>&1 | tee cppcheck-report.txt || true
+            src/ 2>&1 | tee cppcheck-report.txt
       
       - name: Upload Cppcheck Report
         uses: actions/upload-artifact@v5
@@ -112,57 +131,84 @@ jobs:
           name: cppcheck-report
           path: cppcheck-report.txt
 
-   codeql:
-     name: CodeQL Analysis
-     runs-on: ubuntu-latest
-     steps:
-       - uses: actions/checkout@v5
-         with:
-           submodules: recursive
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-       - name: Install build dependencies
-         run: |
-           sudo apt-get update
-           sudo apt-get install -y build-essential cmake
-
-       - name: Initialize CodeQL
-         uses: github/codeql-action/init@v4
-         with:
-           languages: cpp
-           build-mode: manual
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
        
-       - name: Build with CodeQL
-         run: |
-           cmake -B build -DCMAKE_BUILD_TYPE=Release
-           cmake --build build --parallel 2
-
-       - name: Perform CodeQL Analysis
-         uses: github/codeql-action/analyze@v4
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt_codeql
+        with:
+          version: '6.8.3'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          install-deps: 'true'
+          modules: 'qtimageformats qtsvg qt5compat qtwebsockets'
        
-       - name: Upload CodeQL Report
-         uses: actions/upload-artifact@v5
-         if: always()
-         with:
-           name: codeql-report
-           path: |
-             **/*.sarif
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: cpp
+          build-mode: manual
+      
+      - name: Build with CodeQL
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_codeql.outputs.Qt6_DIR }}"
+          cmake --build build --parallel 2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+      
+      - name: Upload CodeQL Report
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: codeql-report
+          path: |
+            **/*.sarif
 
   coverity:
     name: Coverity Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      - name: Verify Coverity token is configured
+        run: |
+          if [ -z "${{ secrets.COVERITY_TOKEN }}" ]; then
+            echo "::error::COVERITY_TOKEN secret is not configured"
+            exit 1
+          fi
+
       - name: Install Coverity
         run: |
-          wget https://scan.coverity.com/download/linux --post-data "token=${{ secrets.COVERITY_TOKEN }}&project=QuantumVerse" -O coverity.tar.gz
+          curl -s -f --data-urlencode "token=${{ secrets.COVERITY_TOKEN }}" \
+            --data-urlencode "project=QuantumVerse" \
+            https://scan.coverity.com/download/linux -o coverity.tar.gz
           tar -xzf coverity.tar.gz
+          COVDIR=$(find . -maxdepth 1 -type d -name 'cov-analysis-linux64-*' | head -n 1)
+          if [ -z "$COVDIR" ]; then
+            echo "::error::Coverity installation directory not found"
+            exit 1
+          fi
+          echo "COVDIR=$COVDIR" >> $GITHUB_ENV
+          echo "Added Coverity bin to PATH" >> $GITHUB_STEP_SUMMARY
       
       - name: Build with Coverity
         run: |
-          export PATH=$PATH:$(pwd)/cov-analysis-linux64-*/bin
+          export PATH=$PATH:${{ env.COVDIR }}/bin
           cov-build --dir cov-int cmake -B build
           cov-build --dir cov-int cmake --build build --config Release
       

@@ -31,7 +31,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -70,7 +70,7 @@ jobs:
     if: ${{ github.event.inputs.run_sanitizers != 'false' }}
     
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -123,7 +123,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -173,7 +173,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -227,7 +227,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -274,7 +274,7 @@ jobs:
     needs: [static-analysis, sanitizer-tests, performance-baseline]
     
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 

@@ -15,7 +15,7 @@ jobs:
     name: Sanitizer Deep Scan
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -85,7 +85,7 @@ jobs:
     name: Nightly Benchmarks
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -132,7 +132,7 @@ jobs:
     name: Golden Master UI Tests
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -185,7 +185,7 @@ jobs:
     name: Nightly Differential Fuzzing
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
