@@ -21,7 +21,7 @@ jobs:
     name: Security Analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: security-scan
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -159,7 +159,7 @@ jobs:
     name: Dependency Security Audit
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 

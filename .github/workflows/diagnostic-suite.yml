@@ -17,7 +17,7 @@ jobs:
     name: Static Analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -71,7 +71,7 @@ jobs:
       matrix:
         sanitizer: [asan, ubsan, tsan]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -128,7 +128,7 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -168,7 +168,7 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -209,7 +209,7 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -275,7 +275,7 @@ jobs:
     needs: static-analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -312,7 +312,7 @@ jobs:
     needs: [static-analysis, sanitizer-tests, ui-tests, fuzz-tests, performance]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 

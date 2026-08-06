@@ -65,7 +65,7 @@ jobs:
         rm -rf "C:/Program Files/PostgreSQL/"
         choco install ccache --version 3.7.12 --yes --no-progress --not-silent --verbose --debug
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         path: source
 

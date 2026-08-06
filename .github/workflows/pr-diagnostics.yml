@@ -20,7 +20,7 @@ jobs:
         config: [Release]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -125,7 +125,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -151,7 +151,7 @@ jobs:
       runs-on: ubuntu-latest
       if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
       steps:
-        - uses: actions/checkout@v5
+        - uses: actions/checkout@v4
           with:
             submodules: recursive
 
@@ -181,7 +181,7 @@ jobs:
      runs-on: ubuntu-latest
      if: github.event_name == 'pull_request'
      steps:
-       - uses: actions/checkout@v5
+       - uses: actions/checkout@v4
          with:
            submodules: recursive
 

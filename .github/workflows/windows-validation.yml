@@ -23,7 +23,7 @@ jobs:
         ui_backend: [QML]
      
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -76,7 +76,7 @@ jobs:
     needs: build-and-test
     
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -110,7 +110,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -131,7 +131,7 @@ jobs:
     needs: build-and-test
     
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -156,7 +156,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 

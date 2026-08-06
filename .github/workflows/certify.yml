@@ -41,7 +41,7 @@ jobs:
         if [ -f build/fuzz_physics_invariants ]; then
           timeout 600 build/fuzz_physics_invariants || true
         else
-          echo "Fuzzer not built – skipping"
+          echo "Fuzzer not built â€“ skipping"
         fi
     - name: Generate certification report
       run: |

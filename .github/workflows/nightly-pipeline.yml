@@ -16,7 +16,7 @@ jobs:
     name: Nightly Build and Test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -75,7 +75,7 @@ jobs:
       QT_QPA_PLATFORM: offscreen
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -107,7 +107,7 @@ jobs:
     needs: [nightly-build, nightly-windows]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -140,7 +140,7 @@ jobs:
     name: 24-Hour Soak Test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
