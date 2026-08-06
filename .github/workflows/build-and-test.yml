@@ -21,7 +21,7 @@ jobs:
         build_type: [Release, Debug]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -73,8 +73,21 @@ jobs:
           modules: 'qtwebsockets'
           cache: true
 
+      - name: Set Qt prefix path
+        id: qt_prefix
+        run: |
+          if [ -n "${{ steps.setup_qt_linux.outputs.Qt6_DIR }}" ]; then
+            echo "prefix=${{ steps.setup_qt_linux.outputs.Qt6_DIR }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}" ]; then
+            echo "prefix=${{ steps.setup_qt_windows.outputs.Qt6_DIR }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ steps.setup_qt_macos.outputs.Qt6_DIR }}" ]; then
+            echo "prefix=${{ steps.setup_qt_macos.outputs.Qt6_DIR }}" >> $GITHUB_OUTPUT
+          else
+            echo "prefix=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR || steps.setup_qt_windows.outputs.Qt6_DIR || steps.setup_qt_macos.outputs.Qt6_DIR }}"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.qt_prefix.outputs.prefix }}"
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }}
@@ -111,7 +124,7 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -128,7 +141,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 

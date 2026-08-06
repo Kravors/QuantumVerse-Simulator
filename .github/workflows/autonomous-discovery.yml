@@ -38,7 +38,7 @@ jobs:
       near_singularity: ${{ steps.evaluate.outputs.near_singularity }}
       result_json: ${{ steps.discovery.outputs.result }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -61,17 +61,18 @@ jobs:
           THEORY="${{ github.event.inputs.theory || 'FR_GRAVITY' }}"
           OUTPUT=$(./build/Release/theory_discovery_runner --episodes "$EPISODES" --theory "$THEORY")
           echo "$OUTPUT" > discovery_result.json
-          {
-            echo "result<<EOF"
-            cat discovery_result.json
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "result<<EOF" >> "$GITHUB_OUTPUT"
+          cat discovery_result.json >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Evaluate discovery result
         id: evaluate
         run: |
           python3 - <<'PY'
-          import json, sys
+          import json
+          import os
+          import sys
+
           with open("discovery_result.json") as f:
               data = json.load(f)
 
@@ -90,7 +91,7 @@ jobs:
           viable = valid and not singular and chi2 < 10.0 and penalty < 500.0
           print(f"viable={viable}")
 
-          with open(GITHUB_OUTPUT, "a") as f:
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"viable={'true' if viable else 'false'}\n")
               f.write(f"theory_name={data.get('theory_name','')}\n")
               params = ",".join(str(p) for p in data.get("parameters", []))

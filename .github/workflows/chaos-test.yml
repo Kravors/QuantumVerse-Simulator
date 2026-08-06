@@ -13,9 +13,10 @@ on:
 jobs:
   chaos-test:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -31,7 +32,6 @@ jobs:
             echo "chaos/experiment.json not found - running placeholder chaos test"
             echo '{"experiment": {"results": []}}' > chaos-journal.json
           fi
-        continue-on-error: true
 
       - name: Upload chaos journal
         uses: actions/upload-artifact@v5

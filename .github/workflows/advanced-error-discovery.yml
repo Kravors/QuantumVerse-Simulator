@@ -20,7 +20,7 @@ jobs:
     name: CBMC Bounded Model Checking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -71,7 +71,7 @@ jobs:
     name: Differential Testing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -118,7 +118,7 @@ jobs:
     name: Runtime Invariant Monitoring
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -149,13 +149,13 @@ jobs:
       - name: Run tests with runtime monitoring
         working-directory: build
         run: |
-          ctest --output-on-failure -j 2
+          xvfb-run -a ctest --output-on-failure -j 2
 
   fuzz-testing:
     name: Hybrid Fuzz Testing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -217,7 +217,7 @@ jobs:
     name: Chaos Engineering
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -270,7 +270,7 @@ jobs:
     needs: [cbmc-verification, differential-testing, runtime-monitoring]
     if: always()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
