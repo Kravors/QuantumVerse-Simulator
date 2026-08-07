@@ -175,7 +175,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: cpp
-          build-mode: manual
+          build-mode: none
       
       - name: Build with CodeQL
         run: |
