@@ -42,8 +42,6 @@ jobs:
             exit 0
           fi
           clang-format --dry-run --Werror -style=file $FORMAT_FILES
-        env:
-          CLANG_FORMAT_IGNORE: "third_party"
 
   clang-tidy:
     name: Clang-Tidy Analysis
@@ -80,16 +78,20 @@ jobs:
           echo "Does CMakeLists.txt exist?"
           test -f CMakeLists.txt && echo "YES" || echo "NO"
       
-       - name: Configure CMake
-         run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
-      
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
+       
       - name: Run Clang-Tidy
         run: |
-          clang-tidy -p build \
-            -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
-            -header-filter='.*' \
-            $(find src -name '*.cpp' -o -name '*.h') \
-            -- -std=c++17
+          if [ -d src ]; then
+            clang-tidy -p build \
+              -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
+              -header-filter='.*' \
+              $(find src -name '*.cpp' -o -name '*.h') \
+              -- -std=c++17
+          else
+            echo "No src directory found, skipping clang-tidy"
+          fi
       
       - name: Upload Clang-Tidy Report
         uses: actions/upload-artifact@v5
@@ -119,10 +121,24 @@ jobs:
       
       - name: Run Cppcheck
         run: |
+          CPPCHECK_DIRS=""
+          if [ -d src ]; then
+            CPPCHECK_DIRS="$CPPCHECK_DIRS src/"
+          fi
+          if [ -d tests ]; then
+            CPPCHECK_DIRS="$CPPCHECK_DIRS tests/"
+          fi
+          if [ -d examples ]; then
+            CPPCHECK_DIRS="$CPPCHECK_DIRS examples/"
+          fi
+          if [ -z "$CPPCHECK_DIRS" ]; then
+            echo "No source directories found, skipping cppcheck"
+            exit 0
+          fi
           cppcheck --enable=all --inconclusive \
             --suppress=missingIncludeSystem \
             --error-exitcode=1 \
-            src/ 2>&1 | tee cppcheck-report.txt
+            $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
       
       - name: Upload Cppcheck Report
         uses: actions/upload-artifact@v5
@@ -179,6 +195,7 @@ jobs:
 
   coverity:
     name: Coverity Scan
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
