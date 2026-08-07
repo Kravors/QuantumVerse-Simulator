@@ -56,6 +56,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang-tidy
        
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
+
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         id: setup_qt_clang_tidy
@@ -66,6 +71,7 @@ jobs:
           arch: 'linux_gcc_64'
           install-deps: 'true'
           modules: 'qtimageformats qtsvg qt5compat qtwebsockets'
+          cache: true
        
       - name: Ensure reports directory exists
         run: mkdir -p reports
@@ -79,7 +85,7 @@ jobs:
           test -f CMakeLists.txt && echo "YES" || echo "NO"
       
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
+        run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
        
       - name: Run Clang-Tidy
         run: |
@@ -158,8 +164,8 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake
-       
+          sudo apt-get install -y build-essential cmake libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
+        
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         id: setup_qt_codeql
@@ -170,6 +176,7 @@ jobs:
           arch: 'linux_gcc_64'
           install-deps: 'true'
           modules: 'qtimageformats qtsvg qt5compat qtwebsockets'
+          cache: true
        
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -179,7 +186,7 @@ jobs:
       
       - name: Build with CodeQL
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_codeql.outputs.Qt6_DIR }}"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_codeql.outputs.Qt6_DIR }}"
           cmake --build build --parallel 2
 
       - name: Perform CodeQL Analysis
