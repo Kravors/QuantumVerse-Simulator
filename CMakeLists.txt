@@ -278,12 +278,6 @@ if(QUANTUMVERSE_USE_QT)
 
     if(WIN32)
         set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}/$<CONFIG>")
-    else()
-        # On non-Windows (single-config generators) test executables land in the
-        # build root. Without this default the UI tests below set an empty
-        # WORKING_DIRECTORY and silently become "Not Run".
-        set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}")
-    endif()
         add_custom_target(deploy_qt_runtime
             COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
@@ -295,6 +289,11 @@ if(QUANTUMVERSE_USE_QT)
             COMMENT "Running windeployqt on quantumverse_qml.exe to populate ${QT_RUNTIME_DEST}"
         )
         add_dependencies(deploy_qt_runtime quantumverse_qml)
+    else()
+        # On non-Windows (single-config generators) test executables land in the
+        # build root. Without this default the UI tests below set an empty
+        # WORKING_DIRECTORY and silently become "Not Run".
+        set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}")
     endif()
 
 
