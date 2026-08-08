@@ -7,6 +7,7 @@
 #include <functional>
 #include <type_traits>
 #include <cassert>
+#include <memory>
 
 namespace quantumverse {
 namespace math {
