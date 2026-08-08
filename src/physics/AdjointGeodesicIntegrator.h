@@ -330,7 +330,7 @@ public:
         result.dState_dParams.assign(8, std::vector<double>(n_params, 0.0));
         auto& tape_vars = ADTape::getVariables();
         for (int i = 0; i < 8; ++i) {
-            for (auto* var : tape_vars) var->grad = 0.0;
+            for (auto& v : tape_vars) v->grad = 0.0;
             y[i]->grad = 1.0;
             for (auto it = tape_vars.rbegin(); it != tape_vars.rend(); ++it) {
                 if ((*it)->backward) (*it)->backward();
@@ -380,7 +380,7 @@ public:
         ADVar* K = math::div(math::mul(ADTape::record(48.0, nullptr), rs2), r6);
 
         auto& tape_vars = ADTape::getVariables();
-        for (auto* var : tape_vars) var->grad = 0.0;
+        for (auto& v : tape_vars) v->grad = 0.0;
         K->grad = 1.0;
         for (auto it = tape_vars.rbegin(); it != tape_vars.rend(); ++it) {
             if ((*it)->backward) (*it)->backward();
