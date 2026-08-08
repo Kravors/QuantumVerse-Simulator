@@ -448,20 +448,18 @@ public:
 };
 
 class ADTape {
-    static std::vector<ADVar*> variables;
+    static std::vector<std::unique_ptr<ADVar>> variables;
 
 public:
-    static void push(ADVar* var) { variables.push_back(var); }
+    static void push(ADVar* var) { variables.push_back(std::unique_ptr<ADVar>(var)); }
 
-    static void clear() {
-        for (auto* var : variables) delete var;
-        variables.clear();
-    }
+    static void clear() { variables.clear(); }
 
     static ADVar* record(double value, std::function<void()> backward_fn) {
-        auto* var = new ADVar(value, std::move(backward_fn));
-        variables.push_back(var);
-        return var;
+        auto var = std::make_unique<ADVar>(value, std::move(backward_fn));
+        ADVar* raw = var.get();
+        variables.push_back(std::move(var));
+        return raw;
     }
 
     static std::vector<std::pair<ADVar*, double>> compute_gradients(ADVar& output) {
@@ -471,7 +469,7 @@ public:
         }
         std::vector<std::pair<ADVar*, double>> grads;
         grads.reserve(variables.size());
-        for (auto* var : variables) grads.emplace_back(var, var->grad);
+        for (auto& v : variables) grads.emplace_back(v.get(), v->grad);
         return grads;
     }
 
@@ -482,10 +480,10 @@ public:
         return 0.0;
     }
 
-    static const std::vector<ADVar*>& getVariables() { return variables; }
+    static const std::vector<std::unique_ptr<ADVar>>& getVariables() { return variables; }
 };
 
-inline std::vector<ADVar*> ADTape::variables;
+inline std::vector<std::unique_ptr<ADVar>> ADTape::variables;
 
 inline ADVar* var(double v) {
     return ADTape::record(v, nullptr);

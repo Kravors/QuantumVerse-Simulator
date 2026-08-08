@@ -488,18 +488,28 @@ void TheoryDiscoveryAgent::ingestLiveAlert(const QJsonObject& alert) {
         return;
     }
 
-    for (auto& result : pareto_results_) {
-        if (result.parameters.empty()) continue;
-        auto updated = evaluateTheory(result.parameters);
-        result.raw_observational_chi2 = updated.raw_observational_chi2;
-        result.observational_chi2 = updated.observational_chi2;
-        result.total_reward = updated.total_reward;
-        result.theoretical_penalty = updated.theoretical_penalty;
-        result.simplicity_penalty = updated.simplicity_penalty;
-        result.lorentzian_valid = updated.lorentzian_valid;
-        result.kretschmann_nonneg = updated.kretschmann_nonneg;
-        result.near_singularity = updated.near_singularity;
-        result.n_data_points = updated.n_data_points;
+    // Re-evaluate each Pareto result against the new observation. evaluateTheory()
+    // re-enters updateParetoArchive(), which reallocates pareto_results_, so we must
+    // NOT mutate the vector we are iterating. Snapshot parameters, evaluate into a
+    // temporary, then write the results back by index afterwards.
+    std::vector<DiscoveryResult> reeval(pareto_results_.size());
+    for (size_t i = 0; i < pareto_results_.size(); ++i) {
+        if (pareto_results_[i].parameters.empty()) {
+            reeval[i] = pareto_results_[i];
+        } else {
+            reeval[i] = evaluateTheory(pareto_results_[i].parameters);
+        }
+    }
+    for (size_t i = 0; i < pareto_results_.size(); ++i) {
+        pareto_results_[i].raw_observational_chi2 = reeval[i].raw_observational_chi2;
+        pareto_results_[i].observational_chi2 = reeval[i].observational_chi2;
+        pareto_results_[i].total_reward = reeval[i].total_reward;
+        pareto_results_[i].theoretical_penalty = reeval[i].theoretical_penalty;
+        pareto_results_[i].simplicity_penalty = reeval[i].simplicity_penalty;
+        pareto_results_[i].lorentzian_valid = reeval[i].lorentzian_valid;
+        pareto_results_[i].kretschmann_nonneg = reeval[i].kretschmann_nonneg;
+        pareto_results_[i].near_singularity = reeval[i].near_singularity;
+        pareto_results_[i].n_data_points = reeval[i].n_data_points;
     }
 
     std::vector<ParetoPoint> new_archive;

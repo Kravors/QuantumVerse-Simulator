@@ -247,13 +247,9 @@ int main(int argc, char* argv[])
     QGuiApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
     QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
-#ifdef _WIN32
-    qputenv("QT_PLUGIN_PATH", QByteArray("F:/qt/6.11.1/msvc2022_64/plugins"));
-    qputenv("QML2_IMPORT_PATH", QByteArray("F:/qt/6.11.1/msvc2022_64/qml"));
-    qDebug() << "QT_PLUGIN_PATH set to:" << qgetenv("QT_PLUGIN_PATH").constData();
-    qDebug() << "QML2_IMPORT_PATH set to:" << qgetenv("QML2_IMPORT_PATH").constData();
-#endif
-
+    // Plugin/import paths are resolved automatically from the Qt installation
+    // (see deploy/windows/windeployqt or the platform qt.conf). Do NOT hardcode
+    // local absolute paths here: it crashes on any machine without that layout.
 
     QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
 
@@ -460,10 +456,6 @@ int main(int argc, char* argv[])
         engine.addImportPath(QStringLiteral("qrc:/"));
         engine.addImportPath(QStringLiteral("."));
         engine.addImportPath(QStringLiteral("qml"));
-#ifdef _WIN32
-        engine.addImportPath(QStringLiteral("F:/syyyy/src/qml"));
-        engine.addImportPath(QStringLiteral("F:/qt/6.11.1/msvc2022_64/qml"));
-#endif
 
         // Create QML camera controller for basic 3D navigation
         auto camController = new quantumverse::QmlCamController(&engine);

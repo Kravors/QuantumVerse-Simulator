@@ -199,8 +199,8 @@ RLState RLDiscoveryAgent::runSimulation(const std::vector<double>& params) const
     RLState state;
     state.normalized_params = normalizeParams(params);
     state.anomaly_score = std::abs(params[0]) * 0.1;
-    state.gr_deviation = std::abs(params[1]) * 0.05;
-    // Use step_count as a proxy for validation confidence to avoid out-of-bounds
+    // Guard against param_dim == 1 (see tests/discovery/test_rl_agent.cpp agent(1, ...)).
+    state.gr_deviation = params.size() > 1 ? std::abs(params[1]) * 0.05 : 0.0;
     state.validation_confidence = 0.5 + 0.5 * std::sin(static_cast<double>(episode_count) * 0.1);
     state.step_count = episode_count;
     return state;
