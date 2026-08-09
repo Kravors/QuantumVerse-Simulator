@@ -484,3 +484,12 @@ Testing/
 # Untracked VR stub (deferred H6 / future OpenXR work)
 src/vr/*.bundle
 *.bundle
+
+# --- CI debugging artifacts (transient, never commit) ---
+*.dmp
+ci-logs/
+failure-analysis/
+run_logs/
+debug-jobs.json
+runs.tsv
+docs/Phase 31 is locked in*.md

@@ -289,6 +289,11 @@ if(QUANTUMVERSE_USE_QT)
             COMMENT "Running windeployqt on quantumverse_qml.exe to populate ${QT_RUNTIME_DEST}"
         )
         add_dependencies(deploy_qt_runtime quantumverse_qml)
+    else()
+        # On non-Windows (single-config generators) test executables land in the
+        # build root. Without this default the UI tests below set an empty
+        # WORKING_DIRECTORY and silently become "Not Run".
+        set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}")
     endif()
 
 
