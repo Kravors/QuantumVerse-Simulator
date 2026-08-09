@@ -89,7 +89,7 @@ jobs:
         run: cmake -B build -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCTEST_PERFORMANCE_THRESHOLD=60 -DCTEST_PERFORMANCE_MAX_THRESHOLD=80 -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Build performance targets
-        run: cmake --build build --config Release --target qml_performance_baseline test_performance_gate
+        run: cmake --build build --config Release --target qml_performance_baseline test_performance_gate test_performance_regression
 
       - name: Run performance gate
         run: |
