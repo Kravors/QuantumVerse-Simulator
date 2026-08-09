@@ -127,9 +127,13 @@ jobs:
           fi
 
   build-debug:
-    # Debug builds keep assertions enabled (no -DNDEBUG), so this job surfaces the
-    # ~19 asserts that Release configs compile out. It is expected to fail until the
-    # underlying physics/logic bugs are triaged; treat it as a triage signal, not noise.
+    # INTENTIONALLY RED CANARY — do not gate PRs on this job.
+    # Release builds compile with -DNDEBUG, so every assert() in tests/ is silently
+    # removed and the ~24 assertion violations below never execute on main. This Debug
+    # job (no -DNDEBUG) enables them, surfacing pre-existing latent bugs that the
+    # standard Release pipeline hides. The failures are NOT regressions from the branch
+    # that triggers the run (no test files change between branches; AutoDiff.h is a
+    # memory-only refactor). Treat it as an honest triage signal, not CI noise.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
