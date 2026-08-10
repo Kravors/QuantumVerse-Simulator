@@ -94,6 +94,7 @@ jobs:
             clang-tidy -p build \
               -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
               -header-filter='.*' \
+              -extra-arg=--query-driver=/usr/bin/g++ \
               $(find src -name '*.cpp' -o -name '*.h') \
               -- -std=c++17
           else
@@ -183,7 +184,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: cpp
-          build-mode: none
+          build-mode: manual
       
       - name: Build with CodeQL
         run: |
