@@ -16,12 +16,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-20.04]
+        os: [windows-latest, ubuntu-22.04]
         build_type: [Release]
         include:
           - os: windows-latest
             cmake_args: ""
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             cmake_args: ""
 
     runs-on: ${{ matrix.os }}
@@ -179,7 +179,7 @@ jobs:
 
   # Code quality checks
   code-quality:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: test
 
     steps:
