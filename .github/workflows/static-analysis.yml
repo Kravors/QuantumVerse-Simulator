@@ -86,7 +86,7 @@ jobs:
           test -f CMakeLists.txt && echo "YES" || echo "NO"
       
       - name: Configure CMake
-        run:           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
+        run:           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.qtPath }}"
        
       - name: Run Clang-Tidy
         run: |
@@ -187,7 +187,7 @@ jobs:
       
       - name: Build with CodeQL
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_codeql.outputs.qtPath }}"
           cmake --build build --parallel 2
 
       - name: Perform CodeQL Analysis
