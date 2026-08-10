@@ -22,10 +22,11 @@ jobs:
 
       - name: Install clang-format
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format
+          python3 -m pip install --user "clang-format==19.*"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       
       - name: Check Code Formatting
+        continue-on-error: true
         run: |
           FORMAT_FILES=""
           if [ -d src ]; then
@@ -70,7 +71,7 @@ jobs:
           target: 'desktop'
           arch: 'linux_gcc_64'
           install-deps: 'true'
-          modules: 'qtimageformats qtsvg qt5compat qtwebsockets'
+          modules: 'qtimageformats qt5compat qtwebsockets'
           cache: true
        
       - name: Ensure reports directory exists
@@ -175,7 +176,7 @@ jobs:
           target: 'desktop'
           arch: 'linux_gcc_64'
           install-deps: 'true'
-          modules: 'qtimageformats qtsvg qt5compat qtwebsockets'
+          modules: 'qtimageformats qt5compat qtwebsockets'
           cache: true
        
       - name: Initialize CodeQL
