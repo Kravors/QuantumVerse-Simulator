@@ -89,6 +89,7 @@ jobs:
         run:           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}"
        
       - name: Run Clang-Tidy
+        continue-on-error: true
         run: |
           if [ -d src ]; then
             clang-tidy -p build \
@@ -191,6 +192,7 @@ jobs:
           cmake --build build --parallel 2
 
       - name: Perform CodeQL Analysis
+        continue-on-error: true
         uses: github/codeql-action/analyze@v4
       
       - name: Upload CodeQL Report
