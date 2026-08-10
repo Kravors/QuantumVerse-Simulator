@@ -104,7 +104,7 @@ int main() {
         std::remove("headless_performance.log");
         // 2>perf_stderr.log captures the app's (and baseline's) stderr so
         // we can assert the P3-2 shader-recompilation warning is absent.
-        const std::string invoke = std::string("\"") + baselineName + "\" 2>perf_stderr.log";
+        const std::string invoke = std::string("\"./") + baselineName + "\" 2>perf_stderr.log";
         const int ret = std::system(invoke.c_str());
         check(ret == 0, "baseline executable invoked and returned exit 0");
         bool logExists = false;
