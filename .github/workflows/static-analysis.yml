@@ -94,8 +94,7 @@ jobs:
             clang-tidy -p build \
               -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
               -header-filter='.*' \
-              -extra-arg=--query-driver=/usr/bin/g++ \
-              $(find src -name '*.cpp' -o -name '*.h') \
+              $(find src -name '*.cpp') \
               -- -std=c++17
           else
             echo "No src directory found, skipping clang-tidy"
