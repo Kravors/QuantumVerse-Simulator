@@ -10,9 +10,16 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  schedule:
+    # Nightly at 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 jobs:
   build-and-test-windows:
+    # Redundant with build-and-test.yml + ci-cd.yml on push/PR; run only
+    # nightly/manual to cut ~485 min/period of duplicate Windows builds.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     env:
       QT_QPA_PLATFORM: offscreen

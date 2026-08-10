@@ -6,10 +6,12 @@ permissions:
 
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  # Was triggered on every push/PR, burning ~9k min/month rebuilding the same
+  # Windows Qt project. Now nightly + manual only; PR/push gates use ci-cd.yml
+  # and build-and-test.yml instead.
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 jobs:
   build-and-test:
