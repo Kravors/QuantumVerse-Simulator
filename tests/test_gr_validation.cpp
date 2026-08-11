@@ -133,7 +133,7 @@ void test_time_dilation_schwarzschild() {
     assert(z2 > z1 && "Redshift should increase closer to horizon");
 
     double ratio_expected = std::sqrt(1.0 - 2.0 * M / r1) / std::sqrt(1.0 - 2.0 * M / r2);
-    double ratio_actual = (1.0 + z1) / (1.0 + z2);
+    double ratio_actual = (1.0 + z2) / (1.0 + z1);
     double relError = std::abs(ratio_actual - ratio_expected) / ratio_expected;
     assert(relError < 0.1 && "Time dilation ratio should match Schwarzschild formula");
     (void)relError;

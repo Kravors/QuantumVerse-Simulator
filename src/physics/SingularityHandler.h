@@ -291,10 +291,10 @@ public:
         double r = std::sqrt(dx * dx + dy * dy + dz * dz);
 
         if (r <= props.schwarzschild_radius) {
-            return 0.0;  // Infinite redshift at horizon
+            return std::numeric_limits<double>::infinity();  // Infinite redshift at horizon
         }
 
-        return std::sqrt(1.0 - props.schwarzschild_radius / r);
+        return 1.0 / std::sqrt(1.0 - props.schwarzschild_radius / r) - 1.0;
     }
 
     // Compute frame-dragging angular velocity (Kerr only)
