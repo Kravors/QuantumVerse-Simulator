@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -93,7 +94,10 @@ int main() {
     {
         RLDiscoveryAgent agent(2, makeDefaultRanges(2));
         agent.trainEpisode();
-        std::string path = "F:/syyyy/build/test_rl_policy_roundtrip.bin";
+        // Use a portable path (temp dir) instead of a hardcoded drive letter, which
+        // does not exist on CI runners (e.g. Windows GitHub runner has no F: drive)
+        // and would make savePolicy throw -> uncaught exception -> abort (0xc0000409).
+        std::string path = (std::filesystem::temp_directory_path() / "test_rl_policy_roundtrip.bin").string();
         agent.savePolicy(path);
         assert(std::ifstream(path).good());
 
@@ -115,7 +119,7 @@ int main() {
 
     // --- 8. RLTrainer completes without crash ------------------------------------
     {
-        std::string ckpt_dir = "F:/syyyy/build/test_rl_checkpoints";
+        std::string ckpt_dir = (std::filesystem::temp_directory_path() / "test_rl_checkpoints").string();
         RLTrainer trainer(2, makeDefaultRanges(2), 10, 5, ckpt_dir);
         trainer.train();
         auto history = trainer.getRewardHistory();
