@@ -19,11 +19,11 @@ using namespace quantumverse::math;
 // ============================================================================
 void test_advariable_basic_operations() {
     ADVariable<1> x = ADVariable<1>::variable(2.0, 0);
-    ADVariable<1> y = ADVariable<1>::variable(3.0, 0);
+    ADVariable<1> y = ADVariable<1>::constant(3.0);
 
     auto sum = x + y;
     assert(std::abs(sum.getValue() - 5.0) < 1e-12 && "AD sum value");
-    assert(std::abs(sum[0] - 0.0) < 1e-12 && "AD sum derivative w.r.t. independent var");
+    assert(std::abs(sum[0] - 1.0) < 1e-12 && "AD sum derivative w.r.t. independent var");
     (void)sum;
 
     auto prod = x * y;
