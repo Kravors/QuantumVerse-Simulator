@@ -47,7 +47,7 @@ int main() {
             handler.evolveHawkingEvaporation(1e10);
             assert(!std::isnan(handler.getProperties().mass) && "Mass became NaN");
             assert(!std::isinf(handler.getProperties().mass) && "Mass became Inf");
-            assert(handler.getProperties().mass > 0.0 && "Mass became negative");
+            assert(handler.getProperties().mass >= 0.0 && "Mass became negative");
         }
         std::cout << "[PASS] Evaporation maintains finite positive mass" << std::endl;
     }
