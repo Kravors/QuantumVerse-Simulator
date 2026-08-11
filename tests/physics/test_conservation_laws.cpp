@@ -84,7 +84,11 @@ void test_stress_energy_conservation() {
 void test_geodesic_constraint_timelike() {
     double M = 1.0;
     auto sch = std::make_shared<SchwarzschildMetric>(M * Event4D::C * Event4D::C / Event4D::G);
-    GeodesicIntegrator integrator(1e-6);
+    // Cap the maximum step so the adaptive integrator records a properly
+    // resolved trajectory (with tol=1e-6 the controller would otherwise grow
+    // the step toward maxStepSize=1.0, yielding too few samples for the
+    // size()>5 assertion). Keep the initial 0.01 step as the resolution cap.
+    GeodesicIntegrator integrator(1e-6, 1e-10, 0.01);
     integrator.setMetric(sch);
 
     Event4D start(0.0, 20.0 * M, 0.0, 0.0);
