@@ -52,7 +52,11 @@ jobs:
           clang-tidy -p . --warnings-as-errors='*' src/**/*.cpp -- -std=c++17 -I../src || true
 
       - name: Run diagnostic suite
-        run: python3 scripts/diagnose_all.py --quick --report-format json
+        run: |
+          # install-qt-action swaps the active Python to 3.12 (hosted toolcache)
+          # after the dependency step, so (re)install pyyaml for the live interpreter
+          python3 -m pip install --user pyyaml
+          python3 scripts/diagnose_all.py --quick --report-format json
 
       - name: Ensure reports directory exists
         run: mkdir -p reports
@@ -155,7 +159,9 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --parallel 2
       - name: Run UI tests
-        run: python3 scripts/diagnose_all.py --ui --report-format html
+        run: |
+          python3 -m pip install --user pyyaml
+          python3 scripts/diagnose_all.py --ui --report-format html
 
       - name: Upload report
         uses: actions/upload-artifact@v5
@@ -196,7 +202,9 @@ jobs:
         run: cmake --build build --parallel 2
 
       - name: Run fuzz tests
-        run: python3 scripts/diagnose_all.py --fuzz --report-format html
+        run: |
+          python3 -m pip install --user pyyaml
+          python3 scripts/diagnose_all.py --fuzz --report-format html
 
       - name: Upload report
         uses: actions/upload-artifact@v5
@@ -299,7 +307,9 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --parallel 2
       - name: Run benchmarks
-        run: python3 scripts/diagnose_all.py --bench --report-format html
+        run: |
+          python3 -m pip install --user pyyaml
+          python3 scripts/diagnose_all.py --bench --report-format html
 
       - name: Upload report
         uses: actions/upload-artifact@v5
@@ -323,7 +333,9 @@ jobs:
         uses: actions/download-artifact@v5
 
       - name: Generate combined report
-        run: python3 scripts/diagnose_all.py --full --report-format html
+        run: |
+          python3 -m pip install --user pyyaml
+          python3 scripts/diagnose_all.py --full --report-format html
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
