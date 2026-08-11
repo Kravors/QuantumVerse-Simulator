@@ -85,12 +85,28 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+            xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
           elif [ "${{ runner.os }}" == "Windows" ]; then
             export QT_QPA_PLATFORM=offscreen
-            ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+            ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
           else
-            ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+            ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
+          fi
+
+      # Rendering/visual tests are non-blocking canaries (headless software-GL
+      # pixel/timing/--gl-strict mismatches). See build-and-test.yml for rationale.
+      - name: Rendering tests (non-blocking canary)
+        working-directory: build
+        shell: bash
+        continue-on-error: true
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            export QT_QPA_PLATFORM=offscreen
+            ctest -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
+          else
+            ctest -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
           fi
 
       - name: Upload Artifacts
