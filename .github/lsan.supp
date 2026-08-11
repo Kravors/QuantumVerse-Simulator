@@ -1,0 +1,27 @@
+# LeakSanitizer suppressions for the QuantumVerse sanitization pipeline.
+#
+# Only third-party/system allocations that are known one-time or library-internal
+# belong here. Never suppress leaks originating from src/ - fix those instead.
+#
+# Syntax: leak:<substring matched against function name, file, or library>
+
+# Qt caches font/plugin/QML metadata for process lifetime and frees it lazily
+# (or not at all) on exit. These are not QuantumVerse defects.
+leak:libQt6Core
+leak:libQt6Gui
+leak:libQt6Qml
+leak:libQt6Quick
+
+# Fontconfig and FreeType keep process-wide caches alive until exit.
+leak:libfontconfig
+leak:libfreetype
+
+# glib/gobject type system registrations are intentionally never freed.
+leak:libglib
+leak:libgobject
+
+# Mesa / GL drivers allocate per-process driver state that is not released.
+leak:libGLX
+leak:libGL
+leak:swrast
+leak:dri

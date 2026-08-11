@@ -17,9 +17,10 @@ on:
 
 jobs:
   asan-linux:
-    continue-on-error: true
     name: AddressSanitizer (Linux)
     runs-on: ubuntu-22.04
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,7 +33,7 @@ jobs:
             libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
             libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
             libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev \
-            ninja-build ccache
+            ninja-build ccache xvfb libxcb-cursor0
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -59,10 +60,33 @@ jobs:
         run: cmake --build build --config Debug --parallel 2
 
       - name: Run tests with ASan
+        id: asan_tests
+        # Pre-existing functional test failures must not mask sanitizer signal;
+        # the dedicated gate below is what actually fails this job.
+        continue-on-error: true
         working-directory: build
         run: |
-          export ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:symbolize=1
-          ctest --output-on-failure -j $(nproc) --timeout 600
+          set -o pipefail
+          export ASAN_OPTIONS=detect_leaks=1:symbolize=1:print_stacktrace=1
+          export LSAN_OPTIONS=suppressions=$GITHUB_WORKSPACE/.github/lsan.supp:print_suppressions=0
+          xvfb-run -a ctest --output-on-failure -j "$(nproc)" --timeout 600 2>&1 | tee asan-ctest.log
+
+      - name: Gate on AddressSanitizer findings
+        working-directory: build
+        run: |
+          if [ ! -f asan-ctest.log ]; then
+            echo "::error::asan-ctest.log missing - the test step did not run, so sanitizer status is unknown."
+            exit 1
+          fi
+          if grep -Eq 'ERROR: (AddressSanitizer|LeakSanitizer)|SUMMARY: (AddressSanitizer|LeakSanitizer)' asan-ctest.log; then
+            echo "::error::AddressSanitizer/LeakSanitizer reported findings - see log below"
+            grep -E -B 2 -A 30 'ERROR: (AddressSanitizer|LeakSanitizer)' asan-ctest.log | head -300
+            exit 1
+          fi
+          echo "No AddressSanitizer/LeakSanitizer findings."
+          if [ "${{ steps.asan_tests.outcome }}" != "success" ]; then
+            echo "::warning::ctest reported functional test failures (not sanitizer findings). See asan-ctest.log."
+          fi
 
       - name: Ensure reports directory exists
         run: mkdir -p reports
@@ -77,9 +101,10 @@ jobs:
             *.log
 
   ubsan-linux:
-    continue-on-error: true
     name: UndefinedBehaviorSanitizer (Linux)
     runs-on: ubuntu-22.04
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,7 +117,7 @@ jobs:
             libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
             libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
             libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev \
-            ninja-build ccache
+            ninja-build ccache xvfb libxcb-cursor0
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -113,16 +138,38 @@ jobs:
             -DQUANTUMVERSE_USE_UBSAN=ON \
             -DQUANTUMVERSE_USE_QT=ON \
             -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" \
-            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=undefined -fno-omit-frame-pointer -g" \
+            -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=undefined"
       - name: Build
         run: cmake --build build --config Debug --parallel 2
 
       - name: Run tests with UBSan
+        id: ubsan_tests
+        # Pre-existing functional test failures must not mask sanitizer signal;
+        # the dedicated gate below is what actually fails this job.
+        continue-on-error: true
         working-directory: build
         run: |
-          export UBSAN_OPTIONS=abort_on_error=1:print_stacktrace=1
-          ctest --output-on-failure -j $(nproc) --timeout 600
+          set -o pipefail
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          xvfb-run -a ctest --output-on-failure -j "$(nproc)" --timeout 600 2>&1 | tee ubsan-ctest.log
+
+      - name: Gate on UndefinedBehaviorSanitizer findings
+        working-directory: build
+        run: |
+          if [ ! -f ubsan-ctest.log ]; then
+            echo "::error::ubsan-ctest.log missing - the test step did not run, so sanitizer status is unknown."
+            exit 1
+          fi
+          if grep -Eq 'runtime error:|SUMMARY: UndefinedBehaviorSanitizer' ubsan-ctest.log; then
+            echo "::error::UndefinedBehaviorSanitizer reported findings - see log below"
+            grep -E -B 2 -A 20 'runtime error:' ubsan-ctest.log | head -300
+            exit 1
+          fi
+          echo "No UndefinedBehaviorSanitizer findings."
+          if [ "${{ steps.ubsan_tests.outcome }}" != "success" ]; then
+            echo "::warning::ctest reported functional test failures (not sanitizer findings). See ubsan-ctest.log."
+          fi
 
       - name: Upload UBSan report
         uses: actions/upload-artifact@v5
@@ -134,9 +181,10 @@ jobs:
             *.log
 
   tsan-linux:
-    continue-on-error: true
     name: ThreadSanitizer (Linux)
     runs-on: ubuntu-22.04
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
         with:
@@ -149,7 +197,7 @@ jobs:
             libgl-dev libglu-dev libx11-xcb-dev libxkbcommon-x11-dev \
             libpcre2-dev libfreetype6-dev libpng-dev libjpeg-dev \
             libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev \
-            ninja-build ccache
+            ninja-build ccache xvfb libxcb-cursor0
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -176,9 +224,32 @@ jobs:
         run: cmake --build build --config Debug --parallel 2
 
       - name: Run tests with TSan
+        id: tsan_tests
+        # Pre-existing functional test failures must not mask sanitizer signal;
+        # the dedicated gate below is what actually fails this job.
+        continue-on-error: true
         working-directory: build
         run: |
-          ctest --output-on-failure -j 2 --timeout 600  # TSan requires single-threaded execution
+          set -o pipefail
+          export TSAN_OPTIONS=halt_on_error=0:second_deadlock_stack=1:history_size=4
+          xvfb-run -a ctest --output-on-failure -j 2 --timeout 600 2>&1 | tee tsan-ctest.log
+
+      - name: Gate on ThreadSanitizer findings
+        working-directory: build
+        run: |
+          if [ ! -f tsan-ctest.log ]; then
+            echo "::error::tsan-ctest.log missing - the test step did not run, so sanitizer status is unknown."
+            exit 1
+          fi
+          if grep -Eq 'WARNING: ThreadSanitizer|SUMMARY: ThreadSanitizer' tsan-ctest.log; then
+            echo "::error::ThreadSanitizer reported findings - see log below"
+            grep -E -B 2 -A 30 'WARNING: ThreadSanitizer' tsan-ctest.log | head -300
+            exit 1
+          fi
+          echo "No ThreadSanitizer findings."
+          if [ "${{ steps.tsan_tests.outcome }}" != "success" ]; then
+            echo "::warning::ctest reported functional test failures (not sanitizer findings). See tsan-ctest.log."
+          fi
 
       - name: Upload TSan report
         uses: actions/upload-artifact@v5
@@ -190,9 +261,10 @@ jobs:
             *.log
 
   asan-windows:
-    continue-on-error: true
     name: AddressSanitizer (Windows)
     runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
         with:
@@ -210,10 +282,15 @@ jobs:
           modules: 'qtwebsockets'
           cache: true
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
+      # MSVC-instrumented binaries link against clang_rt.asan_dynamic-x86_64.dll,
+      # which only lives in the MSVC toolchain bin directory. Without the full
+      # developer environment on PATH every test dies with STATUS_DLL_NOT_FOUND
+      # (0xC0000135). This must run BEFORE configure, because CMake bakes the
+      # configure-time PATH into per-test ENVIRONMENT properties.
+      - name: Set up MSVC developer environment (provides ASan runtime DLL)
+        uses: ilammy/msvc-dev-cmd@v1
         with:
-          vs-version: '17.0'
+          arch: x64
 
       - name: Configure CMake with ASan
         run: |
@@ -226,11 +303,44 @@ jobs:
       - name: Build
         run: cmake --build build --config Debug --parallel 2
 
-      - name: Run tests with ASan
+      - name: Verify ASan runtime is resolvable
         working-directory: build
         run: |
-          $env:ASAN_OPTIONS = "detect_leaks=1:abort_on_error=1"
-          ctest -C Debug --output-on-failure -j 4 --timeout 600
+          $dll = "clang_rt.asan_dynamic-x86_64.dll"
+          $hit = $env:PATH -split ';' | Where-Object { $_ -and (Test-Path (Join-Path $_ $dll)) } | Select-Object -First 1
+          if (-not $hit) {
+            Write-Error "$dll is not on PATH - every ASan test would fail with STATUS_DLL_NOT_FOUND (0xC0000135)."
+            exit 1
+          }
+          Write-Host "Found $dll in $hit"
+
+      - name: Run tests with ASan
+        id: asan_tests
+        # Pre-existing functional test failures must not mask sanitizer signal;
+        # the dedicated gate below is what actually fails this job.
+        continue-on-error: true
+        working-directory: build
+        run: |
+          $env:ASAN_OPTIONS = "symbolize=1:print_stacktrace=1"
+          ctest -C Debug --output-on-failure -j 4 --timeout 600 2>&1 | Tee-Object -FilePath asan-ctest.log
+
+      - name: Gate on AddressSanitizer findings
+        working-directory: build
+        shell: bash
+        run: |
+          if [ ! -f asan-ctest.log ]; then
+            echo "::error::asan-ctest.log missing - the test step did not run, so sanitizer status is unknown."
+            exit 1
+          fi
+          if grep -Eq 'ERROR: AddressSanitizer|SUMMARY: AddressSanitizer' asan-ctest.log; then
+            echo "::error::AddressSanitizer reported findings - see log below"
+            grep -E -B 2 -A 30 'ERROR: AddressSanitizer' asan-ctest.log | head -300
+            exit 1
+          fi
+          echo "No AddressSanitizer findings."
+          if [ "${{ steps.asan_tests.outcome }}" != "success" ]; then
+            echo "::warning::ctest reported functional test failures (not sanitizer findings). See asan-ctest.log."
+          fi
 
       - name: Upload ASan report
         uses: actions/upload-artifact@v5
