@@ -201,7 +201,24 @@ public:
                     for (int sigma = 0; sigma < 4; sigma++) {
                         // Note: g^λσ is the inverse metric (raised index)
                         double dg_mu_sigma_nu = dg[sigma][nu];           // ∂_μ g_σν
-                        double dg_nu_sigma_mu = dg[sigma][mu];           // ∂_ν g_σμ (swap μ↔ν in dg)
+                        // For ∂_ν g_σμ we need the derivative in the ν direction.
+                        // dg only holds μ-direction derivatives, so reuse it only when ν == μ.
+                        double dg_nu_sigma_mu;
+                        if (nu == mu) {
+                            dg_nu_sigma_mu = dg[sigma][mu];  // ∂_ν g_σμ == ∂_μ g_σμ when ν == μ
+                        } else {
+                            Event4D pos_p = position;
+                            Event4D pos_m = position;
+                            switch (nu) {
+                                case 0: pos_p.t += h; pos_m.t -= h; break;
+                                case 1: pos_p.x += h; pos_m.x -= h; break;
+                                case 2: pos_p.y += h; pos_m.y -= h; break;
+                                case 3: pos_p.z += h; pos_m.z -= h; break;
+                            }
+                            MetricTensor gp = metricField(pos_p);
+                            MetricTensor gm = metricField(pos_m);
+                            dg_nu_sigma_mu = (gp.g[sigma][mu] - gm.g[sigma][mu]) / (2.0 * h);
+                        }
                         // For ∂_σ g_μν, we need derivative in σ direction
                         // We already have dg for the μ direction; we need it for σ direction
                         // Recompute: ∂_σ g_μν
