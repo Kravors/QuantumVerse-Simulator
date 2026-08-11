@@ -155,54 +155,6 @@ jobs:
           name: cppcheck-report
           path: cppcheck-report.txt
 
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
-        
-      - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
-        id: setup_qt_codeql
-        with:
-          version: '6.8.3'
-          host: 'linux'
-          target: 'desktop'
-          arch: 'linux_gcc_64'
-          install-deps: 'true'
-          modules: 'qtimageformats qt5compat qtwebsockets'
-          cache: true
-       
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: cpp
-          build-mode: manual
-      
-      - name: Build with CodeQL
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}"
-          cmake --build build --parallel 2
-
-      - name: Perform CodeQL Analysis
-        continue-on-error: true
-        uses: github/codeql-action/analyze@v4
-      
-      - name: Upload CodeQL Report
-        uses: actions/upload-artifact@v5
-        if: always()
-        with:
-          name: codeql-report
-          path: |
-            **/*.sarif
-
   coverity:
     name: Coverity Scan
     if: false

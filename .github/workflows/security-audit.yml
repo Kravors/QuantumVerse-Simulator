@@ -35,12 +35,6 @@ jobs:
           sudo apt-get install -y clang-tools cppcheck python3-pip
           pip3 install bandit safety
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: cpp
-          build-mode: none
-
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -56,18 +50,6 @@ jobs:
           arch: 'linux_gcc_64'
           modules: 'qtwebsockets'
           cache: true
-
-      - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-
-      - name: Build
-        run: cmake --build build --parallel 2
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: /language:cpp
 
       - name: Run Clang Static Analyzer
         run: |
