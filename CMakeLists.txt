@@ -689,33 +689,37 @@ if(QUANTUMVERSE_BUILD_TESTS)
     add_test(NAME PropertyBasedTest COMMAND test_property_based)
 
     # 5.2 UI4D unit test (camera, slicing, probe, causal graph)
-    add_executable(test_ui4d
-        tests/unit/test_ui4d.cpp
-        src/ui4d/UI4D.cpp
-        src/rendering/CurvatureRenderer.cpp
-        src/rendering/QuantumGeometryRenderer.cpp
-        src/physics/CurvatureCalculator.cpp
-        third_party/glad/glad.cpp
-    )
-    target_include_directories(test_ui4d PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/third_party
-        ${CMAKE_SOURCE_DIR}/third_party/glad/include
-        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
-    )
-    target_link_libraries(test_ui4d PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test dilaton)
-    if(WIN32)
-        target_link_libraries(test_ui4d PRIVATE opengl32 dbghelp)
-    endif()
-    set_target_properties(test_ui4d PROPERTIES AUTOMOC ON)
-    target_compile_definitions(test_ui4d PRIVATE QUANTUMVERSE_USE_QML)
-    add_test(NAME UI4DTest COMMAND test_ui4d)
-    set_tests_properties(UI4DTest PROPERTIES
-        WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
-        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
-    )
-    if(TARGET deploy_qt_runtime)
-        add_dependencies(test_ui4d deploy_qt_runtime)
+    # Guarded by QUANTUMVERSE_USE_QT: test_ui4d links Qt6 (UI4D/QML sources) and
+    # would otherwise fail to configure in jobs that build without Qt enabled.
+    if(QUANTUMVERSE_USE_QT)
+        add_executable(test_ui4d
+            tests/unit/test_ui4d.cpp
+            src/ui4d/UI4D.cpp
+            src/rendering/CurvatureRenderer.cpp
+            src/rendering/QuantumGeometryRenderer.cpp
+            src/physics/CurvatureCalculator.cpp
+            third_party/glad/glad.cpp
+        )
+        target_include_directories(test_ui4d PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+        )
+        target_link_libraries(test_ui4d PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test dilaton)
+        if(WIN32)
+            target_link_libraries(test_ui4d PRIVATE opengl32 dbghelp)
+        endif()
+        set_target_properties(test_ui4d PROPERTIES AUTOMOC ON)
+        target_compile_definitions(test_ui4d PRIVATE QUANTUMVERSE_USE_QML)
+        add_test(NAME UI4DTest COMMAND test_ui4d)
+        set_tests_properties(UI4DTest PROPERTIES
+            WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
+        )
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_ui4d deploy_qt_runtime)
+        endif()
     endif()
     
     # Fuzz differential testing
@@ -1672,13 +1676,17 @@ endif()
     target_link_libraries(test_symbolic_verify PRIVATE dilaton)
 
     # Multi-user collaboration tests
-    add_executable(test_shared_session tests/unit/test_shared_session.cpp)
-    target_link_libraries(test_shared_session PRIVATE dilaton quantumverse_multi_user)
-    add_test(NAME SharedSessionTest COMMAND test_shared_session)
+    # Guarded by QUANTUMVERSE_USE_QT: they link quantumverse_multi_user, a Qt
+    # library, so they cannot configure/link when Qt is disabled.
+    if(QUANTUMVERSE_USE_QT)
+        add_executable(test_shared_session tests/unit/test_shared_session.cpp)
+        target_link_libraries(test_shared_session PRIVATE dilaton quantumverse_multi_user)
+        add_test(NAME SharedSessionTest COMMAND test_shared_session)
 
-    add_executable(test_signaling_client tests/unit/test_signaling_client.cpp)
-    target_link_libraries(test_signaling_client PRIVATE dilaton quantumverse_multi_user)
-    add_test(NAME SignalingClientTest COMMAND test_signaling_client)
+        add_executable(test_signaling_client tests/unit/test_signaling_client.cpp)
+        target_link_libraries(test_signaling_client PRIVATE dilaton quantumverse_multi_user)
+        add_test(NAME SignalingClientTest COMMAND test_signaling_client)
+    endif()
 endif()
 
 # Phase 4.3: Shader validation via PowerShell wrapper to bypass CMake quoting issues
