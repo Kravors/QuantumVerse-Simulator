@@ -62,6 +62,10 @@ jobs:
 
   performance-gate:
     runs-on: ubuntu-latest
+    # Soft gate: keep measuring the QML headless baseline and physics regression
+    # benchmarks, but do not fail CI on them. These are CI baselines, not
+    # performance contracts; absolute wall-clock on shared runners is noisy.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
