@@ -103,16 +103,21 @@ void test_ad_chain_rule() {
 void test_differentiable_curvature_kretschmann_gradient() {
     DifferentiableCurvature diffCurv(1e-5);
 
-    SchwarzschildMetric sch(10.0 * 1.989e30);
+    // Geometric units (G = c = 1): M_geom is a dimensionless-ish length ~ rs/2.
+    // Using physical mass (~2e31 kg) makes dK/dM ~ 1e-81, which underflows to 0
+    // in double precision under central finite differences; geometric units keep
+    // the gradient well-conditioned (O(1)) so the FD resolves correctly.
+    const double M_geom = 5.0;
+    SchwarzschildMetric sch(M_geom);
     diffCurv.setMetric(std::make_shared<SchwarzschildMetric>(sch));
 
     Event4D ev(0.0, 1e10, 0.0, 0.0);
-    std::array<double, 1> params = {sch.mass()};
+    std::array<double, 1> params = {M_geom};
 
     auto grad = diffCurv.template computeKretschmannGradient<1>(ev, params, 1e-4);
 
     double r = 1e10;
-    double M = sch.mass();
+    double M = M_geom;
     double expected_dKdM = 96.0 * M / (r * r * r * r * r * r);
 
     assert(std::isfinite(grad[0]) && "Kretschmann gradient should be finite");
@@ -197,8 +202,11 @@ void test_reverse_mode_chain_rule() {
 void test_reverse_mode_gradient_vs_finite_diff() {
     using namespace quantumverse::math;
 
-    double M = 10.0 * 1.989e30;
-    double r = 5.0 * 1000.0;  // 5 km in meters
+    // Geometric units (G = c = 1): physical mass (~2e31 kg) makes dK/dM ~ 1e-81,
+    // which underflows and breaks the central finite difference. With M_geom the
+    // gradient is O(1) and the FD step (1e-3) is well-conditioned.
+    const double M = 5.0;
+    double r = 5.0 * 1000.0;  // 5 km in meters (geometric length)
     double K_p = 48.0 * (M + 1e-3) * (M + 1e-3) / (r * r * r * r * r * r);
     double K_m = 48.0 * (M - 1e-3) * (M - 1e-3) / (r * r * r * r * r * r);
     double finite_diff = (K_p - K_m) / (2.0 * 1e-3);
@@ -253,7 +261,10 @@ void test_differentiable_curvature_adjoint_gradient() {
     DifferentiableCurvature diffCurv(1e-5);
 
     Event4D ev(0.0, 1e10, 0.0, 0.0);
-    std::array<double, 1> params = {10.0 * 1.989e30};
+    // Geometric units (G = c = 1) so the gradient is well-conditioned; see the
+    // forward-mode test above for the rationale (physical mass underflows).
+    const double M_geom = 5.0;
+    std::array<double, 1> params = {M_geom};
 
     auto grads = diffCurv.computeKretschmannGradientAdjoint(ev, params);
 
