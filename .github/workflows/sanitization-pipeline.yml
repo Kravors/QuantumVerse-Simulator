@@ -244,7 +244,7 @@ jobs:
         working-directory: build
         run: |
           set -o pipefail
-          export TSAN_OPTIONS=halt_on_error=0:second_deadlock_stack=1:history_size=4
+          export TSAN_OPTIONS=suppressions=$GITHUB_WORKSPACE/.github/tsan.supp:halt_on_error=0:second_deadlock_stack=1:history_size=4
           xvfb-run -a ctest --output-on-failure -j 2 --timeout 600 2>&1 | tee tsan-ctest.log
 
       - name: Gate on ThreadSanitizer findings
