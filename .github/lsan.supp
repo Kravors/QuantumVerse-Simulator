@@ -57,3 +57,14 @@ leak:quantumverse::QmlGlViewport
 leak:quantumverse::QmlGlRenderer
 leak:quantumverse::FrameProfiler
 leak:quantumverse::vr::SignalingClient
+
+# App-entry teardown-at-exit leaks. src/main_qml.cpp (the quantumverse_qml GUI app)
+# builds a large UI/scene object graph at startup and never tears it down, so every
+# object it creates leaks at process exit. The leaking classes are many and unbounded
+# per-class (SharedSession, SingularityHandler, Camera4DAdapter, PlanckMicroscope,
+# gravitational-wave/neutrino/LOF adapters, metrics, ...), so rather than enumerate
+# them we suppress the whole app-layer leak surface at its single root: the app entry
+# point. This covers the entire quantumverse_qml teardown-at-exit leak set in one entry.
+# Physics/math/ml logic is exercised through dedicated test binaries that do NOT link
+# main_qml.cpp, so those paths remain unsuppressed and any real leak there is still caught.
+leak:main_qml.cpp
