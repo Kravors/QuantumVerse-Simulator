@@ -31,7 +31,7 @@ jobs:
           version: "17.0"
 
       - name: Configure CMake with libFuzzer
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=address -g"
 
       - name: Build fuzzer
         run: cmake --build build --parallel 2
@@ -39,10 +39,10 @@ jobs:
       - name: Run metric fuzzer
         run: |
           cd build
-          if [ -f ./fuzz_metric ]; then
-            timeout 300 ./fuzz_metric -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_physics_invariants ]; then
+            timeout 300 ./fuzz_physics_invariants -max_total_time=300 -detect_leaks=1 || true
           else
-            echo "fuzz_metric not available - skipping"
+            echo "fuzz_physics_invariants not available - skipping"
           fi
 
       - name: Upload fuzzer crash reports
@@ -69,7 +69,7 @@ jobs:
           version: "17.0"
 
       - name: Configure CMake with libFuzzer
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=address -g"
 
       - name: Build fuzzer
         run: cmake --build build --parallel 2
@@ -77,10 +77,10 @@ jobs:
       - name: Run geodesic fuzzer
         run: |
           cd build
-          if [ -f ./fuzz_geodesic ]; then
-            timeout 300 ./fuzz_geodesic -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_geodesic_differential ]; then
+            timeout 300 ./fuzz_geodesic_differential -max_total_time=300 -detect_leaks=1 || true
           else
-            echo "fuzz_geodesic not available - skipping"
+            echo "fuzz_geodesic_differential not available - skipping"
           fi
 
       - name: Upload fuzzer crash reports
@@ -107,7 +107,7 @@ jobs:
           version: "17.0"
 
       - name: Configure CMake with libFuzzer
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -g"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-fsanitize=address -g"
 
       - name: Build fuzzer
         run: cmake --build build --parallel 2
@@ -115,10 +115,10 @@ jobs:
       - name: Run ONNX fuzzer
         run: |
           cd build
-          if [ -f ./fuzz_onnx ]; then
-            timeout 300 ./fuzz_onnx -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_discovery_instruments ]; then
+            timeout 300 ./fuzz_discovery_instruments -max_total_time=300 -detect_leaks=1 || true
           else
-            echo "fuzz_onnx not available - skipping"
+            echo "fuzz_discovery_instruments not available - skipping"
           fi
 
       - name: Upload fuzzer crash reports

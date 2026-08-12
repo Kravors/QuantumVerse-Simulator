@@ -730,7 +730,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/src
         )
         target_link_libraries(fuzz_geodesic_differential PRIVATE dilaton)
-        target_compile_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer,libFuzzer)
+        target_compile_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer)
         target_link_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer)
 
         add_executable(fuzz_discovery_instruments tests/fuzz/fuzz_discovery_instruments.cpp)
@@ -738,7 +738,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/src
         )
         target_link_libraries(fuzz_discovery_instruments PRIVATE dilaton)
-        target_compile_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer,libFuzzer)
+        target_compile_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer)
         target_link_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer)
     endif()
 
