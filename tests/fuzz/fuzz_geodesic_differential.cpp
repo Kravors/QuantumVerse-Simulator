@@ -1,8 +1,8 @@
 #include "math/Vector4D.h"
 #include "math/Matrix4x4.h"
 #include "physics/GeodesicIntegrator.h"
-#include "Event4D.h"
-#include "MetricTensor.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include <cstdint>
 #include <cstddef>
 #include <cmath>
