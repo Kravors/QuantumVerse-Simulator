@@ -13,6 +13,8 @@ leak:libQt6Qml
 leak:libQt6Quick
 leak:libQt6OpenGL
 leak:libQt6Widgets
+leak:libQt6Network
+leak:libQt6WebSockets
 
 # Fontconfig and FreeType keep process-wide caches alive until exit.
 leak:libfontconfig
