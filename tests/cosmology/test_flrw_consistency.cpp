@@ -136,7 +136,8 @@ void test_frw_hubble_parameter_consistency() {
     for (double t : times) {
         double H = frw.hubbleParameter(t);
         double a = frw.scaleFactor(t);
-        double adot = (frw.scaleFactor(t + 1e6) - frw.scaleFactor(t - 1e6)) / (2.0 * 1e6);
+        double h = std::max(1e-6, std::abs(t) * 1e-5);
+        double adot = (frw.scaleFactor(t + h) - frw.scaleFactor(t - h)) / (2.0 * h);
         double H_expected = adot / a;
         assert(std::isfinite(H) && H > 0.0 && "Hubble parameter should be finite and positive");
         assert(relError(H, H_expected) < 1e-6 && "Hubble parameter H = ȧ/a mismatch");
