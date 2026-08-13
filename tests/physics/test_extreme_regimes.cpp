@@ -112,7 +112,7 @@ void test_kerr_naked_singularity() {
 
     SingularityHandler handler(SingularityType::KERR,
         M * Event4D::C * Event4D::C / Event4D::G,
-        a * M * Event4D::C * Event4D::C / Event4D::G, 0.0);
+        a * M * Event4D::C * Event4D::C * Event4D::C / Event4D::G, 0.0);
 
     assert(handler.getProperties().is_naked && "Should detect naked singularity");
     Event4D ev(0.0, 5.0 * M, 0.0, 0.0);
