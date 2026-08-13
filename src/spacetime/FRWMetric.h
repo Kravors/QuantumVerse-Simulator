@@ -223,7 +223,7 @@ private:
       */
     double derivativeScaleFactor(double t) const {
         // Use relative step size to handle large t values (cosmic time ~1e17)
-        const double h = std::max(1e-6, std::abs(t) * 1e-10);
+        const double h = std::max(1e-6, std::abs(t) * 1e-5);
         double a_plus = scaleFactor_(t + h);
         double a_minus = scaleFactor_(t - h);
         return (a_plus - a_minus) / (2.0 * h);
