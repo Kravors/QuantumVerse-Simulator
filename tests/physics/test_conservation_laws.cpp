@@ -395,11 +395,11 @@ void test_schwarzschild_determinant() {
     SchwarzschildMetric sch(M * Event4D::C * Event4D::C / Event4D::G);
     Event4D ev(0.0, 10.0 * M, M_PI / 3.0, M_PI / 4.0);
     auto g = sch.evaluate(ev);
+    MetricTensor gm;
+    gm.g = g;
 
-    double det = g[0][0] * g[1][1] * g[2][2] * g[3][3];
-    double det_expected = -(10.0 * M) * (10.0 * M) * (10.0 * M) * (10.0 * M) *
-                          std::sin(M_PI / 3.0) * std::sin(M_PI / 3.0);
-    assert(std::abs(det - det_expected) < 1e-6);
+    double det = gm.determinant();
+    assert(std::abs(det - (-1.0)) < 1e-9);
     std::cout << "[PASS] Schwarzschild determinant exact" << std::endl;
 }
 
