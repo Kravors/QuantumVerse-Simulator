@@ -733,7 +733,19 @@ if(QUANTUMVERSE_BUILD_TESTS)
         target_compile_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer)
         target_link_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer)
 
-        add_executable(fuzz_discovery_instruments tests/fuzz/fuzz_discovery_instruments.cpp)
+        add_executable(fuzz_discovery_instruments
+            tests/fuzz/fuzz_discovery_instruments.cpp
+            src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
+            src/discovery/GalacticRotationCurveScanner.cpp
+            src/discovery/FineStructureConstantDriftObservatory.cpp
+            src/discovery/BosonStarCollisionPredictor.cpp
+            src/discovery/NeutronStarGlitchPhaseDetector.cpp
+            src/discovery/UltralightDMWaveInterferometer.cpp
+            src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+            src/discovery/PrimordialLithiumCrisisSolver.cpp
+            src/discovery/GalacticTidalStreamCartographer.cpp
+            src/discovery/RecombinationConstantVariationImager.cpp
+        )
         target_include_directories(fuzz_discovery_instruments PRIVATE
             ${CMAKE_SOURCE_DIR}/src
         )
