@@ -75,6 +75,7 @@ jobs:
 
       - name: Set Qt prefix path
         id: qt_prefix
+        shell: bash
         run: |
           if [ -n "${{ steps.setup_qt_linux.outputs.Qt6_DIR }}" ]; then
             echo "prefix=${{ steps.setup_qt_linux.outputs.Qt6_DIR }}" >> $GITHUB_OUTPUT
@@ -87,6 +88,7 @@ jobs:
           fi
 
       - name: Configure CMake
+        shell: bash
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.qt_prefix.outputs.prefix }}"
 
       - name: Build
