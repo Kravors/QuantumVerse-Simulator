@@ -120,7 +120,7 @@ void test_time_dilation_schwarzschild() {
     double r1 = 20.0 * M;
     double r2 = 10.0 * M;
 
-    SingularityHandler handler(SingularityType::SCHWARZSCHILD, M, 0.0, 0.0);
+    SingularityHandler handler(SingularityType::SCHWARZSCHILD, M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     Event4D event1(0.0, r1, 0.0, 0.0);
     Event4D event2(0.0, r2, 0.0, 0.0);
