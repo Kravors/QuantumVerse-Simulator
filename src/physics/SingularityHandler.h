@@ -150,11 +150,12 @@ public:
             props.has_ergosphere = false;
         } else if (type_ == SingularityType::REISSNER_NORDSTROM) {
             // RN horizon: r+ = M + sqrt(M² - Q²) in geometric units
-            // In SI: r+ = r_s/2 * (1 + sqrt(1 - q²)) where q = Q²/(4πε₀c²M)
+            // In SI: r+ = r_s/2 * (1 + sqrt(1 - q)) where q = Q²/(4πε₀c²M)
+            // is the squared charge ratio (Q/M)², so the term under the root is (1 - q), not (1 - q²).
             double q = charge_ * charge_ / (4.0 * M_PI * 8.854187817e-12 * Event4D::C2 * mass_);
-            props.event_horizon_radius = props.schwarzschild_radius / 2.0 * (1.0 + std::sqrt(1.0 - q * q));
+            props.event_horizon_radius = props.schwarzschild_radius / 2.0 * (1.0 + std::sqrt(1.0 - q));
             props.has_ergosphere = false;
-            props.inner_horizon_radius = props.schwarzschild_radius / 2.0 * (1.0 - std::sqrt(1.0 - q * q));
+            props.inner_horizon_radius = props.schwarzschild_radius / 2.0 * (1.0 - std::sqrt(1.0 - q));
         } else if (type_ == SingularityType::NAKED) {
             props.is_naked = true;
             props.has_ergosphere = false;
