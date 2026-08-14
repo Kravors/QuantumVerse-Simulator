@@ -265,30 +265,32 @@ void test_ehvi_improves_hypervolume() {
     }
 
     auto front_before = agent.getParetoFront();
-    std::vector<double> ref_before(4, 0.0);
-    for (const auto& p : front_before) {
-        for (size_t i = 0; i < 4 && i < p.objectives.size(); ++i) {
-            ref_before[i] = std::max(ref_before[i], p.objectives[i]);
-        }
-    }
-    for (auto& r : ref_before) r = r * 1.1 + 0.1;
-    double hv_before = agent.computeHypervolume(front_before, ref_before);
-
     for (int i = 0; i < 10; ++i) {
         std::vector<double> next = agent.selectNextActiveLearningPoint();
         auto physical = agent.denormalizeParams(next);
         agent.evaluateTheory(physical);
     }
-
     auto front_after = agent.getParetoFront();
-    std::vector<double> ref_after(4, 0.0);
-    for (const auto& p : front_after) {
-        for (size_t i = 0; i < 4 && i < p.objectives.size(); ++i) {
-            ref_after[i] = std::max(ref_after[i], p.objectives[i]);
+
+    // Use a single reference point derived from the union of both fronts so the
+    // hypervolume comparison is well-defined. With a fixed reference and a
+    // monotonically-improving Pareto archive, the hypervolume is non-decreasing
+    // (recomputing the reference separately before/after introduced false
+    // decreases when the archive's worst objectives improved).
+    std::vector<double> ref(4, 0.0);
+    auto accum = [&](const decltype(front_before)& front) {
+        for (const auto& p : front) {
+            for (size_t i = 0; i < 4 && i < p.objectives.size(); ++i) {
+                ref[i] = std::max(ref[i], p.objectives[i]);
+            }
         }
-    }
-    for (auto& r : ref_after) r = r * 1.1 + 0.1;
-    double hv_after = agent.computeHypervolume(front_after, ref_after);
+    };
+    accum(front_before);
+    accum(front_after);
+    for (auto& r : ref) r = r * 1.1 + 0.1;
+
+    double hv_before = agent.computeHypervolume(front_before, ref);
+    double hv_after = agent.computeHypervolume(front_after, ref);
 
     assert(hv_after >= hv_before && "Hypervolume should not decrease after more evaluations");
     std::cout << "  Hypervolume before = " << hv_before

@@ -42,6 +42,14 @@ std::vector<InstrumentFinding> EMBrightGWCounterpartDetector::analyze(
             const Event4D& a = trajectory[i];
             const Event4D& b = trajectory[j];
 
+            // Guard against non-finite coordinates/timestamps: with NaN/Inf the
+            // angular separation is NaN, so the threshold comparison never skips
+            // the pair and a finding with NaN confidence would be emitted.
+            if (!std::isfinite(a.x) || !std::isfinite(a.y) || !std::isfinite(a.t) ||
+                !std::isfinite(b.x) || !std::isfinite(b.y) || !std::isfinite(b.t)) {
+                continue;
+            }
+
             double angSep = angularSeparation(a, b);
             double dt = timeDelaySec(a, b);
 

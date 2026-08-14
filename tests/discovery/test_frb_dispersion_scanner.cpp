@@ -32,7 +32,10 @@ std::vector<Event4D> makeCleanDMTrajectory() {
     traj.reserve(20);
     for (int i = 0; i < 20; ++i) {
         double expectedDM = 100.0 + 5.0 * i;
-        double observedDM = expectedDM + 0.5 * expectedDM * (0.5 - std::sin(i * 0.5));
+        // Clean noise is a small fraction of the measurement uncertainty (5.0),
+        // not a fraction of the DM itself, so the per-point residual stays
+        // well below threshold and the trajectory is correctly flagged clean.
+        double observedDM = expectedDM + 0.3 * 5.0 * (0.5 - std::sin(i * 0.5));
         traj.emplace_back(static_cast<double>(i), observedDM, 5.0, expectedDM);
     }
     return traj;
