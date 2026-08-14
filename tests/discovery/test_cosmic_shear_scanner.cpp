@@ -42,7 +42,7 @@ std::vector<Event4D> makeLambdaCDMShearTrajectory() {
 std::vector<Event4D> makeAnomalousShearTrajectory() {
     auto traj = makeLambdaCDMShearTrajectory();
     for (size_t i = 10; i < traj.size(); ++i) {
-        traj[i].x *= 10.0; // 10x excess shear
+        traj[i].x *= 1.5; // clear (50%) excess shear, well above the 5% errors
     }
     return traj;
 }

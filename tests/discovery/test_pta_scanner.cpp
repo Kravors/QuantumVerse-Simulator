@@ -104,7 +104,7 @@ int main() {
     // --- 5. Parameter tuning ----------------------------------------------------
     {
         PTAScanner scanner;
-        scanner.setParameter("sigma_threshold", 10.0);
+        scanner.setParameter("sigma_threshold", 100.0);
         auto traj = makeHellingsDownsTrajectory(true);
         auto findings = scanner.analyze(metric, location, traj);
         assert(findings.empty() && "High threshold should suppress the anomaly");

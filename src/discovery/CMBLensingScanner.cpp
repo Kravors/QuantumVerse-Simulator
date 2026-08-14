@@ -46,27 +46,23 @@ std::vector<InstrumentFinding> CMBLensingScanner::analyze(
     size_t n = ells.size();
     if (n < static_cast<size_t>(minPoints)) return findings;
 
-    std::vector<double> residuals;
-    residuals.reserve(n);
-    double rss = 0.0;
+    // Significance is the maximum *fractional* deviation of the observed C_l from
+    // the ΛCDM prediction. Normalising by the residual RMS (as before) was
+    // degenerate: because both the clean noise and a true excess scale with C_l,
+    // the resulting sigma was ~sqrt(N) for any input and a 900% excess could not
+    // be distinguished from the clean trajectory. Using the fractional deviation
+    // makes the detection sensitive to the actual anomaly amplitude.
+    double maxFracRes = 0.0;
     for (size_t i = 0; i < n; ++i) {
         double predicted = theoreticalCl(ells[i]);
-        double residual = cls[i] - predicted;
-        residuals.push_back(residual);
-        rss += residual * residual;
+        if (predicted <= 0.0) continue;
+        double frac = std::abs(cls[i] - predicted) / predicted;
+        if (std::isnan(frac) || std::isinf(frac)) continue;
+        maxFracRes = std::max(maxFracRes, frac);
     }
 
-    double dof = static_cast<double>(n);
-    if (dof < 1.0) return findings;
-
-    double sigmaRes = std::sqrt(rss / dof + 1e-30);
-    if (sigmaRes < 1e-30) return findings;
-
-    double maxAbsRes = 0.0;
-    for (double r : residuals) {
-        maxAbsRes = std::max(maxAbsRes, std::abs(r));
-    }
-    double significance = maxAbsRes / sigmaRes;
+    double significance = maxFracRes;
+    if (significance < 1e-30) return findings;
 
     if (significance > sigThreshold) {
         double confidence = std::min(1.0, significance / (2.0 * sigThreshold));
@@ -76,16 +72,13 @@ std::vector<InstrumentFinding> CMBLensingScanner::analyze(
         finding.instrumentName = getName();
         finding.severity = confidenceToSeverity(confidence);
         finding.confidence = confidence;
-        finding.description = "CMB lensing anomaly detected: residual RMS = " +
-            std::to_string(sigmaRes) + " uK^2, max|residual| = " +
-            std::to_string(maxAbsRes) + " uK^2, significance = " +
-            std::to_string(significance) + " sigma (threshold = " +
-            std::to_string(sigThreshold) + "). Potential dark-matter / "
-            "neutrino-mass deviation from ΛCDM.";
+        finding.description = "CMB lensing anomaly detected: max fractional "
+            "deviation from ΛCDM C_l = " + std::to_string(significance) +
+            " (threshold = " + std::to_string(sigThreshold) + "). Potential "
+            "dark-matter / neutrino-mass deviation from ΛCDM.";
         finding.location = location;
         finding.timestamp = location.t;
-        finding.parameters["sigma_residual"] = sigmaRes;
-        finding.parameters["max_abs_residual"] = maxAbsRes;
+        finding.parameters["max_fractional_deviation"] = significance;
         finding.parameters["significance_sigma"] = significance;
         finding.parameters["n_multipoles"] = static_cast<double>(n);
 
