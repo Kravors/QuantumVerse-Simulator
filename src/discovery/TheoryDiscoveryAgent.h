@@ -216,9 +216,12 @@ public:
     std::vector<double> computeModelWeights() const;
 
     /**
-     * @brief Get the last computed model weights.
+     * @brief Get the current model weights (recomputed from the full ensemble
+     * of evaluated theories so callers see up-to-date posteriors after
+     * evaluations or live-alert ingestion, without an explicit
+     * computeModelWeights() call).
      */
-    std::vector<double> getModelWeights() const { return model_weights_; }
+    std::vector<double> getModelWeights() const { return computeModelWeights(); }
 
     /**
      * @brief BMA prediction: weighted average of a scalar quantity across the Pareto front.
@@ -485,6 +488,11 @@ private:
     mutable std::vector<ParetoPoint> pareto_archive_;
     mutable std::vector<DiscoveryResult> pareto_results_;
     mutable std::vector<double> model_weights_;
+
+    // Full ensemble of evaluated theories. BMA averages over *every* candidate
+    // model, not just the non-dominated Pareto front, so we keep all evaluated
+    // results here (upserted by parameter vector on each evaluation).
+    mutable std::vector<DiscoveryResult> all_results_;
 
     // Active learning state
     bool active_learning_enabled_;
