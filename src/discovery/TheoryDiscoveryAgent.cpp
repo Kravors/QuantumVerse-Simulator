@@ -348,6 +348,30 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
         updateParetoArchive(point, result);
     }
 
+    // Maintain the full ensemble of evaluated theories for BMA. BMA should
+    // average over every candidate model, not just the non-dominated Pareto
+    // front (which collapses when one theory dominates another). Upsert by
+    // parameter vector so a live-alert re-evaluation replaces the prior entry
+    // in place rather than leaving stale duplicates.
+    {
+        bool replaced = false;
+        for (auto& existing : all_results_) {
+            bool same = (existing.parameters.size() == result.parameters.size());
+            for (size_t k = 0; same && k < result.parameters.size(); ++k) {
+                if (std::fabs(existing.parameters[k] - result.parameters[k]) > 1e-9) {
+                    same = false;
+                    break;
+                }
+            }
+            if (same) {
+                existing = result;
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) all_results_.push_back(result);
+    }
+
     return result;
 }
 
@@ -1346,6 +1370,7 @@ void TheoryDiscoveryAgent::resetParetoArchive() {
     pareto_archive_.clear();
     pareto_results_.clear();
     model_weights_.clear();
+    all_results_.clear();
 }
 
 std::vector<double> TheoryDiscoveryAgent::computeObjectives(const DiscoveryResult& result) const {
@@ -1389,15 +1414,15 @@ void TheoryDiscoveryAgent::updateParetoArchive(const ParetoPoint& point, const D
 // ============================================================================
 
 std::vector<double> TheoryDiscoveryAgent::computeModelWeights() const {
-    if (pareto_results_.empty()) {
+    if (all_results_.empty()) {
         model_weights_.clear();
         return {};
     }
 
     std::vector<double> log_weights;
-    log_weights.reserve(pareto_results_.size());
+    log_weights.reserve(all_results_.size());
 
-    for (const auto& result : pareto_results_) {
+    for (const auto& result : all_results_) {
         int k = static_cast<int>(result.parameters.size());
         int n = result.n_data_points > 0 ? result.n_data_points : 2;
         double bic = computeBIC(result.raw_observational_chi2, k, n);
@@ -1425,13 +1450,13 @@ double TheoryDiscoveryAgent::predictBMA(
     const std::function<double(const DiscoveryResult&)>& quantity
 ) const {
     auto weights = computeModelWeights();
-    if (weights.empty() || pareto_results_.size() != weights.size()) {
+    if (weights.empty() || all_results_.size() != weights.size()) {
         return 0.0;
     }
 
     double prediction = 0.0;
-    for (size_t i = 0; i < pareto_results_.size(); ++i) {
-        prediction += weights[i] * quantity(pareto_results_[i]);
+    for (size_t i = 0; i < all_results_.size(); ++i) {
+        prediction += weights[i] * quantity(all_results_[i]);
     }
     return prediction;
 }
@@ -1440,14 +1465,14 @@ double TheoryDiscoveryAgent::predictiveVarianceBMA(
     const std::function<double(const DiscoveryResult&)>& quantity
 ) const {
     auto weights = computeModelWeights();
-    if (weights.empty() || pareto_results_.size() != weights.size()) {
+    if (weights.empty() || all_results_.size() != weights.size()) {
         return 0.0;
     }
 
     double mean = predictBMA(quantity);
     double variance = 0.0;
-    for (size_t i = 0; i < pareto_results_.size(); ++i) {
-        double q = quantity(pareto_results_[i]);
+    for (size_t i = 0; i < all_results_.size(); ++i) {
+        double q = quantity(all_results_[i]);
         double diff = q - mean;
         variance += weights[i] * diff * diff;
     }
