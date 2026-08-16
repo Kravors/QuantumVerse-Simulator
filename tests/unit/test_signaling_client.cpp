@@ -7,6 +7,7 @@
  */
 
 #include "vr/SignalingClient.h"
+#include <QCoreApplication>
 #include <cassert>
 #include <iostream>
 #include <algorithm>
@@ -27,8 +28,15 @@ static bool approxEqual(double a, double b, double eps = 1e-9) {
     return std::abs(a - b) < eps;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    // A QCoreApplication is required: SignalingClient owns a QWebSocket and a
+    // QTimer, both of which spin up event-driven background activity. Without a
+    // Q*Application the websocket's network thread is not owned by an event
+    // dispatcher, so destroying the client (and process teardown) hangs
+    // indefinitely when no server is reachable.
+    QCoreApplication app(argc, argv);
+
     std::cout << "=== SignalingClientTest ===" << std::endl;
 
     // --- Client ID generation ------------------------------------------------
