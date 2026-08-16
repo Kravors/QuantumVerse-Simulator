@@ -2473,9 +2473,12 @@ void QmlGlViewport::renderGL()
     // Composite the rendered scene (held in m_fbo) onto the window back buffer.
     // The viewport item intentionally provides no QSG node (updatePaintNode
     // returns null), so the scene must be drawn here, during beforeRendering,
-    // or the viewport would stay black. Live display only - screenshots and the
+    // or the viewport would stay black. Skip this in headless/benchmark mode
+    // (m_headlessTargetFrames > 0): there is no on-screen surface to present
+    // to, so the blit is pure overhead - and on software-GL CI runners it is
+    // expensive enough to trip the performance gate. Screenshots and the
     // headless path still read m_fbo directly.
-    {
+    if (m_headlessTargetFrames == 0) {
         const int ww = window() ? window()->width() : w;
         const int wh = window() ? window()->height() : h;
         glad_glDisable(GL_SCISSOR_TEST);

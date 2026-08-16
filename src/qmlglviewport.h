@@ -566,7 +566,10 @@ public:
     void setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter);
     std::shared_ptr<Camera4DAdapter> camera4DAdapter() const { return m_camera4DAdapter; }
 
-    void setHeadlessFrameTarget(int frames) { if (m_renderer) m_renderer->setHeadlessFrameTarget(frames); }
+    void setHeadlessFrameTarget(int frames) {
+        m_headlessTargetFrames = frames;
+        if (m_renderer) m_renderer->setHeadlessFrameTarget(frames);
+    }
     bool headlessTargetReached() const { return m_renderer ? m_renderer->headlessTargetReached() : false; }
 
     void requestScreenshot(const QString &path) { if (m_renderer && window()) m_renderer->requestScreenshot(path); }
@@ -634,6 +637,7 @@ private:
     float m_simulationTime;
     float m_frameRate;
     int m_frameCount;
+    int m_headlessTargetFrames = 0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode
     qint64 m_lastFrameTime;
 
     // FPS averaging state (measured from the actual render rate in renderGL)
