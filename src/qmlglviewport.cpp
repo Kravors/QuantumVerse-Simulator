@@ -2470,6 +2470,24 @@ void QmlGlViewport::renderGL()
     m_fbo->release();
     QOpenGLFramebufferObject::bindDefault();
 
+    // Composite the rendered scene (held in m_fbo) onto the window back buffer.
+    // The viewport item intentionally provides no QSG node (updatePaintNode
+    // returns null), so the scene must be drawn here, during beforeRendering,
+    // or the viewport would stay black. Live display only - screenshots and the
+    // headless path still read m_fbo directly.
+    {
+        const int ww = window() ? window()->width() : w;
+        const int wh = window() ? window()->height() : h;
+        glad_glDisable(GL_SCISSOR_TEST);
+        glad_glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo->handle());
+        glad_glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glad_glViewport(0, 0, ww, wh);
+        glad_glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glad_glBlitFramebuffer(0, 0, w, h, 0, 0, ww, wh,
+                               GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glad_glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     m_textureDirty = true;
 
     // FPS is measured from the actual render rate, averaged over ~1 s
@@ -2521,6 +2539,11 @@ void QmlGlViewport::geometryChange(const QRectF& newGeometry, const QRectF& oldG
 
 QSGNode *QmlGlViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *)
 {
+    // The rendered scene is composited directly onto the window back buffer in
+    // renderGL() (connected to QQuickWindow::beforeRendering), so this item is
+    // intentionally transparent: it returns no QSG content. Returning the old
+    // node (which is null on first call) keeps the item see-through so the GL
+    // output drawn during beforeRendering is what the user actually sees.
     return oldNode;
 }
 

@@ -771,6 +771,14 @@ int main(int argc, char* argv[])
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
                 std::cerr.flush();
+
+                // The OpenGL scene is composited onto the window in
+                // QmlGlViewport::renderGL() (beforeRendering); the viewport item
+                // itself is transparent. Make the window clear transparent so the
+                // scene graph does not paint an opaque background over the GL view.
+                if (auto* win = viewport->window()) {
+                    win->setColor(Qt::transparent);
+                }
             } else {
                 qWarning("QuantumVerse: Could not find QmlGlViewport in QML object tree");
                 std::cerr << "QuantumVerse: Could not find QmlGlViewport in QML object tree" << std::endl;
