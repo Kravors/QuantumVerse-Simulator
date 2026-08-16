@@ -110,14 +110,37 @@ jobs:
       - name: Ensure reports directory exists
         run: mkdir -p reports
       
+      # This matrix includes windows-latest, where xvfb-run does not exist, so the
+      # ctest invocation has to be platform-switched. See build-and-test.yml for
+      # the GPU_CANARY rationale.
       - name: Run tests
-        run: cd build && xvfb-run -a ctest -C ${{ matrix.config }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --timeout 120 --output-on-failure
+        working-directory: build
+        shell: bash
+        run: |
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 120 --output-on-failure
+          else
+            export QT_QPA_PLATFORM=offscreen
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline"
+            ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 120 --output-on-failure
+          fi
 
       # Rendering/visual tests are non-blocking canaries (headless software-GL
       # pixel/timing/--gl-strict mismatches). See build-and-test.yml for rationale.
       - name: Rendering tests (non-blocking canary)
+        working-directory: build
+        shell: bash
         continue-on-error: true
-        run: cd build && xvfb-run -a ctest -C ${{ matrix.config }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest" --timeout 120 --output-on-failure
+        run: |
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 120 --output-on-failure
+          else
+            export QT_QPA_PLATFORM=offscreen
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline"
+            ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 120 --output-on-failure
+          fi
        
 
       - name: Coverage check

@@ -269,14 +269,27 @@ void test_frw_curvature_types() {
     assert(closed.curvature() == 1 && "Closed universe should have k=+1");
     assert(open.curvature() == -1 && "Open universe should have k=-1");
 
-    Event4D ev(T0 * 0.8, 1e9, M_PI / 4.0, M_PI / 3.0);
+    // In the FLRW line element ds² = -c²dt² + a²[dr²/(1-kr²) + r²dΩ²] the comoving
+    // radial coordinate r is measured in units of the curvature radius whenever
+    // k = ±1, so the chart is only defined for |r| < 1 in the closed case
+    // (r = 1 is the coordinate singularity at the 3-sphere equator). Probing the
+    // signature therefore has to happen inside that domain; r = 1e9 lies far
+    // outside it and makes 1 - kr² negative by construction.
+    // Note: g_rr for FLAT and OPEN is positive for every r, so a single
+    // in-domain radius exercises all three curvature types.
+    const double r = 0.5;
+    Event4D ev(T0 * 0.8, r, M_PI / 4.0, M_PI / 3.0);
     auto g_flat = flat.evaluate(ev);
     auto g_closed = closed.evaluate(ev);
     auto g_open = open.evaluate(ev);
 
+    assert(1.0 - 1.0 * r * r > 0.0 && "Test radius must lie inside the closed FRW chart");
     assert(g_flat.g[1][1] > 0.0 && "Flat g_rr should be positive");
     assert(g_closed.g[1][1] > 0.0 && "Closed g_rr should be positive");
     assert(g_open.g[1][1] > 0.0 && "Open g_rr should be positive");
+    // Closed slices are "smaller" than flat ones at fixed r (1-r² < 1), open larger.
+    assert(g_closed.g[1][1] > g_flat.g[1][1] && "Closed g_rr must exceed flat g_rr for |r|<1");
+    assert(g_open.g[1][1] < g_flat.g[1][1] && "Open g_rr must be below flat g_rr");
     std::cout << "[PASS] FRW curvature types: flat/closed/open verified" << std::endl;
 }
 
@@ -324,25 +337,33 @@ void test_frw_deceleration_parameter() {
 
     double t = T0 * 0.8;
 
+    // The finite-difference step has to scale with cosmic time. With a fixed
+    // h = 1e6 s at t ~ 3.5e17 s the second-difference numerator
+    // a(t+h) - 2a(t) + a(t-h) is of order a''h^2 ~ 1e-23 while the round-off in
+    // a(t) ~ 1 is ~1e-16, so the result was pure cancellation noise. Using a
+    // relative step keeps both derivatives well conditioned: the round-off term
+    // scales as eps/h^2 and the truncation term as (h/t)^2, and h/t = 1e-2 puts
+    // both far below the 1e-3 tolerance asserted here.
+    const double h1 = t * 1e-2;   // step for the first derivative
+    const double h2 = t * 1e-2;   // step for the second derivative
+
+    auto decelerationParameter = [&](const FRWMetric& model) {
+        const double a = model.scaleFactor(t);
+        const double adot = (model.scaleFactor(t + h1) - model.scaleFactor(t - h1)) / (2.0 * h1);
+        const double addot = (model.scaleFactor(t + h2) - 2.0 * a + model.scaleFactor(t - h2)) / (h2 * h2);
+        return -addot * a / (adot * adot);
+    };
+
     // Matter: q = 1/2
-    double a_mat = matter.scaleFactor(t);
-    double adot_mat = (matter.scaleFactor(t + 1e6) - matter.scaleFactor(t - 1e6)) / (2.0 * 1e6);
-    double addot_mat = (matter.scaleFactor(t + 2e6) - 2.0 * a_mat + matter.scaleFactor(t - 2e6)) / (4.0e12);
-    double q_mat = -addot_mat * a_mat / (adot_mat * adot_mat);
+    double q_mat = decelerationParameter(matter);
     assert(std::abs(q_mat - 0.5) < 1e-3 && "Matter deceleration q should be ~0.5");
 
     // Radiation: q = 1
-    double a_rad = radiation.scaleFactor(t);
-    double adot_rad = (radiation.scaleFactor(t + 1e6) - radiation.scaleFactor(t - 1e6)) / (2.0 * 1e6);
-    double addot_rad = (radiation.scaleFactor(t + 2e6) - 2.0 * a_rad + radiation.scaleFactor(t - 2e6)) / (4.0e12);
-    double q_rad = -addot_rad * a_rad / (adot_rad * adot_rad);
+    double q_rad = decelerationParameter(radiation);
     assert(std::abs(q_rad - 1.0) < 1e-3 && "Radiation deceleration q should be ~1.0");
 
     // de Sitter: q = -1
-    double a_ds = desitter.scaleFactor(t);
-    double adot_ds = (desitter.scaleFactor(t + 1e6) - desitter.scaleFactor(t - 1e6)) / (2.0 * 1e6);
-    double addot_ds = (desitter.scaleFactor(t + 2e6) - 2.0 * a_ds + desitter.scaleFactor(t - 2e6)) / (4.0e12);
-    double q_ds = -addot_ds * a_ds / (adot_ds * adot_ds);
+    double q_ds = decelerationParameter(desitter);
     assert(std::abs(q_ds - (-1.0)) < 1e-3 && "de Sitter deceleration q should be ~-1.0");
 
     std::cout << "[PASS] FRW deceleration parameter: q_mat=" << q_mat
@@ -459,7 +480,17 @@ void test_frw_critical_density() {
     double rho_crit = 3.0 * H * H / (8.0 * M_PI * Event4D::G);
     assert(rho_crit > 0.0 && "Critical density should be positive");
     assert(std::isfinite(rho_crit) && "Critical density should be finite");
-    assert(rho_crit > 1e-20 && "Critical density should be > 1e-20 kg/m^3");
+
+    // rho_crit = 3H0^2/(8 pi G) with H0 = 2.27e-18 s^-1 (~70 km/s/Mpc) and
+    // G = 6.6743e-11 m^3 kg^-1 s^-2 evaluates to ~9.22e-27 kg/m^3, i.e. about
+    // 5.5 hydrogen atoms per cubic metre. The previous ">1e-20 kg/m^3" bound was
+    // wrong by seven orders of magnitude and could never hold for a physically
+    // correct closed form; pin the literature value instead.
+    const double rho_crit_expected = 9.2156e-27;   // kg/m^3
+    assert(relError(rho_crit, rho_crit_expected) < 1e-3
+           && "Critical density should match 3H0^2/(8 pi G) ~ 9.22e-27 kg/m^3");
+    assert(rho_crit > 1e-28 && rho_crit < 1e-25
+           && "Critical density should sit in the 1e-28..1e-25 kg/m^3 band");
     std::cout << "[PASS] FRW critical density: rho_crit = " << rho_crit << " kg/m^3" << std::endl;
 }
 
@@ -520,10 +551,25 @@ void test_frw_distance_duality() {
 // 19.1.26 - Hubble parameter at present: H(t0) = H0
 // ============================================================================
 void test_frw_hubble_constant_at_present() {
+    // For a(t) = (t/t0)^(2/3) the Hubble parameter is exactly H(t) = 2/(3t), so the
+    // model's own present-day value is 2/(3 t0). That equals the H0 handed to the
+    // factory only when t0 is the matter-dominated age 2/(3 H0); here T0 = 13.8 Gyr
+    // is the observed (LCDM) age while 2/(3 H0) = 9.3 Gyr, so asserting
+    // H(T0) == H0 could never hold. Check the analytic relation...
     auto frw = FRWMetric::matterDominated(H0, T0);
     double H = frw.hubbleParameter(T0);
-    assert(std::abs(H - H0) < 1e-6 * H0 && "Hubble parameter at t0 should equal H0");
-    std::cout << "[PASS] FRW H(t0) = H0 = " << H << " s^-1" << std::endl;
+    assert(relError(H, 2.0 / (3.0 * T0)) < 1e-6
+           && "Matter-dominated H(t) must equal 2/(3t)");
+
+    // ...and that a self-consistent construction does reproduce H0 at t0.
+    const double t0_selfConsistent = 2.0 / (3.0 * H0);
+    auto frwSelfConsistent = FRWMetric::matterDominated(H0, t0_selfConsistent);
+    double H_selfConsistent = frwSelfConsistent.hubbleParameter(t0_selfConsistent);
+    assert(std::abs(H_selfConsistent - H0) < 1e-6 * H0
+           && "Hubble parameter at t0 = 2/(3H0) should equal H0");
+
+    std::cout << "[PASS] FRW H(t0) = 2/(3 t0) = " << H
+              << " s^-1; self-consistent H(2/(3H0)) = " << H_selfConsistent << " s^-1" << std::endl;
 }
 
 // ============================================================================
@@ -546,16 +592,33 @@ void test_frw_standard_models_flat() {
 // 19.1.28 - Scale factor at present: a(t0) = 1 for all standard models
 // ============================================================================
 void test_frw_scale_factor_normalization() {
+    const double omegaM = 0.31;
+    const double omegaLambda = 0.69;
+
     auto matter = FRWMetric::matterDominated(H0, T0);
     auto radiation = FRWMetric::radiationDominated(H0, T0);
     auto desitter = FRWMetric::deSitter(H0);
-    auto lcdm = FRWMetric::lambdaCDM(0.31, 0.69, H0);
+    auto lcdm = FRWMetric::lambdaCDM(omegaM, omegaLambda, H0);
 
+    // matterDominated/radiationDominated take t0 explicitly and normalise there.
     assert(relError(matter.scaleFactor(T0), 1.0) < 1e-12 && "Matter a(t0) should be 1");
     assert(relError(radiation.scaleFactor(T0), 1.0) < 1e-12 && "Radiation a(t0) should be 1");
-    assert(relError(desitter.scaleFactor(T0), 1.0) < 1e-12 && "de Sitter a(t0) should be 1");
-    assert(relError(lcdm.scaleFactor(T0), 1.0) < 1e-12 && "ΛCDM a(t0) should be 1");
-    std::cout << "[PASS] FRW a(t0) = 1 for all standard models" << std::endl;
+
+    // deSitter(H0) has no t0 parameter: a(t) = exp(H0 t), so its normalisation
+    // epoch is t = 0 (see test_frw_de_sitter_exact, which pins that closed form).
+    // Asserting a(T0) == 1 would contradict a(t) = exp(H0 t).
+    assert(relError(desitter.scaleFactor(0.0), 1.0) < 1e-12 && "de Sitter a(0) should be 1");
+
+    // lambdaCDM's normalisation epoch is likewise implied by H0 and the density
+    // parameters, not by T0: a(t) = (Om/OL)^(1/3) sinh(3/2 H0 sqrt(OL) t)^(2/3)
+    // reaches 1 when sinh(3/2 H0 sqrt(OL) t) = sqrt(OL/Om).
+    const double t_age_lcdm = std::asinh(std::sqrt(omegaLambda / omegaM))
+                            / (1.5 * H0 * std::sqrt(omegaLambda));
+    assert(relError(lcdm.scaleFactor(t_age_lcdm), 1.0) < 1e-9
+           && "LCDM a(t_age) should be 1");
+
+    std::cout << "[PASS] FRW a = 1 at each model's normalisation epoch"
+              << " (LCDM t_age = " << t_age_lcdm / 3.1557e16 << " Gyr)" << std::endl;
 }
 
 // ============================================================================
@@ -583,10 +646,29 @@ void test_frw_early_time_small_a() {
     auto frw = FRWMetric::matterDominated(H0, T0);
     double t_early = T0 * 1e-10;
     double a_early = frw.scaleFactor(t_early);
-    assert(a_early < 1e-10 && "Early universe scale factor should be very small");
+
+    // a(t) = (t/t0)^(2/3), so a(1e-10 t0) = 1e-20/3 ~ 2.15e-7 -- NOT < 1e-10.
+    // The old bound implicitly assumed a ~ t/t0. Assert the actual power law and
+    // demonstrate a -> 0 by driving t/t0 down instead.
+    assert(relError(a_early, std::pow(1e-10, 2.0 / 3.0)) < 1e-12
+           && "Matter-dominated a(t) must follow (t/t0)^(2/3)");
     assert(a_early > 0.0 && "Early universe scale factor should be positive");
     assert(std::isfinite(a_early) && "Early universe scale factor should be finite");
-    std::cout << "[PASS] FRW early time a(t) -> 0: a(1e-10 t0) = " << a_early << std::endl;
+    assert(a_early < 1e-6 && "a(1e-10 t0) should be far below the present-day value");
+
+    // Monotone approach to zero as t -> 0.
+    double a_prev = a_early;
+    for (double frac : {1e-12, 1e-15, 1e-18, 1e-21}) {
+        double a_i = frw.scaleFactor(T0 * frac);
+        assert(a_i > 0.0 && std::isfinite(a_i) && "Scale factor must stay positive and finite");
+        assert(a_i < a_prev && "Scale factor must decrease monotonically toward t = 0");
+        a_prev = a_i;
+    }
+    assert(a_prev < 1e-13 && "a(1e-21 t0) should be vanishingly small");
+    assert(frw.scaleFactor(0.0) == 0.0 && "a(0) should be exactly 0");
+
+    std::cout << "[PASS] FRW early time a(t) -> 0: a(1e-10 t0) = " << a_early
+              << ", a(1e-21 t0) = " << a_prev << std::endl;
 }
 
 // ============================================================================

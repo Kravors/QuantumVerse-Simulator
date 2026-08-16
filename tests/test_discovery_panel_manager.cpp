@@ -76,14 +76,34 @@ int main(int argc, char** argv)
     assert(manager.findings()[2].instrumentName == "TESS (Live)");
     assert(std::fabs(manager.findings()[2].confidence - 0.95) < 1e-9);
 
-    // --- Unknown alert type --------------------------------------------------
+    // --- Fermi GBM alert -----------------------------------------------------
+    // "Fermi/GBM" is a *supported* origin (GCNNoticeParser::classify matches the
+    // "fermi"/"gbm" tokens), so it must resolve to the Fermi GBM adapter rather
+    // than the unknown-type fallback.
+    QJsonObject fermiAlert;
+    fermiAlert.insert("alert_type", QJsonValue(QStringLiteral("Fermi/GBM")));
+    fermiAlert.insert("event_id", QJsonValue(QStringLiteral("GBM250601")));
+    fermiAlert.insert("trigger_id", QJsonValue(QStringLiteral("bn250601123")));
+    fermiAlert.insert("duration", QJsonValue(2.1));
+    fermiAlert.insert("peak_flux", QJsonValue(12.5));
+    fermiAlert.insert("confidence", QJsonValue(0.93));
+    fermiAlert.insert("ra", QJsonValue(197.45));
+    fermiAlert.insert("dec", QJsonValue(-23.38));
+
+    manager.ingestAlert(fermiAlert);
+    assert(manager.findings().size() == 4);
+    assert(manager.findings()[3].instrumentName == "Fermi GBM (Live)");
+
+    // --- Genuinely unsupported alert type ------------------------------------
+    // Use an origin no adapter claims so the default branch is exercised.
     QJsonObject unknownAlert;
-    unknownAlert.insert("alert_type", QJsonValue(QStringLiteral("Fermi/GBM")));
-    unknownAlert.insert("event_id", QJsonValue(QStringLiteral("GBM250601")));
+    unknownAlert.insert("alert_type", QJsonValue(QStringLiteral("CHIME/FRB")));
+    unknownAlert.insert("event_id", QJsonValue(QStringLiteral("FRB250601A")));
 
     manager.ingestAlert(unknownAlert);
-    assert(manager.findings().size() == 4);
-    assert(manager.findings()[3].instrumentName == "Unknown (Live)");
+    assert(manager.findings().size() == 5);
+    assert(manager.findings()[4].instrumentName == "Unknown (Live)");
+    assert(manager.findings()[4].confidence == 0.0);
 
     std::cout << "All DiscoveryPanelManager ingestAlert tests passed." << std::endl;
     return 0;

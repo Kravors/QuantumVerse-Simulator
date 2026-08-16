@@ -139,8 +139,13 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pyautogui python3-pil python3-imagehash
-          python3 -m pip install pyyaml
+          # python3-pyautogui and python3-imagehash are not in the Ubuntu 22.04
+          # archives (apt exits 100 with "Unable to locate package"); only
+          # python3-pil is. Install the two missing ones from PyPI instead, along
+          # with the X11/scrot bits pyautogui needs to import headlessly.
+          sudo apt-get install -y python3-pil python3-tk scrot xvfb
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pyyaml pyautogui ImageHash
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -196,8 +201,11 @@ jobs:
           modules: 'qtwebsockets'
           cache: true
 
+      # libFuzzer (-fsanitize=fuzzer) is a Clang-only feature; GCC rejects it with
+      # "unrecognized argument to '-fsanitize=' option: 'fuzzer'". Clang is already
+      # installed above, so point CMake at it explicitly.
       - name: Configure CMake with fuzzing
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build --parallel 2
 

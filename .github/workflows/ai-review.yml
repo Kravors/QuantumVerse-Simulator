@@ -3,6 +3,10 @@ permissions:
   contents: read
   actions: read
   checks: write
+  # Required by the "Comment on PR" step below: issues.createComment on a PR needs
+  # pull-requests: write, otherwise the REST call fails with
+  # "HttpError: Resource not accessible by integration".
+  pull-requests: write
 
 
 on:
@@ -34,10 +38,25 @@ jobs:
           if command -v cbmc &> /dev/null; then
             cbmc tests/verification/harness_metric.cpp --bounds-check --pointer-check --unwind 10 --32-bit || true
           fi
-          
+
           echo "Running clang-tidy..."
+          # clang-tidy needs a compilation database to know the include paths and
+          # standard-library flags. Without one it reported every header as
+          # "'string' file not found [clang-diagnostic-error]", which is pure noise
+          # rather than a real finding. Generate the database first, and only then
+          # analyse a sample of translation units.
           if command -v clang-tidy &> /dev/null; then
-            find src -name "*.cpp" -o -name "*.h" | head -5 | xargs clang-tidy -p . || true
+            if cmake -B build-tidy -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=OFF > /dev/null 2>&1 \
+               && [ -f build-tidy/compile_commands.json ]; then
+              # Read the file list into an array so the `head` truncation cannot
+              # send SIGPIPE back to find ("find: write error").
+              mapfile -t TIDY_FILES < <(find src -name '*.cpp' | sort | head -5)
+              if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
+                clang-tidy -p build-tidy "${TIDY_FILES[@]}" || true
+              fi
+            else
+              echo "::notice::Skipping clang-tidy - no compilation database could be generated"
+            fi
           fi
 
       - name: AI Bug Detection
@@ -85,22 +104,31 @@ jobs:
               print("::warning::AI review failed")
           EOF
 
+      # Only comment when the AI review actually produced content. Previously this
+      # unconditionally echoed the whole step summary back as a PR comment, so a
+      # skipped review (no OPENAI_API_KEY) still posted an empty comment.
       - name: Comment on PR
         uses: actions/github-script@v7
+        if: always() && github.event_name == 'pull_request'
         with:
           script: |
             const fs = require('fs');
             const summaryPath = process.env.GITHUB_STEP_SUMMARY;
-            if (fs.existsSync(summaryPath)) {
-              const summary = fs.readFileSync(summaryPath, 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## AI Code Review\n\n${summary}`
-              });
+            if (!summaryPath || !fs.existsSync(summaryPath)) {
+              core.info('No step summary produced - nothing to comment.');
+              return;
             }
-        if: always()
+            const summary = fs.readFileSync(summaryPath, 'utf8').trim();
+            if (!summary.includes('### AI Code Review')) {
+              core.info('AI review was skipped or produced no findings - not commenting.');
+              return;
+            }
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## AI Code Review\n\n${summary}`
+            });
 
   risk-assessment:
     runs-on: ubuntu-latest

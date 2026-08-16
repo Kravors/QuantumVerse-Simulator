@@ -274,11 +274,9 @@ void test_kretschmann_fd_step_convergence() {
     double c4 = Event4D::C * Event4D::C * Event4D::C * Event4D::C;
     double K_exact = 48.0 * Event4D::G * Event4D::G * M * M / (c4 * std::pow(r, 6));
 
-    // NON-BLOCKING CANARY: CurvatureCalculator's FD Riemann/Kretschmann path is
-    // known-broken (returns ~5.1x the true invariant and violates the vacuum
-    // identity R^a{}_{bcd} R_a{}^b{}^{cd} = 0). Tracked as a separate core issue;
-    // do not abort the Debug suite on it. The closed-form curvatureScalars path
-    // remains the validated source of truth.
+    // CurvatureCalculator's FD Riemann/Kretschmann path is validated: it
+    // converges to the closed-form invariant K = 48 G^2 M^2 / (c^4 r^6)
+    // (see the fixed computeChristoffel / computeKretschmann in CurvatureCalculator.cpp).
     double maxErr = 0.0;
     for (size_t i = 0; i < K_vals.size(); i++) {
         double err = relError(K_vals[i], K_exact);
@@ -286,12 +284,8 @@ void test_kretschmann_fd_step_convergence() {
                   << ", err=" << err << std::endl;
         maxErr = std::max(maxErr, err);
     }
-    if (maxErr < 1e-3) {
-        std::cout << "[PASS] Kretschmann converges with FD step refinement" << std::endl;
-    } else {
-        std::cout << "[CANARY] Kretschmann FD curvature mismatch (known CurvatureCalculator "
-                  << "FD core bug, tracked separately): maxErr=" << maxErr << std::endl;
-    }
+    assert(maxErr < 1e-3 && "Kretschmann FD path must converge to the closed-form invariant");
+    std::cout << "[PASS] Kretschmann converges with FD step refinement (maxErr=" << maxErr << ")" << std::endl;
 }
 
 // ============================================================================

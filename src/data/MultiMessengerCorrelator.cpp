@@ -36,7 +36,8 @@ void MultiMessengerCorrelator::setTimeWindowSec(double sec)
 void MultiMessengerCorrelator::addAlert(const InstrumentFinding& finding)
 {
     Alert a;
-    a.messenger = QString::fromStdString(finding.instrumentName);
+    a.rawName = QString::fromStdString(finding.instrumentName);
+    a.messenger = canonicalMessenger(a.rawName);
     a.ra = finding.location.x;
     a.dec = finding.location.y;
     a.timestamp = finding.timestamp;
@@ -80,10 +81,10 @@ void MultiMessengerCorrelator::addAlert(const InstrumentFinding& finding)
         ev.timestamp = qMin(a.timestamp, other.timestamp);
         ev.combinedConfidence = combinedConf;
         ev.spatialScore = sScore;
-        ev.description = QStringLiteral("Multi-messenger coincidence: %1 + %2 | separation=%.3f deg, joint=%.1f%%")
-                             .arg(a.messenger, other.messenger)
-                             .arg(sep)
-                             .arg(combinedConf * 100.0);
+        ev.description = QStringLiteral("Multi-messenger coincidence: %1 + %2 | separation=%3 deg, joint=%4%")
+                             .arg(a.rawName, other.rawName)
+                             .arg(sep, 0, 'f', 3)
+                             .arg(combinedConf * 100.0, 0, 'f', 1);
         ev.severity = sev;
         ev.alertIds = { a.id, other.id };
 
@@ -131,6 +132,33 @@ QString MultiMessengerCorrelator::severityToString(AlertSeverity sev)
     case AlertSeverity::CRITICAL: return "CRITICAL";
     }
     return "UNKNOWN";
+}
+
+QString MultiMessengerCorrelator::canonicalMessenger(const QString& instrumentName)
+{
+    struct Family { QLatin1String needle; QLatin1String label; };
+    static const Family kFamilies[] = {
+        { QLatin1String("LIGO"),    QLatin1String("LIGO")    },
+        { QLatin1String("Virgo"),   QLatin1String("Virgo")   },
+        { QLatin1String("KAGRA"),   QLatin1String("KAGRA")   },
+        { QLatin1String("IceCube"), QLatin1String("IceCube") },
+        { QLatin1String("Fermi"),   QLatin1String("Fermi")   },
+        { QLatin1String("Swift"),   QLatin1String("Swift")   },
+        { QLatin1String("TESS"),    QLatin1String("TESS")    },
+        { QLatin1String("CHIME"),   QLatin1String("CHIME")   },
+    };
+
+    for (const Family& f : kFamilies) {
+        if (instrumentName.contains(f.needle, Qt::CaseInsensitive)) {
+            return QString(f.label);
+        }
+    }
+
+    // Unrecognised instrument: keep the reported name but drop the transport
+    // suffix so a live alert and its replayed twin map to the same messenger.
+    QString label = instrumentName;
+    label.remove(QLatin1String("(Live)"));
+    return label.trimmed();
 }
 
 bool MultiMessengerCorrelator::isGW(const Alert& a) const

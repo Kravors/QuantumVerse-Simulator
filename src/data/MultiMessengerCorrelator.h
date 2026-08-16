@@ -76,6 +76,18 @@ public:
     /** @brief Set time window in seconds (default 86400 = 24h). */
     void setTimeWindowSec(double sec);
 
+    /**
+     * @brief Map a raw instrument name to its canonical messenger family label.
+     *
+     * Adapters report instrument names that carry a transport suffix and a
+     * sub-detector designation (e.g. "Fermi GBM (Live)", "Swift BAT (Live)").
+     * CorrelationEvent::messengers is a set of *messenger families*, so consumers
+     * can test membership with an exact match (QStringList::contains) instead of
+     * substring scanning. Unrecognised instruments keep their name with the
+     * "(Live)" transport suffix stripped, so live and replayed alerts agree.
+     */
+    static QString canonicalMessenger(const QString& instrumentName);
+
     signals:
         void spatialThresholdDegChanged();
         void timeWindowSecChanged();
@@ -87,7 +99,8 @@ public:
 
     private:
         struct Alert {
-            QString messenger;
+            QString messenger;   ///< canonical messenger family (e.g. "Fermi")
+            QString rawName;     ///< instrument name as reported (e.g. "Fermi GBM (Live)")
             double ra = 0.0;
             double dec = 0.0;
             double timestamp = 0.0;

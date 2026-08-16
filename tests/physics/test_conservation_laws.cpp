@@ -5,10 +5,13 @@
 #include "physics/CurvatureCalculator.h"
 #include "physics/SingularityHandler.h"
 #include "physics/GeodesicDeviation.h"
+#include "coord_helpers.h"
 #include <cmath>
 #include <cassert>
 #include <iostream>
 #include <vector>
+
+using namespace quantumverse::test_helpers;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -413,11 +416,12 @@ void test_metric_inverse_delta() {
     Event4D ev(0.0, 10.0 * M, M_PI / 2.0, 0.0);
     auto g = sch.evaluate(ev);
 
-    // Diagonal inverse
-    std::array<std::array<double, 4>, 4> g_inv;
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            g_inv[i][j] = (i == j) ? 1.0 / g[i][j] : 0.0;
+    // The metric is not diagonal in Cartesian coordinates, so the true inverse
+    // must be computed from the full matrix (the naive 1/g_ii diagonal form is
+    // only valid when g is already diagonal).
+    MetricTensor gm;
+    gm.g = g;
+    std::array<std::array<double, 4>, 4> g_inv = gm.inverse().g;
 
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = 0; nu < 4; nu++) {
@@ -442,9 +446,9 @@ void test_null_vector_norm() {
     Event4D ev(0.0, 10.0 * M, M_PI / 2.0, 0.0);
     auto g = sch.evaluate(ev);
 
-    // Null vector: k^μ = (1, 1, 0, 0) in some basis
-    // For Schwarzschild at r=10M, k^μ = (1, 1/sqrt(grr), 0, 0) is null
-    std::array<double, 4> k = {1.0, std::sqrt(g[1][1]), 0.0, 0.0};
+    // Null vector: in the (t, x) block of the (diagonal) metric at this point,
+    // k^μ = (1, sqrt(-g_tt / g_xx), 0, 0) is null since g_tt + g_xx (k^x)^2 = 0.
+    std::array<double, 4> k = {1.0, std::sqrt(-g[0][0] / g[1][1]), 0.0, 0.0};
     double norm = 0.0;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
@@ -480,14 +484,19 @@ void test_frw_metric_determinant() {
 void test_sphere_geodesic() {
     double M = 1e30;
     SchwarzschildMetric sch(M);
-    Event4D ev(0.0, 1e8, M_PI / 2.0, 0.0);
-    auto g = sch.evaluate(ev);
+    // The metric is evaluated in Cartesian coordinates; express the spherical
+    // point (r, θ, φ) and read the metric back in spherical coordinates so the
+    // 2-sphere angular geometry g_θθ = r^2, g_φφ = r^2 sin^2(θ) is recovered.
+    double r = 1e8;
+    auto g = metricInSpherical(sch, r, M_PI / 2.0, 0.0);
 
     // On a 2-sphere of radius r, geodesics are great circles
     // The metric g_θθ = r^2, g_φφ = r^2 sin^2(θ)
     // For θ=π/2: dθ^2 + dφ^2 is the metric on unit sphere scaled by r
-    assert(std::abs(g[2][2] - 1e8 * 1e8) < 1e-2);
-    assert(std::abs(g[3][3] - 1e8 * 1e8) < 1e-2);
+    // Use a relative tolerance (r^2 is ~1e16, so an absolute 1e-2 is too tight
+    // for the Cartesian->spherical round-trip).
+    assert(std::abs(g[2][2] - r * r) < r * r * 1e-6);
+    assert(std::abs(g[3][3] - r * r) < r * r * 1e-6);
     std::cout << "[PASS] Spatial 2-sphere geodesic metric correct" << std::endl;
 }
 
@@ -647,7 +656,11 @@ void test_einstein_zero_grid() {
 void test_long_timelike_norm_drift() {
     double M = 1.0;
     auto sch = std::make_shared<SchwarzschildMetric>(M * Event4D::C * Event4D::C / Event4D::G);
-    GeodesicIntegrator integrator(1e-10);
+    // Cap the maximum step so the adaptive integrator records a properly
+    // resolved trajectory (with tol=1e-10 the controller would otherwise grow
+    // the step toward maxStepSize=1.0, yielding too few samples for the
+    // size()>20 assertion). This mirrors test_geodesic_constraint_timelike.
+    GeodesicIntegrator integrator(1e-10, 1e-10, 0.01);
     integrator.setMetric(sch);
 
     Event4D start(0.0, 100.0 * M, 0.0, 0.0);
