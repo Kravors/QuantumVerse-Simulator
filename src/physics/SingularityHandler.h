@@ -106,11 +106,15 @@ private:
         return rs / 2.0 * (1.0 + std::sqrt(1.0 - a * a));
     }
     
-    // Compute ergosphere radius (equatorial)
+    // Compute ergosphere radius (equatorial static limit)
     double computeErgosphereRadius(double mass, double angular_momentum) const {
         double rs = computeSchwarzschildRadius(mass);
-        double a = angular_momentum / (mass * Event4D::C);
-        return rs / 2.0 * (1.0 + std::sqrt(1.0 - a * a * std::cos(0.0) * std::cos(0.0)));
+        double M_geom = rs / 2.0;
+        // Equatorial ergosphere outer boundary (Kerr static limit, theta = pi/2):
+        // g_tt = 0 => r = M + sqrt(M^2 - a^2 cos^2(theta)) = 2M = rs,
+        // independent of spin, and always outside the event horizon r_+.
+        (void)angular_momentum;
+        return 2.0 * M_geom;
     }
     
     // Check if singularity is naked (no event horizon)
@@ -197,7 +201,7 @@ public:
         double dz = event.z - position[2];
         double r = std::sqrt(dx * dx + dy * dy + dz * dz);
         
-        return r < props.event_horizon_radius;
+        return r <= props.event_horizon_radius;
     }
     
     // Check if event is in ergosphere
