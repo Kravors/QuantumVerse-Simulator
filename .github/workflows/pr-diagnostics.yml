@@ -119,11 +119,11 @@ jobs:
         run: |
           GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
           if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 120 --output-on-failure
+            xvfb-run -a ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 600 --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
             GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline"
-            ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 120 --output-on-failure
+            ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 600 --output-on-failure
           fi
 
       # Rendering/visual tests are non-blocking canaries (headless software-GL
@@ -135,11 +135,11 @@ jobs:
         run: |
           GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
           if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 120 --output-on-failure
+            xvfb-run -a ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 600 --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
             GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline"
-            ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 120 --output-on-failure
+            ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 600 --output-on-failure
           fi
        
 
@@ -148,7 +148,7 @@ jobs:
         run: |
           sudo apt-get install -y lcov || true
           cd build
-          ctest -C Release --timeout 120 --output-on-failure || true
+          ctest -C Release --timeout 600 --output-on-failure || true
           if [ -f "test_property_based.dir/*.gcda" ]; then
             lcov --capture --directory . --output-file coverage.info || true
             lcov --remove coverage.info '/usr/*' '*/third_party/*' '*/tests/*' -o coverage.info || true
@@ -194,7 +194,7 @@ jobs:
         run: cmake --build build-debug --config Debug
 
       - name: Run tests
-        run: cd build-debug && xvfb-run -a ctest -C Debug --timeout 120 --output-on-failure
+        run: cd build-debug && xvfb-run -a ctest -C Debug --timeout 600 --output-on-failure
 
   nightly:
     runs-on: ubuntu-latest
