@@ -469,6 +469,10 @@ ApplicationWindow {
             id: viewportContainer
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // The GL scene is composited onto the window back buffer in
+            // QmlGlViewport::renderGL() (beforeRendering); this Pane must not
+            // paint an opaque background over it, or the viewport stays black.
+            background: null
 
             Loader {
                 id: viewportLoader
