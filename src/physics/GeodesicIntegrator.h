@@ -41,6 +41,7 @@ struct GeodesicStep {
     double properTime = 0.0;  ///< Proper time along geodesic
     double stepSize = 0.0;    ///< Integration step size used
     bool valid = false;         ///< Integration success flag
+    std::array<double, 4> velocity = {0.0, 0.0, 0.0, 0.0};  ///< Four-velocity at this step
 };
 
 // Geodesic type enumeration
@@ -458,25 +459,35 @@ public:
         initialStep.properTime = 0.0;
         initialStep.stepSize = 0.0;
         initialStep.valid = true;
+        for (int i = 0; i < 4; i++) initialStep.velocity[i] = y[i + 4];
         trajectory.push_back(initialStep);
 
         int iterations = 0;
 
         while (tau < targetProperTime && iterations < maxIterations) {
+            // Clamp the step so we never overshoot the requested proper time;
+            // the final step lands exactly on targetProperTime so round-trip
+            // (forward then reversed) integrations return to the start point.
+            double remaining = targetProperTime - tau;
+            double h = std::min(stepSize, remaining);
+            bool isFinalStep = (h >= remaining - 1e-12);
+
             std::vector<double> y_new;
             double newStep;
 
-            if (adaptive) {
-                auto result = adaptiveStep(tau, y, stepSize);
+            if (adaptive && !isFinalStep) {
+                auto result = adaptiveStep(tau, y, h);
                 y_new = result.first;
                 newStep = result.second;
             } else {
-                y_new = rungeKutta4Step(tau, y, stepSize);
+                // Final (clamped) step or non-adaptive: take a plain RK4 step so
+                // we land exactly on target and never reject the last step.
+                y_new = rungeKutta4Step(tau, y, h);
                 newStep = stepSize;
             }
 
-            // Check if step was rejected
-            if (y_new == y && adaptive) {
+            // Check if an adaptive (non-final) step was rejected
+            if (adaptive && !isFinalStep && y_new == y) {
                 stepSize = newStep;
                 if (stepSize <= minStepSize) break;
                 continue;
@@ -484,7 +495,7 @@ public:
 
             // Update state
             y = y_new;
-            tau += stepSize;
+            tau += h;
             stepSize = newStep;
             iterations++;
 
@@ -496,6 +507,7 @@ public:
             step.properTime = tau;
             step.stepSize = stepSize;
             step.valid = true;
+            for (int i = 0; i < 4; i++) step.velocity[i] = y[i + 4];
 
             trajectory.push_back(step);
 

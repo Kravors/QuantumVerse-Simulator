@@ -40,17 +40,25 @@ jobs:
           cd build-cbmc
           cmake --build . --parallel 2
 
+      # Run from the repository root: the harnesses live in tests/verification, not
+      # inside the build tree, so the previous `cd build-cbmc` made both paths
+      # unresolvable. --object-bits must also stay strictly below the pointer
+      # width, so 32 object bits is invalid in a --32-bit run and CBMC rejects the
+      # whole invocation with "Usage error!" (exit 64). Use the documented 16/16
+      # split instead, and capture the --xml-ui output so the artifact step has
+      # something to upload.
       - name: Run CBMC verification
         run: |
-          cd build-cbmc
+          mkdir -p build-cbmc
           cbmc tests/verification/harness_metric.cpp \
             --bounds-check --pointer-check --unwind 10 \
-            --32-bit --xml-ui \
-            --object-bits 32
-            
+            --32-bit --object-bits 16 \
+            --xml-ui > build-cbmc/cbmc-harness-metric.xml
+
           cbmc tests/verification/harness_geodesic.cpp \
             --bounds-check --pointer-check --unwind 10 \
-            --32-bit
+            --32-bit --object-bits 16 \
+            --xml-ui > build-cbmc/cbmc-harness-geodesic.xml
 
       - name: Upload CBMC results
         uses: actions/upload-artifact@v5

@@ -725,6 +725,18 @@ if(QUANTUMVERSE_BUILD_TESTS)
     # Fuzz differential testing
     option(QUANTUMVERSE_USE_FUZZER "Build fuzzer targets" OFF)
     if(QUANTUMVERSE_USE_FUZZER)
+        # -fsanitize=fuzzer is libFuzzer, which ships only with Clang. Building
+        # these targets with GCC dies deep inside the compile step with the opaque
+        # "unrecognized argument to '-fsanitize=' option: 'fuzzer'". Fail at
+        # configure time instead, with an actionable message.
+        if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            message(FATAL_ERROR
+                "QUANTUMVERSE_USE_FUZZER=ON requires a Clang toolchain: libFuzzer "
+                "(-fsanitize=fuzzer) is not implemented by ${CMAKE_CXX_COMPILER_ID}. "
+                "Re-run CMake with -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++, "
+                "or leave QUANTUMVERSE_USE_FUZZER=OFF.")
+        endif()
+
         add_executable(fuzz_geodesic_differential tests/fuzz/fuzz_geodesic_differential.cpp)
         target_include_directories(fuzz_geodesic_differential PRIVATE
             ${CMAKE_SOURCE_DIR}/src

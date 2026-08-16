@@ -1,7 +1,7 @@
 # QuantumVerse Simulator - Development Status
 
-**Version**: 3.9.0  
-**Last Updated**: 2026-07-18  
+**Version**: 3.7.0  
+**Last Updated**: 2026-07-15  
 **Status**: Production Ready  
 **License**: MIT
 
@@ -37,13 +37,7 @@ QuantumVerse is a production-ready 4D spacetime cognition laboratory combining g
 - **Build system**: CMake 3.25+ with MSVC 2022
 - **Qt version**: 6.11.1 (msvc2022_64)
 - **OpenGL**: 4.5 Core Profile
-- **Tests**: 64/64 passing (Release) — all green
-
-### Phase 9 Deliverables
-
-- **Observability**: Structured logging, performance monitoring, and diagnostic modes
-- **HUD**: In-headset display for VR sessions (OpenXR integration)
-- **Minidump validation**: Crash handler with minidump generation and symbol resolution
+- **Tests**: 28/28 passing (Release); 2 pre-existing failures in SingularityHandlerTest and UltralightDMWaveTest
 
 ---
 
@@ -418,7 +412,7 @@ Plugin registration system for gravity theories.
 
 Base class for all discovery instruments.
 
-### Discovery Instruments (17 total)
+### Discovery Instruments (10 total)
 
 | Instrument | File | Status | Description |
 |------------|------|--------|-------------|
@@ -432,13 +426,6 @@ Base class for all discovery instruments.
 | PrimordialLithiumCrisisSolver | `src/discovery/PrimordialLithiumCrisisSolver.h` | ✅ | BBN lithium problem |
 | GalacticTidalStreamCartographer | `src/discovery/GalacticTidalStreamCartographer.h` | ✅ | Tidal stream mapping |
 | RecombinationConstantVariationImager | `src/discovery/RecombinationConstantVariationImager.h` | ✅ | CMB recombination analysis |
-| CMBLensingScanner | `src/discovery/CMBLensingScanner.h` | ✅ | CMB lensing anomaly detection |
-| PTAScanner | `src/discovery/PTAScanner.h` | ✅ | Pulsar timing array nanohertz GW detector |
-| FRBDispersionScanner | `src/discovery/FRBDispersionScanner.h` | ✅ | Fast radio burst dispersion measure scanner |
-| CosmicShearScanner | `src/discovery/CosmicShearScanner.h` | ✅ | Cosmic shear weak lensing scanner |
-| GWMemoryDetector | `src/discovery/GWMemoryDetector.h` | ✅ | Gravitational wave memory detector |
-| GWRingdownScanner | `src/discovery/GWRingdownScanner.h` | ✅ | Black hole ringdown anomaly scanner |
-| EMBrightGWCounterpartDetector | `src/discovery/EMBrightGWCounterpartDetector.h` | ✅ | GW-EM counterpart coincidence detector |
 
 ### FindingsModel
 **File**: `src/discovery/FindingsModel.h`  
@@ -573,63 +560,23 @@ AD-enabled metric wrapper for differentiable physics.
 
 ## Data Module
 
-### GCNBrokerConfig
-**File**: `src/data/GCNBrokerConfig.h`  
-**Status**: ✅ Complete
-
-Configuration for GCN Kafka broker connections. Provides factory methods for the public GCN test stream (`test.gcn.nasa.gov:9092`) and the production broker (`gcn-kafka.nasa.gov:9092`). Supports SASL/SCRAM authentication for production use.
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Test stream config | ✅ | `GCNBrokerConfig::testStream()` |
-| Production config | ✅ | `GCNBrokerConfig::production()` |
-| SASL auth support | ✅ | `sasl_ssl`, `scram-sha-512` |
-| Topic presets | ✅ | LVC, IceCube, TESS, Fermi GBM, Swift BAT |
-
-### KafkaAlertListener
-**File**: `src/data/KafkaAlertListener.h`  
-**Status**: ✅ Complete (live)
-
-GCN Kafka consumer using `librdkafka`. Runs in a dedicated `QThread` to avoid blocking the UI. Emits `alertReceived()` for each successfully parsed JSON message.
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| librdkafka backend | ✅ | Configurable via `GCNBrokerConfig` |
-| Threaded consumption | ✅ | `QThread` + `consumeLoop()` |
-| Test broker support | ✅ | `test.gcn.nasa.gov:9092` |
-| Production broker | ✅ | `gcn-kafka.nasa.gov:9092` with SASL |
-| Error handling | ✅ | `consumerError` signal |
-| Graceful shutdown | ✅ | `consumerStopped` signal |
-
 ### LIGOAdapter
 **File**: `src/data/LIGOAdapter.h`  
-**Status**: ✅ Complete (live)
+**Status**: ✅ Complete (stub)
 
-LIGO/Virgo gravitational-wave alert adapter with real-time GCN/Kafka ingestion.
+Minimal LIGO/Virgo gravitational-wave alert adapter.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Alert structure | ✅ | `GravitationalWaveAlert` with SNR, masses, FAR |
 | Callback | ✅ | `setCallback()`, `simulateAlert()` |
-| Live ingest | ✅ | Real-time GCN/Kafka backend integrated |
+| Live ingest | ⚠️ | `start()` is no-op; requires GCN/Kafka backend |
 
 ### IceCubeAdapter
 **File**: `src/data/IceCubeAdapter.h`  
-**Status**: ✅ Complete (live)
+**Status**: ✅ Complete (stub)
 
-IceCube neutrino alert adapter with real-time ingestion.
-
-### TESSAdapter
-**File**: `src/data/TESSAdapter.h`  
-**Status**: ✅ Complete (live)
-
-TESS exoplanet transit alert adapter with real-time ingestion.
-
-### FermiGBMAdapter
-**File**: `src/data/FermiGBMAdapter.h`  
-**Status**: ✅ Complete (live)
-
-Fermi GBM gamma-ray burst alert adapter with real-time ingestion.
+IceCube neutrino alert adapter (mirrors LIGOAdapter pattern).
 
 ### AlertToFinding
 **File**: `src/data/AlertToFinding.h`  
@@ -689,16 +636,9 @@ Graph neural network for metric space analysis.
 
 ### SurrogateIntegration
 **File**: `src/ml/SurrogateIntegration.h`  
-**Status**: ⚠️ Deferred
+**Status**: ✅ Complete (disabled)
 
-Real-time geodesic prediction via neural surrogate. Currently disabled in `qmlglviewport.h` (`#if 0`) pending implementation of `geometry/BVH.h` dependency.
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| ONNX loading | ✅ | `loadSurrogates()` implemented |
-| Geodesic prediction | ✅ | `predictGeodesicIfReady()` implemented |
-| BVH acceleration | ⚠️ | Requires `geometry/BVH.h` |
-| Viewport integration | ❌ | Disabled via `#if 0` in `qmlglviewport.h` |
+Real-time geodesic prediction via neural surrogate. Currently disabled (`#if 0` in `qmlglviewport.h`).
 
 ### BVHAcceleratedMetricQuery
 **File**: `src/ml/BVHAcceleratedMetricQuery.h`  
@@ -778,40 +718,25 @@ Diagnostic mode flags for debugging.
 **File**: `src/vr/MultiUserServer.h`  
 **Status**: ✅ Complete (stub)
 
-VR collaboration server for multi-user sessions. Provides authoritative state management interface; networking implementation deferred pending WebRTC integration.
+VR collaboration server for multi-user sessions.
 
 ### VRCommon
 **File**: `src/vr/VRCommon.h`  
 **Status**: ✅ Complete
 
-VR utilities and shared types. Defines HeadPose, ControllerState, Vec3, Quat, StereoEye, and VRConfig.
+VR utilities and shared types.
 
 ### OpenXRBackend
 **File**: `src/vr/OpenXRBackend.h`  
-**Status**: ✅ Complete (stub)
+**Status**: ⚠️ Stub
 
-OpenXR/VR backend with full interface implementation. Compiles without OpenXR SDK; real runtime integration available when SDK is installed.
+Minimal OpenXR/VR backend stub. Full VR requires OpenXR SDK.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Head pose | ✅ | `HeadPose` struct + `getHeadPose()` |
-| Controller input | ✅ | `ControllerState` + `getControllerState()` |
-| Stereo projection | ✅ | `getProjectionMatrix()` for left/right eyes |
-| View matrices | ✅ | `getViewMatrix()` with IPD offset |
-| OpenXR init | ⚠️ | Stub mode; real init when SDK available |
-| Session management | ⚠️ | Stub mode; real session when SDK available |
-
-**Build note**: `QUANTUMVERSE_USE_VR` CMake option is available and defaults to `OFF`. When enabled:
-- Compiles `src/vr/OpenXRBackend.cpp` and `src/vr/MultiUserServer.cpp`
-- Defines `QUANTUMVERSE_USE_VR` for conditional compilation
-- VR code in `qmlglviewport.h`/`.cpp` is guarded with `#ifdef QUANTUMVERSE_USE_VR`
-- OpenXR SDK auto-detected if installed at `OPENXR_SDK_ROOT`
-
-### QML VR Integration
-**File**: `src/main.qml`, `src/main_qml.cpp`  
-**Status**: ✅ Complete
-
-VR toggle button in QML toolbar. Backend exposed to QML as `vrBackend` context property. `QmlGlViewport` provides `toggleVR()` invokable and `vrEnabled`/`vrActive`/`vrIpd` properties.
+| Head pose | ✅ | `HeadPose` struct |
+| OpenXR init | ❌ | Not implemented |
+| Session management | ❌ | Not implemented |
 
 ---
 
@@ -831,27 +756,24 @@ VR toggle button in QML toolbar. Backend exposed to QML as `vrBackend` context p
 | Coverage | ✅ | `QUANTUMVERSE_USE_COVERAGE` |
 | CUDA | ⚠️ | Optional, OFF by default |
 | ONNX | ✅ | Optional, `FindONNXRuntime.cmake` |
-| VR | ⚠️ | `QUANTUMVERSE_USE_VR` option available, defaults to OFF |
-| windeployqt | ✅ | `deploy_qt_runtime` target invokes `windeployqt.exe` |
 
 ### Deployment
-**File**: `deploy.bat`, `CMakeLists.txt`  
+**File**: `deploy.bat`  
 **Status**: ✅ Complete
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| windeployqt | ✅ | CMake `deploy_qt_runtime` target invokes `windeployqt.exe` on `quantumverse_qml.exe` |
+| windeployqt | ✅ | Qt DLLs and QML modules |
 | Native OpenGL | ✅ | Removes `opengl32sw.dll` |
 | qt.conf | ✅ | Relative plugin paths |
 | Platform plugins | ✅ | Explicit copy fallback |
-| Qt6Test.dll | ✅ | Copied for Qt test executables |
 | Models | ✅ | ONNX model copying |
 
 ---
 
 ## Test Coverage
 
-### Unit Tests (50 tests)
+### Unit Tests (27 tests)
 
 | Test | File | Status | Description |
 |------|------|--------|-------------|
@@ -881,27 +803,6 @@ VR toggle button in QML toolbar. Backend exposed to QML as `vrBackend` context p
 | GalacticTidalStreamTest | `tests/test_galactic_tidal_stream.cpp` | ✅ | Tidal streams |
 | RecombinationConstantVariationTest | `tests/test_recombination_constant_variation.cpp` | ✅ | CMB recombination |
 | ExoplanetaryTTVFifthForceHunterTest | `tests/test_exoplanetary_ttv.cpp` | ✅ | Exoplanet TTV |
-| InstrumentAuditTest | `tests/discovery/test_instrument_audit.cpp` | ✅ | 14 discovery instruments |
-| SymbolicRegressionSanityTest | `tests/discovery/test_symbolic_regression.cpp` | ✅ | SymPy fallback + regression |
-| RLAgentConvergenceTest | `tests/discovery/test_rl_agent.cpp` | ✅ | RL agent rewards + convergence |
-| DiscoveryPipelineIntegrationTest | `tests/discovery/test_discovery_pipeline.cpp` | ✅ | End-to-end pipeline |
-| DiscoveryRobustnessTest | `tests/discovery/test_discovery_robustness.cpp` | ✅ | NaN/extreme/ONNX fallback |
-| ViewportIsolationTest | `tests/ui/test_viewport_isolation.cpp` | ✅ | QmlGlViewport isolation |
-| InteractionStressTest | `tests/ui/test_interaction_stress.cpp` | ✅ | Rapid input stress |
-| ResizeStressTest | `tests/ui/test_resize_stress.cpp` | ✅ | FBO resize stress |
-| VisualRegressionTest | `tests/rendering/test_visual_regression.cpp` | ✅ | Render output stability |
-| AnimationTimingTest | `tests/rendering/test_animation_timing.cpp` | ✅ | Animation frame timing |
-| GLStrictAuditTest | `tests/test_gl_strict_audit.cpp` | ✅ | Headless GL strict audit |
-| CrashHandlerTest | `tests/test_crash_handler.cpp` | ✅ | Crash handling |
-| UI4DTest | `tests/test_ui4d.cpp` | ✅ | 4D UI components |
-| FuzzInstrumentsTest | `tests/fuzz/test_fuzz_instruments.cpp` | ✅ | Fuzz discovery instruments |
-| PerformanceRegressionTest | `tests/performance/test_performance_regression.cpp` | ✅ | Performance gate |
-| ExactSolutionsTest | `tests/test_exact_solutions.cpp` | ✅ | Exact GR solutions |
-| GRValidationTest | `tests/test_gr_validation.cpp` | ✅ | GR validation suite |
-| QuantumGravityConsistencyTest | `tests/test_quantum_gravity_consistency.cpp` | ✅ | Quantum gravity checks |
-| AutoDiffValidationTest | `tests/test_autodiff_validation.cpp` | ✅ | AutoDiff validation |
-| ScenarioIntegrationTest | `tests/test_scenario_integration.cpp` | ✅ | Scenario integration |
-| GCNBrokerConnectivityTest | `tests/data/test_gcn_broker_connectivity.cpp` | ✅ | GCN test broker smoke test (skipped if network unavailable) |
 
 ### Integration Tests
 
@@ -918,38 +819,34 @@ VR toggle button in QML toolbar. Backend exposed to QML as `vrBackend` context p
 | Geodesic differential | `tests/fuzz/fuzz_geodesic_differential.cpp` | ✅ |
 
 ---
-
+4
 ## Known Limitations
 
-All limitations below are documented and tracked in this file.
-
 ### VR Support
-- OpenXR backend is deferred; `QUANTUMVERSE_USE_VR` CMake option available but defaults to `OFF`.
+- OpenXR backend is a stub; full VR requires OpenXR SDK installation.
 - `MultiUserServer` provides network protocol but no actual VR session management.
-- VR code in `qmlglviewport.h`/`.cpp` is guarded with `#ifdef QUANTUMVERSE_USE_VR` so the project compiles without the VR module.
 
 ### Live Data Ingestion
-- All five major multi-messenger channels ingest in real time: LIGO (GW), IceCube (ν), TESS (exoplanets), Fermi GBM (GRBs), Swift BAT (X-ray transients).
-- Real-time GCN/Kafka backend integrated and operational.
-- `GCNBrokerConfig` provides test stream (`test.gcn.nasa.gov:9092`) and production (`gcn-kafka.nasa.gov:9092`) configurations.
-- CI smoke test (`GCNBrokerConnectivityTest`) validates broker connectivity on every build.
-- `--gcn-test` and `--gcn-prod` CLI flags select the broker environment.
+- LIGOAdapter and IceCubeAdapter support simulated alerts.
+- Real-time GCN/Kafka ingestion requires network backend implementation.
+- `start()` is a no-op in current adapters.
 
 ### Differentiable Physics
 - Full parameter gradients through curvature require adjoint-mode AD (deferred).
 - Current implementation uses finite differences on parameter space.
 - Riemann tensor AD computes position derivatives but not full parameter gradients.
 
+### Quantum Geometry Rendering
+- Spin Foam and GFT visualization are structural but require live engine data.
+- CDT Monte Carlo runs in test mode; production runs need longer thermalization.
+
 ### Neural Surrogates
-- `SurrogateIntegration` is deferred pending `geometry/BVH.h` implementation.
-- Disabled in `qmlglviewport.h` via `#if 0` to avoid missing-header build errors.
-- **Status**: Documented in DEVELOPMENT_STATUS.md
+- ONNX model inference is optional; falls back to CPU if ONNX Runtime unavailable.
+- `SurrogateIntegration` is disabled (`#if 0`) pending model retraining.
 
 ### Headless Mode
-- Qt runtime deployment handled by `windeployqt` via `deploy_qt_runtime` CMake target.
-- `Qt6Test.dll` is copied separately for Qt test executables.
-- No manual DLL copy required; `windeployqt` scans `quantumverse_qml.exe` and deploys all required Qt dependencies.
-- **Status**: Documented in DEVELOPMENT_STATUS.md
+- Requires Qt `bin` directory on `PATH` for DLL loading.
+- `0xC0000135` error occurs if Qt DLLs are missing.
 
 ---
 
@@ -962,7 +859,8 @@ All limitations below are documented and tracked in this file.
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
 cmake --build build --config Release --parallel
 
-# Run tests (Qt runtime auto-deployed)
+# Run tests (with Qt PATH)
+$env:PATH = "F:\qt\6.11.1\msvc2022_64\bin;" + $env:PATH
 ctest -C Release --output-on-failure
 
 # Run headless
@@ -980,12 +878,12 @@ main_qml.cpp
   ├── physics (SingularityHandler, CurvatureCalculator)
   ├── rendering (CurvatureRenderer, QuantumGeometryRenderer, CelestialBodyRenderer)
   ├── ui4d (UI4D, Camera4DAdapter, SceneGraphManager, PlanckMicroscope)
-  ├── discovery (DiscoveryPanelManager, 16 instruments, FindingsModel)
-  ├── data (LIGOAdapter, IceCubeAdapter, TESSAdapter, FermiGBMAdapter)
+  ├── discovery (DiscoveryPanelManager, 10 instruments, FindingsModel)
+  ├── data (LIGOAdapter, IceCubeAdapter)
   ├── quantumgravity (CDTEngine)
   └── utils (TraceLogger, CrashHandler)
 ```
 
 ---
 
-*Generated for QuantumVerse v3.8.0 | Last Updated: 2026-07-18*
+*Generated for QuantumVerse v3.7.0 | Last Updated: 2026-07-15*

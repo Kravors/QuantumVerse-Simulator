@@ -44,6 +44,30 @@ std::vector<InstrumentFinding> UltralightDMWaveInterferometer::analyze(
     double dt = times[1] - times[0];
     if (dt <= 0) return findings;
 
+    // 1b. Reject non-oscillatory input before any spectral analysis.
+    //     A constant (pure-DC) series has zero variance, so every non-DC DFT bin
+    //     holds nothing but floating-point round-off. The peak/mean ratio of pure
+    //     round-off is meaningless and routinely exceeds any SNR threshold, which
+    //     would report a detection for a flat signal. Detrend by the mean and
+    //     require the residual RMS to clear a round-off floor scaled to the data.
+    double mean = 0.0;
+    double maxAbs = 0.0;
+    for (double v : xvals) {
+        mean += v;
+        maxAbs = std::max(maxAbs, std::abs(v));
+    }
+    mean /= static_cast<double>(n);
+
+    double variance = 0.0;
+    for (double& v : xvals) {
+        v -= mean;              // remove DC so it cannot leak into the spectrum
+        variance += v * v;
+    }
+    variance /= static_cast<double>(n);
+    const double rms = std::sqrt(variance);
+    const double roundOffFloor = 1e-9 * std::max(1.0, maxAbs);
+    if (rms <= roundOffFloor) return findings;
+
     // 2. Discrete Fourier transform over angular frequencies (rad/s).
     std::vector<double> freqs;
     std::vector<double> mags;

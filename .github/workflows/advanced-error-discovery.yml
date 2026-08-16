@@ -180,11 +180,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
       
+      # libFuzzer (-fsanitize=fuzzer) is a Clang-only feature; GCC rejects it with
+      # "unrecognized argument to '-fsanitize=' option: 'fuzzer'". Clang is already
+      # installed above, so point CMake at it explicitly.
       - name: Build fuzzer
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_USE_FUZZER=ON \
             -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Debug --parallel 2
       

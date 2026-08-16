@@ -67,40 +67,32 @@ void CurvatureCalculator::computeChristoffel(const Event4D& position) const {
             for (int k = 0; k < 4; k++)
                 christoffelCache_[i][j][k] = 0.0;
 
-    // For each derivative direction mu
-    for (int mu = 0; mu < 4; mu++) {
-        // Central difference: [g(x+h) - g(x-h)] / (2h)
-        MetricTensor g_plus = metricAt(position, mu, +h);
-        MetricTensor g_minus = metricAt(position, mu, -h);
-
-        // dg[sigma][nu] = d_mu g_sigma_nu
-        double dg[4][4];
+    // Precompute central-difference derivatives of the metric in every
+    // coordinate direction: deriv[dir][sigma][nu] = d_dir g_{sigma nu}.
+    // Computing all four directions once (instead of re-deriving inside the
+    // Christoffel assembly) keeps the index bookkeeping unambiguous.
+    double deriv[4][4][4];
+    for (int dir = 0; dir < 4; dir++) {
+        MetricTensor g_plus = metricAt(position, dir, +h);
+        MetricTensor g_minus = metricAt(position, dir, -h);
         for (int sigma = 0; sigma < 4; sigma++) {
             for (int nu = 0; nu < 4; nu++) {
-                dg[sigma][nu] = (g_plus.g[sigma][nu] - g_minus.g[sigma][nu]) / (2.0 * h);
+                deriv[dir][sigma][nu] = (g_plus.g[sigma][nu] - g_minus.g[sigma][nu]) / (2.0 * h);
             }
         }
+    }
 
-        // Gamma^lambda_mu_nu = 0.5 * g^lambda_sigma * (d_mu g_sigma_nu + d_nu g_sigma_mu - d_sigma g_mu_nu)
-        for (int lambda = 0; lambda < 4; lambda++) {
-            for (int nu = 0; nu < 4; nu++) {
+    // Gamma^lambda_mu_nu = 0.5 * g^lambda_sigma * (d_mu g_sigma_nu + d_nu g_sigma_mu - d_sigma g_mu_nu)
+    for (int mu = 0; mu < 4; mu++) {
+        for (int nu = 0; nu < 4; nu++) {
+            for (int lambda = 0; lambda < 4; lambda++) {
                 double sum = 0.0;
                 for (int sigma = 0; sigma < 4; sigma++) {
-                    double dg_mu_sigma_nu = dg[sigma][nu];
-                    double dg_nu_sigma_mu = dg[sigma][mu];
-
-                    // Need d_sigma g_mu_nu
-                    double dg_sigma_mu_nu;
-                    if (sigma == mu) {
-                        dg_sigma_mu_nu = dg[mu][nu];
-                    } else {
-                        MetricTensor gp = metricAt(position, sigma, +h);
-                        MetricTensor gm = metricAt(position, sigma, -h);
-                        dg_sigma_mu_nu = (gp.g[mu][nu] - gm.g[mu][nu]) / (2.0 * h);
-                    }
-
+                    double d_mu_g_sigma_nu = deriv[mu][sigma][nu];
+                    double d_nu_g_sigma_mu = deriv[nu][sigma][mu];
+                    double d_sigma_g_mu_nu = deriv[sigma][mu][nu];
                     sum += inv.g[lambda][sigma] *
-                           (dg_mu_sigma_nu + dg_nu_sigma_mu - dg_sigma_mu_nu);
+                           (d_mu_g_sigma_nu + d_nu_g_sigma_mu - d_sigma_g_mu_nu);
                 }
                 christoffelCache_[lambda][mu][nu] = 0.5 * sum;
             }
@@ -123,53 +115,58 @@ void CurvatureCalculator::computeRiemann(const Event4D& position) const {
     // R^rho_sigma_mu_nu = d_mu Gamma^rho_nu_sigma - d_nu Gamma^rho_mu_sigma
     //                     + Gamma^rho_mu_lambda * Gamma^lambda_nu_sigma
     //                     - Gamma^rho_nu_lambda * Gamma^lambda_mu_sigma
+    //
+    // The derivatives d_mu Gamma and d_nu Gamma depend only on positions
+    // perturbed along mu and nu respectively (independent of rho,sigma), so we
+    // evaluate Christoffel at the four perturbed positions ONCE per (mu,nu)
+    // pair (64 evaluations total) instead of once per (rho,sigma,mu,nu) (1024
+    // evaluations). The result is bit-for-bit equivalent but ~16x cheaper,
+    // which keeps curvature-heavy discovery loops within the CI test timeout.
 
-    for (int rho = 0; rho < 4; rho++) {
-        for (int sigma = 0; sigma < 4; sigma++) {
-            for (int mu = 0; mu < 4; mu++) {
-                for (int nu = 0; nu < 4; nu++) {
-                    // Numerical derivatives of Christoffel symbols
-                    // d_mu Gamma^rho_nu_sigma
-                    Event4D pos_p_mu = position;
-                    Event4D pos_m_mu = position;
-                    switch (mu) {
-                        case 0: pos_p_mu.t += h; pos_m_mu.t -= h; break;
-                        case 1: pos_p_mu.x += h; pos_m_mu.x -= h; break;
-                        case 2: pos_p_mu.y += h; pos_m_mu.y -= h; break;
-                        case 3: pos_p_mu.z += h; pos_m_mu.z -= h; break;
-                    }
-                    computeChristoffel(pos_p_mu);
-                    double Gamma_rho_nu_sigma_mu = christoffelCache_[rho][nu][sigma];
+    // Cache the central Christoffel symbols for the product terms.
+    std::array<std::array<std::array<double, 4>, 4>, 4> central = christoffelCache_;
 
-                    computeChristoffel(pos_m_mu);
-                    double Gamma_rho_nu_sigma_mu_m = christoffelCache_[rho][nu][sigma];
+    for (int mu = 0; mu < 4; mu++) {
+        for (int nu = 0; nu < 4; nu++) {
+            Event4D pos_p_mu = position;
+            Event4D pos_m_mu = position;
+            Event4D pos_p_nu = position;
+            Event4D pos_m_nu = position;
+            switch (mu) {
+                case 0: pos_p_mu.t += h; pos_m_mu.t -= h; break;
+                case 1: pos_p_mu.x += h; pos_m_mu.x -= h; break;
+                case 2: pos_p_mu.y += h; pos_m_mu.y -= h; break;
+                case 3: pos_p_mu.z += h; pos_m_mu.z -= h; break;
+            }
+            switch (nu) {
+                case 0: pos_p_nu.t += h; pos_m_nu.t -= h; break;
+                case 1: pos_p_nu.x += h; pos_m_nu.x -= h; break;
+                case 2: pos_p_nu.y += h; pos_m_nu.y -= h; break;
+                case 3: pos_p_nu.z += h; pos_m_nu.z -= h; break;
+            }
 
-                    double d_mu_Gamma = (Gamma_rho_nu_sigma_mu - Gamma_rho_nu_sigma_mu_m) / (2.0 * h);
+            computeChristoffel(pos_p_mu);
+            std::array<std::array<std::array<double, 4>, 4>, 4> Gamma_p_mu = christoffelCache_;
+            computeChristoffel(pos_m_mu);
+            std::array<std::array<std::array<double, 4>, 4>, 4> Gamma_m_mu = christoffelCache_;
+            computeChristoffel(pos_p_nu);
+            std::array<std::array<std::array<double, 4>, 4>, 4> Gamma_p_nu = christoffelCache_;
+            computeChristoffel(pos_m_nu);
+            std::array<std::array<std::array<double, 4>, 4>, 4> Gamma_m_nu = christoffelCache_;
 
-                    // d_nu Gamma^rho_mu_sigma
-                    Event4D pos_p_nu = position;
-                    Event4D pos_m_nu = position;
-                    switch (nu) {
-                        case 0: pos_p_nu.t += h; pos_m_nu.t -= h; break;
-                        case 1: pos_p_nu.x += h; pos_m_nu.x -= h; break;
-                        case 2: pos_p_nu.y += h; pos_m_nu.y -= h; break;
-                        case 3: pos_p_nu.z += h; pos_m_nu.z -= h; break;
-                    }
-                    computeChristoffel(pos_p_nu);
-                    double Gamma_rho_mu_sigma_nu = christoffelCache_[rho][mu][sigma];
+            // Restore the central Christoffel symbols for the product terms.
+            christoffelCache_ = central;
 
-                    computeChristoffel(pos_m_nu);
-                    double Gamma_rho_mu_sigma_nu_m = christoffelCache_[rho][mu][sigma];
+            for (int rho = 0; rho < 4; rho++) {
+                for (int sigma = 0; sigma < 4; sigma++) {
+                    double d_mu_Gamma = (Gamma_p_mu[rho][nu][sigma] - Gamma_m_mu[rho][nu][sigma]) / (2.0 * h);
+                    double d_nu_Gamma = (Gamma_p_nu[rho][mu][sigma] - Gamma_m_nu[rho][mu][sigma]) / (2.0 * h);
 
-                    double d_nu_Gamma = (Gamma_rho_mu_sigma_nu - Gamma_rho_mu_sigma_nu_m) / (2.0 * h);
-
-                    // Christoffel product terms at the central position
-                    ensureChristoffel(position);
                     double product1 = 0.0;  // Gamma^rho_mu_lambda * Gamma^lambda_nu_sigma
                     double product2 = 0.0;  // Gamma^rho_nu_lambda * Gamma^lambda_mu_sigma
                     for (int lambda = 0; lambda < 4; lambda++) {
-                        product1 += christoffelCache_[rho][mu][lambda] * christoffelCache_[lambda][nu][sigma];
-                        product2 += christoffelCache_[rho][nu][lambda] * christoffelCache_[lambda][mu][sigma];
+                        product1 += central[rho][mu][lambda] * central[lambda][nu][sigma];
+                        product2 += central[rho][nu][lambda] * central[lambda][mu][sigma];
                     }
 
                     riemannCache_[rho][sigma][mu][nu] = d_mu_Gamma - d_nu_Gamma + product1 - product2;
@@ -222,14 +219,12 @@ void CurvatureCalculator::computeRicciScalar(const Event4D& position) const {
 void CurvatureCalculator::computeKretschmann(const Event4D& position) const {
     ensureRiemann(position);
 
-    // K = R_{rho sigma mu nu} R^{rho sigma mu nu}
-    // Use Ricci tensor: K = R_{ij}R^{ij} + 2*R_{ijkl}R^{ijkl}/3 for vacuum
-    // But simpler: just contract the Riemann tensor
-    
-    // First compute R_{rho sigma mu nu} = g_rho_alpha R^alpha_sigma_mu_nu
+    // K = R^{rho sigma mu nu} R_{rho sigma mu nu}
+    // Lower the first index with the metric: R_{rho sigma mu nu} = g_{rho alpha} R^alpha_sigma_mu_nu
     MetricTensor metric = metricField_(position);
+    MetricTensor inv = metric.inverse();
     std::array<std::array<std::array<std::array<double, 4>, 4>, 4>, 4> R_lowered;
-    
+
     for (int rho = 0; rho < 4; rho++) {
         for (int sigma = 0; sigma < 4; sigma++) {
             for (int mu = 0; mu < 4; mu++) {
@@ -243,14 +238,27 @@ void CurvatureCalculator::computeKretschmann(const Event4D& position) const {
             }
         }
     }
-    
-    // Now contract: K = R^{rho sigma mu nu} * R_{rho sigma mu nu}
+
+    // Fully contract the Riemann tensor: raise the remaining three indices
+    // (sigma, mu, nu) with the inverse metric so that K = R^{rho sigma mu nu} R_{rho sigma mu nu}.
+    // Contracting only the first index (R^rho_sigma_mu_nu * R_rho_sigma_mu_nu) is NOT the
+    // Kretschmann scalar: it omits the g^{sigma beta} g^{mu gamma} g^{nu delta} factors and
+    // is wrong for any metric whose inverse is not the identity (e.g. spherical coordinates).
     double sum = 0.0;
     for (int rho = 0; rho < 4; rho++) {
         for (int sigma = 0; sigma < 4; sigma++) {
             for (int mu = 0; mu < 4; mu++) {
                 for (int nu = 0; nu < 4; nu++) {
-                    sum += riemannCache_[rho][sigma][mu][nu] * R_lowered[rho][sigma][mu][nu];
+                    double R_raised = 0.0;
+                    for (int beta = 0; beta < 4; beta++) {
+                        for (int gamma = 0; gamma < 4; gamma++) {
+                            for (int delta = 0; delta < 4; delta++) {
+                                R_raised += inv.g[sigma][beta] * inv.g[mu][gamma] * inv.g[nu][delta]
+                                            * riemannCache_[rho][beta][gamma][delta];
+                            }
+                        }
+                    }
+                    sum += R_raised * R_lowered[rho][sigma][mu][nu];
                 }
             }
         }
