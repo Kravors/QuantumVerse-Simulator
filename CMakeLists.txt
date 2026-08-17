@@ -277,7 +277,7 @@ if(QUANTUMVERSE_USE_QT)
     )
 
     if(WIN32)
-        set(QT_RUNTIME_DEST "${CMAKE_BINARY_DIR}/$<CONFIG>")
+        set(QT_RUNTIME_DEST "$<TARGET_FILE_DIR:quantumverse_qml>")
         add_custom_target(deploy_qt_runtime
             COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
