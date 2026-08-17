@@ -403,14 +403,14 @@ void QmlGlRenderer::render()
     GL_CHECK();
 
     // Render scene components
-    // if (m_showGrid) {
-    //     PERF_SCOPE("renderGrid");
-    //     renderGrid();
-    // }
+    if (m_showGrid) {
+        PERF_SCOPE("renderGrid");
+        renderGrid();
+    }
 
     {
         PERF_SCOPE("renderAxisGizmo");
-        // renderAxisGizmo();
+        renderAxisGizmo();
     }
 
     if (m_showGeodesics && m_curvatureRenderer) {
@@ -420,7 +420,7 @@ void QmlGlRenderer::render()
                        << "m_curvatureRenderer=" << m_curvatureRenderer.get();
         }
         PERF_SCOPE("renderGeodesics");
-        // renderGeodesics();
+        renderGeodesics();
     } else {
         static int s_geoSkip = 0;
         if (s_geoSkip++ < 5) {
@@ -430,17 +430,14 @@ void QmlGlRenderer::render()
     }
 
     // Render curvature visualization (delegates to CurvatureRenderer)
-    // TEMP DIAGNOSTIC: disabled to confirm the "massive light-blue polygon"
-    // is the CurvatureRenderer 3D volume surface and not the grid. Re-enable
-    // after confirming the grid + axis gizmo become visible.
-    if (false && m_curvatureRenderer) {
+    if (m_curvatureRenderer) {
         PERF_SCOPE("curvatureRender");
         m_curvatureRenderer->render(m_viewMatrix.constData(),
                                      m_projectionMatrix.constData());
     }
 
     // Render celestial bodies (only if initialized)
-    if (false && m_celestialBodyRenderer) {
+    if (m_celestialBodyRenderer) {
         PERF_SCOPE("celestialRender");
         static int s_renderDiag = 0;
         if (s_renderDiag++ < 5) {
@@ -462,16 +459,16 @@ void QmlGlRenderer::render()
 
     if (m_showQuantumGeometry && m_quantumRenderer) {
         PERF_SCOPE("renderQuantumGeometry");
-        // renderQuantumGeometry();
+        renderQuantumGeometry();
     }
 
     {
         PERF_SCOPE("renderOverlay");
-        // renderOverlay();
+        renderOverlay();
     }
     {
         PERF_SCOPE("renderProfilingOverlay");
-        // renderProfilingOverlay();
+        renderProfilingOverlay();
     }
 
     m_overlayShader.release();
