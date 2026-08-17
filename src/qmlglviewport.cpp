@@ -2476,15 +2476,36 @@ void QmlGlViewport::renderGL()
     // expensive enough to trip the performance gate. Screenshots and the
     // headless path still read m_fbo directly.
     if (m_headlessTargetFrames == 0) {
-        const int ww = window() ? window()->width() : w;
-        const int wh = window() ? window()->height() : h;
+        // The FBO is item-sized (w x h), but the default framebuffer is the
+        // whole window. The blit destination must be the item's rectangle
+        // within the window backbuffer, not the entire window, otherwise the
+        // source/destination rects differ and GL_LINEAR blits fail with
+        // GL_INVALID_OPERATION (leaving the viewport black).
+        const qreal dpr = window() ? window()->devicePixelRatio() : 1.0;
+        // Top-left of this item in window coordinates (logical, top-left origin).
+        const QPointF itemTopLeft = window()
+            ? mapToItem(window()->contentItem(), QPointF(0.0, 0.0))
+            : QPointF(0.0, 0.0);
+        const int dx = qRound(itemTopLeft.x() * dpr);
+        const int dy = qRound(itemTopLeft.y() * dpr);
+        const int dw = qRound(static_cast<qreal>(w) * dpr);
+        const int dh = qRound(static_cast<qreal>(h) * dpr);
+        const int winWd = qRound((window() ? window()->width()  : w) * dpr);
+        const int winHd = qRound((window() ? window()->height() : h) * dpr);
+        // GL origin is bottom-left, Qt/Scene origin is top-left.
+        const int glY = winHd - dy - dh;
+
         glad_glDisable(GL_SCISSOR_TEST);
         glad_glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo->handle());
         glad_glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glad_glViewport(0, 0, ww, wh);
+        glad_glViewport(0, 0, winWd, winHd);
         glad_glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glad_glBlitFramebuffer(0, 0, w, h, 0, 0, ww, wh,
-                               GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        // GL_NEAREST (not GL_LINEAR) so a DPR-scaled destination rectangle does
+        // not trigger GL_INVALID_OPERATION; at DPR=1 src/dst are identical size
+        // and the result is pixel-identical to LINEAR.
+        glad_glBlitFramebuffer(0, 0, w, h,
+                                dx, glY, dx + dw, glY + dh,
+                                GL_COLOR_BUFFER_BIT, GL_NEAREST);
         glad_glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
