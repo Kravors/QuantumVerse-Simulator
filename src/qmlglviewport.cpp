@@ -2449,8 +2449,10 @@ void QmlGlViewport::renderGL()
         diagLog(m);
     }
     m_renderer->render();
+    GL_CHECK();
     if (m_showHUD && m_renderer) {
         m_renderer->renderHUD();
+        GL_CHECK();
     }
     if (m_renderer->screenshotRequested()) {
         QImage img = m_fbo->toImage();
@@ -2503,9 +2505,26 @@ void QmlGlViewport::renderGL()
         // GL_NEAREST (not GL_LINEAR) so a DPR-scaled destination rectangle does
         // not trigger GL_INVALID_OPERATION; at DPR=1 src/dst are identical size
         // and the result is pixel-identical to LINEAR.
-        glad_glBlitFramebuffer(0, 0, w, h,
-                                dx, glY, dx + dw, glY + dh,
-                                GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        //
+        // glBlitFramebuffer raises GL_INVALID_VALUE when the destination
+        // rectangle falls outside the draw (window back) framebuffer. Clamp the
+        // destination to the back-buffer bounds and map the corresponding
+        // sub-rectangle of the source FBO, so we never hand the driver an
+        // out-of-range rect (this is what produced the per-frame 1281 error).
+        const int fboW = m_fbo->width();
+        const int fboH = m_fbo->height();
+        int dX0 = qBound(0, dx,        winWd);
+        int dY0 = qBound(0, glY,       winHd);
+        int dX1 = qBound(0, dx + dw,   winWd);
+        int dY1 = qBound(0, glY + dh,  winHd);
+        const int sX0 = (dw > 0) ? qRound((dX0 - dx) / static_cast<double>(dw) * fboW) : 0;
+        const int sY0 = (dh > 0) ? qRound((dY0 - glY) / static_cast<double>(dh) * fboH) : 0;
+        const int sX1 = (dw > 0) ? qRound((dX1 - dx) / static_cast<double>(dw) * fboW) : fboW;
+        const int sY1 = (dh > 0) ? qRound((dY1 - glY) / static_cast<double>(dh) * fboH) : fboH;
+        glad_glBlitFramebuffer(sX0, sY0, sX1, sY1,
+                               dX0, dY0, dX1, dY1,
+                               GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        GL_CHECK();
         glad_glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
