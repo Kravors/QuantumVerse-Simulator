@@ -258,6 +258,7 @@ QmlGlRenderer::~QmlGlRenderer()
 
 void QmlGlRenderer::render()
 {
+ try {
 #if PERF_TRACE
     std::ofstream("renderer_render.log", std::ios::app) << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
 #endif
@@ -297,15 +298,26 @@ void QmlGlRenderer::render()
         return;
     }
 
+    // Initialize OpenGL/GLAD state on the FIRST render, BEFORE any glad_*
+    // helper is invoked below. The glad_* function pointers are NULL until
+    // gladLoadGL() runs inside initializeGL(); calling one beforehand
+    // (e.g. glad_glGetError) dereferences a null function pointer and crashes
+    // with an access violation at EIP=0x0 on the very first real frame.
+    static bool initialized = false;
+    if (!initialized) {
+        initializeGL();
+        initialized = true;
+    }
+
     // [DIAG] Step 2: clear the GL error queue every frame and surface any
     // error that is pending at the start of the frame (first 10 occurrences
     // only, to avoid flooding). Also log viewport size periodically so we can
     // detect a 0x0 resize (Step 5) that would invalidate the projection.
     // NOTE: must use glad_glGetError(), not the QOpenGLFunctions::glGetError(),
     // because initializeOpenGLFunctions() (which populates the QOpenGLFunctions
-    // pointers) is only called later inside initializeGL(). Calling the
+    // pointers) is only called inside initializeGL() (above). Calling the
     // QOpenGLFunctions variant here on the first frame would dereference a null
-    // pointer and crash the render loop after a single frame.
+    // pointer and crash the render loop after a single number of frames.
     GLenum startErr = glad_glGetError();
     if (startErr != GL_NO_ERROR) {
         static int s_errCount = 0;
@@ -324,12 +336,8 @@ void QmlGlRenderer::render()
     }
     s_sizeLog++;
 
-    // Initialize OpenGL state on first render
-    static bool initialized = false;
-    if (!initialized) {
-        initializeGL();
-        initialized = true;
-    }
+    // Ensure the GL viewport matches the FBO size before any draw call.
+    glad_glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 
     // One-time GL initialization of the celestial body renderer.
     // Kept in render() (not initializeGL()) because m_celestialBodyRenderer
@@ -491,6 +499,15 @@ void QmlGlRenderer::render()
         perfLog << "Average frame time: " << avg << " ms, Max: " << max
                 << " ms, Min: " << min << " ms, FPS: " << fps
                 << " (frames=" << m_frameCount << ")\n";
+    }
+    } catch (const std::exception& e) {
+        std::ofstream("qml_runtime.log", std::ios::app)
+            << "[RENDER-EXCEPTION] " << e.what() << "\n";
+        qWarning() << "QmlGlRenderer::render() threw:" << e.what();
+    } catch (...) {
+        std::ofstream("qml_runtime.log", std::ios::app)
+            << "[RENDER-EXCEPTION] unknown exception\n";
+        qWarning() << "QmlGlRenderer::render() threw unknown exception";
     }
 }
 
@@ -2277,9 +2294,12 @@ public:
         if (!m_gl || !m_fbo) {
             return;
         }
+        try {
         m_fbo->bind();
-        GL_CHECK();
-        glad_glViewport(0, 0, m_fbo->width(), m_fbo->height());
+        // m_gl->render() must run FIRST: it initializes GL/GLAD on the first
+        // frame, which is required before any glad_* call (GL_CHECK below uses
+        // glad_glGetError, and the viewport is set inside render()). The FBO
+        // is already bound above, so initializeGL() sees a current context.
         m_gl->render();
         GL_CHECK();
         if (m_showHUD && m_gl) {
@@ -2301,6 +2321,13 @@ public:
         // Continuous animation: ask the item to schedule another frame.
         if (m_item) {
             QMetaObject::invokeMethod(m_item, "update", Qt::QueuedConnection);
+        }
+        } catch (const std::exception& e) {
+            std::ofstream("qml_runtime.log", std::ios::app) << "[VIEWPORT-RENDER-EXCEPTION] " << e.what() << "\n";
+            qWarning() << "ViewportRenderer::render() threw:" << e.what();
+        } catch (...) {
+            std::ofstream("qml_runtime.log", std::ios::app) << "[VIEWPORT-RENDER-EXCEPTION] unknown\n";
+            qWarning() << "ViewportRenderer::render() threw unknown exception";
         }
     }
 
