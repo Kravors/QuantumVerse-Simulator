@@ -31,18 +31,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-           - name: ubuntu-22.04
-              os:   ubuntu-22.04
-            - name: windows-2022
-              os:   windows-2022
-             install_cmd: choco install
-             install_cmd_postfix: --yes --no-progress
-             # Chocolatey sqlite package does not come with headers, so we build with bundled sqlite.
-             #deps: sqlite
-             # ccache installed separately later in order to force version
-             tools: ninja
-             # We don't want the system headers / libraries from Strawberry Perl while compiling with MinGW 8.1.0
-             configure_flags: -qt-sqlite -qt-pcre -qt-zlib -qt-freetype -qt-libpng -qt-libjpeg -qt-harfbuzz -no-feature-sql-psql -no-feature-sql-mysql -no-feature-sql-odbc
+          - name: ubuntu-22.04
+            os: ubuntu-22.04
+          - name: windows-2022
+            os: windows-2022
+            install_cmd: choco install
+            install_cmd_postfix: --yes --no-progress
+            tools: ninja
+            configure_flags: -qt-sqlite -qt-pcre -qt-zlib -qt-freetype -qt-libpng -qt-libjpeg -qt-harfbuzz -no-feature-sql-psql -no-feature-sql-mysql -no-feature-sql-odbc
     runs-on: ${{ matrix.os }}
 
 
