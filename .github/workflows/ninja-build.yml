@@ -31,10 +31,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-           - name: ubuntu-20.04
-             os:   ubuntu-20.04
-           - name: windows-2019
-             os:   windows-2019
+           - name: ubuntu-22.04
+              os:   ubuntu-22.04
+            - name: windows-2022
+              os:   windows-2022
              install_cmd: choco install
              install_cmd_postfix: --yes --no-progress
              # Chocolatey sqlite package does not come with headers, so we build with bundled sqlite.
@@ -52,8 +52,8 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100
     - name: prepare macOS
       if: runner.os == 'macOS'
       run: echo noop
