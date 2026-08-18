@@ -499,6 +499,13 @@ void QmlGlRenderer::render()
         perfLog << "Average frame time: " << avg << " ms, Max: " << max
                 << " ms, Min: " << min << " ms, FPS: " << fps
                 << " (frames=" << m_frameCount << ")\n";
+
+        if (!m_frameTimesPath.isEmpty()) {
+            std::ofstream ft(m_frameTimesPath.toStdString());
+            for (const auto& t : profiler.getRecentFrames()) {
+                ft << t.frameTimeMs << "\n";
+            }
+        }
     }
     } catch (const std::exception& e) {
         std::ofstream("qml_runtime.log", std::ios::app)
@@ -774,6 +781,11 @@ void QmlGlRenderer::requestScreenshot(const QString &path)
 {
     m_screenshotRequested = true;
     m_screenshotPath = path;
+}
+
+void QmlGlRenderer::setFrameTimesPath(const QString &path)
+{
+    m_frameTimesPath = path;
 }
 
 void QmlGlRenderer::updateTime(float deltaTime)

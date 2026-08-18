@@ -986,6 +986,7 @@ ApplicationWindow {
 
                         // Replay Archive panel
                         Pane {
+                            id: replayContainer
                             Layout.fillWidth: true
                             Layout.preferredHeight: 140
                             visible: replayContainer && replayContainer.visible

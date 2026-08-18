@@ -30,42 +30,42 @@ jobs:
 
       - name: ASan nightly
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+          cmake -B build-asan -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_ASAN=ON \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=address -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
-          cmake --build build --config Debug --parallel 2
+          cmake --build build-asan --config Debug --parallel 2
           export ASAN_OPTIONS=detect_leaks=1:abort_on_error=0:symbolize=1:log_path=asan_report
-          timeout 14400 ctest --output-on-failure -j $(nproc)
+          timeout 14400 ctest -B build-asan --output-on-failure -j $(nproc)
 
       - name: UBSan nightly
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+          cmake -B build-ubsan -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_UBSAN=ON \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=undefined -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=undefined"
-          cmake --build build --config Debug --parallel 2
+          cmake --build build-ubsan --config Debug --parallel 2
           export UBSAN_OPTIONS=abort_on_error=0:print_stacktrace=1:log_path=ubsan_report
-          timeout 14400 ctest --output-on-failure -j $(nproc)
+          timeout 14400 ctest -B build-ubsan --output-on-failure -j $(nproc)
 
       - name: TSan nightly
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+          cmake -B build-tsan -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_TSAN=ON \
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=thread -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=thread"
-          cmake --build build --config Debug --parallel 2
-          timeout 14400 ctest --output-on-failure -j 2
+          cmake --build build-tsan --config Debug --parallel 2
+          timeout 14400 ctest -B build-tsan --output-on-failure -j 2
 
       - name: Valgrind nightly
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
-          cmake --build build --config Release --parallel 2
+          cmake -B build-valgrind -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+          cmake --build build-valgrind --config Release --parallel 2
           mkdir -p valgrind-reports
-          for test in $(find build -name "test_*" -type f -executable | head -20); do
+          for test in $(find build-valgrind -name "test_*" -type f -executable | head -20); do
             valgrind --leak-check=full --show-leak-kinds=all \
               --log-file="valgrind-reports/$(basename $test).valgrind.log" \
               --error-exitcode=1 "$test" || true
@@ -107,8 +107,10 @@ jobs:
 
       - name: Run performance baseline tests
         working-directory: build
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
-          ./test_performance_baseline
+          ./qml_performance_baseline
 
       - name: Run benchmark suite
         working-directory: build

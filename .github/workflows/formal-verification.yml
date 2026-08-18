@@ -42,22 +42,19 @@ jobs:
 
       # Run from the repository root: the harnesses live in tests/verification, not
       # inside the build tree, so the previous `cd build-cbmc` made both paths
-      # unresolvable. --object-bits must also stay strictly below the pointer
-      # width, so 32 object bits is invalid in a --32-bit run and CBMC rejects the
-      # whole invocation with "Usage error!" (exit 64). Use the documented 16/16
-      # split instead, and capture the --xml-ui output so the artifact step has
-      # something to upload.
+      # unresolvable. cbmc 5.95 dropped the `--32-bit` option entirely (it fails
+      # with "Unknown option: --32-bit", exit 64), so we run at the native word
+      # width and capture the --xml-ui output so the artifact step has something
+      # to upload.
       - name: Run CBMC verification
         run: |
           mkdir -p build-cbmc
           cbmc tests/verification/harness_metric.cpp \
             --bounds-check --pointer-check --unwind 10 \
-            --32-bit --object-bits 16 \
             --xml-ui > build-cbmc/cbmc-harness-metric.xml
 
           cbmc tests/verification/harness_geodesic.cpp \
             --bounds-check --pointer-check --unwind 10 \
-            --32-bit --object-bits 16 \
             --xml-ui > build-cbmc/cbmc-harness-geodesic.xml
 
       - name: Upload CBMC results

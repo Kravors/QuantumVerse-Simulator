@@ -309,6 +309,10 @@ private:
     QString screenshotPath() const { return m_screenshotPath; }
     void clearScreenshotRequest() { m_screenshotRequested = false; }
 
+    // Headless frame-time dump support (--dump-frame-times)
+    void setFrameTimesPath(const QString &path);
+    QString frameTimesPath() const { return m_frameTimesPath; }
+
     // Celestial body & camera adapters
     void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
     void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
@@ -423,6 +427,7 @@ private:
     // Headless screenshot state
     bool m_screenshotRequested;
     QString m_screenshotPath;
+    QString m_frameTimesPath;
 
     // Mutable renderer storage for createRenderer() const
     mutable std::shared_ptr<CurvatureRenderer> m_pendingCurvatureRenderer;
@@ -565,6 +570,9 @@ public:
     void setHeadlessFrameTarget(int frames) {
         m_headlessTargetFrames = frames;
         if (m_renderer) m_renderer->setHeadlessFrameTarget(frames);
+    }
+    void setFrameTimesPath(const QString &path) {
+        if (m_renderer) m_renderer->setFrameTimesPath(path);
     }
     bool headlessTargetReached() const { return m_renderer ? m_renderer->headlessTargetReached() : false; }
 

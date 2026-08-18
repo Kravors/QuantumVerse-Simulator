@@ -751,6 +751,17 @@ int main(int argc, char* argv[])
             alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
         rootContext->setContextProperty("replayStream",
             QVariant::fromValue(replayStream.get()));
+#else
+        // Headless/CI builds disable librdkafka, so the live-GCN-ingest objects
+        // above are never created. Register null stubs so main.qml bindings that
+        // reference them (kafkaListener, replayStream, ...) do not throw
+        // ReferenceErrors and abort the headless UI tests.
+        rootContext->setContextProperty("alertRouter", QVariant());
+        rootContext->setContextProperty("tessAdapter", QVariant());
+        rootContext->setContextProperty("fermiAdapter", QVariant());
+        rootContext->setContextProperty("swiftAdapter", QVariant());
+        rootContext->setContextProperty("kafkaListener", QVariant());
+        rootContext->setContextProperty("replayStream", QVariant());
 #endif
 
         // Multi-user collaboration: signaling client and shared session
@@ -879,6 +890,10 @@ int main(int argc, char* argv[])
 
                 if (headlessFrames > 0) {
                     viewport->setHeadlessFrameTarget(headlessFrames);
+                }
+
+                if (!frameTimesPath.isEmpty()) {
+                    viewport->setFrameTimesPath(frameTimesPath);
                 }
 
                 if (enableGeodesics) {
