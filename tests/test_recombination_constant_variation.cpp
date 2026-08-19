@@ -35,7 +35,7 @@ int main() {
 
     assert(!findings.empty() && "No variation detected");
 
-    bool foundVariation = false;
+    [[maybe_unused]] bool foundVariation = false;
     for (const auto& f : findings) {
         if (f.description.find("alpha") != std::string::npos) {
             foundVariation = true;

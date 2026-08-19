@@ -98,7 +98,7 @@ ValidationResult PhysicsValidator::validateChristoffel(
     std::uniform_real_distribution<double> dist(-100.0, 100.0);
 
     double maxError = 0.0;
-    int passedTests = 0;
+    [[maybe_unused]] int passedTests = 0;
 
     for (int i = 0; i < numTests; ++i) {
         Event4D testPoint(dist(gen), dist(gen), dist(gen), dist(gen));

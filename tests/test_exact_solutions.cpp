@@ -164,7 +164,7 @@ void test_curvature_invariants_exact() {
     Event4D origin(0.0, 0.0, 0.0, 0.0);
 
     CurvatureCalculator calc(std::make_shared<MetricTensor>(minkowski));
-    auto minkResult = calc.computeAll(origin);
+    [[maybe_unused]] auto minkResult = calc.computeAll(origin);
     assert(std::abs(minkResult.ricciScalar) < 1e-6 && "Minkowski Ricci scalar should be zero");
     assert(std::abs(minkResult.kretschmann) < 1e-6 && "Minkowski Kretschmann should be zero");
 

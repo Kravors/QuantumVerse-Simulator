@@ -342,7 +342,7 @@ void test_schwarzschild_negative_r() {
     double M = 1e30;
     SchwarzschildMetric sch(M);
     Event4D ev(0.0, -1e5, 0.0, 0.0);
-    auto g = sch.evaluate(ev);
+    [[maybe_unused]] auto g = sch.evaluate(ev);
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             assert(std::isfinite(g[i][j]) && "Metric should be finite for negative r");
@@ -356,7 +356,7 @@ void test_schwarzschild_zero_r() {
     double M = 1e30;
     SchwarzschildMetric sch(M);
     Event4D ev(0.0, 0.0, 0.0, 0.0);
-    auto g = sch.evaluate(ev);
+    [[maybe_unused]] auto g = sch.evaluate(ev);
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             assert(std::isfinite(g[i][j]) && "Metric should be finite at origin");
@@ -371,7 +371,7 @@ void test_kretschmann_near_singularity() {
     SchwarzschildMetric sch(M);
     double r = 1e-8 * 1.0;  // r in geometric units
     Event4D ev(0.0, r * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
-    auto s = sch.curvatureScalars(ev);
+    [[maybe_unused]] auto s = sch.curvatureScalars(ev);
     assert(s.valid);
     assert(std::isfinite(s.kretschmann) && s.kretschmann > 0.0);
     std::cout << "[PASS] Kretschmann near singularity finite and positive" << std::endl;
@@ -553,7 +553,7 @@ void test_geodesic_inside_horizon() {
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
 
     assert(!traj.empty());
-    for (const auto& step : traj) {
+    for (const auto& step [[maybe_unused]] : traj) {
         assert(std::isfinite(step.event.x) && "x should be finite inside horizon");
     }
     std::cout << "[PASS] Geodesic inside horizon: all positions finite" << std::endl;
@@ -587,7 +587,7 @@ void test_hawking_temperature_formula() {
     double T = handler.getHawkingTemperature();
 
     double T_expected = Event4D::C2 * Event4D::C / (8.0 * M_PI * Event4D::G * M);
-    double err = relError(T, T_expected);
+    [[maybe_unused]] double err = relError(T, T_expected);
     assert(err < 1e-6 && "Hawking temperature should match 1/(8*pi*M)");
     std::cout << "[PASS] Hawking temperature exact: T = " << T << std::endl;
 }
@@ -626,7 +626,7 @@ void test_geodesic_near_horizon_outside() {
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
 
     assert(!traj.empty());
-    for (const auto& step : traj) {
+    for (const auto& step [[maybe_unused]] : traj) {
         assert(std::isfinite(step.event.x) && "x should be finite");
     }
     std::cout << "[PASS] Geodesic near horizon (just outside): " << traj.size() << " steps" << std::endl;
@@ -666,7 +666,7 @@ void test_zero_velocity_infinity() {
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
 
     assert(!traj.empty());
-    for (const auto& step : traj) {
+    for (const auto& step [[maybe_unused]] : traj) {
         assert(std::isfinite(step.event.x) && "x should be finite");
     }
     std::cout << "[PASS] Zero angular velocity at large r stable" << std::endl;

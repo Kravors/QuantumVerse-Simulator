@@ -128,7 +128,7 @@ void test_schwarzschild_redshift() {
 // 18.1.4 - Schwarzschild: metric symmetry and Lorentzian signature
 // ============================================================================
 void test_schwarzschild_metric_properties() {
-    double M = 5.0 * Event4D::G * 1.989e30 / (Event4D::C * Event4D::C);
+    [[maybe_unused]] double M = 5.0 * Event4D::G * 1.989e30 / (Event4D::C * Event4D::C);
     SchwarzschildMetric sch(5.0 * 1.989e30);
 
     std::vector<Event4D> points = {
@@ -371,7 +371,7 @@ void test_frw_deceleration_parameter() {
     for (double f : t_factors) {
         double t = f * t0;
         double a = frw.scaleFactor(t);
-        double H = frw.hubbleParameter(t);
+        [[maybe_unused]] double H = frw.hubbleParameter(t);
         // Numerical derivative for adot and addot
         // Use a step large enough that the true second difference (~|a''| h^2)
         // is not lost to floating-point round-off in (a_plus - 2a + a_minus);
@@ -493,7 +493,7 @@ void test_schwarzschild_embedding() {
         // Spatial distance between r and r+dr should match embedding
         double dr = 1e-4;
         Event4D ev2(0.0, r + dr, M_PI / 2.0, 0.0);
-        auto g2 = sch.evaluate(ev2);
+        [[maybe_unused]] auto g2 = sch.evaluate(ev2);
         double dl_numeric = std::sqrt(g[1][1]) * dr;
         double dl_embed = std::sqrt(z_expected * z_expected + dr * dr);  // approx
         (void)dl_numeric;
@@ -535,7 +535,7 @@ void test_kerr_equatorial_angular_velocity() {
             double dphi = traj.back().event.phi() - traj.front().event.phi();
             double dt = traj.back().event.t - traj.front().event.t;
             if (dt > 1e-10) {
-                double Omega_actual = dphi / dt;
+                [[maybe_unused]] double Omega_actual = dphi / dt;
                 // Just check it's finite and positive
                 assert(std::isfinite(Omega_actual) && "Omega should be finite");
                 (void)Omega_expected;
@@ -560,7 +560,7 @@ void test_rn_kretschmann_regular() {
     // (in geometric units where G=c=1)
     double M_geom = rs / 2.0;
     double Q_geom = q * M_geom;
-    double K_expected = 48.0 * M_geom * M_geom / std::pow(r, 6)
+    [[maybe_unused]] double K_expected = 48.0 * M_geom * M_geom / std::pow(r, 6)
                       - 96.0 * Q_geom * Q_geom * M_geom / std::pow(r, 7)
                       + 56.0 * std::pow(Q_geom, 4) / std::pow(r, 8);
 
@@ -597,9 +597,9 @@ void test_de_sitter_properties() {
 
     std::vector<double> t_vals = {1e15, 1e16, 1e17, 1e18};
     for (double t : t_vals) {
-        double H = frw.hubbleParameter(t);
+        [[maybe_unused]] double H = frw.hubbleParameter(t);
         assert(std::abs(H - H0) < 1e-15 && "de Sitter H should be constant");
-        double a = frw.scaleFactor(t);
+        [[maybe_unused]] double a = frw.scaleFactor(t);
         double a_expected = std::exp(H0 * t);
         assert(relError(a, a_expected) < 1e-12 && "de Sitter a(t) mismatch");
         (void)a_expected;
@@ -679,9 +679,9 @@ void test_schwarzschild_kretschmann_grid() {
         for (double r : radii) {
             if (r <= 1e-9) continue;
             Event4D ev(0.0, r, 0.0, 0.0);
-            auto s = sch.curvatureScalars(ev);
+            [[maybe_unused]] auto s = sch.curvatureScalars(ev);
             assert(s.valid);
-            double expected = coeff / std::pow(r, 6);
+            [[maybe_unused]] double expected = coeff / std::pow(r, 6);
             assert(relError(s.kretschmann, expected) < 1e-12);
             assert(std::abs(s.ricciScalar) < 1e-6);
             count++;
@@ -751,13 +751,13 @@ void test_frw_curvature_types() {
 // ============================================================================
 void test_schwarzschild_photon_sphere() {
     double M = 1.0;
-    double rs = 2.0 * M;
+    [[maybe_unused]] double rs = 2.0 * M;
     double r_photon = 3.0 * M;
 
     SchwarzschildMetric sch(M * Event4D::C * Event4D::C / Event4D::G);
     Event4D ev = sphericalToCartesian(0.0, r_photon, M_PI / 2.0, 0.0);
-    auto g = metricInSpherical(sch, r_photon, M_PI / 2.0, 0.0);
-    auto scalars = sch.curvatureScalars(ev);
+    [[maybe_unused]] auto g = metricInSpherical(sch, r_photon, M_PI / 2.0, 0.0);
+    [[maybe_unused]] auto scalars = sch.curvatureScalars(ev);
     assert(scalars.valid);
     assert(std::isfinite(scalars.kretschmann));
 
@@ -775,7 +775,7 @@ void test_schwarzschild_inside_horizon() {
     SchwarzschildMetric sch(M * Event4D::C * Event4D::C / Event4D::G);
 
     Event4D inside(0.0, rs * 0.5, 0.0, 0.0);
-    auto g = sch.evaluate(inside);
+    [[maybe_unused]] auto g = sch.evaluate(inside);
     // SchwarzschildMetric deliberately clamps the radial term at the horizon to
     // avoid the coordinate singularity, so inside the horizon the metric is
     // finite (not divergent). The signature flip in this representation shows
@@ -807,7 +807,7 @@ void test_metric_inverse_consistency() {
 
     // Check g * g_inv = I (diagonal approx)
     for (int i = 0; i < 4; i++) {
-        double diag = 0.0;
+        [[maybe_unused]] double diag = 0.0;
         for (int k = 0; k < 4; k++)
             diag += g[i][k] * g_inv[k][i];
         assert(std::abs(diag - 1.0) < 1e-10 && "Inverse consistency diagonal");
@@ -1016,7 +1016,7 @@ void test_schwarzschild_tidal_tensor() {
     Event4D pos(0.0, 10.0 * M, 0.0, 0.0);
     Event4D vel(1.0, 0.0, 0.0, 0.0);
 
-    auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
+    [[maybe_unused]] auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
     double r = 10.0 * M;
     double expected_rr = -2.0 * M / (r * r * r);
     double expected_tt = M / (r * r * r);
@@ -1038,7 +1038,7 @@ void test_schwarzschild_weyl_equals_kretschmann() {
     std::vector<double> r = {1e5, 1e8, 1e11, 1e14};
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
-        auto s = sch.curvatureScalars(ev);
+        [[maybe_unused]] auto s = sch.curvatureScalars(ev);
         assert(s.valid);
         assert(std::abs(s.weylSquared - s.kretschmann) < 1e-6 &&
                "Weyl^2 should equal Kretschmann in vacuum");
@@ -1163,7 +1163,7 @@ void test_schwarzschild_angular_metric() {
 
     for (double ri : r) {
         for (double theta : th) {
-            auto g = metricInSpherical(sch, ri, theta, 0.5);
+            [[maybe_unused]] auto g = metricInSpherical(sch, ri, theta, 0.5);
             double st = std::sin(theta);
             // Relative tolerance: ri^2 reaches ~1e18, so an absolute 1e-6 is
             // far too tight for the Cartesian->spherical round-trip.
@@ -1202,7 +1202,7 @@ void test_schwarzschild_horizon_coordinate_singularity() {
 // ============================================================================
 void test_schwarzschild_horizon_radius() {
     double M = 1.0;
-    double rs = 2.0 * M;
+    [[maybe_unused]] double rs = 2.0 * M;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
         M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
@@ -1260,11 +1260,11 @@ void test_schwarzschild_spherical_symmetry() {
         {M_PI / 3.0, M_PI / 2.0}, {M_PI, 0.0}
     };
 
-    double K_ref = 48.0 * Event4D::G * Event4D::G * M * M /
+    [[maybe_unused]] double K_ref = 48.0 * Event4D::G * Event4D::G * M * M /
                     std::pow(Event4D::C, 4) / std::pow(r, 6);
     for (auto [th, ph] : angles) {
         Event4D ev(0.0, r, th, ph);
-        auto s = sch.curvatureScalars(ev);
+        [[maybe_unused]] auto s = sch.curvatureScalars(ev);
         assert(s.valid);
         assert(std::abs(s.kretschmann - K_ref) < 1e-12);
     }
@@ -1324,7 +1324,7 @@ void test_schwarzschild_circular_orbit_period() {
 void test_light_cone_minkowski() {
     Event4D origin(0.0, 0.0, 0.0, 0.0);
     Event4D future(1.0, Event4D::C, 0.0, 0.0);  // lightlike: dx = c*dt in SI units
-    double ds2 = origin.intervalSquared(future);
+    [[maybe_unused]] double ds2 = origin.intervalSquared(future);
     assert(std::abs(ds2) < 1e-6 && "45 degree line should be lightlike");
     std::cout << "[PASS] Minkowski light cone: 45 degree is null" << std::endl;
 }
@@ -1340,7 +1340,7 @@ void test_schwarzschild_causal_structure() {
 
     // Future-directed timelike vector should have g_μν u^μ u^ν < 0
     std::array<double, 4> u = {1.0, 0.1, 0.0, 0.0};
-    double norm = 0.0;
+    [[maybe_unused]] double norm = 0.0;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             norm += g[i][j] * u[i] * u[j];
