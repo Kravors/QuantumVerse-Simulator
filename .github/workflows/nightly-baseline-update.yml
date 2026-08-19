@@ -34,7 +34,8 @@ jobs:
     - name: Run performance baseline test
       run: |
         cd build
-        ./test_performance_baseline > ../reports/performance.log 2>&1
+        mkdir -p ../reports
+        ./qml_performance_baseline > ../reports/performance.log 2>&1
     
     - name: Generate and save new baseline
       run: |

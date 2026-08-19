@@ -258,6 +258,7 @@ QmlGlRenderer::~QmlGlRenderer()
 
 void QmlGlRenderer::render()
 {
+ try {
 #if PERF_TRACE
     std::ofstream("renderer_render.log", std::ios::app) << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
 #endif
@@ -297,15 +298,26 @@ void QmlGlRenderer::render()
         return;
     }
 
+    // Initialize OpenGL/GLAD state on the FIRST render, BEFORE any glad_*
+    // helper is invoked below. The glad_* function pointers are NULL until
+    // gladLoadGL() runs inside initializeGL(); calling one beforehand
+    // (e.g. glad_glGetError) dereferences a null function pointer and crashes
+    // with an access violation at EIP=0x0 on the very first real frame.
+    static bool initialized = false;
+    if (!initialized) {
+        initializeGL();
+        initialized = true;
+    }
+
     // [DIAG] Step 2: clear the GL error queue every frame and surface any
     // error that is pending at the start of the frame (first 10 occurrences
     // only, to avoid flooding). Also log viewport size periodically so we can
     // detect a 0x0 resize (Step 5) that would invalidate the projection.
     // NOTE: must use glad_glGetError(), not the QOpenGLFunctions::glGetError(),
     // because initializeOpenGLFunctions() (which populates the QOpenGLFunctions
-    // pointers) is only called later inside initializeGL(). Calling the
+    // pointers) is only called inside initializeGL() (above). Calling the
     // QOpenGLFunctions variant here on the first frame would dereference a null
-    // pointer and crash the render loop after a single frame.
+    // pointer and crash the render loop after a single number of frames.
     GLenum startErr = glad_glGetError();
     if (startErr != GL_NO_ERROR) {
         static int s_errCount = 0;
@@ -324,12 +336,8 @@ void QmlGlRenderer::render()
     }
     s_sizeLog++;
 
-    // Initialize OpenGL state on first render
-    static bool initialized = false;
-    if (!initialized) {
-        initializeGL();
-        initialized = true;
-    }
+    // Ensure the GL viewport matches the FBO size before any draw call.
+    glad_glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 
     // One-time GL initialization of the celestial body renderer.
     // Kept in render() (not initializeGL()) because m_celestialBodyRenderer
@@ -403,14 +411,14 @@ void QmlGlRenderer::render()
     GL_CHECK();
 
     // Render scene components
-    // if (m_showGrid) {
-    //     PERF_SCOPE("renderGrid");
-    //     renderGrid();
-    // }
+    if (m_showGrid) {
+        PERF_SCOPE("renderGrid");
+        renderGrid();
+    }
 
     {
         PERF_SCOPE("renderAxisGizmo");
-        // renderAxisGizmo();
+        renderAxisGizmo();
     }
 
     if (m_showGeodesics && m_curvatureRenderer) {
@@ -420,7 +428,7 @@ void QmlGlRenderer::render()
                        << "m_curvatureRenderer=" << m_curvatureRenderer.get();
         }
         PERF_SCOPE("renderGeodesics");
-        // renderGeodesics();
+        renderGeodesics();
     } else {
         static int s_geoSkip = 0;
         if (s_geoSkip++ < 5) {
@@ -430,17 +438,14 @@ void QmlGlRenderer::render()
     }
 
     // Render curvature visualization (delegates to CurvatureRenderer)
-    // TEMP DIAGNOSTIC: disabled to confirm the "massive light-blue polygon"
-    // is the CurvatureRenderer 3D volume surface and not the grid. Re-enable
-    // after confirming the grid + axis gizmo become visible.
-    if (false && m_curvatureRenderer) {
+    if (m_curvatureRenderer) {
         PERF_SCOPE("curvatureRender");
         m_curvatureRenderer->render(m_viewMatrix.constData(),
                                      m_projectionMatrix.constData());
     }
 
     // Render celestial bodies (only if initialized)
-    if (false && m_celestialBodyRenderer) {
+    if (m_celestialBodyRenderer) {
         PERF_SCOPE("celestialRender");
         static int s_renderDiag = 0;
         if (s_renderDiag++ < 5) {
@@ -462,16 +467,16 @@ void QmlGlRenderer::render()
 
     if (m_showQuantumGeometry && m_quantumRenderer) {
         PERF_SCOPE("renderQuantumGeometry");
-        // renderQuantumGeometry();
+        renderQuantumGeometry();
     }
 
     {
         PERF_SCOPE("renderOverlay");
-        // renderOverlay();
+        renderOverlay();
     }
     {
         PERF_SCOPE("renderProfilingOverlay");
-        // renderProfilingOverlay();
+        renderProfilingOverlay();
     }
 
     m_overlayShader.release();
@@ -494,6 +499,22 @@ void QmlGlRenderer::render()
         perfLog << "Average frame time: " << avg << " ms, Max: " << max
                 << " ms, Min: " << min << " ms, FPS: " << fps
                 << " (frames=" << m_frameCount << ")\n";
+
+        if (!m_frameTimesPath.isEmpty()) {
+            std::ofstream ft(m_frameTimesPath.toStdString());
+            for (const auto& t : profiler.getRecentFrames()) {
+                ft << t.frameTimeMs << "\n";
+            }
+        }
+    }
+    } catch (const std::exception& e) {
+        std::ofstream("qml_runtime.log", std::ios::app)
+            << "[RENDER-EXCEPTION] " << e.what() << "\n";
+        qWarning() << "QmlGlRenderer::render() threw:" << e.what();
+    } catch (...) {
+        std::ofstream("qml_runtime.log", std::ios::app)
+            << "[RENDER-EXCEPTION] unknown exception\n";
+        qWarning() << "QmlGlRenderer::render() threw unknown exception";
     }
 }
 
@@ -760,6 +781,11 @@ void QmlGlRenderer::requestScreenshot(const QString &path)
 {
     m_screenshotRequested = true;
     m_screenshotPath = path;
+}
+
+void QmlGlRenderer::setFrameTimesPath(const QString &path)
+{
+    m_frameTimesPath = path;
 }
 
 void QmlGlRenderer::updateTime(float deltaTime)
@@ -1777,7 +1803,7 @@ void QmlGlRenderer::renderHUD()
 // ============================================================================
 
 QmlGlViewport::QmlGlViewport(QQuickItem* parent)
-    : QQuickItem(parent)
+    : QQuickFramebufferObject(parent)
     , m_renderer(nullptr)
     , m_showGrid(true)
     , m_showLightCones(false)
@@ -1792,9 +1818,6 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     , m_frameRate(0.0f)
     , m_frameCount(0)
     , m_lastFrameTime(0)
-    , m_fbo(nullptr)
-    , m_textureDirty(true)
-    , m_lastTextureId(0)
 {
     std::ofstream("viewport_ctor.log") << "QmlGlViewport constructor called, parent=" << parent << std::endl;
     setObjectName("viewport");  // Required for findChild in main_qml.cpp
@@ -1804,8 +1827,6 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     int w = width() > 0 ? static_cast<int>(width()) : 1280;
     int h = height() > 0 ? static_cast<int>(height()) : 720;
     m_renderer = new QmlGlRenderer(w, h);
-
-    QObject::connect(this, &QQuickItem::windowChanged, this, &QmlGlViewport::onWindowChanged);
 
     QObject::connect(this, &QQuickItem::widthChanged, this, [this]() {
         // [DIAG] Step 5: log viewport width changes to catch a 0x0 resize
@@ -1836,18 +1857,8 @@ QmlGlViewport::~QmlGlViewport()
         return;
     }
 
-    delete m_fbo;
-    m_fbo = nullptr;
     delete m_renderer;
     m_renderer = nullptr;
-}
-
-void QmlGlViewport::onWindowChanged(QQuickWindow* win)
-{
-    if (win) {
-        QObject::connect(win, &QQuickWindow::beforeRendering,
-                this, &QmlGlViewport::renderGL, Qt::DirectConnection);
-    }
 }
 
 float QmlGlViewport::frameRate() const
@@ -2235,293 +2246,113 @@ void QmlGlViewport::setShowGhostCameras(bool show)
 }
 #endif
 
-void QmlGlViewport::renderGL()
+// ---------------------------------------------------------------------------
+// QmlGlViewport::ViewportRenderer
+//
+// Renders the scene with raw OpenGL into the FBO that Qt creates and owns, then
+// lets Qt's RHI scene graph composite the FBO texture (correct MSAA resolve, DPR
+// scaling and item transforms). This replaces the manual FBO + glBlitFramebuffer
+// approach, which cannot work under Qt 6's RHI scene graph: the window surface is
+// 4x MSAA while our FBO is single-sampled, so glBlitFramebuffer rejects the copy
+// with GL_INVALID_OPERATION, and there is no supported way to wrap a raw GL
+// texture id into a QSGTexture in Qt 6.
+// ---------------------------------------------------------------------------
+class QmlGlViewport::ViewportRenderer : public QQuickFramebufferObject::Renderer
 {
-    // [DIAG] Count renderGL invocations to confirm the render loop runs
-    // continuously (vs. stalling after a single frame).
-    static int s_rgCalls = 0;
-    if (s_rgCalls < 3 || (s_rgCalls % 30) == 0) {
-        const QString m = QString("[DIAG-renderGL] renderGL ENTERED call#%1").arg(s_rgCalls);
-        qWarning() << m;
-        diagLog(m);
-    }
-    s_rgCalls++;
+public:
+    explicit ViewportRenderer(QmlGlRenderer* gl) : m_gl(gl) {}
 
-    if (!m_renderer) {
-        return;
-    }
-
-    if (!initializeGlad()) {
-        qWarning() << "QmlGlViewport: initializeGlad() FAILED - render aborted";
-        return;
-    }
-
-    int w = width() > 0 ? static_cast<int>(width()) : 1280;
-    int h = height() > 0 ? static_cast<int>(height()) : 720;
-    bool fboJustAllocated = false;
-
-#ifdef QUANTUMVERSE_USE_VR
-    if (m_vrActive && m_renderer->isVRActive()) {
-        // VR stereo rendering path
-        // Allocate stereo FBOs if needed
-        int eyeW = w / 2;
-        int eyeH = h;
-        if (!m_renderer->vrFbo(quantumverse::vr::StereoEye::Left) ||
-            m_renderer->vrFbo(quantumverse::vr::StereoEye::Left)->width() != eyeW ||
-            m_renderer->vrFbo(quantumverse::vr::StereoEye::Left)->height() != eyeH) {
-
-            QOpenGLFramebufferObjectFormat format;
-            format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
-
-            auto* leftFbo = new QOpenGLFramebufferObject(QSize(eyeW, eyeH), format);
-            auto* rightFbo = new QOpenGLFramebufferObject(QSize(eyeW, eyeH), format);
-
-            // Clean up old FBOs
-            delete m_fbo;
-            m_fbo = nullptr;
-
-            m_renderer->setVRActive(true);
-            // Store FBOs via renderer (ownership transferred)
-            // Note: In production, we'd store these in QmlGlViewport
-            // For now, we render directly to the main FBO twice with viewport scissor
-        }
-
-        // Render stereo pair to main FBO with viewport scissor
-        m_fbo->bind();
-        GL_CHECK();
-
-        // Left eye: left half of FBO
-        glViewport(0, 0, eyeW, eyeH);
-        glScissor(0, 0, eyeW, eyeH);
-        glEnable(GL_SCISSOR_TEST);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Synchronize state
-        if (m_renderer) {
-            m_renderer->setCurvatureRenderer(m_curvatureRenderer);
-            m_renderer->setQuantumRenderer(m_quantumRenderer);
-            m_renderer->setCelestialBodyRenderer(m_celestialBodyRenderer);
-            m_renderer->setUI4D(m_ui4d);
-            m_renderer->setCamera4DAdapter(m_camera4DAdapter);
-        }
-
-        // Render scene for left eye
-        if (m_showGrid) m_renderer->renderGrid();
-        if (m_showGeodesics && m_curvatureRenderer) m_renderer->renderGeodesics();
-        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
-            m_celestialBodyRenderer->render(m_renderer->getViewMatrix().constData(),
-                                            m_renderer->getProjectionMatrix().constData());
-        }
-
-        // Render remote participant ghost cameras
-        if (m_showGhostCameras) {
-            for (const auto& peer : m_remoteParticipants) {
-                if (!peer.vrActive) continue;
-                glPushMatrix();
-                glMultMatrixf(peer.cameraMatrix.data());
-                glColor4f(0.3f, 0.8f, 1.0f, 0.35f);
-                glLineWidth(2.0f);
-                glBegin(GL_LINES);
-                float s = 0.15f;
-                glVertex3f(-s, -s, -s); glVertex3f( s, -s, -s);
-                glVertex3f( s, -s, -s); glVertex3f( s,  s, -s);
-                glVertex3f( s,  s, -s); glVertex3f(-s,  s, -s);
-                glVertex3f(-s,  s, -s); glVertex3f(-s, -s, -s);
-                glVertex3f(-s, -s,  s); glVertex3f( s, -s,  s);
-                glVertex3f( s, -s,  s); glVertex3f( s,  s,  s);
-                glVertex3f( s,  s,  s); glVertex3f(-s,  s,  s);
-                glVertex3f(-s,  s,  s); glVertex3f(-s, -s,  s);
-                glVertex3f(-s, -s, -s); glVertex3f(-s, -s,  s);
-                glVertex3f( s, -s, -s); glVertex3f( s, -s,  s);
-                glVertex3f( s,  s, -s); glVertex3f( s,  s,  s);
-                glVertex3f(-s,  s, -s); glVertex3f(-s,  s,  s);
-                glEnd();
-                glPopMatrix();
-            }
-        }
-
-        // Right eye: right half of FBO
-        glViewport(eyeW, 0, eyeW, eyeH);
-        glScissor(eyeW, 0, eyeW, eyeH);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Render scene for right eye (with stereo offset)
-        if (m_showGrid) m_renderer->renderGrid();
-        if (m_showGeodesics && m_curvatureRenderer) m_renderer->renderGeodesics();
-        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
-            m_celestialBodyRenderer->render(m_renderer->getViewMatrix().constData(),
-                                            m_renderer->getProjectionMatrix().constData());
-        }
-
-        // Render remote participant ghost cameras
-        if (m_showGhostCameras) {
-            for (const auto& peer : m_remoteParticipants) {
-                if (!peer.vrActive) continue;
-                glPushMatrix();
-                glMultMatrixf(peer.cameraMatrix.data());
-                glColor4f(0.3f, 0.8f, 1.0f, 0.35f);
-                glLineWidth(2.0f);
-                glBegin(GL_LINES);
-                float s = 0.15f;
-                glVertex3f(-s, -s, -s); glVertex3f( s, -s, -s);
-                glVertex3f( s, -s, -s); glVertex3f( s,  s, -s);
-                glVertex3f( s,  s, -s); glVertex3f(-s,  s, -s);
-                glVertex3f(-s,  s, -s); glVertex3f(-s, -s, -s);
-                glVertex3f(-s, -s,  s); glVertex3f( s, -s,  s);
-                glVertex3f( s, -s,  s); glVertex3f( s,  s,  s);
-                glVertex3f( s,  s,  s); glVertex3f(-s,  s,  s);
-                glVertex3f(-s,  s,  s); glVertex3f(-s, -s,  s);
-                glVertex3f(-s, -s, -s); glVertex3f(-s, -s,  s);
-                glVertex3f( s, -s, -s); glVertex3f( s, -s,  s);
-                glVertex3f( s,  s, -s); glVertex3f( s,  s,  s);
-                glVertex3f(-s,  s, -s); glVertex3f(-s,  s,  s);
-                glEnd();
-                glPopMatrix();
-            }
-        }
-
-        glDisable(GL_SCISSOR_TEST);
-        m_fbo->release();
-        QOpenGLFramebufferObject::bindDefault();
-
-        m_textureDirty = true;
-        update();
-        return;
-    } else {
-        m_renderer->setVRActive(false);
-    }
-#endif
-
-    if (!m_fbo || m_fbo->width() != w || m_fbo->height() != h) {
-        delete m_fbo;
-        m_fbo = nullptr;
+    QOpenGLFramebufferObject* createFramebufferObject(const QSize& size) override
+    {
         QOpenGLFramebufferObjectFormat format;
         format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
-        m_fbo = new QOpenGLFramebufferObject(QSize(w, h), format);
-        fboJustAllocated = true;
-        // [DIAG] Step 5: a reallocation means the viewport size changed. A
-        // 0x0 size here would produce a black/unusable FBO.
-        const QString m = QString("[DIAG-renderGL] FBO (re)allocated to %1 x %2").arg(w).arg(h);
-        qWarning() << m;
-        diagLog(m);
-        if (m_renderer) {
-            const float fov = 45.0f;
-            const float aspect = static_cast<float>(w) / h;
+        auto* fbo = new QOpenGLFramebufferObject(size, format);
+        m_fbo = fbo;
+        if (m_gl) {
+            const float aspect = size.height() > 0
+                ? static_cast<float>(size.width()) / static_cast<float>(size.height())
+                : 1.0f;
             QMatrix4x4 proj;
-            proj.perspective(fov, aspect, 0.1f, 1000.0f);
-            m_renderer->setProjectionMatrix(proj);
-            m_renderer->setViewportSize(w, h);
+            proj.perspective(45.0f, aspect, 0.1f, 1000.0f);
+            m_gl->setProjectionMatrix(proj);
+            m_gl->setViewportSize(size.width(), size.height());
         }
-    }
-    if (!m_fbo) {
-        return;
+        return fbo;
     }
 
-    // Manual synchronize: QmlGlViewport is a QQuickItem, not a QQuickFramebufferObject,
-    // so Qt never calls QmlGlRenderer::synchronize(). Pull state from the viewport
-    // item into the renderer here so the guard in render() sees the curvature renderer.
-    if (m_renderer) {
-        m_renderer->setCurvatureRenderer(m_curvatureRenderer);
-        m_renderer->setQuantumRenderer(m_quantumRenderer);
-        m_renderer->setCelestialBodyRenderer(m_celestialBodyRenderer);
-        m_renderer->setUI4D(m_ui4d);
-        m_renderer->setCamera4DAdapter(m_camera4DAdapter);
-    }
-
-    // updatePaintNode() runs during the scene-graph sync phase, which is BEFORE
-    // beforeRendering. On the first frame the FBO does not exist yet when
-    // updatePaintNode() is called, so it returns a null node and the FBO is
-    // never composited (permanent black viewport). Request a repaint whenever
-    // we (re)allocate the FBO so updatePaintNode() is recalled and builds the
-    // QSG texture node from the freshly created FBO texture.
-    if (fboJustAllocated) {
-        m_textureDirty = true;
-        update();
-    }
-
-    m_fbo->bind();
-    GL_CHECK();
-    GLenum fboStatus = glad_glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
-        qWarning() << "QmlGlViewport: Framebuffer not complete! Status:" << fboStatus;
-    }
-    GL_CHECK();
+    void synchronize(QQuickFramebufferObject* item) override
     {
-        const QString m = QString("[DIAG-renderGL] calling m_renderer->render() call#%1").arg(s_rgCalls);
-        qWarning() << m;
-        diagLog(m);
-    }
-    m_renderer->render();
-    if (m_showHUD && m_renderer) {
-        m_renderer->renderHUD();
-    }
-    if (m_renderer->screenshotRequested()) {
-        QImage img = m_fbo->toImage();
-        if (!img.save(m_renderer->screenshotPath())) {
-            qWarning() << "QmlGlViewport: Failed to save screenshot to"
-                       << m_renderer->screenshotPath();
-        } else {
-            qDebug() << "QmlGlViewport: Screenshot saved to"
-                     << m_renderer->screenshotPath();
+        auto* vp = static_cast<QmlGlViewport*>(item);
+        m_item = vp;
+        if (!m_gl) {
+            return;
         }
-        m_renderer->clearScreenshotRequest();
-        QCoreApplication::quit();
-    }
-    m_fbo->release();
-    QOpenGLFramebufferObject::bindDefault();
-
-    m_textureDirty = true;
-
-    // FPS is measured from the actual render rate, averaged over ~1 s
-    // windows, so the displayed value is stable and not jittery.
-    ++m_fpsFrameCount;
-    const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (m_fpsWindowStart == 0) {
-        m_fpsWindowStart = now;
-    }
-    const qint64 elapsed = now - m_fpsWindowStart;
-    if (elapsed >= 1000) {
-        m_frameRate = static_cast<float>(m_fpsFrameCount) * 1000.0f / static_cast<float>(elapsed);
-        m_fpsWindowStart = now;
-        m_fpsFrameCount = 0;
-        emit frameRateChanged();
+        m_gl->setCurvatureRenderer(vp->m_curvatureRenderer);
+        m_gl->setQuantumRenderer(vp->m_quantumRenderer);
+        m_gl->setCelestialBodyRenderer(vp->m_celestialBodyRenderer);
+        m_gl->setUI4D(vp->m_ui4d);
+        m_gl->setCamera4DAdapter(vp->m_camera4DAdapter);
+        m_gl->setShowGrid(vp->m_showGrid);
+        m_gl->setShowGeodesics(vp->m_showGeodesics);
+        m_showHUD = vp->m_showHUD;
+        if (vp->m_pendingScreenshotRequested) {
+            m_gl->requestScreenshot(vp->m_pendingScreenshotPath);
+            vp->m_pendingScreenshotRequested = false;
+        }
     }
 
-    // Keep the QSG texture in sync with the FBO contents every frame. After the
-    // initial FBO allocation, updatePaintNode() is otherwise only recalled when
-    // something else dirties the item; without this the scene-graph node keeps
-    // displaying the FBO texture from the first frame even though the FBO is
-    // re-rendered (e.g. after a scan updates the metric/curvature).
-    //
-    // renderGL() is connected to QQuickWindow::beforeRendering via
-    // Qt::DirectConnection, which means it executes on the render thread.
-    // QQuickItem::update() may only be called from the main/gui thread, so
-    // schedule it here via a queued invocation instead of calling it directly.
-    QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
-}
+    void render() override
+    {
+        if (!m_gl || !m_fbo) {
+            return;
+        }
+        try {
+        m_fbo->bind();
+        // m_gl->render() must run FIRST: it initializes GL/GLAD on the first
+        // frame, which is required before any glad_* call (GL_CHECK below uses
+        // glad_glGetError, and the viewport is set inside render()). The FBO
+        // is already bound above, so initializeGL() sees a current context.
+        m_gl->render();
+        GL_CHECK();
+        if (m_showHUD && m_gl) {
+            m_gl->renderHUD();
+            GL_CHECK();
+        }
+        if (m_gl->screenshotRequested()) {
+            QImage img = m_fbo->toImage();
+            if (!img.save(m_gl->screenshotPath())) {
+                qWarning() << "QmlGlViewport: Failed to save screenshot to" << m_gl->screenshotPath();
+            } else {
+                qDebug() << "QmlGlViewport: Screenshot saved to" << m_gl->screenshotPath();
+            }
+            m_gl->clearScreenshotRequest();
+            QCoreApplication::quit();
+        }
+        m_fbo->release();
 
-void QmlGlViewport::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry)
+        // Continuous animation: ask the item to schedule another frame.
+        if (m_item) {
+            QMetaObject::invokeMethod(m_item, "update", Qt::QueuedConnection);
+        }
+        } catch (const std::exception& e) {
+            std::ofstream("qml_runtime.log", std::ios::app) << "[VIEWPORT-RENDER-EXCEPTION] " << e.what() << "\n";
+            qWarning() << "ViewportRenderer::render() threw:" << e.what();
+        } catch (...) {
+            std::ofstream("qml_runtime.log", std::ios::app) << "[VIEWPORT-RENDER-EXCEPTION] unknown\n";
+            qWarning() << "ViewportRenderer::render() threw unknown exception";
+        }
+    }
+
+private:
+    QmlGlRenderer* m_gl = nullptr;
+    QOpenGLFramebufferObject* m_fbo = nullptr;
+    QmlGlViewport* m_item = nullptr;
+    bool m_showHUD = false;
+};
+
+QQuickFramebufferObject::Renderer* QmlGlViewport::createRenderer() const
 {
-    QQuickItem::geometryChange(newGeometry, oldGeometry);
-
-    // Force a scene-graph refresh on any geometry change (resize, maximize,
-    // or full-screen toggle). The render loop already calls update() once per
-    // frame, but this guarantees the QSG texture node is re-evaluated
-    // immediately on a toggle even if the viewport size is unchanged (which
-    // would otherwise leave the texture node holding the previous frame).
-    if (width() > 0 && height() > 0) {
-        const QString m = QString("[DIAG-geometryChanged] %1 x %2 (was %3 x %4)")
-                              .arg(width()).arg(height())
-                              .arg(oldGeometry.width()).arg(oldGeometry.height());
-        qWarning() << m;
-        diagLog(m);
-        update();
-    }
-}
-
-QSGNode *QmlGlViewport::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *)
-{
-    return oldNode;
+    return new QmlGlViewport::ViewportRenderer(m_renderer);
 }
 
 } // namespace quantumverse

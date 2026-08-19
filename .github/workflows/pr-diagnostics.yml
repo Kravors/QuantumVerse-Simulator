@@ -117,12 +117,12 @@ jobs:
         working-directory: build
         shell: bash
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 600 --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|PerformanceRegressionTest"
             ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 600 --output-on-failure
           fi
 

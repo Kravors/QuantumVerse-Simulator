@@ -13,6 +13,8 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>  // for MessageBoxA
+#include <DbgHelp.h>
+#pragma comment(lib, "DbgHelp.lib")
 #undef connect
 #endif
 
@@ -39,6 +41,10 @@
 #include <QWindow>
 #include <vector>
 #include <iostream>
+#include <csignal>
+#include <exception>
+#include <cstdio>
+#include <fstream>
 
 #include "qmlglviewport.h"
 #include "qmlcamcontroller.h"
@@ -126,8 +132,130 @@ QSurfaceFormat createSurfaceFormat()
     return format;
 }
 
+namespace {
+    // Captures Qt warnings/errors and (more importantly) the crash reason from
+    // Qt's render thread, which would otherwise be invisible on a headless/remote
+    // run. All output is mirrored to qml_runtime.log for post-mortem analysis.
+    void qtMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg)
+    {
+        static std::ofstream s_log("qml_runtime.log", std::ios::app);
+        const char* tag = "QT";
+        switch (type) {
+            case QtDebugMsg:    tag = "DEBUG"; break;
+            case QtInfoMsg:     tag = "INFO";  break;
+            case QtWarningMsg:  tag = "WARN";  break;
+            case QtCriticalMsg: tag = "CRIT";  break;
+            case QtFatalMsg:    tag = "FATAL"; break;
+        }
+        const char* file = ctx.file ? ctx.file : "?";
+        s_log << "[" << tag << "] " << msg.toStdString() << "  (" << file << ":" << ctx.line << ")\n";
+        s_log.flush();
+        std::fprintf(stderr, "[%s] %s\n", tag, msg.toLocal8Bit().constData());
+    }
+
+    void termHandler()
+    {
+        std::ofstream("qml_runtime.log", std::ios::app)
+            << "[TERMINATE] std::terminate called (uncaught C++ exception in render or init)\n";
+        std::fprintf(stderr, "[TERMINATE] std::terminate called (uncaught C++ exception)\n");
+        std::fflush(stderr);
+        abort();
+    }
+
+#ifdef _WIN32
+    // Write a string to stderr via the native console handle (bypasses the C
+    // runtime, which may already be torn down during a hard crash so that
+    // fprintf/std::ofstream would be lost).
+    void writeErrNative(const char* s)
+    {
+        HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+        if (h == INVALID_HANDLE_VALUE || h == nullptr) return;
+        DWORD n = 0;
+        while (s[n]) ++n;
+        DWORD written = 0;
+        WriteFile(h, s, n, &written, nullptr);
+    }
+
+    LONG WINAPI unhandledExceptionFilter(EXCEPTION_POINTERS* ep)
+    {
+        char buf[256];
+        if (ep && ep->ExceptionRecord) {
+            sprintf_s(buf, sizeof(buf),
+                      "[SEH] Unhandled exception 0x%08X at %p\n",
+                      static_cast<unsigned>(ep->ExceptionRecord->ExceptionCode),
+                      ep->ExceptionRecord->ExceptionAddress);
+        } else {
+            sprintf_s(buf, sizeof(buf), "[SEH] Unhandled exception (no record)\n");
+        }
+        writeErrNative(buf);
+
+        HANDLE hFile = CreateFileA("qml_crash.dmp",
+                                    GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                    FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (hFile != INVALID_HANDLE_VALUE) {
+            MINIDUMP_EXCEPTION_INFORMATION exInfo;
+            exInfo.ThreadId = GetCurrentThreadId();
+            exInfo.ExceptionPointers = ep;
+            exInfo.ClientPointers = FALSE;
+            MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(),
+                              hFile, MiniDumpNormal, &exInfo, nullptr, nullptr);
+            CloseHandle(hFile);
+            writeErrNative("[SEH] Minidump written to qml_crash.dmp\n");
+        }
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+
+    // First-chance vectored handler. Unlike SetUnhandledExceptionFilter, this
+    // cannot be overridden by Qt's own crash handler (which Qt installs during
+    // scene-graph / RHI initialization, shadowing our filter). We skip C++
+    // exceptions (0xE06D7363) and debug traps so only genuine crashes are logged.
+    LONG WINAPI vectoredHandler(PEXCEPTION_POINTERS ep)
+    {
+        if (!ep || !ep->ExceptionRecord) return EXCEPTION_CONTINUE_SEARCH;
+        DWORD code = ep->ExceptionRecord->ExceptionCode;
+        if (code == 0xE06D7363 /* C++ EH */ ||
+            code == 0x80000003 /* breakpoint */ ||
+            code == 0x80000004 /* single step */ ||
+            (code >= 0x40000000 && code < 0x80000000)) {
+            return EXCEPTION_CONTINUE_SEARCH;
+        }
+        char buf[256];
+        sprintf_s(buf, sizeof(buf),
+                  "[VEH] Exception 0x%08X at %p\n",
+                  static_cast<unsigned>(code),
+                  ep->ExceptionRecord->ExceptionAddress);
+        writeErrNative(buf);
+
+        HANDLE hFile = CreateFileA("qml_crash.dmp",
+                                    GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                    FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (hFile != INVALID_HANDLE_VALUE) {
+            MINIDUMP_EXCEPTION_INFORMATION exInfo;
+            exInfo.ThreadId = GetCurrentThreadId();
+            exInfo.ExceptionPointers = ep;
+            exInfo.ClientPointers = FALSE;
+            MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(),
+                              hFile, MiniDumpNormal, &exInfo, nullptr, nullptr);
+            CloseHandle(hFile);
+            writeErrNative("[VEH] Minidump written to qml_crash.dmp\n");
+        }
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+#endif
+}
+
 int main(int argc, char* argv[])
 {
+    // Install crash/exception logging BEFORE any other work so a failure in the
+    // Qt render thread (which writes no message to stderr) is captured.
+    std::set_terminate(termHandler);
+    qInstallMessageHandler(qtMessageHandler);
+#ifdef _WIN32
+    SetUnhandledExceptionFilter(unhandledExceptionFilter);
+    AddVectoredExceptionHandler(1, vectoredHandler);
+#endif
+    std::remove("qml_runtime.log");
+
     std::ofstream startupLog("startup.log");
     startupLog << "main() started at " << std::time(nullptr) << std::endl;
     startupLog.close();
@@ -232,7 +360,6 @@ int main(int argc, char* argv[])
     // backend to use classic OpenGL calls instead of the modern RHI pipeline.
     qputenv("QSG_RHI_BACKEND", QByteArray("opengl"));
     qputenv("QT_OPENGL", QByteArray("desktop"));
-    qputenv("QSG_OPENGL_LEGACY", QByteArray("1"));
     qputenv("QT_ANGLE_PLATFORM", QByteArray("none"));
 
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
@@ -624,6 +751,17 @@ int main(int argc, char* argv[])
             alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
         rootContext->setContextProperty("replayStream",
             QVariant::fromValue(replayStream.get()));
+#else
+        // Headless/CI builds disable librdkafka, so the live-GCN-ingest objects
+        // above are never created. Register null stubs so main.qml bindings that
+        // reference them (kafkaListener, replayStream, ...) do not throw
+        // ReferenceErrors and abort the headless UI tests.
+        rootContext->setContextProperty("alertRouter", QVariant());
+        rootContext->setContextProperty("tessAdapter", QVariant());
+        rootContext->setContextProperty("fermiAdapter", QVariant());
+        rootContext->setContextProperty("swiftAdapter", QVariant());
+        rootContext->setContextProperty("kafkaListener", QVariant());
+        rootContext->setContextProperty("replayStream", QVariant());
 #endif
 
         // Multi-user collaboration: signaling client and shared session
@@ -754,6 +892,10 @@ int main(int argc, char* argv[])
                     viewport->setHeadlessFrameTarget(headlessFrames);
                 }
 
+                if (!frameTimesPath.isEmpty()) {
+                    viewport->setFrameTimesPath(frameTimesPath);
+                }
+
                 if (enableGeodesics) {
                     qDebug() << "[DIAG] --enable-geodesics: forcing showGeodesics=true on viewport";
                     viewport->setShowGeodesics(true);
@@ -771,6 +913,14 @@ int main(int argc, char* argv[])
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
                 std::cerr.flush();
+
+                // The OpenGL scene is composited onto the window in
+                // QmlGlViewport::renderGL() (beforeRendering); the viewport item
+                // itself is transparent. Make the window clear transparent so the
+                // scene graph does not paint an opaque background over the GL view.
+                if (auto* win = viewport->window()) {
+                    win->setColor(Qt::transparent);
+                }
             } else {
                 qWarning("QuantumVerse: Could not find QmlGlViewport in QML object tree");
                 std::cerr << "QuantumVerse: Could not find QmlGlViewport in QML object tree" << std::endl;

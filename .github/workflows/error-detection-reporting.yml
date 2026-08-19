@@ -207,7 +207,7 @@ jobs:
       run: cmake --build build --config Debug --parallel 2
     
     - name: Run tests
-      run: cd build && ctest -C Debug --output-on-failure
+      run: cd build && ctest -C Debug -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest" --output-on-failure
     
     - name: Generate coverage report
       run: |

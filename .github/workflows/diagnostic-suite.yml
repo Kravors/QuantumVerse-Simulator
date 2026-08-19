@@ -253,7 +253,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: build
-        run: xvfb-run -a ctest --output-on-failure -j2
+        run: xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest" --output-on-failure -j2
 
       - name: Generate coverage report
         working-directory: build

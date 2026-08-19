@@ -20,6 +20,7 @@
 #include <QQuickFramebufferObject>
 #include <QQuickItem>
 #include <QSGSimpleTextureNode>
+#include <QSGTexture>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLFunctions>
@@ -308,6 +309,10 @@ private:
     QString screenshotPath() const { return m_screenshotPath; }
     void clearScreenshotRequest() { m_screenshotRequested = false; }
 
+    // Headless frame-time dump support (--dump-frame-times)
+    void setFrameTimesPath(const QString &path);
+    QString frameTimesPath() const { return m_frameTimesPath; }
+
     // Celestial body & camera adapters
     void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
     void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
@@ -422,6 +427,7 @@ private:
     // Headless screenshot state
     bool m_screenshotRequested;
     QString m_screenshotPath;
+    QString m_frameTimesPath;
 
     // Mutable renderer storage for createRenderer() const
     mutable std::shared_ptr<CurvatureRenderer> m_pendingCurvatureRenderer;
@@ -457,7 +463,7 @@ private:
  * }
  * \endqml
  */
-class QmlGlViewport : public ::QQuickItem
+class QmlGlViewport : public ::QQuickFramebufferObject
 {
     Q_OBJECT
     Q_PROPERTY(bool showGrid READ showGrid WRITE setShowGrid NOTIFY showGridChanged)
@@ -481,13 +487,8 @@ public:
     explicit QmlGlViewport(QQuickItem* parent = nullptr);
     ~QmlGlViewport() override;
 
-    // QQuickItem scene graph interface
-    QSGNode* updatePaintNode(QSGNode* oldNode, UpdatePaintNodeData* data) override;
-
-    /// @brief Force a scene-graph refresh on any geometry change (resize,
-    /// maximize, or full-screen toggle) so the QSG texture node is rebuilt
-    /// even when the viewport size happens to be unchanged.
-    void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
+    // QQuickFramebufferObject scene graph interface
+    QQuickFramebufferObject::Renderer* createRenderer() const override;
 
     // Property accessors
     bool showGrid() const { return m_showGrid; }
@@ -566,10 +567,19 @@ public:
     void setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter);
     std::shared_ptr<Camera4DAdapter> camera4DAdapter() const { return m_camera4DAdapter; }
 
-    void setHeadlessFrameTarget(int frames) { if (m_renderer) m_renderer->setHeadlessFrameTarget(frames); }
+    void setHeadlessFrameTarget(int frames) {
+        m_headlessTargetFrames = frames;
+        if (m_renderer) m_renderer->setHeadlessFrameTarget(frames);
+    }
+    void setFrameTimesPath(const QString &path) {
+        if (m_renderer) m_renderer->setFrameTimesPath(path);
+    }
     bool headlessTargetReached() const { return m_renderer ? m_renderer->headlessTargetReached() : false; }
 
-    void requestScreenshot(const QString &path) { if (m_renderer && window()) m_renderer->requestScreenshot(path); }
+    void requestScreenshot(const QString &path) {
+        m_pendingScreenshotRequested = true;
+        m_pendingScreenshotPath = path;
+    }
     bool screenshotRequested() const { return m_renderer ? m_renderer->screenshotRequested() : false; }
 
     // Set slice offset (called from QML)
@@ -634,6 +644,7 @@ private:
     float m_simulationTime;
     float m_frameRate;
     int m_frameCount;
+    int m_headlessTargetFrames = 0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode
     qint64 m_lastFrameTime;
 
     // FPS averaging state (measured from the actual render rate in renderGL)
@@ -680,14 +691,19 @@ private:
      bool m_showGhostCameras = true;
 #endif
 
-    // Qt 6 RHI fallback: managed FBO and texture state
-    QOpenGLFramebufferObject* m_fbo;
-    bool m_textureDirty;
-    quint64 m_lastTextureId;
+    // Pending screenshot request, transferred to the render thread in
+    // synchronize() (QQuickFramebufferObject owns the FBO, not this item).
+    bool m_pendingScreenshotRequested = false;
+    QString m_pendingScreenshotPath;
 
-private slots:
-    void onWindowChanged(QQuickWindow* win);
-    void renderGL();
+    // The QQuickFramebufferObject renderer needs full access to the item's
+    // renderer/camera/flag state to mirror it onto the render thread.
+    class ViewportRenderer;
+    friend class ViewportRenderer;
+
+ private slots:
+    // (renderGL / onWindowChanged removed: rendering now happens in the
+    // QQuickFramebufferObject::Renderer created by createRenderer().)
 };
 
 } // namespace quantumverse
