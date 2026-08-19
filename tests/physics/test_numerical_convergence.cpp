@@ -375,7 +375,7 @@ void test_adaptive_step_bounds() {
     assert(!traj.empty());
     // Skip the initial point (index 0), whose stepSize is 0 by design.
     for (size_t i = 1; i < traj.size(); ++i) {
-        const auto& step = traj[i];
+        const auto& step [[maybe_unused]] = traj[i];
         assert(step.stepSize > 0.0 && "Step size should be positive");
         assert(std::isfinite(step.stepSize) && "Step size should be finite");
     }
@@ -629,9 +629,9 @@ void test_schwarzschild_radius_formula() {
     double r_test = 1e3;
     Event4D ev(0.0, r_test, 0.0, 0.0);
     auto s = sch.curvatureScalars(ev);
-    double K = s.kretschmann;
+    [[maybe_unused]] double K = s.kretschmann;
     // K = 48 * G^2 * M^2 / (c^4 * r^6)
-    double K_expected = 48.0 * Event4D::G * Event4D::G * M * M /
+    [[maybe_unused]] double K_expected = 48.0 * Event4D::G * Event4D::G * M * M /
                         std::pow(Event4D::C, 4) / std::pow(r_test, 6);
     assert(std::abs(K - K_expected) < 1e-10);
     std::cout << "[PASS] Schwarzschild radius formula verified via Kretschmann" << std::endl;
@@ -727,7 +727,7 @@ void test_schwarzschild_vacuum_stress_energy() {
     double M = 1e30;
     SchwarzschildMetric sch(M);
     Event4D ev(0.0, 1e8, 0.0, 0.0);
-    auto s = sch.curvatureScalars(ev);
+    [[maybe_unused]] auto s = sch.curvatureScalars(ev);
     assert(s.valid);
     assert(std::abs(s.ricciScalar) < 1e-6 && "Ricci=0 implies T_μν=0 via EFE");
     std::cout << "[PASS] Schwarzschild vacuum: Ricci=0 => T_μν=0" << std::endl;
@@ -762,7 +762,7 @@ void test_schwarzschild_minkowski_transition() {
         SchwarzschildMetric sch(M);
         Event4D ev(0.0, r, 0.0, 0.0);
         auto g = sch.evaluate(ev);
-        double diff = 0.0;
+        [[maybe_unused]] double diff = 0.0;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 diff += std::abs(g[i][j] - mink.g[i][j]);

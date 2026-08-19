@@ -45,7 +45,7 @@ void test_bianchi_schwarzschild() {
     };
 
     for (const auto& ev : points) {
-        auto result = calc.computeAll(ev);
+        [[maybe_unused]] auto result = calc.computeAll(ev);
         // In vacuum, Einstein tensor = 0, so Bianchi is satisfied
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
@@ -136,7 +136,7 @@ void test_raychaudhuri_vacuum() {
     integrator.setMetric(sch);
 
     Event4D start(0.0, 30.0 * M, 0.0, 0.0);
-    std::array<double, 4> vel = {0.95, 0.0, 0.0, 0.0};
+    [[maybe_unused]] std::array<double, 4> vel = {0.95, 0.0, 0.0, 0.0};
 
     // Use GeodesicDeviation to compute expansion
     auto expansion = GeodesicDeviation::raychaudhuriExpansion(
@@ -156,7 +156,7 @@ void test_riemann_antisymmetry() {
     CurvatureCalculator calc(sch);
     Event4D ev(0.0, 1e8, M_PI / 2.0, M_PI / 4.0);
     calc.computeRiemann(ev);
-    auto R = calc.getRiemann();
+    [[maybe_unused]] auto R = calc.getRiemann();
 
     for (int rho = 0; rho < 4; rho++)
         for (int sigma = 0; sigma < 4; sigma++)
@@ -205,12 +205,12 @@ void test_ricci_contraction() {
     calc.computeRiemann(ev);
     auto R = calc.getRiemann();
     calc.computeRicci(ev);
-    auto Ricci = calc.getRicci();
+    [[maybe_unused]] auto Ricci = calc.getRicci();
 
     // Manual contraction: R_μν = R^λ_μλν
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = 0; nu < 4; nu++) {
-            double R_manual = 0.0;
+            [[maybe_unused]] double R_manual = 0.0;
             for (int lam = 0; lam < 4; lam++) {
                 R_manual += R[lam][mu][lam][nu];
             }
@@ -249,10 +249,10 @@ void test_einstein_tensor_formula() {
     // Manual Einstein: G_μν = R_μν - 0.5 g_μν R
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            double G_manual = result.ricci[i][j] - 0.5 * result.einstein[i][j] * result.ricciScalar;
+            [[maybe_unused]] double G_manual = result.ricci[i][j] - 0.5 * result.einstein[i][j] * result.ricciScalar;
             // Wait, einstein IS G_μν. So check that G_μν = R_μν - 0.5 g_μν R
             auto g = sch->evaluate(ev);
-            double G_check = result.ricci[i][j] - 0.5 * g[i][j] * result.ricciScalar;
+            [[maybe_unused]] double G_check = result.ricci[i][j] - 0.5 * g[i][j] * result.ricciScalar;
             assert(std::abs(result.einstein[i][j] - G_check) < 1e-3 &&
                    "Einstein tensor should equal R_μν - 0.5 g_μν R");
         }
@@ -325,7 +325,7 @@ void test_riemann_index_exchange() {
     CurvatureCalculator calc(sch);
     Event4D ev(0.0, 1e8, 0.0, 0.0);
     calc.computeRiemann(ev);
-    auto R = calc.getRiemann();
+    [[maybe_unused]] auto R = calc.getRiemann();
 
     // R_μνρσ = -R_νμρσ (swap first two lowers sign)
     for (int mu = 0; mu < 4; mu++)
@@ -347,7 +347,7 @@ void test_weyl_equals_kretschmann() {
     auto sch = std::make_shared<SchwarzschildMetric>(M);
     CurvatureCalculator calc(sch);
     Event4D ev(0.0, 1e8, 0.0, 0.0);
-    auto result = calc.computeAll(ev);
+    [[maybe_unused]] auto result = calc.computeAll(ev);
 
     assert(std::abs(result.weylSquared - result.kretschmann) < 1e-3 &&
            "Weyl^2 should equal Kretschmann in vacuum");
@@ -381,8 +381,8 @@ void test_geodesic_deviation_exact() {
     Event4D pos(0.0, 10.0 * M, 0.0, 0.0);
     Event4D vel(1.0, 0.0, 0.0, 0.0);
 
-    auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
-    double r = 10.0 * M;
+    [[maybe_unused]] auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
+    [[maybe_unused]] double r = 10.0 * M;
     assert(std::abs(tidal[0][0] - (-2.0 * M / (r * r * r))) < 1e-5);
     assert(std::abs(tidal[1][1] - (M / (r * r * r))) < 1e-5);
     assert(std::abs(tidal[2][2] - (M / (r * r * r))) < 1e-5);
@@ -401,7 +401,7 @@ void test_schwarzschild_determinant() {
     MetricTensor gm;
     gm.g = g;
 
-    double det = gm.determinant();
+    [[maybe_unused]] double det = gm.determinant();
     assert(std::abs(det - (-1.0)) < 1e-9);
     std::cout << "[PASS] Schwarzschild determinant exact" << std::endl;
 }
@@ -449,7 +449,7 @@ void test_null_vector_norm() {
     // Null vector: in the (t, x) block of the (diagonal) metric at this point,
     // k^μ = (1, sqrt(-g_tt / g_xx), 0, 0) is null since g_tt + g_xx (k^x)^2 = 0.
     std::array<double, 4> k = {1.0, std::sqrt(-g[0][0] / g[1][1]), 0.0, 0.0};
-    double norm = 0.0;
+    [[maybe_unused]] double norm = 0.0;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             norm += g[i][j] * k[i] * k[j];
@@ -487,8 +487,8 @@ void test_sphere_geodesic() {
     // The metric is evaluated in Cartesian coordinates; express the spherical
     // point (r, θ, φ) and read the metric back in spherical coordinates so the
     // 2-sphere angular geometry g_θθ = r^2, g_φφ = r^2 sin^2(θ) is recovered.
-    double r = 1e8;
-    auto g = metricInSpherical(sch, r, M_PI / 2.0, 0.0);
+    [[maybe_unused]] double r = 1e8;
+    [[maybe_unused]] auto g = metricInSpherical(sch, r, M_PI / 2.0, 0.0);
 
     // On a 2-sphere of radius r, geodesics are great circles
     // The metric g_θθ = r^2, g_φφ = r^2 sin^2(θ)
@@ -547,7 +547,7 @@ void test_tidal_tensor_symmetry() {
     Event4D pos(0.0, 10.0 * M, 0.0, 0.0);
     Event4D vel(1.0, 0.0, 0.0, 0.0);
 
-    auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
+    [[maybe_unused]] auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
     for (int i = 0; i < 3; i++)
         for (int j = i + 1; j < 3; j++)
             assert(std::abs(tidal[i][j] - tidal[j][i]) < 1e-6 &&
@@ -616,7 +616,7 @@ void test_stress_energy_trace_vacuum() {
     auto sch = std::make_shared<SchwarzschildMetric>(M);
     CurvatureCalculator calc(sch);
     Event4D ev(0.0, 1e8, 0.0, 0.0);
-    auto result = calc.computeAll(ev);
+    [[maybe_unused]] auto result = calc.computeAll(ev);
 
     // In vacuum, Ricci = 0 and Einstein = 0
     assert(std::abs(result.ricciScalar) < 1e-2);
@@ -720,7 +720,7 @@ void test_ricci_flat_grid() {
     for (double r = 1e3; r <= 1e14; r *= 2.0) {
         for (double th = 0.1; th < M_PI; th += 0.7) {
             Event4D ev(0.0, r, th, 0.5);
-            auto result = calc.computeAll(ev);
+            [[maybe_unused]] auto result = calc.computeAll(ev);
             assert(std::abs(result.ricciScalar) < 1e-2);
             count++;
         }
@@ -737,7 +737,7 @@ void test_kretschmann_positive() {
     std::vector<double> r = {1e3, 1e6, 1e9, 1e12, 1e15};
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
-        auto s = sch.curvatureScalars(ev);
+        [[maybe_unused]] auto s = sch.curvatureScalars(ev);
         assert(s.kretschmann > 0.0 && "Kretschmann should be positive");
     }
     std::cout << "[PASS] Kretschmann positive definite" << std::endl;
@@ -773,7 +773,7 @@ void test_geodesic_equatorial_plane() {
 
     assert(!traj.empty());
     (void)traj;
-    for (const auto& step : traj) {
+    for (const auto& step [[maybe_unused]] : traj) {
         assert(std::abs(step.event.y - M_PI / 2.0) < 0.1 &&
                "Geodesic should stay near equatorial plane");
     }

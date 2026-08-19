@@ -48,7 +48,7 @@ static constexpr double EPS = 1e-12;
 static constexpr double H0 = 2.27e-18;
 static constexpr double T0 = 4.354e17;
 
-static double relError(double computed, double expected) {
+[[maybe_unused]] static double relError(double computed, double expected) {
     if (expected == 0.0) return std::abs(computed);
     return std::abs(computed - expected) / std::abs(expected);
 }
@@ -119,7 +119,7 @@ void test_frw_lambda_cdm_flat_constraint() {
     assert(frw.hubbleConstant() == H0);
 
     double t = T0 * 0.8;
-    double a = frw.scaleFactor(t);
+    [[maybe_unused]] double a = frw.scaleFactor(t);
     assert(a > 0.0 && "ΛCDM scale factor should be positive");
     assert(std::isfinite(a) && "ΛCDM scale factor should be finite");
     std::cout << "[PASS] FRW ΛCDM flat constraint and scale factor valid" << std::endl;
@@ -456,7 +456,7 @@ void test_frw_lookback_time() {
 void test_frw_conformal_time() {
     auto frw = FRWMetric::matterDominated(H0, T0);
     double t = T0 * 0.8;
-    double a = frw.scaleFactor(t);
+    [[maybe_unused]] double a = frw.scaleFactor(t);
 
     // For matter-dominated: eta = 3 sqrt(a) / (H0 sqrt(a0))... approximate
     // We just verify the integral converges
@@ -486,7 +486,7 @@ void test_frw_critical_density() {
     // 5.5 hydrogen atoms per cubic metre. The previous ">1e-20 kg/m^3" bound was
     // wrong by seven orders of magnitude and could never hold for a physically
     // correct closed form; pin the literature value instead.
-    const double rho_crit_expected = 9.2156e-27;   // kg/m^3
+    [[maybe_unused]] const double rho_crit_expected = 9.2156e-27;   // kg/m^3
     assert(relError(rho_crit, rho_crit_expected) < 1e-3
            && "Critical density should match 3H0^2/(8 pi G) ~ 9.22e-27 kg/m^3");
     assert(rho_crit > 1e-28 && rho_crit < 1e-25
