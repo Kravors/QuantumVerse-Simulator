@@ -59,7 +59,9 @@ jobs:
         run: |
           EPISODES="${{ github.event.inputs.episodes || '200' }}"
           THEORY="${{ github.event.inputs.theory || 'FR_GRAVITY' }}"
-          OUTPUT=$(./build/Release/theory_discovery_runner --episodes "$EPISODES" --theory "$THEORY")
+          RUNNER=./build/theory_discovery_runner
+          [ -x "$RUNNER" ] || RUNNER=./build/Release/theory_discovery_runner
+          OUTPUT=$("$RUNNER" --episodes "$EPISODES" --theory "$THEORY")
           echo "$OUTPUT" > discovery_result.json
           echo "result<<EOF" >> "$GITHUB_OUTPUT"
           cat discovery_result.json >> "$GITHUB_OUTPUT"
