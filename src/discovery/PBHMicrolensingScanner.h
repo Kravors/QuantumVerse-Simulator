@@ -60,6 +60,37 @@ public:
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
+    /**
+     * @brief Physical estimate of the lensing object derived from a microlensing fit.
+     */
+    struct PBHEstimate {
+        double mass_solar = 0.0;          ///< Lens mass in solar masses
+        double velocity_kms = 0.0;        ///< Assumed lens transverse velocity (km/s)
+        double einstein_radius_au = 0.0;  ///< Physical Einstein radius (AU)
+        double lens_distance_kpc = 0.0;   ///< Lens (PBH) distance from observer (kpc)
+        double source_distance_kpc = 0.0; ///< Source distance from observer (kpc)
+        double confidence = 0.0;          ///< Fit quality (0-1)
+    };
+
+    /**
+     * @brief Convert a fitted Einstein crossing time into a PBH mass/velocity estimate.
+     * @param tE Einstein-radius crossing time, in seconds
+     * @param u0 Impact parameter in Einstein radii (retained for the record)
+     * @param lensDistanceKpc Lens (PBH) distance from the observer, in kpc
+     * @param sourceDistanceKpc Source distance from the observer, in kpc
+     * @param lensVelocityKms Assumed lens transverse velocity, in km/s
+     * @param confidence Fit quality (0-1)
+     *
+     * Uses the standard microlensing relations
+     *   R_E = sqrt( (4 G M / c^2) * (D_l D_ls / D_s) ),   t_E = R_E / v_t,
+     * solved for M given an assumed transverse velocity v_t.  The returned
+     * velocity is the assumed v_t, since tE alone cannot break the M/v_t
+     * degeneracy; supplying a prior on v_t is the standard Galactic practice.
+     */
+    static PBHEstimate estimatePBH(double tE, double u0, double lensDistanceKpc,
+        double sourceDistanceKpc = 8.0, double lensVelocityKms = 220.0,
+        double confidence = 0.0);
+
 private:
     static constexpr double kMinTrajectorySize = 24;
 

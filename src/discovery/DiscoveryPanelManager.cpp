@@ -154,6 +154,7 @@ void DiscoveryPanelManager::setActiveInstrumentIndex(int index)
         m_activeInstrumentIndex = index;
         emit activeInstrumentIndexChanged();
         emit activeInstrumentInfoChanged();
+        emit instrumentParametersChanged();
     }
 }
 
@@ -503,6 +504,31 @@ QVariantMap DiscoveryPanelManager::activeInstrumentInfo() const
     info["parameterRanges"] = ranges;
 
     return info;
+}
+
+QVariantList DiscoveryPanelManager::instrumentParameters() const
+{
+    QVariantList list;
+    const auto* inst = instrument(m_activeInstrumentIndex);
+    if (!inst) return list;
+
+    const auto ranges = inst->getParameterRanges();
+    for (const auto& r : ranges) {
+        QVariantMap entry;
+        entry["name"] = QString::fromStdString(r.first);
+        entry["min"] = r.second.first;
+        entry["max"] = r.second.second;
+        entry["value"] = inst->getParameter(r.first);
+        list.append(entry);
+    }
+    return list;
+}
+
+void DiscoveryPanelManager::setInstrumentParameter(const QString& name, double value)
+{
+    auto* inst = instrument(m_activeInstrumentIndex);
+    if (!inst) return;
+    inst->setParameter(name.toStdString(), value);
 }
 
 } // namespace quantumverse

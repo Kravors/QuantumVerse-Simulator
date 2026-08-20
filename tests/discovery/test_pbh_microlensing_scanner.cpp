@@ -93,6 +93,15 @@ int main() {
         std::cout << "  Microlensing event: confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity)
                   << " A0=" << findings[0].parameters["peak_magnification"] << std::endl;
+
+        // PBH mass/velocity estimate should be populated and positive.
+        assert(findings[0].parameters.count("pbh_mass_solar") > 0);
+        assert(findings[0].parameters["pbh_mass_solar"] > 0.0);
+        assert(findings[0].parameters["einstein_radius_au"] > 0.0);
+        assert(findings[0].parameters["pbh_velocity_kms"] > 0.0);
+        std::cout << "  PBH estimate: M=" << findings[0].parameters["pbh_mass_solar"]
+                  << " M_sun, R_E=" << findings[0].parameters["einstein_radius_au"]
+                  << " AU" << std::endl;
     }
 
     // --- 3. Symmetric transit dip: darkening, not a brightening lens -----
@@ -144,9 +153,52 @@ int main() {
         auto ranges = scanner.getParameterRanges();
         assert(ranges.count("min_magnification") > 0);
         assert(ranges.count("fit_ratio_threshold") > 0);
+        assert(ranges.count("lens_distance_kpc") > 0);
+        assert(ranges.count("source_distance_kpc") > 0);
+        assert(ranges.count("lens_velocity_kms") > 0);
+        assert(ranges.count("seconds_per_time_unit") > 0);
         assert(ranges["min_magnification"].first < ranges["min_magnification"].second);
         assert(ranges["fit_ratio_threshold"].first < ranges["fit_ratio_threshold"].second);
         std::cout << "  Parameter ranges are valid." << std::endl;
+    }
+
+    // --- 8. PBH mass/velocity mapping inverts the microlensing relations --
+    {
+        // Forward model: given M, D_l, D_s, v_t, compute the implied tE (seconds),
+        // then verify estimatePBH recovers M (exact inverse up to round-off).
+        const double G = 6.67430e-11, c = 299792458.0, Msun = 1.98847e30, kpc = 3.085677581e19;
+        auto tEfromMass = [&](double M_solar, double Dl, double Ds, double v_kms) {
+            double M = M_solar * Msun;
+            double RE = std::sqrt((4.0 * G * M / (c * c)) *
+                (Dl * kpc) * ((Ds - Dl) * kpc) / (Ds * kpc));
+            return RE / (v_kms * 1000.0); // seconds
+        };
+
+        double tE = tEfromMass(1.0, 4.0, 8.0, 200.0);
+        auto est = PBHMicrolensingScanner::estimatePBH(tE, 0.3, 4.0, 8.0, 200.0, 0.9);
+        assert(std::abs(est.mass_solar - 1.0) < 1e-6);
+        assert(std::abs(est.velocity_kms - 200.0) < 1e-9);
+        assert(est.einstein_radius_au > 0.0);
+        std::cout << "  Mass mapping round-trip: M=" << est.mass_solar
+                  << " M_sun (expected 1.0)" << std::endl;
+
+        // A heavier PBH should map to a larger mass.
+        double tE2 = tEfromMass(10.0, 4.0, 8.0, 200.0);
+        auto est2 = PBHMicrolensingScanner::estimatePBH(tE2, 0.3, 4.0, 8.0, 200.0, 0.9);
+        assert(est2.mass_solar > est.mass_solar);
+        std::cout << "  Heavier PBH maps to larger mass: M=" << est2.mass_solar
+                  << " M_sun" << std::endl;
+    }
+
+    // --- 9. Degenerate/ill-posed geometry returns a zero estimate -------
+    {
+        auto bad = PBHMicrolensingScanner::estimatePBH(0.0, 0.3, 4.0);
+        assert(bad.mass_solar == 0.0);
+        (void)bad;
+        auto bad2 = PBHMicrolensingScanner::estimatePBH(100.0, 0.3, 8.0, 4.0); // lens behind source
+        assert(bad2.mass_solar == 0.0);
+        (void)bad2;
+        std::cout << "  Degenerate geometry handled safely (M=0)." << std::endl;
     }
 
     std::cout << "All PBHMicrolensingScannerTest checks passed." << std::endl;

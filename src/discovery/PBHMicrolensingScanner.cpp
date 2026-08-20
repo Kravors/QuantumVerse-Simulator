@@ -22,6 +22,11 @@ PBHMicrolensingScanner::PBHMicrolensingScanner()
 {
     setParameter("min_magnification", 1.1);
     setParameter("fit_ratio_threshold", 0.6);
+    // Geometry / kinematics priors used to convert a fitted tE into a mass.
+    setParameter("lens_distance_kpc", 4.0);     // assumed PBH distance
+    setParameter("source_distance_kpc", 8.0);   // assumed background-star distance
+    setParameter("lens_velocity_kms", 220.0);  // assumed transverse velocity
+    setParameter("seconds_per_time_unit", 86400.0); // light-curve time unit (days)
 }
 
 std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
@@ -110,6 +115,14 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
 
     double confidence = std::min(1.0, std::max(0.0, 1.0 - ratio));
 
+    double secPerUnit = getParameter("seconds_per_time_unit");
+    double lensDist = getParameter("lens_distance_kpc");
+    double srcDist = getParameter("source_distance_kpc");
+    double velKms = getParameter("lens_velocity_kms");
+
+    PBHEstimate est = estimatePBH(bestTE * secPerUnit, bestU0,
+        lensDist, srcDist, velKms, confidence);
+
     InstrumentFinding f;
     f.id = "PBHML_" + std::to_string(getTotalFindings());
     f.instrumentName = getName();
@@ -120,7 +133,11 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
         "Paczynski magnification bump with peak A=" + std::to_string(A0) +
         " at t=" + std::to_string(bestT0) + " (Einstein-radius crossing time tE=" +
         std::to_string(bestTE) + ", impact parameter u0=" + std::to_string(bestU0) +
-        "). A dark, compact lens is consistent with a primordial black hole.";
+        "). A dark, compact lens is consistent with a primordial black hole. "
+        "Assuming D_l=" + std::to_string(lensDist) + " kpc, D_s=" +
+        std::to_string(srcDist) + " kpc, v_t=" + std::to_string(velKms) +
+        " km/s, the lens mass is M ~ " + std::to_string(est.mass_solar) +
+        " M_sun (R_E=" + std::to_string(est.einstein_radius_au) + " AU).";
     f.location = location;
     f.timestamp = bestT0;
     f.parameters["event_time"] = bestT0;
@@ -131,6 +148,11 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
     f.parameters["baseline_rms"] = baseRMS;
     f.parameters["residual_rms"] = resRMS;
     f.parameters["baseline_flux"] = F0;
+    f.parameters["pbh_mass_solar"] = est.mass_solar;
+    f.parameters["pbh_velocity_kms"] = est.velocity_kms;
+    f.parameters["einstein_radius_au"] = est.einstein_radius_au;
+    f.parameters["lens_distance_kpc"] = est.lens_distance_kpc;
+    f.parameters["source_distance_kpc"] = est.source_distance_kpc;
     addFinding(f);
     findings.push_back(f);
     return findings;
@@ -140,8 +162,49 @@ std::map<std::string, std::pair<double, double>> PBHMicrolensingScanner::getPara
 {
     return {
         {"min_magnification", {1.05, 3.0}},
-        {"fit_ratio_threshold", {0.3, 0.8}}
+        {"fit_ratio_threshold", {0.3, 0.8}},
+        {"lens_distance_kpc", {0.1, 50.0}},
+        {"source_distance_kpc", {1.0, 100.0}},
+        {"lens_velocity_kms", {10.0, 1000.0}},
+        {"seconds_per_time_unit", {1.0, 3.15576e7}}
     };
+}
+
+PBHMicrolensingScanner::PBHEstimate PBHMicrolensingScanner::estimatePBH(
+    double tE, double u0, double lensDistanceKpc,
+    double sourceDistanceKpc, double lensVelocityKms, double confidence)
+{
+    (void)u0;
+    PBHEstimate est;
+    est.confidence = confidence;
+    est.lens_distance_kpc = lensDistanceKpc;
+    est.source_distance_kpc = sourceDistanceKpc;
+    est.velocity_kms = lensVelocityKms;
+
+    double Dls = sourceDistanceKpc - lensDistanceKpc;
+    if (tE <= 0.0 || lensDistanceKpc <= 0.0 || sourceDistanceKpc <= 0.0 ||
+        lensVelocityKms <= 0.0 || Dls <= 0.0) {
+        return est; // degenerate/ill-posed geometry: no estimate
+    }
+
+    const double G = 6.67430e-11;      // m^3 kg^-1 s^-2
+    const double c = 299792458.0;      // m/s
+    const double Msun = 1.98847e30;    // kg
+    const double kpc = 3.085677581e19; // m
+    const double au = 1.495978707e11;  // m
+
+    const double v = lensVelocityKms * 1000.0;  // m/s
+    const double RE = v * tE;                   // R_E = v_t * t_E  (m)
+    const double Dl_m = lensDistanceKpc * kpc;
+    const double Dls_m = Dls * kpc;
+    const double Ds_m = sourceDistanceKpc * kpc;
+
+    // M = R_E^2 c^2 D_s / (4 G D_l D_ls)
+    const double M = (RE * RE) * (c * c) * Ds_m / (4.0 * G * Dl_m * Dls_m);
+
+    est.mass_solar = M / Msun;
+    est.einstein_radius_au = RE / au;
+    return est;
 }
 
 } // namespace quantumverse
