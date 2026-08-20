@@ -1694,6 +1694,7 @@ endif()
     )
     target_link_libraries(test_gw_echo_hunter PRIVATE dilaton)
     add_test(NAME GWEchoHunterTest COMMAND test_gw_echo_hunter)
+    set_tests_properties(GWEchoHunterTest PROPERTIES LABELS "unit")
 
     # 6.11c PBH microlensing scanner (discovery instrument)
     add_executable(test_pbh_microlensing_scanner
@@ -1702,6 +1703,7 @@ endif()
     )
     target_link_libraries(test_pbh_microlensing_scanner PRIVATE dilaton)
     add_test(NAME PBHMicrolensingScannerTest COMMAND test_pbh_microlensing_scanner)
+    set_tests_properties(PBHMicrolensingScannerTest PROPERTIES LABELS "unit")
 
     # 6.12 EM-bright GW counterpart detector (17th discovery instrument)
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/discovery/test_em_bright_gw_counterpart_detector.cpp)
