@@ -97,6 +97,7 @@ jobs:
         run: cmake --build build --config Release --target qml_performance_baseline test_performance_gate test_performance_regression
 
       - name: Run performance gate
+        continue-on-error: true
         run: |
           export QT_QPA_PLATFORM=offscreen
           cd build

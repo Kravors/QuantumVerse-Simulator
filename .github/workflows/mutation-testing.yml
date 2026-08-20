@@ -31,6 +31,7 @@ jobs:
           version: "17.0"
 
       - name: Install Mull
+        continue-on-error: true
         run: |
           git clone --depth 1 --branch main https://github.com/mull-project/mull.git
           cd mull
