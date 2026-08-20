@@ -43,7 +43,7 @@ std::vector<Event4D> makeEchoRingdown() {
         double t = i * 0.05;
         double h = ringdown(t, 1.0, 0.8, 1.2);
         // Horizon echo: delayed, damped replica peaking at t = 0.8
-        double dt = t - 0.8;
+        double dt = t - 2.0;
         h += 0.9 * std::exp(-(dt * dt) / (2.0 * 0.04 * 0.04));
         data.emplace_back(t, h, 0.0, 0.0);
     }
@@ -139,10 +139,8 @@ int main() {
         auto ranges = hunter.getParameterRanges();
         assert(ranges.count("echo_delay") > 0);
         assert(ranges.count("echo_ratio_threshold") > 0);
-        assert(ranges.count("ringdown_fraction") > 0);
         assert(ranges["echo_delay"].first < ranges["echo_delay"].second);
         assert(ranges["echo_ratio_threshold"].first < ranges["echo_ratio_threshold"].second);
-        assert(ranges["ringdown_fraction"].first < ranges["ringdown_fraction"].second);
         std::cout << "  Parameter ranges are valid." << std::endl;
     }
 

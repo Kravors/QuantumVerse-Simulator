@@ -14,7 +14,6 @@ GWEchoHunter::GWEchoHunter()
 {
     setParameter("echo_delay", 0.5);
     setParameter("echo_ratio_threshold", 1.5);
-    setParameter("ringdown_fraction", 0.25);
 }
 
 std::vector<InstrumentFinding> GWEchoHunter::analyze(
@@ -25,8 +24,6 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
     std::vector<InstrumentFinding> findings;
     if (trajectory.size() < kMinTrajectorySize) return findings;
 
-    double ringFrac = getParameter("ringdown_fraction");
-    if (ringFrac <= 0.0 || ringFrac >= 1.0) ringFrac = 0.25;
     double echoDelay = getParameter("echo_delay");
     double ratioThreshold = getParameter("echo_ratio_threshold");
 
@@ -43,37 +40,44 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
 
     std::sort(samples.begin(), samples.end());
 
-    // Locate the ringdown peak within the early window.
-    size_t earlyN = static_cast<size_t>(ringFrac * samples.size());
-    if (earlyN < 1) earlyN = 1;
-    if (earlyN > samples.size()) earlyN = samples.size();
-
-    double tPeak = 0.0;
-    double aRing = 0.0;
-    for (size_t i = 0; i < earlyN; ++i) {
-        double a = std::abs(samples[i].second);
-        if (a > aRing) {
-            aRing = a;
-            tPeak = samples[i].first;
-        }
+    // Extract ringdown envelope crests (local maxima of |h|). At a crest the
+    // oscillatory factor |cos| is near unity, so crests trace the true decay
+    // envelope free of the cos() bias that corrupts a point-wise log fit.
+    std::vector<std::pair<double, double>> crests;
+    auto ampAt = [&](size_t i) { return std::abs(samples[i].second); };
+    for (size_t i = 0; i < samples.size(); ++i) {
+        if (ampAt(i) <= 1e-12) continue;
+        bool isMax = true;
+        if (i > 0 && ampAt(i) < ampAt(i - 1)) isMax = false;
+        if (i + 1 < samples.size() && ampAt(i) < ampAt(i + 1)) isMax = false;
+        if (isMax) crests.emplace_back(samples[i].first, ampAt(i));
     }
+    if (crests.empty()) return findings;
+
+    // Global ringdown peak is the earliest crest.
+    double tPeak = crests[0].first;
+    double aRing = crests[0].second;
     if (aRing <= 0.0) return findings;
 
-    // Estimate the ringdown decay constant tau from a normalized log-envelope
-    // linear fit over the early window: ln(a/aRing) = -(t - tPeak)/tau.
-    double sumT = 0.0, sumL = 0.0, sumTT = 0.0, sumTL = 0.0;
-    size_t cnt = 0;
-    for (size_t i = 0; i < earlyN; ++i) {
-        double t = samples[i].first - tPeak;
-        double a = std::abs(samples[i].second);
-        if (a <= 0.0) continue;
-        double l = std::log(a / aRing);
-        sumT += t; sumL += l; sumTT += t * t; sumTL += t * l;
-        ++cnt;
+    double echoStart = tPeak + echoDelay;
+
+    // Estimate the decay constant tau from pre-echo crests (unbiased).
+    std::vector<std::pair<double, double>> fitCrests;
+    for (const auto& c : crests) {
+        if (c.first < echoStart) fitCrests.push_back(c);
     }
+    if (fitCrests.size() < 2) fitCrests = crests; // fallback
 
     double tau = kMaxTau;
-    if (cnt >= 2) {
+    if (fitCrests.size() >= 2) {
+        double sumT = 0.0, sumL = 0.0, sumTT = 0.0, sumTL = 0.0;
+        size_t cnt = 0;
+        for (const auto& c : fitCrests) {
+            double t = c.first - tPeak;
+            double l = std::log(c.second / aRing);
+            sumT += t; sumL += l; sumTT += t * t; sumTL += t * l;
+            ++cnt;
+        }
         double denom = cnt * sumTT - sumT * sumT;
         if (std::abs(denom) > 1e-12) {
             double slope = (cnt * sumTL - sumT * sumL) / denom; // = -1/tau
@@ -82,27 +86,27 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
     }
     if (!(tau > 0.0) || !std::isfinite(tau) || tau > kMaxTau) tau = kMaxTau;
 
-    // Scan the delayed echo window for a localized strain excess.
-    double echoStart = tPeak + echoDelay;
-    double aEcho = 0.0;
-    double tEcho = echoStart;
+    // Scan echo-window crests for a localized strain excess above the
+    // extrapolated ringdown tail.
     bool found = false;
-    for (const auto& s : samples) {
-        if (s.first < echoStart) continue;
-        double a = std::abs(s.second);
-        if (a > aEcho) {
-            aEcho = a;
-            tEcho = s.first;
+    double bestRatio = 0.0;
+    double tEcho = tPeak;
+    double aEcho = 0.0;
+    for (const auto& c : crests) {
+        if (c.first < echoStart) continue;
+        double expected = aRing * std::exp(-(c.first - tPeak) / tau);
+        double ratio = c.second / (expected + 1e-12);
+        if (ratio > bestRatio) {
+            bestRatio = ratio;
+            tEcho = c.first;
+            aEcho = c.second;
             found = true;
         }
     }
     if (!found) return findings;
 
-    double expected = aRing * std::exp(-(tEcho - tPeak) / tau);
-    double ratio = aEcho / (expected + 1e-12);
-
-    if (ratio > ratioThreshold) {
-        double excess = ratio - ratioThreshold;
+    if (bestRatio > ratioThreshold) {
+        double excess = bestRatio - ratioThreshold;
         double confidence = std::min(1.0, excess / (2.0 * ratioThreshold));
 
         InstrumentFinding f;
@@ -112,16 +116,17 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
         f.confidence = confidence;
         f.isAnomaly = true;
         f.description = "Post-ringdown gravitational-wave echo detected at t=" +
-            std::to_string(tEcho) + " with strain excess ratio " + std::to_string(ratio) +
+            std::to_string(tEcho) + " with strain excess ratio " + std::to_string(bestRatio) +
             "x over the extrapolated ringdown tail. Consistent with quantum "
             "structure near the horizon (echoes) or an exotic compact object.";
         f.location = location;
         f.timestamp = tEcho;
         f.parameters["echo_time"] = tEcho;
         f.parameters["echo_delay"] = echoDelay;
-        f.parameters["echo_excess_ratio"] = ratio;
+        f.parameters["echo_excess_ratio"] = bestRatio;
         f.parameters["ringdown_amplitude"] = aRing;
-        f.parameters["expected_tail_amplitude"] = expected;
+        f.parameters["echo_amplitude"] = aEcho;
+        f.parameters["expected_tail_amplitude"] = aRing * std::exp(-(tEcho - tPeak) / tau);
         f.parameters["ratio_threshold"] = ratioThreshold;
         f.parameters["decay_tau"] = tau;
         addFinding(f);
@@ -135,8 +140,7 @@ std::map<std::string, std::pair<double, double>> GWEchoHunter::getParameterRange
 {
     return {
         {"echo_delay", {0.1, 2.0}},
-        {"echo_ratio_threshold", {1.2, 3.0}},
-        {"ringdown_fraction", {0.1, 0.5}}
+        {"echo_ratio_threshold", {1.2, 3.0}}
     };
 }
 

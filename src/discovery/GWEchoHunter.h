@@ -33,6 +33,11 @@ namespace quantumverse {
  * excess (observed/expected ratio above `echo_ratio_threshold`) is reported
  * as a potential horizon-echo anomaly.
  *
+ * The decay constant is estimated from the ringdown envelope crests (local
+ * maxima of |h|), which trace the true exponential envelope without the
+ * oscillation bias of a point-wise fit.  An echo is reported when an
+ * echo-window crest exceeds the extrapolated tail by `echo_ratio_threshold`.
+ *
  * Convention: each trajectory sample is an Event4D whose `t` is the time
  * coordinate and `x` is the GW strain amplitude h(t).
  */
