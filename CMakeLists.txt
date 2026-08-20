@@ -215,6 +215,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/HolographicDualityLab.cpp
         src/discovery/GWMemoryDetector.cpp
         src/discovery/GWRingdownScanner.cpp
+        src/discovery/GWEchoHunter.cpp
         src/discovery/EMBrightGWCounterpartDetector.cpp
         src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
@@ -1684,6 +1685,14 @@ endif()
     )
     target_link_libraries(test_gw_ringdown_scanner PRIVATE dilaton)
     add_test(NAME GWRingdownScannerTest COMMAND test_gw_ringdown_scanner)
+
+    # 6.11b GW echo hunter (discovery instrument)
+    add_executable(test_gw_echo_hunter
+        tests/discovery/test_gw_echo_hunter.cpp
+        src/discovery/GWEchoHunter.cpp
+    )
+    target_link_libraries(test_gw_echo_hunter PRIVATE dilaton)
+    add_test(NAME GWEchoHunterTest COMMAND test_gw_echo_hunter)
 
     # 6.12 EM-bright GW counterpart detector (17th discovery instrument)
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/discovery/test_em_bright_gw_counterpart_detector.cpp)
