@@ -58,6 +58,7 @@ jobs:
       run: cmake --install build --config Release --prefix install
 
     - name: Package as zip
+      shell: cmd
       run: |
         cd install/bin
         7z a ../../quantumverse_v${{ github.ref_name }}_win64.zip ^
