@@ -151,8 +151,10 @@ jobs:
             - Includes Windows and Linux executables
             - All tests passing, static analysis clean
           files: |
-            artifacts/QuantumVerse-windows-latest-Release/**/*
-            artifacts/QuantumVerse-ubuntu-latest-Release/**/*
+            artifacts/QuantumVerse-windows-latest-Release/build/Release/quantumverse_qml.exe
+            artifacts/QuantumVerse-windows-latest-Release/build/Release/quantumverse_imgui.exe
+            artifacts/QuantumVerse-ubuntu-latest-Release/build/Release/quantumverse_qml
+            artifacts/QuantumVerse-ubuntu-latest-Release/build/Release/quantumverse_imgui
           draft: false
           prerelease: false
         env:
