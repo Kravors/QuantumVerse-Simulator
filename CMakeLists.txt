@@ -1756,12 +1756,31 @@ endif()
 
 # Install rules for packaging
 if(WIN32)
-    set(CMAKE_INSTALL_PREFIX "C:/Program Files/QuantumVerse" CACHE PATH "Install path" FORCE)
+    # Default install location; overridable via -DCMAKE_INSTALL_PREFIX (e.g. in
+    # the release workflow, which installs to a local staging dir for CPack).
+    set(CMAKE_INSTALL_PREFIX "C:/Program Files/QuantumVerse" CACHE PATH "Install path")
 endif()
 if(QUANTUMVERSE_USE_QT)
     install(TARGETS quantumverse_qml
         RUNTIME DESTINATION bin
         BUNDLE DESTINATION .
+    )
+endif()
+
+# Stage the deployed Qt runtime (DLLs, plugins/, qml/) into the install tree so
+# that CPack (ZIP and NSIS) packages a self-contained, runnable application.
+# deploy_qt_runtime populates CMAKE_BINARY_DIR/Release before `cmake --install`
+# runs in the release workflow, so this directory exists at install time.
+if(WIN32 AND QUANTUMVERSE_USE_QT)
+    install(DIRECTORY "${CMAKE_BINARY_DIR}/Release/"
+        DESTINATION bin
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING
+        PATTERN "*.dll"
+        PATTERN "*.conf"
+        PATTERN "qt.conf"
+        PATTERN "plugins/*"
+        PATTERN "qml/*"
     )
 endif()
 
@@ -1771,8 +1790,17 @@ set(CPACK_PACKAGE_VERSION "3.7.2")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AI-accelerated 4D spacetime simulator")
 set(CPACK_PACKAGE_VENDOR "Humanity")
 
-# Enable ZIP binary packaging
+# Enable ZIP binary packaging (portable) and NSIS installer (CI only; NSIS
+# is unavailable in this dev environment and not required for the ZIP build).
 set(CPACK_BINARY_ZIP ON)
-set(CPACK_GENERATOR "ZIP")
+set(CPACK_BINARY_NSIS ON)
+set(CPACK_GENERATOR "ZIP;NSIS")
+
+# NSIS-specific configuration for the generated installer.
+set(CPACK_NSIS_DISPLAY_NAME "QuantumVerse Simulator")
+set(CPACK_NSIS_PACKAGE_NAME "QuantumVerse Simulator")
+set(CPACK_NSIS_CONTACT "support@quantumverse.dev")
+set(CPACK_NSIS_MODIFY_PATH ON)
+set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
 
 include(CPack)

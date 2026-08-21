@@ -34,11 +34,14 @@ jobs:
     - name: Install Ninja
       run: choco install ninja
 
+    - name: Install NSIS
+      run: choco install nsis
+
     - name: Ensure reports directory exists
       run: New-Item -ItemType Directory -Path reports -Force
 
     - name: Configure CMake
-      run: cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+      run: cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install"
 
     - name: Build
       run: cmake --build build --config Release --parallel 2
@@ -46,9 +49,12 @@ jobs:
     - name: Deploy Qt runtime
       run: cmake --build build --config Release --target deploy_qt_runtime
 
+    - name: Install into package tree
+      run: cmake --install build --config Release --prefix install
+
     - name: Package as zip
       run: |
-        cd build/Release
+        cd install/bin
         7z a ../../quantumverse_v${{ github.ref_name }}_win64.zip ^
           quantumverse_qml.exe ^
           *.dll *.conf ^
@@ -56,8 +62,17 @@ jobs:
           plugins/ ^
           qml/
 
-    - name: Upload release artifact
+    - name: Package as NSIS installer
+      run: cpack -B build -G NSIS --config build/CPackConfig.cmake
+
+    - name: Upload zip artifact
       uses: actions/upload-artifact@v5
       with:
         name: quantumverse-windows
         path: quantumverse_v${{ github.ref_name }}_win64.zip
+
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: quantumverse-windows-installer
+        path: build/QuantumVerse-*.exe
