@@ -4,6 +4,8 @@
         <file>qmldir</file>
         <file>Utils.js</file>
         <file>ToastNotification.qml</file>
+        <file>ParameterSlider.qml</file>
+        <file>DiscoveryDashboard.qml</file>
     </qresource>
     <qresource prefix="/icons">
         <file>icons/open.svg</file>

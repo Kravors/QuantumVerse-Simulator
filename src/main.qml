@@ -733,52 +733,20 @@ ApplicationWindow {
                     value: discoveryPanelManager ? discoveryPanelManager.scanProgress : 0
                 }
 
-                // Live instrument parameter tuning
+                // Live instrument parameter dashboard
                 Pane {
                     Layout.fillWidth: true
-                    visible: discoveryPanelManager && discoveryPanelManager.instrumentParameters.length > 0
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: 6
+                    visible: discoveryPanelManager && discoveryPanelManager.instrumentCount > 0
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
 
-                        Label { text: "Instrument Parameters"; font.bold: true; font.pixelSize: 12 }
-
-                        Repeater {
-                            model: discoveryPanelManager ? discoveryPanelManager.instrumentParameters : []
-                            delegate: ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    Label {
-                                        text: modelData.name
-                                        font.pixelSize: 10
-                                        color: "#aaa"
-                                        Layout.fillWidth: true
-                                    }
-                                    Label {
-                                        text: modelData.value.toFixed(3)
-                                        font.pixelSize: 10
-                                        color: "#4af"
-                                        font.family: "monospace"
-                                    }
-                                }
-
-                                Slider {
-                                    Layout.fillWidth: true
-                                    from: modelData.min
-                                    to: modelData.max
-                                    value: modelData.value
-                                    stepSize: (modelData.max - modelData.min) / 100.0
-                                    onValueChanged: {
-                                        if (discoveryPanelManager)
-                                            discoveryPanelManager.setInstrumentParameter(modelData.name, value)
-                                    }
-                                }
-                            }
-                        }
+                    DiscoveryDashboard {
+                        manager: discoveryPanelManager
+                        onParametersChanged: console.log("Discovery parameters updated")
                     }
                 }
 
