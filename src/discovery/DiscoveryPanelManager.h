@@ -63,6 +63,7 @@ class DiscoveryPanelManager : public QObject
     Q_PROPERTY(double scanProgress READ scanProgress NOTIFY scanProgressChanged)
     Q_PROPERTY(QVariantList findingsList READ findingsList NOTIFY findingsListChanged)
     Q_PROPERTY(QVariantMap activeInstrumentInfo READ activeInstrumentInfo NOTIFY activeInstrumentInfoChanged)
+    Q_PROPERTY(QVariantList instrumentParameters READ instrumentParameters NOTIFY instrumentParametersChanged)
     Q_PROPERTY(int correlationCount READ correlationCount NOTIFY correlationCountChanged)
     Q_PROPERTY(QVariantList correlationsList READ correlationsList NOTIFY correlationsListChanged)
     Q_PROPERTY(QVariantList paretoFront READ paretoFront NOTIFY paretoFrontChanged)
@@ -101,6 +102,10 @@ public:
     double scanProgress() const { return m_scanProgress; }
     QVariantList findingsList() const;
     QVariantMap activeInstrumentInfo() const;
+    QVariantList instrumentParameters() const;
+
+    /** @brief Live-update a parameter of the active instrument from the QML UI. */
+    Q_INVOKABLE void setInstrumentParameter(const QString& name, double value);
     int correlationCount() const;
     QVariantList correlationsList() const;
     QVariantList paretoFront() const;
@@ -137,6 +142,7 @@ signals:
     void findingsListChanged();
     void findingsChanged();
     void activeInstrumentInfoChanged();
+    void instrumentParametersChanged();
     void correlationCountChanged();
     void correlationsListChanged();
     void paretoFrontChanged();

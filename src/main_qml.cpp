@@ -90,6 +90,7 @@
 #include "discovery/GWMemoryDetector.h"
 #include "discovery/GWRingdownScanner.h"
 #include "discovery/GWEchoHunter.h"
+#include "discovery/PBHMicrolensingScanner.h"
 #include "discovery/EMBrightGWCounterpartDetector.h"
 #include "discovery/TheoryDiscoveryAgent.h"
 #include "vr/SignalingClient.h"
@@ -465,6 +466,7 @@ int main(int argc, char* argv[])
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWMemoryDetector>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWRingdownScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWEchoHunter>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PBHMicrolensingScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::EMBrightGWCounterpartDetector>());
         qDebug() << "QuantumVerse: Registered" << discoveryPanelManager->instrumentCount() << "discovery instruments";
 
