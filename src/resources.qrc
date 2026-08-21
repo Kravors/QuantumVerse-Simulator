@@ -7,7 +7,7 @@
         <file>ParameterSlider.qml</file>
         <file>DiscoveryDashboard.qml</file>
     </qresource>
-    <qresource prefix="/icons">
+    <qresource prefix="/">
         <file>icons/open.svg</file>
         <file>icons/step_back.svg</file>
         <file>icons/play.svg</file>
