@@ -1786,7 +1786,7 @@ endif()
 
 # CPack configuration for packaging
 set(CPACK_PACKAGE_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "3.7.2")
+set(CPACK_PACKAGE_VERSION "5.5.1")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AI-accelerated 4D spacetime simulator")
 set(CPACK_PACKAGE_VENDOR "Humanity")
 
