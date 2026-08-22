@@ -570,6 +570,7 @@ int main(int argc, char* argv[])
         auto planckMicroscope = new quantumverse::PlanckMicroscope(nullptr);
         std::cerr << "QuantumVerse: PlanckMicroscope created" << std::endl;
         std::cerr.flush();
+        planckMicroscope->winId();
         QWidget* planckContainer = QWidget::createWindowContainer(
             planckMicroscope->windowHandle(), nullptr);
         std::cerr << "QuantumVerse: planckContainer created" << std::endl;
