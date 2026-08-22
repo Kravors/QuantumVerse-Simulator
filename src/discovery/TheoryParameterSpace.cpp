@@ -73,6 +73,18 @@ TheoryParameterSpace::TheoryParameterSpace(TheoryType type)
             param_names_ = {"c_G", "alpha_K", "alpha_B"};
             break;
 
+        case TheoryType::YUKAWA_FIFTH_FORCE:
+            parameters_ = {
+                TheoryParameter("alpha",  -1.0, 1.0, 0.1,
+                                "Fifth-force coupling strength", "dimensionless"),
+                TheoryParameter("lambda", 1e-6, 1e6, 1.0,
+                                "Fifth-force range", "meters"),
+                TheoryParameter("M",      1e20, 1e30, 1.0e26,
+                                "Central mass", "kilograms")
+            };
+            param_names_ = {"alpha", "lambda", "M"};
+            break;
+
         case TheoryType::CUSTOM:
         default:
             parameters_ = {
@@ -135,6 +147,8 @@ std::string TheoryParameterSpace::getTheoryName() const {
             return "EinsteinAether";
         case TheoryType::HORNDESKI:
             return "Horndeski";
+        case TheoryType::YUKAWA_FIFTH_FORCE:
+            return "YukawaFifthForce";
         case TheoryType::CUSTOM:
         default:
             return "CustomTheory";

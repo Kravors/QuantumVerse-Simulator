@@ -668,6 +668,11 @@ std::unique_ptr<TheoryPlugin> TheoryDiscoveryAgent::instantiateTheory(
         double alpha_K = param_map.count("alpha_K") ? param_map.at("alpha_K") : 0.0;
         double alpha_B = param_map.count("alpha_B") ? param_map.at("alpha_B") : 0.0;
         return std::make_unique<HorndeskiPlugin>(c_G, alpha_K, alpha_B);
+    } else if (theory_name == "YukawaFifthForce") {
+        double a = param_map.count("alpha") ? param_map.at("alpha") : 0.1;
+        double lam = param_map.count("lambda") ? param_map.at("lambda") : 1.0;
+        double m = param_map.count("M") ? param_map.at("M") : 1.0e26;
+        return std::make_unique<YukawaFifthForcePlugin>(a, lam, m);
     }
     return nullptr;
 }
@@ -962,6 +967,11 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
         double alpha_K = param_map.count("alpha_K") ? param_map.at("alpha_K") : 0.0;
         double alpha_B = param_map.count("alpha_B") ? param_map.at("alpha_B") : 0.0;
         plugin = std::make_unique<HorndeskiPlugin>(c_G, alpha_K, alpha_B);
+    } else if (theory_name == "YukawaFifthForce") {
+        double a = param_map.count("alpha") ? param_map.at("alpha") : 0.1;
+        double lam = param_map.count("lambda") ? param_map.at("lambda") : 1.0;
+        double m = param_map.count("M") ? param_map.at("M") : 1.0e26;
+        plugin = std::make_unique<YukawaFifthForcePlugin>(a, lam, m);
     }
 
     if (!plugin) {

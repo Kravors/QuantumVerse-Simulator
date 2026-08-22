@@ -216,6 +216,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/GWMemoryDetector.cpp
         src/discovery/GWRingdownScanner.cpp
         src/discovery/GWEchoHunter.cpp
+        src/discovery/ECORingdownAnalyzer.cpp
         src/discovery/PBHMicrolensingScanner.cpp
         src/discovery/EMBrightGWCounterpartDetector.cpp
         src/ml/CurvatureNormalizingFlow.cpp
@@ -1430,6 +1431,7 @@ endif()
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
         src/discovery/GWMemoryDetector.cpp
+        src/discovery/ECORingdownAnalyzer.cpp
     )
     message(STATUS "Linking test_instrument_audit")
     target_link_libraries(test_instrument_audit PRIVATE dilaton)
@@ -1627,6 +1629,16 @@ endif()
     add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
     endif()
 
+    # 6.5b Yukawa fifth-force modified-gravity plugin
+    add_executable(test_yukawa_gravity
+        tests/physics/test_yukawa_gravity.cpp
+        src/discovery/DiscoveryEngine.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
+    )
+    target_link_libraries(test_yukawa_gravity PRIVATE dilaton)
+    add_test(NAME YukawaGravityTest COMMAND test_yukawa_gravity)
+    set_tests_properties(YukawaGravityTest PROPERTIES LABELS "unit")
+
     # 6.5 Discovery robustness & fallback handling
     add_executable(test_discovery_robustness
         tests/discovery/test_discovery_robustness.cpp
@@ -1695,6 +1707,15 @@ endif()
     target_link_libraries(test_gw_echo_hunter PRIVATE dilaton)
     add_test(NAME GWEchoHunterTest COMMAND test_gw_echo_hunter)
     set_tests_properties(GWEchoHunterTest PROPERTIES LABELS "unit")
+
+    # 6.11b-ii ECO ringdown analyzer (discovery instrument)
+    add_executable(test_eco_ringdown_analyzer
+        tests/discovery/test_eco_ringdown_analyzer.cpp
+        src/discovery/ECORingdownAnalyzer.cpp
+    )
+    target_link_libraries(test_eco_ringdown_analyzer PRIVATE dilaton)
+    add_test(NAME ECORingdownAnalyzerTest COMMAND test_eco_ringdown_analyzer)
+    set_tests_properties(ECORingdownAnalyzerTest PROPERTIES LABELS "unit")
 
     # 6.11c PBH microlensing scanner (discovery instrument)
     add_executable(test_pbh_microlensing_scanner

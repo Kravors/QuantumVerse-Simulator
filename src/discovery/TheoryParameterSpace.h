@@ -36,6 +36,7 @@ struct TheoryParameter {
  *   - TeVeS: coupling K, vector mass mu, scalar coupling sigma
  *   - Einstein-Aether: aether couplings c1, c2, c3
  *   - Horndeski: PPN deviation c_G, kinetic braiding alpha_K, braiding alpha_B
+ *   - Yukawa fifth-force: coupling alpha, range lambda, central mass M
  */
 class TheoryParameterSpace {
 public:
@@ -46,6 +47,7 @@ public:
         TE_VES,
         EINSTEIN_AETHER,
         HORNDESKI,
+        YUKAWA_FIFTH_FORCE,
         CUSTOM
     };
 
