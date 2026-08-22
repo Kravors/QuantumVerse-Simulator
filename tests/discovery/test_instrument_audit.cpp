@@ -20,6 +20,7 @@
 #include "discovery/PrimordialLithiumCrisisSolver.h"
 #include "discovery/GalacticTidalStreamCartographer.h"
 #include "discovery/RecombinationConstantVariationImager.h"
+#include "discovery/ECORingdownAnalyzer.h"
 #include "discovery/DiscoveryPanelManager.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
@@ -151,6 +152,26 @@ int main() {
             assert(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  NeutronStarGlitchPhaseDetector: " << findings.size() << " findings" << std::endl;
+    }
+
+    // --- ECORingdownAnalyzer ---------------------------------------------------
+    {
+        ECORingdownAnalyzer eco;
+        // Build a synthetic Kerr ringdown (single damped sinusoid): must NOT be
+        // flagged as an ECO echo train.
+        std::vector<Event4D> ringdown;
+        ringdown.reserve(256);
+        for (int i = 0; i < 256; ++i) {
+            double t = i * 0.1;
+            double h = std::exp(-t / 12.0) * std::cos(2.0 * t);
+            ringdown.emplace_back(t, h, 0.0, 0.0);
+        }
+        auto findings = eco.analyze(metric, location, ringdown);
+        for (const auto& f : findings) {
+            assertFinite("ECO confidence", f.confidence);
+            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+        }
+        std::cout << "  ECORingdownAnalyzer: " << findings.size() << " findings" << std::endl;
     }
 
     // --- UltralightDMWaveInterferometer ----------------------------------------

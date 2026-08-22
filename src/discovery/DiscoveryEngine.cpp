@@ -708,4 +708,64 @@ std::unique_ptr<TheoryPlugin> HorndeskiPlugin::clone() const {
     return std::make_unique<HorndeskiPlugin>(c_G, alpha_K, alpha_B);
 }
 
+YukawaFifthForcePlugin::YukawaFifthForcePlugin(double alpha, double lambda, double mass)
+    : alpha(alpha), lambda(lambda), mass(mass) {}
+
+std::string YukawaFifthForcePlugin::getName() const { return "YukawaFifthForce"; }
+std::string YukawaFifthForcePlugin::getDescription() const {
+    return "Yukawa screened fifth-force modification of gravity";
+}
+std::string YukawaFifthForcePlugin::getFieldEquation() const {
+    return "Phi(r) = -(G M / r) (1 + alpha * exp(-r / lambda))";
+}
+
+MetricTensor YukawaFifthForcePlugin::computeMetric(
+    const Event4D& location,
+    const std::map<std::string, double>& parameters
+) const {
+    double a = parameters.count("alpha") ? parameters.at("alpha") : alpha;
+    double lam = parameters.count("lambda") ? parameters.at("lambda") : lambda;
+    double m = parameters.count("M") ? parameters.at("M") : mass;
+    double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+    double rSafe = std::max(r, 1e-6);
+    double rs0 = 2.0 * Event4D::G * m / (Event4D::C * Event4D::C);
+    double yukawa = 1.0 + a * std::exp(-rSafe / lam);
+    double rsEff = rs0 * yukawa;
+    double factor = 1.0 - rsEff / rSafe;
+    MetricTensor metric;
+    metric.g[0][0] = -factor;
+    metric.g[1][1] = 1.0 / factor;
+    metric.g[2][2] = rSafe * rSafe;
+    metric.g[3][3] = rSafe * rSafe;
+    return metric;
+}
+
+std::array<std::array<double, 4>, 4> YukawaFifthForcePlugin::computeChristoffel(
+    const Event4D&, int, int, int
+) const {
+    return {{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}};
+}
+
+MetricTensor YukawaFifthForcePlugin::computeRicciTensor(const Event4D&) const {
+    MetricTensor m;
+    m.g[0][0] = 0.0;
+    return m;
+}
+
+double YukawaFifthForcePlugin::computeRicciScalar(const Event4D&) const { return 0.0; }
+double YukawaFifthForcePlugin::computeKretschmannScalar(const Event4D&) const { return 0.0; }
+
+bool YukawaFifthForcePlugin::predictsWormholes() const { return false; }
+bool YukawaFifthForcePlugin::predictsNakedSingularities() const { return false; }
+bool YukawaFifthForcePlugin::violatesEnergyConditions() const { return false; }
+bool YukawaFifthForcePlugin::allowsTimeTravel() const { return false; }
+
+std::map<std::string, std::pair<double, double>> YukawaFifthForcePlugin::getParameterRanges() const {
+    return {{"alpha", {-1.0, 1.0}}, {"lambda", {1e-6, 1e6}}, {"M", {1e20, 1e30}}};
+}
+
+std::unique_ptr<TheoryPlugin> YukawaFifthForcePlugin::clone() const {
+    return std::make_unique<YukawaFifthForcePlugin>(alpha, lambda, mass);
+}
+
 } // namespace quantumverse

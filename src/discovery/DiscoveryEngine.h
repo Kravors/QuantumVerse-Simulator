@@ -496,35 +496,76 @@ private:
     double c_G;    // PPN deviation parameter
     double alpha_K; // Kinetic braiding
     double alpha_B; // Braiding parameter
-    
+
 public:
     HorndeskiPlugin(double c_G = 0.0, double alpha_K = 0.0, double alpha_B = 0.0);
-    
+
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
-    
+
     MetricTensor computeMetric(
         const Event4D& location,
         const std::map<std::string, double>& parameters
     ) const override;
-    
+
     std::array<std::array<double, 4>, 4> computeChristoffel(
         const Event4D& location,
         int rho, int mu, int nu
     ) const override;
-    
+
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
-    
+
     bool predictsWormholes() const override;
     bool predictsNakedSingularities() const override;
     bool violatesEnergyConditions() const override;
     bool allowsTimeTravel() const override;
-    
+
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
-    
+
+    std::unique_ptr<TheoryPlugin> clone() const override;
+};
+
+class YukawaFifthForcePlugin : public TheoryPlugin {
+    // Yukawa (screened fifth-force) modification of gravity
+    // Newtonian potential:  Phi(r) = -(G M / r) (1 + alpha * exp(-r / lambda))
+    // Effective Schwarzschild radius becomes radially dependent:
+    //   r_s(r) = (2 G M / c^2) (1 + alpha * exp(-r / lambda))
+private:
+    double alpha;   // Coupling strength (dimensionless)
+    double lambda;  // Range of the fifth force (meters)
+    double mass;    // Central mass (kilograms)
+
+public:
+    YukawaFifthForcePlugin(double alpha = 0.0, double lambda = 1.0, double mass = 1.0);
+
+    std::string getName() const override;
+    std::string getDescription() const override;
+    std::string getFieldEquation() const override;
+
+    MetricTensor computeMetric(
+        const Event4D& location,
+        const std::map<std::string, double>& parameters
+    ) const override;
+
+    std::array<std::array<double, 4>, 4> computeChristoffel(
+        const Event4D& location,
+        int rho, int mu, int nu
+    ) const override;
+
+    MetricTensor computeRicciTensor(const Event4D& location) const override;
+    double computeRicciScalar(const Event4D& location) const override;
+    double computeKretschmannScalar(const Event4D& location) const override;
+
+    bool predictsWormholes() const override;
+    bool predictsNakedSingularities() const override;
+    bool violatesEnergyConditions() const override;
+    bool allowsTimeTravel() const override;
+
+    std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
+
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
