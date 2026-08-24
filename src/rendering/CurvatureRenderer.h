@@ -110,6 +110,10 @@ private:
     std::vector<double> metricCache;      ///< Cached metric evaluations
     std::vector<double> curvatureCache;   ///< Cached curvature values
     bool cacheValid;                      ///< Whether caches are valid
+
+    // Undeformed Z for each grid vertex, so deformation is applied
+    // relative to the base position rather than accumulating each frame.
+    std::vector<float> m_baseZ;
     
     // Light cone rendering buffers (reused each frame)
     unsigned int lightConeVao;
