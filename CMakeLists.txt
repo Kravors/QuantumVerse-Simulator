@@ -217,6 +217,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/GWRingdownScanner.cpp
         src/discovery/GWEchoHunter.cpp
         src/discovery/ECORingdownAnalyzer.cpp
+        src/discovery/SGWBBackgroundAnalyzer.cpp
         src/discovery/PBHMicrolensingScanner.cpp
         src/discovery/EMBrightGWCounterpartDetector.cpp
         src/ml/CurvatureNormalizingFlow.cpp
@@ -1432,6 +1433,7 @@ endif()
         src/discovery/PTAScanner.cpp
         src/discovery/GWMemoryDetector.cpp
         src/discovery/ECORingdownAnalyzer.cpp
+        src/discovery/SGWBBackgroundAnalyzer.cpp
     )
     message(STATUS "Linking test_instrument_audit")
     target_link_libraries(test_instrument_audit PRIVATE dilaton)
@@ -1716,6 +1718,15 @@ endif()
     target_link_libraries(test_eco_ringdown_analyzer PRIVATE dilaton)
     add_test(NAME ECORingdownAnalyzerTest COMMAND test_eco_ringdown_analyzer)
     set_tests_properties(ECORingdownAnalyzerTest PROPERTIES LABELS "unit")
+
+    # 6.11b-iii Stochastic Gravitational-Wave Background (SGWB) analyzer
+    add_executable(test_sgwb_analyzer
+        tests/discovery/test_sgwb_analyzer.cpp
+        src/discovery/SGWBBackgroundAnalyzer.cpp
+    )
+    target_link_libraries(test_sgwb_analyzer PRIVATE dilaton)
+    add_test(NAME SGWBAnalyzerTest COMMAND test_sgwb_analyzer)
+    set_tests_properties(SGWBAnalyzerTest PROPERTIES LABELS "unit")
 
     # 6.11c PBH microlensing scanner (discovery instrument)
     add_executable(test_pbh_microlensing_scanner
