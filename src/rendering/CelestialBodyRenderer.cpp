@@ -713,7 +713,6 @@ void CelestialBodyRenderer::updateBodyBuffers()
 
 void CelestialBodyRenderer::render(const float* viewMatrix, const float* projectionMatrix)
 {
-    qWarning("[DIAG-CelestialRender] render() called, body count = %zu", m_bodies.size());
     if (!m_initialized || m_bodies.empty()) return;
 
     updateBodyBuffers();

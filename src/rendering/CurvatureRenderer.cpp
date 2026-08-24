@@ -433,10 +433,10 @@ void CurvatureRenderer::initializeLightConeBuffers()
                         sizeof(LightConeVertex), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Color attribute
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
+    // Color attribute (overlay shader expects aColor at location 1)
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE,
                         sizeof(LightConeVertex), (void*)(sizeof(float) * 3));
-    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
     lightConeBuffersInitialized = true;
@@ -668,10 +668,10 @@ void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* p
                         sizeof(LightConeVertex), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Color attribute
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
+    // Color attribute (overlay shader expects aColor at location 1)
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE,
                         sizeof(LightConeVertex), (void*)(sizeof(float) * 3));
-    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(1);
 
     // Render as wireframe lines
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -693,6 +693,7 @@ void CurvatureRenderer::initializeGrid()
     indices.clear();
     metricCache.clear();
     curvatureCache.clear();
+    m_baseZ.clear();
     
     float halfSize = gridSize / 2.0f;
     float step = gridSize / (gridResolution - 1);
@@ -714,10 +715,11 @@ void CurvatureRenderer::initializeGrid()
                 vertex.curvature = 0.0f;
                 vertex.time_dilation = 1.0f;
                 vertices.push_back(vertex);
-                
+
                 // Initialize caches
                 metricCache.push_back(0.0);
                 curvatureCache.push_back(0.0);
+                m_baseZ.push_back(vertex.position[2]);
             }
         }
     }
@@ -818,7 +820,10 @@ void CurvatureRenderer::deformGrid()
         float rawDisplacement = static_cast<float>(curvature * 0.001);
         float displacement = rawDisplacement > 1.0f ? 1.0f
                           : (rawDisplacement < -1.0f ? -1.0f : rawDisplacement);
-        vertex.position[2] += displacement;
+        // Apply displacement relative to the undeformed base Z so repeated
+        // calls (e.g. every animation frame via updateTime) do not accumulate
+        // and drift the grid unboundedly.
+        vertex.position[2] = m_baseZ[i] + displacement;
         
         // Update time dilation
         calculator.computeRicciScalar(event);

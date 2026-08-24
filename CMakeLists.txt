@@ -1387,6 +1387,33 @@ if(QUANTUMVERSE_BUILD_TESTS)
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
         )
+
+        # 20.4 Headless software-GL rendering diagnostic (GL-1281)
+        # Exercises CelestialBodyRenderer (planet/star textures) and
+        # CurvatureRenderer under Mesa llvmpipe, surfacing GL errors and
+        # blank-output regressions via FBO pixel readback.
+        add_executable(test_rendering_diagnostic
+            tests/rendering/test_rendering_diagnostic.cpp
+            src/rendering/CurvatureRenderer.cpp
+            src/rendering/CelestialBodyRenderer.cpp
+            src/rendering/ProceduralTextures.cpp
+            src/rendering/Texture.cpp
+            src/physics/CurvatureCalculator.cpp
+            third_party/glad/glad.cpp
+        )
+        target_link_libraries(test_rendering_diagnostic PRIVATE
+            Qt6::Core Qt6::Gui dilaton)
+        target_include_directories(test_rendering_diagnostic PRIVATE
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+            ${CMAKE_SOURCE_DIR}/src)
+        set_target_properties(test_rendering_diagnostic PROPERTIES AUTOMOC ON)
+        add_test(NAME RenderingDiagnosticTest COMMAND test_rendering_diagnostic)
+        set_tests_properties(RenderingDiagnosticTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            TIMEOUT 180
+        )
 endif()
 
 endif()
