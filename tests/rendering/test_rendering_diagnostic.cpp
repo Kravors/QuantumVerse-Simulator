@@ -160,8 +160,8 @@ int main(int argc, char* argv[])
 
         float lpos[3] = { 0.0f, 60.0f, 120.0f };
         bodyRenderer.setLightPosition(lpos);
-        bodyRenderer.setLightProperties(
-            (const float[3]){1.0f, 1.0f, 1.0f}, 1.5f);
+        const float lightColor[3] = { 1.0f, 1.0f, 1.0f };
+        bodyRenderer.setLightProperties(lightColor, 1.5f);
 
         quantumverse::CelestialBodyInstance planet;
         planet.objectId = "earth";
@@ -198,8 +198,11 @@ int main(int argc, char* argv[])
     // ===================================================================
     std::cout << "--- CurvatureRenderer (Schwarzschild grid) ---" << std::endl;
     {
+        // Use a modest grid resolution: under software-GL (llvmpipe) CI the
+        // per-vertex deformation vs. full Kretschmann is O(res^3) and a 64^3
+        // grid times out the test. 24^3 still exercises the full pipeline.
         quantumverse::CurvatureRenderer curv(
-            64, 100.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
+            24, 100.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
         curv.initializeGL();
         check(curv.isInitialized(), "CurvatureRenderer.initializeGL()");
 
