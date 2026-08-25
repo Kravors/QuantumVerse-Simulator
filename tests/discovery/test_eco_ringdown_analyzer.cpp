@@ -72,7 +72,7 @@ int main() {
         assert(!findings.empty() && "ECO echo train must be detected");
         assert(findings.front().isAnomaly && "Detected ECO must be flagged as anomaly");
         assert(findings.front().confidence > 0.05 && "ECO confidence must exceed threshold");
-        auto it = findings.front().parameters.find("echo_significance");
+        [[maybe_unused]] auto it = findings.front().parameters.find("echo_significance");
         assert(it != findings.front().parameters.end() && it->second > 0.05);
     }
 
@@ -105,7 +105,7 @@ int main() {
         traj[10].x = std::numeric_limits<double>::infinity();
         auto findings = eco.analyze(metric, location, traj);
         // Either rejected (too few valid) or, if still enough, must not be NaN.
-        for (const auto& f : findings) {
+        for ([[maybe_unused]] const auto& f : findings) {
             assert(std::isfinite(f.confidence));
         }
     }
@@ -115,7 +115,7 @@ int main() {
         ECORingdownAnalyzer eco;
         auto ranges = eco.getParameterRanges();
         assert(!ranges.empty() && "Parameter ranges must be defined");
-        for (const auto& kv : ranges) {
+        for ([[maybe_unused]] const auto& kv : ranges) {
             assert(std::isfinite(kv.second.first) && std::isfinite(kv.second.second));
             assert(kv.second.second > kv.second.first && "Range max must exceed min");
         }
