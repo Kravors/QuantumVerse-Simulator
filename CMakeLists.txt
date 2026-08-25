@@ -200,6 +200,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -755,9 +756,10 @@ if(QUANTUMVERSE_BUILD_TESTS)
             src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
             src/discovery/GalacticRotationCurveScanner.cpp
             src/discovery/FineStructureConstantDriftObservatory.cpp
-            src/discovery/BosonStarCollisionPredictor.cpp
-            src/discovery/NeutronStarGlitchPhaseDetector.cpp
-            src/discovery/UltralightDMWaveInterferometer.cpp
+        src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/NeutronStarGlitchPhaseDetector.cpp
+        src/discovery/UltralightDMWaveInterferometer.cpp
             src/discovery/BlackHoleJetAnomalyRecogniser.cpp
             src/discovery/PrimordialLithiumCrisisSolver.cpp
             src/discovery/GalacticTidalStreamCartographer.cpp
@@ -778,6 +780,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -942,6 +945,14 @@ if(QUANTUMVERSE_BUILD_TESTS)
     )
     target_link_libraries(test_boson_star_collision PRIVATE dilaton)
     add_test(NAME BosonStarCollisionTest COMMAND test_boson_star_collision)
+
+    # Hawking radiation detector (discovery instrument)
+    add_executable(test_hawking_radiation_detector
+        tests/discovery/test_hawking_radiation_detector.cpp
+        src/discovery/HawkingRadiationDetector.cpp
+    )
+    target_link_libraries(test_hawking_radiation_detector PRIVATE dilaton)
+    add_test(NAME HawkingRadiationDetectorTest COMMAND test_hawking_radiation_detector)
 
     # Black hole jet anomaly recogniser (discovery instrument)
     add_executable(test_black_hole_jet_anomaly
@@ -1451,6 +1462,7 @@ endif()
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1478,6 +1490,7 @@ endif()
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1510,6 +1523,7 @@ endif()
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1540,6 +1554,7 @@ endif()
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1575,6 +1590,7 @@ endif()
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1608,6 +1624,7 @@ endif()
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1640,6 +1657,7 @@ endif()
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
+        src/discovery/HawkingRadiationDetector.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
