@@ -182,15 +182,37 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-tidy cmake build-essential
+          sudo apt-get install -y clang-tidy cmake build-essential libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
 
+      # The clang-tidy report was previously unusable: the job never installed
+      # Qt, so compile_commands.json lacked Qt include paths and clang-tidy
+      # emitted hundreds of thousands of warnings per file (and "errors" for
+      # every Qt-dependent header it could not parse). Install Qt and point
+      # CMake at it, mirroring the working Clang-Tidy Analysis job.
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          install-deps: 'true'
+          modules: 'qtimageformats qt5compat qtwebsockets'
+          cache: true
+
+      # Use a separate build dir (build-tidy) so this Qt-enabled configure
+      # does not leak into the "Check for warnings" step below, which must
+      # keep building exactly as it did before.
       - name: Configure CMake for clang-tidy
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON
+        run: cmake -B build-tidy -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}"
 
       - name: Run clang-tidy
+        continue-on-error: true
         run: |
-          clang-tidy -p build -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' \
-            $(find src -name '*.cpp' -o -name '*.h') 2>&1 | tee clang-tidy.log || true
+          clang-tidy -p build-tidy -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' \
+            -header-filter='.*' \
+            $(find src -name '*.cpp') \
+            -- -std=c++17 2>&1 | tee clang-tidy.log || true
 
       - name: Check for warnings
         run: |
