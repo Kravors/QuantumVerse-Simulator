@@ -128,7 +128,7 @@ int main() {
         a[3] = std::numeric_limits<double>::quiet_NaN();
         b[7] = std::numeric_limits<double>::infinity();
         auto findings = sgwb.analyzeStrains(a, b);
-        for (const auto& f : findings) {
+        for ([[maybe_unused]] const auto& f : findings) {
             assert(std::isfinite(f.confidence));
             assert(std::isfinite(f.parameters.at("significance_sigma")));
         }
@@ -162,7 +162,7 @@ int main() {
         SGWBBackgroundAnalyzer sgwb;
         auto ranges = sgwb.getParameterRanges();
         assert(!ranges.empty() && "Parameter ranges must be defined");
-        for (const auto& kv : ranges) {
+        for ([[maybe_unused]] const auto& kv : ranges) {
             assert(std::isfinite(kv.second.first) && std::isfinite(kv.second.second));
             assert(kv.second.second > kv.second.first && "Range max must exceed min");
         }
