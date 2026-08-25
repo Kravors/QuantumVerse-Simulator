@@ -201,6 +201,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -758,14 +759,15 @@ if(QUANTUMVERSE_BUILD_TESTS)
             src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
-            src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-            src/discovery/PrimordialLithiumCrisisSolver.cpp
-            src/discovery/GalacticTidalStreamCartographer.cpp
-            src/discovery/RecombinationConstantVariationImager.cpp
-        )
-        target_include_directories(fuzz_discovery_instruments PRIVATE
+        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
+        src/discovery/PrimordialLithiumCrisisSolver.cpp
+        src/discovery/GalacticTidalStreamCartographer.cpp
+        src/discovery/RecombinationConstantVariationImager.cpp
+    )
+    target_include_directories(fuzz_discovery_instruments PRIVATE
             ${CMAKE_SOURCE_DIR}/src
         )
         target_link_libraries(fuzz_discovery_instruments PRIVATE dilaton)
@@ -781,6 +783,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -953,6 +956,14 @@ if(QUANTUMVERSE_BUILD_TESTS)
     )
     target_link_libraries(test_hawking_radiation_detector PRIVATE dilaton)
     add_test(NAME HawkingRadiationDetectorTest COMMAND test_hawking_radiation_detector)
+
+    # Kerr no-hair violation analyzer (discovery instrument)
+    add_executable(test_kerr_no_hair_violation
+        tests/discovery/test_kerr_no_hair_violation_analyzer.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
+    )
+    target_link_libraries(test_kerr_no_hair_violation PRIVATE dilaton)
+    add_test(NAME KerrNoHairViolationTest COMMAND test_kerr_no_hair_violation)
 
     # Black hole jet anomaly recogniser (discovery instrument)
     add_executable(test_black_hole_jet_anomaly
@@ -1463,6 +1474,7 @@ endif()
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1491,6 +1503,7 @@ endif()
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1524,6 +1537,7 @@ endif()
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1555,6 +1569,7 @@ endif()
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1591,6 +1606,7 @@ endif()
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1625,6 +1641,7 @@ endif()
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp
@@ -1658,6 +1675,7 @@ endif()
         src/discovery/FineStructureConstantDriftObservatory.cpp
         src/discovery/BosonStarCollisionPredictor.cpp
         src/discovery/HawkingRadiationDetector.cpp
+        src/discovery/KerrNoHairViolationAnalyzer.cpp
         src/discovery/NeutronStarGlitchPhaseDetector.cpp
         src/discovery/UltralightDMWaveInterferometer.cpp
         src/discovery/BlackHoleJetAnomalyRecogniser.cpp

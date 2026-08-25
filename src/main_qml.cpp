@@ -78,6 +78,7 @@
 #include "discovery/FineStructureConstantDriftObservatory.h"
 #include "discovery/BosonStarCollisionPredictor.h"
 #include "discovery/HawkingRadiationDetector.h"
+#include "discovery/KerrNoHairViolationAnalyzer.h"
 #include "discovery/NeutronStarGlitchPhaseDetector.h"
 #include "discovery/UltralightDMWaveInterferometer.h"
 #include "discovery/BlackHoleJetAnomalyRecogniser.h"
@@ -458,6 +459,7 @@ int main(int argc, char* argv[])
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::FineStructureConstantDriftObservatory>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::BosonStarCollisionPredictor>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::HawkingRadiationDetector>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::KerrNoHairViolationAnalyzer>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::NeutronStarGlitchPhaseDetector>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::UltralightDMWaveInterferometer>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::BlackHoleJetAnomalyRecogniser>());
