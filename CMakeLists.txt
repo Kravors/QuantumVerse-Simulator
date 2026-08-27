@@ -217,6 +217,9 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/SymbolicMath.cpp
         src/discovery/HolographicDualityLab.cpp
         src/discovery/GWMemoryDetector.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/GWRingdownScanner.cpp
         src/discovery/GWEchoHunter.cpp
         src/discovery/ECORingdownAnalyzer.cpp
@@ -796,6 +799,9 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
         src/discovery/GWMemoryDetector.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
     )
     target_link_libraries(fuzz_instruments PRIVATE dilaton)
     add_test(NAME FuzzInstrumentsTest COMMAND fuzz_instruments)
@@ -1439,6 +1445,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         target_include_directories(test_rendering_diagnostic PRIVATE
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+            ${CMAKE_SOURCE_DIR}/third_party/stb
             ${CMAKE_SOURCE_DIR}/src)
         set_target_properties(test_rendering_diagnostic PROPERTIES AUTOMOC ON)
         add_test(NAME RenderingDiagnosticTest COMMAND test_rendering_diagnostic)
@@ -1496,6 +1503,9 @@ endif()
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
         src/discovery/GWMemoryDetector.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/ECORingdownAnalyzer.cpp
         src/discovery/SGWBBackgroundAnalyzer.cpp
         src/discovery/DarkMatterAnnihilationAnalyzer.cpp
@@ -1526,6 +1536,9 @@ endif()
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
         src/discovery/GWMemoryDetector.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
@@ -1561,6 +1574,9 @@ endif()
         src/discovery/CMBLensingScanner.cpp
         src/discovery/PTAScanner.cpp
         src/discovery/GWMemoryDetector.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
@@ -1595,6 +1611,9 @@ endif()
         src/discovery/PTAScanner.cpp
         src/discovery/FRBDispersionScanner.cpp
         src/discovery/CosmicShearScanner.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
@@ -1633,6 +1652,9 @@ endif()
         src/discovery/PTAScanner.cpp
         src/discovery/FRBDispersionScanner.cpp
         src/discovery/CosmicShearScanner.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
@@ -1669,6 +1691,9 @@ endif()
         src/discovery/PTAScanner.cpp
         src/discovery/FRBDispersionScanner.cpp
         src/discovery/CosmicShearScanner.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
@@ -1704,11 +1729,13 @@ endif()
         src/discovery/PTAScanner.cpp
         src/discovery/FRBDispersionScanner.cpp
         src/discovery/CosmicShearScanner.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
         src/physics/CurvatureCalculator.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
     )
     target_link_libraries(test_generalized_adjoint PRIVATE dilaton Qt6::Core)
     add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
@@ -1775,6 +1802,30 @@ endif()
     )
     target_link_libraries(test_gw_memory_detector PRIVATE dilaton)
     add_test(NAME GWMemoryDetectorTest COMMAND test_gw_memory_detector)
+
+    # 6.10b GW memory analyzer (Christodoulou memory effect)
+    add_executable(test_gravitational_wave_memory_analyzer
+        tests/discovery/test_gravitational_wave_memory_analyzer.cpp
+        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
+    )
+    target_link_libraries(test_gravitational_wave_memory_analyzer PRIVATE dilaton)
+    add_test(NAME GravitationalWaveMemoryAnalyzerTest COMMAND test_gravitational_wave_memory_analyzer)
+
+    # Neutrino-GW coincidence detector (multi-messenger)
+    add_executable(test_neutrino_burst_analyzer
+        tests/discovery/test_neutrino_burst_analyzer.cpp
+        src/discovery/NeutrinoBurstAnalyzer.cpp
+    )
+    target_link_libraries(test_neutrino_burst_analyzer PRIVATE dilaton)
+    add_test(NAME NeutrinoBurstAnalyzerTest COMMAND test_neutrino_burst_analyzer)
+
+    # EM kilonova afterglow scanner (multi-messenger)
+    add_executable(test_kilonova_afterglow_scanner
+        tests/discovery/test_kilonova_afterglow_scanner.cpp
+        src/discovery/KilonovaAfterglowScanner.cpp
+    )
+    target_link_libraries(test_kilonova_afterglow_scanner PRIVATE dilaton)
+    add_test(NAME KilonovaAfterglowScannerTest COMMAND test_kilonova_afterglow_scanner)
 
     # 6.11 GW ringdown scanner (discovery instrument)
     add_executable(test_gw_ringdown_scanner

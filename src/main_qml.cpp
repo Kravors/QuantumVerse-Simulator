@@ -91,6 +91,9 @@
 #include "discovery/FRBDispersionScanner.h"
 #include "discovery/CosmicShearScanner.h"
 #include "discovery/GWMemoryDetector.h"
+#include "discovery/GravitationalWaveMemoryAnalyzer.h"
+#include "discovery/NeutrinoBurstAnalyzer.h"
+#include "discovery/KilonovaAfterglowScanner.h"
 #include "discovery/GWRingdownScanner.h"
 #include "discovery/GWEchoHunter.h"
 #include "discovery/ECORingdownAnalyzer.h"
@@ -473,6 +476,9 @@ int main(int argc, char* argv[])
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::FRBDispersionScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::CosmicShearScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWMemoryDetector>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GravitationalWaveMemoryAnalyzer>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::NeutrinoBurstAnalyzer>());
+        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::KilonovaAfterglowScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWRingdownScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWEchoHunter>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::ECORingdownAnalyzer>());

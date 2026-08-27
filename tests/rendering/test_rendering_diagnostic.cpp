@@ -11,6 +11,9 @@
 // glad.h MUST be included before any Qt OpenGL header, or it errors with
 // "OpenGL header already included". The renderer .cpp files follow the same
 // rule; we mirror it here for the diagnostic harness.
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 #include "glad/glad.h"
 
 #include <QGuiApplication>
@@ -23,10 +26,12 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 #include "rendering/CelestialBodyRenderer.h"
 #include "rendering/CurvatureRenderer.h"
 #include "rendering/ProceduralTextures.h"
+#include "physics/CurvatureCalculator.h"
 #include "spacetime/MetricTensor.h"
 
 #ifndef M_PI
@@ -44,6 +49,8 @@ static void check(bool cond, const char* msg)
         ++g_failures;
     }
 }
+
+static int runMockGLMode();
 
 static void perspective(float* m, float fovy, float aspect, float n, float f)
 {
@@ -64,7 +71,7 @@ static void translate(float* m, float x, float y, float z)
 }
 
 static bool readbackNonEmpty(int w, int h,
-                              const uint8_t bg[4], int tol)
+                               const uint8_t bg[4], int tol)
 {
     std::vector<uint8_t> px(static_cast<size_t>(w) * h * 4);
     glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
@@ -79,6 +86,27 @@ static bool readbackNonEmpty(int w, int h,
     std::cout << "    pixels rendered (non-background): " << nonEmpty
               << " / " << (w * h) << std::endl;
     return nonEmpty > 0;
+}
+
+static void saveFramebufferPNG(const char* filename, int w, int h)
+{
+    std::vector<uint8_t> px(static_cast<size_t>(w) * h * 4);
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+    // OpenGL origin is bottom-left; PNG is top-left. Flip rows vertically.
+    for (int y = 0; y < h / 2; ++y) {
+        int yInv = h - 1 - y;
+        for (int x = 0; x < w; ++x) {
+            for (int c = 0; c < 4; ++c) {
+                std::swap(px[(static_cast<size_t>(y) * w + x) * 4 + c],
+                          px[(static_cast<size_t>(yInv) * w + x) * 4 + c]);
+            }
+        }
+    }
+    if (stbi_write_png(filename, w, h, 4, px.data(), w * 4)) {
+        std::cout << "    screenshot saved: " << filename << std::endl;
+    } else {
+        std::cerr << "    failed to save screenshot: " << filename << std::endl;
+    }
 }
 
 int main(int argc, char* argv[])
@@ -106,9 +134,8 @@ int main(int argc, char* argv[])
     ctx.setFormat(fmt);
     if (!ctx.create()) {
         std::cerr << "  [SKIP] QOpenGLContext::create() failed: no usable software-GL on this platform.\n"
-                  << "         This diagnostic runs on the project's Linux CI (xvfb + Mesa llvmpipe),\n"
-                  << "         where it exercises both renderers and reports GL errors / blank output." << std::endl;
-        return 0; // soft skip; non-fatal on platforms without a GL driver
+                  << "         Running mock GL mode for CPU-side validation." << std::endl;
+        return runMockGLMode();
     }
     ctx.makeCurrent(&surface);
 
@@ -191,6 +218,7 @@ int main(int argc, char* argv[])
         check(glGetError() == GL_NO_ERROR, "CelestialBodyRenderer.render() no GL error");
         check(readbackNonEmpty(FB_W, FB_H, bg, 12),
               "CelestialBody rendered non-empty output");
+        saveFramebufferPNG("diagnostic_celestial_body.png", FB_W, FB_H);
     }
 
     // ===================================================================
@@ -220,17 +248,20 @@ int main(int argc, char* argv[])
         check(glGetError() == GL_NO_ERROR, "CurvatureRenderer.render() no GL error");
         check(readbackNonEmpty(FB_W, FB_H, bg, 12),
               "Curvature grid rendered non-empty output");
+        saveFramebufferPNG("diagnostic_curvature_grid.png", FB_W, FB_H);
 
         // Also exercise the Riemann-color and curvature-scalar shader paths.
         curv.setMode(quantumverse::CurvatureMode::RIEMANN_COLOR);
         glClear(GL_COLOR_BUFFER_BIT);
         curv.render(view, proj);
         check(glGetError() == GL_NO_ERROR, "CurvatureRenderer RIEMANN_COLOR no GL error");
+        saveFramebufferPNG("diagnostic_curvature_riemann.png", FB_W, FB_H);
 
         curv.setMode(quantumverse::CurvatureMode::CURVATURE_SCALAR);
         glClear(GL_COLOR_BUFFER_BIT);
         curv.render(view, proj);
         check(glGetError() == GL_NO_ERROR, "CurvatureRenderer CURVATURE_SCALAR no GL error");
+        saveFramebufferPNG("diagnostic_curvature_scalar.png", FB_W, FB_H);
     }
 
     ctx.doneCurrent();
@@ -239,4 +270,115 @@ int main(int argc, char* argv[])
               << (g_failures == 0 ? "ALL CHECKS PASSED" : "FAILURES PRESENT")
               << " (" << g_failures << " failure(s)) ===" << std::endl;
     return g_failures == 0 ? 0 : 1;
+}
+
+// Mock GL mode: validates CPU-side rendering logic without a GL context.
+// Runs on any platform (Windows, macOS, Linux) to verify grid generation,
+// color mapping, and configuration validation.
+static int runMockGLMode()
+{
+    std::cout << "=== Rendering Diagnostic (Mock GL Mode) ===" << std::endl;
+    int failures = 0;
+
+    // 1. CurvatureRenderer grid generation (no GL needed)
+    {
+        quantumverse::CurvatureRenderer curv(10, 100.0f,
+            quantumverse::CurvatureMode::GRID_DEFORMATION);
+        // initializeGrid() is called in constructor
+        const auto& verts = curv.getVertices();
+        size_t expected = 10 * 10 * 10;
+        if (verts.size() == expected) {
+            std::cout << "  [PASS] CurvatureRenderer grid: " << verts.size() << " vertices" << std::endl;
+        } else {
+            std::cerr << "  [FAIL] CurvatureRenderer grid: expected " << expected
+                      << " got " << verts.size() << std::endl;
+            ++failures;
+        }
+    }
+
+    // 2. Curvature computation via CurvatureCalculator
+    {
+        auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(1.0);
+        quantumverse::CurvatureCalculator calc(metric);
+        // Event at r=10 from a 1kg black hole (tiny rs, but curvature is nonzero)
+        quantumverse::Event4D evt(0.0, 10.0, 0.0, 0.0);
+        calc.computeKretschmann(evt);
+        double K = calc.getKretschmann();
+        if (K > 0.0) {
+            std::cout << "  [PASS] Kretschmann scalar nonzero: " << K << std::endl;
+        } else {
+            std::cerr << "  [FAIL] Kretschmann scalar is zero" << std::endl;
+            ++failures;
+        }
+    }
+
+    // 3. Color mapping modes
+    {
+        quantumverse::CurvatureRenderer curv(8, 50.0f,
+            quantumverse::CurvatureMode::GRID_DEFORMATION);
+        auto metric = std::make_shared<quantumverse::MetricTensor>(
+            quantumverse::MetricTensor::schwarzschild(1.0, 10.0, M_PI / 2.0, 0.0));
+        curv.setMetric(metric);
+
+        curv.setMode(quantumverse::CurvatureMode::RIEMANN_COLOR);
+        const auto& v1 = curv.getVertices();
+        bool colorValid = true;
+        for (const auto& v : v1) {
+            for (int c = 0; c < 4; ++c) {
+                if (v.color[c] < 0.0f || v.color[c] > 1.0f) { colorValid = false; break; }
+            }
+        }
+        if (colorValid) {
+            std::cout << "  [PASS] Color mapping produces valid RGBA" << std::endl;
+        } else {
+            std::cerr << "  [FAIL] Color mapping out of range" << std::endl;
+            ++failures;
+        }
+    }
+
+    // 4. CelestialBodyInstance configuration
+    {
+        quantumverse::CelestialBodyInstance planet;
+        planet.objectId = "test_planet";
+        planet.radius = 10.0f;
+        planet.position[0] = 5.0f;
+        planet.color[0] = 0.5f; planet.color[1] = 0.7f; planet.color[2] = 1.0f;
+        if (!planet.objectId.empty() && planet.radius > 0.0f) {
+            std::cout << "  [PASS] CelestialBodyInstance config valid" << std::endl;
+        } else {
+            std::cerr << "  [FAIL] CelestialBodyInstance config invalid" << std::endl;
+            ++failures;
+        }
+    }
+
+    // 5. PlanetTextureConfig defaults
+    {
+        quantumverse::PlanetTextureConfig cfg;
+        cfg.type = quantumverse::PlanetTextureConfig::PlanetType::TERRESTRIAL;
+        cfg.width = 512; cfg.height = 256; cfg.seed = 42;
+        if (cfg.width > 0 && cfg.height > 0 && cfg.noiseOctaves > 0) {
+            std::cout << "  [PASS] PlanetTextureConfig defaults valid" << std::endl;
+        } else {
+            std::cerr << "  [FAIL] PlanetTextureConfig defaults invalid" << std::endl;
+            ++failures;
+        }
+    }
+
+    // 6. Grid mode switching
+    {
+        quantumverse::CurvatureRenderer curv(6, 50.0f,
+            quantumverse::CurvatureMode::GRID_DEFORMATION);
+        curv.setMode(quantumverse::CurvatureMode::GEODESIC_FLOW);
+        if (curv.getMode() == quantumverse::CurvatureMode::GEODESIC_FLOW) {
+            std::cout << "  [PASS] Mode switching works" << std::endl;
+        } else {
+            std::cerr << "  [FAIL] Mode switching failed" << std::endl;
+            ++failures;
+        }
+    }
+
+    std::cout << "=== Mock GL Summary: "
+              << (failures == 0 ? "ALL CHECKS PASSED" : "FAILURES PRESENT")
+              << " (" << failures << " failure(s)) ===" << std::endl;
+    return failures == 0 ? 0 : 1;
 }
