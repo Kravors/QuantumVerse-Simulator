@@ -90,6 +90,7 @@ KilonovaAfterglowScanner::computeAfterglow(
     double timeWindowDay,
     double magLimit)
 {
+    (void)magLimit; // Used in analyze() for thresholding
     AfterglowResult result;
     size_t n = trajectory.size();
     if (n < kMinSamples) return result;

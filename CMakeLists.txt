@@ -1736,6 +1736,7 @@ endif()
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
         src/physics/CurvatureCalculator.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
     )
     target_link_libraries(test_generalized_adjoint PRIVATE dilaton Qt6::Core)
     add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
