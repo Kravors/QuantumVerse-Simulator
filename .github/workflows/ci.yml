@@ -55,7 +55,14 @@ jobs:
     - name: Deploy Qt runtime
       run: cmake --build build --config ${{ matrix.build_type }} --target deploy_qt_runtime
     - name: Run tests (excl. slow)
-      run: xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest" --output-on-failure
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest" --output-on-failure
+        else
+          export QT_QPA_PLATFORM=offscreen
+          ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest" --output-on-failure
+        fi
     - name: Run ASan tests (Debug only)
       if: matrix.build_type == 'Debug'
       continue-on-error: true
