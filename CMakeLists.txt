@@ -220,6 +220,7 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/GWRingdownScanner.cpp
         src/discovery/GWEchoHunter.cpp
         src/discovery/ECORingdownAnalyzer.cpp
@@ -802,6 +803,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
     )
     target_link_libraries(fuzz_instruments PRIVATE dilaton)
     add_test(NAME FuzzInstrumentsTest COMMAND fuzz_instruments)
@@ -1506,6 +1508,7 @@ endif()
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/ECORingdownAnalyzer.cpp
         src/discovery/SGWBBackgroundAnalyzer.cpp
         src/discovery/DarkMatterAnnihilationAnalyzer.cpp
@@ -1539,6 +1542,7 @@ endif()
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
@@ -1577,6 +1581,7 @@ endif()
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
@@ -1614,6 +1619,7 @@ endif()
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
@@ -1655,6 +1661,7 @@ endif()
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
@@ -1694,6 +1701,7 @@ endif()
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
@@ -1732,11 +1740,11 @@ endif()
         src/discovery/GravitationalWaveMemoryAnalyzer.cpp
         src/discovery/NeutrinoBurstAnalyzer.cpp
         src/discovery/KilonovaAfterglowScanner.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
         src/physics/CurvatureCalculator.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
     )
     target_link_libraries(test_generalized_adjoint PRIVATE dilaton Qt6::Core)
     add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
@@ -1827,6 +1835,14 @@ endif()
     )
     target_link_libraries(test_kilonova_afterglow_scanner PRIVATE dilaton)
     add_test(NAME KilonovaAfterglowScannerTest COMMAND test_kilonova_afterglow_scanner)
+
+    # Fast Radio Burst analyzer (multi-messenger)
+    add_executable(test_fast_radio_burst_analyzer
+        tests/discovery/test_fast_radio_burst_analyzer.cpp
+        src/discovery/FastRadioBurstAnalyzer.cpp
+    )
+    target_link_libraries(test_fast_radio_burst_analyzer PRIVATE dilaton)
+    add_test(NAME FastRadioBurstAnalyzerTest COMMAND test_fast_radio_burst_analyzer)
 
     # 6.11 GW ringdown scanner (discovery instrument)
     add_executable(test_gw_ringdown_scanner
