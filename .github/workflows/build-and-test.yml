@@ -153,6 +153,18 @@ jobs:
           name: test-results-${{ matrix.os }}-${{ matrix.build_type }}
           path: build/Testing/Temporary/
 
+      - name: Upload rendering diagnostic screenshots
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v5
+        with:
+          name: rendering-diagnostic-${{ matrix.build_type }}
+          path: |
+            diagnostic_celestial_body.png
+            diagnostic_curvature_grid.png
+            diagnostic_curvature_riemann.png
+            diagnostic_curvature_scalar.png
+          if-no-files-found: warn
+
   validate-physics:
     runs-on: ubuntu-latest
     needs: build
