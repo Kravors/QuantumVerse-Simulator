@@ -180,7 +180,7 @@ KilonovaAfterglowScanner::analyze(
     double gwTrigger = getParameter("gw_trigger_time");
     double ejectaMass = getParameter("ejecta_mass_msun");
     double distance = getParameter("distance_mpc");
-    double timeWindow = getParameter("magnitude_limit");
+    double timeWindow = getParameter("time_window_days");
     double magLimit = getParameter("magnitude_limit");
     double snrThresh = getParameter("snr_threshold");
 
