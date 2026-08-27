@@ -169,7 +169,29 @@ cmake -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_CXX_COMPILER=clang++ ..
 ./build/fuzz_geodesic_differential -max_total_time=60
 ```
 
-## Automated Root-Cause Analysis
+## Discovery Instruments
+
+The project includes 11 discovery instruments for multi-messenger astrophysics:
+
+| Domain | Instruments |
+|--------|-------------|
+| **GW Detection** | `MergingBinaryInspiralAnalyzer`, `BosonStarCollisionPredictor`, `GWRingdownScanner` |
+| **BH Physics** | `GWEchoHunter`, `ECORingdownAnalyzer`, `KerrNoHairViolationAnalyzer`, `HawkingRadiationDetector`, `GravitationalWaveMemoryAnalyzer` |
+| **Multi-Messenger** | `NeutrinoBurstAnalyzer`, `KilonovaAfterglowScanner`, `FastRadioBurstAnalyzer` |
+
+Each instrument follows the `DiscoveryInstrument` base class pattern with:
+- `analyze()` method taking `MetricTensor&`, `Event4D&`, `vector<Event4D>&`
+- `getParameterRanges()` for QML dashboard integration
+- TDD-verified tests in `tests/discovery/`
+- Registration in `src/main_qml.cpp`
+
+### Adding New Instruments
+
+1. Create `src/discovery/<Name>.h/.cpp` following existing patterns
+2. Create `tests/discovery/test_<name>.cpp` with 6+ TDD checks
+3. Add to all 11 targets in `CMakeLists.txt`
+4. Register in `src/main_qml.cpp` (include + `registerInstrument`)
+5. Build and run: `ctest -R <Name>Test --output-on-failure`
 
 ```bash
 # Analyze test failure

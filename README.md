@@ -5,7 +5,7 @@
 ![OpenGL 4.5](https://img.shields.io/badge/OpenGL-4.5-green)
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple)
 ![Build](https://img.shields.io/badge/Build-CMake-green)
-![Tests](https://img.shields.io/badge/Tests-62%2F62%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-106%20Passing-brightgreen)
 
 ## Overview
 
@@ -22,6 +22,18 @@
 - **4D Visualization**: OpenGL 4.5 rendering with multiple coordinated views
 - **Holographic Duality**: AdS/CFT correspondence for quantum gravity research
 - **VR Support**: Real OpenXR with stereo rendering and 4D controller navigation
+
+## Discovery Instruments
+
+QuantumVerse includes **11 discovery instruments** for multi-messenger astrophysics and beyond:
+
+| Domain | Instruments |
+|--------|-------------|
+| **GW Detection** | `MergingBinaryInspiralAnalyzer`, `BosonStarCollisionPredictor`, `GWRingdownScanner` |
+| **BH Physics** | `GWEchoHunter`, `ECORingdownAnalyzer`, `KerrNoHairViolationAnalyzer`, `HawkingRadiationDetector`, `GravitationalWaveMemoryAnalyzer` |
+| **Multi-Messenger** | `NeutrinoBurstAnalyzer`, `KilonovaAfterglowScanner`, `FastRadioBurstAnalyzer` |
+
+Each instrument follows the `DiscoveryInstrument` interface with TDD-verified tests and QML dashboard integration.
 
 ## Quick Start
 
@@ -132,7 +144,11 @@ ctest -C Release -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-fai
   │   │   ├── PrimordialLithiumCrisisSolver.h
   │   │   ├── GalacticTidalStreamCartographer.h
   │   │   ├── RecombinationConstantVariationImager.h
-  │   │   └── HolographicDualityLab.h  # Holographic duality (NEW)
+   │   │   └── HolographicDualityLab.h  # Holographic duality (NEW)
+   │   │   ├── GravitationalWaveMemoryAnalyzer.h  # Christodoulou GW memory
+   │   │   ├── NeutrinoBurstAnalyzer.h  # Neutrino-GW coincidence
+   │   │   ├── KilonovaAfterglowScanner.h  # EM kilonova afterglow
+   │   │   └── FastRadioBurstAnalyzer.h  # FRB-GW coincidence (NEW)
   │   ├── quantumgravity/           # CDT, LQG, GFT, causal sets
   │   │   ├── CDTEngine.h           # Causal Dynamical Triangulations
   │   │   ├── SpinNetwork.h         # Loop Quantum Gravity spin networks
