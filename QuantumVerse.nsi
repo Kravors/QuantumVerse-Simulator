@@ -1,14 +1,15 @@
-; QuantumVerse 3.6.0 NSIS Installer script
+; QuantumVerse 5.5.1 NSIS Installer script
 ; Build with: makensis QuantumVerse.nsi
 ; Requires the deploy step to have populated deploy\windows first.
 
 !define APPNAME "QuantumVerse"
-!define APPVERSION "3.6.0"
-!define PUBLISHER "Humanity"
+!define APPVERSION "5.5.1"
+!define PUBLISHER "Kravors"
 !define INSTALLDIR "$PROGRAMFILES64\QuantumVerse"
+!define CONTACT "dhiae1122@gmail.com"
 
 Name "${APPNAME} ${APPVERSION}"
-OutFile "QuantumVerse_Setup.exe"
+OutFile "QuantumVerse-5.5.1-win64.exe"
 InstallDir "${INSTALLDIR}"
 RequestExecutionLevel admin
 
@@ -22,7 +23,7 @@ RequestExecutionLevel admin
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  File /r "deploy\windows\*"
+  File /r "C:\Users\raffa\Desktop\QuantumVerse-5.5.1-win64\*"
 
   ; Start Menu + Desktop shortcuts
   CreateDirectory "$SMPROGRAMS\${APPNAME}"
@@ -35,6 +36,7 @@ Section "Install"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "Publisher" "${PUBLISHER}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayVersion" "${APPVERSION}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "Contact" "${CONTACT}"
 SectionEnd
 
 Section "Uninstall"
