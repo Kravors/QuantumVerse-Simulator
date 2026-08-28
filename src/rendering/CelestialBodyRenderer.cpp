@@ -618,6 +618,10 @@ bool CelestialBodyRenderer::generateProceduralTexture(int layerIndex, const Plan
 
     // Generate texture using the procedural texture generator
     std::vector<uint8_t> pixels = m_textureGenerator.generatePlanetTexture(config);
+    if (pixels.empty()) {
+        std::cerr << "CelestialBodyRenderer: Generated empty pixels for layer " << layerIndex << std::endl;
+        return false;
+    }
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureArray.getId());
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
@@ -626,6 +630,13 @@ bool CelestialBodyRenderer::generateProceduralTexture(int layerIndex, const Plan
                     GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    static int s_texLog = 0;
+    if (s_texLog++ < 10) {
+        std::cout << "[Texture] Generated layer " << layerIndex
+                  << " (" << config.width << "x" << config.height << ")"
+                  << " pixels: " << pixels.size() << std::endl;
+    }
 
     return true;
 }
