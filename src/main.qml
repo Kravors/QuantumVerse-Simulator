@@ -664,17 +664,20 @@ ApplicationWindow {
             z: 1
             enabled: true
 
-            ColumnLayout {
+            ScrollView {
                 anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
+                clip: true
 
-                Label {
-                    text: "🔬 Discovery Console"
-                    font.bold: true
-                    font.pixelSize: 15
-                    Layout.fillWidth: true
-                }
+                ColumnLayout {
+                    width: discoveryPanel.width - 16
+                    spacing: 6
+
+                    Label {
+                        text: "🔬 Discovery Console"
+                        font.bold: true
+                        font.pixelSize: 15
+                        Layout.fillWidth: true
+                    }
 
                 // Instrument selector
                 Pane {
@@ -852,22 +855,22 @@ ApplicationWindow {
 
                                         RowLayout {
                                             Label { text: "Kretschmann:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem.kretschmann; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem && viewportItem.kretschmann ? viewportItem.kretschmann : "—"; color: "#4af"; font.family: "monospace" }
                                         }
 
                                         RowLayout {
                                             Label { text: "Ricci Scalar:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem.ricciScalar; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem && viewportItem.ricciScalar ? viewportItem.ricciScalar : "—"; color: "#4af"; font.family: "monospace" }
                                         }
 
                                         RowLayout {
                                             Label { text: "Weyl Scalar:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem.weylSquared; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem && viewportItem.weylSquared ? viewportItem.weylSquared : "—"; color: "#4af"; font.family: "monospace" }
                                         }
 
                                         RowLayout {
                                             Label { text: "Redshift:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem.redshift; color: "#4af"; font.family: "monospace" }
+                                            Label { text: viewportItem && viewportItem.redshift ? viewportItem.redshift : "—"; color: "#4af"; font.family: "monospace" }
                                         }
 
                                         Connections {
@@ -1283,6 +1286,7 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
             }
         }
 

@@ -779,6 +779,10 @@ int main(int argc, char* argv[])
 #endif
         rootContext->setContextProperty("replayStream",
             QVariant::fromValue(replayStream.get()));
+        // Set default archive directory (create if missing)
+        QString defaultArchive = QDir::currentPath() + "/data/gcn_archive";
+        QDir().mkpath(defaultArchive);
+        replayStream->setDirectory(defaultArchive);
 #else
         // Headless/CI builds disable librdkafka, so the live-GCN-ingest objects
         // above are never created. Register null stubs so main.qml bindings that
