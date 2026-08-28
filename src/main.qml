@@ -20,8 +20,10 @@ import QuantumVerse 1.0
 ApplicationWindow {
     id: mainWindow
     visible: true
-    width: 1400
-    height: 900
+    width: Math.min(1280, Screen.availableWidth * 0.9)
+    height: Math.min(720, Screen.availableHeight * 0.9)
+    minimumWidth: 1024
+    minimumHeight: 600
     title: "QuantumVerse Simulator - 4D Spacetime Explorer"
     color: "#0a0a1a"
 
