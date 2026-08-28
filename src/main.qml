@@ -903,9 +903,20 @@ ApplicationWindow {
                             ComboBox {
                                 id: instrumentFilter
                                 Layout.preferredWidth: 210
-                                property var names: ["All"].concat(
-                                    discoveryPanelManager ? discoveryPanelManager.instrumentNames : [],
-                                    ["LIGO", "IceCube"])
+                                property var names: {
+                                    var base = ["All"];
+                                    var extra = ["LIGO", "IceCube"];
+                                    var names = discoveryPanelManager ? discoveryPanelManager.instrumentNames : [];
+                                    for (var i = 0; i < names.length; ++i) {
+                                        if (names[i] !== "All" && !extra.includes(names[i])) {
+                                            base.push(names[i]);
+                                        }
+                                    }
+                                    for (var j = 0; j < extra.length; ++j) {
+                                        base.push(extra[j]);
+                                    }
+                                    return base;
+                                }
                                 model: names
                                 onCurrentTextChanged: findingsModel.filterInstrument =
                                     (currentText === "All" ? "" : currentText)

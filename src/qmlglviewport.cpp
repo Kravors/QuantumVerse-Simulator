@@ -1404,11 +1404,30 @@ void QmlGlRenderer::renderGeodesics()
                          cbi.color[0] = 0.6f; cbi.color[1] = 0.6f; cbi.color[2] = 0.6f;
                          cbi.emissive[0] = 0.0f; cbi.emissive[1] = 0.0f; cbi.emissive[2] = 0.0f;
                      }
+                      // Add body (respects maxBodies cap internally)
+                      m_celestialBodyRenderer->addBody(cbi);
+                   }
 
-                     // Add body (respects maxBodies cap internally)
-                     m_celestialBodyRenderer->addBody(cbi);
-                  }
-              }
+               }
+               // Generate procedural textures for all used layers
+               if (m_celestialBodyRenderer) {
+                   for (int layer = 0; layer < 8; ++layer) {
+                       PlanetTextureConfig config;
+                       config.width = 256;
+                       config.height = 256;
+                       config.seed = 42 + layer;
+                       if (layer == 7) {
+                           config.type = PlanetTextureConfig::PlanetType::STAR;
+                       } else if (layer == 2 || layer == 3) {
+                           config.type = PlanetTextureConfig::PlanetType::GAS_GIANT;
+                       } else if (layer == 5 || layer == 4) {
+                           config.type = PlanetTextureConfig::PlanetType::BARREN;
+                       } else {
+                           config.type = PlanetTextureConfig::PlanetType::TERRESTRIAL;
+                       }
+                       m_celestialBodyRenderer->generateProceduralTexture(layer, config);
+                   }
+               }
 
               // [DIAG-CelestialBodies] Confirm how many bodies were queued and
               // at what scale, so it is clear whether the population loop ran.
@@ -2071,7 +2090,18 @@ void QmlGlViewport::probeAt(double x, double y, double z)
     }
 
     double gtt = metric->evaluate(event)[0][0];
-    m_redshift = (gtt < 0.0) ? QString::number(1.0 / std::sqrt(-gtt) - 1.0, 'e', 3) : QString("n/a");
+    // Gravitational redshift: z = 1/sqrt(-g00) - 1 for timelike coordinates
+    // In (-,+,+,+) signature, g00 is negative for valid metrics
+    if (gtt < 0.0 && std::isfinite(gtt)) {
+        double z = 1.0 / std::sqrt(-gtt) - 1.0;
+        m_redshift = QString::number(z, 'e', 3);
+    } else if (gtt > 0.0 && std::isfinite(gtt)) {
+        // Handle (+,,-,-) signature or unusual metrics
+        double z = 1.0 / std::sqrt(gtt) - 1.0;
+        m_redshift = QString::number(z, 'e', 3);
+    } else {
+        m_redshift = QString("n/a");
+    }
 
     m_probeValid = true;
     emit probeChanged();
