@@ -31,6 +31,18 @@ ExoplanetaryTTVFifthForceHunter::ExoplanetaryTTVFifthForceHunter()
     setParameter("yukawa_range_au", 0.5);    // lambda of the Yukawa fifth force
 }
 
+std::map<std::string, std::pair<double, double>>
+ExoplanetaryTTVFifthForceHunter::getParameterRanges() const
+{
+    return {
+        {"orbital_period", {1.0, 365.0}},
+        {"semi_major_axis", {0.01, 10.0}},
+        {"timing_noise", {1e-6, 1e-2}},
+        {"detection_threshold_sigma", {1.0, 10.0}},
+        {"yukawa_range_au", {0.01, 5.0}}
+    };
+}
+
 std::vector<InstrumentFinding> ExoplanetaryTTVFifthForceHunter::analyzeGrid(
     const std::vector<PlanetaryGridResult>& gridResults)
 {

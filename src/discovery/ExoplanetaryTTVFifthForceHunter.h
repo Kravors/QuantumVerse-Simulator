@@ -48,6 +48,8 @@ public:
     std::string getCategory() const override { return "Exoplanetary"; }
     AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
 
+    std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
+
 private:
     double computeTTVResidual(double observedTransitTime, double predictedTransitTime,
         double orbitalPeriod, double semiMajorAxis);
