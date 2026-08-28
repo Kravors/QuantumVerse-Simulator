@@ -83,9 +83,16 @@ ApplicationWindow {
     property string selectedBodyVelocity: "—"
 
     function formatMass(kg) {
-        if (kg >= 1e30) return (kg / 1e30).toFixed(3) + " x 10^30 kg"
-        if (kg >= 1e24) return (kg / 1e24).toFixed(3) + " x 10^24 kg"
-        if (kg >= 1e6) return (kg / 1e6).toFixed(1) + " x 10^6 kg"
+        if (kg >= 1e30) return (kg / 1e30).toFixed(3) + " × 10³⁰ kg"
+        if (kg >= 1e27) return (kg / 1e27).toFixed(3) + " × 10²⁷ kg"
+        if (kg >= 1e24) return (kg / 1e24).toFixed(3) + " × 10²⁴ kg"
+        if (kg >= 1e21) return (kg / 1e21).toFixed(3) + " × 10²¹ kg"
+        if (kg >= 1e18) return (kg / 1e18).toFixed(3) + " × 10¹⁸ kg"
+        if (kg >= 1e15) return (kg / 1e15).toFixed(3) + " × 10¹⁵ kg"
+        if (kg >= 1e12) return (kg / 1e12).toFixed(3) + " × 10¹² kg"
+        if (kg >= 1e9) return (kg / 1e9).toFixed(3) + " × 10⁹ kg"
+        if (kg >= 1e6) return (kg / 1e6).toFixed(3) + " × 10⁶ kg"
+        if (kg >= 1e3) return (kg / 1e3).toFixed(3) + " × 10³ kg"
         return kg.toFixed(1) + " kg"
     }
 
@@ -457,9 +464,16 @@ ApplicationWindow {
             property string selectedBodyVelocity: "—"
 
             function formatMass(kg) {
-                if (kg >= 1e30) return (kg / 1e30).toFixed(3) + " x 10^30 kg"
-                if (kg >= 1e24) return (kg / 1e24).toFixed(3) + " x 10^24 kg"
-                if (kg >= 1e6) return (kg / 1e6).toFixed(1) + " x 10^6 kg"
+                if (kg >= 1e30) return (kg / 1e30).toFixed(3) + " × 10³⁰ kg"
+                if (kg >= 1e27) return (kg / 1e27).toFixed(3) + " × 10²⁷ kg"
+                if (kg >= 1e24) return (kg / 1e24).toFixed(3) + " × 10²⁴ kg"
+                if (kg >= 1e21) return (kg / 1e21).toFixed(3) + " × 10²¹ kg"
+                if (kg >= 1e18) return (kg / 1e18).toFixed(3) + " × 10¹⁸ kg"
+                if (kg >= 1e15) return (kg / 1e15).toFixed(3) + " × 10¹⁵ kg"
+                if (kg >= 1e12) return (kg / 1e12).toFixed(3) + " × 10¹² kg"
+                if (kg >= 1e9) return (kg / 1e9).toFixed(3) + " × 10⁹ kg"
+                if (kg >= 1e6) return (kg / 1e6).toFixed(3) + " × 10⁶ kg"
+                if (kg >= 1e3) return (kg / 1e3).toFixed(3) + " × 10³ kg"
                 return kg.toFixed(1) + " kg"
             }
         }
