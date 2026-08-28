@@ -1265,8 +1265,12 @@ void QmlGlRenderer::renderAxisGizmo()
 }
 
 void QmlGlRenderer::renderGeodesics()
- {
-     qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+  {
+      static bool s_debugRender = qEnvironmentVariableIsSet("QV_DEBUG_RENDER");
+      if (s_debugRender) {
+          qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+      }
+      if (!m_geodesicShader.bind()) return;
      if (!m_geodesicShader.bind()) return;
 
      m_geodesicShader.setUniformValue("viewMatrix", m_viewMatrix);
