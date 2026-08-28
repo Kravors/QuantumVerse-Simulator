@@ -1962,18 +1962,73 @@ endif()
 
 # Stage the deployed Qt runtime (DLLs, plugins/, qml/) into the install tree so
 # that CPack (ZIP and NSIS) packages a self-contained, runnable application.
-# deploy_qt_runtime populates CMAKE_BINARY_DIR/Release before `cmake --install`
+# deploy_qt_runtime populates the target file directory before `cmake --install`
 # runs in the release workflow, so this directory exists at install time.
 if(WIN32 AND QUANTUMVERSE_USE_QT)
-    install(DIRECTORY "${CMAKE_BINARY_DIR}/Release/"
+    # Install Qt DLLs and the qt.conf file
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/"
         DESTINATION bin
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING
         PATTERN "*.dll"
         PATTERN "*.conf"
         PATTERN "qt.conf"
-        PATTERN "plugins/*"
-        PATTERN "qml/*"
+    )
+    # Install Qt plugins (platforms, imageformats, etc.)
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/platforms/"
+        DESTINATION bin/platforms
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/imageformats/"
+        DESTINATION bin/imageformats
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/iconengines/"
+        DESTINATION bin/iconengines
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/styles/"
+        DESTINATION bin/styles
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/tls/"
+        DESTINATION bin/tls
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/generic/"
+        DESTINATION bin/generic
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/networkinformation/"
+        DESTINATION bin/networkinformation
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/platforminputcontexts/"
+        DESTINATION bin/platforminputcontexts
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/vectorimageformats/"
+        DESTINATION bin/vectorimageformats
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    # Install QML files
+    install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/qml/"
+        DESTINATION bin/qml
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING
+        PATTERN "*.dll"
+        PATTERN "*.qml"
+        PATTERN "*.qmltypes"
+        PATTERN "*.qmldir"
     )
 endif()
 
