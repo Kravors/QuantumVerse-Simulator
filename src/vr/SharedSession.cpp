@@ -22,6 +22,7 @@ void SharedSession::setActive(bool active)
 {
     if (m_active == active) return;
     m_active = active;
+    emit isActiveChanged();
 
     if (m_active && m_signalingClient && m_signalingClient->isConnected()) {
         broadcastFullState();

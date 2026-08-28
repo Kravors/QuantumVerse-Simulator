@@ -163,7 +163,10 @@ struct SharedState {
  * When active, local state changes are broadcast to peers, and
  * incoming peer state updates are merged into the local state.
  */
-class SharedSession {
+class SharedSession : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString sessionId READ sessionId WRITE setSessionId NOTIFY sessionIdChanged)
+    Q_PROPERTY(bool isActive READ isActive WRITE setActive NOTIFY isActiveChanged)
 public:
     /**
      * @brief Construct a new SharedSession
@@ -203,6 +206,10 @@ public:
      */
     void setActive(bool active);
 
+signals:
+    void sessionIdChanged();
+    void isActiveChanged();
+
     /**
      * @brief Update the active theory parameters and broadcast if active
      * @param theory New theory parameters
@@ -236,7 +243,7 @@ public:
     /**
      * @brief Set session ID for display purposes
      */
-    void setSessionId(const QString& sessionId) { m_sessionId = sessionId; }
+    void setSessionId(const QString& sessionId) { if (m_sessionId != sessionId) { m_sessionId = sessionId; emit sessionIdChanged(); } }
 
     /**
      * @brief Get current session ID
