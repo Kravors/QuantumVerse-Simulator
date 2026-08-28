@@ -392,6 +392,11 @@ int main(int argc, char* argv[])
 
     QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
 
+#ifdef _WIN32
+    // Initialize COM for Windows (required for QWidget::createWindowContainer and Planck Microscope)
+    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+#endif
+
     QApplication app(argc, argv);
     app.setApplicationName("QuantumVerse Simulator");
     app.setOrganizationName("QuantumVerse");

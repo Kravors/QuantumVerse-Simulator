@@ -1418,9 +1418,11 @@ void QmlGlRenderer::renderGeodesics()
                    }
 
                }
-                // Generate procedural textures for all used layers
-                if (m_celestialBodyRenderer) {
-                    std::cout << "[Texture] Generating procedural textures..." << std::endl;
+                // Generate procedural textures for all used layers (only once)
+                std::cerr << "[DEBUG] Checking textures: renderer=" << (m_celestialBodyRenderer ? "valid" : "null") << " initialized=" << m_celestialTexturesInitialized << std::endl;
+                if (m_celestialBodyRenderer && !m_celestialTexturesInitialized) {
+                    m_celestialTexturesInitialized = true;
+                    qWarning() << "[Texture] Generating procedural textures...";
                     // Initialize texture array with 8 layers (256x256 each)
                     if (!m_celestialBodyRenderer->isTextureArrayInitialized()) {
                         m_celestialBodyRenderer->initializeTextureArray(8, 256, 256);

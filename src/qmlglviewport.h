@@ -407,6 +407,7 @@ private:
 
     // Celestial body renderer (non-owning)
     std::shared_ptr<CelestialBodyRenderer> m_celestialBodyRenderer;
+    bool m_celestialTexturesInitialized = false;
 
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
