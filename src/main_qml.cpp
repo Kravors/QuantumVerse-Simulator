@@ -673,6 +673,8 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("iceCubeAdapter",
             QVariant::fromValue(iceCubeAdapter.get()));
 
+        // Create replayStream outside the Kafka block so it's always available
+        auto replayStream = std::make_shared<quantumverse::GCNReplayStream>();
 #ifdef HAVE_LIBRDKAFKA
         auto alertRouter = std::make_shared<quantumverse::AlertRouter>();
         alertRouter->setLIGOAdapter(ligoAdapter.get());
@@ -771,7 +773,6 @@ int main(int argc, char* argv[])
                 }
             });
 
-        auto replayStream = std::make_shared<quantumverse::GCNReplayStream>();
 #ifdef HAVE_LIBRDKAFKA
         QObject::connect(replayStream.get(), &quantumverse::GCNReplayStream::alertAvailable,
             alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
@@ -788,6 +789,7 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("fermiAdapter", QVariant());
         rootContext->setContextProperty("swiftAdapter", QVariant());
         rootContext->setContextProperty("kafkaListener", QVariant());
+        rootContext->setContextProperty("replayStream", QVariant());
 #endif
 
         // Multi-user collaboration: signaling client and shared session
