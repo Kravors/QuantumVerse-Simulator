@@ -806,14 +806,14 @@ ApplicationWindow {
                         }
 
                         Label {
-                            text: "Session: " + (sharedSession ? sharedSession.sessionId : "—")
+                            text: "Session: " + (sharedSession && sharedSession.sessionId && sharedSession.sessionId !== "" ? sharedSession.sessionId : "Not connected")
                             font.pixelSize: 10
                             color: "#888"
                             Layout.fillWidth: true
                         }
 
                         Label {
-                            text: "Peers: " + (signalingClient ? signalingClient.peerCount : 0)
+                            text: "Peers: " + (signalingClient ? (sharedSession && sharedSession.isActive ? signalingClient.peerCount : 0) : 0)
                             font.pixelSize: 10
                             color: "#888"
                             Layout.fillWidth: true
