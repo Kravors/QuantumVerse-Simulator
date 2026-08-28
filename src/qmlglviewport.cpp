@@ -1411,13 +1411,22 @@ void QmlGlRenderer::renderGeodesics()
                }
                // Generate procedural textures for all used layers
                if (m_celestialBodyRenderer) {
+                   // Initialize texture array with 8 layers (256x256 each)
+                   if (!m_celestialBodyRenderer->isTextureArrayInitialized()) {
+                       m_celestialBodyRenderer->initializeTextureArray(8, 256, 256);
+                   }
                    for (int layer = 0; layer < 8; ++layer) {
                        PlanetTextureConfig config;
                        config.width = 256;
                        config.height = 256;
                        config.seed = 42 + layer;
                        if (layer == 7) {
-                           config.type = PlanetTextureConfig::PlanetType::STAR;
+                           // Star/sun texture - bright yellow/white
+                           config.type = PlanetTextureConfig::PlanetType::CUSTOM;
+                           config.baseColor[0] = 1.0f;
+                           config.baseColor[1] = 0.95f;
+                           config.baseColor[2] = 0.8f;
+                           config.colorVariation = 0.1f;
                        } else if (layer == 2 || layer == 3) {
                            config.type = PlanetTextureConfig::PlanetType::GAS_GIANT;
                        } else if (layer == 5 || layer == 4) {

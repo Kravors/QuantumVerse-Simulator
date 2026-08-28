@@ -191,6 +191,8 @@ public:
     bool generateProceduralTexture(int layerIndex, const PlanetTextureConfig& config);
     void setTextureArrayEnabled(bool enabled) { m_useTextureArray = enabled; }
     bool isTextureArrayEnabled() const { return m_useTextureArray; }
+    bool initializeTextureArray(int numLayers, int width, int height);
+    bool isTextureArrayInitialized() const { return m_textureArray.isValid(); }
     
     /**
      * @brief Get the procedural texture generator

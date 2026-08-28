@@ -206,10 +206,6 @@ public:
      */
     void setActive(bool active);
 
-signals:
-    void sessionIdChanged();
-    void isActiveChanged();
-
     /**
      * @brief Update the active theory parameters and broadcast if active
      * @param theory New theory parameters
@@ -249,6 +245,10 @@ signals:
      * @brief Get current session ID
      */
     QString sessionId() const { return m_sessionId; }
+
+signals:
+    void sessionIdChanged();
+    void isActiveChanged();
 
 private:
     /**

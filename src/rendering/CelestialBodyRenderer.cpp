@@ -630,6 +630,18 @@ bool CelestialBodyRenderer::generateProceduralTexture(int layerIndex, const Plan
     return true;
 }
 
+bool CelestialBodyRenderer::initializeTextureArray(int numLayers, int width, int height)
+{
+    if (!m_textureArray.initialize(numLayers, width, height)) {
+        std::cerr << "CelestialBodyRenderer: Failed to initialize texture array" << std::endl;
+        return false;
+    }
+    m_useTextureArray = true;
+    std::cout << "CelestialBodyRenderer: Initialized texture array with " << numLayers
+              << " layers (" << width << "x" << height << ")" << std::endl;
+    return true;
+}
+
 bool CelestialBodyRenderer::loadTextureArray(const std::vector<std::string>& texturePaths,
                                                int width, int height)
 {
