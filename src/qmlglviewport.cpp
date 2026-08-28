@@ -318,6 +318,10 @@ void QmlGlRenderer::render()
     // pointers) is only called inside initializeGL() (above). Calling the
     // QOpenGLFunctions variant here on the first frame would dereference a null
     // pointer and crash the render loop after a single number of frames.
+    // Clear any stale errors from the previous frame before rendering.
+    while (glad_glGetError() != GL_NO_ERROR) {
+        // Flush stale error flags
+    }
     GLenum startErr = glad_glGetError();
     if (startErr != GL_NO_ERROR) {
         static int s_errCount = 0;
