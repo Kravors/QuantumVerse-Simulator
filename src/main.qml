@@ -792,7 +792,7 @@ ApplicationWindow {
                 // Multi-user collaboration panel
                 Pane {
                     Layout.fillWidth: true
-                    visible: signalingClient && signalingClient.isConnected
+                    visible: (signalingClient !== undefined) && signalingClient && signalingClient.isConnected
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 8

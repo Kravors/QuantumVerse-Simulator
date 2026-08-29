@@ -30,6 +30,8 @@ namespace vr {
  */
 class SignalingClient : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool isConnected READ isConnected NOTIFY isConnectedChanged)
+    Q_PROPERTY(size_t peerCount READ peerCount NOTIFY peerCountChanged)
 public:
     /**
      * @brief Construct a new SignalingClient
@@ -137,6 +139,16 @@ signals:
      * @param errorMessage Description of the error
      */
     void connectionError(const QString& errorMessage);
+
+    /**
+     * @brief Emitted when connection state changes
+     */
+    void isConnectedChanged();
+
+    /**
+     * @brief Emitted when peer count changes
+     */
+    void peerCountChanged();
 
 private slots:
     /**

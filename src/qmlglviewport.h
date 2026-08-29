@@ -22,8 +22,7 @@
 #include <QSGSimpleTextureNode>
 #include <QSGTexture>
 #include <QOpenGLFramebufferObject>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLFunctions>
+
 #include <QMatrix4x4>
 #include <QDateTime>
 #include <QOpenGLContext>
@@ -186,14 +185,15 @@ private:
     int64_t m_totalFrameTime;                ///< Sum of frame times for fast average
 };
 
-/**
-  * @brief Renderer callback interface for the QML OpenGL viewport
-  *
-  * Implements the QQuickFramebufferObject::Renderer interface to provide
-  * OpenGL rendering into a framebuffer object that QML can display.
-  * Inherits QOpenGLFunctions to access OpenGL function pointers.
-  */
- class QmlGlRenderer : public ::QQuickFramebufferObject::Renderer, public ::QOpenGLFunctions
+    /**
+     * @brief Renderer callback interface for the QML OpenGL viewport
+     *
+     * Implements the QQuickFramebufferObject::Renderer interface to provide
+     * OpenGL rendering into a framebuffer object that QML can display.
+     * Uses GLAD for OpenGL function loading (no QOpenGLFunctions inheritance
+     * to avoid shadowing global GLAD functions).
+     */
+    class QmlGlRenderer : public ::QQuickFramebufferObject::Renderer
  {
  public:
      /**
@@ -334,19 +334,17 @@ private:
     void renderOverlay();
     void renderProfilingOverlay();
 
-    // Shader compilation
-    bool compileShader(QOpenGLShaderProgram& program,
-                       const char* vertexSource,
-                       const char* fragmentSource);
+    // Shader compilation (raw OpenGL to avoid threading issues)
+    static bool compileShader(GLuint& program, const char* vertexSource, const char* fragmentSource);
 
     // Viewport dimensions
     int m_viewportWidth;
     int m_viewportHeight;
 
-    // OpenGL resources
-    QOpenGLShaderProgram m_gridShader;
-    QOpenGLShaderProgram m_geodesicShader;
-    QOpenGLShaderProgram m_overlayShader;
+    // OpenGL resources (raw GL handles to avoid threading issues)
+    GLuint m_gridShaderProgram = 0;
+    GLuint m_geodesicShaderProgram = 0;
+    GLuint m_overlayShaderProgram = 0;
     GLuint m_gridVao;
     GLuint m_gridVbo;
     GLuint m_gridEbo;

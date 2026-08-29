@@ -44,6 +44,7 @@ class MetricTensor;
 class PlanckMicroscope : public QWidget
 {
     Q_OBJECT
+    Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibleChanged)
 
 private:
     // UI Components
@@ -147,6 +148,8 @@ signals:
     void lodChanged(int lodLevel);
     // Emitted when quantum foam becomes visible/invisible
     void quantumFoamToggled(bool visible);
+    // Emitted when visibility changes
+    void visibleChanged();
 };
 
 // Provide quantumverse::PlanckMicroscope as an alias when using QML

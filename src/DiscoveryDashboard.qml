@@ -52,7 +52,7 @@ ColumnLayout {
             paramMin: modelData.min
             paramMax: modelData.max
 
-            onValueChanged: {
+            onValueChanged: function(newValue) {
                 manager.setInstrumentParameter(paramName, newValue)
                 root.parametersChanged()
             }

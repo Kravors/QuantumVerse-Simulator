@@ -940,7 +940,10 @@ int main(int argc, char* argv[])
                 }
 
                 if (!screenshotPath.isEmpty()) {
+                    qDebug() << "[DEBUG] Requesting screenshot:" << screenshotPath;
                     viewport->requestScreenshot(screenshotPath);
+                } else {
+                    qDebug() << "[DEBUG] screenshotPath is empty";
                 }
 
                 if (glStrict) {

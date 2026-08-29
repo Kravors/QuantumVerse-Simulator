@@ -200,3 +200,21 @@ python3 scripts/analyze_root_cause.py build/TestResults.log TestName
 # Run with git bisect
 python3 scripts/analyze_root_cause.py build/TestResults.log TestName --bisect
 ```
+
+## Known Non-Critical Issues
+
+### Windows COM Exception (0x8001010D - RPC_E_DISCONNECTED)
+
+**Symptom:** `[VEH] Exception 0x8001010D at 0x...` appears in headless/CI output at startup.
+
+**Cause:** Windows COM infrastructure (UI Automation, taskbar, or driver services) attempts to access a COM object that is no longer connected. This is a Windows-specific behavior in headless/benchmark environments.
+
+**Impact:** None. The VEH (Vectored Exception Handler) catches it, writes a minidump for diagnostics, and execution continues normally.
+
+**Do NOT:**
+- Attempt to "fix" by changing COM initialization modes
+- Add `COINIT_MULTITHREADED` to the render thread
+- Spend debugging time on this
+
+**Status:** Benign. Documented to avoid future investigation rabbit holes.
+```

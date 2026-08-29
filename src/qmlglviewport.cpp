@@ -17,7 +17,6 @@
 #include <QQuickWindow>
 #include <qsgtexture_platform.h>
 #include <QOpenGLFramebufferObjectFormat>
-#include <QOpenGLFunctions>
 #include <QQuaternion>
 
 #include "qmlglviewport.h"
@@ -483,7 +482,7 @@ void QmlGlRenderer::render()
         renderProfilingOverlay();
     }
 
-    m_overlayShader.release();
+    ::glUseProgram(0);
 
     // Update time for animation
     m_time += m_frameTime;
@@ -842,8 +841,6 @@ void QmlGlRenderer::initializeGL()
     qWarning() << "GL_RENDERER:" << renderer_str;
     qWarning() << "GL_VENDOR:" << vendor;
 
-    initializeOpenGLFunctions();
-
     if (!quantumverse::GLDebug::instance().initialize()) {
         qWarning("Failed to initialize GL debug callback");
     }
@@ -860,41 +857,69 @@ void QmlGlRenderer::initializeGL()
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 }
 
-bool QmlGlRenderer::compileShader(QOpenGLShaderProgram& program,
+bool QmlGlRenderer::compileShader(GLuint& program,
                                    const char* vertexSource,
                                    const char* fragmentSource)
 {
-    bool success = program.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexSource);
+    GLuint vertShader = ::glCreateShader(GL_VERTEX_SHADER);
+    ::glShaderSource(vertShader, 1, &vertexSource, nullptr);
+    ::glCompileShader(vertShader);
+
+    GLint success;
+    ::glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        qWarning("Vertex shader compilation failed: %s", program.log().toStdString().c_str());
+        char infoLog[512];
+        ::glGetShaderInfoLog(vertShader, 512, nullptr, infoLog);
+        qWarning() << "Vertex shader compilation failed:" << infoLog;
+        ::glDeleteShader(vertShader);
         return false;
     }
 
-    success = program.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentSource);
+    GLuint fragShader = ::glCreateShader(GL_FRAGMENT_SHADER);
+    ::glShaderSource(fragShader, 1, &fragmentSource, nullptr);
+    ::glCompileShader(fragShader);
+
+    ::glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        qWarning("Fragment shader compilation failed: %s", program.log().toStdString().c_str());
+        char infoLog[512];
+        ::glGetShaderInfoLog(fragShader, 512, nullptr, infoLog);
+        qWarning() << "Fragment shader compilation failed:" << infoLog;
+        ::glDeleteShader(fragShader);
+        ::glDeleteShader(vertShader);
         return false;
     }
 
-    success = program.link();
+    program = ::glCreateProgram();
+    ::glAttachShader(program, vertShader);
+    ::glAttachShader(program, fragShader);
+    ::glLinkProgram(program);
+
+    ::glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        qWarning("Shader linking failed: %s", program.log().toStdString().c_str());
-        return false;
+        char infoLog[512];
+        ::glGetProgramInfoLog(program, 512, nullptr, infoLog);
+        qWarning() << "Shader linking failed:" << infoLog;
+        ::glDeleteProgram(program);
+        program = 0;
     }
 
-    if (!program.isLinked()) {
-        qWarning() << "Shader link error:" << program.log();
-        return false;
-    }
+    ::glDeleteShader(vertShader);
+    ::glDeleteShader(fragShader);
+    return program != 0;
+}
 
-    GLint valid = 0;
-    glGetProgramiv(program.programId(), GL_VALIDATE_STATUS, &valid);
-    if (!valid) {
-        qWarning() << "Program validation failed!";
-        qWarning() << "Program info log:" << program.log();
-    }
-
-    return true;
+// Helper functions for raw GL shader management
+static void setUniform(GLuint program, const char* name, const QMatrix4x4& value) {
+    ::glUniformMatrix4fv(::glGetUniformLocation(program, name), 1, GL_FALSE, value.constData());
+}
+static void setUniform(GLuint program, const char* name, float value) {
+    ::glUniform1f(::glGetUniformLocation(program, name), value);
+}
+static void setUniform(GLuint program, const char* name, int value) {
+    ::glUniform1i(::glGetUniformLocation(program, name), value);
+}
+static void setUniform(GLuint program, const char* name, const QVector3D& value) {
+    ::glUniform3f(::glGetUniformLocation(program, name), value.x(), value.y(), value.z());
 }
 
 void QmlGlRenderer::setupShaders()
@@ -998,9 +1023,9 @@ void QmlGlRenderer::setupShaders()
         }
     )";
 
-    compileShader(m_gridShader, gridVert, gridFrag);
-    compileShader(m_geodesicShader, geodesicVert, geodesicFrag);
-    compileShader(m_overlayShader, overlayVert, overlayFrag);
+    compileShader(m_gridShaderProgram, gridVert, gridFrag);
+    compileShader(m_geodesicShaderProgram, geodesicVert, geodesicFrag);
+    compileShader(m_overlayShaderProgram, overlayVert, overlayFrag);
 }
 
 void QmlGlRenderer::setupGridGeometry()
@@ -1198,29 +1223,26 @@ void QmlGlRenderer::renderGrid()
     // makes the grid draw nothing (NaN gl_Position) while the function and its
     // DIAG line still run, which is the usual cause of a grid-less black viewport.
     static int s_gridLog = 0;
-    const bool bindOk = m_gridShader.bind();
-    const bool bad = (!m_gridShader.isLinked()) || (m_gridVao == 0) || !bindOk
+    const bool bindOk = m_gridShaderProgram != 0;
+    const bool bad = !bindOk || (m_gridVao == 0)
                      || !matrixIsFinite(m_viewMatrix) || !matrixIsFinite(m_projectionMatrix);
     if (s_gridLog < 5 || s_gridLog % 15 == 0 || bad) {
         const QString m = QString("[DIAG-renderGrid] called: m_gridVao=%1 isLinked=%2 bindOk=%3 viewFinite=%4 projFinite=%5")
-                             .arg(m_gridVao).arg(m_gridShader.isLinked()).arg(bindOk)
+                             .arg(m_gridVao).arg(bindOk)
                              .arg(matrixIsFinite(m_viewMatrix)).arg(matrixIsFinite(m_projectionMatrix));
         qWarning() << m;
         diagLog(m);
     }
     s_gridLog++;
-    if (!m_gridShader.isLinked()) {
+    if (m_gridShaderProgram == 0) {
         qWarning() << "QmlGlRenderer: Grid shader not linked!";
         return;
     }
-    if (!bindOk) {
-        qWarning() << "QmlGlRenderer: Failed to bind grid shader";
-        return;
-    }
-    m_gridShader.setUniformValue("viewMatrix", m_viewMatrix);
-    m_gridShader.setUniformValue("projectionMatrix", m_projectionMatrix);
-    m_gridShader.setUniformValue("time", m_time);
-    m_gridShader.setUniformValue("curvatureScale", 1.0f);
+    ::glUseProgram(m_gridShaderProgram);
+    setUniform(m_gridShaderProgram, "viewMatrix", m_viewMatrix);
+    setUniform(m_gridShaderProgram, "projectionMatrix", m_projectionMatrix);
+    setUniform(m_gridShaderProgram, "time", m_time);
+    setUniform(m_gridShaderProgram, "curvatureScale", 1.0f);
 
     glBindVertexArray(m_gridVao);
     GLenum bindErr = glad_glGetError();
@@ -1235,24 +1257,21 @@ void QmlGlRenderer::renderGrid()
     }
     glBindVertexArray(0);
 
-    m_gridShader.release();
+    ::glUseProgram(0);
 }
 
 void QmlGlRenderer::renderAxisGizmo()
 {
-    if (!m_overlayShader.isLinked()) {
+    if (m_overlayShaderProgram == 0) {
         qWarning() << "QmlGlRenderer: Overlay shader not linked!";
         return;
     }
-    if (!m_overlayShader.bind()) {
-        qWarning() << "QmlGlRenderer: Failed to bind overlay shader";
-        return;
-    }
+    ::glUseProgram(m_overlayShaderProgram);
 
     // Use orthographic projection for screen-space axis indicator
     QMatrix4x4 ortho;
     ortho.ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
-    m_overlayShader.setUniformValue("projectionMatrix", ortho);
+    setUniform(m_overlayShaderProgram, "projectionMatrix", ortho);
 
     // Core-profile contexts only guarantee an aliased line width of 1.0;
     // requesting any other value raises GL_INVALID_VALUE. Clamp to 1.0.
@@ -1261,7 +1280,7 @@ void QmlGlRenderer::renderAxisGizmo()
     glDrawArrays(GL_LINES, 0, 6);
     glBindVertexArray(0);
 
-    m_overlayShader.release();
+    ::glUseProgram(0);
 }
 
 void QmlGlRenderer::renderGeodesics()
@@ -1270,15 +1289,14 @@ void QmlGlRenderer::renderGeodesics()
       if (s_debugRender) {
           qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics << "m_curvatureRenderer=" << m_curvatureRenderer.get();
       }
-      if (!m_geodesicShader.bind()) return;
-     if (!m_geodesicShader.bind()) return;
+      ::glUseProgram(m_geodesicShaderProgram);
 
-     m_geodesicShader.setUniformValue("viewMatrix", m_viewMatrix);
-     m_geodesicShader.setUniformValue("projectionMatrix", m_projectionMatrix);
+     setUniform(m_geodesicShaderProgram, "viewMatrix", m_viewMatrix);
+     setUniform(m_geodesicShaderProgram, "projectionMatrix", m_projectionMatrix);
 
      // Collect orbit worldlines from UI4D solar system data
      if (!m_ui4d) {
-         m_geodesicShader.release();
+         ::glUseProgram(0);
          return;
      }
      
@@ -1474,7 +1492,7 @@ void QmlGlRenderer::renderGeodesics()
           }
       }
      
-     m_geodesicShader.release();
+     ::glUseProgram(0);
  }
 
 void QmlGlRenderer::renderQuantumGeometry()
@@ -1528,27 +1546,24 @@ void QmlGlRenderer::renderQuantumGeometry()
 
 void QmlGlRenderer::renderOverlay()
 {
-    if (!m_overlayShader.isLinked()) {
+    if (m_overlayShaderProgram == 0) {
         qWarning() << "QmlGlRenderer: Overlay shader not linked in renderOverlay!";
         return;
     }
-    if (!m_overlayShader.bind()) {
-        qWarning() << "QmlGlRenderer: Failed to bind overlay shader in renderOverlay";
-        return;
-    }
+    ::glUseProgram(m_overlayShaderProgram);
 
     // Render HUD overlay elements:
     // - Coordinate grid labels
     // - Frame rate counter
     // - Camera position info
 
-    if (!m_overlayShader.bind()) return;
+    ::glUseProgram(m_overlayShaderProgram);
 
     QMatrix4x4 ortho;
     ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
                 0.0f, static_cast<float>(m_viewportHeight),
                 -1.0f, 1.0f);
-    m_overlayShader.setUniformValue("projectionMatrix", ortho);
+    setUniform(m_overlayShaderProgram, "projectionMatrix", ortho);
 
     // Render axis indicator lines (simple colored lines for X, Y, Z)
     float labelOffset = 10.0f;
@@ -1623,19 +1638,16 @@ void QmlGlRenderer::renderOverlay()
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    m_overlayShader.release();
+    ::glUseProgram(0);
 }
 
 void QmlGlRenderer::renderProfilingOverlay()
 {
-    if (!m_overlayShader.isLinked()) {
+    if (m_overlayShaderProgram == 0) {
         qWarning() << "QmlGlRenderer: Overlay shader not linked in renderProfilingOverlay!";
         return;
     }
-    if (!m_overlayShader.bind()) {
-        qWarning() << "QmlGlRenderer: Failed to bind overlay shader in renderProfilingOverlay";
-        return;
-    }
+    ::glUseProgram(m_overlayShaderProgram);
 
     // Draw profiling stats using OpenGL primitives
 
@@ -1643,7 +1655,7 @@ void QmlGlRenderer::renderProfilingOverlay()
     ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
                 0.0f, static_cast<float>(m_viewportHeight),
                 -1.0f, 1.0f);
-    m_overlayShader.setUniformValue("projectionMatrix", ortho);
+    setUniform(m_overlayShaderProgram, "projectionMatrix", ortho);
 
     // Render profiling bars: top-right corner HUD
     const auto& frames = m_frameProfiler.getRecentFrames();
@@ -1736,23 +1748,21 @@ void QmlGlRenderer::renderProfilingOverlay()
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    m_overlayShader.release();
+    ::glUseProgram(0);
 }
 
 void QmlGlRenderer::renderHUD()
 {
-    if (!m_overlayShader.isLinked()) {
+    if (m_overlayShaderProgram == 0) {
         return;
     }
-    if (!m_overlayShader.bind()) {
-        return;
-    }
+    ::glUseProgram(m_overlayShaderProgram);
 
     QMatrix4x4 ortho;
     ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
                 0.0f, static_cast<float>(m_viewportHeight),
                 -1.0f, 1.0f);
-    m_overlayShader.setUniformValue("projectionMatrix", ortho);
+    setUniform(m_overlayShaderProgram, "projectionMatrix", ortho);
 
     float avgFrameMs = m_frameProfiler.getAverageFrameTime();
     float fps = avgFrameMs > 0.0f ? 1000.0f / avgFrameMs : 0.0f;
@@ -1838,7 +1848,7 @@ void QmlGlRenderer::renderHUD()
     glDeleteBuffers(1, &errVbo);
     glDeleteVertexArrays(1, &errVao);
 
-    m_overlayShader.release();
+    ::glUseProgram(0);
 }
 
 // ============================================================================
@@ -2341,6 +2351,7 @@ public:
         if (!m_gl) {
             return;
         }
+        qWarning() << "[DEBUG] synchronize called, pendingScreenshot=" << vp->m_pendingScreenshotRequested;
         m_gl->setCurvatureRenderer(vp->m_curvatureRenderer);
         m_gl->setQuantumRenderer(vp->m_quantumRenderer);
         m_gl->setCelestialBodyRenderer(vp->m_celestialBodyRenderer);
@@ -2372,12 +2383,26 @@ public:
             m_gl->renderHUD();
             GL_CHECK();
         }
+        qWarning() << "[DEBUG] render() frame, screenshotRequested=" << (m_gl ? QString::number(m_gl->screenshotRequested()) : "no m_gl");
         if (m_gl->screenshotRequested()) {
             QImage img = m_fbo->toImage();
+            qWarning() << "[DEBUG] FBO image size:" << img.size() << "bytes:" << img.sizeInBytes();
+            // Check if image is all black
+            bool allBlack = true;
+            for (int y = 0; y < img.height(); y += 10) {
+                for (int x = 0; x < img.width(); x += 10) {
+                    if (img.pixelColor(x, y).value() > 0) {
+                        allBlack = false;
+                        break;
+                    }
+                }
+                if (!allBlack) break;
+            }
+            qWarning() << "[DEBUG] FBO all black:" << allBlack;
             if (!img.save(m_gl->screenshotPath())) {
                 qWarning() << "QmlGlViewport: Failed to save screenshot to" << m_gl->screenshotPath();
             } else {
-                qDebug() << "QmlGlViewport: Screenshot saved to" << m_gl->screenshotPath();
+                qWarning() << "QmlGlViewport: Screenshot saved to" << m_gl->screenshotPath();
             }
             m_gl->clearScreenshotRequest();
             QCoreApplication::quit();
@@ -2410,4 +2435,9 @@ QQuickFramebufferObject::Renderer* QmlGlViewport::createRenderer() const
 }
 
 } // namespace quantumverse
+
+
+
+
+
 

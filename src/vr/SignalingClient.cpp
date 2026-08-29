@@ -114,6 +114,7 @@ void SignalingClient::onConnected()
     sendJson(joinMsg);
 
     emit connected();
+    emit isConnectedChanged();
 }
 
 void SignalingClient::onDisconnected()
@@ -124,6 +125,7 @@ void SignalingClient::onDisconnected()
 
     if (wasConnected) {
         emit disconnected("WebSocket disconnected");
+        emit isConnectedChanged();
     }
 
     if (m_reconnectAttempts < kMaxReconnectAttempts && !m_url.isEmpty()) {
@@ -165,6 +167,7 @@ void SignalingClient::handleServerMessage(const QJsonObject& obj)
         if (!peerId.isEmpty() && peerId != m_clientId) {
             m_peerIds.push_back(peerId.toStdString());
             emit peerJoined(peerId, peerName);
+            emit peerCountChanged();
         }
     } else if (type == "peer_left") {
         QString peerId = obj.value("clientId").toString();
@@ -174,6 +177,7 @@ void SignalingClient::handleServerMessage(const QJsonObject& obj)
                 m_peerIds.erase(it);
             }
             emit peerLeft(peerId);
+            emit peerCountChanged();
         }
     } else if (type == "state_update") {
         QString senderId = obj.value("senderId").toString();
