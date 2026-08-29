@@ -22,8 +22,8 @@ ApplicationWindow {
     visible: true
     width: Math.min(1280, Screen.availableWidth * 0.9)
     height: Math.min(720, Screen.availableHeight * 0.9)
-    minimumWidth: 1024
-    minimumHeight: 600
+    minimumWidth: 1200
+    minimumHeight: 800
     title: "QuantumVerse Simulator - 4D Spacetime Explorer"
     color: "#0a0a1a"
 
@@ -291,7 +291,7 @@ ApplicationWindow {
             ToolButton {
                 text: "VR"
                 checkable: true
-                enabled: false
+                enabled: signalingClient != null && signalingClient.isConnected
                 onClicked: {
                     if (viewportItem) viewportItem.toggleVR()
                 }
@@ -657,7 +657,7 @@ ApplicationWindow {
         Pane {
             id: discoveryPanel
             Layout.preferredWidth: 340
-            Layout.minimumWidth: 260
+            Layout.minimumWidth: 300
             Layout.maximumWidth: 500
             Layout.fillHeight: true
             visible: true
@@ -792,7 +792,7 @@ ApplicationWindow {
                 // Multi-user collaboration panel
                 Pane {
                     Layout.fillWidth: true
-                    visible: (signalingClient !== undefined) && signalingClient && signalingClient.isConnected
+                    visible: signalingClient != null && signalingClient.isConnected
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 8

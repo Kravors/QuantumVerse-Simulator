@@ -455,6 +455,7 @@ dist/
 _CPack_Packages/
 *.zip
 *.nsis
+QuantumVerse-*-win64.exe
 
 # Build directories
 build*/
