@@ -952,7 +952,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_config_loader.cpp)
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_nbody.cpp AND QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
-    add_executable(test_nbody tests/test_nbody.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp third_party/glad/glad.cpp)
+    add_executable(test_nbody tests/test_nbody.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp src/physics/CurvatureCalculator.cpp third_party/glad/glad.cpp)
     target_link_libraries(test_nbody PRIVATE dilaton nlohmann_json Qt6::Core Qt6::Gui)
     target_include_directories(test_nbody PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/third_party/glad/include ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad)
     add_test(NAME NBodyTest COMMAND test_nbody)
