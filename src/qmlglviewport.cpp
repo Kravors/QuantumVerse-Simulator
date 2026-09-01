@@ -901,7 +901,6 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
                     qWarning() << "[DIAG-sync] initializeGL() completed, isInitialized=" << m_curvatureRenderer->isInitialized();
                 }
             } catch (const std::exception& e) {
-            } catch (const std::exception& e) {
                 qWarning() << "QmlGlRenderer: Failed to initialize curvature renderer:" << e.what();
             } catch (...) {
                 qWarning() << "QmlGlRenderer: Unknown error initializing curvature renderer";
