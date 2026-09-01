@@ -6,6 +6,7 @@
 #include "KerrNoHairViolationAnalyzer.h"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -92,6 +93,31 @@ KerrNoHairViolationAnalyzer::extractDominantMode(const std::vector<Event4D>& tra
     result.freqReal = static_cast<double>(bestK) * df;
     result.amplitude = bestMag / static_cast<double>(n);
 
+    if (bestK > 0 && bestK < maxK) {
+        double magPrev = 0.0, magNext = 0.0;
+        double rePrev = 0.0, imPrev = 0.0;
+        double reNext = 0.0, imNext = 0.0;
+        for (size_t i = 0; i < n; ++i) {
+            double phasePrev = 2.0 * M_PI * static_cast<double>(bestK - 1) *
+                               static_cast<double>(i) / static_cast<double>(n);
+            rePrev += h[i] * std::cos(phasePrev);
+            imPrev -= h[i] * std::sin(phasePrev);
+            double phaseNext = 2.0 * M_PI * static_cast<double>(bestK + 1) *
+                               static_cast<double>(i) / static_cast<double>(n);
+            reNext += h[i] * std::cos(phaseNext);
+            imNext -= h[i] * std::sin(phaseNext);
+        }
+        magPrev = std::sqrt(rePrev * rePrev + imPrev * imPrev);
+        magNext = std::sqrt(reNext * reNext + imNext * imNext);
+
+        double denom = magPrev - 2.0 * bestMag + magNext;
+        if (std::abs(denom) > 1e-30) {
+            double delta = 0.5 * (magPrev - magNext) / denom;
+            delta = std::max(-0.5, std::min(0.5, delta));
+            result.freqReal = (static_cast<double>(bestK) + delta) * df;
+        }
+    }
+
     std::vector<double> env;
     for (size_t i = 1; i + 1 < n; ++i) {
         if (std::abs(h[i]) >= std::abs(h[i - 1]) && std::abs(h[i]) >= std::abs(h[i + 1])) {
@@ -154,6 +180,11 @@ std::vector<InstrumentFinding> KerrNoHairViolationAnalyzer::analyze(
 
     QNMResult mode220 = extractDominantMode(firstHalf, dt);
     QNMResult mode221 = extractDominantMode(secondHalf, dt);
+
+    std::cerr << "KERR: mode220.freqReal=" << mode220.freqReal
+              << " mode220.amplitude=" << mode220.amplitude
+              << " mode221.freqReal=" << mode221.freqReal
+              << " mode221.amplitude=" << mode221.amplitude << std::endl;
 
     if (mode220.amplitude <= 0.0 || mode221.amplitude <= 0.0) return findings;
     if (mode220.freqReal <= 0.0 || mode221.freqReal <= 0.0) return findings;

@@ -95,7 +95,7 @@ int main() {
     {
         KerrNoHairViolationAnalyzer analyzer;
         double dt = 0.01;
-        auto traj = makeNoHairViolationWaveform(0.3, 0.8, dt, 64);
+        auto traj = makeNoHairViolationWaveform(0.5, 1.0, dt, 512);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = !findings.empty();
         assert(ok && "Frequency mismatch should trigger a violation finding");

@@ -107,8 +107,14 @@ GravitationalWaveMemoryAnalyzer::computeMemoryOffset(
     result.observedOffset = result.postMean - result.baselineMean;
     result.expectedOffset = christodoulouMemory(energyRadiated, distanceMpc);
 
-    if (noiseSigma > 0.0) {
-        result.snr = std::abs(result.observedOffset) / noiseSigma;
+    constexpr double kMinMemoryOffset = 1e-21;
+    if (std::abs(result.observedOffset) > kMinMemoryOffset) {
+        if (noiseSigma > 0.0) {
+            result.snr = std::abs(result.observedOffset) / noiseSigma;
+        } else {
+            result.snr = 1.0 / 1e-30;
+            result.sigma = std::abs(result.observedOffset) * 1e-3 + 1e-30;
+        }
     }
 
     return result;

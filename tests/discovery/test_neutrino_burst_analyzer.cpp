@@ -52,7 +52,7 @@ std::vector<Event4D> makeMergerWithNeutrinoSignal(
 
         // Pre-merger inspiral (low amplitude oscillation)
         if (t < gwTriggerTime) {
-            double env = 0.1 * std::sin(2.0 * kPi * 50.0 * t);
+            double env = 1.0e-21 * std::sin(2.0 * kPi * 50.0 * t);
             h = env * std::sin(2.0 * kPi * 100.0 * t);
         }
 

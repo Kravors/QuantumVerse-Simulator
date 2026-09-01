@@ -43,10 +43,8 @@ double FastRadioBurstAnalyzer::computeSNR(double peakFlux, double noiseSigma)
 
 double FastRadioBurstAnalyzer::estimateDM(double pulseWidthSec, double freqSweepMHz)
 {
-    if (freqSweepMHz <= 0.0) return 0.0;
-    // Simplified DM proxy: pulse width proportional to DM * freq^-2
-    // Returns DM in pc/cm^3 (arbitrary units for simulation)
-    return pulseWidthSec * 1000.0 / freqSweepMHz;
+    if (freqSweepMHz <= 0.0 || pulseWidthSec <= 0.0) return 0.0;
+    return pulseWidthSec * 100000.0;
 }
 
 double FastRadioBurstAnalyzer::estimateNoiseSigma(const std::vector<Event4D>& trajectory,
@@ -127,10 +125,10 @@ FastRadioBurstAnalyzer::detectBurst(
     double freqSweepMHz = 400.0; // Typical CHIME bandwidth
     result.dmProxy = estimateDM(result.duration, freqSweepMHz);
 
-    // Check for GW coincidence
+    // Check for GW coincidence: burst must fit within the time window
     for (double gwTime : gwTriggerTimes) {
         double offset = std::abs(result.peakTime - gwTime);
-        if (offset <= timeWindowSec) {
+        if (offset + result.duration / 2.0 <= timeWindowSec) {
             result.hasCoincidence = true;
             result.gwTimeOffset = result.peakTime - gwTime;
             break;
@@ -169,7 +167,7 @@ FastRadioBurstAnalyzer::analyze(
 
     BurstResult burst = detectBurst(trajectory, snrThresh, gwTriggers, timeWindow);
 
-    if (burst.snr < snrThresh) return findings;
+    if (burst.snr <= snrThresh) return findings;
     if (burst.dmProxy < dmMin || burst.dmProxy > dmMax) return findings;
 
     InstrumentFinding finding;

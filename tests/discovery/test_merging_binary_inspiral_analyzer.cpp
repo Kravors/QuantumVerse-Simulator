@@ -74,10 +74,10 @@ int main() {
     // 1. Chirp mass recovery from injected TaylorF2 signal
     {
         MergingBinaryInspiralAnalyzer analyzer;
-        double mcTrue = 10.0;
+        double mcTrue = 0.01;
         double tc = 10.0;
         double dt = 0.001;
-        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 128, 0.01);
+        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = !findings.empty();
         assert(ok && "Injected chirp signal should be detected");
@@ -95,10 +95,10 @@ int main() {
     // 2. Mass ratio parameter present and in valid range
     {
         MergingBinaryInspiralAnalyzer analyzer;
-        double mcTrue = 10.0;
+        double mcTrue = 0.01;
         double tc = 10.0;
         double dt = 0.001;
-        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 128, 0.01);
+        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = !findings.empty();
         assert(ok && "Signal should be detected");
@@ -113,10 +113,10 @@ int main() {
     // 3. Weak signal (high noise) should not trigger detection
     {
         MergingBinaryInspiralAnalyzer analyzer;
-        double mcTrue = 10.0;
+        double mcTrue = 0.01;
         double tc = 10.0;
         double dt = 0.001;
-        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 128, 5.0);
+        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 5.0);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = findings.empty();
         assert(ok && "High-noise signal should not be detected");

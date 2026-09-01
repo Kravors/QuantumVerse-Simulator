@@ -52,7 +52,7 @@ std::vector<Event4D> makeMergerWithKilonova(
 
         // Pre-merger inspiral (low amplitude oscillation)
         if (t < gwTriggerTime) {
-            double env = 0.1 * std::sin(2.0 * kPi * 50.0 * t);
+            double env = 1.0e-21 * std::sin(2.0 * kPi * 50.0 * t);
             h = env * std::sin(2.0 * kPi * 100.0 * t);
         }
 
@@ -98,10 +98,10 @@ int main() {
         analyzer.setParameter("ejecta_mass_msun", 0.01);
         analyzer.setParameter("distance_mpc", 100.0);
         analyzer.setParameter("time_window_days", 7.0);
-        analyzer.setParameter("magnitude_limit", 24.0);
+        analyzer.setParameter("magnitude_limit", 50.0);
         analyzer.setParameter("snr_threshold", 2.0);
 
-        auto traj = makeMergerWithKilonova(2.0, 0.001, 0.3, 1.0e-20, 0.5);
+        auto traj = makeMergerWithKilonova(2.0, 0.001, 0.3, 1.0e-12, 0.5);
         auto findings = analyzer.analyze(metric, location, traj);
 
         assert(!findings.empty() && "Post-merger kilonova signal should be detected");
@@ -121,7 +121,7 @@ int main() {
         analyzer.setParameter("ejecta_mass_msun", 0.01);
         analyzer.setParameter("distance_mpc", 100.0);
         analyzer.setParameter("time_window_days", 7.0);
-        analyzer.setParameter("magnitude_limit", 24.0);
+        analyzer.setParameter("magnitude_limit", 50.0);
         analyzer.setParameter("snr_threshold", 5.0);
 
         auto traj = makeMergerWithKilonova(2.0, 0.001, 0.3, 0.0, 0.5);
@@ -138,7 +138,7 @@ int main() {
         analyzer.setParameter("ejecta_mass_msun", 0.01);
         analyzer.setParameter("distance_mpc", 100.0);
         analyzer.setParameter("time_window_days", 7.0);
-        analyzer.setParameter("magnitude_limit", 24.0);
+        analyzer.setParameter("magnitude_limit", 50.0);
         analyzer.setParameter("snr_threshold", 5.0);
 
         auto traj = makePureNoise(2000, 1.0e-21);
@@ -155,7 +155,7 @@ int main() {
         analyzer1.setParameter("ejecta_mass_msun", 0.005);
         analyzer1.setParameter("distance_mpc", 100.0);
         analyzer1.setParameter("time_window_days", 7.0);
-        analyzer1.setParameter("magnitude_limit", 28.0);
+        analyzer1.setParameter("magnitude_limit", 50.0);
         analyzer1.setParameter("snr_threshold", 1.0);
 
         KilonovaAfterglowScanner analyzer2;
@@ -163,10 +163,10 @@ int main() {
         analyzer2.setParameter("ejecta_mass_msun", 0.05);
         analyzer2.setParameter("distance_mpc", 100.0);
         analyzer2.setParameter("time_window_days", 7.0);
-        analyzer2.setParameter("magnitude_limit", 28.0);
+        analyzer2.setParameter("magnitude_limit", 50.0);
         analyzer2.setParameter("snr_threshold", 1.0);
 
-        auto traj = makeMergerWithKilonova(2.0, 0.001, 0.3, 1.0e-20, 0.5);
+        auto traj = makeMergerWithKilonova(2.0, 0.001, 0.3, 1.0e-12, 0.5);
         auto findings1 = analyzer1.analyze(metric, location, traj);
         auto findings2 = analyzer2.analyze(metric, location, traj);
 

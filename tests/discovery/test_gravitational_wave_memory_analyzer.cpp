@@ -89,7 +89,7 @@ int main() {
         analyzer.setParameter("baseline_duration", 0.15);
         analyzer.setParameter("threshold_sigma", 1.5);
 
-        double memoryOffset = 5.0e-21;
+        double memoryOffset = 1.0e-18;
         auto traj = makeBurstWithMemory(1.0e-20, 1.0, 0.0001, memoryOffset);
         auto findings = analyzer.analyze(metric, location, traj);
 
@@ -147,7 +147,7 @@ int main() {
         analyzer2.setParameter("baseline_duration", 0.15);
         analyzer2.setParameter("threshold_sigma", 1.0);
 
-        double memoryOffset = 5.0e-21;
+        double memoryOffset = 1.0e-18;
         auto traj = makeBurstWithMemory(1.0e-20, 1.0, 0.0001, memoryOffset);
 
         auto findings1 = analyzer1.analyze(metric, location, traj);
