@@ -20,10 +20,10 @@ import QuantumVerse 1.0
 ApplicationWindow {
     id: mainWindow
     visible: true
-    width: Math.min(1280, Screen.availableWidth * 0.9)
-    height: Math.min(720, Screen.availableHeight * 0.9)
+    width: 1280
+    height: 720
     minimumWidth: 1200
-    minimumHeight: 800
+    minimumHeight: 700
     title: "QuantumVerse Simulator - 4D Spacetime Explorer"
     color: "#0a0a1a"
 
@@ -39,10 +39,41 @@ ApplicationWindow {
     property bool noViewport: Qt.application.arguments.indexOf("--noviewport") !== -1
     property Item viewportItem: viewportLoader.item
 
+    Connections {
+        target: camera4DAdapter
+        onDistanceChanged: {
+            if (viewportItem && Math.abs(viewportItem.cameraDistance - camera4DAdapter.distance) > 0.01) {
+                viewportItem.cameraDistance = camera4DAdapter.distance
+            }
+            if (camController && Math.abs(camController.distance - camera4DAdapter.distance) > 0.01) {
+                camController.distance = camera4DAdapter.distance
+            }
+        }
+    }
+
     Component.onCompleted: {
         console.log("sceneGraphModel count:", sceneGraphModel ? sceneGraphModel.count : "model not available")
         console.log("discoveryInstruments count:", discoveryPanelManager ? discoveryPanelManager.instrumentCount : "not available")
         console.log("noViewport=" + noViewport + " args=" + Qt.application.arguments)
+        // Runtime: camController defaults to d=500 (C++ constructor). Override at
+        // startup so the status bar and orbit navigation use a usable distance;
+        // the 10-unit solar system would otherwise be an invisible speck.
+        camController.setDistance(150.0)
+        camController.setAzimuth(0.7854)  // 45 degrees
+        camController.setElevation(0.5236)  // 30 degrees
+        // Sync viewportItem.cameraDistance with camera4DAdapter if available
+        if (viewportItem && camera4DAdapter) {
+            viewportItem.cameraDistance = camera4DAdapter.distance
+            camera4DAdapter.setDistance(150.0)
+            camera4DAdapter.setAzimuth(0.7854)
+            camera4DAdapter.setElevation(0.5236)
+        }
+        // Force off debug overlays
+        if (viewportItem) {
+            viewportItem.showGeodesics = false
+            viewportItem.showLightCones = false
+            viewportItem.showQuantumGeometry = false
+        }
     }
 
     // Early placeholders to avoid ReferenceError before first use
@@ -107,8 +138,20 @@ ApplicationWindow {
         Menu {
             title: "&File"
             // Commented out for Qt 6.5.3: QtQuick.Dialogs 1.3 module not available
-            // MenuItem { text: "&Open Spacetime..."; onTriggered: fileDialog.open() }
+            // MenuItem { text: "&Open Spacetime Configuration..."; onTriggered: fileDialog.open() }
             // MenuItem { text: "&Save Snapshot..."; onTriggered: saveDialog.open() }
+            MenuItem {
+                text: "&Reload Config"
+                onTriggered: {
+                    if (viewportItem && typeof viewportItem.reloadConfig === "function") {
+                        viewportItem.reloadConfig()
+                        console.log("Config reloaded")
+                    } else {
+                        console.log("Reload Config: viewport not available")
+                    }
+                }
+                ToolTip.text: "Reload config/simulator.json at runtime"
+            }
             MenuSeparator {}
             MenuItem { text: "E&xit"; onTriggered: Qt.quit() }
         }
@@ -127,14 +170,23 @@ ApplicationWindow {
                 text: "Show &Grid"
                 checkable: true; checked: true
                 onToggled: {
+                    console.log("Toggling showGrid to: " + checked)
                     if (viewportItem) viewportItem.showGrid = checked
                 }
             }
             MenuItem {
-                text: "Show &Light Cones"
+                text: "Plane &Mode (Rubber Sheet)"
                 checkable: true; checked: false
                 onToggled: {
-                    if (viewportItem) viewportItem.showLightCones = checked
+                    console.log("Toggling Plane Mode to: " + checked)
+                    if (viewportItem) viewportItem.planeMode = checked
+                }
+            }
+            MenuItem {
+                text: "Texture Source: &Procedural"
+                checkable: true; checked: true
+                onToggled: {
+                    if (viewportItem) viewportItem.textureSource = checked ? 0 : 1
                 }
             }
             MenuItem {
@@ -149,6 +201,25 @@ ApplicationWindow {
                 checkable: true; checked: false
                 onToggled: {
                     if (viewportItem) viewportItem.showQuantumGeometry = checked
+                }
+            }
+            MenuSeparator {}
+            MenuItem {
+                text: "Boost &Brightness (Exposure+Low Bloom)"
+                checkable: true; checked: true
+                onToggled: {
+                    if (viewportItem) {
+                        viewportItem.exposure = checked ? 1.5 : 1.0
+                        viewportItem.bloomThreshold = checked ? 0.3 : 1.0
+                        viewportItem.bloomIntensity = checked ? 1.5 : 0.8
+                    }
+                }
+            }
+            MenuItem {
+                text: "Enable &Gravitational Lensing"
+                checkable: true; checked: false
+                onToggled: {
+                    if (viewportItem) viewportItem.lensingEnabled = checked
                 }
             }
         }
@@ -280,6 +351,160 @@ ApplicationWindow {
 
             ToolSeparator {}
 
+            Label {
+                text: "Plane Res:"
+                font.pixelSize: 11
+                color: "#aaa"
+                visible: viewportItem && viewportItem.planeMode
+            }
+            Slider {
+                id: planeResSlider
+                from: 20; to: 200; stepSize: 10
+                value: 100
+                Layout.preferredWidth: 100
+                visible: viewportItem && viewportItem.planeMode
+                onValueChanged: if (viewportItem) viewportItem.planeResolution = value
+                ToolTip.text: "Plane grid resolution (higher = smoother)"
+            }
+
+            ToolSeparator {}
+
+            Label {
+                text: "BH Mass:"
+                font.pixelSize: 11
+                color: "#aaa"
+            }
+            Slider {
+                id: bhMassSlider
+                from: 1.0; to: 1000.0; stepSize: 1.0
+                value: 10.0
+                Layout.preferredWidth: 120
+                onValueChanged: if (viewportItem) viewportItem.blackHoleMass = value
+                ToolTip.text: "Black hole mass in solar masses"
+            }
+            Label {
+                text: bhMassSlider.value.toFixed(0) + " M☉"
+                font.pixelSize: 11
+                color: "#aaa"
+                Layout.preferredWidth: 55
+            }
+
+            ToolSeparator {}
+
+            Label {
+                text: "Zoom:"
+                font.pixelSize: 11
+                color: "#aaa"
+            }
+            Slider {
+                id: zoomSlider
+                from: Math.log(1.0)
+                to: Math.log(5000.0)
+                value: Math.log(viewportItem ? viewportItem.cameraDistance : 150.0)
+                Layout.preferredWidth: 100
+                onValueChanged: {
+                    if (viewportItem) {
+                        viewportItem.cameraDistance = Math.exp(value)
+                        if (camController) {
+                            camController.distance = Math.exp(value)
+                        }
+                    }
+                }
+                ToolTip.text: "Camera zoom (logarithmic)"
+            }
+            Label {
+                text: (viewportItem ? (500.0 / viewportItem.cameraDistance * 100).toFixed(0) : "100") + "%"
+                font.pixelSize: 11
+                color: "#aaa"
+                Layout.preferredWidth: 40
+            }
+
+            ComboBox {
+                id: bhTypeCombo
+                model: ["Schwarzschild", "Kerr"]
+                currentIndex: 0
+                Layout.preferredWidth: 110
+                onCurrentIndexChanged: if (viewportItem) viewportItem.setBlackHoleType(model[currentIndex])
+                ToolTip.text: "Black hole metric type"
+            }
+
+            ToolSeparator {}
+
+            Label {
+                text: "G:"
+                font.pixelSize: 11
+                color: "#aaa"
+            }
+            Slider {
+                id: gSlider
+                from: -13; to: -8; stepSize: 0.1
+                value: -11.18
+                Layout.preferredWidth: 100
+                onValueChanged: if (viewportItem) viewportItem.physicsGLog = value
+                ToolTip.text: "Gravitational constant (log10)"
+            }
+            Label {
+                text: "10^" + gSlider.value.toFixed(1)
+                font.pixelSize: 10
+                color: "#aaa"
+                Layout.preferredWidth: 45
+            }
+
+            // Gravitational wave display
+            Label {
+                text: "GW: " + (viewportItem ? viewportItem.gravitationalWaveStrain.toExponential(1) : "—")
+                font.pixelSize: 10
+                color: "#f0f"
+            }
+            Label {
+                text: (viewportItem ? (viewportItem.gravitationalWaveFreq * 1000).toFixed(2) + " mHz" : "—")
+                font.pixelSize: 10
+                color: "#f0f"
+                Layout.preferredWidth: 60
+            }
+
+            ToolButton {
+                text: "🔊 GW"
+                checkable: true
+                checked: false
+                onToggled: if (viewportItem) viewportItem.audioEnabled = checked
+                ToolTip.text: "Toggle gravitational wave audio"
+            }
+
+            ToolSeparator {}
+
+            // Asteroid injection controls
+            ToolButton {
+                text: "☄️ Inject"
+                onClicked: {
+                    if (viewportItem) {
+                        // Inject asteroid at random position near Earth's orbit
+                        var angle = Math.random() * 2 * Math.PI;
+                        var dist = 1.5e11; // ~1 AU
+                        var x = Math.cos(angle) * dist;
+                        var z = Math.sin(angle) * dist;
+                        var v = 30000; // 30 km/s
+                        var vx = -Math.sin(angle) * v * 0.8;
+                        var vz = Math.cos(angle) * v * 0.8;
+                        viewportItem.injectAsteroid(x, 0, z, vx, 0, vz, 1e15);
+                    }
+                }
+                ToolTip.text: "Inject random asteroid"
+            }
+            ToolButton {
+                text: "Clear"
+                onClicked: if (viewportItem) viewportItem.clearAsteroids()
+                ToolTip.text: "Clear all asteroids"
+            }
+            Label {
+                text: "☄️" + (viewportItem ? viewportItem.asteroidCount : "0")
+                font.pixelSize: 10
+                color: "#fa0"
+                Layout.preferredWidth: 25
+            }
+
+            ToolSeparator {}
+
             ToolButton {
                 text: "Discover"
                 checkable: true
@@ -291,14 +516,35 @@ ApplicationWindow {
             ToolButton {
                 text: "VR"
                 checkable: true
-                enabled: signalingClient != null && signalingClient.isConnected
+                enabled: true
                 onClicked: {
-                    if (viewportItem) viewportItem.toggleVR()
+                    if (signalingClient != null && signalingClient.isConnected) {
+                        if (viewportItem) viewportItem.toggleVR()
+                    } else {
+                        console.warn("VR: signaling server not connected")
+                    }
                 }
                 ToolTip.text: "VR mode (requires OpenXR runtime)"
             }
 
             Item { Layout.fillWidth: true }
+
+            // Live physics telemetry
+            Label {
+                text: "KE: " + (viewportItem ? (viewportItem.liveKineticEnergy / 1e33).toFixed(2) + "e33 J" : "—")
+                font.pixelSize: 10
+                color: "#6af"
+            }
+            Label {
+                text: "PE: " + (viewportItem ? (viewportItem.livePotentialEnergy / 1e33).toFixed(2) + "e33 J" : "—")
+                font.pixelSize: 10
+                color: "#f6a"
+            }
+            Label {
+                text: "Earth v: " + (viewportItem ? (viewportItem.liveEarthSpeed / 1000).toFixed(1) + " km/s" : "—")
+                font.pixelSize: 10
+                color: "#6f6"
+            }
 
             Label {
                 text: "FPS: " + (viewportItem && viewportItem.frameRate > 0 ? viewportItem.frameRate.toFixed(1) : "—")
@@ -313,23 +559,25 @@ ApplicationWindow {
     // =========================================================================
     // MAIN CONTENT AREA
     // =========================================================================
-    RowLayout {
+    SplitView {
         id: mainContent
-        // In an ApplicationWindow, declared children are parented to the
-        // contentItem, which already excludes the header/footer. Filling
-        // `parent` therefore reserves space for the footer correctly.
-        // (`parent.contentItem` was undefined and collapsed the layout,
-        // letting the panes overpaint the footer.)
         anchors.fill: parent
-        spacing: 2
+        orientation: Qt.Horizontal
+
+        Component.onCompleted: {
+            console.log("SplitView contentWidth:", contentWidth, "height:", height)
+        }
+
+        onWidthChanged: {
+            console.log("SplitView width:", width, "contentWidth:", contentWidth)
+        }
 
         // --- LEFT SIDEBAR: Object Browser ---
         Pane {
             id: leftSidebar
-            Layout.preferredWidth: 280
-            Layout.minimumWidth: 200
-            Layout.maximumWidth: 400
-            Layout.fillHeight: true
+            SplitView.preferredWidth: 160
+            SplitView.minimumWidth: 80
+            SplitView.maximumWidth: 220
             z: 1
             enabled: true
 
@@ -346,11 +594,10 @@ ApplicationWindow {
                 }
 
                 TextField {
-                                id: searchField
-                                placeholderText: "Search objects..."
-                                Layout.fillWidth: true
-                                // Note: Filtering is handled by the model's data() method
-                            }
+                    id: searchField
+                    placeholderText: "Search objects..."
+                    Layout.fillWidth: true
+                }
 
                 // Object list
                 ScrollView {
@@ -487,8 +734,8 @@ ApplicationWindow {
         // --- CENTRAL VIEWPORT ---
         Pane {
             id: viewportContainer
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            SplitView.fillWidth: true
+            SplitView.minimumWidth: 200
             // The GL scene is composited onto the window back buffer in
             // QmlGlViewport::renderGL() (beforeRendering); this Pane must not
             // paint an opaque background over it, or the viewport stays black.
@@ -497,34 +744,38 @@ ApplicationWindow {
             Loader {
                 id: viewportLoader
                 anchors.fill: parent
-                Layout.fillWidth: true
-                Layout.fillHeight: true
                 sourceComponent: noViewport ? placeholderComponent : viewportComponent
             }
 
              Component {
                  id: viewportComponent
-                 QmlGlViewport {
-                     id: viewport
-                     anchors.fill: parent
-                     Layout.fillWidth: true
-                     Layout.fillHeight: true
-                     showGrid: true
-                     showGeodesics: true
-                     showQuantumGeometry: false
-                     Component.onCompleted: console.log("Viewport created, size:", width, "x", height)
+                QmlGlViewport {
+                    id: viewport
+                    anchors.fill: parent
+                    showGrid: true
+                    showGeodesics: false
+                    showQuantumGeometry: false
+                    bloomEnabled: true
+                    bloomIntensity: 1.5
+                    bloomThreshold: 0.3
+                    exposure: 1.5
+                    Component.onCompleted: console.log("Viewport created, size:", width, "x", height)
 
-                      Timer {
-                          interval: 16
-                          running: true
-                          repeat: true
-                          onTriggered: {
-                              console.log("Timer tick, viewport size:", viewport.width, "x", viewport.height)
-                              viewport.update()
-                          }
-                      }
+                        Timer {
+                            interval: 100
+                            running: true
+                            repeat: false
+                            onTriggered: {
+                                if (viewport.camera4DAdapter) {
+                                    viewport.camera4DAdapter.setDistance(150.0)
+                                    viewport.camera4DAdapter.setAzimuth(0.7854)  // 45 degrees
+                                    viewport.camera4DAdapter.setElevation(0.5236)  // 30 degrees
+                                    console.log("Runtime: set camera4DAdapter distance to 150.0, azimuth=45, elevation=30")
+                                }
+                            }
+                        }
 
-                     MouseArea {
+                       MouseArea {
                          id: viewportMouse
                          anchors.fill: parent
                          acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
@@ -584,7 +835,6 @@ ApplicationWindow {
                                     wheel.angleDelta.y,
                                     wheel.modifiers !== undefined ? wheel.modifiers : 0)
                             }
-                            viewport.handleWheel(wheel.angleDelta.y)
                         }
 
                         onDoubleClicked: function(mouse) {
@@ -636,7 +886,8 @@ ApplicationWindow {
                 anchors.left: parent.left
                 anchors.margins: 8
                 text: "Time: " + simulationTime.toFixed(2) + "s  |  Scale: " + timeScale.toFixed(1) + "x  |  " +
-                      "Camera: az=" + (camController.azimuth * 180 / Math.PI).toFixed(1) + " el=" + (camController.elevation * 180 / Math.PI).toFixed(1) + " d=" + camController.distance.toFixed(1) +
+                      "Camera: az=" + (camController.azimuth * 180 / Math.PI).toFixed(1) + " el=" + (camController.elevation * 180 / Math.PI).toFixed(1) + " d=" + (viewportItem ? viewportItem.cameraDistance.toFixed(1) : camController.distance.toFixed(1)) +
+                      " | Zoom: " + (viewportItem ? (500.0 / viewportItem.cameraDistance * 100).toFixed(0) : "100") + "%" +
                       (viewportItem && viewportItem.camera4DAdapter ? "  |  Plane: " + ["XY","XZ","YZ","TX","TY","TZ"][viewportItem.camera4DAdapter.activePlane] : "")
                 color: "#888"
                 font.pixelSize: 11
@@ -656,13 +907,20 @@ ApplicationWindow {
         // --- RIGHT PANEL: Discovery & Info ---
         Pane {
             id: discoveryPanel
-            Layout.preferredWidth: 340
-            Layout.minimumWidth: 300
-            Layout.maximumWidth: 500
-            Layout.fillHeight: true
+            SplitView.preferredWidth: 320
+            SplitView.minimumWidth: 300
+            SplitView.maximumWidth: 450
             visible: true
             z: 1
             enabled: true
+
+            Component.onCompleted: {
+                console.log("Right panel width:", width, "height:", height)
+            }
+
+            onWidthChanged: {
+                console.log("Right panel width changed:", width)
+            }
 
             ScrollView {
                 anchors.fill: parent
@@ -1294,14 +1552,14 @@ ApplicationWindow {
     // TIMELINE BAR (Bottom)
     // =========================================================================
     footer: Pane {
-        height: 60
+        height: 100
 
-        RowLayout {
+        ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 8
-            spacing: 12
+            anchors.margins: 4
+            spacing: 4
 
-            // Transport controls
+            // Transport controls + speed
             RowLayout {
                 spacing: 4
 
@@ -1328,66 +1586,9 @@ ApplicationWindow {
                     ToolTip.text: "Reset"
                     onClicked: resetSimulation()
                 }
-            }
 
-            // Time slider
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
+                Item { Layout.fillWidth: true }
 
-                RowLayout {
-                    spacing: 8
-
-                    Label {
-                        text: "tau"
-                        color: "#888"
-                        font.bold: true
-                    }
-
-                    Slider {
-                        id: timeSlider
-                        from: 0; to: 1000; stepSize: 0.1; value: 0
-                        Layout.fillWidth: true
-                        onMoved: simulationTime = value
-                    }
-
-                    Label {
-                        text: simulationTime.toFixed(2) + " s"
-                        color: "#ccc"
-                        font.family: "monospace"
-                        Layout.preferredWidth: 80
-                    }
-                }
-
-                // Slice index selector
-                RowLayout {
-                    spacing: 8
-
-                    Label { text: "Slice:"; color: "#666"; font.pixelSize: 10 }
-
-                    ComboBox {
-                        id: sliceCombo
-                        model: ["t = const", "tau = const", "Null", "Re(complex)", "Im(complex)"]
-                        currentIndex: 0
-                        Layout.preferredWidth: 120
-                        font.pixelSize: 10
-                    }
-
-                    Slider {
-                        id: sliceSlider
-                        from: -50; to: 50; stepSize: 0.1; value: 0
-                        Layout.fillWidth: true
-                        onMoved: {
-                            if (viewportItem) {
-                                viewportItem.setSliceOffset(sliceCombo.currentIndex, value)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Speed indicator
-            ColumnLayout {
                 ToolButton {
                     text: "1x"
                     checkable: true
@@ -1405,28 +1606,34 @@ ApplicationWindow {
                 ToolButton {
                     text: "100x"
                     checkable: true
-                    checked: Math.abs(timeScale - 100) < 0.1
+                    checked: Math.abs(timeScale - 100) < 1
                     onClicked: timeScaleSlider.value = 3
                     font.pixelSize: 10
                 }
             }
 
-            // Live ingest status indicator
-            Item {
-                Layout.preferredWidth: 12
-                Layout.preferredHeight: 12
-                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 10; height: 10; radius: 5
-                    color: "#4caf50"
-                    border.color: "#81c784"
-                    border.width: 1
-                    opacity: 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(Date.now() / 300))
-                    ToolTip.visible: Qt.application.arguments.indexOf("--headless") === -1
-                    ToolTip.text: kafkaListener && kafkaListener.consumerError.length === 0
-                        ? "Live GCN ingest connected"
-                        : "Live GCN ingest disconnected"
+            // Time slider
+            RowLayout {
+                spacing: 8
+
+                Label {
+                    text: "tau"
+                    color: "#888"
+                    font.bold: true
+                }
+
+                Slider {
+                    id: timeSlider
+                    from: 0; to: 1000; stepSize: 0.1; value: 0
+                    Layout.fillWidth: true
+                    onMoved: simulationTime = value
+                }
+
+                Label {
+                    text: simulationTime.toFixed(2) + " s"
+                    color: "#ccc"
+                    font.family: "monospace"
+                    Layout.preferredWidth: 80
                 }
             }
         }
@@ -1505,19 +1712,6 @@ ApplicationWindow {
         onTriggered: {
             if (viewportItem && viewportItem.camera4DAdapter) {
                 viewportItem.camera4DAdapter.onFrame(interval / 1000.0)
-            }
-        }
-    }
-
-    // Continuous render update timer for QmlGlViewport
-    Timer {
-        interval: 16  // ~60 FPS
-        running: true
-        repeat: true
-        onTriggered: {
-            console.log("Render timer tick, viewport size:", viewportItem ? viewportItem.width + "x" + viewportItem.height : "null")
-            if (viewportItem && viewportItem.width > 0 && viewportItem.height > 0) {
-                viewportItem.update()
             }
         }
     }

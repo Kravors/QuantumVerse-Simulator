@@ -1,11 +1,32 @@
+#include "glad.h"
 #include "UI4D.h"
+#include "../config/ConfigLoader.h"
+#include "physics/PhysicsConstants.h"
+#include "../rendering/ComputeShader.h"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <cstring>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
+#endif
+
+// Include glad.h for OpenGL function prototypes if available
+#if __has_include("glad.h")
+#include "glad.h"
+#define HAS_GLAD 1
+#else
+#define HAS_GLAD 0
 #endif
 
 namespace quantumverse {
@@ -506,178 +527,690 @@ void UI4D::endBodyPropertyEditing() {
     void UI4D::initializeSolarSystem() {
     solarSystem.barycenter = Event4D(0.0, 0.0, 0.0, 0.0);
     solarSystem.scaleFactor = 1.0;
-    
-    // Sun
-    SolarSystemBody sun;
-    sun.name = "Sun";
-    sun.mass = 1.989e30;
-    sun.radius = 696340000.0;
-    sun.position = Event4D(0.0, 0.0, 0.0, 0.0);
-    sun.velocity = Event4D(0.0, 0.0, 0.0, 0.0);
-    sun.orbitalPeriod = 0.0;
-    sun.semiMajorAxis = 0.0;
-    sun.isCentralBody = true;
-    sun.isStar = true;
-    sun.showOrbit = false;
-    sun.textureId = "sun_texture";
-    solarSystem.bodies["Sun"] = sun;
-    
-    // Mercury
-    SolarSystemBody mercury;
-    mercury.name = "Mercury";
-    mercury.mass = 0.055 * 5.972e24;
-    mercury.radius = 2439700.0;
-    mercury.semiMajorAxis = 0.387 * 149597870700.0;
-    mercury.orbitalPeriod = 87.969 * 24 * 3600;
-    double mercuryOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / mercury.semiMajorAxis);
-    mercury.position = Event4D(0.0, mercury.semiMajorAxis, 0.0, 0.0);
-    mercury.velocity = Event4D(0.0, 0.0, 0.0, -mercuryOrbitalVelocity);
-    mercury.isCentralBody = false;
-    mercury.isStar = false;
-    mercury.showOrbit = true;
-    mercury.textureId = "mercury_texture";
-    solarSystem.bodies["Mercury"] = mercury;
-    
-    // Venus
-    SolarSystemBody venus;
-    venus.name = "Venus";
-    venus.mass = 0.815 * 5.972e24;
-    venus.radius = 6051800.0;
-    venus.semiMajorAxis = 0.723 * 149597870700.0;
-    venus.orbitalPeriod = 224.701 * 24 * 3600;
-    double venusOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / venus.semiMajorAxis);
-    venus.position = Event4D(0.0, venus.semiMajorAxis, 0.0, 0.0);
-    venus.velocity = Event4D(0.0, 0.0, 0.0, -venusOrbitalVelocity);
-    venus.isCentralBody = false;
-    venus.isStar = false;
-    venus.showOrbit = true;
-    venus.textureId = "venus_texture";
-    solarSystem.bodies["Venus"] = venus;
-    
-    // Earth
-    SolarSystemBody earth;
-    earth.name = "Earth";
-    earth.mass = 5.972e24;
-    earth.radius = 6371000.0;
-    earth.semiMajorAxis = 1.0 * 149597870700.0;
-    earth.orbitalPeriod = 365.256 * 24 * 3600;
-    double earthOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / earth.semiMajorAxis);
-    earth.position = Event4D(0.0, earth.semiMajorAxis, 0.0, 0.0);
-    earth.velocity = Event4D(0.0, 0.0, 0.0, -earthOrbitalVelocity);
-    earth.isCentralBody = false;
-    earth.isStar = false;
-    earth.showOrbit = true;
-    earth.textureId = "earth_texture";
-    solarSystem.bodies["Earth"] = earth;
-    
-    // Mars
-    SolarSystemBody mars;
-    mars.name = "Mars";
-    mars.mass = 0.107 * 5.972e24;
-    mars.radius = 3389500.0;
-    mars.semiMajorAxis = 1.524 * 149597870700.0;
-    mars.orbitalPeriod = 686.980 * 24 * 3600;
-    double marsOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / mars.semiMajorAxis);
-    mars.position = Event4D(0.0, mars.semiMajorAxis, 0.0, 0.0);
-    mars.velocity = Event4D(0.0, 0.0, 0.0, -marsOrbitalVelocity);
-    mars.isCentralBody = false;
-    mars.isStar = false;
-    mars.showOrbit = true;
-    mars.textureId = "mars_texture";
-    solarSystem.bodies["Mars"] = mars;
-    
-    // Jupiter
-    SolarSystemBody jupiter;
-    jupiter.name = "Jupiter";
-    jupiter.mass = 317.8 * 5.972e24;
-    jupiter.radius = 69911000.0;
-    jupiter.semiMajorAxis = 5.204 * 149597870700.0;
-    jupiter.orbitalPeriod = 11.862 * 365.256 * 24 * 3600;
-    double jupiterOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / jupiter.semiMajorAxis);
-    jupiter.position = Event4D(0.0, jupiter.semiMajorAxis, 0.0, 0.0);
-    jupiter.velocity = Event4D(0.0, 0.0, 0.0, -jupiterOrbitalVelocity);
-    jupiter.isCentralBody = false;
-    jupiter.isStar = false;
-    jupiter.showOrbit = true;
-    jupiter.textureId = "jupiter_texture";
-    solarSystem.bodies["Jupiter"] = jupiter;
-    
-    // Saturn
-    SolarSystemBody saturn;
-    saturn.name = "Saturn";
-    saturn.mass = 95.2 * 5.972e24;
-    saturn.radius = 58232000.0;
-    saturn.semiMajorAxis = 9.582 * 149597870700.0;
-    saturn.orbitalPeriod = 29.457 * 365.256 * 24 * 3600;
-    double saturnOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / saturn.semiMajorAxis);
-    saturn.position = Event4D(0.0, saturn.semiMajorAxis, 0.0, 0.0);
-    saturn.velocity = Event4D(0.0, 0.0, 0.0, -saturnOrbitalVelocity);
-    saturn.isCentralBody = false;
-    saturn.isStar = false;
-    saturn.showOrbit = true;
-    saturn.textureId = "saturn_texture";
-    solarSystem.bodies["Saturn"] = saturn;
-    
-    // Uranus
-    SolarSystemBody uranus;
-    uranus.name = "Uranus";
-    uranus.mass = 14.5 * 5.972e24;
-    uranus.radius = 25362000.0;
-    uranus.semiMajorAxis = 19.201 * 149597870700.0;
-    uranus.orbitalPeriod = 84.020 * 365.256 * 24 * 3600;
-    double uranusOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / uranus.semiMajorAxis);
-    uranus.position = Event4D(0.0, uranus.semiMajorAxis, 0.0, 0.0);
-    uranus.velocity = Event4D(0.0, 0.0, 0.0, -uranusOrbitalVelocity);
-    uranus.isCentralBody = false;
-    uranus.isStar = false;
-    uranus.showOrbit = true;
-    uranus.textureId = "uranus_texture";
-    solarSystem.bodies["Uranus"] = uranus;
-    
-    // Neptune
-    SolarSystemBody neptune;
-    neptune.name = "Neptune";
-    neptune.mass = 17.1 * 5.972e24;
-    neptune.radius = 24622000.0;
-    neptune.semiMajorAxis = 30.047 * 149597870700.0;
-    neptune.orbitalPeriod = 164.8 * 365.256 * 24 * 3600;
-    double neptuneOrbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / neptune.semiMajorAxis);
-    neptune.position = Event4D(0.0, neptune.semiMajorAxis, 0.0, 0.0);
-    neptune.velocity = Event4D(0.0, 0.0, 0.0, -neptuneOrbitalVelocity);
-    neptune.isCentralBody = false;
-    neptune.isStar = false;
-    neptune.showOrbit = true;
-    neptune.textureId = "neptune_texture";
-    solarSystem.bodies["Neptune"] = neptune;
-    
+
+    // Load config from file or use defaults
+    auto& config = ConfigLoader::instance();
+    if (!config.isLoaded()) {
+        config.loadFromFile("config/simulator.json");
+    }
+
+    const double AU = 149597870700.0;
+    const double DAY = 24.0 * 3600.0;
+
+    // Central body (Sun) from config
+    {
+        const auto& cfg = config.config().central_body;
+        SolarSystemBody body;
+        body.name = cfg.name.empty() ? "Sun" : cfg.name;
+        body.mass = cfg.mass_kg;
+        body.radius = cfg.radius_m;
+        body.position = Event4D(0.0, 0.0, 0.0, 0.0);
+        body.velocity = Event4D(0.0, 0.0, 0.0, 0.0);
+        body.orbitalPeriod = 0.0;
+        body.semiMajorAxis = 0.0;
+        body.isCentralBody = true;
+        body.isStar = cfg.is_star;
+        body.showOrbit = false;
+        body.textureId = cfg.name + "_texture";
+        solarSystem.bodies[body.name] = body;
+    }
+
+    // Planets from config
+    for (const auto& cfg : config.config().bodies) {
+        SolarSystemBody body;
+        body.name = cfg.name;
+        body.mass = cfg.mass_kg;
+        body.radius = cfg.radius_m;
+        body.semiMajorAxis = cfg.semi_major_axis_au * AU;
+        body.orbitalPeriod = cfg.orbital_period_days * DAY;
+
+        double orbitalVelocity = 0.0;
+        if (body.semiMajorAxis > 0.0) {
+            double centralMass = config.config().central_body.mass_kg;
+            orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
+        }
+        body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
+        body.velocity = Event4D(0.0, 0.0, 0.0, -orbitalVelocity);
+        body.isCentralBody = false;
+        body.isStar = false;
+        body.showOrbit = true;
+        body.textureId = cfg.name + "_texture";
+        solarSystem.bodies[body.name] = body;
+    }
+
     // Calculate initial orbit points
     for (auto& bodyPair : solarSystem.bodies) {
         calculateOrbitalTrajectory(bodyPair.second, 50);
     }
+
+    std::cout << "[SolarSystem] Initialized " << solarSystem.bodies.size()
+              << " bodies from config" << std::endl;
 }
 
 void UI4D::updateSolarSystemPositions(double currentTime) {
-    for (auto& bodyPair : solarSystem.bodies) {
-        SolarSystemBody& body = bodyPair.second;
+    // N-Body Leapfrog Integration (kept for backward compatibility)
+    double dt = 1.0;
+    stepSimulation(dt, 100);
+}
+
+void UI4D::stepSimulation(double dt, int substeps) {
+    if (substeps < 1) substeps = 1;
+
+    // Adaptive time stepping: calculate max acceleration to determine substep count
+    double maxAccel = computeMaxAcceleration();
+    
+    // Target: each substep should move bodies no more than a fraction of the softening length
+    // Higher acceleration → more substeps needed for stability
+    double adaptiveSubsteps = substeps;
+    
+    if (maxAccel > 0.0) {
+        // Courant-like condition: dt < sqrt(softening / maxAccel)
+        double softening = 1e6; // 1000 km softening (matches force calculation)
+        double stableDt = 0.1 * std::sqrt(softening / maxAccel);
+        adaptiveSubsteps = std::max(1.0, std::ceil(dt / stableDt));
+        // Cap at 1000 substeps to prevent freezing
+        adaptiveSubsteps = std::min(adaptiveSubsteps, 1000.0);
+    }
+    
+    substeps = static_cast<int>(adaptiveSubsteps);
+    double sub_dt = dt / substeps;
+
+    // Collect bodies into a vector for indexed access
+    std::vector<SolarSystemBody*> bodyPtrs;
+    bodyPtrs.reserve(solarSystem.bodies.size());
+    for (auto& pair : solarSystem.bodies) {
+        bodyPtrs.push_back(&pair.second);
+    }
+    int n = static_cast<int>(bodyPtrs.size());
+
+    for (int step = 0; step < substeps; ++step) {
+        // Use GPU acceleration when body count exceeds threshold and GPU is available
+        if (gpuAccel.enabled && n > gpuAccel.gpuThreshold) {
+            stepSimulationGPU(sub_dt, bodyPtrs, n);
+        } else {
+            stepSimulationCPU(sub_dt, bodyPtrs, n);
+        }
+    }
+
+    // Store telemetry for live visualization
+    lastTelemetry_ = getTelemetry();
+
+    // Record frame if recording
+    recordFrame();
+}
+
+double UI4D::computeMaxAcceleration() const {
+    double maxAccel = 0.0;
+    
+    std::vector<const SolarSystemBody*> ptrs;
+    ptrs.reserve(solarSystem.bodies.size());
+    for (auto& pair : solarSystem.bodies) {
+        ptrs.push_back(&pair.second);
+    }
+    int n = static_cast<int>(ptrs.size());
+    
+    for (int i = 0; i < n; ++i) {
+        if (ptrs[i]->isCentralBody) continue;
         
-        if (body.isCentralBody) {
-            body.position = Event4D(0.0, 0.0, 0.0, 0.0);
-            body.velocity = Event4D(0.0, 0.0, 0.0, 0.0);
-            continue;
+        double acc[3] = {0.0, 0.0, 0.0};
+        for (int j = 0; j < n; ++j) {
+            if (i == j) continue;
+            
+            double dx = ptrs[j]->position.x - ptrs[i]->position.x;
+            double dy = ptrs[j]->position.y - ptrs[i]->position.y;
+            double dz = ptrs[j]->position.z - ptrs[i]->position.z;
+            double r2 = dx * dx + dy * dy + dz * dz;
+            double softening = 1e6;
+            double r_soft = std::sqrt(r2 + softening * softening);
+            double a_mag = PHYS_G() * ptrs[j]->mass / (r_soft * r_soft);
+            
+            acc[0] += a_mag * (dx / r_soft);
+            acc[1] += a_mag * (dy / r_soft);
+            acc[2] += a_mag * (dz / r_soft);
         }
         
-        double phase = fmod(currentTime, body.orbitalPeriod) / body.orbitalPeriod * 2.0 * M_PI;
-        
-        body.position.t = currentTime;
-        body.position.x = body.semiMajorAxis * std::cos(phase);
-        body.position.y = 0.0;
-        body.position.z = body.semiMajorAxis * std::sin(phase);
-        
-        body.velocity.t = 1.0;
-        body.velocity.x = -body.semiMajorAxis * std::sin(phase) * (2.0 * M_PI / body.orbitalPeriod);
-        body.velocity.y = 0.0;
-        body.velocity.z = body.semiMajorAxis * std::cos(phase) * (2.0 * M_PI / body.orbitalPeriod);
+        double a_total = std::sqrt(acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]);
+        if (a_total > maxAccel) maxAccel = a_total;
     }
+    
+    return maxAccel;
+}
+
+// --- Telemetry Recording & Replay ---
+
+void UI4D::startRecording(int maxFrames, int frameInterval) {
+    stopRecording();
+    recordingState.frames.clear();
+    recordingState.maxFrames = maxFrames;
+    recordingState.frameInterval = frameInterval;
+    recordingState.frameCounter = 0;
+    recordingState.currentFrame = 0;
+    recordingState.recording = true;
+    recordingState.playing = false;
+    std::cout << "[Telemetry] Recording started (max " << maxFrames << " frames, interval " << frameInterval << ")" << std::endl;
+}
+
+void UI4D::stopRecording() {
+    if (recordingState.recording) {
+        recordingState.recording = false;
+        std::cout << "[Telemetry] Recording stopped (" << recordingState.frames.size() << " frames captured)" << std::endl;
+    }
+}
+
+void UI4D::recordFrame() {
+    if (!recordingState.recording) return;
+    
+    recordingState.frameCounter++;
+    if (recordingState.frameCounter % recordingState.frameInterval != 0) return;
+    
+    if (static_cast<int>(recordingState.frames.size()) >= recordingState.maxFrames) {
+        recordingState.recording = false;
+        std::cout << "[Telemetry] Recording buffer full" << std::endl;
+        return;
+    }
+    
+    TelemetryFrame frame;
+    frame.time = recordingState.frames.size() * recordingState.frameInterval / 60.0; // ~60fps
+    
+    auto tel = getTelemetry();
+    frame.totalEnergy = tel.totalEnergy;
+    frame.kineticEnergy = tel.totalKineticEnergy;
+    frame.potentialEnergy = tel.totalPotentialEnergy;
+    
+    for (auto& pair : solarSystem.bodies) {
+        auto& body = pair.second;
+        frame.names.push_back(body.name);
+        frame.positions.push_back(body.position.x);
+        frame.positions.push_back(body.position.y);
+        frame.positions.push_back(body.position.z);
+        frame.velocities.push_back(body.velocity.x);
+        frame.velocities.push_back(body.velocity.y);
+        frame.velocities.push_back(body.velocity.z);
+    }
+    
+    recordingState.frames.push_back(frame);
+}
+
+void UI4D::playRecording() {
+    if (recordingState.frames.empty()) return;
+    recordingState.playing = true;
+    recordingState.recording = false;
+    recordingState.currentFrame = 0;
+    std::cout << "[Telemetry] Playback started (" << recordingState.frames.size() << " frames)" << std::endl;
+}
+
+void UI4D::pausePlayback() {
+    recordingState.playing = false;
+}
+
+void UI4D::stopPlayback() {
+    recordingState.playing = false;
+    recordingState.currentFrame = 0;
+}
+
+void UI4D::scrubToFrame(int frameIndex) {
+    if (recordingState.frames.empty()) return;
+    recordingState.currentFrame = std::max(0, std::min(frameIndex, static_cast<int>(recordingState.frames.size()) - 1));
+    applyFrame(recordingState.currentFrame);
+}
+
+void UI4D::scrubToTime(double time) {
+    if (recordingState.frames.empty()) return;
+    for (int i = 0; i < static_cast<int>(recordingState.frames.size()); ++i) {
+        if (recordingState.frames[i].time >= time) {
+            scrubToFrame(i);
+            return;
+        }
+    }
+}
+
+double UI4D::recordingDuration() const {
+    if (recordingState.frames.empty()) return 0.0;
+    return recordingState.frames.back().time;
+}
+
+void UI4D::exportToCSV(const std::string& filepath) const {
+    std::ofstream file(filepath);
+    if (!file.is_open()) {
+        std::cerr << "[Telemetry] Failed to open " << filepath << " for export" << std::endl;
+        return;
+    }
+    
+    // Header
+    file << "frame,time";
+    if (!recordingState.frames.empty()) {
+        for (auto& name : recordingState.frames[0].names) {
+            file << "," << name << "_x," << name << "_y," << name << "_z";
+            file << "," << name << "_vx," << name << "_vy," << name << "_vz";
+        }
+    }
+    file << ",total_energy,kinetic_energy,potential_energy\n";
+    
+    // Data
+    for (int i = 0; i < static_cast<int>(recordingState.frames.size()); ++i) {
+        auto& frame = recordingState.frames[i];
+        file << i << "," << frame.time;
+        for (double v : frame.positions) file << "," << v;
+        for (double v : frame.velocities) file << "," << v;
+        file << "," << frame.totalEnergy << "," << frame.kineticEnergy << "," << frame.potentialEnergy << "\n";
+    }
+    
+    file.close();
+    std::cout << "[Telemetry] Exported " << recordingState.frames.size() << " frames to " << filepath << std::endl;
+}
+
+void UI4D::clearRecording() {
+    recordingState.frames.clear();
+    recordingState.currentFrame = 0;
+    recordingState.recording = false;
+    recordingState.playing = false;
+}
+
+void UI4D::applyFrame(int frameIndex) {
+    if (frameIndex < 0 || frameIndex >= static_cast<int>(recordingState.frames.size())) return;
+    
+    auto& frame = recordingState.frames[frameIndex];
+    
+    // Build name lookup for current bodies
+    std::unordered_map<std::string, SolarSystemBody*> bodyMap;
+    for (auto& pair : solarSystem.bodies) {
+        bodyMap[pair.first] = &pair.second;
+    }
+    
+    // Apply recorded state
+    for (int i = 0; i < static_cast<int>(frame.names.size()); ++i) {
+        auto it = bodyMap.find(frame.names[i]);
+        if (it == bodyMap.end()) continue;
+        
+        auto* body = it->second;
+        body->position.x = frame.positions[i * 3 + 0];
+        body->position.y = frame.positions[i * 3 + 1];
+        body->position.z = frame.positions[i * 3 + 2];
+        body->velocity.x = frame.velocities[i * 3 + 0];
+        body->velocity.y = frame.velocities[i * 3 + 1];
+        body->velocity.z = frame.velocities[i * 3 + 2];
+    }
+}
+
+void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyPtrs, int n) {
+    // 1. Calculate accelerations for all bodies
+    for (int i = 0; i < n; ++i) {
+        SolarSystemBody* bi = bodyPtrs[i];
+        bi->acc[0] = 0.0;
+        bi->acc[1] = 0.0;
+        bi->acc[2] = 0.0;
+
+        if (bi->isCentralBody) continue;
+
+        for (int j = 0; j < n; ++j) {
+            if (i == j) continue;
+            SolarSystemBody* bj = bodyPtrs[j];
+
+            double dx = bj->position.x - bi->position.x;
+            double dy = bj->position.y - bi->position.y;
+            double dz = bj->position.z - bi->position.z;
+            double r2 = dx * dx + dy * dy + dz * dz;
+
+            double softening = 1e6;
+            double r_soft = std::sqrt(r2 + softening * softening);
+            double a_mag = PHYS_G() * bj->mass / (r_soft * r_soft);
+
+            bi->acc[0] += a_mag * (dx / r_soft);
+            bi->acc[1] += a_mag * (dy / r_soft);
+            bi->acc[2] += a_mag * (dz / r_soft);
+            
+            // Lense-Thirring precession (frame-dragging) from rotating central body
+            // Only apply when the other body is the central (massive) body
+            if (bj->isCentralBody && m_kerrSpin > 1e-10) {
+                double G = PHYS_G();
+                double c2 = PHYS_C2();
+                double J = m_kerrSpin * G * bj->mass * bj->mass; // J = a*GM²/c (dimensionless spin)
+                
+                double r = std::sqrt(r2);
+                if (r > softening) {
+                    // Lense-Thirring acceleration: a_LT = (2GJ/c²r³) * [3(r·v)r/r² - v×(Ĵ×r̂)]
+                    // Simplified: assume J along z-axis
+                    double vx = bi->velocity.x;
+                    double vy = bi->velocity.y;
+                    double vz = bi->velocity.z;
+                    
+                    double r_dot_v = dx * vx + dy * vy + dz * vz;
+                    double r_hat_x = dx / r;
+                    double r_hat_y = dy / r;
+                    double r_hat_z = dz / r;
+                    
+                    // Ĵ × r̂ (J along z)
+                    double J_cross_r_x = -r_hat_y;
+                    double J_cross_r_y = r_hat_x;
+                    double J_cross_r_z = 0.0;
+                    
+                    // v × (Ĵ × r̂)
+                    double v_cross_Jr_x = vy * J_cross_r_z - vz * J_cross_r_y;
+                    double v_cross_Jr_y = vz * J_cross_r_x - vx * J_cross_r_z;
+                    double v_cross_Jr_z = vx * J_cross_r_y - vy * J_cross_r_x;
+                    
+                    // 3(r·v)r/r² - v×(Ĵ×r̂)
+                    double factor = 2.0 * G * J / (c2 * r * r * r);
+                    bi->acc[0] += factor * (3.0 * r_dot_v * r_hat_x / r2 - v_cross_Jr_x);
+                    bi->acc[1] += factor * (3.0 * r_dot_v * r_hat_y / r2 - v_cross_Jr_y);
+                    bi->acc[2] += factor * (3.0 * r_dot_v * r_hat_z / r2 - v_cross_Jr_z);
+                }
+            }
+        }
+    }
+
+    // 2. Leapfrog Kick-Drift-Kick
+    for (int i = 0; i < n; ++i) {
+        if (bodyPtrs[i]->isCentralBody) continue;
+        bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (bodyPtrs[i]->isCentralBody) continue;
+        bodyPtrs[i]->position.x += bodyPtrs[i]->velocity.x * sub_dt;
+        bodyPtrs[i]->position.y += bodyPtrs[i]->velocity.y * sub_dt;
+        bodyPtrs[i]->position.z += bodyPtrs[i]->velocity.z * sub_dt;
+        bodyPtrs[i]->position.t += sub_dt;
+    }
+
+    for (int i = 0; i < n; ++i) {
+        SolarSystemBody* bi = bodyPtrs[i];
+        bi->acc[0] = 0.0;
+        bi->acc[1] = 0.0;
+        bi->acc[2] = 0.0;
+
+        if (bi->isCentralBody) continue;
+
+        for (int j = 0; j < n; ++j) {
+            if (i == j) continue;
+            SolarSystemBody* bj = bodyPtrs[j];
+
+            double dx = bj->position.x - bi->position.x;
+            double dy = bj->position.y - bi->position.y;
+            double dz = bj->position.z - bi->position.z;
+            double r2 = dx * dx + dy * dy + dz * dz;
+            double softening = 1e6;
+            double r_soft = std::sqrt(r2 + softening * softening);
+            double a_mag = PHYS_G() * bj->mass / (r_soft * r_soft);
+
+            bi->acc[0] += a_mag * (dx / r_soft);
+            bi->acc[1] += a_mag * (dy / r_soft);
+            bi->acc[2] += a_mag * (dz / r_soft);
+        }
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (bodyPtrs[i]->isCentralBody) continue;
+        bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
+    }
+}
+
+void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyPtrs, int n) {
+#if HAS_GLAD
+    // Ensure GPU resources are initialized
+    if (!gpuAccel.initialized || n > static_cast<int>(gpuAccel.maxBodies)) {
+        initGPUAcceleration();
+        if (!gpuAccel.initialized || n > static_cast<int>(gpuAccel.maxBodies)) {
+            // Fallback to CPU if GPU init fails
+            stepSimulationCPU(sub_dt, bodyPtrs, n);
+            return;
+        }
+    }
+
+    // Find central body index
+    uint32_t centralIdx = 0;
+    for (uint32_t i = 0; i < static_cast<uint32_t>(n); ++i) {
+        if (bodyPtrs[i]->isCentralBody) {
+            centralIdx = i;
+            break;
+        }
+    }
+
+    // Upload positions and masses to SSBOs
+    gpuAccel.positionData.resize(n * 4);
+    gpuAccel.massData.resize(n);
+    gpuAccel.accelerationData.resize(n * 4);
+
+    for (int i = 0; i < n; ++i) {
+        gpuAccel.positionData[i * 4 + 0] = static_cast<float>(bodyPtrs[i]->position.x);
+        gpuAccel.positionData[i * 4 + 1] = static_cast<float>(bodyPtrs[i]->position.y);
+        gpuAccel.positionData[i * 4 + 2] = static_cast<float>(bodyPtrs[i]->position.z);
+        gpuAccel.positionData[i * 4 + 3] = 0.0f;
+        gpuAccel.massData[i] = static_cast<float>(bodyPtrs[i]->mass);
+    }
+
+    // Upload data
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboPositions);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.positionData.data());
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboMasses);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * sizeof(float), gpuAccel.massData.data());
+
+    // Bind SSBOs to compute shader binding points
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gpuAccel.ssboPositions);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, gpuAccel.ssboMasses);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, gpuAccel.ssboAccelerations);
+
+    // Set uniforms and dispatch
+    gpuAccel.computeShader->use();
+    gpuAccel.computeShader->setUniform("G", static_cast<float>(PHYS_G()));
+    gpuAccel.computeShader->setUniform("softening", 1e6f);
+    gpuAccel.computeShader->setUniform("bodyCount", static_cast<uint32_t>(n));
+    gpuAccel.computeShader->setUniform("centralBodyIndex", centralIdx);
+
+    uint32_t numGroups = (n + 255) / 256;
+    gpuAccel.computeShader->dispatch(numGroups, 1, 1);
+
+    // Ensure compute shader completes before reading back
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    // Read back accelerations
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboAccelerations);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.accelerationData.data());
+
+    // Store accelerations
+    for (int i = 0; i < n; ++i) {
+        bodyPtrs[i]->acc[0] = gpuAccel.accelerationData[i * 4 + 0];
+        bodyPtrs[i]->acc[1] = gpuAccel.accelerationData[i * 4 + 1];
+        bodyPtrs[i]->acc[2] = gpuAccel.accelerationData[i * 4 + 2];
+    }
+
+    // Leapfrog Kick-Drift-Kick (on CPU)
+    for (int i = 0; i < n; ++i) {
+        if (bodyPtrs[i]->isCentralBody) continue;
+        bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (bodyPtrs[i]->isCentralBody) continue;
+        bodyPtrs[i]->position.x += bodyPtrs[i]->velocity.x * sub_dt;
+        bodyPtrs[i]->position.y += bodyPtrs[i]->velocity.y * sub_dt;
+        bodyPtrs[i]->position.z += bodyPtrs[i]->velocity.z * sub_dt;
+        bodyPtrs[i]->position.t += sub_dt;
+    }
+
+    // Second GPU dispatch for new positions
+    for (int i = 0; i < n; ++i) {
+        gpuAccel.positionData[i * 4 + 0] = static_cast<float>(bodyPtrs[i]->position.x);
+        gpuAccel.positionData[i * 4 + 1] = static_cast<float>(bodyPtrs[i]->position.y);
+        gpuAccel.positionData[i * 4 + 2] = static_cast<float>(bodyPtrs[i]->position.z);
+    }
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboPositions);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.positionData.data());
+
+    gpuAccel.computeShader->use();
+    gpuAccel.computeShader->setUniform("G", static_cast<float>(PHYS_G()));
+    gpuAccel.computeShader->setUniform("softening", 1e6f);
+    gpuAccel.computeShader->setUniform("bodyCount", static_cast<uint32_t>(n));
+    gpuAccel.computeShader->setUniform("centralBodyIndex", centralIdx);
+
+    gpuAccel.computeShader->dispatch(numGroups, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboAccelerations);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.accelerationData.data());
+
+    for (int i = 0; i < n; ++i) {
+        bodyPtrs[i]->acc[0] = gpuAccel.accelerationData[i * 4 + 0];
+        bodyPtrs[i]->acc[1] = gpuAccel.accelerationData[i * 4 + 1];
+        bodyPtrs[i]->acc[2] = gpuAccel.accelerationData[i * 4 + 2];
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (bodyPtrs[i]->isCentralBody) continue;
+        bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
+        bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
+    }
+#else
+    // No OpenGL available, fallback to CPU
+    stepSimulationCPU(sub_dt, bodyPtrs, n);
+#endif
+}
+
+void UI4D::initGPUAcceleration() {
+#if HAS_GLAD
+    if (gpuAccel.initialized) return;
+
+    if (!ComputeShader::isComputeSupported()) {
+        std::cout << "[GPU] Compute shaders not supported on this GPU" << std::endl;
+        gpuAccel.enabled = false;
+        return;
+    }
+
+    gpuAccel.computeShader = new ComputeShader();
+
+    // Try loading from file first, then fallback to embedded source
+    const char* embeddedSource = R"(
+#version 430 core
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer PositionBuffer {
+    vec4 positions[];
+};
+
+layout(std430, binding = 1) readonly buffer MassBuffer {
+    float masses[];
+};
+
+layout(std430, binding = 2) writeonly buffer AccelerationBuffer {
+    vec4 accelerations[];
+};
+
+uniform float G;
+uniform float softening;
+uniform uint bodyCount;
+uniform uint centralBodyIndex;
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= bodyCount) return;
+
+    if (i == centralBodyIndex) {
+        accelerations[i] = vec4(0.0, 0.0, 0.0, 0.0);
+        return;
+    }
+
+    vec3 pos_i = positions[i].xyz;
+    vec3 acc = vec3(0.0);
+
+    for (uint j = 0u; j < bodyCount; j++) {
+        if (j == i) continue;
+
+        vec3 pos_j = positions[j].xyz;
+        vec3 diff = pos_j - pos_i;
+
+        float r2 = dot(diff, diff);
+        float r_soft = sqrt(r2 + softening * softening);
+
+        float m_j = masses[j];
+        float a_mag = G * m_j / (r_soft * r_soft * r_soft);
+
+        acc += a_mag * diff;
+    }
+
+    accelerations[i] = vec4(acc, 0.0);
+}
+)";
+
+    std::string shaderPath = "data/shaders/nbody.comp";
+    bool loaded = gpuAccel.computeShader->loadFromFile(shaderPath);
+    if (!loaded) {
+        loaded = gpuAccel.computeShader->loadFromSource(embeddedSource);
+    }
+
+    if (!loaded) {
+        std::cout << "[GPU] Failed to compile compute shader" << std::endl;
+        delete gpuAccel.computeShader;
+        gpuAccel.computeShader = nullptr;
+        gpuAccel.enabled = false;
+        return;
+    }
+
+    // Create SSBOs with capacity for up to 4096 bodies
+    gpuAccel.maxBodies = 4096;
+
+    glGenBuffers(1, &gpuAccel.ssboPositions);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboPositions);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &gpuAccel.ssboMasses);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboMasses);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &gpuAccel.ssboAccelerations);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboAccelerations);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    gpuAccel.positionData.resize(gpuAccel.maxBodies * 4);
+    gpuAccel.massData.resize(gpuAccel.maxBodies);
+    gpuAccel.accelerationData.resize(gpuAccel.maxBodies * 4);
+
+    gpuAccel.initialized = true;
+    gpuAccel.enabled = true;
+
+    std::cout << "[GPU] N-body acceleration initialized (max " << gpuAccel.maxBodies << " bodies)" << std::endl;
+#else
+    gpuAccel.enabled = false;
+    gpuAccel.initialized = false;
+#endif
+}
+
+void UI4D::shutdownGPUAcceleration() {
+#if HAS_GLAD
+    if (!gpuAccel.initialized) return;
+
+    if (gpuAccel.ssboPositions != 0) {
+        glDeleteBuffers(1, &gpuAccel.ssboPositions);
+        gpuAccel.ssboPositions = 0;
+    }
+    if (gpuAccel.ssboMasses != 0) {
+        glDeleteBuffers(1, &gpuAccel.ssboMasses);
+        gpuAccel.ssboMasses = 0;
+    }
+    if (gpuAccel.ssboAccelerations != 0) {
+        glDeleteBuffers(1, &gpuAccel.ssboAccelerations);
+        gpuAccel.ssboAccelerations = 0;
+    }
+
+    delete gpuAccel.computeShader;
+    gpuAccel.computeShader = nullptr;
+
+    gpuAccel.initialized = false;
+    gpuAccel.enabled = false;
+
+    std::cout << "[GPU] N-body acceleration shut down" << std::endl;
+#endif
 }
 
 void UI4D::calculateOrbitalTrajectory(const SolarSystemBody& body, int points) {
@@ -696,12 +1229,449 @@ void UI4D::calculateOrbitalTrajectory(const SolarSystemBody& body, int points) {
     }
 }
 
+UI4D::PhysicsTelemetry UI4D::getTelemetry() const {
+    PhysicsTelemetry tel;
+    tel.bodyCount = static_cast<int>(solarSystem.bodies.size());
+
+    std::vector<const SolarSystemBody*> ptrs;
+    ptrs.reserve(solarSystem.bodies.size());
+    for (auto& pair : solarSystem.bodies) {
+        ptrs.push_back(&pair.second);
+    }
+    int n = static_cast<int>(ptrs.size());
+
+    // Kinetic energy: sum of 0.5 * m * v^2
+    for (int i = 0; i < n; ++i) {
+        double vx = ptrs[i]->velocity.x;
+        double vy = ptrs[i]->velocity.y;
+        double vz = ptrs[i]->velocity.z;
+        double v2 = vx * vx + vy * vy + vz * vz;
+        tel.totalKineticEnergy += 0.5 * ptrs[i]->mass * v2;
+    }
+
+    // Potential energy: sum of -G * m1 * m2 / r for all pairs
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            double dx = ptrs[j]->position.x - ptrs[i]->position.x;
+            double dy = ptrs[j]->position.y - ptrs[i]->position.y;
+            double dz = ptrs[j]->position.z - ptrs[i]->position.z;
+            double r = std::sqrt(dx * dx + dy * dy + dz * dz);
+            if (r > 0.0) {
+                tel.totalPotentialEnergy -= PHYS_G() * ptrs[i]->mass * ptrs[j]->mass / r;
+            }
+        }
+    }
+
+    tel.totalEnergy = tel.totalKineticEnergy + tel.totalPotentialEnergy;
+
+    // Angular momentum (Z-component): sum of m * (x*vy - y*vx)
+    for (int i = 0; i < n; ++i) {
+        tel.angularMomentumZ += ptrs[i]->mass * (
+            ptrs[i]->position.x * ptrs[i]->velocity.y -
+            ptrs[i]->position.y * ptrs[i]->velocity.x
+        );
+    }
+
+    // Earth-specific data
+    auto it = solarSystem.bodies.find("Earth");
+    if (it != solarSystem.bodies.end()) {
+        auto& earth = it->second;
+        double vx = earth.velocity.x;
+        double vy = earth.velocity.y;
+        double vz = earth.velocity.z;
+        tel.earthOrbitalSpeed = std::sqrt(vx * vx + vy * vy + vz * vz);
+        double dx = earth.position.x;
+        double dz = earth.position.z;
+        tel.earthDistance = std::sqrt(dx * dx + dz * dz);
+    }
+
+    // Gravitational wave strain (quadrupole approximation)
+    // For a binary/multiple system, the characteristic strain is:
+    // h ≈ (2G / c⁴r) * Q̈ where Q̈ is the second time derivative of quadrupole moment
+    // For a circular orbit: h ≈ (4G/c⁴) * (μ * v²) / r_obs
+    // where μ is reduced mass, v is orbital velocity, r_obs is observer distance
+    {
+        // Find central body (Sun) and compute chirp mass with Earth
+        auto sunIt = solarSystem.bodies.find("Sun");
+        auto earthIt = solarSystem.bodies.find("Earth");
+        if (sunIt != solarSystem.bodies.end() && earthIt != solarSystem.bodies.end()) {
+            auto& sun = sunIt->second;
+            auto& earth = earthIt->second;
+
+            double dx = earth.position.x - sun.position.x;
+            double dy = earth.position.y - sun.position.y;
+            double dz = earth.position.z - sun.position.z;
+            double r = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+            if (r > 0.0) {
+                // Reduced mass: μ = m1*m2 / (m1+m2)
+                double mu = (sun.mass * earth.mass) / (sun.mass + earth.mass);
+
+                // Orbital velocity of Earth
+                double vx = earth.velocity.x - sun.velocity.x;
+                double vy = earth.velocity.y - sun.velocity.y;
+                double vz = earth.velocity.z - sun.velocity.z;
+                double v2 = vx * vx + vy * vy + vz * vz;
+
+                // Observer distance (use 1 AU as reference)
+                double r_obs = 1.496e11; // 1 AU
+
+                // Gravitational wave strain amplitude
+                // h ≈ (4G / c⁴) * μ * v² / r_obs
+                double G = PHYS_G();
+                double c4 = PHYS_C2() * PHYS_C2();
+                tel.gravitationalWaveStrain = (4.0 * G / c4) * mu * v2 / r_obs;
+
+                // Gravitational wave frequency: f_gw = 2 * f_orb
+                // f_orb = v / (2πr)
+                double f_orbital = std::sqrt(v2) / (2.0 * M_PI * r);
+                tel.gravitationalWaveFreq = 2.0 * f_orbital;
+
+                // Chirp mass: Mc = (m1*m2)^(3/5) / (m1+m2)^(1/5)
+                double m1 = sun.mass;
+                double m2 = earth.mass;
+                tel.chirpMass = std::pow(m1 * m2, 3.0/5.0) / std::pow(m1 + m2, 1.0/5.0);
+            }
+        }
+    }
+
+    return tel;
+}
+
+void UI4D::injectAsteroid(double x, double y, double z, double vx, double vy, double vz, double mass)
+{
+    SolarSystemBody asteroid;
+    asteroid.name = "Asteroid_" + std::to_string(asteroidCount());
+    asteroid.mass = mass;
+    asteroid.radius = 1000.0; // 1 km default
+    asteroid.position = Event4D(0.0, x, y, z);
+    asteroid.velocity = Event4D(0.0, vx, vy, vz);
+    asteroid.acc[0] = asteroid.acc[1] = asteroid.acc[2] = 0.0;
+    asteroid.orbitalPeriod = 0.0;
+    asteroid.semiMajorAxis = 0.0;
+    asteroid.isCentralBody = false;
+    asteroid.isStar = false;
+    asteroid.showOrbit = false;
+    asteroid.textureId = "asteroid_texture";
+    solarSystem.bodies[asteroid.name] = asteroid;
+
+    std::cout << "[Asteroid] Injected " << asteroid.name << " at (" << x << ", " << y << ", " << z << ")"
+              << " v=(" << vx << ", " << vy << ", " << vz << ")"
+              << " m=" << mass << " kg" << std::endl;
+}
+
+void UI4D::clearAsteroids()
+{
+    // Remove all bodies that are not the Sun or planets
+    std::vector<std::string> toRemove;
+    for (auto& pair : solarSystem.bodies) {
+        if (pair.second.name.find("Asteroid_") == 0) {
+            toRemove.push_back(pair.first);
+        }
+    }
+    for (auto& name : toRemove) {
+        solarSystem.bodies.erase(name);
+    }
+}
+
+void UI4D::removeLastAsteroid()
+{
+    // Find the last injected asteroid (highest number)
+    std::string lastAsteroid;
+    int lastNum = -1;
+    for (auto& pair : solarSystem.bodies) {
+        if (pair.second.name.find("Asteroid_") == 0) {
+            // Extract number from name
+            std::string numStr = pair.second.name.substr(9); // After "Asteroid_"
+            int num = std::stoi(numStr);
+            if (num > lastNum) {
+                lastNum = num;
+                lastAsteroid = pair.first;
+            }
+        }
+    }
+    if (!lastAsteroid.empty()) {
+        solarSystem.bodies.erase(lastAsteroid);
+    }
+}
+
+int UI4D::asteroidCount() const
+{
+    int count = 0;
+    for (auto& pair : solarSystem.bodies) {
+        if (pair.second.name.find("Asteroid_") == 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// ============================================================================
+// Scenario System Implementation
+// ============================================================================
+
+bool UI4D::loadScenario(const Scenario& scenario) {
+    std::cout << "[Scenario] Loading: " << scenario.name << std::endl;
+
+    auto& state = scenarioState;
+    state.active = true;
+    state.playing = false;
+    state.time = 0.0;
+    state.time_scale = scenario.time_scale;
+    state.next_event_index = 0;
+    state.current_scenario = std::make_shared<Scenario>(scenario);
+
+    clearAsteroids();
+
+    if (scenario.physics.override_constants) {
+        auto& pc = PhysicsConstants::instance();
+        pc.set_G(scenario.physics.G);
+        pc.set_c(scenario.physics.c);
+        pc.set_h(scenario.physics.h);
+        std::cout << "[Scenario] Physics constants overridden: G=" << scenario.physics.G
+                  << " c=" << scenario.physics.c << " h=" << scenario.physics.h << std::endl;
+    }
+
+    const double AU = 149597870700.0;
+    const double DAY = 24.0 * 3600.0;
+
+    solarSystem.bodies.clear();
+
+    {
+        SolarSystemBody body;
+        body.name = scenario.central_body.name;
+        body.mass = scenario.central_body.mass_kg;
+        body.radius = scenario.central_body.radius_m;
+        body.position = Event4D(0.0, 0.0, 0.0, 0.0);
+        body.velocity = Event4D(0.0, 0.0, 0.0, 0.0);
+        body.orbitalPeriod = 0.0;
+        body.semiMajorAxis = 0.0;
+        body.isCentralBody = true;
+        body.isStar = scenario.central_body.is_star;
+        body.showOrbit = false;
+        body.textureId = scenario.central_body.name + "_texture";
+        solarSystem.bodies[body.name] = body;
+    }
+
+    for (const auto& cfg : scenario.bodies) {
+        addBodyFromConfig(cfg);
+    }
+
+    for (auto& bodyPair : solarSystem.bodies) {
+        calculateOrbitalTrajectory(bodyPair.second, 50);
+    }
+
+    if (!scenario.camera_path.empty()) {
+        applyScenarioCamera();
+    }
+
+    applyScenarioAudio();
+
+    std::cout << "[Scenario] Loaded " << solarSystem.bodies.size() << " bodies, "
+              << scenario.events.size() << " events, "
+              << scenario.camera_path.size() << " camera keyframes" << std::endl;
+
+    return true;
+}
+
+void UI4D::playScenario() {
+    if (!scenarioState.active) {
+        std::cerr << "[Scenario] No scenario loaded" << std::endl;
+        return;
+    }
+    scenarioState.playing = true;
+    std::cout << "[Scenario] Playing: " << scenarioState.current_scenario->name << std::endl;
+}
+
+void UI4D::pauseScenario() {
+    scenarioState.playing = false;
+    std::cout << "[Scenario] Paused at t=" << scenarioState.time << "s" << std::endl;
+}
+
+void UI4D::stopScenario() {
+    scenarioState.playing = false;
+    scenarioState.time = 0.0;
+    scenarioState.next_event_index = 0;
+    std::cout << "[Scenario] Stopped" << std::endl;
+
+    if (scenarioState.current_scenario) {
+        loadScenario(*scenarioState.current_scenario);
+    }
+}
+
+void UI4D::stepScenario(double dt) {
+    if (!scenarioState.active || !scenarioState.playing) return;
+
+    auto& state = scenarioState;
+    double prev_time = state.time;
+    state.time += dt * state.time_scale;
+
+    if (state.current_scenario && state.time > state.current_scenario->duration) {
+        state.time = state.current_scenario->duration;
+        state.playing = false;
+        std::cout << "[Scenario] Reached end of scenario at t=" << state.time << "s" << std::endl;
+    }
+
+    processScenarioEvents(prev_time, state.time);
+
+    applyScenarioCamera();
+}
+
+void UI4D::processScenarioEvents(double prev_time, double curr_time) {
+    if (!scenarioState.current_scenario) return;
+
+    const auto& events = scenarioState.current_scenario->events;
+    auto& idx = scenarioState.next_event_index;
+
+    while (idx < static_cast<int>(events.size()) && events[idx].time <= curr_time) {
+        if (events[idx].time >= prev_time) {
+            executeScenarioEvent(events[idx]);
+        }
+        idx++;
+    }
+}
+
+void UI4D::executeScenarioEvent(const ScenarioEvent& event) {
+    std::cout << "[Scenario] Event at t=" << event.time << "s: "
+              << eventTypeToString(event.type);
+
+    switch (event.type) {
+        case ScenarioEventType::INJECT_ASTEROID:
+            injectAsteroidFromEvent(event);
+            break;
+
+        case ScenarioEventType::SET_CAMERA:
+            std::cout << " (camera override)";
+            break;
+
+        case ScenarioEventType::SET_CONSTANT: {
+            auto& pc = PhysicsConstants::instance();
+            if (event.str_param == "G" || event.str_param == "all") {
+                pc.set_G(event.params[0]);
+            }
+            if (event.str_param == "c" || event.str_param == "all") {
+                pc.set_c(event.params[0]);
+            }
+            if (event.str_param == "h" || event.str_param == "all") {
+                pc.set_h(event.params[0]);
+            }
+            std::cout << " " << event.str_param << "=" << event.params[0];
+            break;
+        }
+
+        case ScenarioEventType::ADD_BODY:
+            std::cout << " body=" << event.str_param;
+            break;
+
+        case ScenarioEventType::REMOVE_BODY: {
+            auto it = solarSystem.bodies.find(event.str_param);
+            if (it != solarSystem.bodies.end() && !it->second.isCentralBody) {
+                solarSystem.bodies.erase(it);
+                std::cout << " removed " << event.str_param;
+            }
+            break;
+        }
+
+        case ScenarioEventType::SET_TIME_SCALE:
+            scenarioState.time_scale = event.params[0];
+            std::cout << " timescale=" << event.params[0];
+            break;
+
+        case ScenarioEventType::AUDIO_SETTINGS:
+            std::cout << " audio config";
+            break;
+
+        case ScenarioEventType::APPLY_FORCE:
+            std::cout << " force on " << event.target_body;
+            break;
+
+        case ScenarioEventType::SET_CENTRAL_BODY:
+            std::cout << " central_body=" << event.str_param;
+            break;
+
+        case ScenarioEventType::WAIT:
+        default:
+            break;
+    }
+
+    std::cout << std::endl;
+}
+
+void UI4D::applyScenarioCamera() {
+    if (!scenarioState.current_scenario) return;
+
+    const auto& path = scenarioState.current_scenario->camera_path;
+    if (path.empty()) return;
+
+     ScenarioCameraState state = interpolateCamera(path, scenarioState.time);
+     setCameraFromState(state);
+}
+
+void UI4D::applyScenarioAudio() {
+    if (!scenarioState.current_scenario) return;
+    const auto& audio = scenarioState.current_scenario->audio;
+    std::cout << "[Scenario] Audio: enabled=" << audio.enabled
+              << " vol=" << audio.volume
+              << " freq=" << audio.base_frequency << std::endl;
+}
+
+void UI4D::setCameraFromState(const ScenarioCameraState& state) {
+    camera = Camera4D(
+        Event4D(0.0, state.position[0], state.position[1], state.position[2]),
+        Event4D(0.0, state.target[0], state.target[1], state.target[2]),
+        state.fov * M_PI / 180.0
+    );
+}
+
+void UI4D::injectAsteroidFromEvent(const ScenarioEvent& event) {
+    double x = event.params[0];
+    double y = event.params[1];
+    double z = event.params[2];
+    double vx = event.params[3];
+    double vy = event.params[4];
+    double vz = event.params[5];
+    double mass = event.params[6] > 0.0 ? event.params[6] : 1e15;
+    injectAsteroid(x, y, z, vx, vy, vz, mass);
+}
+
+void UI4D::addBodyFromConfig(const ScenarioBodyConfig& config) {
+    const double AU = 149597870700.0;
+    const double DAY = 24.0 * 3600.0;
+
+    SolarSystemBody body;
+    body.name = config.name;
+    body.mass = config.mass_kg;
+    body.radius = config.radius_m;
+    body.semiMajorAxis = config.semi_major_axis_au * AU;
+    body.orbitalPeriod = config.orbital_period_days * DAY;
+    body.isCentralBody = config.is_central_body;
+    body.isStar = config.is_star;
+    body.showOrbit = !config.is_central_body;
+    body.textureId = config.name + "_texture";
+
+    if (body.semiMajorAxis > 0.0 && !config.is_central_body) {
+        double centralMass = scenarioState.current_scenario ?
+            scenarioState.current_scenario->central_body.mass_kg : 1.989e30;
+        double orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
+        body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
+        body.velocity = Event4D(0.0, 0.0, 0.0, -orbitalVelocity);
+    } else {
+        body.position = Event4D(0.0, config.position[0], config.position[1], config.position[2]);
+        body.velocity = Event4D(0.0, config.velocity[0], config.velocity[1], config.velocity[2]);
+    }
+
+    solarSystem.bodies[body.name] = body;
+}
+
 void UI4D::renderSolarSystem() {
     if (!showSolarSystem) return;
-    
-    static double simulationTime = 0.0;
-    simulationTime += 0.01;
-    updateSolarSystemPositions(simulationTime);
+
+    if (scenarioState.active && scenarioState.playing) {
+        stepScenario(0.016);
+    }
+
+    // N-Body physics step (called from render at ~60fps)
+    stepSimulation(0.016, 10); // 10 substeps of 1.6ms each
     
     for (const auto& bodyPair : solarSystem.bodies) {
         const SolarSystemBody& body = bodyPair.second;

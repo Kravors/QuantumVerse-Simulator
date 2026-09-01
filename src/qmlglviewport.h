@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <cmath>
 #include <array>
+#include <atomic>
 
 #include "ml/SurrogateIntegration.h"
 #ifdef QUANTUMVERSE_USE_VR
@@ -51,6 +52,8 @@ class Camera4D;
 class Camera4DAdapter;
 class CelestialBodyRenderer;
 class MetricTensor;
+class PostProcess;
+class GravitationalLensing;
 }
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
@@ -287,6 +290,11 @@ private:
     void setShowHUD(bool show);
     void setCurvatureMode(int mode);
 
+    // Texture source
+    enum class TextureSource { Procedural, FileFirst };
+    void setTextureSource(TextureSource source) { m_textureSource = source; }
+    TextureSource textureSource() const { return m_textureSource; }
+
     // Time control
     void updateTime(float deltaTime);
     void resetTime();
@@ -313,10 +321,11 @@ private:
     void setFrameTimesPath(const QString &path);
     QString frameTimesPath() const { return m_frameTimesPath; }
 
-    // Celestial body & camera adapters
-    void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
-    void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
-    void renderHUD();
+     // Celestial body & camera adapters
+     void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
+     void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
+     void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
+     void renderHUD();
 
     private:
     // OpenGL initialization helpers
@@ -325,14 +334,16 @@ private:
     void setupGridGeometry();
     void setupAxisGizmo();
     void setupOverlayGeometry();
+    void setupHUDGeometry();
 
-    // Rendering helpers
-    void renderGrid();
-    void renderAxisGizmo();
-    void renderGeodesics();
-    void renderQuantumGeometry();
-    void renderOverlay();
-    void renderProfilingOverlay();
+     // Rendering helpers
+     void renderGrid();
+     void renderAxisGizmo();
+     void renderGeodesics();
+     void renderQuantumGeometry();
+     void renderOverlay();
+     void renderProfilingOverlay();
+     void renderLensing();
 
     // Shader compilation (raw OpenGL to avoid threading issues)
     static bool compileShader(GLuint& program, const char* vertexSource, const char* fragmentSource);
@@ -359,12 +370,22 @@ private:
     GLuint m_profilingVAO;
     GLuint m_profilingVBO;
 
+    // Persistent HUD quad VAOs/VBOs (created once in initializeGL, reused per frame)
+    GLuint m_hudBgVao = 0;
+    GLuint m_hudBgVbo = 0;
+    GLuint m_hudFpsVao = 0;
+    GLuint m_hudFpsVbo = 0;
+    GLuint m_hudErrVao = 0;
+    GLuint m_hudErrVbo = 0;
+    bool m_hudInitialized = false;
+
     // Rendering state
     bool m_showGrid;
     bool m_showLightCones;
     bool m_showGeodesics;
     bool m_showQuantumGeometry;
     int m_curvatureMode;
+    TextureSource m_textureSource = TextureSource::Procedural;
     float m_time;
     float m_frameTime;
     int m_frameCount;
@@ -436,8 +457,14 @@ private:
     // Framebuffer object
     QOpenGLFramebufferObject* m_fbo;
 
-    // One-time GL initialization guard
-    bool m_glInitialized;
+    // Post-processing pipeline (HDR bloom + tone mapping)
+     std::shared_ptr<PostProcess> m_postProcess;
+
+     // Gravitational lensing renderer
+     std::shared_ptr<GravitationalLensing> m_lensing;
+
+     // One-time GL initialization guard
+     bool m_glInitialized;
 
     // H5: cached scaled-orbit worldlines for renderGeodesics(). Rebuilt only
     // when the solar system data signature changes, avoiding per-frame
@@ -471,6 +498,17 @@ class QmlGlViewport : public ::QQuickFramebufferObject
     Q_PROPERTY(bool showQuantumGeometry READ showQuantumGeometry WRITE setShowQuantumGeometry NOTIFY showQuantumGeometryChanged)
     Q_PROPERTY(bool showHUD READ showHUD WRITE setShowHUD NOTIFY showHUDChanged)
     Q_PROPERTY(int curvatureMode READ curvatureMode WRITE setCurvatureMode NOTIFY curvatureModeChanged)
+
+    // Gravitational lensing properties
+    Q_PROPERTY(bool lensingEnabled READ lensingEnabled WRITE setLensingEnabled NOTIFY lensingEnabledChanged)
+    Q_PROPERTY(int lensingSteps READ lensingSteps WRITE setLensingSteps NOTIFY lensingStepsChanged)
+    Q_PROPERTY(float shadowIntensity READ shadowIntensity WRITE setShadowIntensity NOTIFY shadowIntensityChanged)
+    Q_PROPERTY(float lensingMass READ lensingMass WRITE setLensingMass NOTIFY lensingMassChanged)
+    Q_PROPERTY(float lensingSpin READ lensingSpin WRITE setLensingSpin NOTIFY lensingSpinChanged)
+    Q_PROPERTY(float lensingDistance READ lensingDistance WRITE setLensingDistance NOTIFY lensingDistanceChanged)
+    Q_PROPERTY(bool accretionDiskEnabled READ accretionDiskEnabled WRITE setAccretionDiskEnabled NOTIFY accretionDiskEnabledChanged)
+    Q_PROPERTY(bool photonRingEnabled READ photonRingEnabled WRITE setPhotonRingEnabled NOTIFY photonRingEnabledChanged)
+    Q_PROPERTY(float accretionDiskIntensity READ accretionDiskIntensity WRITE setAccretionDiskIntensity NOTIFY accretionDiskIntensityChanged)
     Q_PROPERTY(float cameraDistance READ cameraDistance WRITE setCameraDistance NOTIFY cameraDistanceChanged)
     Q_PROPERTY(float cameraAngleX READ cameraAngleX WRITE setCameraAngleX NOTIFY cameraAngleXChanged)
     Q_PROPERTY(float cameraAngleY READ cameraAngleY WRITE setCameraAngleY NOTIFY cameraAngleYChanged)
@@ -517,7 +555,46 @@ public:
     Q_PROPERTY(QString ricciScalar READ ricciScalar NOTIFY probeChanged)
     Q_PROPERTY(QString weylSquared READ weylSquared NOTIFY probeChanged)
     Q_PROPERTY(QString redshift READ redshift NOTIFY probeChanged)
-    Q_PROPERTY(bool probeValid READ probeValid NOTIFY probeChanged)
+     Q_PROPERTY(bool probeValid READ probeValid NOTIFY probeChanged)
+    Q_PROPERTY(bool planeMode READ isPlaneMode WRITE togglePlaneMode NOTIFY planeModeChanged)
+    Q_PROPERTY(int planeResolution READ getPlaneResolution WRITE setPlaneResolution NOTIFY planeResolutionChanged)
+    Q_PROPERTY(int textureSource READ textureSource WRITE setTextureSource NOTIFY textureSourceChanged)
+    Q_PROPERTY(double blackHoleMass READ blackHoleMass WRITE setBlackHoleMass NOTIFY blackHoleMassChanged)
+    Q_PROPERTY(double liveKineticEnergy READ liveKineticEnergy NOTIFY telemetryUpdated)
+    Q_PROPERTY(double livePotentialEnergy READ livePotentialEnergy NOTIFY telemetryUpdated)
+    Q_PROPERTY(double liveTotalEnergy READ liveTotalEnergy NOTIFY telemetryUpdated)
+    Q_PROPERTY(double liveEarthSpeed READ liveEarthSpeed NOTIFY telemetryUpdated)
+    Q_PROPERTY(double physicsG READ physicsG WRITE setPhysicsG NOTIFY physicsConstantsChanged)
+    Q_PROPERTY(double physicsC READ physicsC WRITE setPhysicsC NOTIFY physicsConstantsChanged)
+    Q_PROPERTY(double physicsGLog READ physicsGLog WRITE setPhysicsGLog NOTIFY physicsConstantsChanged)
+     Q_PROPERTY(double gravitationalWaveStrain READ gravitationalWaveStrain NOTIFY telemetryUpdated)
+     Q_PROPERTY(double gravitationalWaveFreq READ gravitationalWaveFreq NOTIFY telemetryUpdated)
+
+     // Scenario system properties
+     Q_PROPERTY(QString scenarioName READ scenarioName NOTIFY scenarioChanged)
+     Q_PROPERTY(double scenarioTime READ scenarioTime NOTIFY scenarioChanged)
+     Q_PROPERTY(bool scenarioPlaying READ scenarioPlaying NOTIFY scenarioChanged)
+     Q_PROPERTY(QStringList scenarioList READ scenarioList NOTIFY scenarioListChanged)
+
+     // Telemetry recording properties
+     Q_PROPERTY(bool recording READ isRecording NOTIFY recordingChanged)
+     Q_PROPERTY(bool playing READ isPlaying NOTIFY playbackChanged)
+     Q_PROPERTY(int currentFrame READ currentFrame NOTIFY playbackChanged)
+     Q_PROPERTY(int totalFrames READ totalFrames NOTIFY recordingChanged)
+     Q_PROPERTY(double recordingDuration READ recordingDuration NOTIFY recordingChanged)
+
+    // Post-processing / bloom controls
+    Q_PROPERTY(bool bloomEnabled READ bloomEnabled WRITE setBloomEnabled NOTIFY bloomEnabledChanged)
+    Q_PROPERTY(float bloomIntensity READ bloomIntensity WRITE setBloomIntensity NOTIFY bloomIntensityChanged)
+    Q_PROPERTY(float bloomThreshold READ bloomThreshold WRITE setBloomThreshold NOTIFY bloomThresholdChanged)
+    Q_PROPERTY(int toneMappingMode READ toneMappingMode WRITE setToneMappingMode NOTIFY toneMappingModeChanged)
+    Q_PROPERTY(float exposure READ exposure WRITE setExposure NOTIFY exposureChanged)
+
+    // Undo/Redo
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY undoRedoChanged)
+    Q_PROPERTY(bool canRedo READ canRedo NOTIFY undoRedoChanged)
+    Q_PROPERTY(QString undoDescription READ undoDescription NOTIFY undoRedoChanged)
+    Q_PROPERTY(QString redoDescription READ redoDescription NOTIFY undoRedoChanged)
 
     /// @brief Compute curvature scalars at a world position and update the readout.
     Q_INVOKABLE void probeAt(double x, double y, double z);
@@ -539,6 +616,113 @@ public:
     Q_INVOKABLE void setCurvatureRenderer(QObject* renderer);
     Q_INVOKABLE void setQuantumRenderer(QObject* renderer);
     Q_INVOKABLE void updateSimulation(double deltaTime);
+    Q_INVOKABLE void togglePlaneMode(bool enable);
+    Q_INVOKABLE bool isPlaneMode() const;
+    Q_INVOKABLE void setPlaneResolution(int resolution);
+    Q_INVOKABLE int getPlaneResolution() const;
+    Q_INVOKABLE void reloadConfig();
+    Q_INVOKABLE QString configStatus() const;
+    Q_INVOKABLE void setTextureSource(int source);
+    Q_INVOKABLE int textureSource() const;
+    Q_INVOKABLE void setBlackHoleMass(double mass);
+    Q_INVOKABLE double blackHoleMass() const;
+    Q_INVOKABLE void setBlackHoleType(const QString& type);
+    void setBlackHoleMassDirect(double mass); // For undo/redo (no command push)
+    Q_INVOKABLE double liveKineticEnergy() const;
+    Q_INVOKABLE double livePotentialEnergy() const;
+    Q_INVOKABLE double liveTotalEnergy() const;
+    Q_INVOKABLE double liveEarthSpeed() const;
+    Q_INVOKABLE double physicsG() const;
+    Q_INVOKABLE void setPhysicsG(double G);
+    Q_INVOKABLE double physicsC() const;
+    Q_INVOKABLE void setPhysicsC(double c);
+    Q_INVOKABLE double physicsGLog() const;
+    Q_INVOKABLE void setPhysicsGLog(double log10_G);
+    Q_INVOKABLE double gravitationalWaveStrain() const;
+    Q_INVOKABLE double gravitationalWaveFreq() const;
+    Q_INVOKABLE void setAudioEnabled(bool enabled);
+    Q_INVOKABLE bool audioEnabled() const;
+    Q_INVOKABLE void setAudioVolume(double volume);
+    Q_INVOKABLE double audioVolume() const;
+    Q_INVOKABLE void setAudioSourcePosition(double x, double y, double z);
+    Q_INVOKABLE void setAudioListenerPosition(double x, double y, double z);
+    Q_INVOKABLE void setAudioListenerForward(double fx, double fy, double fz);
+    Q_INVOKABLE void setAudioPan(double pan);
+    Q_INVOKABLE void setWaveformMode(int mode);
+    Q_INVOKABLE void injectAsteroid(double x, double y, double z, double vx, double vy, double vz, double mass);
+     Q_INVOKABLE void clearAsteroids();
+     Q_INVOKABLE int asteroidCount() const;
+
+     // Scenario system methods
+     Q_INVOKABLE void loadScenario(const QString& name);
+     Q_INVOKABLE void playScenario();
+     Q_INVOKABLE void pauseScenario();
+     Q_INVOKABLE void stopScenario();
+     Q_INVOKABLE void reloadScenarios();
+     Q_INVOKABLE QStringList scenarioList();
+
+     QString scenarioName() const;
+     double scenarioTime() const;
+     bool scenarioPlaying() const;
+
+     // Telemetry recording & replay
+     Q_INVOKABLE void startRecording(int maxFrames = 6000, int frameInterval = 1);
+     Q_INVOKABLE void stopRecording();
+     Q_INVOKABLE void playRecording();
+     Q_INVOKABLE void pausePlayback();
+     Q_INVOKABLE void stopPlayback();
+     Q_INVOKABLE void scrubToFrame(int frameIndex);
+     Q_INVOKABLE void scrubToTime(double time);
+     Q_INVOKABLE void exportRecording(const QString& filepath);
+    Q_INVOKABLE void clearRecording();
+    bool isRecording() const;
+    bool isPlaying() const;
+    int currentFrame() const;
+    int totalFrames() const;
+    double recordingDuration() const;
+
+    // Undo/Redo
+    Q_INVOKABLE void undo();
+    Q_INVOKABLE void redo();
+    Q_INVOKABLE void clearUndoRedo();
+    bool canUndo() const;
+    bool canRedo() const;
+    QString undoDescription() const;
+    QString redoDescription() const;
+
+    // Gravitational lensing accessors
+    bool lensingEnabled() const { return m_lensingEnabled; }
+    int lensingSteps() const { return m_lensingSteps; }
+    float shadowIntensity() const { return m_shadowIntensity; }
+    float lensingMass() const { return m_lensingMass; }
+    float lensingSpin() const { return m_lensingSpin; }
+    float lensingDistance() const { return m_lensingDistance; }
+    bool accretionDiskEnabled() const { return m_accretionDiskEnabled; }
+    bool photonRingEnabled() const { return m_photonRingEnabled; }
+    float accretionDiskIntensity() const { return m_accretionDiskIntensity; }
+
+    // Gravitational lensing QML methods
+    Q_INVOKABLE void setLensingEnabled(bool enabled);
+    Q_INVOKABLE void setLensingSteps(int steps);
+    Q_INVOKABLE void setShadowIntensity(float intensity);
+    Q_INVOKABLE void setLensingMass(float mass);
+    Q_INVOKABLE void setLensingSpin(float spin);
+    Q_INVOKABLE void setLensingDistance(float distance);
+    Q_INVOKABLE void setAccretionDiskEnabled(bool enabled);
+    Q_INVOKABLE void setPhotonRingEnabled(bool enabled);
+    Q_INVOKABLE void setAccretionDiskIntensity(float intensity);
+    Q_INVOKABLE void setLensingMetric(const QString& metricType);
+
+     Q_INVOKABLE void setBloomEnabled(bool enabled);
+     Q_INVOKABLE bool bloomEnabled() const;
+     Q_INVOKABLE float bloomIntensity() const;
+    Q_INVOKABLE void setBloomIntensity(float intensity);
+    Q_INVOKABLE float bloomThreshold() const;
+    Q_INVOKABLE void setBloomThreshold(float threshold);
+    Q_INVOKABLE int toneMappingMode() const;
+    Q_INVOKABLE void setToneMappingMode(int mode);
+    Q_INVOKABLE float exposure() const;
+    Q_INVOKABLE void setExposure(float exposure);
 
     // Camera4D adapter access for QML toolbar
     Q_PROPERTY(QObject* camera4DAdapter READ camera4DAdapterObj WRITE setCamera4DAdapterObj NOTIFY camera4DAdapterChanged)
@@ -566,6 +750,13 @@ public:
     void setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter);
     std::shared_ptr<Camera4DAdapter> camera4DAdapter() const { return m_camera4DAdapter; }
 
+    // Post-processing pipeline access (for QmlGlRenderer synchronization)
+     std::shared_ptr<PostProcess> postProcess() const { return m_postProcess; }
+
+     // Gravitational lensing access
+     void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
+     std::shared_ptr<GravitationalLensing> lensingRenderer() const { return m_lensing; }
+
     void setHeadlessFrameTarget(int frames) {
         m_headlessTargetFrames = frames;
         if (m_renderer) m_renderer->setHeadlessFrameTarget(frames);
@@ -578,6 +769,7 @@ public:
     void requestScreenshot(const QString &path) {
         m_pendingScreenshotRequested = true;
         m_pendingScreenshotPath = path;
+        qDebug() << "[DEBUG] requestScreenshot() called, path=" << path << "flag=" << m_pendingScreenshotRequested.load();
     }
     bool screenshotRequested() const { return m_renderer ? m_renderer->screenshotRequested() : false; }
 
@@ -613,6 +805,38 @@ signals:
      void vrIpdChanged();
      void showGhostCamerasChanged();
 #endif
+    void planeModeChanged();
+    void planeResolutionChanged();
+    void textureSourceChanged();
+    void blackHoleMassChanged();
+    void telemetryUpdated();
+    void physicsConstantsChanged();
+      void bloomEnabledChanged();
+      void bloomIntensityChanged();
+      void bloomThresholdChanged();
+      void toneMappingModeChanged();
+      void exposureChanged();
+
+      // Undo/Redo signals
+      void undoRedoChanged();
+
+      // Gravitational lensing signals
+      void lensingEnabledChanged();
+      void lensingStepsChanged();
+      void shadowIntensityChanged();
+      void lensingMassChanged();
+      void lensingSpinChanged();
+      void lensingDistanceChanged();
+      void accretionDiskEnabledChanged();
+      void photonRingEnabledChanged();
+      void accretionDiskIntensityChanged();
+
+      void scenarioChanged();
+     void scenarioListChanged();
+
+     // Telemetry recording signals
+     void recordingChanged();
+     void playbackChanged();
 
 public slots:
     void setShowGrid(bool show);
@@ -624,10 +848,14 @@ public slots:
     void setCameraDistance(float dist);
     void setCameraAngleX(float angle);
     void setCameraAngleY(float angle);
+    void updateFrameRate(float fps);
     void handleMousePress(float x, float y, int button);
     void handleMouseMove(float x, float y, int buttons);
     void handleMouseReleased(float x, float y, int button);
     void handleWheel(float delta);
+
+    // Gravitational lensing slots
+    void syncLensingParams();
 
 private:
     QmlGlRenderer* m_renderer;
@@ -642,6 +870,7 @@ private:
     float m_cameraAngleY;
     float m_simulationTime;
     float m_frameRate;
+    double m_blackHoleMass = 10.0;
     int m_frameCount;
     int m_headlessTargetFrames = 0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode
     qint64 m_lastFrameTime;
@@ -660,8 +889,23 @@ private:
     // UI4D instance for scene data (non-owning)
     std::shared_ptr<UI4D> m_ui4d;
 
+    // Gravitational wave audio synthesizer
+    class GravitationalWaveAudio* m_gwAudio = nullptr;
+    bool m_audioEnabled = false;
+    double m_audioVolume = 0.5;
+
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
+
+    // Post-processing pipeline (HDR bloom + tone mapping)
+    std::shared_ptr<PostProcess> m_postProcess;
+
+    // Bloom state (mirrored to renderer)
+    bool m_bloomEnabled = true;
+    float m_bloomIntensity = 0.8f;
+    float m_bloomThreshold = 1.0f;
+    int m_toneMappingMode = 0;
+    float m_exposure = 1.0f;
 
     // Probe readout state (driven by probeAt)
     std::shared_ptr<MetricTensor> m_probeMetric;
@@ -692,13 +936,54 @@ private:
 
     // Pending screenshot request, transferred to the render thread in
     // synchronize() (QQuickFramebufferObject owns the FBO, not this item).
-    bool m_pendingScreenshotRequested = false;
+    std::atomic<bool> m_pendingScreenshotRequested{false};
     QString m_pendingScreenshotPath;
 
-    // The QQuickFramebufferObject renderer needs full access to the item's
-    // renderer/camera/flag state to mirror it onto the render thread.
-    class ViewportRenderer;
-    friend class ViewportRenderer;
+     // The QQuickFramebufferObject renderer needs full access to the item's
+     // renderer/camera/flag state to mirror it onto the render thread.
+     class ViewportRenderer;
+     friend class ViewportRenderer;
+
+     // Scenario system state
+     QStringList m_scenarioList;
+     QString m_scenarioName;
+     double m_scenarioTime = 0.0;
+     bool m_scenarioPlaying = false;
+
+     // Telemetry recording state
+     bool m_recording = false;
+     bool m_playing = false;
+     int m_currentFrame = 0;
+     int m_totalFrames = 0;
+    double m_recordingDuration = 0.0;
+
+    // Undo/Redo system
+    struct Command {
+        QString description;
+        std::function<void()> undo;
+        std::function<void()> redo;
+    };
+    std::vector<Command> m_undoStack;
+    std::vector<Command> m_redoStack;
+    int m_maxUndoSteps = 50;
+    bool m_isUndoRedoAction = false; // Prevents recording undo/redo actions
+
+    void pushCommand(const QString& description, std::function<void()> undo, std::function<void()> redo);
+    void truncateUndoStack();
+    void truncateRedoStack();
+
+    // Gravitational lensing state
+     bool m_lensingEnabled = false;
+     int m_lensingSteps = 256;
+     float m_shadowIntensity = 1.0f;
+     float m_lensingMass = 1.0f;
+     float m_lensingSpin = 0.6f;
+     float m_lensingDistance = 10.0f;
+     bool m_accretionDiskEnabled = true;
+     bool m_photonRingEnabled = true;
+     float m_accretionDiskIntensity = 0.8f;
+     std::shared_ptr<GravitationalLensing> m_lensing;
+     std::shared_ptr<MetricTensor> m_lensingMetric;
 
  private slots:
     // (renderGL / onWindowChanged removed: rendering now happens in the

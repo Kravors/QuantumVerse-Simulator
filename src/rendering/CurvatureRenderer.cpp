@@ -13,9 +13,12 @@
 
 #include "CurvatureRenderer.h"
 #include "../physics/CurvatureCalculator.h"
+#include <QVector4D>
+#include <QDebug>
 #include <cmath>
 #include <algorithm>
 #include <cstdio>
+#include <iostream>
 #ifdef _WIN32
 #include <windows.h>  // Required for GetEnvironmentVariableA in isTruthyEnvironmentFlag
 #endif
@@ -88,6 +91,12 @@ void ShaderProgram::setUniform(const char* name, const double* matrix) const
     if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, floatMatrix);
 }
 
+void ShaderProgram::setUniform(const char* name, const QVector4D& color) const
+{
+    GLint loc = glGetUniformLocation(static_cast<GLint>(id), name);
+    if (loc >= 0) glUniform4f(loc, color.x(), color.y(), color.z(), color.w());
+}
+
 // ============================================================================
 // CurvatureRenderer Implementation
 // ============================================================================
@@ -97,12 +106,14 @@ CurvatureRenderer::CurvatureRenderer(
     float size,
     CurvatureMode initialMode
 ) : gridResolution(resolution), gridSize(size), mode(initialMode),
-     wireframe(false), showGrid(true), showLightCones(false),
+     wireframe(true), showGrid(true), showLightCones(false),
      vao(0), vbo(0), ebo(0), time(0.0f), animationSpeed(1.0f),
      m_initialized(false), lodLevel(0), cacheValid(false),
      lightConeVao(0), lightConeVbo(0), lightConeEbo(0),
-     lightConeBuffersInitialized(false), cellsPerDimension(4),
-     fallbackVao(0), fallbackVbo(0)
+     lightConeBuffersInitialized(false),
+     fallbackVao(0), fallbackVbo(0),
+     cellsPerDimension(4),
+     m_planeMode(true), m_planeResolution(100)
 {
      // Only initialize non-OpenGL data in constructor
      // OpenGL resources (VBOs, VAOs, shaders) are initialized lazily in initializeGL()
@@ -238,9 +249,20 @@ void CurvatureRenderer::initializeGL()
 
             switch (curvatureMode) {
                 case 0: {
-                    float intensity = clamp(log2(abs(curvatureValue) + 1.0) * 0.3, 0.0, 1.0);
-                    baseColor = mix(vec3(0.2, 0.3, 0.8), vec3(0.8, 0.1, 0.1), intensity);
-                    alpha = 0.15;
+                    // Color based on curvature magnitude using logarithmic scale
+                    // Deep blue (low) -> Cyan -> Green -> Yellow -> Red (high)
+                    float K = abs(curvatureValue);
+                    float logK = log2(max(K, 1e-10)) * 0.5;
+                    float hue = clamp(logK * 0.1 + 0.5, 0.0, 1.0);
+                    if (hue < 0.25)
+                        baseColor = mix(vec3(0.15,0.35,1.0), vec3(0,1,1), hue * 4.0);
+                    else if (hue < 0.5)
+                        baseColor = mix(vec3(0,1,1), vec3(0,1,0), (hue - 0.25) * 4.0);
+                    else if (hue < 0.75)
+                        baseColor = mix(vec3(0,1,0), vec3(1,1,0), (hue - 0.5) * 4.0);
+                    else
+                        baseColor = mix(vec3(1,1,0), vec3(1,0,0), (hue - 0.75) * 4.0);
+                    alpha = 0.7;
                     break;
                 }
                 case 1: {
@@ -248,20 +270,20 @@ void CurvatureRenderer::initializeGL()
                     float logK = log2(max(K, 1e-10)) * 0.5;
                     float hue = clamp(logK * 0.1 + 0.5, 0.0, 1.0);
                     if (hue < 0.25)
-                        baseColor = mix(vec3(0,0,1), vec3(0,1,1), hue * 4.0);
+                        baseColor = mix(vec3(0.15,0.35,1.0), vec3(0,1,1), hue * 4.0);
                     else if (hue < 0.5)
                         baseColor = mix(vec3(0,1,1), vec3(0,1,0), (hue - 0.25) * 4.0);
                     else if (hue < 0.75)
                         baseColor = mix(vec3(0,1,0), vec3(1,1,0), (hue - 0.5) * 4.0);
                     else
                         baseColor = mix(vec3(1,1,0), vec3(1,0,0), (hue - 0.75) * 4.0);
-                    alpha = 0.2;
+                    alpha = 0.7;  // Increased from 0.2 for visibility
                     break;
                 }
                 case 2: {
-                    float intensity = clamp(log2(max(curvatureValue, 1.0)) * 0.15, 0.0, 1.0);
-                    baseColor = mix(vec3(0.0, 0.2, 0.8), vec3(1.0, 0.1, 0.1), intensity);
-                    alpha = 0.2;
+                    float intensity = clamp(log2(max(curvatureValue, 1.0)) * 0.05, 0.0, 1.0);
+                    baseColor = mix(vec3(0.15, 0.35, 1.0), vec3(1.0, 0.1, 0.1), intensity);
+                    alpha = 0.7;  // Increased from 0.2 for visibility
                     break;
                 }
                 case 3: {
@@ -471,8 +493,16 @@ void CurvatureRenderer::initializeSpatialPartitioning()
 
 void CurvatureRenderer::render(const float* viewMatrix, const float* projectionMatrix)
 {
+    static int s_callCount = 0;
+    if (s_callCount++ < 5) {
+        std::cout << "[CurvatureRenderer] render() ENTERED, call #" << s_callCount << std::endl;
+    }
     // Null renderer guard - check if properly initialized
     if (!m_initialized) {
+        static int s_uninitCount = 0;
+        if (s_uninitCount++ < 5) {
+            std::cout << "[CurvatureRenderer] NOT INITIALIZED, drawing fallback" << std::endl;
+        }
         // Draw magenta warning square using modern OpenGL
         glUseProgram(fallbackShaderId);
         glBindVertexArray(fallbackVao);
@@ -491,8 +521,29 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
         return;
     }
     
-    if (!showGrid) return;
+    if (!showGrid) {
+        static int s_showGridCount = 0;
+        if (s_showGridCount++ < 5) {
+            std::cout << "[CurvatureRenderer] showGrid is FALSE, skipping render" << std::endl;
+        }
+        return;
+    }
     
+    static int s_renderCount = 0;
+    if (s_renderCount++ < 5) {
+        std::cout << "[CurvatureRenderer] render() called, showGrid=true, mode=" << static_cast<int>(mode)
+                  << ", planeMode=" << m_planeMode << ", vertices=" << vertices.size() << std::endl;
+    }
+    
+    // [DIAG] Save the current FBO so we can restore it after drawing.
+    // This prevents state leakage that could cause the QML FBO screenshot
+    // to capture the wrong buffer (black screen bug).
+    GLint oldFBO = -1;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
+    if (isTruthyEnvironmentFlag("QUANTUMVERSE_FBO_CHECK")) {
+        std::fprintf(stderr, "[CurvatureRenderer] FBO before draw: %d\n", oldFBO);
+    }
+
     // FBO completeness check (debug mode)
     if (isTruthyEnvironmentFlag("QUANTUMVERSE_FBO_CHECK")) {
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -518,11 +569,31 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
     shader->setUniform("curvatureMode", static_cast<int>(mode));
 
     glBindVertexArray(vao);
+    // Enable depth testing for proper grid rendering
+    glEnable(GL_DEPTH_TEST);
+    // Disable blending for grid to prevent overlapping transparent lines
+    // from accumulating and appearing white when camera is inside the grid
+    glDisable(GL_BLEND);
     glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES,
                    static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+    glEnable(GL_BLEND); // Re-enable blending for subsequent renders
+    glDisable(GL_DEPTH_TEST);
     glBindVertexArray(0);
 
+    // Restore polygon mode to FILL so subsequent renders (celestial bodies, etc.)
+    // are not drawn as wireframe
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
     shader->release();
+
+    // [DIAG] Restore the FBO that was bound before we started drawing.
+    // This ensures the QML FBO remains bound for screenshot capture.
+    if (oldFBO >= 0 && static_cast<GLuint>(oldFBO) != 0) {
+        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(oldFBO));
+        if (isTruthyEnvironmentFlag("QUANTUMVERSE_FBO_CHECK")) {
+            std::fprintf(stderr, "[CurvatureRenderer] FBO restored to: %d\n", oldFBO);
+        }
+    }
 
     if (showLightCones)
         renderLightCones(viewMatrix, projectionMatrix);
@@ -550,10 +621,23 @@ void CurvatureRenderer::updateGLBuffers()
     if (!m_initialized || vertices.empty()) return;
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0,
-                    vertices.size() * sizeof(CurvatureVertex),
-                    vertices.data());
+    // Use glBufferData (not SubData) to reallocate when grid size changes
+    // (e.g., switching between 2D plane and 3D cube modes)
+    glBufferData(GL_ARRAY_BUFFER,
+                 vertices.size() * sizeof(CurvatureVertex),
+                 vertices.data(),
+                 GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // Also reallocate index buffer if needed
+    if (!indices.empty()) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     indices.size() * sizeof(unsigned int),
+                     indices.data(),
+                     GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
 }
 
 void CurvatureRenderer::updateAllColors()
@@ -625,6 +709,34 @@ void CurvatureRenderer::setAnimationSpeed(float speed)
      animationSpeed = speed;
 }
 
+void CurvatureRenderer::setPlaneMode(bool enable)
+{
+    std::cout << "[CurvatureRenderer] setPlaneMode(" << enable << ") called, current=" << m_planeMode << std::endl;
+    if (m_planeMode == enable) return;
+    m_planeMode = enable;
+    initializeGrid();
+    if (currentMetric) {
+        deformGrid();
+        updateGLBuffers();
+    }
+    std::cout << "[CurvatureRenderer] setPlaneMode done, vertices=" << vertices.size() << ", indices=" << indices.size() << std::endl;
+}
+
+void CurvatureRenderer::setPlaneResolution(int resolution)
+{
+    if (resolution < 4) resolution = 4;
+    if (resolution > 500) resolution = 500;
+    if (m_planeResolution == resolution) return;
+    m_planeResolution = resolution;
+    if (m_planeMode) {
+        initializeGrid();
+        if (currentMetric) {
+            deformGrid();
+            updateGLBuffers();
+        }
+    }
+}
+
 const std::vector<CurvatureVertex>& CurvatureRenderer::getVertices() const { return vertices; }
 int CurvatureRenderer::getResolution() const { return gridResolution; }
 float CurvatureRenderer::getSize() const { return gridSize; }
@@ -694,17 +806,20 @@ void CurvatureRenderer::initializeGrid()
     metricCache.clear();
     curvatureCache.clear();
     m_baseZ.clear();
-    
+
     float halfSize = gridSize / 2.0f;
-    float step = gridSize / (gridResolution - 1);
-    
-    for (int i = 0; i < gridResolution; i++) {
-        for (int j = 0; j < gridResolution; j++) {
-            for (int k = 0; k < gridResolution; k++) {
+
+    if (m_planeMode) {
+        // 2D plane mode: rubber sheet at Z=0 with higher resolution
+        int res = m_planeResolution;
+        float step = gridSize / (res - 1);
+
+        for (int i = 0; i < res; i++) {
+            for (int j = 0; j < res; j++) {
                 CurvatureVertex vertex;
                 vertex.position[0] = -halfSize + i * step;
                 vertex.position[1] = -halfSize + j * step;
-                vertex.position[2] = -halfSize + k * step;
+                vertex.position[2] = 0.0f;
                 vertex.normal[0] = 0.0f;
                 vertex.normal[1] = 0.0f;
                 vertex.normal[2] = 1.0f;
@@ -716,20 +831,84 @@ void CurvatureRenderer::initializeGrid()
                 vertex.time_dilation = 1.0f;
                 vertices.push_back(vertex);
 
-                // Initialize caches
                 metricCache.push_back(0.0);
                 curvatureCache.push_back(0.0);
-                m_baseZ.push_back(vertex.position[2]);
+                m_baseZ.push_back(0.0f);
             }
         }
-    }
-    
-    // Create triangle indices for a proper 3D grid mesh
-    // Each cell is a cube made of 12 triangles (2 per face)
-    for (int i = 0; i < gridResolution - 1; i++) {
-        for (int j = 0; j < gridResolution - 1; j++) {
-            for (int k = 0; k < gridResolution - 1; k++) {
-                int base = i * gridResolution * gridResolution + j * gridResolution + k;
+
+        if (wireframe) {
+            // Line indices for wireframe grid (horizontal and vertical lines)
+            for (int i = 0; i < res; i++) {
+                for (int j = 0; j < res - 1; j++) {
+                    // Horizontal line
+                    indices.push_back(i * res + j);
+                    indices.push_back(i * res + j + 1);
+                }
+            }
+            for (int j = 0; j < res; j++) {
+                for (int i = 0; i < res - 1; i++) {
+                    // Vertical line
+                    indices.push_back(i * res + j);
+                    indices.push_back((i + 1) * res + j);
+                }
+            }
+        } else {
+            // Triangle indices for solid grid (2 triangles per cell)
+            for (int i = 0; i < res - 1; i++) {
+                for (int j = 0; j < res - 1; j++) {
+                    int base = i * res + j;
+                    int baseX = base + 1;
+                    int baseY = base + res;
+                    int baseXY = base + res + 1;
+
+                    // First triangle
+                    indices.push_back(base);
+                    indices.push_back(baseX);
+                    indices.push_back(baseY);
+
+                    // Second triangle
+                    indices.push_back(baseX);
+                    indices.push_back(baseXY);
+                    indices.push_back(baseY);
+                }
+            }
+        }
+    } else {
+        // 3D cube mode: original grid
+        float step = gridSize / (gridResolution - 1);
+
+        for (int i = 0; i < gridResolution; i++) {
+            for (int j = 0; j < gridResolution; j++) {
+                for (int k = 0; k < gridResolution; k++) {
+                    CurvatureVertex vertex;
+                    vertex.position[0] = -halfSize + i * step;
+                    vertex.position[1] = -halfSize + j * step;
+                    vertex.position[2] = -halfSize + k * step;
+                    vertex.normal[0] = 0.0f;
+                    vertex.normal[1] = 0.0f;
+                    vertex.normal[2] = 1.0f;
+                    vertex.color[0] = 0.2f;
+                    vertex.color[1] = 0.2f;
+                    vertex.color[2] = 0.8f;
+                    vertex.color[3] = 0.8f;
+                    vertex.curvature = 0.0f;
+                    vertex.time_dilation = 1.0f;
+                    vertices.push_back(vertex);
+
+                    metricCache.push_back(0.0);
+                    curvatureCache.push_back(0.0);
+                    m_baseZ.push_back(vertex.position[2]);
+                }
+            }
+        }
+
+        // Create triangle indices for a proper 3D grid mesh
+        // Each cell is a cube made of 12 triangles (2 per face)
+        for (int i = 0; i < gridResolution - 1; i++) {
+            for (int j = 0; j < gridResolution - 1; j++) {
+                for (int k = 0; k < gridResolution - 1; k++) {
+                    int base = i * gridResolution * gridResolution + j * gridResolution + k;
                 int baseX = base + 1;
                 int baseY = base + gridResolution;
                 int baseZ = base + gridResolution * gridResolution;
@@ -788,7 +967,8 @@ void CurvatureRenderer::initializeGrid()
             }
         }
     }
-    
+    }
+
     cacheValid = false;
 }
 
@@ -817,9 +997,9 @@ void CurvatureRenderer::deformGrid()
         // Apply deformation based on curvature.
         // Clamp the displacement to avoid the 1/r^6 Kretschmann blow-up
         // near the singularity producing an enormous spike.
-        float rawDisplacement = static_cast<float>(curvature * 0.001);
-        float displacement = rawDisplacement > 1.0f ? 1.0f
-                          : (rawDisplacement < -1.0f ? -1.0f : rawDisplacement);
+        float rawDisplacement = static_cast<float>(curvature * 0.1);
+        float displacement = rawDisplacement > 8.0f ? 8.0f
+                          : (rawDisplacement < -8.0f ? -8.0f : rawDisplacement);
         // Apply displacement relative to the undeformed base Z so repeated
         // calls (e.g. every animation frame via updateTime) do not accumulate
         // and drift the grid unboundedly.

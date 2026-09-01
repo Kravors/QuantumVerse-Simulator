@@ -23,12 +23,18 @@
 #include <string>
 #include <map>
 #include <set>
+#include <cstdint>
 #include "PlanckMicroscope.h"
 #include "../spacetime/Event4D.h"
 #include "../spacetime/MetricTensor.h"
 #include "../physics/GeodesicIntegrator.h"
 #include "../rendering/CurvatureRenderer.h"
 #include "../rendering/QuantumGeometryRenderer.h"
+#include "../scenario/Scenario.h"
+
+namespace quantumverse {
+class ComputeShader;
+}
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
 #ifndef M_PI
@@ -651,6 +657,7 @@ private:
         double radius;         // meters
         Event4D position;      // current position in spacetime
         Event4D velocity;      // velocity in spacetime (dx/dt, dy/dt, dz/dt)
+        double acc[3] = {0.0, 0.0, 0.0};  // acceleration for N-body integration
         double orbitalPeriod;  // seconds
         double semiMajorAxis;  // meters
         std::vector<Event4D> orbitPoints; // pre-calculated orbit points
@@ -670,6 +677,20 @@ private:
     };
     
     SolarSystemData solarSystem;
+
+    // Physics telemetry for live data visualization
+    struct PhysicsTelemetry {
+        double totalKineticEnergy = 0.0;    // Joules
+        double totalPotentialEnergy = 0.0;  // Joules
+        double totalEnergy = 0.0;           // Joules (conservation check)
+        double angularMomentumZ = 0.0;      // kg m^2/s (Z-component)
+        double earthOrbitalSpeed = 0.0;     // m/s
+        double earthDistance = 0.0;         // m from Sun
+        double gravitationalWaveStrain = 0.0; // Dimensionless strain (h)
+        double gravitationalWaveFreq = 0.0;  // Gravitational wave frequency (Hz)
+        double chirpMass = 0.0;             // Chirp mass (kg)
+        int bodyCount = 0;
+    };
     
     // Real-time editing data structures
     struct WorldLinePoint {
@@ -776,13 +797,108 @@ private:
     WaypointFlightConfig waypointFlight;
     std::vector<AnomalyAlert> anomalyAlerts;
     double anomalyDetectionThreshold = 1000.0; // Kretschmann scalar threshold
-    bool anomalyDetectionEnabled = true;
-    CurvatureManipulationTool curvatureTool;
-    LensingEffect lensingEffect;
-    TimeDilationEffect timeDilationEffect;
-    QuantumFoamEffect quantumFoamEffect;
+     bool anomalyDetectionEnabled = true;
+     CurvatureManipulationTool curvatureTool;
+     LensingEffect lensingEffect;
+     TimeDilationEffect timeDilationEffect;
+     QuantumFoamEffect quantumFoamEffect;
+     PhysicsTelemetry lastTelemetry_;
 
-public:
+     // GPU N-body acceleration
+     struct GPUAcceleration {
+         bool enabled = false;
+         bool initialized = false;
+         ComputeShader* computeShader = nullptr;
+         uint32_t ssboPositions = 0;
+         uint32_t ssboMasses = 0;
+         uint32_t ssboAccelerations = 0;
+         uint32_t maxBodies = 0;
+         int gpuThreshold = 100;  // Use GPU when body count > threshold
+         std::vector<float> positionData;
+         std::vector<float> massData;
+         std::vector<float> accelerationData;
+     };
+
+     GPUAcceleration gpuAccel;
+
+     // Scriptable scenario system
+     struct ScenarioState {
+         bool active = false;
+         bool playing = false;
+         double time = 0.0;
+         double time_scale = 1.0;
+         int next_event_index = 0;
+         std::shared_ptr<Scenario> current_scenario;
+     };
+
+    ScenarioState scenarioState;
+
+    // Telemetry recording & replay
+    struct TelemetryFrame {
+        double time;
+        std::vector<std::string> names;
+        std::vector<double> positions; // x,y,z interleaved
+        std::vector<double> velocities; // vx,vy,vz interleaved
+        double totalEnergy;
+        double kineticEnergy;
+        double potentialEnergy;
+    };
+
+    struct RecordingState {
+        bool recording = false;
+        bool playing = false;
+        std::vector<TelemetryFrame> frames;
+        int currentFrame = 0;
+        int maxFrames = 6000; // ~100 seconds at 60fps
+        int frameInterval = 1; // record every N frames
+        int frameCounter = 0;
+    };
+
+    RecordingState recordingState;
+
+    // Kerr metric parameters
+    double m_kerrSpin = 0.0; // Dimensionless spin parameter [0, 0.999]
+
+    void initGPUAcceleration();
+    void shutdownGPUAcceleration();
+    void stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyPtrs, int n);
+    void stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyPtrs, int n);
+    double computeMaxAcceleration() const;
+
+ public:
+    // Kerr metric parameters
+    void setKerrSpin(double spin) { m_kerrSpin = std::clamp(spin, 0.0, 0.999); }
+    double kerrSpin() const { return m_kerrSpin; }
+
+    // --- Scenario system ---
+    bool loadScenario(const Scenario& scenario);
+    void playScenario();
+    void pauseScenario();
+    void stopScenario();
+    void stepScenario(double dt);
+    bool isScenarioPlaying() const { return scenarioState.playing; }
+    double scenarioTime() const { return scenarioState.time; }
+    std::string currentScenarioName() const {
+        return scenarioState.current_scenario ? scenarioState.current_scenario->name : "";
+    }
+
+    // --- Telemetry recording & replay ---
+    void startRecording(int maxFrames = 6000, int frameInterval = 1);
+    void stopRecording();
+    void recordFrame();
+    void playRecording();
+    void pausePlayback();
+    void stopPlayback();
+     void scrubToFrame(int frameIndex);
+     void scrubToTime(double time);
+     void applyFrame(int frameIndex);
+    bool isRecording() const { return recordingState.recording; }
+    bool isPlaying() const { return recordingState.playing; }
+    int currentRecordingFrame() const { return recordingState.currentFrame; }
+    int totalRecordingFrames() const { return static_cast<int>(recordingState.frames.size()); }
+    double recordingDuration() const;
+    void exportToCSV(const std::string& filepath) const;
+    void clearRecording();
     UI4D() {
         // Initialize with default configuration
         sliceViews.resize(config.numSlices);
@@ -882,6 +998,7 @@ public:
     // Solar system specific methods
     void initializeSolarSystem();
     void updateSolarSystemPositions(double currentTime);
+    void stepSimulation(double dt, int substeps = 10);
     void renderSolarSystem();
     void calculateOrbitalTrajectory(const SolarSystemBody& body, int points = 100);
     void renderPlanetaryDataPanel(const std::string& bodyName);
@@ -890,6 +1007,28 @@ public:
      void toggleOrbitalTrajectories(bool show) { showOrbitalTrajectories = show; }
      void toggleBodyMarkers(bool show) { showBodyMarkers = show; }
      void toggleDataPanels(bool show) { showDataPanels = show; }
+
+     // Accessor for testing
+     const SolarSystemData& getSolarSystem() const { return solarSystem; }
+
+      // Interactive asteroid injection
+      void injectAsteroid(double x, double y, double z, double vx, double vy, double vz, double mass = 1e15);
+      void clearAsteroids();
+      void removeLastAsteroid();
+      int asteroidCount() const;
+
+      // Scenario event processing
+      void processScenarioEvents(double prev_time, double curr_time);
+      void executeScenarioEvent(const ScenarioEvent& event);
+      void applyScenarioCamera();
+      void applyScenarioAudio();
+      void setCameraFromState(const ScenarioCameraState& state);
+      void injectAsteroidFromEvent(const ScenarioEvent& event);
+      void addBodyFromConfig(const ScenarioBodyConfig& config);
+
+     // Physics telemetry
+     PhysicsTelemetry getTelemetry() const;
+     const PhysicsTelemetry& telemetry() const { return lastTelemetry_; }
  
      // Anomaly detection methods
       void detectCurvatureAnomalies();

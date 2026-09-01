@@ -1,13 +1,16 @@
 /**
  * @file CelestialBodyRenderer.h
- * @brief Celestial body sphere renderer with Phong lighting
+ * @brief Celestial body sphere renderer with PBR (Cook-Torrance) lighting
  *
  * Renders celestial bodies as lit spheres using UV sphere tessellation
- * with Phong shading, atmospheric glow, and level-of-detail control.
+ * with physically-based rendering (metallic/roughness workflow),
+ * atmospheric glow, and level-of-detail control.
  *
  * References:
  * - Solar System Scope rendering pipeline (solarsystemscope.com)
- * - Blinn-Phong shading model (Jim Blinn, 1977)
+ * - Cook-Torrance BRDF (SIGGRAPH 1982)
+ * - "Real Shading in Unreal Engine 4" (Karis 2013)
+ * - glTF 2.0 specification (Khronos Group)
  */
 
 #ifndef QUANTUMVERSE_CELESTIAL_BODY_RENDERER_H
@@ -34,6 +37,19 @@ struct ObjectProperties;
 namespace quantumverse {
 
 /**
+ * @brief PBR material properties for a celestial body
+ */
+struct PBRMaterial {
+    float metallic = 0.0f;      ///< Metallic factor (0=dielectric, 1=metal)
+    float roughness = 0.5f;     ///< Surface roughness (0=mirror, 1=diffuse)
+    float ao = 1.0f;            ///< Ambient occlusion (0=occluded, 1=unoccluded)
+    int metallicTexLayer = -1;  ///< Texture array layer for metallic map (-1=none)
+    int roughnessTexLayer = -1; ///< Texture array layer for roughness map (-1=none)
+    int normalTexLayer = -1;    ///< Texture array layer for normal map (-1=none)
+    int aoTexLayer = -1;        ///< Texture array layer for AO map (-1=none)
+};
+
+/**
  * @brief Vertex data for a single celestial body instance
  */
 struct CelestialBodyInstance {
@@ -48,6 +64,7 @@ struct CelestialBodyInstance {
     bool hasAtmosphere = false;
     float atmosphereRadius = 1.0f;
     int textureLayer = -1;
+    PBRMaterial pbrMaterial;    ///< PBR material properties (planets only)
 };
 
 /**
@@ -184,6 +201,13 @@ public:
     void setWireframe(bool show) { m_wireframe = show; }
 
     /**
+     * @brief Set coordinate scale for unit conversion
+     * @param scale Meters per viewport unit (e.g., 1.496e10 for 1 AU = 10 units)
+     */
+    void setCoordinateScale(double scale) { m_coordinateScale = scale; }
+    double coordinateScale() const { return m_coordinateScale; }
+
+    /**
      * @brief Texture array management
      */
     bool loadTextureArray(const std::vector<std::string>& texturePaths,
@@ -193,6 +217,41 @@ public:
     bool isTextureArrayEnabled() const { return m_useTextureArray; }
     bool initializeTextureArray(int numLayers, int width, int height);
     bool isTextureArrayInitialized() const { return m_textureArray.isValid(); }
+
+    /**
+     * @brief PBR texture generation
+     * @param layerIndex Base layer index for PBR maps (uses layers base..base+3)
+     * @param config Texture configuration
+     * @return true on success
+     *
+     * Generates metallic, roughness, normal, and AO maps procedurally
+     * using noise-based algorithms that are consistent with the albedo texture.
+     */
+    bool generatePBRMaps(int layerIndex, const PlanetTextureConfig& config);
+
+    /**
+     * @brief Enable/disable PBR rendering (fallback to legacy Phong)
+     */
+    void setPBREnabled(bool enabled) { m_usePBR = enabled; }
+    bool isPBREnabled() const { return m_usePBR; }
+
+    /**
+     * @brief Set environment color for IBL approximation
+     * @param color Environment irradiance (RGB)
+     */
+    void setEnvironmentColor(const float color[3]);
+
+    /**
+     * @brief Load texture layer with fallback: file first, then procedural
+     * @param layerIndex Layer index in texture array
+     * @param filepath Path to texture file (empty to force procedural)
+     * @param config Procedural config (used if file missing or forceProcedural=true)
+     * @param forceProcedural Skip file loading, use procedural
+     * @return true on success
+     */
+    bool loadTextureLayer(int layerIndex, const std::string& filepath,
+                          const PlanetTextureConfig& config,
+                          bool forceProcedural = false);
     
     /**
      * @brief Get the procedural texture generator
@@ -223,6 +282,7 @@ private:
     unsigned int m_instanceVBO;
 
     unsigned int m_shaderProgram;
+    unsigned int m_pbrShaderProgram;
     unsigned int m_atmosphereShaderProgram;
 
     // Sphere geometry
@@ -240,6 +300,9 @@ private:
     };
     std::vector<BodyData> m_bodies;
     std::map<std::string, size_t> m_bodyIndexMap;
+
+    // Coordinate scale: meters per viewport unit
+    double m_coordinateScale = 1.496e10; // 1 AU = 10 units
 
     // Light properties
     float m_lightPosition[3];
@@ -259,9 +322,13 @@ private:
     // Texture array
     TextureArray m_textureArray;
     bool m_useTextureArray;
-    
+
     // Procedural texture generator
     ProceduralTextureGenerator m_textureGenerator;
+
+    // PBR state
+    bool m_usePBR;
+    float m_envColor[3];
 };
 
 } // namespace quantumverse

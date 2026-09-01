@@ -267,17 +267,19 @@ bool TextureArray::initialize(int maxLayers, int width, int height)
     glGenTextures(1, &m_id);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_id);
 
-    // Allocate storage for the array (layers are added lazily)
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8,
-                   width, height, maxLayers);
+    // Allocate immutable storage (more reliable than glTexImage3D on some drivers)
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, maxLayers);
+    GLenum allocErr = glGetError();
+    if (allocErr != GL_NO_ERROR) {
+        std::cerr << "[TextureArray] GL error after glTexStorage3D: 0x" << std::hex << allocErr << std::dec << std::endl;
+    }
 
     // Set texture parameters
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     return true;
@@ -314,8 +316,6 @@ int TextureArray::addLayerFromFile(const std::string& filepath)
                     m_width, m_height, 1,
                     GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-    // Regenerate mipmaps after adding a new layer so all levels are consistent
-    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     stbi_image_free(data);
@@ -359,8 +359,6 @@ int TextureArray::addLayerFromMemory(const unsigned char* data,
                     m_width, m_height, 1,
                     GL_RGBA, GL_UNSIGNED_BYTE, srcData);
 
-    // Regenerate mipmaps after adding a new layer so all levels are consistent
-    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     return layerIndex;

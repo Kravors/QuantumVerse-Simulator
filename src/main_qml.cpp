@@ -54,6 +54,7 @@
 #include "ui4d/PlanckMicroscope.h"
 #include "ui4d/Camera4DAdapter.h"
 #include "spacetime/MetricTensor.h"
+#include "spacetime/KerrMetric.h"
 #include "rendering/CurvatureRenderer.h"
 #include "rendering/QuantumGeometryRenderer.h"
 #include "rendering/CelestialBodyRenderer.h"
@@ -108,6 +109,8 @@
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
 #include "utils/FrameDiagnostics.h"
+#include "config/ConfigLoader.h"
+#include "scenario/ScenarioManager.h"
 
 /**
  * @brief Register QML types for the QuantumVerse module
@@ -139,8 +142,7 @@ QSurfaceFormat createSurfaceFormat()
     format.setStencilBufferSize(8);
     format.setSamples(4); // MSAA
     format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
-    // DISABLED: Debug context causes GPU driver breakpoints after ~25 minutes
-    // format.setOption(QSurfaceFormat::DebugContext, true);  // Enable debug context for GL callback
+    format.setSwapInterval(1);
     return format;
 }
 
@@ -428,25 +430,47 @@ int main(int argc, char* argv[])
         std::cerr.flush();
 
         // Create the physics engine components
-        double blackHoleMass = 10.0 * 1.989e30;  // 10 solar masses in kg
-        auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(blackHoleMass);
+        // Load config from file (or use defaults)
+        quantumverse::ConfigLoader::instance().loadFromFile("config/simulator.json");
+        const auto& config = quantumverse::ConfigLoader::instance().config();
+
+        // Initialize scenario manager
+        quantumverse::ScenarioManager::instance().initialize("data/scenarios/");
+
+        double blackHoleMass = config.black_hole.mass_solar_masses * 1.989e30;
+        double blackHoleSpin = config.black_hole.spin;
+
+        std::shared_ptr<quantumverse::MetricTensor> metric;
+        if (blackHoleSpin > 1e-10) {
+            metric = std::make_shared<quantumverse::KerrMetric>(blackHoleMass, blackHoleSpin);
+            qDebug() << "QuantumVerse: Created Kerr BH with spin a*=" << blackHoleSpin
+                     << ", r_s =" << static_cast<quantumverse::KerrMetric*>(metric.get())->schwarzschildRadius() << "m"
+                     << ", r_+ =" << static_cast<quantumverse::KerrMetric*>(metric.get())->outerHorizonRadius() << "m";
+        } else {
+            metric = std::make_shared<quantumverse::SchwarzschildMetric>(blackHoleMass);
+            qDebug() << "QuantumVerse: Created Schwarzschild BH, r_s =" << blackHoleMass * 2.0 * 6.67430e-11 / (299792458.0 * 299792458.0) << "m";
+        }
         auto curvatureRenderer = std::make_shared<quantumverse::CurvatureRenderer>(
-            30, 100.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
+            config.grid.resolution, config.grid.size, quantumverse::CurvatureMode::GRID_DEFORMATION);
         curvatureRenderer->setMetric(metric);
 
-        // Create a Schwarzschild black hole singularity (M = 10 solar masses)
-        // Position at origin for the central viewport focus
-        // (blackHoleMass is defined above, where the metric is created)
+        // Create black hole singularity (position at origin)
         std::array<double, 3> bhPos = {0.0, 0.0, 0.0};
+        double angularMomentum = blackHoleSpin * quantumverse::PHYS_G() * blackHoleMass * blackHoleMass / quantumverse::PHYS_C();
+        quantumverse::SingularityType bhType = (blackHoleSpin > 1e-10)
+            ? quantumverse::SingularityType::KERR
+            : quantumverse::SingularityType::SCHWARZSCHILD;
         auto singularity = std::make_shared<quantumverse::SingularityHandler>(
-            quantumverse::SingularityType::SCHWARZSCHILD,
+            bhType,
             blackHoleMass,
-            0.0,   // angular momentum
+            angularMomentum,
             0.0,   // charge
             bhPos
         );
-        qDebug() << "QuantumVerse: Created Schwarzschild BH, r_s ="
-                 << singularity->getProperties().schwarzschild_radius << "m";
+        qDebug() << "QuantumVerse: Created" << (blackHoleSpin > 1e-10 ? "Kerr" : "Schwarzschild")
+                 << "BH, r_s =" << singularity->getProperties().schwarzschild_radius << "m"
+                 << (blackHoleSpin > 1e-10 ? ", r_+ =" + QString::number(singularity->getProperties().event_horizon_radius) + "m"
+                                          : "");
 
         // Add singularity to curvature renderer for grid deformation
         curvatureRenderer->addSingularity(singularity);
@@ -509,6 +533,7 @@ int main(int argc, char* argv[])
         ui4d->setMetric(metric);
         ui4d->setCurvatureRenderer(curvatureRenderer);
         ui4d->setQuantumRenderer(quantumRenderer);
+        ui4d->setKerrSpin(blackHoleSpin);
 
         // Visualization scale: object positions are stored in raw meters
         // (Sun at origin, Neptune at ~30 AU). The viewport grid spans only
@@ -923,6 +948,17 @@ int main(int argc, char* argv[])
 
                 auto celestialBodyRenderer = std::make_shared<quantumverse::CelestialBodyRenderer>(
                     quantumverse::CelestialBodyRenderer::QualityLevel::MEDIUM, 64);
+
+                // Set coordinate scale: 1 AU = 10 viewport units
+                // This maps the solar system (AU scale) into the viewport grid
+                celestialBodyRenderer->setCoordinateScale(1.496e10); // 1.496e11 m / 10 units
+
+                // Light from the camera side so visible planet faces are illuminated
+                float lightPos[3] = {0.0f, 0.0f, 50.0f};
+                celestialBodyRenderer->setLightPosition(lightPos);
+                float lightColor[3] = {1.0f, 0.95f, 0.9f};
+                celestialBodyRenderer->setLightProperties(lightColor, 1.5f);
+
                 viewport->setCelestialBodyRendererDirect(celestialBodyRenderer);
 
                 if (headlessFrames > 0) {
@@ -939,9 +975,17 @@ int main(int argc, char* argv[])
                     qDebug() << "[DIAG] --enable-geodesics: curvatureRenderer sync will happen in renderGL()";
                 }
 
+                // Defer screenshot request until after the event loop starts.
+                // The render thread begins rendering immediately when QML loads,
+                // so calling requestScreenshot() here races with synchronize().
+                // A single-shot timer ensures the request is set before the next
+                // synchronize() call.
                 if (!screenshotPath.isEmpty()) {
-                    qDebug() << "[DEBUG] Requesting screenshot:" << screenshotPath;
-                    viewport->requestScreenshot(screenshotPath);
+                    qDebug() << "[DEBUG] Scheduling screenshot request:" << screenshotPath;
+                    QTimer::singleShot(500, [viewport, screenshotPath]() {
+                        qDebug() << "[DEBUG] Requesting screenshot (deferred):" << screenshotPath;
+                        viewport->requestScreenshot(screenshotPath);
+                    });
                 } else {
                     qDebug() << "[DEBUG] screenshotPath is empty";
                 }

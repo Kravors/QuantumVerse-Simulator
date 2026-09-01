@@ -335,6 +335,10 @@ void SceneGraphManager::importFromMetricTensor(const std::shared_ptr<MetricTenso
 // ============================================================================
 
 void SceneGraphManager::createSolarSystem() {
+    if (m_solarSystemCreated) {
+        return;
+    }
+    
     // Complete solar system (positions in AU, masses in kg)
     const double AU = 1.496e11;  // meters
     
@@ -467,6 +471,8 @@ void SceneGraphManager::createSolarSystem() {
     
     // Add Sagittarius A* (Milky Way center black hole) for reference
     createSchwarzschildBlackHole(4.0e6 * 1.989e30, Event4D(0.0, 0.0, 0.0, 0.0));
+    
+    m_solarSystemCreated = true;
 }
 
 void SceneGraphManager::createSchwarzschildBlackHole(double mass, const Event4D& pos) {

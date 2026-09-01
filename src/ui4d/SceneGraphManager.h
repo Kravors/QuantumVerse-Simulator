@@ -81,7 +81,7 @@ struct SceneGraph {
 class SceneGraphManager {
 public:
     explicit SceneGraphManager(std::shared_ptr<MetricTensor> metric);
-    ~SceneGraphManager() = default;
+    virtual ~SceneGraphManager() = default;
     
     // Object management
     std::string addObject(ObjectType type, const std::string& name, const Event4D& pos);
@@ -136,6 +136,7 @@ public:
     
     // Utility: create standard solar system bodies
     void createSolarSystem();
+    bool isSolarSystemCreated() const { return m_solarSystemCreated; }
     void createSchwarzschildBlackHole(double mass, const Event4D& pos);
     void createKerrBlackHole(double mass, double spin, const Event4D& pos);
     
@@ -156,6 +157,8 @@ private:
     
     // Internal: update worldlines based on current time
     void updateWorldlines();
+    
+    bool m_solarSystemCreated = false;
 };
 
 } // namespace quantumverse

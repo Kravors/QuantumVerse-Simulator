@@ -16,6 +16,7 @@
 #include <memory>
 #include "Event4D.h"
 #include "../math/AutoDiff.h"
+#include "../physics/PhysicsConstants.h"
 
 namespace quantumverse {
 
@@ -70,7 +71,7 @@ public:
         MetricTensor metric;
 
         // Schwarzschild radius: rs = 2GM/c²
-        double rs = 2.0 * Event4D::G * mass / (Event4D::C * Event4D::C);
+        double rs = 2.0 * PHYS_G() * mass / (PHYS_C() * PHYS_C());
         double factor = 1.0 - rs / r;
         
         if (r <= rs) {
@@ -99,8 +100,8 @@ public:
         MetricTensor metric;
 
         // Schwarzschild radius: rs = 2GM/c²
-        double rs = 2.0 * Event4D::G * mass / (Event4D::C * Event4D::C);
-        double a = angular_momentum / (mass * Event4D::C);  // Dimensionless spin parameter
+        double rs = 2.0 * PHYS_G() * mass / (PHYS_C() * PHYS_C());
+        double a = angular_momentum / (mass * PHYS_C());  // Dimensionless spin parameter
         double sigma = r * r + a * a * std::cos(theta) * std::cos(theta);
         double delta = r * r - rs * r + a * a;
         
@@ -198,6 +199,38 @@ public:
         const Event4D&
     ) const {
         return {{{{{0.0}}}}};
+    }
+
+    /**
+     * @brief Frame-dragging angular velocity ω(r, θ) in rad/s.
+     *
+     * Returns 0 for non-rotating metrics (Schwarzschild, Minkowski).
+     * Kerr overrides to return the Lense-Thirring angular velocity.
+     *
+     * @param r Boyer-Lindquist radial coordinate in meters.
+     * @param theta Polar angle in radians.
+     * @return Angular velocity in rad/s.
+     */
+    virtual double frameDraggingOmega(double r, double theta) const {
+        (void)r;
+        (void)theta;
+        return 0.0;
+    }
+
+    /**
+     * @brief Time dilation factor for visualization.
+     *
+     * Returns sqrt(-g_tt) at the given position, representing gravitational
+     * time dilation relative to a distant observer.
+     *
+     * @param r Radial coordinate in meters.
+     * @param theta Polar angle in radians.
+     * @return Time dilation factor (1.0 = no dilation, 0.0 = horizon).
+     */
+    virtual double timeDilationFactor(double r, double theta) const {
+        (void)r;
+        (void)theta;
+        return 1.0;
     }
 
     // Virtual destructor for proper polymorphic cleanup
@@ -435,8 +468,8 @@ public:
         const double minR = 1e-9;
         if (r < minR) r = minR;
 
-        const double c2 = Event4D::C * Event4D::C;
-        double rs = 2.0 * Event4D::G * m_mass / c2;
+        const double c2 = PHYS_C() * PHYS_C();
+        double rs = 2.0 * PHYS_G() * m_mass / c2;
         double factor = 1.0 - rs / r;                 // g_tt = -factor
 
         // Spatial correction coefficient; clamp inside the horizon to avoid
@@ -464,8 +497,8 @@ public:
         const double minR = 1e-9;
         if (r < minR) r = minR;
 
-        const double c4 = Event4D::C * Event4D::C * Event4D::C * Event4D::C;
-        double G = Event4D::G;
+        const double c4 = PHYS_C() * PHYS_C() * PHYS_C() * PHYS_C();
+        double G = PHYS_G();
         double K = 48.0 * G * G * m_mass * m_mass / (c4 * std::pow(r, 6));
 
         CurvatureScalars s;
@@ -484,7 +517,7 @@ public:
         RVar theta = pos[2];
 
         RVar M = params.empty() ? math::ADTape::record(m_mass, nullptr) : params[0];
-        RVar rs = math::mul(M, math::ADTape::record(2.0 * Event4D::G / (Event4D::C * Event4D::C), nullptr));
+        RVar rs = math::mul(M, math::ADTape::record(2.0 * PHYS_G() / (PHYS_C() * PHYS_C()), nullptr));
         RVar factor = math::sub(math::ADTape::record(1.0, nullptr), math::div(rs, r));
         RVar g_tt = math::neg(factor);
         RVar g_rr = math::div(math::ADTape::record(1.0, nullptr), factor);
@@ -512,7 +545,7 @@ public:
         RVar theta = pos[2];
 
         RVar M = params.empty() ? math::ADTape::record(m_mass, nullptr) : params[0];
-        RVar rs = math::mul(M, math::ADTape::record(2.0 * Event4D::G / (Event4D::C * Event4D::C), nullptr));
+        RVar rs = math::mul(M, math::ADTape::record(2.0 * PHYS_G() / (PHYS_C() * PHYS_C()), nullptr));
         RVar r_minus_rs = math::sub(r, rs);
         RVar r_inv = math::div(math::ADTape::record(1.0, nullptr), r);
         RVar r2 = math::mul(r, r);
@@ -559,8 +592,8 @@ public:
         const double minR = 1e-9;
         if (r < minR) r = minR;
 
-        const double c2 = Event4D::C * Event4D::C;
-        double rs = 2.0 * Event4D::G * m_mass / c2;
+        const double c2 = PHYS_C() * PHYS_C();
+        double rs = 2.0 * PHYS_G() * m_mass / c2;
         double r_minus_rs = r - rs;
         double r_inv = 1.0 / r;
         double r2 = r * r;
@@ -624,7 +657,7 @@ public:
         
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                tensor.T[i][j] = (density + pressure / Event4D::C2) * four_velocity[i] * four_velocity[j]
+                tensor.T[i][j] = (density + pressure / PHYS_C2()) * four_velocity[i] * four_velocity[j]
                                + pressure * metric.g[i][j];
             }
         }

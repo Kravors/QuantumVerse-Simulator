@@ -23,6 +23,8 @@
 #include "../spacetime/LightCone.h"
 #include "../physics/SingularityHandler.h"
 
+class QVector4D;
+
 namespace quantumverse {
 
 // Curvature visualization modes
@@ -55,6 +57,7 @@ struct ShaderProgram {
     void setUniform(const char* name, int value) const;
     void setUniform(const char* name, const float* matrix) const;
     void setUniform(const char* name, const double* matrix) const;
+    void setUniform(const char* name, const QVector4D& color) const;
 };
 
 class CurvatureRenderer {
@@ -133,6 +136,10 @@ private:
     };
     std::vector<GridCell> gridCells;
     int cellsPerDimension;
+
+    // Plane mode: when true, grid is a 2D plane (rubber sheet) instead of 3D cube
+    bool m_planeMode;
+    int m_planeResolution;  ///< Resolution for plane mode (higher = smoother curvature)
 
     // Initialize grid vertices
     void initializeGrid();
@@ -255,6 +262,18 @@ public:
 
     // Update all vertex colors
     void updateAllColors();
+
+    // Set plane mode (2D rubber sheet vs 3D cube)
+    void setPlaneMode(bool enable);
+
+    // Get plane mode state
+    bool isPlaneMode() const { return m_planeMode; }
+
+    // Set plane mode resolution (vertices per side)
+    void setPlaneResolution(int resolution);
+
+    // Get plane mode resolution
+    int getPlaneResolution() const { return m_planeResolution; }
 
     // Compile shader from source strings (implementation in .cpp)
     bool compileShader(unsigned int& program,

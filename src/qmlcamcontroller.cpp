@@ -26,9 +26,9 @@ namespace quantumverse {
 
 QmlCamController::QmlCamController(QObject* parent)
     : QObject(parent)
-    , m_distance(50.0f)
-    , m_azimuth(0.0f)
-    , m_elevation(0.3f)  // Slightly above equator
+    , m_distance(150.0f)
+    , m_azimuth(0.785f)  // 45 degrees
+    , m_elevation(0.524f)  // 30 degrees - looking down at grid
     , m_target(0.0f, 0.0f, 0.0f)
     , m_fov(45.0f)
     , m_isDragging(false)
