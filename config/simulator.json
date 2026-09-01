@@ -1,0 +1,120 @@
+{
+    "physics_constants": {
+        "G": 6.67430e-11,
+        "c": 299792458.0,
+        "h": 6.62607015e-34,
+        "description": "G=gravitational constant, c=speed of light, h=Planck constant"
+    },
+    "black_hole": {
+        "mass_solar_masses": 10.0,
+        "position": [0.0, 0.0, 0.0],
+        "type": "kerr",
+        "spin": 0.6,
+        "charge": 0.0
+    },
+    "solar_system": {
+        "central_body": {
+            "name": "Sun",
+            "mass_kg": 1.989e30,
+            "radius_m": 696340000.0,
+            "is_star": true,
+            "is_central_body": true,
+            "texture_layer": 7,
+            "color": [1.0, 0.95, 0.6]
+        },
+        "bodies": [
+            {
+                "name": "Mercury",
+                "mass_kg": 3.3011e23,
+                "radius_m": 2439700.0,
+                "semi_major_axis_au": 0.387,
+                "orbital_period_days": 87.97,
+                "texture_type": "barren",
+                "texture_layer": 5,
+                "color": [0.6, 0.6, 0.6]
+            },
+            {
+                "name": "Venus",
+                "mass_kg": 4.8675e24,
+                "radius_m": 6051800.0,
+                "semi_major_axis_au": 0.723,
+                "orbital_period_days": 224.7,
+                "texture_type": "barren",
+                "texture_layer": 4,
+                "color": [0.9, 0.8, 0.5]
+            },
+            {
+                "name": "Earth",
+                "mass_kg": 5.972e24,
+                "radius_m": 6371000.0,
+                "semi_major_axis_au": 1.0,
+                "orbital_period_days": 365.25,
+                "texture_type": "terrestrial",
+                "texture_layer": 0,
+                "color": [0.2, 0.4, 0.8]
+            },
+            {
+                "name": "Mars",
+                "mass_kg": 6.4171e23,
+                "radius_m": 3389500.0,
+                "semi_major_axis_au": 1.524,
+                "orbital_period_days": 687.0,
+                "texture_type": "terrestrial",
+                "texture_layer": 1,
+                "color": [0.8, 0.3, 0.1]
+            },
+            {
+                "name": "Jupiter",
+                "mass_kg": 1.8982e27,
+                "radius_m": 69911000.0,
+                "semi_major_axis_au": 5.204,
+                "orbital_period_days": 4333.0,
+                "texture_type": "gas_giant",
+                "texture_layer": 2,
+                "color": [0.8, 0.7, 0.5]
+            },
+            {
+                "name": "Saturn",
+                "mass_kg": 5.6834e26,
+                "radius_m": 58232000.0,
+                "semi_major_axis_au": 9.582,
+                "orbital_period_days": 10759.0,
+                "texture_type": "gas_giant",
+                "texture_layer": 3,
+                "color": [0.9, 0.8, 0.6]
+            },
+            {
+                "name": "Uranus",
+                "mass_kg": 8.6810e25,
+                "radius_m": 25362000.0,
+                "semi_major_axis_au": 19.201,
+                "orbital_period_days": 30687.0,
+                "texture_type": "ice_world",
+                "color": [0.6, 0.8, 0.9]
+            },
+            {
+                "name": "Neptune",
+                "mass_kg": 1.02413e26,
+                "radius_m": 24622000.0,
+                "semi_major_axis_au": 30.047,
+                "orbital_period_days": 60190.0,
+                "texture_type": "ice_world",
+                "color": [0.3, 0.4, 0.9]
+            }
+        ]
+    },
+    "rendering": {
+        "grid": {
+            "resolution": 30,
+            "size": 100.0,
+            "deformation_scale": 0.01,
+            "max_displacement": 5.0
+        },
+        "camera": {
+            "distance": 150.0,
+            "azimuth": 45.0,
+            "elevation": 30.0,
+            "fov": 60.0
+        }
+    }
+}
