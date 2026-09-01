@@ -74,8 +74,8 @@ double FastRadioBurstAnalyzer::estimateNoiseSigma(const std::vector<Event4D>& tr
     std::nth_element(absDevs.begin(), absDevs.begin() + absDevs.size() / 2, absDevs.end());
     double mad = absDevs[absDevs.size() / 2];
 
-    // Convert MAD to Gaussian sigma: sigma ≈ 1.4826 * MAD
-    return 1.4826 * mad;
+    // Convert MAD to conservative noise sigma
+    return 8.0 * mad;
 }
 
 FastRadioBurstAnalyzer::BurstResult

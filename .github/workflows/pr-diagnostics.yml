@@ -225,7 +225,7 @@ jobs:
           # software-GL and are tracked as non-blocking canaries
           # elsewhere; exclude them so this job gates on the core
           # invariant and functional tests.
-          cd build && xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest" --timeout 600 --output-on-failure -j 2
+            cd build && xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest" --timeout 600 --output-on-failure -j 2
 
   all-deps-build:
       runs-on: ubuntu-latest
@@ -260,7 +260,7 @@ jobs:
             # software-GL and are tracked as non-blocking canaries
             # elsewhere; exclude them so this job gates on the core
             # invariant and functional tests.
-            cd build && xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest" --timeout 600 --output-on-failure -j 2
+          cd build && xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest" --timeout 600 --output-on-failure -j 2
 
 
   secret-scan:

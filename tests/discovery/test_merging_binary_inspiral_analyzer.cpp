@@ -75,7 +75,7 @@ int main() {
     {
         MergingBinaryInspiralAnalyzer analyzer;
         double mcTrue = 0.01;
-        double tc = 10.0;
+        double tc = 20.0;
         double dt = 0.001;
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
@@ -96,7 +96,7 @@ int main() {
     {
         MergingBinaryInspiralAnalyzer analyzer;
         double mcTrue = 0.01;
-        double tc = 10.0;
+        double tc = 20.0;
         double dt = 0.001;
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
@@ -114,7 +114,7 @@ int main() {
     {
         MergingBinaryInspiralAnalyzer analyzer;
         double mcTrue = 0.01;
-        double tc = 10.0;
+        double tc = 20.0;
         double dt = 0.001;
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 5.0);
         auto findings = analyzer.analyze(metric, location, traj);

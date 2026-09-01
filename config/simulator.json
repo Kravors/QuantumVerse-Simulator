@@ -8,8 +8,8 @@
     "black_hole": {
         "mass_solar_masses": 10.0,
         "position": [0.0, 0.0, 0.0],
-        "type": "kerr",
-        "spin": 0.6,
+        "type": "schwarzschild",
+        "spin": 0.0,
         "charge": 0.0
     },
     "solar_system": {
@@ -111,7 +111,7 @@
             "max_displacement": 5.0
         },
         "camera": {
-            "distance": 150.0,
+            "distance": 500.0,
             "azimuth": 45.0,
             "elevation": 30.0,
             "fov": 60.0
