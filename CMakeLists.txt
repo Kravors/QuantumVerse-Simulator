@@ -133,7 +133,18 @@ endif()
 
 # Qt/QML configuration
 if(QUANTUMVERSE_USE_QT)
-    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick OpenGL OpenGLWidgets QuickControls2 QuickTemplates2 QuickLayouts Network WebSockets Test Multimedia)
+    find_package(Qt6 QUIET COMPONENTS Multimedia)
+    if(Qt6Multimedia_FOUND)
+        set(QT6_MULTIMEDIA_COMPONENTS Multimedia)
+        set(QT6_MULTIMEDIA_LINK_LIBS Qt6::Multimedia)
+        set(QUANTUMVERSE_HAS_MULTIMEDIA 1)
+    else()
+        message(STATUS "Qt6 Multimedia not found - audio features disabled")
+        set(QT6_MULTIMEDIA_COMPONENTS "")
+        set(QT6_MULTIMEDIA_LINK_LIBS "")
+        set(QUANTUMVERSE_HAS_MULTIMEDIA 0)
+    endif()
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick OpenGL OpenGLWidgets QuickControls2 QuickTemplates2 QuickLayouts Network WebSockets Test ${QT6_MULTIMEDIA_COMPONENTS})
 
     if(Qt6Core_DIR)
         get_filename_component(QT_HOST_PATH "${Qt6Core_DIR}/../../.." ABSOLUTE)
@@ -293,7 +304,7 @@ if(QUANTUMVERSE_USE_QT)
         Qt6::OpenGLWidgets
         Qt6::Network
         Qt6::WebSockets
-        Qt6::Multimedia
+        ${QT6_MULTIMEDIA_LINK_LIBS}
         dilaton
         nlohmann_json
         ${LIBRDKAFKA_LIBRARIES}
@@ -497,7 +508,7 @@ if(QUANTUMVERSE_USE_QT)
             Qt6::OpenGL
             Qt6::OpenGLWidgets
             Qt6::Test
-            Qt6::Multimedia
+            ${QT6_MULTIMEDIA_LINK_LIBS}
             dilaton
         )
         if(WIN32)
@@ -550,7 +561,7 @@ if(QUANTUMVERSE_USE_QT)
             Qt6::OpenGL
             Qt6::OpenGLWidgets
             Qt6::Test
-            Qt6::Multimedia
+            ${QT6_MULTIMEDIA_LINK_LIBS}
             dilaton
         )
         if(WIN32)
@@ -604,7 +615,7 @@ if(QUANTUMVERSE_USE_QT)
             Qt6::OpenGL
             Qt6::OpenGLWidgets
             Qt6::Test
-            Qt6::Multimedia
+            ${QT6_MULTIMEDIA_LINK_LIBS}
             dilaton
         )
         if(WIN32)
@@ -705,7 +716,7 @@ if(QUANTUMVERSE_USE_QT)
                 src/scenario/Scenario.cpp
                 src/scenario/ScenarioManager.cpp
             )
-            target_link_libraries(test_hud_toggle PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Quick Qt6::Test Qt6::Multimedia)
+            target_link_libraries(test_hud_toggle PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Quick Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS})
             set_target_properties(test_hud_toggle PROPERTIES AUTOMOC ON)
             target_compile_definitions(test_hud_toggle PRIVATE QUANTUMVERSE_USE_QML)
             target_include_directories(test_hud_toggle PRIVATE
@@ -767,7 +778,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
-        target_link_libraries(test_ui4d PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test Qt6::Multimedia dilaton)
+        target_link_libraries(test_ui4d PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS} dilaton)
         if(WIN32)
             target_link_libraries(test_ui4d PRIVATE opengl32 dbghelp)
         endif()
