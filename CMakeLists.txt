@@ -951,11 +951,16 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_config_loader.cpp)
     set_tests_properties(ConfigLoaderTest PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_nbody.cpp)
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_nbody.cpp AND QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
     add_executable(test_nbody tests/test_nbody.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp third_party/glad/glad.cpp)
-    target_link_libraries(test_nbody PRIVATE dilaton nlohmann_json)
+    target_link_libraries(test_nbody PRIVATE dilaton nlohmann_json Qt6::Core Qt6::Gui)
     target_include_directories(test_nbody PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/third_party/glad/include ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad)
     add_test(NAME NBodyTest COMMAND test_nbody)
+    set_tests_properties(NBodyTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+        TIMEOUT 180
+    )
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_scenario_system.cpp)
