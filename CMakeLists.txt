@@ -944,20 +944,26 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_gravitational_redshift PRIVATE dilaton)
     add_test(NAME GravitationalRedshiftTest COMMAND test_gravitational_redshift)
 
-add_executable(test_config_loader tests/test_config_loader.cpp)
-target_link_libraries(test_config_loader PRIVATE dilaton nlohmann_json)
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_config_loader.cpp)
+    add_executable(test_config_loader tests/test_config_loader.cpp)
+    target_link_libraries(test_config_loader PRIVATE dilaton nlohmann_json)
     add_test(NAME ConfigLoaderTest COMMAND test_config_loader)
+endif()
 
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_nbody.cpp)
     add_executable(test_nbody tests/test_nbody.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp third_party/glad/glad.cpp)
     target_link_libraries(test_nbody PRIVATE dilaton nlohmann_json)
     target_include_directories(test_nbody PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/third_party/glad/include ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad)
     add_test(NAME NBodyTest COMMAND test_nbody)
+endif()
 
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_scenario_system.cpp)
     # Scenario system tests
     add_executable(test_scenario_system tests/test_scenario_system.cpp src/scenario/Scenario.cpp src/scenario/ScenarioManager.cpp)
     target_link_libraries(test_scenario_system PRIVATE dilaton nlohmann_json)
     target_include_directories(test_scenario_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
     add_test(NAME ScenarioSystemTest COMMAND test_scenario_system)
+endif()
 
 # Copy config files to build directory (only if they exist)
 if(EXISTS ${CMAKE_SOURCE_DIR}/config)
@@ -992,12 +998,15 @@ endif()
     add_test(NAME SpacetimeTest COMMAND test_spacetime)
 
     # Kerr metric test
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_kerr_metric.cpp)
     add_executable(test_kerr_metric
         tests/test_kerr_metric.cpp
         src/spacetime/KerrMetric.cpp)
     target_link_libraries(test_kerr_metric PRIVATE dilaton)
     add_test(NAME KerrMetricTest COMMAND test_kerr_metric)
+endif()
 
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_lensing.cpp)
     # Gravitational lensing test
     add_executable(test_lensing
         tests/test_lensing.cpp
@@ -1014,7 +1023,9 @@ endif()
         target_link_libraries(test_lensing PRIVATE opengl32)
     endif()
     add_test(NAME GravitationalLensingTest COMMAND test_lensing)
+endif()
 
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_pbr_rendering.cpp)
     # PBR rendering test
     add_executable(test_pbr_rendering
         tests/test_pbr_rendering.cpp
@@ -1023,6 +1034,7 @@ endif()
     target_include_directories(test_pbr_rendering PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(test_pbr_rendering PRIVATE dilaton)
     add_test(NAME PBRRenderingTest COMMAND test_pbr_rendering)
+endif()
 
     add_executable(test_geodesic tests/test_geodesic.cpp)
     target_link_libraries(test_geodesic PRIVATE dilaton)
