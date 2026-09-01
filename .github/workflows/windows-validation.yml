@@ -63,12 +63,13 @@ jobs:
       
       - name: Run Tests
         working-directory: build
+        timeout-minutes: 60
         run: |
           # GPU/visual/perf tests are env-sensitive under headless
           # software-GL and are tracked as non-blocking canaries
           # elsewhere; exclude them so this job gates on the core
           # invariant and functional tests.
-          ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest" -C ${{ matrix.build_type }} --output-on-failure -j 2
+          ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest" -C ${{ matrix.build_type }} --timeout 120 --output-on-failure -j 2
       
       - name: Upload Test Results
         if: always()
