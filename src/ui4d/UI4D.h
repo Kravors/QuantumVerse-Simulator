@@ -876,6 +876,8 @@ private:
     void pauseScenario();
     void stopScenario();
     void stepScenario(double dt);
+    void setSimulationTime(double time) { scenarioState.time = time; }
+    double getSimulationTime() const { return scenarioState.time; }
     bool isScenarioPlaying() const { return scenarioState.playing; }
     double scenarioTime() const { return scenarioState.time; }
     std::string currentScenarioName() const {

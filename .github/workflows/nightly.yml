@@ -44,7 +44,7 @@ jobs:
     - name: Deploy Qt runtime
       run: cmake --build build --config Debug --target deploy_qt_runtime || echo "deploy_qt_runtime target not available"
     - name: Full test suite
-      run: ctest --test-dir build -C Debug -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --output-on-failure
+      run: ctest --test-dir build -C Debug -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --output-on-failure
     - name: Fuzz campaign (10 min)
       run: |
         cd build/Debug

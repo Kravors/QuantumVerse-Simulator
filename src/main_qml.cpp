@@ -313,9 +313,12 @@ int main(int argc, char* argv[])
     QString diagnosticsPath;
     QString signalingServerUrl;
     QString sessionId;
+    double fixedSimTime = -1.0;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--simTime") == 0 && i + 1 < argc) {
+            fixedSimTime = atof(argv[++i]);
         } else if (strcmp(argv[i], "--screenshot") == 0 && i + 1 < argc) {
             screenshotPath = argv[++i];
         } else if (strcmp(argv[i], "--dump-frame-times") == 0 && i + 1 < argc) {
@@ -337,6 +340,10 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i], "--session-id") == 0 && i + 1 < argc) {
             sessionId = argv[++i];
         }
+    }
+    if (fixedSimTime >= 0.0) {
+        std::cerr << "QuantumVerse: Deterministic simTime mode: fixedTime=" << fixedSimTime << std::endl;
+        std::cerr.flush();
     }
     if (!screenshotPath.isEmpty() && headlessFrames <= 0) {
         headlessFrames = 1;
@@ -1055,7 +1062,9 @@ int main(int argc, char* argv[])
                     viewport->update();
                 }
                 QCoreApplication::processEvents();
-                QThread::msleep(50);
+                if (fixedSimTime < 0.0) {
+                    QThread::msleep(50);
+                }
             }
             std::cerr << "Warmup complete, starting benchmark..." << std::endl;
             std::cerr.flush();
@@ -1093,11 +1102,16 @@ int main(int argc, char* argv[])
                 }
 #endif
 
-                if (viewport) {
-                    viewport->update();
-                }
-                QCoreApplication::processEvents();
-                QThread::msleep(16);
+                 if (viewport) {
+                     if (fixedSimTime >= 0.0) {
+                         viewport->setSimulationTime(static_cast<float>(fixedSimTime));
+                     }
+                     viewport->update();
+                 }
+                 QCoreApplication::processEvents();
+                 if (fixedSimTime < 0.0) {
+                     QThread::msleep(16);
+                 }
 
                 if (frameDiagnostics.isEnabled()) {
                     quantumverse::utils::FrameSnapshot snap;

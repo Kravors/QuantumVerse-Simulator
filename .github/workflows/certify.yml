@@ -35,12 +35,12 @@ jobs:
         # headless software-GL CI runner (pixel regression, frame-timing dump and
         # --gl-strict mismatches). Exclude them from the gating suite and run them
         # separately as a non-blocking canary, matching all other workflows.
-        GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
+        GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest"
         xvfb-run -a ctest --test-dir build -C Release -E "$GPU_CANARY" --output-on-failure
     - name: Rendering tests (non-blocking canary)
       continue-on-error: true
       run: |
-        GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
+        GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest"
         xvfb-run -a ctest --test-dir build -C Release -R "$GPU_CANARY" --output-on-failure
     - name: Symbolic verification (1000 points)
       run: python scripts/verify_symbolic.py --points 1000 --seed 0

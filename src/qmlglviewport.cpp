@@ -1129,6 +1129,11 @@ void QmlGlRenderer::resetTime()
     m_time = 0.0f;
 }
 
+void QmlGlRenderer::setSimulationTime(float time)
+{
+    m_time = time;
+}
+
 // ============================================================================
 // OpenGL Initialization
 // ============================================================================
@@ -2419,6 +2424,15 @@ void QmlGlViewport::updateSimulation(double deltaTime)
     emit telemetryUpdated();
 
     update();
+}
+
+void QmlGlViewport::setSimulationTime(float time)
+{
+    m_simulationTime = time;
+    if (m_renderer) {
+        m_renderer->setSimulationTime(time);
+    }
+    emit simulationTimeChanged();
 }
 
 void QmlGlViewport::togglePlaneMode(bool enable)

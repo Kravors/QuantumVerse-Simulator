@@ -1596,6 +1596,68 @@ endif()
             ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             TIMEOUT 180
         )
+
+        # 20.5 Viewport state leak regression (FBO binding + polygon-mode guard)
+        # Guards against FBO-unbinding and glPolygonMode(GL_LINE) leaks that
+        # caused the black-screen and red-wireframe regressions.  Renders 10
+        # frames with wireframe toggling, verifying GL state is clean.
+        add_executable(test_viewport_state_test
+            tests/rendering/test_viewport_state_test.cpp
+            src/rendering/CurvatureRenderer.cpp
+            src/rendering/CelestialBodyRenderer.cpp
+            src/rendering/ProceduralTextures.cpp
+            src/rendering/Texture.cpp
+            src/physics/CurvatureCalculator.cpp
+            third_party/glad/glad.cpp
+        )
+        target_link_libraries(test_viewport_state_test PRIVATE
+            Qt6::Core Qt6::Gui dilaton)
+        target_include_directories(test_viewport_state_test PRIVATE
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+            ${CMAKE_SOURCE_DIR}/third_party/stb
+            ${CMAKE_SOURCE_DIR}/src)
+        set_target_properties(test_viewport_state_test PROPERTIES AUTOMOC ON)
+        add_test(NAME ViewportStateTest COMMAND test_viewport_state_test)
+        set_tests_properties(ViewportStateTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM=offscreen"
+            TIMEOUT 180
+        )
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_viewport_state_test deploy_qt_runtime)
+        endif()
+
+        # 20.6 Viewport content regression (pixel-histogram golden-frame guard)
+        # Renders a fixed golden view (d=150, az=45, el=30) and verifies the
+        # framebuffer contains blue grid pixels, a visible Sun, a non-black
+        # scene, and no red geodesic leakage via glReadPixels histogram analysis.
+        add_executable(test_viewport_content_test
+            tests/rendering/test_viewport_content_test.cpp
+            src/rendering/CurvatureRenderer.cpp
+            src/rendering/CelestialBodyRenderer.cpp
+            src/rendering/ProceduralTextures.cpp
+            src/rendering/Texture.cpp
+            src/physics/CurvatureCalculator.cpp
+            third_party/glad/glad.cpp
+        )
+        target_link_libraries(test_viewport_content_test PRIVATE
+            Qt6::Core Qt6::Gui dilaton)
+        target_include_directories(test_viewport_content_test PRIVATE
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+            ${CMAKE_SOURCE_DIR}/third_party/stb
+            ${CMAKE_SOURCE_DIR}/src)
+        set_target_properties(test_viewport_content_test PROPERTIES AUTOMOC ON)
+        add_test(NAME ViewportContentTest COMMAND test_viewport_content_test)
+        set_tests_properties(ViewportContentTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM=offscreen"
+            TIMEOUT 180
+        )
+        if(TARGET deploy_qt_runtime)
+            add_dependencies(test_viewport_content_test deploy_qt_runtime)
+        endif()
 endif()
 
 endif()

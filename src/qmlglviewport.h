@@ -298,6 +298,7 @@ private:
     // Time control
     void updateTime(float deltaTime);
     void resetTime();
+    void setSimulationTime(float time);
 
     // Metrics
     float getFrameTime() const { return m_frameTime; }
@@ -526,6 +527,10 @@ public:
 
     // QQuickFramebufferObject scene graph interface
     QQuickFramebufferObject::Renderer* createRenderer() const override;
+
+    // Deterministic simulation time (bypasses wall-clock delta accumulation)
+    void setSimulationTime(float time);
+    float getSimulationTime() const { return m_simulationTime; }
 
     // Property accessors
     bool showGrid() const { return m_showGrid; }

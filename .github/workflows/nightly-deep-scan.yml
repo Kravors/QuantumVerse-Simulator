@@ -37,7 +37,7 @@ jobs:
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=address"
           cmake --build build-asan --config Debug --parallel 2
           export ASAN_OPTIONS=detect_leaks=1:abort_on_error=0:symbolize=1:log_path=asan_report
-          timeout 14400 ctest -B build-asan -E "MergingBinaryInspiralTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|RenderingDiagnosticTest" --output-on-failure -j $(nproc)
+          timeout 14400 ctest -B build-asan -E "MergingBinaryInspiralTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest" --output-on-failure -j $(nproc)
 
       - name: UBSan nightly
         run: |
@@ -48,7 +48,7 @@ jobs:
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=undefined"
           cmake --build build-ubsan --config Debug --parallel 2
           export UBSAN_OPTIONS=abort_on_error=0:print_stacktrace=1:log_path=ubsan_report
-          timeout 14400 ctest -B build-ubsan -E "MergingBinaryInspiralTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|RenderingDiagnosticTest" --output-on-failure -j $(nproc)
+          timeout 14400 ctest -B build-ubsan -E "MergingBinaryInspiralTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest" --output-on-failure -j $(nproc)
 
       - name: TSan nightly
         run: |
@@ -58,7 +58,7 @@ jobs:
             -DCMAKE_CXX_FLAGS_DEBUG="-fsanitize=thread -g" \
             -DCMAKE_EXE_LINKER_FLAGS_DEBUG="-fsanitize=thread"
           cmake --build build-tsan --config Debug --parallel 2
-          timeout 14400 ctest -B build-tsan -E "MergingBinaryInspiralTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|RenderingDiagnosticTest" --output-on-failure -j 2
+          timeout 14400 ctest -B build-tsan -E "MergingBinaryInspiralTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest" --output-on-failure -j 2
 
       - name: Valgrind nightly
         run: |
