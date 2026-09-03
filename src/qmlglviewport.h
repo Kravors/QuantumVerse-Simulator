@@ -530,7 +530,6 @@ public:
 
     // Deterministic simulation time (bypasses wall-clock delta accumulation)
     void setSimulationTime(float time);
-    float simulationTime() const { return m_simulationTime; }
 
     // Property accessors
     bool showGrid() const { return m_showGrid; }
