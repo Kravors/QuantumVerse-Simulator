@@ -1102,16 +1102,16 @@ int main(int argc, char* argv[])
                 }
 #endif
 
-                 if (viewport) {
-                     if (fixedSimTime >= 0.0) {
-                         viewport->setSimulationTime(static_cast<float>(fixedSimTime));
-                     }
-                     viewport->update();
-                 }
-                 QCoreApplication::processEvents();
-                 if (fixedSimTime < 0.0) {
-                     QThread::msleep(16);
-                 }
+                if (viewport) {
+                    if (fixedSimTime >= 0.0) {
+                        viewport->setSimulationTime(static_cast<float>(fixedSimTime));
+                    }
+                    viewport->update();
+                }
+                QCoreApplication::processEvents();
+                if (fixedSimTime < 0.0) {
+                    QThread::msleep(16);
+                }
 
                 if (frameDiagnostics.isEnabled()) {
                     quantumverse::utils::FrameSnapshot snap;
