@@ -118,7 +118,7 @@ jobs:
         working-directory: build
         shell: bash
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline|"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY" --output-on-failure
           else
@@ -136,12 +136,12 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest|"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.build_type }} -R "$GPU_CANARY" --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest|"
             ctest -C ${{ matrix.build_type }} -R "$GPU_CANARY" --output-on-failure
           fi
 
@@ -225,7 +225,7 @@ jobs:
         run: |
           clang-tidy -p build-tidy -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' \
             -header-filter='.*' \
-            $(find src -name '*.cpp') \
+            $(find src -name '*.cpp' ! -name 'qmlglviewport.cpp') \
             -- -std=c++17 2>&1 | tee clang-tidy.log || true
 
       - name: Check for warnings

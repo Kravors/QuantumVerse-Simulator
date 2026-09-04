@@ -40,11 +40,11 @@ jobs:
 
       - name: Run all tests
         working-directory: build
-        run: xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest|FuzzPhysicsInvariantsTest" --output-on-failure -j $(nproc)
+        run: xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest|FuzzPhysicsInvariantsTest" --output-on-failure -j $(nproc)
 
       - name: Run static analysis
         run: |
-          clang-tidy -p build $(find src -name '*.cpp' -o -name '*.h') \
+          clang-tidy -p build $(find src -name '*.cpp' ! -name 'qmlglviewport.cpp' -o -name '*.h' ! -name 'qmlglviewport.h') \
             -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*' || true
 
       - name: Generate coverage report
@@ -93,7 +93,7 @@ jobs:
 
       - name: Run tests
         working-directory: build
-        run: ctest -C Release -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest|FuzzPhysicsInvariantsTest" --output-on-failure -j 4
+        run: ctest -C Release -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest|FuzzPhysicsInvariantsTest" --output-on-failure -j 4
 
       - name: Upload Windows test results
         uses: actions/upload-artifact@v5

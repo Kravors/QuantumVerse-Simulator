@@ -106,7 +106,7 @@ CurvatureRenderer::CurvatureRenderer(
     float size,
     CurvatureMode initialMode
 ) : gridResolution(resolution), gridSize(size), mode(initialMode),
-     wireframe(true), showGrid(true), showLightCones(false),
+     wireframe(false), showGrid(true), showLightCones(false),
      vao(0), vbo(0), ebo(0), time(0.0f), animationSpeed(1.0f),
      m_initialized(false), lodLevel(0), cacheValid(false),
      lightConeVao(0), lightConeVbo(0), lightConeEbo(0),

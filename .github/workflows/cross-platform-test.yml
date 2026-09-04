@@ -118,12 +118,12 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
+            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
           elif [ "${{ runner.os }}" == "Windows" ]; then
             export QT_QPA_PLATFORM=offscreen
-            ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
+            ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
           else
-            ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
+            ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
           fi
 
       # Rendering/visual tests are non-blocking canaries (headless software-GL
@@ -134,7 +134,7 @@ jobs:
         continue-on-error: true
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
+             xvfb-run -a ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
           elif [ "${{ runner.os }}" == "Windows" ]; then
             export QT_QPA_PLATFORM=offscreen
             ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
@@ -196,7 +196,7 @@ jobs:
       - name: Run all tests
         working-directory: build
         continue-on-error: true
-        run: ctest -C Release -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure
+        run: ctest -C Release -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure
 
   # Code quality checks
   code-quality:

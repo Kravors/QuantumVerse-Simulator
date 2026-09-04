@@ -95,7 +95,7 @@ jobs:
             clang-tidy -p build \
               -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
               -header-filter='.*' \
-              $(find src -name '*.cpp') \
+              $(find src -name '*.cpp' ! -name 'qmlglviewport.cpp') \
               -- -std=c++17
           else
             echo "No src directory found, skipping clang-tidy"

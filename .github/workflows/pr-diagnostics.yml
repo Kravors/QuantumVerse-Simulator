@@ -137,12 +137,12 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest|"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 600 --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest|"
             ctest -C ${{ matrix.config }} -R "$GPU_CANARY" --timeout 600 --output-on-failure
           fi
        

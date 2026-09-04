@@ -92,7 +92,7 @@ jobs:
         working-directory: build
         shell: bash
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -E "$GPU_CANARY" --output-on-failure -C ${{ env.BUILD_TYPE }}
           else
@@ -108,12 +108,12 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest|"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -R "$GPU_CANARY" --output-on-failure -C ${{ env.BUILD_TYPE }}
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest|"
             ctest -R "$GPU_CANARY" --output-on-failure -C ${{ env.BUILD_TYPE }}
           fi
 

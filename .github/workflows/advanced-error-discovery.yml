@@ -153,7 +153,7 @@ jobs:
           # software-GL and Debug+ASan and are tracked as non-blocking canaries
           # elsewhere; exclude them so this job gates on the real invariant and
           # functional tests.
-          xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest" --output-on-failure -j 2
+          xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest" --output-on-failure -j 2
 
   fuzz-testing:
     name: Hybrid Fuzz Testing

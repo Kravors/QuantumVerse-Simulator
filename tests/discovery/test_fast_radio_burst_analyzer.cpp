@@ -94,7 +94,7 @@ int main() {
 
         assert(!findings.empty() && "Injected burst should be detected");
         if (!findings.empty()) {
-            double snr = findings[0].parameters.at("snr");
+            [[maybe_unused]] double snr = findings[0].parameters.at("snr");
             assert(snr > 5.0 && "SNR should exceed threshold");
         }
         std::cout << "  Burst detection: OK." << std::endl;
@@ -126,7 +126,7 @@ int main() {
 
         assert(!findings.empty() && "Burst should be detected");
         if (!findings.empty()) {
-            double hasCoincidence = findings[0].parameters.at("has_coincidence");
+            [[maybe_unused]] double hasCoincidence = findings[0].parameters.at("has_coincidence");
             assert(hasCoincidence > 0.5 && "GW coincidence should be flagged");
         }
         std::cout << "  GW coincidence: OK." << std::endl;
@@ -143,7 +143,7 @@ int main() {
         auto findings = analyzer.analyze(metric, location, traj);
 
         if (!findings.empty()) {
-            double hasCoincidence = findings[0].parameters.at("has_coincidence");
+            [[maybe_unused]] double hasCoincidence = findings[0].parameters.at("has_coincidence");
             assert(hasCoincidence < 0.5 && "No coincidence with tiny time window");
         }
         std::cout << "  No false positive: OK." << std::endl;
@@ -207,7 +207,7 @@ int main() {
         auto ranges = analyzer.getParameterRanges();
         assert(ranges.size() >= 5 && "Must have at least 5 parameter ranges");
 
-        for (const auto& kv : ranges) {
+        for ([[maybe_unused]] const auto& kv : ranges) {
             assert(std::isfinite(kv.second.first) &&
                    std::isfinite(kv.second.second) &&
                    kv.second.first < kv.second.second &&
