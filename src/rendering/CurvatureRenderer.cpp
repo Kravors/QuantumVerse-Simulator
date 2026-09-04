@@ -17,6 +17,7 @@
 #include <QDebug>
 #include <cmath>
 #include <algorithm>
+#include <cstdlib>
 #include <cstdio>
 #include <iostream>
 #ifdef _WIN32
@@ -64,19 +65,19 @@ void ShaderProgram::release() const
 
 void ShaderProgram::setUniform(const char* name, float value) const
 {
-    GLint loc = glGetUniformLocation(static_cast<GLint>(id), name);
+    GLint loc = glGetUniformLocation(id, name);
     if (loc >= 0) glUniform1f(loc, value);
 }
 
 void ShaderProgram::setUniform(const char* name, int value) const
 {
-    GLint loc = glGetUniformLocation(static_cast<GLint>(id), name);
+    GLint loc = glGetUniformLocation(id, name);
     if (loc >= 0) glUniform1i(loc, value);
 }
 
 void ShaderProgram::setUniform(const char* name, const float* matrix) const
 {
-    GLint loc = glGetUniformLocation(static_cast<GLint>(id), name);
+    GLint loc = glGetUniformLocation(id, name);
     if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, matrix);
 }
 
@@ -87,13 +88,13 @@ void ShaderProgram::setUniform(const char* name, const double* matrix) const
     for (int i = 0; i < 16; i++) {
         floatMatrix[i] = static_cast<float>(matrix[i]);
     }
-    GLint loc = glGetUniformLocation(static_cast<GLint>(id), name);
+    GLint loc = glGetUniformLocation(id, name);
     if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, floatMatrix);
 }
 
 void ShaderProgram::setUniform(const char* name, const QVector4D& color) const
 {
-    GLint loc = glGetUniformLocation(static_cast<GLint>(id), name);
+    GLint loc = glGetUniformLocation(id, name);
     if (loc >= 0) glUniform4f(loc, color.x(), color.y(), color.z(), color.w());
 }
 
@@ -361,6 +362,12 @@ bool CurvatureRenderer::compileShader(unsigned int& program,
                                         const char* vertexSource,
                                         const char* fragmentSource)
 {
+    // Delete prior program if present to avoid resource leak on recompile
+    if (program != 0) {
+        glDeleteProgram(program);
+        program = 0;
+    }
+
     // Log shader source for debugging (only in debug builds)
     if (isTruthyEnvironmentFlag("QUANTUMVERSE_DEBUG_SHADERS")) {
         std::fprintf(stderr, "[CurvatureRenderer] Compiling vertex shader:\n%s\n", vertexSource);
@@ -408,6 +415,9 @@ bool CurvatureRenderer::compileShader(unsigned int& program,
         std::fprintf(stderr, "ERROR: Shader program linking failed:\n%s\n", infoLog);
         glDeleteProgram(program);
         program = 0;
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+        return false;
     }
 
     glDeleteShader(vertexShader);
@@ -428,8 +438,10 @@ static bool isTruthyEnvironmentFlag(const char* name) {
            (value[0] == '1' || value[0] == 't' || value[0] == 'T' ||
             value[0] == 'y' || value[0] == 'Y');
 #else
-    (void)name;
-    return false;
+    const char* value = std::getenv(name);
+    if (!value || value[0] == '\0') return false;
+    return (value[0] == '1' || value[0] == 't' || value[0] == 'T' ||
+            value[0] == 'y' || value[0] == 'Y');
 #endif
 }
 
@@ -588,11 +600,9 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
 
     // [DIAG] Restore the FBO that was bound before we started drawing.
     // This ensures the QML FBO remains bound for screenshot capture.
-    if (oldFBO >= 0 && static_cast<GLuint>(oldFBO) != 0) {
-        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(oldFBO));
-        if (isTruthyEnvironmentFlag("QUANTUMVERSE_FBO_CHECK")) {
-            std::fprintf(stderr, "[CurvatureRenderer] FBO restored to: %d\n", oldFBO);
-        }
+    glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(oldFBO));
+    if (isTruthyEnvironmentFlag("QUANTUMVERSE_FBO_CHECK")) {
+        std::fprintf(stderr, "[CurvatureRenderer] FBO restored to: %d\n", oldFBO);
     }
 
     if (showLightCones)
@@ -1108,6 +1118,7 @@ double CurvatureRenderer::computeRicciScalar(const Event4D& event) const
 double CurvatureRenderer::computeRiemannComponent(int rho, int sigma, int mu, int nu, const Event4D& event) const
 {
     if (!currentMetric) return 0.0;
+    if (rho < 0 || rho > 3 || sigma < 0 || sigma > 3 || mu < 0 || mu > 3 || nu < 0 || nu > 3) return 0.0;
     
     CurvatureCalculator calculator(currentMetric);
     calculator.computeRiemann(event);
@@ -1123,7 +1134,7 @@ void CurvatureRenderer::updateLodLevel()
 void CurvatureRenderer::updateVerticesByLod()
 {
     // Update only vertices in visible cells
-    for (const auto& cell : gridCells) {
+    for (auto& cell : gridCells) {
         if (cell.needsUpdate) {
             for (int i = cell.startIndex; i <= cell.endIndex; i++) {
                 if (i < static_cast<int>(vertices.size())) {
@@ -1131,7 +1142,7 @@ void CurvatureRenderer::updateVerticesByLod()
                 }
             }
             // Mark as updated
-            const_cast<GridCell&>(cell).needsUpdate = false;
+            cell.needsUpdate = false;
         }
     }
 }
