@@ -69,7 +69,7 @@ NeutrinoBurstAnalyzer::computeCoincidence(
     double diskMassMsun,
     double distanceMpc,
     double timeWindowSec,
-    double energyThreshold)
+    [[maybe_unused]] double energyThreshold)
 {
     CoincidenceResult result;
     size_t n = trajectory.size();

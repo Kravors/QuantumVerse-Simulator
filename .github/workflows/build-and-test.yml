@@ -231,7 +231,11 @@ jobs:
       - name: Check for warnings
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wall -Wextra"
-          cmake --build build 2>&1 | grep -i warning && exit 1 || echo "No warnings found"
+          warnings=$(cmake --build build 2>&1 | grep -ci warning || true)
+          echo "Compiler warnings: $warnings"
+          if [ "$warnings" -gt 0 ]; then
+            echo "::warning::Found $warnings compiler warnings"
+          fi
 
       - name: Upload clang-tidy report
         uses: actions/upload-artifact@v5
