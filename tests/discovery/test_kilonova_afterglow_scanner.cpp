@@ -107,7 +107,7 @@ int main() {
         assert(!findings.empty() && "Post-merger kilonova signal should be detected");
         if (!findings.empty()) {
             double lum = findings[0].parameters.at("peak_luminosity");
-            double snr = findings[0].parameters.at("significance");
+            [[maybe_unused]] double snr = findings[0].parameters.at("significance");
             assert(lum > 0.0 && "Peak luminosity should be positive");
             assert(snr > 2.0 && "Significance should exceed threshold");
         }
@@ -171,7 +171,7 @@ int main() {
         auto findings2 = analyzer2.analyze(metric, location, traj);
 
         if (!findings1.empty() && !findings2.empty()) {
-            double lum1 = findings1[0].parameters.at("peak_luminosity");
+            [[maybe_unused]] double lum1 = findings1[0].parameters.at("peak_luminosity");
             double lum2 = findings2[0].parameters.at("peak_luminosity");
             assert(lum2 > lum1 && "Larger ejecta mass should yield higher luminosity");
         }

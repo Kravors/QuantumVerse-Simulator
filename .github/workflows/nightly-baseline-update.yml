@@ -25,8 +25,18 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.8.3'
+        target: 'desktop'
+        host: 'linux'
+        arch: 'linux_gcc_64'
+        modules: 'qtwebsockets'
+        cache: true
+
     - name: Configure
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
     
     - name: Build
       run: cmake --build build --config Release --parallel 2

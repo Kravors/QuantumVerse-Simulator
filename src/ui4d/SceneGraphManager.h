@@ -6,6 +6,7 @@
 #include <array>
 #include <variant>
 #include <map>
+#include <limits>
 
 #include "../spacetime/Event4D.h"
 #include "../spacetime/MetricTensor.h"

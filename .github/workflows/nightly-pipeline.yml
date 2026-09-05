@@ -29,14 +29,27 @@ jobs:
             libsqlite3-dev libharfbuzz-dev libb2-dev libdouble-conversion-dev \
             ninja-build ccache clang-tidy cppcheck lcov gcovr
 
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          host: 'linux'
+          arch: 'linux_gcc_64'
+          modules: 'qtwebsockets'
+          cache: true
+
       - name: Configure CMake
         run: |
-           cmake -B build -DCMAKE_BUILD_TYPE=Release \
+           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
              -DQUANTUMVERSE_BUILD_TESTS=ON \
-             -DQUANTUMVERSE_USE_COVERAGE=ON
+             -DQUANTUMVERSE_USE_COVERAGE=ON \
+             -DQUANTUMVERSE_USE_QT=ON \
+             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+             -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Build
-        run: cmake --build build --config Release --parallel 2
+        run: cmake --build build --config Debug --parallel 2
 
       - name: Run all tests
         working-directory: build
