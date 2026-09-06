@@ -251,6 +251,9 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/EMBrightGWCounterpartDetector.cpp
         src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
+        src/ml/AnomalyDetector.cpp
+        src/ml/TrainingDataCollector.cpp
+        src/ml/AnomalyMonitor.cpp
         src/spacetime/LightCone.cpp
         src/spacetime/KerrMetric.cpp
         src/utils/ConfigManager.cpp
@@ -984,7 +987,10 @@ endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/scenarios)
     file(COPY ${CMAKE_SOURCE_DIR}/data/scenarios DESTINATION ${CMAKE_BINARY_DIR}/data)
 endif()
-    
+if(EXISTS ${CMAKE_SOURCE_DIR}/data/ml)
+    file(COPY ${CMAKE_SOURCE_DIR}/data/ml DESTINATION ${CMAKE_BINARY_DIR}/data)
+endif()
+
     add_executable(test_frame_dragging tests/test_frame_dragging.cpp)
     target_link_libraries(test_frame_dragging PRIVATE dilaton)
     add_test(NAME FrameDraggingTest COMMAND test_frame_dragging)
@@ -1217,7 +1223,69 @@ endif()
         add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
     endif()
 
+    # ML Anomaly Detector unit test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_anomaly_detector.cpp)
+        add_executable(test_anomaly_detector
+            tests/test_anomaly_detector.cpp
+            src/ml/AnomalyDetector.cpp
+        )
+        target_link_libraries(test_anomaly_detector PRIVATE dilaton)
+        add_test(NAME AnomalyDetectorTest COMMAND test_anomaly_detector)
+    endif()
+
+    # ML TrainingDataCollector unit test
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_training_data_collector.cpp)
+        add_executable(test_training_data_collector
+            tests/test_training_data_collector.cpp
+            src/ml/TrainingDataCollector.cpp
+            src/ml/AnomalyDetector.cpp
+        )
+        target_link_libraries(test_training_data_collector PRIVATE dilaton)
+        add_test(NAME TrainingDataCollectorTest COMMAND test_training_data_collector)
+    endif()
+
     if(TARGET quantumverse_qml)
+        # ML AnomalyMonitor integration test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_anomaly_monitor.cpp)
+            add_executable(test_anomaly_monitor
+                tests/test_anomaly_monitor.cpp
+                src/ml/AnomalyMonitor.cpp
+                src/ml/AnomalyDetector.cpp
+                src/discovery/FindingsModel.cpp
+            )
+            target_link_libraries(test_anomaly_monitor PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test)
+            set_target_properties(test_anomaly_monitor PROPERTIES AUTOMOC ON)
+            target_compile_definitions(test_anomaly_monitor PRIVATE QUANTUMVERSE_USE_QML)
+            add_test(NAME AnomalyMonitorTest COMMAND test_anomaly_monitor)
+            set_tests_properties(AnomalyMonitorTest PROPERTIES
+                WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=${QT_RUNTIME_DEST}/platforms"
+            )
+            if(TARGET deploy_qt_runtime)
+                add_dependencies(test_anomaly_monitor deploy_qt_runtime)
+            endif()
+        endif()
+
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_minimal_construct.cpp)
+            add_executable(test_minimal_construct
+                tests/test_minimal_construct.cpp
+                src/ml/AnomalyMonitor.cpp
+                src/ml/AnomalyDetector.cpp
+                src/discovery/FindingsModel.cpp
+            )
+            target_link_libraries(test_minimal_construct PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test)
+            set_target_properties(test_minimal_construct PROPERTIES AUTOMOC ON)
+            target_compile_definitions(test_minimal_construct PRIVATE QUANTUMVERSE_USE_QML)
+            add_test(NAME MinimalConstructTest COMMAND test_minimal_construct)
+            set_tests_properties(MinimalConstructTest PROPERTIES
+                WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=${QT_RUNTIME_DEST}/platforms"
+            )
+            if(TARGET deploy_qt_runtime)
+                add_dependencies(test_minimal_construct deploy_qt_runtime)
+            endif()
+        endif()
+
         # Phase 12: Fermi GBM adapter unit test
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_fermi_gbm_adapter.cpp)
             add_executable(test_fermi_gbm_adapter

@@ -27,15 +27,15 @@ int main() {
 
         Event4D event(0.0, 1.0e10, 0.0, 0.0);
 
-        // Compare with Schwarzschild
-        auto g_schwarzschild = MetricTensor::schwarzschild(mass, 1.0e10, M_PI / 2.0, 0.0);
+        SchwarzschildMetric schwarzschild(mass);
+        auto g_schwarzschild = schwarzschild.evaluate(event);
 
         double tol = 1e-6;
         auto g_kerr = kerr.evaluate(event);
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                assert(std::abs(g_kerr[i][j] - g_schwarzschild.g[i][j]) /
-                       std::max(std::abs(g_schwarzschild.g[i][j]), 1.0) < tol
+                assert(std::abs(g_kerr[i][j] - g_schwarzschild[i][j]) /
+                       std::max(std::abs(g_schwarzschild[i][j]), 1.0) < tol
                        && "Kerr should reduce to Schwarzschild when spin=0");
             }
         }
@@ -185,7 +185,7 @@ int main() {
     // Test 8: Extremal Kerr limit (spin -> 1)
     {
         double mass = 1.989e30;
-        KerrMetric kerr(mass, 0.999);
+        KerrMetric kerr(mass, 0.99999);
 
         double r_plus = kerr.outerHorizonRadius();
         double r_minus = kerr.innerHorizonRadius();

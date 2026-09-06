@@ -421,6 +421,11 @@ void UI4D::endBodyPropertyEditing() {
         std::cout << "Anomaly detection " << (enable ? "enabled" : "disabled") << std::endl;
     }
 
+    void UI4D::addAnomalyAlert(const AnomalyAlert& alert) {
+        anomalyAlerts.push_back(alert);
+        std::cout << "ML anomaly alert added: " << alert.description << std::endl;
+    }
+
      // Spacetime curvature manipulation methods
      // ============================================================================
      

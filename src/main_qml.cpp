@@ -63,6 +63,7 @@
 #include "quantumgravity/CDTEngine.h"
 #include "discovery/DiscoveryPanelManager.h"
 #include "discovery/FindingsModel.h"
+#include "ml/AnomalyMonitor.h"
 #include "data/LIGOAdapter.h"
 #include "data/IceCubeAdapter.h"
 #include "data/TESSAlertAdapter.h"
@@ -1004,6 +1005,34 @@ int main(int argc, char* argv[])
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
                 std::cerr.flush();
+
+                // ML Anomaly Monitor: sample simulation state and alert on anomalies
+                auto anomalyMonitor = std::make_shared<quantumverse::AnomalyMonitor>();
+                auto anomalyDetector = std::make_shared<quantumverse::AnomalyDetector>();
+                if (anomalyDetector->load("data/ml/anomaly_model.json")) {
+                    qDebug() << "AnomalyMonitor: ML model loaded from data/ml/anomaly_model.json";
+                    anomalyMonitor->setAnomalyDetector(anomalyDetector);
+                } else {
+                    qDebug() << "AnomalyMonitor: No ML model found at data/ml/anomaly_model.json, running with empty detector";
+                }
+                anomalyMonitor->setUI4D(ui4d);
+                anomalyMonitor->setFindingsProvider([discoveryPanelManager]() {
+                    return discoveryPanelManager->findings();
+                });
+                QObject::connect(anomalyMonitor.get(), &quantumverse::AnomalyMonitor::anomalyDetected,
+                    [findingsModel](const QJsonObject& anomaly) {
+                        quantumverse::InstrumentFinding f;
+                        f.id = ("ML_Anomaly_" + QString::number(QDateTime::currentMSecsSinceEpoch())).toStdString();
+                        f.instrumentName = "ML Anomaly Detector";
+                        f.description = anomaly.value("description").toString().toStdString();
+                        f.confidence = 0.5;
+                        f.severity = quantumverse::AlertSeverity::MEDIUM;
+                        f.timestamp = anomaly.value("timestamp").toDouble();
+                        f.isAnomaly = true;
+                        findingsModel->addFinding(f);
+                    });
+                rootContext->setContextProperty("anomalyMonitor", anomalyMonitor.get());
+                qDebug() << "QuantumVerse: AnomalyMonitor registered as context property 'anomalyMonitor'";
 
                 // The OpenGL scene is composited onto the window in
                 // QmlGlViewport::renderGL() (beforeRendering); the viewport item

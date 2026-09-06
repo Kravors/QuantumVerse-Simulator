@@ -12,7 +12,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
-#include <QOpenGLWidget>
+class QOpenGLWidget;
 #include <QTimer>
 #endif
 

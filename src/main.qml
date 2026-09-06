@@ -1014,6 +1014,74 @@ ApplicationWindow {
                     value: discoveryPanelManager ? discoveryPanelManager.scanProgress : 0
                 }
 
+                // ML Anomaly Detection controls
+                Pane {
+                    Layout.fillWidth: true
+                    visible: anomalyMonitor !== undefined && anomalyMonitor !== null
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: anomalyMonitor && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? "#f44" : "#2a2a4a"
+                        border.width: anomalyMonitor && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? 2 : 1
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 4
+
+                        Label { text: "🤖 ML Anomaly Detection"; font.bold: true; font.pixelSize: 12 }
+
+                        RowLayout {
+                            spacing: 6
+
+                            CheckBox {
+                                id: anomalyEnableBox
+                                checked: anomalyMonitor ? anomalyMonitor.enabled : false
+                                text: "Enable"
+                                onCheckedChanged: {
+                                    if (anomalyMonitor) anomalyMonitor.enabled = checked
+                                }
+                            }
+
+                            Label {
+                                text: "Score: " + (anomalyMonitor ? anomalyMonitor.lastScore.toFixed(4) : "—")
+                                font.pixelSize: 10
+                                color: anomalyMonitor && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? "#f66" : "#aaa"
+                            }
+                        }
+
+                        RowLayout {
+                            spacing: 6
+
+                            Label { text: "Sensitivity"; font.pixelSize: 10; color: "#888" }
+
+                            Slider {
+                                Layout.fillWidth: true
+                                from: 0.1
+                                to: 5.0
+                                stepSize: 0.1
+                                value: anomalyMonitor ? anomalyMonitor.thresholdMultiplier : 1.0
+                                onValueChanged: {
+                                    if (anomalyMonitor) anomalyMonitor.thresholdMultiplier = value
+                                }
+                            }
+
+                            Label {
+                                text: anomalyMonitor ? anomalyMonitor.thresholdMultiplier.toFixed(1) + "x" : "1.0x"
+                                font.pixelSize: 10
+                                color: "#aaa"
+                            }
+                        }
+
+                        Label {
+                            text: "Samples: " + (anomalyMonitor ? anomalyMonitor.sampleCount : 0)
+                            font.pixelSize: 9
+                            color: "#666"
+                        }
+                    }
+                }
+
                 // Live instrument parameter dashboard
                 Pane {
                     Layout.fillWidth: true

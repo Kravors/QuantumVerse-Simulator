@@ -444,6 +444,7 @@ Qt6/
 *.pth
 *.pt
 models/**
+data/ml/**
 
 # Kilo cache
 .kilocode/

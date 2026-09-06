@@ -651,6 +651,7 @@ private:
     std::set<int> causalPastEvents;       // Events in causal past of selected event
     
     // Solar system specific data
+public:
     struct SolarSystemBody {
         std::string name;
         double mass;           // kg
@@ -689,9 +690,11 @@ private:
         double gravitationalWaveStrain = 0.0; // Dimensionless strain (h)
         double gravitationalWaveFreq = 0.0;  // Gravitational wave frequency (Hz)
         double chirpMass = 0.0;             // Chirp mass (kg)
+        double blackHoleMass = 0.0;         // kg (active black hole mass)
         int bodyCount = 0;
     };
     
+private:
     // Real-time editing data structures
     struct WorldLinePoint {
         Event4D event;
@@ -1038,6 +1041,7 @@ private:
       void clearAnomalies();
       void setAnomalyDetectionThreshold(double threshold);
       void toggleAnomalyDetection(bool enable);
+      void addAnomalyAlert(const AnomalyAlert& alert);
       void addSingularity(std::shared_ptr<SingularityHandler> singularity);
  
       // Spacetime curvature manipulation methods
