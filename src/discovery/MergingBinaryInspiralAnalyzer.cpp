@@ -45,37 +45,50 @@ MergingBinaryInspiralAnalyzer::trackInstantaneousFrequency(
 {
     std::vector<std::pair<double, double>> track;
     size_t n = trajectory.size();
-    if (n < windowSize || windowSize < 4) return track;
+    if (n < 4) return track;
 
     double dt = trajectory[1].t - trajectory[0].t;
     if (dt <= 0.0) return track;
 
-    for (size_t start = 0; start + windowSize <= n; start += windowSize / 2) {
-        int zeroCrossings = 0;
-        double sumAmp = 0.0;
+    // Interpolated zero-crossing detection: find the exact (sub-sample) time
+    // at which the signal crosses zero, using linear interpolation between
+    // adjacent samples. This provides sub-sample precision that eliminates
+    // the quantization error of integer crossing counts, which is critical
+    // for low-frequency chirp signals where only a few crossings fall inside
+    // a window.
+    std::vector<double> crossingTimes;
+    crossingTimes.reserve(n / 2);
 
-        for (size_t i = start; i < start + windowSize; ++i) {
-            double h = trajectory[i].x;
-            if (std::isfinite(h)) {
-                sumAmp += std::abs(h);
-            }
+    for (size_t i = 1; i < n; ++i) {
+        double hPrev = trajectory[i - 1].x;
+        double hCurr = trajectory[i].x;
+        if (!std::isfinite(hPrev) || !std::isfinite(hCurr)) continue;
+        if ((hPrev >= 0.0 && hCurr < 0.0) || (hPrev < 0.0 && hCurr >= 0.0)) {
+            double frac = hPrev / (hPrev - hCurr);
+            double tCross = trajectory[i - 1].t + frac * dt;
+            crossingTimes.push_back(tCross);
         }
+    }
 
-        for (size_t i = start + 1; i < start + windowSize; ++i) {
-            double hPrev = trajectory[i - 1].x;
-            double hCurr = trajectory[i].x;
-            if (std::isfinite(hPrev) && std::isfinite(hCurr)) {
-                if ((hPrev >= 0.0 && hCurr < 0.0) || (hPrev < 0.0 && hCurr >= 0.0)) {
-                    ++zeroCrossings;
-                }
+    if (crossingTimes.size() < 2) {
+        (void)windowSize;
+        return track;
+    }
+
+    // Estimate instantaneous frequency from consecutive zero-crossing intervals.
+    // Each pair of consecutive crossings spans half a period, so
+    // f = 1 / (2 * (tCross[k+1] - tCross[k])).
+    // Filter out implausibly short intervals (noise-induced sub-sample bounces)
+    // using a floor of 2*dt; legitimate signal periods are always much larger.
+    double minInterval = 2.0 * dt;
+    for (size_t i = 1; i < crossingTimes.size(); ++i) {
+        double period = crossingTimes[i] - crossingTimes[i - 1];
+        if (period > minInterval && std::isfinite(period)) {
+            double instFreq = 1.0 / (2.0 * period);
+            if (std::isfinite(instFreq) && instFreq > 0.0) {
+                double tMid = 0.5 * (crossingTimes[i] + crossingTimes[i - 1]);
+                track.emplace_back(tMid, instFreq);
             }
-        }
-
-        if (zeroCrossings > 0 && sumAmp > 0.0) {
-            double duration = static_cast<double>(windowSize) * dt;
-            double instFreq = static_cast<double>(zeroCrossings) / (2.0 * duration);
-            double tMid = trajectory[start + windowSize / 2].t;
-            track.emplace_back(tMid, instFreq);
         }
     }
 
@@ -97,6 +110,7 @@ MergingBinaryInspiralAnalyzer::fitTaylorF2(
     double bestTc = 0.0;
     double bestErr = 1e30;
 
+    // Stage 1: Coarse grid search
     for (double mc = 0.01; mc <= 100.0; mc += 0.1) {
         for (double tcOff = 0.0; tcOff <= 10.0; tcOff += 0.1) {
             double tc = tLast + tcOff;
@@ -106,6 +120,79 @@ MergingBinaryInspiralAnalyzer::fitTaylorF2(
                 double tau = tc - p.first;
                 if (tau <= 0.0) continue;
                 double fPred = taylorF2Frequency(mc, tau);
+                double diff = (p.second - fPred) / p.second;
+                err += diff * diff;
+                count++;
+            }
+            if (count > 0) {
+                err /= static_cast<double>(count);
+                if (err < bestErr) {
+                    bestErr = err;
+                    bestMc = mc;
+                    bestTc = tc;
+                }
+            }
+        }
+    }
+
+    // Stage 2: Outlier rejection + fine grid refinement.
+    // With small chirp masses the coarse grid step of 0.1 jumps by ~10x
+    // (e.g. 0.01 -> 0.11), and only ~10 frequency points are available,
+    // so 1-2 noise outliers can dominate the MSE and cap the SNR below
+    // the detection threshold.
+
+    // 2a. Outlier rejection: compute residuals with the coarse best fit,
+    //     then remove frequency points whose relative error exceeds 3x
+    //     the median residual.
+    std::vector<double> residuals;
+    for (const auto& p : freqTrack) {
+        double tau = bestTc - p.first;
+        if (tau <= 0.0) continue;
+        double fPred = taylorF2Frequency(bestMc, tau);
+        if (fPred <= 0.0 || p.second <= 0.0) continue;
+        residuals.push_back(std::abs((p.second - fPred) / p.second));
+    }
+    std::vector<std::pair<double, double>> cleanTrack = freqTrack;
+    if (residuals.size() >= 3) {
+        std::vector<double> sorted = residuals;
+        std::sort(sorted.begin(), sorted.end());
+        double medianRes = sorted[sorted.size() / 2];
+        double outlierThreshold = 3.0 * medianRes;
+        if (outlierThreshold > 0.0) {
+            cleanTrack.clear();
+            for (const auto& p : freqTrack) {
+                double tau = bestTc - p.first;
+                if (tau <= 0.0) continue;
+                double fPred = taylorF2Frequency(bestMc, tau);
+                if (fPred <= 0.0 || p.second <= 0.0) continue;
+                double relErr = std::abs((p.second - fPred) / p.second);
+                if (relErr <= outlierThreshold) {
+                    cleanTrack.push_back(p);
+                }
+            }
+        }
+    }
+    const auto& fitTrack = (cleanTrack.size() >= 4) ? cleanTrack : freqTrack;
+
+    // 2b. Fine grid search centered on the coarse best, using a step that
+    //     always includes bestMc (integer multiple of fineStep from bestMc).
+    const double fineStep = 0.005;
+    const int fineSteps = 10;  // ±10 * 0.005 = ±0.05 range
+    const double coarseTcOff = bestTc - tLast;
+    for (int iMc = -fineSteps; iMc <= fineSteps; ++iMc) {
+        double mc = bestMc + iMc * fineStep;
+        if (mc < 0.001) continue;
+        for (int iTc = -fineSteps; iTc <= fineSteps; ++iTc) {
+            double tcOff = coarseTcOff + iTc * fineStep;
+            if (tcOff < 0.0) continue;
+            double tc = tLast + tcOff;
+            double err = 0.0;
+            size_t count = 0;
+            for (const auto& p : fitTrack) {
+                double tau = tc - p.first;
+                if (tau <= 0.0) continue;
+                double fPred = taylorF2Frequency(mc, tau);
+                if (fPred <= 0.0) continue;
                 double diff = (p.second - fPred) / p.second;
                 err += diff * diff;
                 count++;
