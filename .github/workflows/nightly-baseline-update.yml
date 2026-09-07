@@ -26,6 +26,7 @@ jobs:
         submodules: recursive
 
     - name: Install Qt6
+      id: setup_qt
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.8.3'

@@ -99,10 +99,23 @@ jobs:
             ninja-build ccache python3-pip
           pip3 install numpy pyyaml
 
+      - name: Install Qt6
+        id: setup_qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          host: 'linux'
+          arch: 'linux_gcc_64'
+          modules: 'qtwebsockets'
+          cache: true
+
       - name: Configure and build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DQUANTUMVERSE_BUILD_TESTS=ON
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release --parallel 2
 
       - name: Run performance baseline tests
@@ -148,10 +161,23 @@ jobs:
             ninja-build ccache python3-pip
           pip3 install imagehash Pillow numpy
 
+      - name: Install Qt6
+        id: setup_qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          host: 'linux'
+          arch: 'linux_gcc_64'
+          modules: 'qtwebsockets'
+          cache: true
+
       - name: Configure and build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DQUANTUMVERSE_BUILD_TESTS=ON
+            -DQUANTUMVERSE_BUILD_TESTS=ON \
+            -DQUANTUMVERSE_USE_QT=ON \
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release --parallel 2
 
       - name: Run golden master tests
