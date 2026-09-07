@@ -185,7 +185,109 @@ int main() {
                                            kv.second.first < kv.second.second;
             assert(okRange && "Range bounds must be finite and ordered");
         }
-        std::cout << "  Parameter ranges valid." << std::endl;
+        std::cout << "  Parameter ranges valid: OK." << std::endl;
+    }
+
+    // 8. Boundary chirp masses: very small and very large (off coarse-grid range)
+    {
+        MergingBinaryInspiralAnalyzer analyzer;
+        double tc = 10.0;
+        double dt = 0.001;
+
+        auto trajSmall = makeInspiralWaveform(0.001, tc, dt, 16384, 0.01);
+        auto findingsSmall = analyzer.analyze(metric, location, trajSmall);
+        [[maybe_unused]] bool okSmall = findingsSmall.empty();
+        assert(okSmall && "Very small chirp mass should not be detected (below coarse grid)");
+
+        auto trajLarge = makeInspiralWaveform(200.0, tc, dt, 16384, 0.01);
+        auto findingsLarge = analyzer.analyze(metric, location, trajLarge);
+        [[maybe_unused]] bool okLarge = findingsLarge.empty();
+        assert(okLarge && "Very large chirp mass should not be detected (above coarse grid)");
+
+        std::cout << "  Boundary chirp masses: OK." << std::endl;
+    }
+
+    // 9. Off-grid chirp mass (fine grid must still recover accurately)
+    {
+        MergingBinaryInspiralAnalyzer analyzer;
+        double mcTrue = 0.015;
+        double tc = 10.0;
+        double dt = 0.001;
+        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
+        auto findings = analyzer.analyze(metric, location, traj);
+        [[maybe_unused]] bool ok = !findings.empty();
+        assert(ok && "Off-grid chirp signal should still be detected");
+        if (!findings.empty()) {
+            double mcRecovered = findings[0].parameters.at("chirp_mass");
+            double relErr = std::abs(mcRecovered - mcTrue) / mcTrue;
+            [[maybe_unused]] bool okMc = relErr < 0.05;
+            assert(okMc && "Off-grid chirp mass should be recovered within 5%");
+        }
+        std::cout << "  Off-grid chirp mass recovery: OK." << std::endl;
+    }
+
+    // 10. Very short frequency track (few zero crossings)
+    {
+        MergingBinaryInspiralAnalyzer analyzer;
+        double mcTrue = 0.01;
+        double tc = 10.0;
+        double dt = 0.001;
+        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 64, 0.0);
+        auto findings = analyzer.analyze(metric, location, traj);
+        [[maybe_unused]] bool ok = findings.empty();
+        assert(ok && "Very short track should yield no findings (or very low confidence)");
+        std::cout << "  Short frequency track: OK." << std::endl;
+    }
+
+    // 11. Moderately high noise: verify no false positive at intermediate noise
+    {
+        MergingBinaryInspiralAnalyzer analyzer;
+        double mcTrue = 0.01;
+        double tc = 10.0;
+        double dt = 0.001;
+        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.5);
+        auto findings = analyzer.analyze(metric, location, traj);
+        [[maybe_unused]] bool ok = findings.empty();
+        assert(ok && "Intermediate noise should not trigger false positive");
+        std::cout << "  Intermediate noise rejection: OK." << std::endl;
+    }
+
+    // 12. Very high noise: must not trigger detection
+    {
+        MergingBinaryInspiralAnalyzer analyzer;
+        double mcTrue = 0.01;
+        double tc = 10.0;
+        double dt = 0.001;
+        auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 10.0);
+        auto findings = analyzer.analyze(metric, location, traj);
+        [[maybe_unused]] bool ok = findings.empty();
+        assert(ok && "Very high noise should not trigger detection");
+        std::cout << "  Very high noise rejection: OK." << std::endl;
+    }
+
+    // 13. Parameter recovery consistency across random seeds
+    {
+        MergingBinaryInspiralAnalyzer analyzer;
+        double mcTrue = 0.01;
+        double tc = 10.0;
+        double dt = 0.001;
+        int passCount = 0;
+        const int kRuns = 10;
+        for (int i = 0; i < kRuns; ++i) {
+            srand(static_cast<unsigned int>(i + 42));
+            auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
+            auto findings = analyzer.analyze(metric, location, traj);
+            if (!findings.empty()) {
+                double mcRecovered = findings[0].parameters.at("chirp_mass");
+                double relErr = std::abs(mcRecovered - mcTrue) / mcTrue;
+                if (relErr < 0.2) {
+                    ++passCount;
+                }
+            }
+        }
+        [[maybe_unused]] bool okConsistent = passCount >= static_cast<int>(kRuns * 0.9);
+        assert(okConsistent && "Chirp mass should be recovered within 20% in >= 90% of seeds");
+        std::cout << "  Seed consistency: " << passCount << "/" << kRuns << " passed." << std::endl;
     }
 
     std::cout << "  All MergingBinaryInspiralAnalyzer checks passed." << std::endl;
