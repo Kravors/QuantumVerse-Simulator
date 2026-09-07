@@ -1,77 +1,173 @@
 # QuantumVerse Agent Instructions
 
-## Error Discovery & Resilience Workflows
+## Project Overview
 
-### Running Advanced Verification
+**QuantumVerse** is a production-ready, 4D spacetime cognition laboratory that enables users to navigate, visualize, and discover new physics in a four-dimensional Lorentzian manifold. It combines **general relativity**, **quantum gravity engines**, **AI-driven discovery**, and **immersive 4D visualization** into a single interactive platform.
 
-```bash
-# Build with verification tests
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
-cmake --build build --parallel
+Key capabilities:
+- True 4D navigation with 6 rotation planes (SO(4))
+- Real-time Einstein field equations with validated GR predictions
+- Quantum gravity engines: CDT, Spin Foam (LQG), Group Field Theory, Causal Sets
+- AI-driven discovery: symbolic regression, anomaly detection, autonomous hypothesis generation
+- Multi-messenger pipeline: LIGO (GW), IceCube (neutrinos), TESS (exoplanets), Fermi GBM (GRBs)
+- Differentiable physics with gradient-based optimization
+- Holographic duality research (AdS/CFT)
+- VR support via OpenXR
+- Qt 6.11 QML UI (`quantumverse_qml`)
 
-# Run CBMC verification tests
-cd build && ctest -R CBMC --output-on-failure
+## Repository Structure
 
-# Run differential tests
-ctest -R Differential --output-on-failure
-
-# Run symbolic execution tests
-ctest -R Symbolic --output-on-failure
-
-# Run headless UI tests
-./build/Release/quantumverse_imgui --headless --frames 10
-
-# Run fuzz differential
-./build/fuzz_differential -max_total_time=60
+```
+src/
+├── spacetime/         # 4D events, metrics, curvature invariants
+├── physics/           # Geodesics, singularities, Hawking radiation, GR raytracing
+├── rendering/         # OpenGL 4.5 curvature and celestial rendering
+├── ui4d/              # 4D UI coordinator, QML viewport, Planck microscope
+├── math/              # Vector4D, Matrix4x4, AutoDiff, SO(4) rotations
+├── discovery/         # Discovery instruments, TheoryManager, TheoryDiscoveryAgent,
+│                      # SymbolicMath, HolographicDualityLab, FindingsModel
+├── quantumgravity/    # CDT, Spin Foam, GFT, Causal Sets
+├── ml/                # FeatureVector, AnomalyDetector, AnomalyMonitor,
+│                      # TrainingDataCollector, GeodesicNeuralODE, MetricGNN,
+│                      # CurvatureNormalizingFlow, DifferentiableSimulator
+├── scenario/          # Scenario, ScenarioManager
+├── data/              # Multi-messenger adapters (LIGO, IceCube, Fermi, Swift, TESS)
+├── config/            # Configuration loaders
+├── net/               # Networking utilities
+├── audio/             # Spatial audio
+├── vr/                # VR multi-user server/client
+└── utils/             # Shared utilities
 ```
 
-### Verification Components
+## Development Workflow
 
-| Component | Purpose | Location |
-|-----------|---------|----------|
-| CBMCVerification | Bounded model checking for critical invariants | `src/verification/CBMCVerification.h` |
-| DifferentialTester | Compare multiple implementations | `src/verification/DifferentialTester.h` |
-| RuntimeMonitor | Monitor physics invariants at runtime | `src/verification/RuntimeMonitor.h` |
-| SymbolicExecutionHarness | Symbolic path exploration | `src/verification/SymbolicExecutionHarness.h` |
+1. Write failing test first
+2. Implement minimal code to pass
+3. Run sanitizers when available: `cmake -DQUANTUMVERSE_USE_ASAN=ON`
+4. Run verification and differential tests
+5. Commit with clear message referencing tests
+
+## Build & Test
+
+### Prerequisites
+- Windows 10/11, MSVC 2022, CMake 3.25+
+- Qt 6.11.1 (msvc2022_64)
+- Optional: ONNX Runtime 1.27.0, CUDA 12.x, Python 3.10+ (ML training only)
+
+### Build
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
+cmake --build build --parallel
+```
+
+### Run Tests
+```bash
+ctest -C Release --output-on-failure
+```
+
+### Run Headless
+```bash
+build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
+```
+
+### CI Exclusions
+Some rendering and performance tests are non-blocking canaries in CI:
+- `PerformanceGateTest`
+- `QMLPerformanceBaseline`
+- `ViewportStateTest`
+- `ViewportContentTest`
+- `VisualRegressionTest`
+- `AnimationTimingTest`
+- `GLStrictAuditTest`
+
+Core scientific tests run in primary workflows and must remain green.
+
+## Testing & Verification
+
+### Test Categories
+- Unit tests: `tests/test_*.cpp`
+- Integration tests: `tests/test_integration*.cpp`
+- Validation tests: GR benchmarks (Mercury precession, light deflection, redshift, frame dragging, Nordtvedt)
+- Discovery tests: `tests/discovery/test_*.cpp` with 6+ TDD checks per instrument
+- ML tests: anomaly detector, monitor, training data collector
 
 ### Physics Invariants Monitored
-
-1. **MetricTensor Symmetry**: g[μ][ν] = g[ν][μ]
-2. **Lorentzian Signature**: (-,+,+,+) for 4D spacetime
-3. **Negative Determinant**: det(g) < 0 for valid metrics
-4. **Energy Conservation**: Total energy constant along trajectories
-5. **Angular Momentum Conservation**: L conserved in central potentials
-6. **Timelike Separation**: ds² < 0 for physical trajectories
+1. MetricTensor symmetry: `g[μ][ν] = g[ν][μ]`
+2. Lorentzian signature: `(-,+,+,+)`
+3. Negative determinant: `det(g) < 0`
+4. Energy conservation along geodesics
+5. Angular momentum conservation in central potentials
+6. Timelike separation for physical trajectories
 
 ### Adding New Verification Tests
+1. Add verification functions to `src/verification/` or the relevant module test file
+2. Register test in `CMakeLists.txt`
+3. Run `ctest -R <Name>Test --output-on-failure`
 
-1. Add verification functions to `CBMCVerification.h`
-2. Add test entry to `runAll()` method
-3. Register test in `CMakeLists.txt`:
-   ```cmake
-   add_executable(test_new_verification tests/test_new_verification.cpp)
-   target_link_libraries(test_new_verification PRIVATE dilaton)
-   add_test(NAME NewVerificationTest COMMAND test_new_verification)
-   ```
+## Discovery Instruments
 
-### Custom Physics Invariant Checks
+The project includes discovery instruments for multi-messenger astrophysics and theory exploration:
 
-The following custom clang-tidy checks are enforced via `-warnings-as-errors=*`:
-- `physics-invariant-metric-symmetry`: Ensures `MetricTensor` symmetry (g[μ][ν] = g[ν][μ])
-- `physics-invariant-lorentz-signature`: Validates Lorentzian signature (-,+,+,+)
-- `physics-invariant-negative-determinant`: Checks det(g) < 0 for valid metrics
-- `physics-invariant-energy-conservation`: Verifies energy conservation in geodesics
+| Domain | Instruments |
+|--------|-------------|
+| **GW Detection** | `MergingBinaryInspiralAnalyzer`, `BosonStarCollisionPredictor`, `GWRingdownScanner` |
+| **BH Physics** | `GWEchoHunter`, `ECORingdownAnalyzer`, `KerrNoHairViolationAnalyzer`, `HawkingRadiationDetector`, `GravitationalWaveMemoryAnalyzer` |
+| **Multi-Messenger** | `NeutrinoBurstAnalyzer`, `KilonovaAfterglowScanner`, `FastRadioBurstAnalyzer` |
+| **Cosmology** | `CMBLensingScanner`, `CosmicShearScanner`, `PTAScanner`, `RecombinationConstantVariationImager` |
+| **Dark Matter** | `UltralightDMWaveInterferometer`, `DarkMatterAnnihilationAnalyzer`, `PBHMicrolensingScanner` |
+| **Theory** | `TheoryDiscoveryAgent`, `HolographicDualityLab`, `SymbolicMath` |
 
-### CI Pipeline
+Each instrument follows the `DiscoveryInstrument` base class pattern with:
+- `analyze()` method taking `MetricTensor&`, `Event4D&`, `vector<Event4D>&`
+- `getParameterRanges()` for QML dashboard integration
+- TDD-verified tests in `tests/discovery/`
+- Registration in `src/discovery/DiscoveryEngine.cpp` or `src/main_qml.cpp`
 
-The advanced error discovery pipeline runs:
-- **CBMC**: Bounded model checking (PR + nightly)
-- **Differential Testing**: Algorithm comparison (every push)
-- **Runtime Monitoring**: Sanitizer + invariant checks (every push)
-- **Fuzz Testing**: Hybrid symbolic+fuzzing (PR + 24/7 continuous)
-- **Chaos Testing**: Fault injection (weekly)
+### Recent Analyzer Improvements
+`MergingBinaryInspiralAnalyzer` includes:
+- Median + 3σ outlier rejection on the frequency track
+- Two-stage coarse-to-fine grid search centered on the best coarse estimate
+- Improved SNR recovery from ~3 → ~770 for marginal signals
+- Edge-case tests covering boundary chirp masses, off-grid recovery, short tracks, noise rejection, and seed consistency
 
-### Configuration Options
+### Adding New Instruments
+1. Create `src/discovery/<Name>.h/.cpp` following existing patterns
+2. Create `tests/discovery/test_<name>.cpp` with 6+ TDD checks
+3. Add to test target in `CMakeLists.txt`
+4. Register in discovery engine or QML entry point
+5. Build and run: `ctest -R <Name>Test --output-on-failure`
+
+## ML / Differentiable Physics
+
+The `src/ml/` module provides C++ runtime inference and differentiable physics:
+- `FeatureVector` / `AnomalyDetector` / `AnomalyMonitor`: real-time anomaly scoring
+- `TrainingDataCollector`: telemetry logging for retraining
+- `GeodesicNeuralODE`: Neural ODE surrogate for geodesic prediction
+- `MetricGNN`: graph neural network for metric learning
+- `CurvatureNormalizingFlow`: density estimation on curvature space
+- `DifferentiableSimulator`: gradient-based spacetime optimization
+
+Python training scripts live in `python/` and exported ONNX models are loaded at runtime.
+
+## CI/CD
+
+Primary workflows:
+- PR Diagnostics
+- Cross-Platform Sanitization Pipeline
+- CI
+- Windows Validation
+- Advanced Error Discovery Pipeline
+
+Nightly workflows (`Nightly Baseline Update`, `Nightly Deep Scan`) are allowed to fail without blocking mainline development. If they fail, check for environment-specific issues such as missing secrets or hardware differences before investigating code changes.
+
+## Known Issues
+
+- Windows COM exception `0x8001010D` may appear in headless/CI output; it is benign and caught by the VEH.
+- Some rendering/performance tests are non-blocking canaries because they depend on GPU/driver state in CI.
+- The inspiral analyzer’s `fitTaylorF2()` uses a fixed frequency model; extremely low-frequency or very short tracks may yield low-confidence detections.
+- ONNX Runtime and CUDA acceleration are optional; runtime inference falls back to CPU if unavailable.
+
+## Configuration Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -83,138 +179,9 @@ The advanced error discovery pipeline runs:
 | `QUANTUMVERSE_ENFORCE_TIDY_ERRORS` | ON | Treat clang-tidy warnings as errors |
 | `QUANTUMVERSE_USE_COVERAGE` | OFF | Enable code coverage instrumentation |
 
-## Development Workflow
+## Module Layout Convention
 
-1. Write failing test first
-2. Implement minimal code to pass
-3. Run sanitizers: `cmake -DQUANTUMVERSE_USE_ASAN=ON`
-4. Run verification: `ctest -R CBMC --output-on-failure`
-5. Run differential tests: `ctest -R Differential --output-on-failure`
-6. Commit with clear message referencing tests
+New code belongs under `src/<module>/` where `<module>` is one of:
+`spacetime`, `physics`, `rendering`, `ui4d`, `discovery`, `quantumgravity`, `data`, `ml`, `math`, `scenario`, `audio`, `vr`, `net`, `utils`, `config`.
 
-## Success Metrics
-
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Line coverage | ≥ 95% | `lcov`/`gcovr` |
-| Branch coverage | ≥ 90% | `lcov`/`gcovr` |
-| Mutation score | ≥ 80% | Mull |
-| Fuzzing coverage | ≥ 70% of code paths | libFuzzer |
-| Security vulnerabilities | 0 critical/high | Semgrep, CodeQL |
-| CBMC violations | 0 | CBMC harnesses |
-
-## Phase 0: Headless UI & Integration Tests (COMPLETED)
-
-### Status: ✅ Complete
-
-### Changes Made:
-1. **Upgraded UI framework** - Dear ImGui 1.92.8 + ImPlot 0.17
-2. **Multi-viewport support** - Docking, viewports, high-DPI scaling
-3. **Theme system** - Dark/Light/HighContrast themes in `src/ui4d/ImGuiBackend.cpp`
-4. **Plotting integration** - `src/ui4d/PlotPanel.cpp` for curvature/anomaly plots
-5. **Headless UI test** - `tests/integration/test_headless_ui.cpp`
-6. **Updated CMakeLists.txt** - Built ImGui/ImPlot/GLFW/Glad from third_party
-7. **Property-based tests** - `tests/unit/test_property_based.cpp` for Vector4D/Matrix4x4 invariants
-8. **UI automation + screenshot** - `tests/ui/test_ui_automation.cpp` with stb_image_write
-
-### Test Results:
-```
-Test #1: HeadlessUITest ...................   Passed
-Test #2: Vector4DTest .....................   Passed
-Test #3: Matrix4x4Test ....................   Passed
-Test #4: PropertyBasedTest ................   Passed
-Test #5: UIAutomationTest .................   Passed
-Test #6: MercuryPrecessionTest ............   Passed
-Test #7: LightDeflectionTest ..............   Passed
-Test #8: GravitationalRedshiftTest .........   Passed
-Test #9: FrameDraggingTest ................   Passed
-Test #10: CDTTest ..........................   Passed
-Test #11: SpinFoamTest .....................   Passed
-Test #12: SpacetimeTest ....................   Passed
-Test #13: GeodesicTest .....................   Passed
-```
-All 13 UI tests pass in 1.90 seconds.
-Core validation tests: 27 passing.
-**Total: 40 passing tests**
-
-### CI Integration:
-- Cross-platform matrix (Linux/Windows/macOS) in `.github/workflows/pr-diagnostics.yml`
-- Sanitizer builds (ASan/TSan) for nightly runs
-- Coverage check with 95% line / 90% branch thresholds
-- All validation components complete
-
-### Running Tests:
-```bash
-# Run all tests
-cd build && ctest -C Release --output-on-failure
-
-# Run headless UI specifically
-./build/Release/quantumverse_imgui.exe --headless --frames 100
-
-# Run UI automation with screenshot
-./build/Release/test_ui_automation.exe --screenshot test_screenshot.png
-
-# Run property-based tests
-./build/Release/test_property_based.exe
-
-# Run benchmarks (requires Google Benchmark)
-cmake -DQUANTUMVERSE_USE_BENCHMARK=ON ..
-./build/Release/benchmark_physics
-```
-
-### Running Fuzzing (requires libFuzzer/Clang):
-```bash
-# Build fuzzer
-cmake -DQUANTUMVERSE_USE_FUZZER=ON -DCMAKE_CXX_COMPILER=clang++ ..
-./build/fuzz_geodesic_differential -max_total_time=60
-```
-
-## Discovery Instruments
-
-The project includes 11 discovery instruments for multi-messenger astrophysics:
-
-| Domain | Instruments |
-|--------|-------------|
-| **GW Detection** | `MergingBinaryInspiralAnalyzer`, `BosonStarCollisionPredictor`, `GWRingdownScanner` |
-| **BH Physics** | `GWEchoHunter`, `ECORingdownAnalyzer`, `KerrNoHairViolationAnalyzer`, `HawkingRadiationDetector`, `GravitationalWaveMemoryAnalyzer` |
-| **Multi-Messenger** | `NeutrinoBurstAnalyzer`, `KilonovaAfterglowScanner`, `FastRadioBurstAnalyzer` |
-
-Each instrument follows the `DiscoveryInstrument` base class pattern with:
-- `analyze()` method taking `MetricTensor&`, `Event4D&`, `vector<Event4D>&`
-- `getParameterRanges()` for QML dashboard integration
-- TDD-verified tests in `tests/discovery/`
-- Registration in `src/main_qml.cpp`
-
-### Adding New Instruments
-
-1. Create `src/discovery/<Name>.h/.cpp` following existing patterns
-2. Create `tests/discovery/test_<name>.cpp` with 6+ TDD checks
-3. Add to all 11 targets in `CMakeLists.txt`
-4. Register in `src/main_qml.cpp` (include + `registerInstrument`)
-5. Build and run: `ctest -R <Name>Test --output-on-failure`
-
-```bash
-# Analyze test failure
-python3 scripts/analyze_root_cause.py build/TestResults.log TestName
-
-# Run with git bisect
-python3 scripts/analyze_root_cause.py build/TestResults.log TestName --bisect
-```
-
-## Known Non-Critical Issues
-
-### Windows COM Exception (0x8001010D - RPC_E_DISCONNECTED)
-
-**Symptom:** `[VEH] Exception 0x8001010D at 0x...` appears in headless/CI output at startup.
-
-**Cause:** Windows COM infrastructure (UI Automation, taskbar, or driver services) attempts to access a COM object that is no longer connected. This is a Windows-specific behavior in headless/benchmark environments.
-
-**Impact:** None. The VEH (Vectored Exception Handler) catches it, writes a minidump for diagnostics, and execution continues normally.
-
-**Do NOT:**
-- Attempt to "fix" by changing COM initialization modes
-- Add `COINIT_MULTITHREADED` to the render thread
-- Spend debugging time on this
-
-**Status:** Benign. Documented to avoid future investigation rabbit holes.
-```
+Tests belong in `tests/` and examples in `examples/`.
