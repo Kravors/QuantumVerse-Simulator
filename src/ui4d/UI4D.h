@@ -662,9 +662,9 @@ public:
         double orbitalPeriod;  // seconds
         double semiMajorAxis;  // meters
         std::vector<Event4D> orbitPoints; // pre-calculated orbit points
-        bool isCentralBody;    // true for the Sun
-        bool isStar;           // true for stars (Sun, other stars)
-        bool showOrbit;        // whether to render orbit
+        bool isCentralBody = false;   // true for the Sun
+        bool isStar = false;          // true for stars (Sun, other stars)
+        bool showOrbit = true;        // whether to render orbit
         std::string textureId; // for rendering (if using textures)
     };
     

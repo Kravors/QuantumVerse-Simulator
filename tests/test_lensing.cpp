@@ -29,21 +29,21 @@ int main() {
 
         // For Schwarzschild: r_photon = 3M (in geometric units)
         double M = PHYS_G() * mass / (PHYS_C() * PHYS_C());
-        double expectedPhotonSphere = 3.0 * M;
+        double expectedPhotonSphereMeters = 3.0 * M;
 
         // Create lensing renderer and check it computes correctly
         auto lensing = std::make_shared<GravitationalLensing>(
             std::make_shared<SchwarzschildMetric>(mass));
+        lensing->setParams(GravitationalLensing::LensingParams{1.0f, 0.0f});
         double photonSphere = lensing->computePhotonSphereRadius();
 
-        // For Schwarzschild, photon sphere should be 3M
-        // (Implementation uses an approximation, so allow some tolerance)
-        assert(std::abs(photonSphere - expectedPhotonSphere) / expectedPhotonSphere < 0.1 &&
+        // computePhotonSphereRadius() returns geometric units (multiples of M)
+        assert(std::abs(photonSphere - 3.0) < 0.1 &&
                "Photon sphere radius should be approximately 3M for Schwarzschild");
 
         std::cout << "[PASS] Photon sphere radius correct for Schwarzschild" << std::endl;
-        std::cout << "       r_photon = " << photonSphere << " m" << std::endl;
-        std::cout << "       expected = " << expectedPhotonSphere << " m" << std::endl;
+        std::cout << "       r_photon = " << photonSphere << " M (geometric)" << std::endl;
+        std::cout << "       expected = " << expectedPhotonSphereMeters << " m" << std::endl;
     }
 
     // Test 2: ISCO for Schwarzschild

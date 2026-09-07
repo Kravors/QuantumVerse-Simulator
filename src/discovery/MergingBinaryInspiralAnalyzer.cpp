@@ -53,29 +53,23 @@ MergingBinaryInspiralAnalyzer::trackInstantaneousFrequency(
     for (size_t start = 0; start + windowSize <= n; start += windowSize / 2) {
         int zeroCrossings = 0;
         double sumAmp = 0.0;
-        double meanVal = 0.0;
 
         for (size_t i = start; i < start + windowSize; ++i) {
             double h = trajectory[i].x;
             if (std::isfinite(h)) {
-                meanVal += h;
                 sumAmp += std::abs(h);
             }
         }
-        meanVal /= static_cast<double>(windowSize);
 
         for (size_t i = start + 1; i < start + windowSize; ++i) {
-            double hPrev = trajectory[i - 1].x - meanVal;
-            double hCurr = trajectory[i].x - meanVal;
+            double hPrev = trajectory[i - 1].x;
+            double hCurr = trajectory[i].x;
             if (std::isfinite(hPrev) && std::isfinite(hCurr)) {
                 if ((hPrev >= 0.0 && hCurr < 0.0) || (hPrev < 0.0 && hCurr >= 0.0)) {
                     ++zeroCrossings;
                 }
             }
         }
-
-        std::cerr << "MERGING_WINDOW: start=" << start << " zc=" << zeroCrossings
-                  << " sumAmp=" << sumAmp << " mean=" << meanVal << std::endl;
 
         if (zeroCrossings > 0 && sumAmp > 0.0) {
             double duration = static_cast<double>(windowSize) * dt;
@@ -174,12 +168,6 @@ std::vector<InstrumentFinding> MergingBinaryInspiralAnalyzer::analyze(
     if (windowSize < 8) windowSize = 8;
 
     auto freqTrack = trackInstantaneousFrequency(trajectory, windowSize);
-    std::cerr << "MERGING: freqTrack.size()=" << freqTrack.size();
-    if (!freqTrack.empty()) {
-        std::cerr << " first=" << freqTrack.front().second
-                  << " last=" << freqTrack.back().second;
-    }
-    std::cerr << std::endl;
 
     if (freqTrack.size() < 4) return findings;
 

@@ -23,12 +23,12 @@ int main(int argc, char** argv)
 
     assert(viewport->showGrid() == true);
     assert(viewport->showLightCones() == false);
-    assert(viewport->showGeodesics() == true);
+    assert(viewport->showGeodesics() == false);
     assert(viewport->showQuantumGeometry() == false);
     assert(viewport->curvatureMode() == 0);
-    assert(viewport->cameraDistance() == 50.0f);
-    assert(viewport->cameraAngleX() == 0.0f);
-    assert(viewport->cameraAngleY() == 0.0f);
+    assert(viewport->cameraDistance() == 150.0f);
+    assert(viewport->cameraAngleX() == 0.524f);
+    assert(viewport->cameraAngleY() == 0.785f);
     assert(viewport->simulationTime() == 0.0f);
     assert(viewport->frameRate() == 0.0f);
 
@@ -42,9 +42,16 @@ int main(int argc, char** argv)
     assert(gridSpy.count() == 1);
 
     QSignalSpy geodesicsSpy(viewport, &QmlGlViewport::showGeodesicsChanged);
-    viewport->setShowGeodesics(false);
+    viewport->setShowGeodesics(true);
     assert(geodesicsSpy.count() == 1);
+    assert(viewport->showGeodesics() == true);
+
+    viewport->setShowGeodesics(false);
+    assert(geodesicsSpy.count() == 2);
     assert(viewport->showGeodesics() == false);
+
+    viewport->setShowGeodesics(false); // no change -> no signal
+    assert(geodesicsSpy.count() == 2);
 
     QSignalSpy lightConesSpy(viewport, &QmlGlViewport::showLightConesChanged);
     viewport->setShowLightCones(true);

@@ -35,12 +35,20 @@ static std::vector<UI4D::SolarSystemBody> makeBodies() {
     UI4D::SolarSystemBody sun;
     sun.name = "Sun";
     sun.mass = 1.989e30;
+    sun.radius = 6.96e8;
+    sun.isCentralBody = true;
+    sun.isStar = true;
+    sun.showOrbit = true;
     sun.velocity = Event4D(0.0, 0.0, 0.0, 0.0);
     bodies.push_back(sun);
 
     UI4D::SolarSystemBody earth;
     earth.name = "Earth";
     earth.mass = 5.972e24;
+    earth.radius = 6.371e6;
+    earth.isCentralBody = false;
+    earth.isStar = false;
+    earth.showOrbit = true;
     earth.velocity = Event4D(0.0, 0.0, 29780.0, 0.0);
     bodies.push_back(earth);
     return bodies;

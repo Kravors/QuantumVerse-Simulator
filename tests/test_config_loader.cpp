@@ -39,7 +39,7 @@ int main() {
     quantumverse::PhysicsConstants::instance().set_G(1.0);
     assert(quantumverse::PhysicsConstants::instance().get_G() == 1.0);
     quantumverse::PhysicsConstants::instance().set_G_log(-11.18);
-    assert(std::abs(quantumverse::PhysicsConstants::instance().get_G() - 6.6e-11) < 1e-12);
+    assert(std::abs(quantumverse::PhysicsConstants::instance().get_G() - 6.6e-12) < 1e-12);
     quantumverse::PhysicsConstants::instance().reset();
     assert(std::abs(quantumverse::PhysicsConstants::instance().get_G() - 6.67430e-11) < 1e-20);
 

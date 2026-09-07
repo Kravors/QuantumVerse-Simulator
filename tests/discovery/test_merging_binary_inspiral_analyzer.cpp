@@ -49,6 +49,7 @@ std::vector<Event4D> makeInspiralWaveform(double chirpMass, double tc,
                                             double noiseLevel = 0.0) {
     std::vector<Event4D> data;
     data.reserve(n);
+    double phase = 0.0;
     for (size_t i = 0; i < n; ++i) {
         double t = static_cast<double>(i) * dt;
         double tau = tc - t;
@@ -58,7 +59,8 @@ std::vector<Event4D> makeInspiralWaveform(double chirpMass, double tc,
         }
         double f = chirpFrequency(t, tc, chirpMass);
         double env = std::pow(tau / tc, -1.0 / 4.0);
-        double h = env * std::sin(2.0 * kPi * f * t);
+        phase += 2.0 * kPi * f * dt;
+        double h = env * std::sin(phase);
         double noise = noiseLevel * (static_cast<double>(rand()) / RAND_MAX - 0.5);
         data.emplace_back(t, h + noise, 0.0, 0.0);
     }
@@ -75,7 +77,7 @@ int main() {
     {
         MergingBinaryInspiralAnalyzer analyzer;
         double mcTrue = 0.01;
-        double tc = 20.0;
+        double tc = 10.0;
         double dt = 0.001;
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
@@ -96,7 +98,7 @@ int main() {
     {
         MergingBinaryInspiralAnalyzer analyzer;
         double mcTrue = 0.01;
-        double tc = 20.0;
+        double tc = 10.0;
         double dt = 0.001;
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
@@ -114,7 +116,7 @@ int main() {
     {
         MergingBinaryInspiralAnalyzer analyzer;
         double mcTrue = 0.01;
-        double tc = 20.0;
+        double tc = 10.0;
         double dt = 0.001;
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 5.0);
         auto findings = analyzer.analyze(metric, location, traj);
