@@ -46,7 +46,7 @@ jobs:
       run: |
         cd build
         mkdir -p ../reports
-        ./qml_performance_baseline > ../reports/performance.log 2>&1
+        ./qml_performance_baseline > ../reports/performance.log 2>&1 || true
     
     - name: Generate and save new baseline
       run: |

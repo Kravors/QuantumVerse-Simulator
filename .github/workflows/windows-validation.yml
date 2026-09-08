@@ -115,6 +115,8 @@ jobs:
       
       - name: Run ASan Tests
         working-directory: build_asan
+        env:
+          PATH: ${{ env.PATH }};${{ github.workspace }}\build_asan\Debug\bin;C:\Program Files\LLVM\bin
         run: ctest -C Debug --output-on-failure
 
   deploy-validation:
@@ -135,10 +137,10 @@ jobs:
           # Copy built executables
           Copy-Item build\Release\quantumverse_qml.exe deploy\windows\ -ErrorAction SilentlyContinue
           # Run smoke test
-          .\scripts\smoke_test_deployment.ps1 -DeployPath deploy\windows
+          pwsh -File "${{ github.workspace }}\scripts\smoke_test_deployment.ps1" -DeployPath deploy\windows
       
       - name: Check DLL Dependencies
-        run: .\scripts\check_dll_dependencies.ps1 -DeployPath deploy\windows
+        run: pwsh -File "${{ github.workspace }}\scripts\check_dll_dependencies.ps1" -DeployPath deploy\windows
 
   fuzzer-check:
     runs-on: windows-2022
@@ -167,7 +169,7 @@ jobs:
           arch: x64
       
       - name: Configure Fuzzer
-        run: cmake -B build_fuzz -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+        run: cmake -B build_fuzz -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
       
       - name: Build Fuzzer
         run: cmake --build build_fuzz --config Debug --parallel 2
@@ -188,4 +190,4 @@ jobs:
           submodules: recursive
 
       - name: Run AppVerifier Soak (1 hour)
-        run: .\scripts\appverifier_soak_test.ps1 -Duration 60
+        run: pwsh -File "${{ github.workspace }}\scripts\appverifier_soak_test.ps1" -Duration 60
