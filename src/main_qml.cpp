@@ -635,7 +635,10 @@ int main(int argc, char* argv[])
         std::cerr.flush();
         planckContainer->setObjectName("planckContainer");
         planckContainer->setVisible(false);
-        planckMicroscope->setParent(planckContainer);
+        // The container embeds the microscope's window; reparenting the widget
+        // itself creates a recursive createWinId() chain under offscreen Qt.
+        QObject::connect(planckContainer, &QObject::destroyed,
+            planckMicroscope, &QObject::deleteLater);
         std::cerr << "QuantumVerse: PlanckMicroscope setup complete" << std::endl;
         std::cerr.flush();
 
