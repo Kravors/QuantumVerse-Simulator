@@ -21,7 +21,11 @@ bool AnomalyDetector::load(const std::string& path) {
         nlohmann::json j;
         f >> j;
         return loadFromString(j.dump());
+    } catch (const std::exception& e) {
+        std::cerr << "AnomalyDetector::load exception: " << e.what() << std::endl;
+        return false;
     } catch (...) {
+        std::cerr << "AnomalyDetector::load unknown exception" << std::endl;
         return false;
     }
 }
@@ -74,7 +78,11 @@ bool AnomalyDetector::loadFromString(const std::string& json_str) {
 
         loaded_ = true;
         return true;
+    } catch (const std::exception& e) {
+        std::cerr << "AnomalyDetector::loadFromString exception: " << e.what() << std::endl;
+        return false;
     } catch (...) {
+        std::cerr << "AnomalyDetector::loadFromString unknown exception" << std::endl;
         return false;
     }
 }

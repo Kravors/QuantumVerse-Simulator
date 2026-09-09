@@ -635,6 +635,7 @@ int main(int argc, char* argv[])
         std::cerr.flush();
         planckContainer->setObjectName("planckContainer");
         planckContainer->setVisible(false);
+        planckMicroscope->setParent(planckContainer);
         std::cerr << "QuantumVerse: PlanckMicroscope setup complete" << std::endl;
         std::cerr.flush();
 
@@ -676,6 +677,8 @@ int main(int argc, char* argv[])
         rootContext->setContextProperty("vrBackend",
             QVariant::fromValue(vrBackend.get()));
 #endif
+        rootContext->setContextProperty("planckContainer",
+            QVariant::fromValue(planckContainer));
 
         // Correlations are exposed via DiscoveryPanelManager::correlationsList
         // and emitted through its built-in signals.

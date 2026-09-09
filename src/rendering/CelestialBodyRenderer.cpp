@@ -213,13 +213,12 @@ void CelestialBodyRenderer::generateSphereVAO()
     glEnableVertexAttribArray(3);
 
     // Instance attributes
-    // Instance data layout per instance (36 floats = 144 bytes):
+    // Layout per instance (36 floats = 144 bytes):
     //   [0..15]   modelMatrix (mat4, column-major)
     //   [16..24]  modelMatrixIT (mat3, column-major)
     //   [25..27]  color (vec3)
-    //   [28..30]  emissive (vec3)
-    //   [31]      radius (float)
-    //   [32..35]  packedMRAB (vec4: metallic, roughness, ao, texLayer)
+    //   [28..31]  emissiveAO (vec4: xyz=emissive, w=ao)
+    //   [32..35]  packedRadiusMR (vec4: x=radius, y=metallic, z=roughness, w=texLayer)
     const GLsizeiptr kInstanceStride = 36 * sizeof(float);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_instanceVBO);
@@ -249,29 +248,20 @@ void CelestialBodyRenderer::generateSphereVAO()
                           reinterpret_cast<void*>(static_cast<uintptr_t>(25 * sizeof(float))));
     glVertexAttribDivisor(11, 1);
 
-    // Emissive (location 12)
+    // EmissiveAO (location 12): xyz=emissive, w=ao
     glEnableVertexAttribArray(12);
-    glVertexAttribPointer(12, 3, GL_FLOAT, GL_FALSE,
+    glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE,
                           kInstanceStride,
                           reinterpret_cast<void*>(static_cast<uintptr_t>(28 * sizeof(float))));
     glVertexAttribDivisor(12, 1);
 
-    // Radius (location 13)
+    // Packed radius/metallic/roughness/texLayer (location 13)
     glEnableVertexAttribArray(13);
-    glVertexAttribPointer(13, 1, GL_FLOAT, GL_FALSE,
-                          kInstanceStride,
-                          reinterpret_cast<void*>(static_cast<uintptr_t>(31 * sizeof(float))));
-    glVertexAttribDivisor(13, 1);
-
-    // Packed metallic/roughness/ao/texLayer (location 14) as vec4
-    // Layout: [0..15] modelMatrix(16) + [16..24] modelMatrixIT(9) + [25..27] color(3) +
-    //         [28..30] emissive(3) + [31] radius(1) + [32..35] packedMRAB(4) = 36 floats
-    glEnableVertexAttribArray(14);
-    glVertexAttribPointer(14, 4, GL_FLOAT, GL_FALSE,
+    glVertexAttribPointer(13, 4, GL_FLOAT, GL_FALSE,
                           kInstanceStride,
                           reinterpret_cast<void*>(static_cast<uintptr_t>(32 * sizeof(float))));
-    glVertexAttribDivisor(14, 1);
-    // Locations 15, 16, 17 are no longer used (packed into location 14)
+    glVertexAttribDivisor(13, 1);
+    // Locations 14+ are no longer used
 
     glBindVertexArray(0);
 }
@@ -296,44 +286,40 @@ layout(location = 8) in vec3 aModelMatrixIT_col0;
 layout(location = 9) in vec3 aModelMatrixIT_col1;
 layout(location = 10) in vec3 aModelMatrixIT_col2;
 layout(location = 11) in vec3 aColor;
-layout(location = 12) in vec3 aEmissive;
-layout(location = 13) in float aRadius;
-layout(location = 14) in vec4 aPackedMRAB; // x=metallic, y=roughness, z=ao, w=texLayer
+layout(location = 12) in vec4 aEmissiveAO;      // xyz = emissive, w = ao
+layout(location = 13) in vec4 aPackedRadiusMR;   // x = radius, y = metallic, z = roughness, w = texLayer
 
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 uniform float scaleFactor;
 uniform int textureArrayEnabled;
 
-out VS_OUT {
-    vec3 worldPos;
-    vec3 normal;
-    vec2 texCoord;
-    vec3 color;
-    vec3 emissive;
-    vec3 viewDir;
-    flat float texLayer;
-    flat float metallic;
-    flat float roughness;
-    flat float ao;
-} vs_out;
+out vec3 vWorldPos;
+out vec3 vNormal;
+out vec2 vTexCoord;
+out vec3 vColor;
+out vec3 vEmissive;
+out vec3 vViewDir;
+flat out float vTexLayer;
+flat out float vMetallic;
+flat out float vRoughness;
+flat out float vAo;
 
 void main() {
-    vec4 worldPos4 = aModelMatrix * vec4(aPos * aRadius, 1.0);
-    // Reconstruct mat3 from 3 vec3 attributes
+    vec4 worldPos4 = aModelMatrix * vec4(aPos * aPackedRadiusMR.x, 1.0);
     mat3 modelIT = mat3(aModelMatrixIT_col0, aModelMatrixIT_col1, aModelMatrixIT_col2);
-    vs_out.worldPos = worldPos4.xyz;
-    vs_out.normal = normalize(modelIT * aNormal);
-    vs_out.texCoord = aTexCoord;
-    vs_out.color = aColor;
-    vs_out.emissive = aEmissive;
-    vs_out.metallic = aPackedMRAB.x;
-    vs_out.roughness = aPackedMRAB.y;
-    vs_out.ao = aPackedMRAB.z;
-    vs_out.texLayer = aPackedMRAB.w;
+    vWorldPos = worldPos4.xyz;
+    vNormal = normalize(modelIT * aNormal);
+    vTexCoord = aTexCoord;
+    vColor = aColor;
+    vEmissive = aEmissiveAO.xyz;
+    vMetallic = aPackedRadiusMR.y;
+    vRoughness = aPackedRadiusMR.z;
+    vAo = aEmissiveAO.w;
+    vTexLayer = aPackedRadiusMR.w;
 
     vec4 viewPos = viewMatrix * worldPos4;
-    vs_out.viewDir = -viewPos.xyz;
+    vViewDir = -viewPos.xyz;
 
     gl_Position = projectionMatrix * viewPos;
 }
@@ -342,18 +328,16 @@ void main() {
 const char* celestialFragSrc = R"(
 #version 450 core
 
-in VS_OUT {
-    vec3 worldPos;
-    vec3 normal;
-    vec2 texCoord;
-    vec3 color;
-    vec3 emissive;
-    vec3 viewDir;
-    flat float texLayer;
-    flat float metallic;
-    flat float roughness;
-    flat float ao;
-} fs_in;
+in vec3 vWorldPos;
+in vec3 vNormal;
+in vec2 vTexCoord;
+in vec3 vColor;
+in vec3 vEmissive;
+in vec3 vViewDir;
+flat in float vTexLayer;
+flat in float vMetallic;
+flat in float vRoughness;
+flat in float vAo;
 
 uniform vec3 lightPosition;
 uniform vec3 lightColor;
@@ -367,28 +351,28 @@ uniform int debugMode;
 out vec4 outColor;
 
 void main() {
-    vec3 N = normalize(fs_in.normal);
-    vec3 L = normalize(lightPosition - fs_in.worldPos);
-    vec3 V = normalize(fs_in.viewDir);
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(lightPosition - vWorldPos);
+    vec3 V = normalize(vViewDir);
     vec3 H = normalize(L + V);
 
     vec4 texColor = vec4(1.0);
-    if (textureArrayEnabled > 0 && fs_in.texLayer >= 0.0) {
-        texColor = texture(textureArray, vec3(fs_in.texCoord, fs_in.texLayer));
+    if (textureArrayEnabled > 0 && vTexLayer >= 0.0) {
+        texColor = texture(textureArray, vec3(vTexCoord, vTexLayer));
     }
 
     if (debugMode == 1) { outColor = vec4(1.0, 0.0, 0.0, 1.0); return; }
     if (debugMode == 2) { outColor = vec4(texColor.a); return; }
     if (debugMode == 3) { outColor = texColor; return; }
 
-    vec3 ambient = ambientColor * fs_in.color * texColor.rgb;
+    vec3 ambient = ambientColor * vColor * texColor.rgb;
     float diff = max(dot(N, L), 0.0);
-    vec3 diffuse = diff * fs_in.color * texColor.rgb * lightColor * lightIntensity;
+    vec3 diffuse = diff * vColor * texColor.rgb * lightColor * lightIntensity;
     float spec = pow(max(dot(N, H), 0.0), 64.0);
     vec3 specular = spec * vec3(0.3) * lightColor * lightIntensity;
     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
     vec3 atmosphere = fresnel * vec3(0.2, 0.4, 0.8) * 0.5;
-    vec3 emission = fs_in.emissive * lightColor * 0.5;
+    vec3 emission = vEmissive * lightColor * 0.5;
     vec3 result = ambient + diffuse + specular + atmosphere + emission;
     result = pow(result, vec3(1.0 / 2.2));
     outColor = vec4(result, texColor.a);
@@ -1113,7 +1097,7 @@ void CelestialBodyRenderer::updateBodyBuffers()
 {
     if (!m_buffersDirty || m_bodies.empty()) return;
 
-    // Build instance data: model(16) + modelIT(9) + color(3) + emissive(3) + radius(1) + packedMRAB(4) = 36 floats
+    // Build instance data: model(16) + modelIT(9) + color(3) + emissiveAO(4) + packedRadiusMR(4) = 36 floats
     std::vector<float> instanceData;
     instanceData.reserve(m_bodies.size() * 36);
 
@@ -1131,18 +1115,16 @@ void CelestialBodyRenderer::updateBodyBuffers()
         instanceData.push_back(body.instance.color[1]);
         instanceData.push_back(body.instance.color[2]);
 
-        // Emissive (3 floats)
+        // EmissiveAO (4 floats): xyz=emissive, w=ao
         instanceData.push_back(body.instance.emissive[0]);
         instanceData.push_back(body.instance.emissive[1]);
         instanceData.push_back(body.instance.emissive[2]);
+        instanceData.push_back(body.instance.pbrMaterial.ao);
 
-        // Radius (1 float)
+        // Packed radius/metallic/roughness/texLayer (4 floats)
         instanceData.push_back(static_cast<float>(body.instance.radius));
-
-        // Packed MRAB (4 floats): metallic, roughness, ao, texLayer
         instanceData.push_back(body.instance.pbrMaterial.metallic);
         instanceData.push_back(body.instance.pbrMaterial.roughness);
-        instanceData.push_back(body.instance.pbrMaterial.ao);
         instanceData.push_back(static_cast<float>(body.instance.textureLayer));
     }
 
@@ -1263,7 +1245,7 @@ void CelestialBodyRenderer::renderBody(const CelestialBodyInstance& body,
     }
 
     // Build instance data for this single body
-    // Layout: model(16) + modelIT(9) + color(3) + emissive(3) + radius(1) + packedMRAB(4) = 36 floats
+    // Layout: model(16) + modelIT(9) + color(3) + emissiveAO(4) + packedRadiusMR(4) = 36 floats
     float instanceData[36];
     std::memset(instanceData, 0, 36 * sizeof(float));
 
@@ -1293,18 +1275,16 @@ void CelestialBodyRenderer::renderBody(const CelestialBodyInstance& body,
     instanceData[26] = body.color[1];
     instanceData[27] = body.color[2];
 
-    // Emissive
+    // EmissiveAO: [28..31] xyz=emissive, w=ao
     instanceData[28] = body.emissive[0];
     instanceData[29] = body.emissive[1];
     instanceData[30] = body.emissive[2];
+    instanceData[31] = body.pbrMaterial.ao;
 
-    // Radius
-    instanceData[31] = scale;
-
-    // Packed MRAB: [32]=metallic, [33]=roughness, [34]=ao, [35]=texLayer
-    instanceData[32] = body.pbrMaterial.metallic;
-    instanceData[33] = body.pbrMaterial.roughness;
-    instanceData[34] = body.pbrMaterial.ao;
+    // Packed radius/metallic/roughness/texLayer: [32..35]
+    instanceData[32] = scale;
+    instanceData[33] = body.pbrMaterial.metallic;
+    instanceData[34] = body.pbrMaterial.roughness;
     instanceData[35] = static_cast<float>(body.textureLayer);
 
     // Upload instance data to the instance VBO

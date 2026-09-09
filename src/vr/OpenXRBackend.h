@@ -79,36 +79,12 @@ public:
     void endFrame();
 
     /**
-     * @brief Get the current head pose for both eyes
-     * @param leftEye Output left eye pose
-     * @param rightEye Output right eye pose
-     * @return true if poses are valid
-     */
-    bool getHeadPose(HeadPose& leftEye, HeadPose& rightEye);
-
-    /**
      * @brief Get the current state of both controllers
      * @param left Output left controller state
      * @param right Output right controller state
      * @return true if controller states are valid
      */
     bool getControllerState(ControllerState& left, ControllerState& right);
-
-    /**
-     * @brief Get the recommended viewport size for the current eye
-     * @param eye Which eye to get viewport for
-     * @return Viewport size in pixels
-     */
-    QSize getViewportSize(StereoEye eye) const;
-
-    /**
-     * @brief Get the projection matrix for an eye
-     * @param eye Which eye to get projection for
-     * @param nearClip Near clipping plane
-     * @param farClip Far clipping plane
-     * @return 4x4 projection matrix as float array (column-major)
-     */
-    std::array<float, 16> getProjectionMatrix(StereoEye eye, float nearClip, float farClip) const;
 
     /**
      * @brief Get the view matrix for an eye

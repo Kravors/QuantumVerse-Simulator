@@ -56,15 +56,15 @@ PlanckMicroscope::PlanckMicroscope(QWidget* parent)
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
     // Title
-    QLabel* titleLabel = new QLabel("<h2>Planck Microscope</h2>");
+    QLabel* titleLabel = new QLabel("<h2>Planck Microscope</h2>", this);
     mainLayout->addWidget(titleLabel);
 
     // Zoom control panel
-    QGroupBox* zoomControlBox = new QGroupBox("Zoom Control");
+    QGroupBox* zoomControlBox = new QGroupBox("Zoom Control", this);
     QVBoxLayout* zoomLayout = new QVBoxLayout(zoomControlBox);
 
     // Logarithmic slider: -35 to 0 (log10(m))
-    zoomSlider = new QSlider(Qt::Horizontal);
+    zoomSlider = new QSlider(Qt::Horizontal, this);
     zoomSlider->setRange(-35, 0);
     zoomSlider->setValue(0);
     zoomSlider->setTickInterval(5);
@@ -74,8 +74,8 @@ PlanckMicroscope::PlanckMicroscope(QWidget* parent)
 
     // Zoom buttons row
     QHBoxLayout* zoomButtonsLayout = new QHBoxLayout();
-    resetButton = new QPushButton("Reset (1m)");
-    planckButton = new QPushButton("Planck (10^-35 m)");
+    resetButton = new QPushButton("Reset (1m)", this);
+    planckButton = new QPushButton("Planck (10^-35 m)", this);
     connect(resetButton, &QPushButton::clicked, this, &PlanckMicroscope::onResetClicked);
     connect(planckButton, &QPushButton::clicked, this, &PlanckMicroscope::onPlanckClicked);
     zoomButtonsLayout->addWidget(resetButton);
@@ -83,7 +83,7 @@ PlanckMicroscope::PlanckMicroscope(QWidget* parent)
     zoomLayout->addLayout(zoomButtonsLayout);
 
     // Current scale display
-    currentScaleLabel = new QLabel("<b>Scale: 1.0 m</b>");
+    currentScaleLabel = new QLabel("<b>Scale: 1.0 m</b>", this);
     zoomLayout->addWidget(currentScaleLabel);
 
     mainLayout->addWidget(zoomControlBox);

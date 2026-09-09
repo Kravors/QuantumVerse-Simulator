@@ -160,7 +160,11 @@ bool TrainingDataCollector::writeJson(const std::string& path) const {
         if (!f.is_open()) return false;
         f << j.dump(2);
         return true;
+    } catch (const std::exception& e) {
+        std::cerr << "TrainingDataCollector::save exception: " << e.what() << std::endl;
+        return false;
     } catch (...) {
+        std::cerr << "TrainingDataCollector::save unknown exception" << std::endl;
         return false;
     }
 }
@@ -196,7 +200,11 @@ bool TrainingDataCollector::readJson(const std::string& path) {
         }
 
         return true;
+    } catch (const std::exception& e) {
+        std::cerr << "TrainingDataCollector::readJson exception: " << e.what() << std::endl;
+        return false;
     } catch (...) {
+        std::cerr << "TrainingDataCollector::readJson unknown exception" << std::endl;
         return false;
     }
 }

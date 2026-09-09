@@ -61,9 +61,6 @@ struct Message {
  */
 class MultiUserServer {
 public:
-    using ParticipantCallback = std::function<void(const Participant& participant)>;
-    using MessageCallback = std::function<void(const Message& message)>;
-
     MultiUserServer();
     ~MultiUserServer();
 
@@ -105,30 +102,9 @@ public:
      */
     void broadcastMessage(const Message& message);
 
-    /**
-     * @brief Set callback for participant join/leave events
-     */
-    void setParticipantCallback(ParticipantCallback callback) {
-        m_participantCallback = std::move(callback);
-    }
-
-    /**
-     * @brief Set callback for incoming messages
-     */
-    void setMessageCallback(MessageCallback callback) {
-        m_messageCallback = std::move(callback);
-    }
-
-    /**
-     * @brief Get current participant count
-     */
-    size_t getParticipantCount() const { return m_participants.size(); }
-
 private:
     bool m_isRunning = false;
     std::vector<Participant> m_participants;
-    ParticipantCallback m_participantCallback;
-    MessageCallback m_messageCallback;
     uint16_t m_port = 7777;
     double m_lastUpdateTime = 0.0;
 };

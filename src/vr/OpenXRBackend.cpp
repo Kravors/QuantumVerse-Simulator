@@ -128,11 +128,6 @@ bool OpenXRBackend::initialize(const std::string& applicationName)
 
             return xrCreateInstance && xrCreateSession && xrWaitFrame && xrEndFrame;
         }
-
-        void unload() {
-            if (lib) FreeLibrary(lib);
-            lib = nullptr;
-        }
     };
 
     static XRLoader loader;
@@ -226,34 +221,7 @@ void OpenXRBackend::endFrame()
     // Stub: no-op
 }
 
-bool OpenXRBackend::getHeadPose(HeadPose& leftEye, HeadPose& rightEye)
-{
-    if (!m_isActive) return false;
-
-#ifdef QUANTUMVERSE_USE_OPENXR_SDK
-    if (m_hasOpenXR) {
-        // Real OpenXR pose retrieval
-        // xrLocateViews would populate these from the runtime
-        // For now, use cached poses
-        leftEye = m_leftEyePose;
-        rightEye = m_rightEyePose;
-        leftEye.timestamp = m_lastFrameTime;
-        rightEye.timestamp = m_lastFrameTime;
-        return m_isActive;
-    }
-#endif
-
-    leftEye = m_leftEyePose;
-    rightEye = m_rightEyePose;
-
-    // Update timestamp
-    leftEye.timestamp = m_lastFrameTime;
-    rightEye.timestamp = m_lastFrameTime;
-
-    return m_isActive;
-}
-
-bool OpenXRBackend::getControllerState(ControllerState& left, ControllerState& right)
+bool OpenXRBackend::beginFrame()
 {
     if (!m_isActive) return false;
 
@@ -271,79 +239,6 @@ bool OpenXRBackend::getControllerState(ControllerState& left, ControllerState& r
     right = m_rightController;
 
     return m_isActive;
-}
-
-QSize OpenXRBackend::getViewportSize(StereoEye eye) const
-{
-#ifdef QUANTUMVERSE_USE_OPENXR_SDK
-    if (m_hasOpenXR && m_swapchainWidth > 0 && m_swapchainHeight > 0) {
-        return QSize(static_cast<int>(m_swapchainWidth), static_cast<int>(m_swapchainHeight));
-    }
-#endif
-
-    // Return default viewport size for stub mode
-    switch (eye) {
-        case StereoEye::Left:
-        case StereoEye::Right:
-            return QSize(1920, 1080);
-        case StereoEye::Mono:
-        default:
-            return QSize(3840, 1080);
-    }
-}
-
-std::array<float, 16> OpenXRBackend::getProjectionMatrix(StereoEye eye, float nearClip, float farClip) const
-{
-    std::array<float, 16> matrix = {};
-
-#ifdef QUANTUMVERSE_USE_OPENXR_SDK
-    if (m_hasOpenXR) {
-        // Real OpenXR would provide projection matrices from xrLocateViews
-        // For now, compute from FOV
-        float fov = 90.0f * M_PI / 180.0f;
-        float aspect = 1920.0f / 1080.0f;
-
-        float f = 1.0f / std::tan(fov * 0.5f);
-        float nf = 1.0f / (nearClip - farClip);
-
-        matrix[0] = f / aspect;
-        matrix[5] = f;
-        matrix[10] = farClip * nf;
-        matrix[11] = -1.0f;
-        matrix[14] = nearClip * farClip * nf;
-
-        // Adjust for stereo eye offset
-        if (eye == StereoEye::Left) {
-            matrix[8] = -0.05f;
-        } else if (eye == StereoEye::Right) {
-            matrix[8] = 0.05f;
-        }
-
-        return matrix;
-    }
-#endif
-
-    // Simple perspective projection matrix (column-major)
-    float fov = 90.0f * M_PI / 180.0f;
-    float aspect = 1920.0f / 1080.0f;
-
-    float f = 1.0f / std::tan(fov * 0.5f);
-    float nf = 1.0f / (nearClip - farClip);
-
-    matrix[0] = f / aspect;
-    matrix[5] = f;
-    matrix[10] = farClip * nf;
-    matrix[11] = -1.0f;
-    matrix[14] = nearClip * farClip * nf;
-
-    // Adjust for stereo eye offset
-    if (eye == StereoEye::Left) {
-        matrix[8] = -0.05f;
-    } else if (eye == StereoEye::Right) {
-        matrix[8] = 0.05f;
-    }
-
-    return matrix;
 }
 
 std::array<float, 16> OpenXRBackend::getViewMatrix(StereoEye eye) const
