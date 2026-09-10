@@ -33,12 +33,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
+        fetch-depth: 0
         submodules: recursive
 
     - name: Install analysis tools
       run: |
         sudo apt-get update
         sudo apt-get install -y clang-tidy cppcheck
+        python3 -m pip install pyyaml
     
     - name: Install Qt6
       id: setup_qt
@@ -56,9 +58,30 @@ jobs:
     
     - name: Run Clang-Tidy
       id: clang-tidy
+      timeout-minutes: 45
       run: |
-        run-clang-tidy -p build -export-fixes=reports/clang-tidy-fixes.yaml 2>&1 || true
-        run-clang-tidy -p build 2>&1 | head -100
+        set -euo pipefail
+
+        BASE="${{ github.event.pull_request.base.sha }}"
+        if [ -z "${BASE:-}" ]; then
+          BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+        fi
+
+        CHANGED="$(git diff --name-only "$BASE" HEAD -- '*.cpp' '*.cc' '*.cxx' '*.h' '*.hpp' || true)"
+        if [ -z "$CHANGED" ]; then
+          CHANGED="$(git ls-files '*.cpp' '*.cc' '*.cxx' '*.h' '*.hpp')"
+        fi
+
+        echo "Analyzing $(echo "$CHANGED" | wc -l) files"
+
+        echo "$CHANGED" | xargs -r run-clang-tidy -p build -j "$(nproc)" -quiet \
+          2>&1 | tee clang-tidy.log || true
+
+        WARN_COUNT=$(grep -c "warning:" clang-tidy.log || true)
+        echo "::notice::clang-tidy warnings: ${WARN_COUNT}"
+        if [ "${WARN_COUNT:-0}" -gt 0 ]; then
+          echo "::warning::clang-tidy produced ${WARN_COUNT} warnings"
+        fi
     
     - name: Run Cppcheck
       id: cppcheck
