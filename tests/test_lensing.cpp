@@ -264,6 +264,126 @@ int main() {
         std::cout << "[PASS] Star field generation parameters validated" << std::endl;
     }
 
+    // Test 13: Volumetric accretion disk emissivity (CPU reference)
+    {
+        GravitationalLensing::VolumetricDiskParams params;
+        params.enableVolumetricDisk = true;
+        params.diskDensity = 1.0f;
+        params.diskTemperature = 1.0f;
+        params.diskScaleHeight = 0.1f;
+        params.diskInnerRadius = 0.0f;  // use ISCO
+        params.diskOuterRadius = 20.0f;
+        params.diskRaySteps = 64;
+        params.diskOpacity = 1.0f;
+        params.diskDopplerBoost = 1.0f;
+
+        float mass = 1.0f;
+
+        // Emissivity must be non-negative everywhere in the disk
+        std::array<float, 3> p1 = {8.0f, 0.0f, 0.0f};  // mid-disk, equatorial
+        std::array<float, 3> p2 = {12.0f, 0.5f, 0.0f}; // off-plane
+        std::array<float, 3> p3 = {25.0f, 0.0f, 0.0f}; // outside disk
+        float e1 = GravitationalLensing::computeVolumetricDiskEmissivity(p1, params, mass);
+        float e2 = GravitationalLensing::computeVolumetricDiskEmissivity(p2, params, mass);
+        float e3 = GravitationalLensing::computeVolumetricDiskEmissivity(p3, params, mass);
+
+        assert(e1 >= 0.0f && "Disk emissivity must be non-negative at mid-disk");
+        assert(e2 >= 0.0f && "Disk emissivity must be non-negative off-plane");
+        assert(e3 == 0.0f && "Emissivity must be zero outside the disk");
+
+        // Hotter near the inner edge (r=8M) than far out (r=12M): T ~ r^(-3/4)
+        assert(e1 > e2 && "Emissivity must decrease with radius (T ~ r^-3/4)");
+
+        std::cout << "[PASS] Volumetric disk emissivity non-negative and radially decreasing" << std::endl;
+        std::cout << "       emissivity(8M)  = " << e1 << std::endl;
+        std::cout << "       emissivity(12M) = " << e2 << std::endl;
+    }
+
+    // Test 14: Volumetric disk luminosity scales with density and temperature
+    {
+        GravitationalLensing::VolumetricDiskParams base;
+        base.diskDensity = 1.0f;
+        base.diskTemperature = 1.0f;
+        base.diskScaleHeight = 0.1f;
+        base.diskOuterRadius = 20.0f;
+        base.diskDopplerBoost = 1.0f;
+
+        float mass = 1.0f;
+        float L0 = GravitationalLensing::computeDiskLuminosity(base, mass);
+
+        // Doubling density doubles the luminosity (linear in density)
+        GravitationalLensing::VolumetricDiskParams dense = base;
+        dense.diskDensity = 2.0f;
+        float Ldense = GravitationalLensing::computeDiskLuminosity(dense, mass);
+
+        // Raising temperature raises luminosity (L ~ T^4)
+        GravitationalLensing::VolumetricDiskParams hot = base;
+        hot.diskTemperature = 2.0f;
+        float Lhot = GravitationalLensing::computeDiskLuminosity(hot, mass);
+
+        assert(L0 > 0.0f && "Disk luminosity must be positive");
+        assert(std::abs(Ldense / L0 - 2.0f) < 0.05 &&
+               "Luminosity must scale linearly with density");
+        assert(Lhot > L0 && "Luminosity must increase with temperature");
+
+        std::cout << "[PASS] Disk luminosity scales correctly with density and temperature" << std::endl;
+        std::cout << "       L(density=1)  = " << L0 << std::endl;
+        std::cout << "       L(density=2)  = " << Ldense << std::endl;
+        std::cout << "       L(temp=2)     = " << Lhot << std::endl;
+    }
+
+    // Test 15: Volumetric disk parameter validation
+    {
+        auto lensing = std::make_shared<GravitationalLensing>(
+            std::make_shared<SchwarzschildMetric>(1.989e30));
+
+        // Disabled by default
+        assert(!lensing->isVolumetricDiskEnabled() &&
+               "Volumetric disk should be disabled by default");
+
+        // Toggle on/off
+        lensing->setEnabledVolumetricDisk(true);
+        assert(lensing->isVolumetricDiskEnabled() &&
+               "Volumetric disk should be enabled");
+
+        lensing->setEnabledVolumetricDisk(false);
+        assert(!lensing->isVolumetricDiskEnabled() &&
+               "Volumetric disk should be disabled");
+
+        // Round-trip params
+        GravitationalLensing::VolumetricDiskParams params;
+        params.enableVolumetricDisk = true;
+        params.diskDensity = 2.5f;
+        params.diskTemperature = 1.5f;
+        params.diskScaleHeight = 0.2f;
+        params.diskInnerRadius = 5.0f;
+        params.diskOuterRadius = 30.0f;
+        params.diskRaySteps = 128;
+        params.diskOpacity = 0.8f;
+        params.diskDopplerBoost = 1.2f;
+
+        lensing->setVolumetricDiskParams(params);
+        const auto& retrieved = lensing->volumetricDiskParams();
+        assert(std::abs(retrieved.diskDensity - 2.5f) < 0.001f &&
+               "Disk density should round-trip");
+        assert(std::abs(retrieved.diskTemperature - 1.5f) < 0.001f &&
+               "Disk temperature should round-trip");
+        assert(std::abs(retrieved.diskScaleHeight - 0.2f) < 0.001f &&
+               "Disk scale height should round-trip");
+        assert(std::abs(retrieved.diskInnerRadius - 5.0f) < 0.001f &&
+               "Disk inner radius should round-trip");
+        assert(std::abs(retrieved.diskOuterRadius - 30.0f) < 0.001f &&
+               "Disk outer radius should round-trip");
+        assert(retrieved.diskRaySteps == 128 &&
+               "Disk ray steps should round-trip");
+        assert(std::abs(retrieved.diskOpacity - 0.8f) < 0.001f &&
+               "Disk opacity should round-trip");
+        assert(std::abs(retrieved.diskDopplerBoost - 1.2f) < 0.001f &&
+               "Disk Doppler boost should round-trip");
+
+        std::cout << "[PASS] Volumetric disk parameter validation correct" << std::endl;
+    }
+
     std::cout << "=== ALL GRAVITATIONAL LENSING TESTS PASSED ===" << std::endl;
     return 0;
 }

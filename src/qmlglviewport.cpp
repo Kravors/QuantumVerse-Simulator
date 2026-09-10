@@ -3469,19 +3469,114 @@ double QmlGlViewport::recordingDuration() const {
      }
  }
 
- void QmlGlViewport::setAccretionDiskIntensity(float intensity) {
-     float clamped = std::clamp(intensity, 0.0f, 2.0f);
-     if (std::abs(m_accretionDiskIntensity - clamped) > 0.001f) {
-         m_accretionDiskIntensity = clamped;
-         if (m_lensing) {
-             auto params = m_lensing->params();
-             params.accretionDiskIntensity = clamped;
-             m_lensing->setParams(params);
-         }
-         emit accretionDiskIntensityChanged();
-         update();
-     }
- }
+void QmlGlViewport::setAccretionDiskIntensity(float intensity) {
+    float clamped = std::clamp(intensity, 0.0f, 2.0f);
+    if (std::abs(m_accretionDiskIntensity - clamped) > 0.001f) {
+        m_accretionDiskIntensity = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.accretionDiskIntensity = clamped;
+            m_lensing->setParams(params);
+        }
+        emit accretionDiskIntensityChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setVolumetricDiskEnabled(bool enabled) {
+    if (m_volumetricDiskEnabled != enabled) {
+        m_volumetricDiskEnabled = enabled;
+        if (m_lensing) {
+            m_lensing->setEnabledVolumetricDisk(enabled);
+        }
+        emit volumetricDiskEnabledChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setVolumetricDiskDensity(float density) {
+    float clamped = std::clamp(density, 0.0f, 10.0f);
+    if (std::abs(m_volumetricDiskDensity - clamped) > 0.001f) {
+        m_volumetricDiskDensity = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->volumetricDiskParams();
+            params.diskDensity = clamped;
+            m_lensing->setVolumetricDiskParams(params);
+        }
+        emit volumetricDiskDensityChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setVolumetricDiskTemperature(float temperature) {
+    float clamped = std::clamp(temperature, 0.0f, 10.0f);
+    if (std::abs(m_volumetricDiskTemperature - clamped) > 0.001f) {
+        m_volumetricDiskTemperature = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->volumetricDiskParams();
+            params.diskTemperature = clamped;
+            m_lensing->setVolumetricDiskParams(params);
+        }
+        emit volumetricDiskTemperatureChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setVolumetricDiskScaleHeight(float scaleHeight) {
+    float clamped = std::clamp(scaleHeight, 0.001f, 1.0f);
+    if (std::abs(m_volumetricDiskScaleHeight - clamped) > 0.001f) {
+        m_volumetricDiskScaleHeight = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->volumetricDiskParams();
+            params.diskScaleHeight = clamped;
+            m_lensing->setVolumetricDiskParams(params);
+        }
+        emit volumetricDiskScaleHeightChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setVolumetricDiskInnerRadius(float innerRadius) {
+    float clamped = std::clamp(innerRadius, 0.0f, 20.0f);
+    if (std::abs(m_volumetricDiskInnerRadius - clamped) > 0.001f) {
+        m_volumetricDiskInnerRadius = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->volumetricDiskParams();
+            params.diskInnerRadius = clamped;
+            m_lensing->setVolumetricDiskParams(params);
+        }
+        emit volumetricDiskInnerRadiusChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setVolumetricDiskOuterRadius(float outerRadius) {
+    float clamped = std::clamp(outerRadius, 6.0f, 100.0f);
+    if (std::abs(m_volumetricDiskOuterRadius - clamped) > 0.001f) {
+        m_volumetricDiskOuterRadius = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->volumetricDiskParams();
+            params.diskOuterRadius = clamped;
+            m_lensing->setVolumetricDiskParams(params);
+        }
+        emit volumetricDiskOuterRadiusChanged();
+        update();
+    }
+}
+
+void QmlGlViewport::setVolumetricDiskOpacity(float opacity) {
+    float clamped = std::clamp(opacity, 0.0f, 10.0f);
+    if (std::abs(m_volumetricDiskOpacity - clamped) > 0.001f) {
+        m_volumetricDiskOpacity = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->volumetricDiskParams();
+            params.diskOpacity = clamped;
+            m_lensing->setVolumetricDiskParams(params);
+        }
+        emit volumetricDiskOpacityChanged();
+        update();
+    }
+}
 
  void QmlGlViewport::setLensingMetric(const QString& metricType) {
      if (metricType == "kerr" || metricType == "Kerr") {
@@ -3514,12 +3609,25 @@ double QmlGlViewport::recordingDuration() const {
      params.cameraDistance = m_lensingDistance;
      params.raySteps = m_lensingSteps;
      params.shadowIntensity = m_shadowIntensity;
-     params.enableAccretionDisk = m_accretionDiskEnabled;
-     params.enablePhotonRing = m_photonRingEnabled;
-     params.accretionDiskIntensity = m_accretionDiskIntensity;
-     m_lensing->setParams(params);
-     m_lensing->setEnabled(m_lensingEnabled);
- }
+params.enableAccretionDisk = m_accretionDiskEnabled;
+    params.enablePhotonRing = m_photonRingEnabled;
+    params.accretionDiskIntensity = m_accretionDiskIntensity;
+    m_lensing->setParams(params);
+
+    GravitationalLensing::VolumetricDiskParams vol;
+    vol.enableVolumetricDisk = m_volumetricDiskEnabled;
+    vol.diskDensity = m_volumetricDiskDensity;
+    vol.diskTemperature = m_volumetricDiskTemperature;
+    vol.diskScaleHeight = m_volumetricDiskScaleHeight;
+    vol.diskInnerRadius = m_volumetricDiskInnerRadius;
+    vol.diskOuterRadius = m_volumetricDiskOuterRadius;
+    vol.diskRaySteps = 64;
+    vol.diskOpacity = m_volumetricDiskOpacity;
+    vol.diskDopplerBoost = 1.0f;
+    m_lensing->setVolumetricDiskParams(vol);
+
+    m_lensing->setEnabled(m_lensingEnabled);
+}
 
 } // namespace quantumverse
 

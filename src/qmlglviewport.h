@@ -510,6 +510,13 @@ class QmlGlViewport : public ::QQuickFramebufferObject
     Q_PROPERTY(bool accretionDiskEnabled READ accretionDiskEnabled WRITE setAccretionDiskEnabled NOTIFY accretionDiskEnabledChanged)
     Q_PROPERTY(bool photonRingEnabled READ photonRingEnabled WRITE setPhotonRingEnabled NOTIFY photonRingEnabledChanged)
     Q_PROPERTY(float accretionDiskIntensity READ accretionDiskIntensity WRITE setAccretionDiskIntensity NOTIFY accretionDiskIntensityChanged)
+    Q_PROPERTY(bool volumetricDiskEnabled READ volumetricDiskEnabled WRITE setVolumetricDiskEnabled NOTIFY volumetricDiskEnabledChanged)
+    Q_PROPERTY(float volumetricDiskDensity READ volumetricDiskDensity WRITE setVolumetricDiskDensity NOTIFY volumetricDiskDensityChanged)
+    Q_PROPERTY(float volumetricDiskTemperature READ volumetricDiskTemperature WRITE setVolumetricDiskTemperature NOTIFY volumetricDiskTemperatureChanged)
+    Q_PROPERTY(float volumetricDiskScaleHeight READ volumetricDiskScaleHeight WRITE setVolumetricDiskScaleHeight NOTIFY volumetricDiskScaleHeightChanged)
+    Q_PROPERTY(float volumetricDiskInnerRadius READ volumetricDiskInnerRadius WRITE setVolumetricDiskInnerRadius NOTIFY volumetricDiskInnerRadiusChanged)
+    Q_PROPERTY(float volumetricDiskOuterRadius READ volumetricDiskOuterRadius WRITE setVolumetricDiskOuterRadius NOTIFY volumetricDiskOuterRadiusChanged)
+    Q_PROPERTY(float volumetricDiskOpacity READ volumetricDiskOpacity WRITE setVolumetricDiskOpacity NOTIFY volumetricDiskOpacityChanged)
     Q_PROPERTY(float cameraDistance READ cameraDistance WRITE setCameraDistance NOTIFY cameraDistanceChanged)
     Q_PROPERTY(float cameraAngleX READ cameraAngleX WRITE setCameraAngleX NOTIFY cameraAngleXChanged)
     Q_PROPERTY(float cameraAngleY READ cameraAngleY WRITE setCameraAngleY NOTIFY cameraAngleYChanged)
@@ -704,6 +711,13 @@ public:
     bool accretionDiskEnabled() const { return m_accretionDiskEnabled; }
     bool photonRingEnabled() const { return m_photonRingEnabled; }
     float accretionDiskIntensity() const { return m_accretionDiskIntensity; }
+    bool volumetricDiskEnabled() const { return m_volumetricDiskEnabled; }
+    float volumetricDiskDensity() const { return m_volumetricDiskDensity; }
+    float volumetricDiskTemperature() const { return m_volumetricDiskTemperature; }
+    float volumetricDiskScaleHeight() const { return m_volumetricDiskScaleHeight; }
+    float volumetricDiskInnerRadius() const { return m_volumetricDiskInnerRadius; }
+    float volumetricDiskOuterRadius() const { return m_volumetricDiskOuterRadius; }
+    float volumetricDiskOpacity() const { return m_volumetricDiskOpacity; }
 
     // Gravitational lensing QML methods
     Q_INVOKABLE void setLensingEnabled(bool enabled);
@@ -715,6 +729,13 @@ public:
     Q_INVOKABLE void setAccretionDiskEnabled(bool enabled);
     Q_INVOKABLE void setPhotonRingEnabled(bool enabled);
     Q_INVOKABLE void setAccretionDiskIntensity(float intensity);
+    Q_INVOKABLE void setVolumetricDiskEnabled(bool enabled);
+    Q_INVOKABLE void setVolumetricDiskDensity(float density);
+    Q_INVOKABLE void setVolumetricDiskTemperature(float temperature);
+    Q_INVOKABLE void setVolumetricDiskScaleHeight(float scaleHeight);
+    Q_INVOKABLE void setVolumetricDiskInnerRadius(float innerRadius);
+    Q_INVOKABLE void setVolumetricDiskOuterRadius(float outerRadius);
+    Q_INVOKABLE void setVolumetricDiskOpacity(float opacity);
     Q_INVOKABLE void setLensingMetric(const QString& metricType);
 
      Q_INVOKABLE void setBloomEnabled(bool enabled);
@@ -834,6 +855,13 @@ signals:
       void accretionDiskEnabledChanged();
       void photonRingEnabledChanged();
       void accretionDiskIntensityChanged();
+      void volumetricDiskEnabledChanged();
+      void volumetricDiskDensityChanged();
+      void volumetricDiskTemperatureChanged();
+      void volumetricDiskScaleHeightChanged();
+      void volumetricDiskInnerRadiusChanged();
+      void volumetricDiskOuterRadiusChanged();
+      void volumetricDiskOpacityChanged();
 
       void scenarioChanged();
      void scenarioListChanged();
@@ -983,10 +1011,17 @@ private:
      float m_lensingMass = 1.0f;
      float m_lensingSpin = 0.6f;
      float m_lensingDistance = 10.0f;
-     bool m_accretionDiskEnabled = true;
-     bool m_photonRingEnabled = true;
-     float m_accretionDiskIntensity = 0.8f;
-     std::shared_ptr<GravitationalLensing> m_lensing;
+bool m_accretionDiskEnabled = true;
+    bool m_photonRingEnabled = true;
+    float m_accretionDiskIntensity = 0.8f;
+    bool m_volumetricDiskEnabled = false;
+    float m_volumetricDiskDensity = 1.0f;
+    float m_volumetricDiskTemperature = 1.0f;
+    float m_volumetricDiskScaleHeight = 0.1f;
+    float m_volumetricDiskInnerRadius = 0.0f;
+    float m_volumetricDiskOuterRadius = 20.0f;
+    float m_volumetricDiskOpacity = 1.0f;
+    std::shared_ptr<GravitationalLensing> m_lensing;
      std::shared_ptr<MetricTensor> m_lensingMetric;
 
  private slots:

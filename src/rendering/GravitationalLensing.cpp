@@ -51,6 +51,18 @@ static const char* lensingFragmentSource = R"(
     uniform bool u_enableAccretionDisk;
     uniform bool u_enableStarField;
 
+    // Volumetric accretion disk parameters
+    uniform bool u_volumetricDiskEnable;
+    uniform float u_volumetricDiskDensity;
+    uniform float u_volumetricDiskTemperature;
+    uniform float u_volumetricDiskScaleHeight;
+    uniform float u_volumetricDiskInner;
+    uniform float u_volumetricDiskOuter;
+    uniform int u_volumetricDiskSteps;
+    uniform float u_volumetricDiskOpacity;
+    uniform float u_volumetricDiskIntensity;
+    uniform float u_volumetricDiskDopplerBoost;
+
     // Camera parameters
     uniform vec3 u_cameraPos;
     uniform vec3 u_cameraDir;
@@ -258,6 +270,80 @@ static const char* lensingFragmentSource = R"(
         return color * falloff * asymmetry * u_accretionDiskIntensity;
     }
 
+    // Volumetric accretion disk: ray-march the disk volume instead of testing a
+    // single plane.  Density ~ r^(-3/2) with a Gaussian scale height, temperature
+    // ~ r^(-3/4) (Keplerian), blackbody emissivity ~ T^4, optical depth
+    // integration, and relativistic Doppler beaming from the azimuthal flow.
+    vec3 volumetricDiskEmission(vec3 rayOrigin, vec3 rayDir, float rs, float isco) {
+        if (!u_volumetricDiskEnable) return vec3(0.0);
+
+        float rInner = u_volumetricDiskInner;
+        if (rInner <= 0.0) rInner = isco;
+        float rOuter = u_volumetricDiskOuter;
+        float steps = float(u_volumetricDiskSteps);
+        float stepSize = u_maxDistance / steps;
+        float opacity = u_volumetricDiskOpacity;
+        float density = u_volumetricDiskDensity;
+        float temp0 = u_volumetricDiskTemperature;
+        float H0 = u_volumetricDiskScaleHeight;
+
+        vec3 pos = rayOrigin;
+        vec3 dir = normalize(rayDir);
+        vec3 emissivity = vec3(0.0);
+        float tau = 0.0;
+
+        for (int i = 0; i < 256; i++) {
+            if (i >= int(steps)) break;
+
+            float r = length(pos);
+            if (r < 0.001 || r > u_maxDistance) break;
+
+            // Disk plane is y = 0; spin axis is +y
+            float z = pos.y;
+            float rPlane = length(pos.xz);
+
+            vec3 contrib = vec3(0.0);
+            if (rPlane >= rInner && rPlane <= rOuter) {
+                // Scale height H/r = H0 (constant), H = H0 * r
+                float H = H0 * rPlane;
+                float zNorm = (H > 0.0001) ? z / H : 0.0;
+                float rho = density * pow(rInner / rPlane, 1.5) * exp(-zNorm * zNorm);
+
+                // Keplerian temperature profile T ~ r^(-3/4)
+                float T = temp0 * pow(rInner / rPlane, 0.75);
+                // Blackbody emissivity ~ T^4 (Stefan-Boltzmann)
+                float j = rho * T * T * T * T;
+
+                // Optical depth over this step
+                tau += rho * opacity * stepSize;
+                float transmission = exp(-tau);
+
+                // Doppler beaming: azimuthal orbital velocity v_phi = sqrt(M/r)
+                // (geometric units, c = 1). Prograde for Kerr.
+                float vPhi = sqrt(u_mass / rPlane);
+                float cosPhi = (rPlane > 0.0001) ? pos.x / rPlane : 0.0;
+                float sinPhi = (rPlane > 0.0001) ? pos.z / rPlane : 0.0;
+                // Velocity vector in the disk plane (tangential, +phi direction)
+                vec3 vel = vec3(-sinPhi, 0.0, cosPhi) * vPhi;
+                float vDotN = dot(vel, dir);
+                // Doppler factor delta = 1 / (1 - v . n); blueshift when v.n < 0
+                float delta = 1.0 / max(1.0 - vDotN, 0.01);
+                float beaming = delta * delta * delta * delta * u_volumetricDiskDopplerBoost;
+
+                contrib = j * stepSize * transmission * beaming * u_volumetricDiskIntensity;
+            }
+
+            emissivity += contrib;
+
+            // Adaptive step near the black hole
+            float adaptiveStep = stepSize * max(r / (3.0 * rs), 0.1);
+            dir = normalize(dir + computeDeflection(pos, u_mass, u_spin) * adaptiveStep);
+            pos += dir * adaptiveStep;
+        }
+
+        return emissivity;
+    }
+
     // Render photon ring glow
     vec3 renderPhotonRing(float dist) {
         if (!u_enablePhotonRing) return vec3(0.0);
@@ -290,6 +376,14 @@ static const char* lensingFragmentSource = R"(
 
         // Ray march through curved spacetime
         vec3 color = rayMarch(u_cameraPos, rayDir);
+
+        // Volumetric accretion disk: integrate emissivity along the lensed ray
+        float rs = 2.0 * u_mass;
+        float isco = 6.0 * u_mass;
+        if (u_spin > 0.001) {
+            isco = mix(isco, rs, u_spin * 0.7);
+        }
+        color += volumetricDiskEmission(u_cameraPos, rayDir, rs, isco);
 
         // Add photon ring glow
         float r = length(u_cameraPos);
@@ -387,6 +481,16 @@ GravitationalLensing::GravitationalLensing(std::shared_ptr<MetricTensor> metric)
     m_params.enablePhotonRing = true;
     m_params.enableAccretionDisk = true;
     m_params.enableStarField = true;
+
+    m_volumetricDisk.enableVolumetricDisk = false;
+    m_volumetricDisk.diskDensity = 1.0f;
+    m_volumetricDisk.diskTemperature = 1.0f;
+    m_volumetricDisk.diskScaleHeight = 0.1f;
+    m_volumetricDisk.diskInnerRadius = 0.0f;
+    m_volumetricDisk.diskOuterRadius = 20.0f;
+    m_volumetricDisk.diskRaySteps = 64;
+    m_volumetricDisk.diskOpacity = 1.0f;
+    m_volumetricDisk.diskDopplerBoost = 1.0f;
 }
 
 GravitationalLensing::~GravitationalLensing() {
@@ -482,6 +586,10 @@ void GravitationalLensing::setParams(const LensingParams& params) {
 
 void GravitationalLensing::setMetric(std::shared_ptr<MetricTensor> metric) {
     m_metric = std::move(metric);
+}
+
+void GravitationalLensing::setVolumetricDiskParams(const VolumetricDiskParams& params) {
+    m_volumetricDisk = params;
 }
 
 void GravitationalLensing::generateStarField(uint32_t seed, int starCount) {
@@ -711,6 +819,17 @@ void GravitationalLensing::updateUniforms() {
     glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enableAccretionDisk"), m_params.enableAccretionDisk ? 1 : 0);
     glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enableStarField"), m_params.enableStarField ? 1 : 0);
 
+    // Volumetric accretion disk uniforms
+    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_volumetricDiskEnable"), m_volumetricDisk.enableVolumetricDisk ? 1 : 0);
+    setUniformFloat("u_volumetricDiskDensity", m_volumetricDisk.diskDensity);
+    setUniformFloat("u_volumetricDiskTemperature", m_volumetricDisk.diskTemperature);
+    setUniformFloat("u_volumetricDiskScaleHeight", m_volumetricDisk.diskScaleHeight);
+    setUniformFloat("u_volumetricDiskInner", m_volumetricDisk.diskInnerRadius);
+    setUniformFloat("u_volumetricDiskOuter", m_volumetricDisk.diskOuterRadius);
+    setUniformInt("u_volumetricDiskSteps", m_volumetricDisk.diskRaySteps);
+    setUniformFloat("u_volumetricDiskOpacity", m_volumetricDisk.diskOpacity);
+    setUniformFloat("u_volumetricDiskDopplerBoost", m_volumetricDisk.diskDopplerBoost);
+
     // Camera position from spherical coordinates
     float camX = m_params.cameraDistance * sin(m_params.cameraTheta) * cos(m_params.cameraPhi);
     float camY = m_params.cameraDistance * cos(m_params.cameraTheta);
@@ -755,7 +874,75 @@ void GravitationalLensing::setUniformVec3(const char* name, float x, float y, fl
 }
 
 void GravitationalLensing::setUniformMat4(const char* name, const float* matrix) {
-    glUniformMatrix4fv(glGetUniformLocation(m_lensingProgram, name), 1, GL_FALSE, matrix);
+   glUniformMatrix4fv(glGetUniformLocation(m_lensingProgram, name), 1, GL_FALSE, matrix);
+}
+
+// ============================================================================
+// Volumetric disk CPU reference (headless validation)
+// Mirrors volumetricDiskEmission() in the GLSL source: same density, temperature,
+// blackbody, optical-depth, and Doppler-beaming model, integrated along a
+// straight ray in geometric units (c = 1).
+// ============================================================================
+
+float GravitationalLensing::computeVolumetricDiskEmissivity(
+    const std::array<float, 3>& pos,
+    const VolumetricDiskParams& params,
+    float mass)
+{
+    float rPlane = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
+    float rInner = params.diskInnerRadius;
+    if (rInner <= 0.0f) rInner = 6.0f * mass;  // ISCO for Schwarzschild
+    if (rPlane < rInner || rPlane > params.diskOuterRadius) return 0.0f;
+
+    float H = params.diskScaleHeight * rPlane;
+    float zNorm = (H > 0.0001f) ? pos[1] / H : 0.0f;
+    float rho = params.diskDensity * std::pow(rInner / rPlane, 1.5f) * std::exp(-zNorm * zNorm);
+
+    float T = params.diskTemperature * std::pow(rInner / rPlane, 0.75f);
+    float j = rho * T * T * T * T;  // blackbody emissivity ~ T^4
+
+    // Doppler beaming from azimuthal flow: v_phi = sqrt(M/r), delta = 1/(1 - v.n)
+    // Reference ray direction is +x (n = (1,0,0)), so only the x-component of the
+    // tangential velocity contributes.  Prograde (+phi) flow: vel = (-sin, 0, cos).
+    float vPhi = std::sqrt(mass / rPlane);
+    float sinPhi = pos[2] / rPlane;
+    float velX = -sinPhi * vPhi;
+    float vDotN = velX;
+    float delta = 1.0f / std::max(1.0f - vDotN, 0.01f);
+    float beaming = delta * delta * delta * delta * params.diskDopplerBoost;
+
+    return j * beaming;
+}
+
+float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& params, float mass)
+{
+    float rInner = params.diskInnerRadius;
+    if (rInner <= 0.0f) rInner = 6.0f * mass;
+    float rOuter = params.diskOuterRadius;
+    if (rOuter <= rInner) return 0.0f;
+
+    const int NR = 64;
+    const int NPHI = 64;
+    const int NZ = 24;
+    float lum = 0.0f;
+    float dr = (rOuter - rInner) / float(NR);
+    float dphi = 2.0f * 3.14159265358979323846f / float(NPHI);
+    float Hmax = params.diskScaleHeight * rOuter;
+
+    for (int ir = 0; ir < NR; ++ir) {
+        float r = rInner + (ir + 0.5f) * dr;
+        for (int ip = 0; ip < NPHI; ++ip) {
+            float phi = ip * dphi;
+            float x = r * std::cos(phi);
+            float z = r * std::sin(phi);
+            for (int iz = 0; iz < NZ; ++iz) {
+                float y = -Hmax + (iz + 0.5f) * (2.0f * Hmax) / float(NZ);
+                std::array<float, 3> pos = {x, y, z};
+                lum += computeVolumetricDiskEmissivity(pos, params, mass) * dr * dphi * r * (2.0f * Hmax) / float(NZ);
+            }
+        }
+    }
+    return lum;
 }
 
 } // namespace quantumverse

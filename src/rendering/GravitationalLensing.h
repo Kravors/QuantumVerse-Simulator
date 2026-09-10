@@ -201,6 +201,78 @@ public:
      */
     double computeISCO() const;
 
+    /**
+     * @brief Parameters controlling the volumetric accretion disk.
+     *
+     * The disk is ray-marched as a volume (density x blackbody emissivity x
+     * Doppler beaming) rather than rendered as a flat billboard.  This models
+     * a thin, optically thick Shakura-Sunyaev-style disk in geometric units
+     * (c = 1), so velocities are fractions of c and the Doppler factor is
+     * delta = 1 / (1 - v . n).
+     */
+    struct VolumetricDiskParams {
+        bool enableVolumetricDisk = false; ///< Ray-march the disk volume
+        float diskDensity = 1.0f;           ///< Normalised density at rInner
+        float diskTemperature = 1.0f;       ///< Normalised temperature at rInner
+        float diskScaleHeight = 0.1f;       ///< H/r at rInner (disk thickness)
+        float diskInnerRadius = 0.0f;       ///< Inner edge (0 = use ISCO)
+        float diskOuterRadius = 20.0f;      ///< Outer edge in units of M
+        int diskRaySteps = 64;              ///< Steps per ray through the volume
+        float diskOpacity = 1.0f;          ///< Tau per unit density (optical depth)
+        float diskDopplerBoost = 1.0f;      ///< Global Doppler beaming gain
+    };
+
+    /**
+     * @brief Set the volumetric disk parameters.
+     * @param params New volumetric disk parameters
+     */
+    void setVolumetricDiskParams(const VolumetricDiskParams& params);
+
+    /**
+     * @brief Get the current volumetric disk parameters.
+     * @return Current volumetric disk parameters
+     */
+    const VolumetricDiskParams& volumetricDiskParams() const { return m_volumetricDisk; }
+
+    /**
+     * @brief Enable or disable the volumetric disk.
+     * @param enabled true to enable, false to disable
+     */
+    void setEnabledVolumetricDisk(bool enabled) { m_volumetricDisk.enableVolumetricDisk = enabled; }
+
+    /**
+     * @brief Check if the volumetric disk is enabled.
+     * @return true if enabled
+     */
+    bool isVolumetricDiskEnabled() const { return m_volumetricDisk.enableVolumetricDisk; }
+
+    /**
+     * @brief Compute the local disk emissivity at a point (CPU reference).
+     *
+     * Pure function of position and parameters; mirrors the GLSL
+     * volumetricDiskEmission() used at render time so the physics can be
+     * validated headlessly.  @return Emissivity in normalised units (>= 0).
+     *
+     * @param pos Position in geometric units (disk lies in the y = 0 plane)
+     * @param params Disk parameters
+     * @param mass Black hole mass in geometric units
+     */
+    static float computeVolumetricDiskEmissivity(
+        const std::array<float, 3>& pos,
+        const VolumetricDiskParams& params,
+        float mass);
+
+    /**
+     * @brief Compute the total disk luminosity by integrating the volume.
+     *
+     * Integrates emissivity over r in [rInner, rOuter], all phi, and
+     * z in [-4H, 4H].  @return Integrated luminosity (>= 0).
+     *
+     * @param params Disk parameters
+     * @param mass Black hole mass in geometric units
+     */
+    static float computeDiskLuminosity(const VolumetricDiskParams& params, float mass);
+
 private:
     /**
      * @brief Compile and link the lensing shader program.
@@ -244,6 +316,7 @@ private:
 
     // Parameters
     LensingParams m_params;
+    VolumetricDiskParams m_volumetricDisk;
 
     // Metric
     std::shared_ptr<MetricTensor> m_metric;
