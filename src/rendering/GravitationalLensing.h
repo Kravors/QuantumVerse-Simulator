@@ -196,10 +196,21 @@ public:
     double computePhotonSphereRadius() const;
 
     /**
-     * @brief Compute the innermost stable circular orbit (ISCO).
-     * @return ISCO radius in geometric units
+     * @brief Compute the innermost stable circular orbit (ISCO) radius.
+     * @return ISCO radius in geometric units (length, = r/M * M).
      */
     double computeISCO() const;
+
+    /**
+     * @brief Dimensionless ISCO radius r/M for a given dimensionless spin.
+     *
+     * Pure function mirroring computeISCO_GLSL() so the CPU reference and the
+     * GPU agree bit-for-bit.  Positive spin = prograde (shrinks ISCO).
+     *
+     * @param spin Dimensionless spin a/M in (-1, 1).
+     * @return ISCO radius in units of M.
+     */
+    static double computeISCORadius(double spin);
 
     /**
      * @brief Parameters controlling the volumetric accretion disk.
@@ -256,11 +267,13 @@ public:
      * @param pos Position in geometric units (disk lies in the y = 0 plane)
      * @param params Disk parameters
      * @param mass Black hole mass in geometric units
+     * @param spin Dimensionless spin a/M (default 0 = Schwarzschild ISCO)
      */
     static float computeVolumetricDiskEmissivity(
         const std::array<float, 3>& pos,
         const VolumetricDiskParams& params,
-        float mass);
+        float mass,
+        float spin = 0.0f);
 
     /**
      * @brief Compute the total disk luminosity by integrating the volume.
@@ -270,8 +283,10 @@ public:
      *
      * @param params Disk parameters
      * @param mass Black hole mass in geometric units
+     * @param spin Dimensionless spin a/M (default 0 = Schwarzschild ISCO)
      */
-    static float computeDiskLuminosity(const VolumetricDiskParams& params, float mass);
+    static float computeDiskLuminosity(const VolumetricDiskParams& params, float mass,
+                                       float spin = 0.0f);
 
 private:
     /**

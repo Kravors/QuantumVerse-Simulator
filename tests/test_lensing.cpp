@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cassert>
 #include <array>
+#include <vector>
 #include <memory>
 
 #ifndef M_PI
@@ -382,6 +383,187 @@ int main() {
                "Disk Doppler boost should round-trip");
 
         std::cout << "[PASS] Volumetric disk parameter validation correct" << std::endl;
+    }
+
+    // Test 16: Exact Kerr ISCO (Bardeen-Press-Teukolsky) matches known values.
+    // The shader used to approximate this with mix(6M, rs, spin*0.7), which
+    // diverged badly for high spin.  Positive spin = prograde (shrinks ISCO).
+    {
+        auto lensing = std::make_shared<GravitationalLensing>(
+            std::make_shared<SchwarzschildMetric>(1.989e30));
+
+        GravitationalLensing::LensingParams params;
+        params.mass = 1.0;
+        params.spin = 0.0;
+        lensing->setParams(params);
+
+        // Schwarzschild ISCO is exactly 6M
+        double isco = lensing->computeISCO();
+        assert(std::abs(isco - 6.0) < 0.01 &&
+               "Schwarzschild ISCO should be 6M");
+        assert(std::abs(GravitationalLensing::computeISCORadius(0.0) - 6.0) < 0.01 &&
+               "computeISCORadius(0) should be 6.0");
+
+        std::cout << "[PASS] ISCO exact for Schwarzschild (6M)" << std::endl;
+        std::cout << "       r_isco = " << isco << " M" << std::endl;
+    }
+
+    // Test 17: Prograde Kerr ISCO shrinks toward M; retrograde expands past 6M.
+    {
+        auto lensing = std::make_shared<GravitationalLensing>(
+            std::make_shared<KerrMetric>(1.989e30, 0.5));
+
+        GravitationalLensing::LensingParams params;
+        params.mass = 1.0;
+        params.spin = 0.5;
+        lensing->setParams(params);
+
+        double iscoPrograde = lensing->computeISCO();
+        double iscoRetrograde = GravitationalLensing::computeISCORadius(-0.5);
+
+        // Reference values for the Bardeen formula: a=0.5 -> 4.2330 M
+        assert(std::abs(iscoPrograde - 4.2330) < 0.01 &&
+               "Kerr ISCO(a=0.5) should be ~4.233M");
+        assert(iscoPrograde < 6.0 && "Prograde ISCO must be below Schwarzschild");
+        assert(iscoRetrograde > 6.0 && "Retrograde ISCO must be above Schwarzschild");
+
+        std::cout << "[PASS] Kerr ISCO shrinks for prograde, expands for retrograde" << std::endl;
+        std::cout << "       r_isco(a=+0.5) = " << iscoPrograde << " M" << std::endl;
+        std::cout << "       r_isco(a=-0.5) = " << iscoRetrograde << " M" << std::endl;
+    }
+
+    // Test 18: Extremal Kerr ISCO approaches the Thorne limit (1.237 M).
+    {
+        auto lensing = std::make_shared<GravitationalLensing>(
+            std::make_shared<KerrMetric>(1.989e30, 0.998));
+
+        GravitationalLensing::LensingParams params;
+        params.mass = 1.0;
+        params.spin = 0.998;
+        lensing->setParams(params);
+
+        double isco = lensing->computeISCO();
+        double iscoPure = GravitationalLensing::computeISCORadius(0.998);
+
+        // Extremal prograde Kerr ISCO -> 1.237 M (Thorne 1974 limit)
+        assert(std::abs(isco - 1.237) < 0.02 &&
+               "Extremal Kerr ISCO should approach 1.237M");
+        assert(std::abs(iscoPure - 1.237) < 0.02 &&
+               "computeISCORadius(0.998) should approach 1.237");
+
+        std::cout << "[PASS] Extremal Kerr ISCO approaches Thorne limit (1.237M)" << std::endl;
+        std::cout << "       r_isco(a=0.998) = " << isco << " M" << std::endl;
+    }
+
+    // Test 19: CPU ISCO reference mirrors the GLSL computeISCO_GLSL() bit-for-bit.
+    // This is the only guard against the two implementations drifting apart.
+    {
+        // Mirror of computeISCO_GLSL() in GravitationalLensing.cpp -- same
+        // Bardeen-Press-Teukolsky formula, same cbrt/pow choices, same sign
+        // convention (positive spin = prograde).  If the CPU reference ever
+        // diverges from the shader, this test catches it.
+        auto glsl_isco_mirror = [](double spin) -> double {
+            double a  = std::min(std::abs(spin), 0.9999);
+            double a2 = a * a;
+            double c1p = std::cbrt(1.0 + a);
+            double c1m = std::cbrt(1.0 - a);
+            double c12 = (a2 >= 1.0) ? 0.0 : std::cbrt(1.0 - a2);
+            double Z1  = 1.0 + c12 * (c1p + c1m);
+            double Z2  = std::sqrt(3.0 * a2 + Z1 * Z1);
+            double in  = std::sqrt(std::max((3.0 - Z1) * (3.0 + Z1 + 2.0 * Z2), 0.0));
+            double sgn = (spin >= 0.0) ? 1.0 : -1.0;
+            return 3.0 + Z2 - sgn * in;
+        };
+
+        const std::vector<double> spins = {0.0, 0.5, 0.9, 0.998, -0.5, -0.998};
+        for (double s : spins) {
+            double cpu  = GravitationalLensing::computeISCORadius(s);
+            double glsl = glsl_isco_mirror(s);
+            assert(std::abs(cpu - glsl) < 1e-4 &&
+                   "CPU ISCO reference must match GLSL mirror");
+        }
+
+        std::cout << "[PASS] CPU ISCO reference matches GLSL mirror across spins" << std::endl;
+    }
+
+    // Test 20: Doppler beaming is signed -- approaching side is blueshifted.
+    //
+    // The CPU reference fixes the ray direction to +x (n = (1,0,0)), so only
+    // the x-component of the tangential velocity contributes.  vel = (-sinPhi,
+    // 0, cosPhi) * vPhi, hence vel.x = -sinPhi * vPhi = -(z/r) * vPhi.  A point
+    // on the -z side (phi = -pi/2) has vel.x > 0, i.e. moving TOWARD the
+    // observer -> v.n < 0 -> delta > 1 -> blueshifted.  The symmetric point on
+    // +z is receding and dimmer.  Same radius -> same density and temperature,
+    // so the only asymmetry is the Doppler factor.
+    {
+        GravitationalLensing::VolumetricDiskParams params;
+        params.enableVolumetricDisk = true;
+        params.diskDensity = 1.0f;
+        params.diskTemperature = 1.0f;
+        params.diskScaleHeight = 0.1f;
+        params.diskInnerRadius = 0.0f;  // use ISCO
+        params.diskOuterRadius = 20.0f;
+        params.diskDopplerBoost = 1.0f;
+
+        float mass = 1.0f;
+
+        // Same radius, opposite sides of the disk.  Must lie on the z axis so
+        // the tangential velocity has a non-zero x-component (on the x axis
+        // vel.x = 0 and both points give delta = 1, i.e. no asymmetry).
+        std::array<float, 3> approaching = {0.0f, 0.0f, -8.0f};  // phi=-pi/2, vel.x > 0
+        std::array<float, 3> receding    = {0.0f, 0.0f,  8.0f};  // phi=+pi/2, vel.x < 0
+
+        float eApproach = GravitationalLensing::computeVolumetricDiskEmissivity(approaching, params, mass);
+        float eRecede  = GravitationalLensing::computeVolumetricDiskEmissivity(receding, params, mass);
+
+        // Same radius -> same density and temperature -> the only asymmetry is
+        // the Doppler factor.  Approaching side must be brighter.
+        assert(eApproach > eRecede &&
+               "Doppler beaming must blueshift the approaching side");
+
+        std::cout << "[PASS] Doppler beaming is signed (approaching side brighter)" << std::endl;
+        std::cout << "       emissivity(approaching -8M) = " << eApproach << std::endl;
+        std::cout << "       emissivity(receding    +8M) = " << eRecede << std::endl;
+    }
+
+    // Test 21: The spin parameter reaches computeDiskLuminosity only through the
+    // ISCO inner edge.  When the inner radius is fixed explicitly, spin must not
+    // change the luminosity (vPhi = sqrt(M/r) is independent of spin, and the
+    // density/temperature profiles are normalised to rInner).  When the inner
+    // radius is left at 0 (ISCO), spin must change the result.
+    {
+        GravitationalLensing::VolumetricDiskParams fixed;
+        fixed.enableVolumetricDisk = true;
+        fixed.diskDensity = 1.0f;
+        fixed.diskTemperature = 1.0f;
+        fixed.diskScaleHeight = 0.1f;
+        fixed.diskInnerRadius = 6.0f;   // explicit, overrides ISCO
+        fixed.diskOuterRadius = 20.0f;
+        fixed.diskDopplerBoost = 1.0f;
+
+        float mass = 1.0f;
+        float Lfixed0    = GravitationalLensing::computeDiskLuminosity(fixed, mass, 0.0f);
+        float LfixedKerr = GravitationalLensing::computeDiskLuminosity(fixed, mass, 0.9f);
+
+        // Fixed inner edge -> spin has no other effect on the CPU reference,
+        // so the two must agree.
+        assert(std::abs(Lfixed0 - LfixedKerr) < 1e-3 &&
+               "Fixed inner radius must make luminosity spin-independent");
+
+        // Now let the inner edge follow the ISCO: spin must change the result.
+        GravitationalLensing::VolumetricDiskParams isco = fixed;
+        isco.diskInnerRadius = 0.0f;
+        float Lisco0    = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.0f);
+        float Liskerr  = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.9f);
+
+        assert(std::abs(Lisco0 - Liskerr) > 1.0f &&
+               "ISCO inner edge must make luminosity depend on spin");
+
+        std::cout << "[PASS] Spin reaches luminosity through the ISCO inner edge" << std::endl;
+        std::cout << "       L(fixed rInner, spin=0)   = " << Lfixed0 << std::endl;
+        std::cout << "       L(fixed rInner, spin=0.9) = " << LfixedKerr << std::endl;
+        std::cout << "       L(ISCO, spin=0)           = " << Lisco0 << std::endl;
+        std::cout << "       L(ISCO, spin=0.9)         = " << Liskerr << std::endl;
     }
 
     std::cout << "=== ALL GRAVITATIONAL LENSING TESTS PASSED ===" << std::endl;

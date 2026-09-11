@@ -94,6 +94,28 @@ static const char* lensingFragmentSource = R"(
         return M + sqrt(max(M * M - a * a * cos(theta) * cos(theta), 0.0));
     }
 
+    // Bardeen-Press-Teukolsky (1972) innermost stable circular orbit, in units of M.
+    // spin is the dimensionless a/M; positive => prograde (disk co-rotates).
+    // Schwarzschild limit (a=0) is exactly 6M; extremal prograde (a->1) -> M.
+    float computeISCO(float spin) {
+        float a = clamp(abs(spin), 0.0f, 0.9999f);
+        float a2 = a * a;
+
+        // cbrt(1-a^2): guarded explicitly because some drivers return NaN for
+        // pow(0, 1/3) at a->1 even though a is clamped below 1.
+        float cbrt_1ma2 = (a2 >= 1.0f) ? 0.0f : pow(1.0f - a2, 1.0f / 3.0f);
+        float cbrt1pa   = pow(1.0f + a, 1.0f / 3.0f);
+        float cbrt1ma   = pow(1.0f - a, 1.0f / 3.0f);
+
+        float Z1 = 1.0f + cbrt_1ma2 * (cbrt1pa + cbrt1ma);
+        float Z2 = sqrt(3.0f * a2 + Z1 * Z1);
+
+        float inner = sqrt(max((3.0f - Z1) * (3.0f + Z1 + 2.0f * Z2), 0.0f));
+        float signFactor = (spin >= 0.0f) ? 1.0f : -1.0f;
+
+        return 3.0f + Z2 - signFactor * inner;
+    }
+
     // Procedural star field (fallback when texture not available)
     vec3 proceduralStarField(vec3 dir) {
         // Hash function for star placement
@@ -210,72 +232,22 @@ static const char* lensingFragmentSource = R"(
         return sampleStarField(dir) * 0.5;
     }
 
-    // Render accretion disk
-    vec3 renderAccretionDisk(vec3 rayOrigin, vec3 rayDir, vec3 hitPos) {
-        if (!u_enableAccretionDisk) return vec3(0.0);
-
-        float r = length(hitPos);
-        float rs = 2.0 * u_mass;
-
-        // Disk extends from ISCO (~6M for Schwarzschild) to ~20M
-        float diskInner = 3.0 * rs;
-        float diskOuter = 15.0 * u_mass;
-
-        // Kerr ISCO is smaller for prograde orbits
-        if (u_spin > 0.001) {
-            diskInner = mix(diskInner, rs, u_spin * 0.7);
-        }
-
-        // Check if ray hits disk plane (y = 0)
-        if (abs(rayDir.y) < 0.001) return vec3(0.0);
-
-        float t = -rayOrigin.y / rayDir.y;
-        if (t < 0.0) return vec3(0.0);
-
-        vec3 diskHit = rayOrigin + rayDir * t;
-        float diskR = length(diskHit.xz);
-
-        if (diskR < diskInner || diskR > diskOuter) return vec3(0.0);
-
-        // Temperature profile (hotter near center)
-        float temp = pow(diskInner / diskR, 0.75);
-
-        // Doppler beaming asymmetry for Kerr
-        float asymmetry = 1.0;
-        if (u_spin > 0.001) {
-            float angle = atan(diskHit.z, diskHit.x);
-            asymmetry = 1.0 + u_spin * 0.5 * cos(angle);
-        }
-
-        // Blackbody-ish color
-        vec3 hotColor = vec3(1.0, 0.95, 0.8);
-        vec3 midColor = vec3(1.0, 0.6, 0.2);
-        vec3 coolColor = vec3(0.8, 0.2, 0.05);
-
-        vec3 color;
-        if (temp > 0.7) {
-            color = mix(midColor, hotColor, (temp - 0.7) / 0.3);
-        } else {
-            color = mix(coolColor, midColor, temp / 0.7);
-        }
-
-        // Radial falloff
-        float falloff = 1.0;
-        if (diskR < diskInner * 1.5) {
-            falloff = (diskR - diskInner) / (diskInner * 0.5);
-        } else if (diskR > diskOuter * 0.8) {
-            falloff = (diskOuter - diskR) / (diskOuter * 0.2);
-        }
-
-        return color * falloff * asymmetry * u_accretionDiskIntensity;
-    }
-
     // Volumetric accretion disk: ray-march the disk volume instead of testing a
     // single plane.  Density ~ r^(-3/2) with a Gaussian scale height, temperature
     // ~ r^(-3/4) (Keplerian), blackbody emissivity ~ T^4, optical depth
     // integration, and relativistic Doppler beaming from the azimuthal flow.
-    vec3 volumetricDiskEmission(vec3 rayOrigin, vec3 rayDir, float rs, float isco) {
-        if (!u_volumetricDiskEnable) return vec3(0.0);
+    //
+    // Returns the SELF-ATTENUATED emission integral: each step's emissivity is
+    // multiplied by exp(-tau_so_far), i.e. the accumulated integral of
+    // j(s) * exp(-tau(s)) ds.  tau_out carries the total optical depth along the
+    // ray so the caller can composite the disk against the background with the
+    // correct radiative-transfer law:
+    //   color = color_bg * exp(-tau) + emission
+    // (additive emission alone is physically wrong: it makes an optically thick
+    // disk vanish and an optically thin disk stay bright.)
+    vec3 volumetricDiskEmission(vec3 rayOrigin, vec3 rayDir, float rs, float isco,
+                               out float tauOut) {
+        if (!u_volumetricDiskEnable) { tauOut = 0.0; return vec3(0.0); }
 
         float rInner = u_volumetricDiskInner;
         if (rInner <= 0.0) rInner = isco;
@@ -302,7 +274,6 @@ static const char* lensingFragmentSource = R"(
             float z = pos.y;
             float rPlane = length(pos.xz);
 
-            vec3 contrib = vec3(0.0);
             if (rPlane >= rInner && rPlane <= rOuter) {
                 // Scale height H/r = H0 (constant), H = H0 * r
                 float H = H0 * rPlane;
@@ -315,8 +286,8 @@ static const char* lensingFragmentSource = R"(
                 float j = rho * T * T * T * T;
 
                 // Optical depth over this step
-                tau += rho * opacity * stepSize;
-                float transmission = exp(-tau);
+                float dTau = rho * opacity * stepSize;
+                tau += dTau;
 
                 // Doppler beaming: azimuthal orbital velocity v_phi = sqrt(M/r)
                 // (geometric units, c = 1). Prograde for Kerr.
@@ -330,10 +301,11 @@ static const char* lensingFragmentSource = R"(
                 float delta = 1.0 / max(1.0 - vDotN, 0.01);
                 float beaming = delta * delta * delta * delta * u_volumetricDiskDopplerBoost;
 
-                contrib = j * stepSize * transmission * beaming * u_volumetricDiskIntensity;
+                // Self-attenuated contribution: j * exp(-tau_before) * ds.
+                // This is the integral of j(s) * exp(-tau(s)) ds, so the returned
+                // value is already the disk's own emitted flux at the observer.
+                emissivity += j * stepSize * exp(-tau) * beaming * u_volumetricDiskIntensity;
             }
-
-            emissivity += contrib;
 
             // Adaptive step near the black hole
             float adaptiveStep = stepSize * max(r / (3.0 * rs), 0.1);
@@ -341,6 +313,7 @@ static const char* lensingFragmentSource = R"(
             pos += dir * adaptiveStep;
         }
 
+        tauOut = tau;
         return emissivity;
     }
 
@@ -377,13 +350,27 @@ static const char* lensingFragmentSource = R"(
         // Ray march through curved spacetime
         vec3 color = rayMarch(u_cameraPos, rayDir);
 
-        // Volumetric accretion disk: integrate emissivity along the lensed ray
+        // Volumetric accretion disk: integrate emissivity along the lensed ray.
+        // ISCO from the exact Bardeen-Press-Teukolsky formula (matches the CPU
+        // computeISCO()); the previous mix() approximation diverged badly for
+        // high spin, which is exactly the visually dominant regime.
         float rs = 2.0 * u_mass;
-        float isco = 6.0 * u_mass;
-        if (u_spin > 0.001) {
-            isco = mix(isco, rs, u_spin * 0.7);
-        }
-        color += volumetricDiskEmission(u_cameraPos, rayDir, rs, isco);
+        float isco = computeISCO(u_spin) * u_mass;
+        float diskTau = 0.0;
+        vec3 diskEmission = volumetricDiskEmission(u_cameraPos, rayDir, rs, isco, diskTau);
+
+        // Radiative-transfer composite.  volumetricDiskEmission returns the
+        // self-attenuated emission integral  ∫ j(s) exp(-tau(s)) ds, and diskTau
+        // is the total optical depth to the observer.  The background (lensed
+        // star field) is attenuated by exp(-tau) and the disk emission is added
+        // on top -- this is the correct form in both limits:
+        //   optically thin  (tau -> 0): background passes through, disk faint
+        //   optically thick (tau -> infinity): background is occulted, disk
+        //                                    saturates to its source function
+        // The old code multiplied exp(-tau) INTO the emission, which made a thick
+        // disk vanish and a thin disk stay bright -- both backwards.
+        float transmission = exp(-diskTau);
+        color = color * transmission + diskEmission;
 
         // Add photon ring glow
         float r = length(u_cameraPos);
@@ -638,6 +625,37 @@ double GravitationalLensing::computeISCO() const {
     return r_isco;
 }
 
+/**
+ * @brief Dimensionless ISCO radius r/M for a given dimensionless spin.
+ *
+ * Pure function -- mirrors computeISCO_GLSL() bit-for-bit so the CPU
+ * reference and the GPU agree.  Positive spin = prograde (disk co-rotates),
+ * which shrinks the ISCO; negative spin = retrograde, which expands it.
+ * Schwarzschild limit (a=0) is exactly 6; extremal prograde (a->1) -> 1.
+ *
+ * @param spin Dimensionless spin a/M in (-1, 1).
+ * @return ISCO radius in units of M.
+ */
+double GravitationalLensing::computeISCORadius(double spin) {
+    double a = std::abs(spin);
+    if (a < 0.001) return 6.0;
+
+    double a2 = a * a;
+    // cbrt(1-a^2): guarded explicitly because pow(0, 1/3) can return NaN on
+    // some platforms at a->1 even though a is bounded below 1.
+    double cbrt_1ma2 = (a2 >= 1.0) ? 0.0 : std::pow(1.0 - a2, 1.0 / 3.0);
+    double cbrt1pa = std::pow(1.0 + a, 1.0 / 3.0);
+    double cbrt1ma = std::pow(1.0 - a, 1.0 / 3.0);
+
+    double z1 = 1.0 + cbrt_1ma2 * (cbrt1pa + cbrt1ma);
+    double z2 = std::sqrt(3.0 * a2 + z1 * z1);
+
+    double inner = std::sqrt(std::max((3.0 - z1) * (3.0 + z1 + 2.0 * z2), 0.0));
+    double signFactor = (spin >= 0.0) ? 1.0 : -1.0;
+
+    return 3.0 + z2 - signFactor * inner;
+}
+
 void GravitationalLensing::compileLensingShader() {
     GLuint vertShader = compileShader(GL_VERTEX_SHADER, lensingVertexSource);
     GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, lensingFragmentSource);
@@ -887,11 +905,16 @@ void GravitationalLensing::setUniformMat4(const char* name, const float* matrix)
 float GravitationalLensing::computeVolumetricDiskEmissivity(
     const std::array<float, 3>& pos,
     const VolumetricDiskParams& params,
-    float mass)
+    float mass,
+    float spin)
 {
     float rPlane = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
     float rInner = params.diskInnerRadius;
-    if (rInner <= 0.0f) rInner = 6.0f * mass;  // ISCO for Schwarzschild
+    if (rInner <= 0.0f) {
+        // Exact Kerr ISCO (matches computeISCO_GLSL in the shader); the old
+        // hardcoded 6M only ever agreed at spin=0.
+        rInner = static_cast<float>(computeISCORadius(spin)) * mass;
+    }
     if (rPlane < rInner || rPlane > params.diskOuterRadius) return 0.0f;
 
     float H = params.diskScaleHeight * rPlane;
@@ -914,10 +937,13 @@ float GravitationalLensing::computeVolumetricDiskEmissivity(
     return j * beaming;
 }
 
-float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& params, float mass)
+float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& params, float mass,
+                                                  float spin)
 {
     float rInner = params.diskInnerRadius;
-    if (rInner <= 0.0f) rInner = 6.0f * mass;
+    if (rInner <= 0.0f) {
+        rInner = static_cast<float>(computeISCORadius(spin)) * mass;
+    }
     float rOuter = params.diskOuterRadius;
     if (rOuter <= rInner) return 0.0f;
 
@@ -938,7 +964,7 @@ float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& pa
             for (int iz = 0; iz < NZ; ++iz) {
                 float y = -Hmax + (iz + 0.5f) * (2.0f * Hmax) / float(NZ);
                 std::array<float, 3> pos = {x, y, z};
-                lum += computeVolumetricDiskEmissivity(pos, params, mass) * dr * dphi * r * (2.0f * Hmax) / float(NZ);
+                lum += computeVolumetricDiskEmissivity(pos, params, mass, spin) * dr * dphi * r * (2.0f * Hmax) / float(NZ);
             }
         }
     }
