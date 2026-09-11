@@ -1,0 +1,87 @@
+{
+  "id": "black_hole_basics",
+  "title": "Black Hole Basics",
+  "description": "A five-minute guided tour of the Schwarzschild black hole: the event horizon, the photon sphere, gravitational lensing, the accretion disk, and frame dragging.",
+  "steps": [
+    {
+      "title": "Welcome to QuantumVerse",
+      "body": "This tour will walk you through the basic features of a black hole. You can pause at any time by dragging the camera, and resume with the Resume button when you are ready to continue.",
+      "duration_sec": 5.0,
+      "camera": {
+        "azimuth": 45.0,
+        "elevation": 20.0,
+        "distance": 200.0,
+        "target": [0.0, 0.0, 0.0]
+      },
+      "actions": [
+        {"type": "set_bh_mass", "value": 10.0},
+        {"type": "enable_lensing", "value": true}
+      ]
+    },
+    {
+      "title": "The Event Horizon",
+      "body": "The event horizon is the boundary inside which nothing, not even light, can escape. For a non-spinning black hole it sits at 2GM/c^2 -- twice the Schwarzschild radius. Anything crossing it is lost to the interior forever.",
+      "duration_sec": 8.0,
+      "camera": {
+        "azimuth": 45.0,
+        "elevation": 10.0,
+        "distance": 60.0,
+        "target": [0.0, 0.0, 0.0]
+      },
+      "actions": []
+    },
+    {
+      "title": "The Photon Sphere",
+      "body": "Just outside the event horizon lies the photon sphere at 3GM/c^2. Here light can orbit the black hole in closed circles. Any slight perturbation sends photons either falling in or escaping -- this is what creates the bright ring around the shadow.",
+      "duration_sec": 8.0,
+      "camera": {
+        "azimuth": 90.0,
+        "elevation": 5.0,
+        "distance": 40.0,
+        "target": [0.0, 0.0, 0.0]
+      },
+      "actions": []
+    },
+    {
+      "title": "Gravitational Lensing",
+      "body": "Massive objects bend light. Stars behind the black hole appear as arcs and rings -- Einstein rings -- because their light curves around the hole on its way to your eye. The closer the light passes, the more it bends.",
+      "duration_sec": 8.0,
+      "camera": {
+        "azimuth": 180.0,
+        "elevation": 15.0,
+        "distance": 80.0,
+        "target": [0.0, 0.0, 0.0]
+      },
+      "actions": [
+        {"type": "enable_lensing", "value": true}
+      ]
+    },
+    {
+      "title": "The Accretion Disk",
+      "body": "Real black holes are usually surrounded by a disk of hot gas spiralling inward. Friction heats the gas to millions of degrees, making it glow brightly. The inner edge sits at the innermost stable circular orbit, and the Doppler effect makes the approaching side look brighter than the receding one.",
+      "duration_sec": 8.0,
+      "camera": {
+        "azimuth": 270.0,
+        "elevation": 25.0,
+        "distance": 100.0,
+        "target": [0.0, 0.0, 0.0]
+      },
+      "actions": [
+        {"type": "enable_volumetric_disk", "value": true},
+        {"type": "set_disk_density", "value": 3.0}
+      ]
+    },
+    {
+      "title": "End of Tour",
+      "body": "You have reached the end of the Black Hole Basics tour. Feel free to explore on your own, or return to the tour panel to pick another guided experience.",
+      "duration_sec": 0.0,
+      "camera": {
+        "azimuth": 45.0,
+        "elevation": 20.0,
+        "distance": 200.0,
+        "target": [0.0, 0.0, 0.0]
+      },
+      "actions": []
+    }
+  ]
+}

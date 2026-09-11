@@ -1714,6 +1714,103 @@ ApplicationWindow {
                         }
                     }
                 }
+
+                // Educational tour overlay (Loader-based; extract to
+                // EducationalTourOverlay.ml once the controller wiring stabilises).
+                Loader {
+                    id: tourOverlayLoader
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: tourOverlayLoader.item ? tourOverlayLoader.item.implicitHeight : 0
+                    sourceComponent: tourOverlayComponent
+                    active: tourManager && tourManager.count > 0
+                }
+
+                Component {
+                    id: tourOverlayComponent
+                    Pane {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: implicitHeight
+                        background: Rectangle { color: "#161626"; radius: 4 }
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: 4
+
+                            Label {
+                                text: "🎓 Educational Tour"
+                                font.bold: true
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                            }
+
+                            RowLayout {
+                                spacing: 6
+                                Label { text: "Tour:"; color: "#888"; font.pixelSize: 10 }
+                                ComboBox {
+                                    id: tourCombo
+                                    model: tourManager ? tourManager.listTours() : []
+                                    Layout.fillWidth: true
+                                    font.pixelSize: 10
+                                }
+                            }
+
+                            RowLayout {
+                                spacing: 6
+                                Button {
+                                    text: tourController && tourController.isRunning ? "⏸ Pause" : "▶ Play Tour"
+                                    Layout.fillWidth: true
+                                    onClicked: {
+                                        if (!tourController || !tourManager) return
+                                        var t = tourManager.getTour(tourCombo.currentText)
+                                        if (!t) return
+                                        if (tourController.isRunning) {
+                                            tourController.onUserInput()
+                                        } else {
+                                            tourController.loadTour(t)
+                                            tourController.start()
+                                        }
+                                    }
+                                }
+                                Button {
+                                    text: "⏭ Next"
+                                    onClicked: if (tourController) tourController.next()
+                                }
+                                Button {
+                                    text: "⏮ Prev"
+                                    onClicked: if (tourController) tourController.prev()
+                                }
+                                Button {
+                                    text: "⏹ Stop"
+                                    onClicked: if (tourController) tourController.stop()
+                                }
+                            }
+
+                            Label {
+                                text: tourController && tourController.currentStep()
+                                    ? (tourController.currentStep().title + "  ·  " +
+                                       (tourController.currentStepIndex() + 1) + "/" +
+                                       (tourController.currentTour() ? tourController.currentTour().steps.length : 0))
+                                    : "No tour active"
+                                font.pixelSize: 10
+                                color: "#ccc"
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            Label {
+                                text: tourController && tourController.currentStep()
+                                    ? tourController.currentStep().body
+                                    : ""
+                                font.pixelSize: 9
+                                color: "#888"
+                                wrapMode: Text.Wrap
+                                Layout.fillWidth: true
+                                visible: text !== ""
+                            }
+                        }
+                    }
+                }
             }
             }
         }

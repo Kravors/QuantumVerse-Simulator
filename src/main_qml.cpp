@@ -112,6 +112,8 @@
 #include "utils/FrameDiagnostics.h"
 #include "config/ConfigLoader.h"
 #include "scenario/ScenarioManager.h"
+#include "education/TourManager.h"
+#include "education/TourController.h"
 
 /**
  * @brief Register QML types for the QuantumVerse module
@@ -445,6 +447,9 @@ int main(int argc, char* argv[])
         // Initialize scenario manager
         quantumverse::ScenarioManager::instance().initialize("data/scenarios/");
 
+        // Initialize educational tour manager (sibling of data/scenarios/)
+        quantumverse::TourManager::instance().initialize("data/tours/");
+
         double blackHoleMass = config.black_hole.mass_solar_masses * 1.989e30;
         double blackHoleSpin = config.black_hole.spin;
 
@@ -674,6 +679,29 @@ int main(int argc, char* argv[])
             QVariant::fromValue(kViewportScale));
         rootContext->setContextProperty("camController",
             QVariant::fromValue(camController));
+
+        // Educational tour controller: bridges scripted tours to the live
+        // viewport through provider lambdas (same decoupling as
+        // AnomalyMonitor).  Camera read/write and action dispatch are wired
+        // to the existing QmlCamController + QmlGlViewport invokables.  The
+        // controller itself is created here (it does not need the viewport)
+        // but its viewport-facing lambdas are bound below once the viewport
+        // has been located.
+        auto tourController = new quantumverse::TourController(&engine);
+        tourController->setCameraGetter([&] {
+            quantumverse::TourCameraState cs;
+            cs.azimuth   = static_cast<double>(camController->azimuth()) * 180.0 / M_PI;
+            cs.elevation = static_cast<double>(camController->elevation()) * 180.0 / M_PI;
+            cs.distance  = static_cast<double>(camController->distance());
+            cs.target    = {static_cast<double>(camController->target().x()),
+                            static_cast<double>(camController->target().y()),
+                            static_cast<double>(camController->target().z())};
+            return cs;
+        });
+        rootContext->setContextProperty("tourController",
+            QVariant::fromValue(tourController));
+        rootContext->setContextProperty("tourManager",
+            QVariant::fromValue(&quantumverse::TourManager::instance()));
         rootContext->setContextProperty("discoveryPanelManager",
             QVariant::fromValue(discoveryPanelManager.get()));
 #ifdef QUANTUMVERSE_USE_VR
@@ -1006,6 +1034,43 @@ int main(int argc, char* argv[])
 
                 if (glStrict) {
                     quantumverse::GLDebug::instance().setStrictMode(true);
+                }
+
+                // Educational tour: bind the viewport-facing provider lambdas
+                // now that the QmlGlViewport exists.  The getter was already
+                // wired above; the setter and action handler need the
+                // viewport pointer, which is only available after findChild().
+                QVariant tourVar = rootContext->contextProperty("tourController");
+                auto* tourControllerPtr =
+                    tourVar.value<quantumverse::TourController*>();
+                if (tourControllerPtr) {
+                    tourControllerPtr->setCameraSetter(
+                        [camController, viewport](const quantumverse::TourCameraState& cs) {
+                            camController->setAzimuth(
+                                static_cast<float>(cs.azimuth * M_PI / 180.0));
+                            camController->setElevation(
+                                static_cast<float>(cs.elevation * M_PI / 180.0));
+                            camController->setDistance(static_cast<float>(cs.distance));
+                            if (viewport) {
+                                viewport->setCameraDistance(
+                                    static_cast<float>(cs.distance));
+                            }
+                        });
+                    tourControllerPtr->setActionHandler(
+                        [viewport](const quantumverse::TourAction& a) {
+                            if (!viewport) return;
+                            if (a.type == "enable_lensing") {
+                                viewport->setLensingEnabled(a.value.get<bool>());
+                            } else if (a.type == "enable_volumetric_disk") {
+                                viewport->setVolumetricDiskEnabled(
+                                    a.value.get<bool>());
+                            } else if (a.type == "set_bh_mass") {
+                                viewport->setBlackHoleMass(a.value.get<double>());
+                            } else if (a.type == "set_disk_density") {
+                                viewport->setVolumetricDiskDensity(
+                                    static_cast<float>(a.value.get<double>()));
+                            }
+                        });
                 }
 
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";

@@ -254,6 +254,9 @@ if(QUANTUMVERSE_USE_QT)
         src/ml/AnomalyDetector.cpp
         src/ml/TrainingDataCollector.cpp
         src/ml/AnomalyMonitor.cpp
+        src/education/EducationalTour.cpp
+        src/education/TourController.cpp
+        src/education/TourManager.cpp
         src/spacetime/LightCone.cpp
         src/spacetime/KerrMetric.cpp
         src/utils/ConfigManager.cpp
@@ -1035,6 +1038,40 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_lensing.cpp)
         target_link_libraries(test_lensing PRIVATE opengl32)
     endif()
     add_test(NAME GravitationalLensingTest COMMAND test_lensing)
+endif()
+
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_educational.cpp)
+    # Educational tour controller (data model + state machine)
+    add_executable(test_educational
+        tests/test_educational.cpp
+        src/education/EducationalTour.cpp
+        src/education/TourController.cpp
+        src/education/TourManager.cpp)
+    target_include_directories(test_educational PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party)
+    target_link_libraries(test_educational PRIVATE Qt6::Core dilaton)
+    add_test(NAME EducationalTourTest COMMAND test_educational)
+    set_tests_properties(EducationalTourTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+    set_target_properties(test_educational PROPERTIES AUTOMOC ON)
+endif()
+
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp)
+    # TourManager directory scanner (smoke test against data/tours/)
+    add_executable(test_tour_manager
+        tests/test_tour_manager.cpp
+        src/education/EducationalTour.cpp
+        src/education/TourManager.cpp)
+    target_include_directories(test_tour_manager PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party)
+    target_link_libraries(test_tour_manager PRIVATE dilaton nlohmann_json)
+    add_test(NAME TourManagerTest COMMAND test_tour_manager)
+    set_tests_properties(TourManagerTest PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_pbr_rendering.cpp)
