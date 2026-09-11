@@ -1041,21 +1041,27 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_lensing.cpp)
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_educational.cpp)
-    # Educational tour controller (data model + state machine)
-    add_executable(test_educational
-        tests/test_educational.cpp
-        src/education/EducationalTour.cpp
-        src/education/TourController.cpp
-        src/education/TourManager.cpp)
-    target_include_directories(test_educational PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/third_party)
-    target_link_libraries(test_educational PRIVATE Qt6::Core dilaton)
-    add_test(NAME EducationalTourTest COMMAND test_educational)
-    set_tests_properties(EducationalTourTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    )
-    set_target_properties(test_educational PROPERTIES AUTOMOC ON)
+    # TourController is a QObject subclass (moc), so this target needs Qt.
+    # Guard with QUANTUMVERSE_USE_QT: the Formal Verification / CBMC
+    # workflows configure CMake without Qt, and an unconditional
+    # Qt6::Core link breaks their configure step.
+    if(QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
+        # Educational tour controller (data model + state machine)
+        add_executable(test_educational
+            tests/test_educational.cpp
+            src/education/EducationalTour.cpp
+            src/education/TourController.cpp
+            src/education/TourManager.cpp)
+        target_include_directories(test_educational PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party)
+        target_link_libraries(test_educational PRIVATE Qt6::Core dilaton)
+        add_test(NAME EducationalTourTest COMMAND test_educational)
+        set_tests_properties(EducationalTourTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        )
+        set_target_properties(test_educational PROPERTIES AUTOMOC ON)
+    endif()
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp)
