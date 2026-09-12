@@ -507,6 +507,7 @@ class QmlGlViewport : public ::QQuickFramebufferObject
     Q_PROPERTY(float lensingMass READ lensingMass WRITE setLensingMass NOTIFY lensingMassChanged)
     Q_PROPERTY(float lensingSpin READ lensingSpin WRITE setLensingSpin NOTIFY lensingSpinChanged)
     Q_PROPERTY(float lensingDistance READ lensingDistance WRITE setLensingDistance NOTIFY lensingDistanceChanged)
+    Q_PROPERTY(float lensingTheta READ lensingTheta WRITE setLensingTheta NOTIFY lensingThetaChanged)
     Q_PROPERTY(bool accretionDiskEnabled READ accretionDiskEnabled WRITE setAccretionDiskEnabled NOTIFY accretionDiskEnabledChanged)
     Q_PROPERTY(bool photonRingEnabled READ photonRingEnabled WRITE setPhotonRingEnabled NOTIFY photonRingEnabledChanged)
     Q_PROPERTY(float accretionDiskIntensity READ accretionDiskIntensity WRITE setAccretionDiskIntensity NOTIFY accretionDiskIntensityChanged)
@@ -708,6 +709,7 @@ public:
     float lensingMass() const { return m_lensingMass; }
     float lensingSpin() const { return m_lensingSpin; }
     float lensingDistance() const { return m_lensingDistance; }
+    float lensingTheta() const { return m_lensingTheta; }
     bool accretionDiskEnabled() const { return m_accretionDiskEnabled; }
     bool photonRingEnabled() const { return m_photonRingEnabled; }
     float accretionDiskIntensity() const { return m_accretionDiskIntensity; }
@@ -726,6 +728,7 @@ public:
     Q_INVOKABLE void setLensingMass(float mass);
     Q_INVOKABLE void setLensingSpin(float spin);
     Q_INVOKABLE void setLensingDistance(float distance);
+    Q_INVOKABLE void setLensingTheta(float theta);
     Q_INVOKABLE void setAccretionDiskEnabled(bool enabled);
     Q_INVOKABLE void setPhotonRingEnabled(bool enabled);
     Q_INVOKABLE void setAccretionDiskIntensity(float intensity);
@@ -852,6 +855,7 @@ signals:
       void lensingMassChanged();
       void lensingSpinChanged();
       void lensingDistanceChanged();
+      void lensingThetaChanged();
       void accretionDiskEnabledChanged();
       void photonRingEnabledChanged();
       void accretionDiskIntensityChanged();
@@ -1009,8 +1013,9 @@ private:
      int m_lensingSteps = 256;
      float m_shadowIntensity = 1.0f;
      float m_lensingMass = 1.0f;
-     float m_lensingSpin = 0.6f;
-     float m_lensingDistance = 10.0f;
+float m_lensingSpin = 0.6f;
+      float m_lensingDistance = 10.0f;
+      float m_lensingTheta = 1.5708f;  // pi/2 = equatorial (edge-on)
 bool m_accretionDiskEnabled = true;
     bool m_photonRingEnabled = true;
     float m_accretionDiskIntensity = 0.8f;

@@ -317,9 +317,12 @@ int main(int argc, char* argv[])
     QString signalingServerUrl;
     QString sessionId;
     double fixedSimTime = -1.0;
+    double lensingTheta = -1.0;  // <0 = not set; >=0 overrides QML default
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--lensing-theta") == 0 && i + 1 < argc) {
+            lensingTheta = atof(argv[++i]);
         } else if (strcmp(argv[i], "--simTime") == 0 && i + 1 < argc) {
             fixedSimTime = atof(argv[++i]);
         } else if (strcmp(argv[i], "--screenshot") == 0 && i + 1 < argc) {
@@ -1005,6 +1008,20 @@ int main(int argc, char* argv[])
 
                 if (headlessFrames > 0) {
                     viewport->setHeadlessFrameTarget(headlessFrames);
+                }
+
+                if (lensingTheta >= 0.0) {
+                    // cameraTheta is the polar angle from the +y spin axis:
+                    //   pi/2 = equatorial (edge-on), < pi/2 = inclined
+                    viewport->setLensingTheta(static_cast<float>(lensingTheta));
+                }
+
+                if (lensingTheta >= 0.0) {
+                    // Drive the lensing overlay from the CLI so headless
+                    // verification renders the black-hole disk without a GUI.
+                    viewport->setLensingEnabled(true);
+                    viewport->setVolumetricDiskEnabled(true);
+                    viewport->setLensingSpin(0.5f);
                 }
 
                 if (!frameTimesPath.isEmpty()) {

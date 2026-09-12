@@ -3367,16 +3367,17 @@ double QmlGlViewport::recordingDuration() const {
      m_lensing = std::move(lensing);
  }
 
- void QmlGlViewport::setLensingEnabled(bool enabled) {
-     if (m_lensingEnabled != enabled) {
-         m_lensingEnabled = enabled;
-         if (m_lensing) {
-             m_lensing->setEnabled(enabled);
-         }
-         emit lensingEnabledChanged();
-         update();
-     }
- }
+void QmlGlViewport::setLensingEnabled(bool enabled) {
+      if (m_lensingEnabled != enabled) {
+          m_lensingEnabled = enabled;
+          if (!m_lensing) syncLensingParams();  // Lazily build the renderer on first enable
+          if (m_lensing) {
+              m_lensing->setEnabled(enabled);
+          }
+          emit lensingEnabledChanged();
+          update();
+      }
+  }
 
  void QmlGlViewport::setLensingSteps(int steps) {
      if (m_lensingSteps != steps) {
@@ -3429,19 +3430,36 @@ double QmlGlViewport::recordingDuration() const {
      }
  }
 
- void QmlGlViewport::setLensingDistance(float distance) {
-     float clamped = std::max(distance, 3.0f);
-     if (std::abs(m_lensingDistance - clamped) > 0.001f) {
-         m_lensingDistance = clamped;
-         if (m_lensing) {
-             auto params = m_lensing->params();
-             params.cameraDistance = clamped;
-             m_lensing->setParams(params);
-         }
-         emit lensingDistanceChanged();
-         update();
-     }
- }
+void QmlGlViewport::setLensingDistance(float distance) {
+      float clamped = std::max(distance, 3.0f);
+      if (std::abs(m_lensingDistance - clamped) > 0.001f) {
+          m_lensingDistance = clamped;
+          if (m_lensing) {
+              auto params = m_lensing->params();
+              params.cameraDistance = clamped;
+              m_lensing->setParams(params);
+          }
+          emit lensingDistanceChanged();
+          update();
+      }
+  }
+
+  void QmlGlViewport::setLensingTheta(float theta) {
+      // cameraTheta is the polar angle from the +y spin axis:
+      //   pi/2 = equatorial (edge-on, disk in the plane of the sky)
+      //   < pi/2 = camera above the plane (inclined)
+      float clamped = std::clamp(theta, 0.05f, 3.14f);
+      if (std::abs(m_lensingTheta - clamped) > 0.001f) {
+          m_lensingTheta = clamped;
+          if (m_lensing) {
+              auto params = m_lensing->params();
+              params.cameraTheta = clamped;
+              m_lensing->setParams(params);
+          }
+          emit lensingThetaChanged();
+          update();
+      }
+  }
 
  void QmlGlViewport::setAccretionDiskEnabled(bool enabled) {
      if (m_accretionDiskEnabled != enabled) {
@@ -3603,11 +3621,12 @@ void QmlGlViewport::setVolumetricDiskOpacity(float opacity) {
      }
 
      // Update all parameters
-     GravitationalLensing::LensingParams params;
-     params.mass = m_lensingMass;
-     params.spin = m_lensingSpin;
-     params.cameraDistance = m_lensingDistance;
-     params.raySteps = m_lensingSteps;
+GravitationalLensing::LensingParams params;
+      params.mass = m_lensingMass;
+      params.spin = m_lensingSpin;
+      params.cameraDistance = m_lensingDistance;
+      params.cameraTheta = m_lensingTheta;
+      params.raySteps = m_lensingSteps;
      params.shadowIntensity = m_shadowIntensity;
 params.enableAccretionDisk = m_accretionDiskEnabled;
     params.enablePhotonRing = m_photonRingEnabled;
