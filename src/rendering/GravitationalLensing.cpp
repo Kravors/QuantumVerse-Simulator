@@ -282,12 +282,15 @@ static const char* lensingFragmentSource = R"(
 
                 // Keplerian temperature profile T ~ r^(-3/4)
                 float T = temp0 * pow(rInner / rPlane, 0.75);
-                // Blackbody emissivity ~ T^4 (Stefan-Boltzmann)
-                float j = rho * T * T * T * T;
+                // Blackbody emissivity j = κ·ρ·B(T) ~ κ·ρ·T⁴ (Kirchhoff/Stefan-Boltzmann)
+                float j = opacity * rho * T * T * T * T;
 
                 // Optical depth over this step
                 float dTau = rho * opacity * stepSize;
-                tau += dTau;
+                float T_before = exp(-tau);
+                float aStep    = 1.0 - exp(-dTau);
+                // Thin-slice series: (1-e^-dTau)/dTau → 1 - dTau/2 as dTau → 0.
+                float avg      = (dTau > 1e-3) ? (aStep / dTau) : (1.0 - 0.5 * dTau);
 
                 // Doppler beaming: azimuthal orbital velocity v_phi = sqrt(M/r)
                 // (geometric units, c = 1). Prograde for Kerr.
@@ -301,10 +304,11 @@ static const char* lensingFragmentSource = R"(
                 float delta = 1.0 / max(1.0 - vDotN, 0.01);
                 float beaming = delta * delta * delta * delta * u_volumetricDiskDopplerBoost;
 
-                // Self-attenuated contribution: j * exp(-tau_before) * ds.
-                // This is the integral of j(s) * exp(-tau(s)) ds, so the returned
-                // value is already the disk's own emitted flux at the observer.
-                emissivity += j * stepSize * exp(-tau) * beaming * u_volumetricDiskIntensity;
+                // Self-attenuated contribution: T_before · j · ds · avg, with j = κ·ρ·B(T).
+                // In the optically thick limit this saturates to B(T) (Kirchhoff,
+                // κ-independent); in the thin limit it scales as κ·ρ·L.
+                emissivity += T_before * j * stepSize * avg * beaming * u_volumetricDiskIntensity;
+                tau += dTau;
             }
 
             // Adaptive step near the black hole
@@ -902,6 +906,35 @@ void GravitationalLensing::setUniformMat4(const char* name, const float* matrix)
 // straight ray in geometric units (c = 1).
 // ============================================================================
 
+GravitationalLensing::MarchResult GravitationalLensing::marchFlatSlab(double tauTotal, double j, int steps) {
+    MarchResult result;
+    if (steps <= 0 || tauTotal <= 0.0) {
+        result.tau = tauTotal;
+        return result;
+    }
+
+    double ds = tauTotal / (steps * j);  // Path length for optical depth normalization
+    if (ds <= 0.0) {
+        result.tau = tauTotal;
+        return result;
+    }
+
+    result.emission = 0.0;
+    double tau = 0.0;
+
+    for (int i = 0; i < steps; ++i) {
+        double dTau = j * ds;
+        double T_before = std::exp(-tau);
+        double aStep = 1.0 - std::exp(-dTau);
+        double avg = (dTau > 1e-3) ? (aStep / dTau) : (1.0 - 0.5 * dTau);
+        result.emission += T_before * j * ds * avg;
+        tau += dTau;
+    }
+
+    result.tau = tau;
+    return result;
+}
+
 float GravitationalLensing::computeVolumetricDiskEmissivity(
     const std::array<float, 3>& pos,
     const VolumetricDiskParams& params,
@@ -922,7 +955,10 @@ float GravitationalLensing::computeVolumetricDiskEmissivity(
     float rho = params.diskDensity * std::pow(rInner / rPlane, 1.5f) * std::exp(-zNorm * zNorm);
 
     float T = params.diskTemperature * std::pow(rInner / rPlane, 0.75f);
-    float j = rho * T * T * T * T;  // blackbody emissivity ~ T^4
+    // Kirchhoff's law: blackbody emissivity j = κ·ρ·B(T) ∝ κ·ρ·T⁴.
+    // The κ factor must be present or the thick limit I → B(T)/κ becomes
+    // opacity-dependent, which is physically wrong.  (See Test 25.)
+    float j = params.diskOpacity * rho * T * T * T * T;
 
     // Doppler beaming from azimuthal flow: v_phi = sqrt(M/r), delta = 1/(1 - v.n)
     // Reference ray direction is +x (n = (1,0,0)), so only the x-component of the

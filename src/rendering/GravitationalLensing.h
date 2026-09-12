@@ -258,6 +258,27 @@ public:
     bool isVolumetricDiskEnabled() const { return m_volumetricDisk.enableVolumetricDisk; }
 
     /**
+     * @brief Result of CPU ray-march through a volumetric slab.
+     */
+    struct MarchResult {
+        double emission = 0.0;  ///< Accumulated intensity (saturates at τ ≫ 1)
+        double tau = 0.0;       ///< Final optical depth
+    };
+
+    /**
+     * @brief Ray-march through a uniform slab on CPU (validation reference).
+     *
+     * Mirrors the GLSL volumetric disk loop: I = ∫ j·exp(-τ)·(1-exp(-dτ))/dτ·ds,
+     * with τ accrued from observer-side to source.
+     *
+     * @param tauTotal Total optical depth through the slab
+     * @param j Emissivity per unit path length
+     * @param steps Number of integration steps
+     * @return MarchResult with accumulated emission and final tau
+     */
+    static MarchResult marchFlatSlab(double tauTotal, double j, int steps);
+
+    /**
      * @brief Compute the local disk emissivity at a point (CPU reference).
      *
      * Pure function of position and parameters; mirrors the GLSL

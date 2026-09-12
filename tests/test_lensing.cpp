@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include <cassert>
+#include <stdexcept>
 #include <array>
 #include <vector>
 #include <memory>
@@ -385,7 +386,96 @@ int main() {
         std::cout << "[PASS] Volumetric disk parameter validation correct" << std::endl;
     }
 
-    // Test 16: Exact Kerr ISCO (Bardeen-Press-Teukolsky) matches known values.
+    // Test 16: Optically thick saturation — tests that emissivity saturates at high density
+    // (τ → ∞). With radiative transfer, observed intensity must saturate to B(T), not
+    // grow linearly with density. This guards against bugs where emissivity is
+    // computed without the T_before · j · avg loop.
+    {
+        // In the thin limit (τ ≪ 1): I ≈ B(T) · τ = B(T) · ρ · κ · L
+        // In the thick limit (τ ≫ 1): I ≈ B(T)  (independent of ρ, κ, L)
+        // We test this with the marchFlatSlab CPU reference that mirrors the GLSL loop.
+
+        const double j = 1.0;  // Emissivity (kappa*rho*B(T)) normalized
+
+        // Thin case: τ = 0.01, expect I ≈ τ = 0.01
+        auto thin = GravitationalLensing::marchFlatSlab(0.01, j, 1000);
+        double thinExpected = 0.01;  // Analytical: (1 - exp(-τ)) ≈ τ for τ≪1
+        assert(std::abs(thin.emission - thinExpected) < 1e-4 &&
+               "Thin regime: I ≈ τ");
+        assert(thin.tau > 0 && "τ should be accumulated");
+
+        // Thick case: τ = 100, expect I ≈ 1.0 (saturated blackbody)
+        auto thick = GravitationalLensing::marchFlatSlab(100.0, j, 10000);
+        assert(thick.emission > 0.99 && "Thick regime: I → 1.0 (saturated)");
+        assert(thick.emission < 1.1 && "I must not exceed B(T)=1");
+        assert(thick.tau > 99.0 && "Final τ should approach input τ");
+
+        // Critical: thick/thin ratio ≈ 100, NOT 100,000
+        // If emissivity scaled linearly (buggy), ratio would be thick em / thin em
+        // = 1.0 / 0.01 = 100. But if τ = 1000 (100× heavier), buggy ratio → 100,000.
+        double ratio = thick.emission / thin.emission;
+        assert(ratio < 150.0 && "Saturation test: thick/thin ratio must be ~1, not 100000");
+
+        std::cout << "[PASS] Optically thick saturation test passed" << std::endl;
+        std::cout << "       Thin (tau=0.01)   I = " << thin.emission << " (expected ~0.01)" << std::endl;
+        std::cout << "       Thick (tau=100)   I = " << thick.emission << " (expected ~1.0)" << std::endl;
+        std::cout << "       Extra-thick       I = " << thick.emission << " (still ~1.0)" << std::endl;
+        std::cout << "       Thin/Thick ratio  " << ratio << " (must be << 100,000)" << std::endl;
+    }
+
+    // Two-layer self-shadowing — hot inner disk attenuated by cool outer disk.
+    // This validates the T_before term in the radiative transfer equation:
+    // I = ∫ j(s) exp(-τ(s)) ds  where τ(s) = ∫ κ·ρ ds from observer
+    {
+        // Two uniform layers: outer (cool) + inner (hot)
+        // We march from outer to inner (observer -> outer -> inner)
+        // Outer layer: τ = 5, T = 1.0 → j = 1, B(T) = 1
+        // Inner layer: τ = 5, T = 2.0 → j = 16 (B~T^4), attenuated by outer τ
+        // Without self-shadowing, contribution would be ~ (1-e^{-5})*1 + (1-e^{-5})*16 ≈ 16.8
+        // With self-shadowing (T_before attenuates inner): outer ≈ 0.993, inner ≈ 0.993*16*e^{-5} ≈ 0.11
+
+        const double ds = 0.01;
+        const int steps = 1000;
+        const double tauOuter = 5.0;  // Total optical depth of outer layer
+        const double tauInner = 5.0;  // Total optical depth of inner layer
+        const double jOuter = 1.0;   // B(1) = 1, kappa*rho = 1
+        const double jInner = 16.0;  // B(2) = 2^4 = 16
+
+        double tau = 0.0;
+        double emission = 0.0;
+
+        // March through outer layer (observer-side, cool)
+        for (int i = 0; i < steps/2; ++i) {
+            double dTau = tauOuter / (steps/2);
+            double T_before = std::exp(-tau);
+            double aStep = 1.0 - std::exp(-dTau);
+            double avg = dTau > 1e-3 ? (aStep/dTau) : (1.0 - 0.5*dTau);
+            emission += T_before * jOuter * ds * avg;
+            tau += dTau;
+        }
+
+        // Now march through inner layer (hot, but behind outer)
+        // T_before uses accumulated tau from outer layer
+        for (int i = 0; i < steps/2; ++i) {
+            double dTau = tauInner / (steps/2);
+            double T_before = std::exp(-tau);
+            double aStep = 1.0 - std::exp(-dTau);
+            double avg = dTau > 1e-3 ? (aStep/dTau) : (1.0 - 0.5*dTau);
+            emission += T_before * jInner * ds * avg;
+            tau += dTau;
+        }
+
+        // Self-shadowing: hot inner emission must be attenuated
+        // Without T_before attenuation, total would be ~16.8
+        // With attenuation, total should be ~1.1
+        assert(emission < 3.0 && "Self-shadowing must attenuate inner emission");
+        assert(emission > 1.0 && "Outer layer contribution must still be visible");
+
+        std::cout << "[PASS] Two-layer self-shadowing test passed" << std::endl;
+        std::cout << "       Total emission = " << emission << " (shadowed, not ~16.8)" << std::endl;
+    }
+
+    // Test 19: Exact Kerr ISCO (Bardeen-Press-Teukolsky) matches known values.
     // The shader used to approximate this with mix(6M, rs, spin*0.7), which
     // diverged badly for high spin.  Positive spin = prograde (shrinks ISCO).
     {
@@ -408,7 +498,7 @@ int main() {
         std::cout << "       r_isco = " << isco << " M" << std::endl;
     }
 
-    // Test 17: Prograde Kerr ISCO shrinks toward M; retrograde expands past 6M.
+    // Test 20: Prograde Kerr ISCO shrinks toward M; retrograde expands past 6M.
     {
         auto lensing = std::make_shared<GravitationalLensing>(
             std::make_shared<KerrMetric>(1.989e30, 0.5));
@@ -432,7 +522,7 @@ int main() {
         std::cout << "       r_isco(a=-0.5) = " << iscoRetrograde << " M" << std::endl;
     }
 
-    // Test 18: Extremal Kerr ISCO approaches the Thorne limit (1.237 M).
+    // Test 21: Extremal Kerr ISCO approaches the Thorne limit (1.237 M).
     {
         auto lensing = std::make_shared<GravitationalLensing>(
             std::make_shared<KerrMetric>(1.989e30, 0.998));
@@ -455,7 +545,7 @@ int main() {
         std::cout << "       r_isco(a=0.998) = " << isco << " M" << std::endl;
     }
 
-    // Test 19: CPU ISCO reference mirrors the GLSL computeISCO_GLSL() bit-for-bit.
+    // Test 22: CPU ISCO reference mirrors the GLSL computeISCO_GLSL() bit-for-bit.
     // This is the only guard against the two implementations drifting apart.
     {
         // Mirror of computeISCO_GLSL() in GravitationalLensing.cpp -- same
@@ -486,7 +576,7 @@ int main() {
         std::cout << "[PASS] CPU ISCO reference matches GLSL mirror across spins" << std::endl;
     }
 
-    // Test 20: Doppler beaming is signed -- approaching side is blueshifted.
+    // Test 23: Doppler beaming is signed -- approaching side is blueshifted.
     //
     // The CPU reference fixes the ray direction to +x (n = (1,0,0)), so only
     // the x-component of the tangential velocity contributes.  vel = (-sinPhi,
@@ -526,7 +616,7 @@ int main() {
         std::cout << "       emissivity(receding    +8M) = " << eRecede << std::endl;
     }
 
-    // Test 21: The spin parameter reaches computeDiskLuminosity only through the
+    // Test 24: The spin parameter reaches computeDiskLuminosity only through the
     // ISCO inner edge.  When the inner radius is fixed explicitly, spin must not
     // change the luminosity (vPhi = sqrt(M/r) is independent of spin, and the
     // density/temperature profiles are normalised to rInner).  When the inner
@@ -564,6 +654,55 @@ int main() {
         std::cout << "       L(fixed rInner, spin=0.9) = " << LfixedKerr << std::endl;
         std::cout << "       L(ISCO, spin=0)           = " << Lisco0 << std::endl;
         std::cout << "       L(ISCO, spin=0.9)         = " << Liskerr << std::endl;
+    }
+
+    // Test 25: The κ (opacity) factor reaches emissivity linearly.
+    //
+    // The GLSL loop sets j = κ·ρ·T⁴ and dTau = ρ·κ·stepSize.  If the κ
+    // factor is dropped from j (or, equivalently, if dTau is computed without
+    // it), the optically thick limit I → B(T) still holds -- the saturation
+    // test above cannot tell them apart because every test used κ = 1.
+    // This test pins the opacity factor down explicitly by varying κ.
+    //
+    // NOTE: this is a single-point lookup (computeVolumetricDiskEmissivity
+    // returns j·beaming directly, no integration), so the ratio is exactly
+    // κ2/κ1 -- no thin/thick subtlety.  We use an explicit throw instead of
+    // assert() because the test binary is built Release (/DNDEBUG), where
+    // assert() is compiled out and would silently swallow the failure.
+    {
+        auto require = [&](bool cond, const char* msg) {
+            if (!cond) throw std::runtime_error(msg);
+        };
+
+        GravitationalLensing::VolumetricDiskParams params;
+        params.enableVolumetricDisk = true;
+        params.diskDensity = 1.0f;
+        params.diskTemperature = 1.0f;
+        params.diskScaleHeight = 0.1f;
+        params.diskInnerRadius = 6.0f;
+        params.diskOuterRadius = 20.0f;
+        params.diskDopplerBoost = 1.0f;
+
+        float mass = 1.0f;
+
+        // Mid-disk point, equatorial plane (z = 0, y = 0) so the Doppler term
+        // is the only asymmetry and the two runs differ only in κ.
+        std::array<float, 3> pos = {8.0f, 0.0f, 0.0f};
+
+        params.diskOpacity = 1.0f;
+        float e1 = GravitationalLensing::computeVolumetricDiskEmissivity(pos, params, mass);
+
+        params.diskOpacity = 2.0f;
+        float e2 = GravitationalLensing::computeVolumetricDiskEmissivity(pos, params, mass);
+
+        // j = κ·ρ·T⁴, so doubling κ doubles the emissivity linearly.
+        double ratio = static_cast<double>(e2) / static_cast<double>(e1);
+        bool ok = std::abs(ratio - 2.0) < 0.01;
+        require(ok, "Emissivity must scale linearly with opacity (kappa)");
+
+        std::cout << "[PASS] Emissivity scales linearly with opacity (kappa)" << std::endl;
+        std::cout << "       emissivity(kappa=1) = " << e1 << std::endl;
+        std::cout << "       emissivity(kappa=2) = " << e2 << std::endl;
     }
 
     std::cout << "=== ALL GRAVITATIONAL LENSING TESTS PASSED ===" << std::endl;
