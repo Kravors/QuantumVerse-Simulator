@@ -4,8 +4,8 @@
 #include "physics/GeodesicIntegrator.h"
 #include "physics/CurvatureCalculator.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -31,7 +31,7 @@ void test_schwarzschild_orbital_period_keplerian_limit() {
     std::array<double, 4> vel = {0.1, 0.1, 0.0, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 100.0, true);
 
-    assert(!traj.empty() && "Trajectory should not be empty");
+    QV_CHECK(!traj.empty());
 
     double xMax = -1e100, xMin = 1e100;
     for (const auto& step : traj) {
@@ -40,14 +40,14 @@ void test_schwarzschild_orbital_period_keplerian_limit() {
     }
     double amplitude = (xMax - xMin) / 2.0;
     (void)amplitude;
-    assert(amplitude > 0.0 && "Orbital amplitude should be positive");
+    QV_CHECK(amplitude > 0.0);
 
     double properPeriod = traj.back().properTime;
-    assert(properPeriod > 0.0 && "Period should be positive");
+    QV_CHECK(properPeriod > 0.0);
 
     double keplerianPeriod = 2.0 * M_PI * std::sqrt(r * r * r / (M));
     double relError = std::abs(properPeriod - keplerianPeriod) / keplerianPeriod;
-    assert(relError < 10.0 && "Proper time should remain finite and positive");
+    QV_CHECK(relError < 10.0);
 
     std::cout << "[PASS] Schwarzschild orbital period: rel_error=" << relError << std::endl;
 }
@@ -70,7 +70,7 @@ void test_schwarzschild_photon_orbit() {
     std::array<double, 4> vel = {1.0, 0.0, 0.0, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::LIGHTLIKE, 50.0, true);
 
-    assert(!traj.empty() && "Photon trajectory should not be empty");
+    QV_CHECK(!traj.empty());
 
     bool fellIn = false;
     for (const auto& step : traj) {
@@ -84,7 +84,7 @@ void test_schwarzschild_photon_orbit() {
 
     double scalar = sch.curvatureScalars(Event4D(0.0, b, 0.0, 0.0)).kretschmann;
     (void)scalar;
-    assert((fellIn || (traj.size() > 10)) && "Photon should either orbit or fall in near photon sphere");
+    QV_CHECK((fellIn || (traj.size() > 10)));
     (void)fellIn;
 
     std::cout << "[PASS] Schwarzschild photon orbit at b=3*sqrt(3)*M handled correctly" << std::endl;
@@ -117,7 +117,7 @@ void test_kerr_equatorial_angular_velocity() {
         std::array<double, 4> vel = {1.0, 0.0, 0.0, 0.0};
         auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 20.0, true);
 
-        assert(!traj.empty() && "Kerr geodesic should not be empty");
+        QV_CHECK(!traj.empty());
 
         double dt = 0.0, dphi = 0.0;
         for (size_t i = 1; i < traj.size(); ++i) {
@@ -127,7 +127,7 @@ void test_kerr_equatorial_angular_velocity() {
         if (dt > 0.0) {
         double omega = dphi / dt;
         (void)omega;
-        assert(std::isfinite(omega) && "Angular velocity should be finite");
+        QV_CHECK(std::isfinite(omega));
         }
 
         std::cout << "[PASS] Kerr equatorial orbit a/M=" << a_over_M << " integrates" << std::endl;
@@ -150,7 +150,7 @@ void test_frw_redshift() {
     (void)z_numeric;
 
     double relError = std::abs(z_numeric - z_analytic) / (std::abs(z_analytic) + 1e-30);
-    assert(relError < 1e-6 && "FRW redshift should match analytic formula");
+    QV_CHECK(relError < 1e-6);
     (void)relError;
 
     std::cout << "[PASS] FRW redshift: z_numeric=" << z_numeric << ", z_analytic=" << z_analytic << std::endl;
@@ -165,22 +165,22 @@ void test_curvature_invariants_exact() {
 
     CurvatureCalculator calc(std::make_shared<MetricTensor>(minkowski));
     [[maybe_unused]] auto minkResult = calc.computeAll(origin);
-    assert(std::abs(minkResult.ricciScalar) < 1e-6 && "Minkowski Ricci scalar should be zero");
-    assert(std::abs(minkResult.kretschmann) < 1e-6 && "Minkowski Kretschmann should be zero");
+    QV_CHECK_NEAR(minkResult.ricciScalar, 0.0, 1e-6);
+    QV_CHECK_NEAR(minkResult.kretschmann, 0.0, 1e-6);
 
     double M = 10.0 * 1.989e30;
     SchwarzschildMetric sch(M);
     double r = 1e10;
     Event4D ev(0.0, r, 0.0, 0.0);
     auto scalars = sch.curvatureScalars(ev);
-    assert(scalars.valid);
-    assert(std::abs(scalars.ricciScalar) < 1e-6 && "Schwarzschild Ricci scalar should be zero (vacuum)");
+    QV_CHECK(scalars.valid);
+    QV_CHECK_NEAR(scalars.ricciScalar, 0.0, 1e-6);
 
     double c4 = Event4D::C * Event4D::C * Event4D::C * Event4D::C;
     double G = Event4D::G;
     double K_exact = 48.0 * G * G * M * M / (c4 * std::pow(r, 6));
     double relError = std::abs(scalars.kretschmann - K_exact) / K_exact;
-    assert(relError < 1e-6 && "Schwarzschild Kretschmann should match exact formula");
+    QV_CHECK(relError < 1e-6);
     (void)relError;
 
     std::cout << "[PASS] Curvature invariants: Minkowski=0, Schwarzschild K=" << scalars.kretschmann << std::endl;
@@ -197,7 +197,7 @@ void test_frw_scale_factor_matter_dominated() {
         double a = frw.scaleFactor(t);
         double a_expected = std::pow(t / t0, 2.0 / 3.0);
         double relError = std::abs(a - a_expected) / (std::abs(a_expected) + 1e-30);
-        assert(relError < 1e-9 && "FRW scale factor should match (t/t0)^(2/3)");
+        QV_CHECK(relError < 1e-9);
         (void)relError;
     }
 

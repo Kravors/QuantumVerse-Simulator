@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <cassert>
 #include <vector>
 #include <cstdint>
 #include <algorithm>
@@ -14,6 +13,7 @@
 
 #include "rendering/CelestialBodyRenderer.h"
 #include "rendering/ProceduralTextures.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -55,22 +55,22 @@ void testPBRMaterialDefaults()
 
     // Verify the PBRMaterial struct exists with correct defaults
     PBRMaterial mat;
-    assert(mat.metallic == 0.0f);
-    assert(mat.roughness == 0.5f);
-    assert(mat.ao == 1.0f);
-    assert(mat.metallicTexLayer == -1);
-    assert(mat.roughnessTexLayer == -1);
-    assert(mat.normalTexLayer == -1);
-    assert(mat.aoTexLayer == -1);
+    QV_CHECK(mat.metallic == 0.0f);
+    QV_CHECK(mat.roughness == 0.5f);
+    QV_CHECK(mat.ao == 1.0f);
+    QV_CHECK(mat.metallicTexLayer == -1);
+    QV_CHECK(mat.roughnessTexLayer == -1);
+    QV_CHECK(mat.normalTexLayer == -1);
+    QV_CHECK(mat.aoTexLayer == -1);
 
     // Verify CelestialBodyInstance has pbrMaterial field
     CelestialBodyInstance instance;
     instance.pbrMaterial.metallic = 0.8f;
     instance.pbrMaterial.roughness = 0.3f;
     instance.pbrMaterial.ao = 0.95f;
-    assert(instance.pbrMaterial.metallic == 0.8f);
-    assert(instance.pbrMaterial.roughness == 0.3f);
-    assert(instance.pbrMaterial.ao == 0.95f);
+    QV_CHECK(instance.pbrMaterial.metallic == 0.8f);
+    QV_CHECK(instance.pbrMaterial.roughness == 0.3f);
+    QV_CHECK(instance.pbrMaterial.ao == 0.95f);
 
     std::cout << "PASS" << std::endl;
 }
@@ -107,7 +107,7 @@ void testEnergyConservation()
 
         // Specular BRDF should be bounded
         float bound = 1.0f / std::max(tc.NdotL, 0.001f);
-        assert(specularBRDF < bound * 2.0f && "Specular BRDF exceeds energy bound");
+        QV_CHECK(specularBRDF < bound * 2.0f);
 
         // Total energy conservation
         float F0 = tc.metallic > 0.5f ? 0.5f : 0.04f;
@@ -116,7 +116,7 @@ void testEnergyConservation()
         float diffuseBRDF = kD / M_PI;
         float totalBRDF = diffuseBRDF + F * specularBRDF;
 
-        assert(totalBRDF < 5.0f && "Total BRDF violates energy conservation");
+        QV_CHECK(totalBRDF < 5.0f);
     }
 
     std::cout << "PASS" << std::endl;
@@ -132,23 +132,23 @@ void testFresnelGrazingAngles()
 
     // At normal incidence, F = F0
     float F_normal_diel = fresnelSchlick(1.0f, F0_dielectric);
-    assert(std::abs(F_normal_diel - F0_dielectric) < 0.01f);
+    QV_CHECK_NEAR(F_normal_diel - F0_dielectric, 0.0, 0.01f);
 
     float F_normal_metal = fresnelSchlick(1.0f, F0_metal);
-    assert(std::abs(F_normal_metal - F0_metal) < 0.01f);
+    QV_CHECK_NEAR(F_normal_metal - F0_metal, 0.0, 0.01f);
 
     // At grazing angle, F approaches 1.0
     float F_grazing_diel = fresnelSchlick(0.01f, F0_dielectric);
-    assert(F_grazing_diel > 0.8f && "Dielectric should be highly reflective at grazing angle");
+    QV_CHECK(F_grazing_diel > 0.8f);
 
     float F_grazing_metal = fresnelSchlick(0.01f, F0_metal);
-    assert(F_grazing_metal > 0.95f && "Metal should be near-perfectly reflective at grazing angle");
+    QV_CHECK(F_grazing_metal > 0.95f);
 
     // Fresnel should increase monotonically as angle increases
     float F_prev = fresnelSchlick(1.0f, F0_dielectric);
     for (float cosTheta = 0.9f; cosTheta >= 0.05f; cosTheta -= 0.1f) {
         float F_curr = fresnelSchlick(cosTheta, F0_dielectric);
-        assert(F_curr >= F_prev - 0.01f && "Fresnel should be monotonically increasing");
+        QV_CHECK(F_curr >= F_prev - 0.01f);
         F_prev = F_curr;
     }
 
@@ -164,25 +164,25 @@ void testRoughnessMetallicParameters()
         return std::min(std::max(v, 0.0f), 1.0f);
     };
 
-    assert(clampSafe(-0.5f) == 0.0f);
-    assert(clampSafe(1.5f) == 1.0f);
-    assert(clampSafe(0.5f) == 0.5f);
+    QV_CHECK(clampSafe(-0.5f) == 0.0f);
+    QV_CHECK(clampSafe(1.5f) == 1.0f);
+    QV_CHECK(clampSafe(0.5f) == 0.5f);
 
     auto clampRoughness = [](float v) -> float {
         return std::min(std::max(v, 0.04f), 1.0f);
     };
-    assert(clampRoughness(0.0f) == 0.04f);
-    assert(clampRoughness(2.0f) == 1.0f);
+    QV_CHECK(clampRoughness(0.0f) == 0.04f);
+    QV_CHECK(clampRoughness(2.0f) == 1.0f);
 
     // GGX distribution: smooth surfaces have sharper peak
     float D_smooth = distributionGGX(1.0f, 0.1f);
     float D_rough = distributionGGX(1.0f, 0.9f);
-    assert(D_smooth > D_rough && "Smooth surface should have higher NDF peak");
+    QV_CHECK(D_smooth > D_rough);
 
     // Geometry term decreases with roughness
     float G_smooth = geometrySmith(0.9f, 0.9f, 0.1f);
     float G_rough = geometrySmith(0.9f, 0.9f, 0.9f);
-    assert(G_smooth > G_rough && "Rougher surface should have more self-shadowing");
+    QV_CHECK(G_smooth > G_rough);
 
     std::cout << "PASS" << std::endl;
 }
@@ -201,12 +201,12 @@ void testPBRMapGeneration()
     config.type = PlanetTextureConfig::PlanetType::TERRESTRIAL;
 
     std::vector<uint8_t> pixels = generator.generatePlanetTexture(config);
-    assert(!pixels.empty());
-    assert(pixels.size() == static_cast<size_t>(config.width * config.height * 4));
+    QV_CHECK(!pixels.empty());
+    QV_CHECK(pixels.size() == static_cast<size_t>(config.width * config.height * 4));
 
     // Verify pixel values are in valid range [0, 255]
     for (size_t i = 0; i < pixels.size(); ++i) {
-        assert(pixels[i] <= 255);
+        QV_CHECK(pixels[i] <= 255);
     }
 
     std::cout << "PASS (" << pixels.size() << " bytes generated)" << std::endl;
@@ -220,7 +220,7 @@ void testInstanceDataLayout()
     // Verify the expected instance data layout:
     // model(16) + modelIT(9) + color(3) + emissive(3) + radius(1) + texLayer(1) + metallic(1) + roughness(1) + ao(1) = 36 floats
     const int expectedFloats = 16 + 9 + 3 + 3 + 1 + 1 + 1 + 1 + 1;
-    assert(expectedFloats == 36);
+    QV_CHECK(expectedFloats == 36);
 
     std::cout << "PASS (" << expectedFloats << " floats = " << expectedFloats * sizeof(float) << " bytes)" << std::endl;
 }
@@ -238,17 +238,17 @@ void testGGXDistributionProperties()
             if (D_val < 0.0f) allPositive = false;
         }
     }
-    assert(allPositive && "GGX must be non-negative");
+    QV_CHECK(allPositive);
 
     // Property 2: D is maximum when NdotH = 1
     float D_at_1 = distributionGGX(1.0f, 0.5f);
     float D_at_0_5 = distributionGGX(0.5f, 0.5f);
-    assert(D_at_1 > D_at_0_5 && "GGX peaks at NdotH=1");
+    QV_CHECK(D_at_1 > D_at_0_5);
 
     // Property 3: Smooth surfaces have sharp peak
     float D_smooth = distributionGGX(1.0f, 0.04f);
     float D_smooth_off = distributionGGX(0.9f, 0.04f);
-    assert(D_smooth > D_smooth_off * 5.0f && "Smooth surfaces have sharp NDF peak");
+    QV_CHECK(D_smooth > D_smooth_off * 5.0f);
 
     std::cout << "PASS" << std::endl;
 }
@@ -268,16 +268,16 @@ void testSmithGeometryProperties()
             }
         }
     }
-    assert(allValid && "Smith G must be in [0,1]");
+    QV_CHECK(allValid);
 
     // Property 2: G ~1 at normal incidence
     float G_head_on = geometrySmith(1.0f, 1.0f, 0.5f);
-    assert(G_head_on > 0.99f && "G should be ~1 at normal incidence");
+    QV_CHECK(G_head_on > 0.99f);
 
     // Property 3: G decreases at grazing angles
     float G_normal = geometrySmith(0.9f, 0.9f, 0.5f);
     float G_grazing = geometrySmith(0.1f, 0.1f, 0.5f);
-    assert(G_normal > G_grazing && "G should decrease at grazing angles");
+    QV_CHECK(G_normal > G_grazing);
 
     std::cout << "PASS" << std::endl;
 }

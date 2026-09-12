@@ -3,7 +3,6 @@
 // Builds a trajectory whose spin-rate proxy jumps suddenly (a glitch) and
 // verifies the detector pinpoints the glitch time and magnitude.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -11,6 +10,7 @@
 #include "discovery/NeutronStarGlitchPhaseDetector.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== NeutronStarGlitchPhaseDetector Test ===" << std::endl;
@@ -36,16 +36,16 @@ int main() {
     quantumverse::NeutronStarGlitchPhaseDetector detector;
     auto findings = detector.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No glitch finding produced");
+    QV_CHECK(!findings.empty());
 
     const auto& f = findings.front();
     auto git = f.parameters.find("glitch_time");
-    assert(git != f.parameters.end() && "glitch_time parameter missing");
-    assert(std::abs(git->second - glitchTime) < 1.0 && "Glitch time mismatch");
+    QV_CHECK(git != f.parameters.end());
+    QV_CHECK_NEAR(git, >second - glitchTime, 1.0);
 
     auto dit = f.parameters.find("delta_rate");
-    assert(dit != f.parameters.end() && "delta_rate parameter missing");
-    assert(std::abs(dit->second - (postRate - preRate)) < 0.01 && "delta_rate mismatch");
+    QV_CHECK(dit != f.parameters.end());
+    QV_CHECK_NEAR(dit, >second - (postRate - preRate), 0.01);
 
     std::cout << "Detected glitch at t=" << git->second
               << " s, delta_rate=" << dit->second << std::endl;
@@ -56,7 +56,7 @@ int main() {
         steady.emplace_back(t, preRate, 0.0, 0.0);
     }
     auto none = detector.analyze(metric, location, steady);
-    assert(none.empty() && "Steady spin rate should not produce a glitch");
+    QV_CHECK(none.empty());
 
     // --- Edge case: too few points yields no finding -----------------------
     std::vector<quantumverse::Event4D> tiny = {
@@ -64,7 +64,7 @@ int main() {
         quantumverse::Event4D(1.0, 1.1, 0.0, 0.0),
     };
     auto few = detector.analyze(metric, location, tiny);
-    assert(few.empty() && "Too-few-point trajectory should not produce a finding");
+    QV_CHECK(few.empty());
 
     std::cout << "All NeutronStarGlitchPhaseDetector tests passed." << std::endl;
     return 0;

@@ -2,7 +2,6 @@
 // Validates that optimizeWithGradient uses adjoint-based gradients
 // for Schwarzschild-like parameters and falls back to FD otherwise.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -10,6 +9,7 @@
 
 #include "discovery/TheoryDiscoveryAgent.h"
 #include "physics/AdjointGeodesicIntegrator.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 using namespace quantumverse::discovery;
@@ -25,19 +25,18 @@ void test_adjoint_gradient_reduces_chi2() {
     std::vector<double> params = {500.0, 0.9};
     auto init_result = agent.evaluateTheory(params);
     double init_chi2 = init_result.observational_chi2;
-    assert(std::isfinite(init_chi2) && init_chi2 > 0.0);
+    QV_CHECK(std::isfinite(init_chi2) && init_chi2 > 0.0);
 
     std::cout << "  Initial chi2 = " << init_chi2 << "\n";
 
     auto opt_result = agent.optimizeWithGradient(20, 0.1, 1e-6);
 
-    assert(std::isfinite(opt_result.observational_chi2));
-    assert(opt_result.observational_chi2 > 0.0);
+    QV_CHECK(std::isfinite(opt_result.observational_chi2));
+    QV_CHECK(opt_result.observational_chi2 > 0.0);
 
     std::cout << "  Final chi2   = " << opt_result.observational_chi2 << "\n";
 
-    assert(opt_result.observational_chi2 <= init_chi2 + 1e-6 &&
-           "Optimization should not increase chi2");
+    QV_CHECK(opt_result.observational_chi2 <= init_chi2 + 1e-6);
 }
 
 void test_adjoint_gradient_from_best() {
@@ -48,9 +47,8 @@ void test_adjoint_gradient_from_best() {
 
     auto opt_result = agent.optimizeWithGradient(10, 0.01, 1e-6);
 
-    assert(std::isfinite(opt_result.total_reward));
-    assert(opt_result.total_reward >= best_before - 1e-6 &&
-           "Optimization should not degrade best reward");
+    QV_CHECK(std::isfinite(opt_result.total_reward));
+    QV_CHECK(opt_result.total_reward >= best_before - 1e-6);
 
     std::cout << "  Reward before = " << best_before
               << ", after = " << opt_result.total_reward << "\n";
@@ -69,7 +67,7 @@ void test_adjoint_gradient_updates_pareto() {
     (void)opt_result;
 
     size_t final_size = agent.getParetoFront().size();
-    assert(final_size >= initial_size && "Pareto archive should not shrink");
+    QV_CHECK(final_size >= initial_size);
 
     std::cout << "  Pareto size: " << initial_size << " -> " << final_size << "\n";
 }
@@ -81,8 +79,8 @@ void test_adjoint_curvature_gradient() {
 
     double dK_dM = integrator.computeCurvatureGradient(1.0, start);
 
-    assert(std::isfinite(dK_dM) && "Curvature gradient should be finite");
-    assert(dK_dM != 0.0 && "Curvature gradient should be non-zero");
+    QV_CHECK(std::isfinite(dK_dM));
+    QV_CHECK(dK_dM != 0.0);
 
     std::cout << "  dK/dM = " << dK_dM << "\n";
 }
@@ -95,11 +93,11 @@ void test_adjoint_state_gradient() {
 
     auto result = integrator.computeStateGradient(start, vel, GeodesicType::TIMELIKE, 0.01);
 
-    assert(result.first.size() == 8 && "Final state should have 8 components");
-    assert(!result.second.empty() && "Gradient matrix should not be empty");
-    assert(result.second.size() == 8 && "Gradient matrix should have 8 rows");
-    assert(result.second[0].size() >= 1 && "Gradient matrix should have at least 1 column");
-    assert(std::isfinite(result.second[1][0]) && "dr/dM should be finite");
+    QV_CHECK(result.first.size() == 8);
+    QV_CHECK(!result.second.empty());
+    QV_CHECK(result.second.size() == 8);
+    QV_CHECK(result.second[0].size() >= 1);
+    QV_CHECK(std::isfinite(result.second[1][0]));
 
     std::cout << "  dr/dM = " << result.second[1][0] << "\n";
 }

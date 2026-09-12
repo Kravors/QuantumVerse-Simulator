@@ -3,7 +3,6 @@
 // synthetic Li-7/H abundance series that drifts below the BBN prediction and
 // verifies the detector flags the crisis and reports the deviation.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -11,6 +10,7 @@
 #include "discovery/PrimordialLithiumCrisisSolver.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== PrimordialLithiumCrisisSolver Test ===" << std::endl;
@@ -31,16 +31,16 @@ int main() {
     quantumverse::PrimordialLithiumCrisisSolver solver;
     auto findings = solver.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No lithium crisis detected");
+    QV_CHECK(!findings.empty());
 
     const auto& f = findings.front();
     bool mentions = f.description.find("lithium") != std::string::npos;
-    assert(mentions && "Finding does not mention lithium crisis");
+    QV_CHECK(mentions);
     (void)mentions;
 
     auto mit = f.parameters.find("measured_abundance");
-    assert(mit != f.parameters.end() && "measured_abundance parameter missing");
-    assert(std::abs(mit->second - 4.75e-10) < 1e-10 && "Measured abundance mismatch");
+    QV_CHECK(mit != f.parameters.end());
+    QV_CHECK_NEAR(mit, >second - 4.75e-10, 1e-10);
 
     std::cout << "Detected lithium-7 crisis: measured " << mit->second
               << " vs expected " << expected_li << std::endl;
@@ -51,12 +51,12 @@ int main() {
         constant.emplace_back(t, expected_li, 0.0, 0.0);
     }
     auto none = solver.analyze(metric, location, constant);
-    assert(none.empty() && "False positive on constant lithium abundance");
+    QV_CHECK(none.empty());
 
     // --- Edge case: too few points ---------------------------------------
     std::vector<quantumverse::Event4D> tiny(3);
     auto few = solver.analyze(metric, location, tiny);
-    assert(few.empty() && "Short trajectory should yield no findings");
+    QV_CHECK(few.empty());
 
     std::cout << "All PrimordialLithiumCrisisSolver tests passed." << std::endl;
     return 0;

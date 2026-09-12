@@ -2,7 +2,6 @@
 // Validates that all 10 discovery instruments produce finite, physically
 // bounded outputs and do not crash on repeated scans.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -24,6 +23,7 @@
 #include "discovery/DiscoveryPanelManager.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -35,7 +35,7 @@ bool isFiniteDouble(double v) {
 }
 
 void assertFinite(const std::string& label, double v) {
-    assert(isFiniteDouble(v) && ("Non-finite value for " + label).c_str());
+    QV_CHECK(isFiniteDouble(v) && ("Non-finite value for " + label).c_str());
     (void)label;
     (void)v;
     (void)isFiniteDouble;
@@ -94,8 +94,8 @@ int main() {
         auto findings = hunter.analyze(metric, location, ttTraj);
         for (const auto& f : findings) {
             assertFinite("TTV confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
-            assert(f.severity >= AlertSeverity::INFO && f.severity <= AlertSeverity::CRITICAL);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.severity >= AlertSeverity::INFO && f.severity <= AlertSeverity::CRITICAL);
         }
         std::cout << "  ExoplanetaryTTVFifthForceHunter: " << findings.size() << " findings" << std::endl;
     }
@@ -106,11 +106,11 @@ int main() {
         auto findings = scanner.analyze(metric, location, galacticTraj);
         for (const auto& f : findings) {
             assertFinite("Galactic confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
             auto it = f.parameters.find("flatten_radius");
             if (it != f.parameters.end()) {
                 assertFinite("flatten_radius", it->second);
-                assert(it->second > 0.0);
+                QV_CHECK(it->second > 0.0);
             }
         }
         std::cout << "  GalacticRotationCurveScanner: " << findings.size() << " findings" << std::endl;
@@ -123,7 +123,7 @@ int main() {
         auto findings = obs.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("FineStructure confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  FineStructureConstantDriftObservatory: " << findings.size() << " findings" << std::endl;
     }
@@ -138,7 +138,7 @@ int main() {
         auto findings = predictor.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("BosonStar confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  BosonStarCollisionPredictor: " << findings.size() << " findings" << std::endl;
     }
@@ -149,7 +149,7 @@ int main() {
         auto findings = detector.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("NeutronStar confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  NeutronStarGlitchPhaseDetector: " << findings.size() << " findings" << std::endl;
     }
@@ -169,7 +169,7 @@ int main() {
         auto findings = eco.analyze(metric, location, ringdown);
         for (const auto& f : findings) {
             assertFinite("ECO confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  ECORingdownAnalyzer: " << findings.size() << " findings" << std::endl;
     }
@@ -183,7 +183,7 @@ int main() {
         auto findings = interferometer.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("UltralightDM confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  UltralightDMWaveInterferometer: " << findings.size() << " findings" << std::endl;
     }
@@ -196,7 +196,7 @@ int main() {
         auto findings = recogniser.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("BlackHoleJet confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  BlackHoleJetAnomalyRecogniser: " << findings.size() << " findings" << std::endl;
     }
@@ -207,7 +207,7 @@ int main() {
         auto findings = solver.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("Lithium confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  PrimordialLithiumCrisisSolver: " << findings.size() << " findings" << std::endl;
     }
@@ -218,7 +218,7 @@ int main() {
         auto findings = cartographer.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("TidalStream confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  GalacticTidalStreamCartographer: " << findings.size() << " findings" << std::endl;
     }
@@ -230,7 +230,7 @@ int main() {
         auto findings = imager.analyze(metric, location, genericTraj);
         for (const auto& f : findings) {
             assertFinite("Recombination confidence", f.confidence);
-            assert(f.confidence >= 0.0 && f.confidence <= 1.0);
+            QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
         std::cout << "  RecombinationConstantVariationImager: " << findings.size() << " findings" << std::endl;
     }
@@ -249,10 +249,10 @@ int main() {
         GalacticRotationCurveScanner scanner;
         auto first = scanner.analyze(metric, location, galacticTraj);
         auto second = scanner.analyze(metric, location, galacticTraj);
-        assert(first.size() == second.size() && "Repeated scan results differ in size");
+        QV_CHECK(first.size() == second.size());
         for (size_t i = 0; i < first.size(); ++i) {
-            assert(first[i].confidence == second[i].confidence);
-            assert(first[i].description == second[i].description);
+            QV_CHECK(first[i].confidence == second[i].confidence);
+            QV_CHECK(first[i].description == second[i].description);
         }
         std::cout << "  Repeated-scan determinism check passed." << std::endl;
     }

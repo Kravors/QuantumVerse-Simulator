@@ -20,7 +20,6 @@
  * independent noise has sigma = r0 * sqrt(N).
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -30,6 +29,7 @@
 #include "discovery/SGWBBackgroundAnalyzer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -97,13 +97,13 @@ int main() {
         fillSGWB(a, b, 1.0, 0.3, 4000, 12345);
         auto findings = sgwb.analyzeStrains(a, b);
         std::cout << "  SGWB signal findings: " << findings.size() << std::endl;
-        assert(!findings.empty() && "SGWB signal must be detected");
-        assert(findings.front().isAnomaly && "Detected SGWB must be flagged as anomaly");
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.front().isAnomaly);
         double sig = findings.front().parameters.at("significance_sigma");
         double r0 = findings.front().parameters.at("cross_correlation");
         std::cout << "    significance=" << sig << " sigma, r0=" << r0 << std::endl;
-        assert(sig > 3.0 && "Significance must exceed the 3-sigma threshold");
-        assert(r0 > 0.5 && "Normalized cross-power must be substantial");
+        QV_CHECK(sig > 3.0);
+        QV_CHECK(r0 > 0.5);
     }
 
     // 2. Pure, uncorrelated noise must NOT be flagged.
@@ -129,8 +129,8 @@ int main() {
         b[7] = std::numeric_limits<double>::infinity();
         auto findings = sgwb.analyzeStrains(a, b);
         for ([[maybe_unused]] const auto& f : findings) {
-            assert(std::isfinite(f.confidence));
-            assert(std::isfinite(f.parameters.at("significance_sigma")));
+            QV_CHECK(std::isfinite(f.confidence));
+            QV_CHECK(std::isfinite(f.parameters.at("significance_sigma")));
         }
         std::cout << "  NaN/Inf robustness findings: " << findings.size() << std::endl;
     }
@@ -140,7 +140,7 @@ int main() {
         SGWBBackgroundAnalyzer sgwb;
         std::vector<double> a(5, 0.1), b(5, 0.1);
         auto findings = sgwb.analyzeStrains(a, b);
-        assert(findings.empty() && "Too-few-sample input must not flag");
+        QV_CHECK(findings.empty());
     }
 
     // 5. Stronger SGWB amplitude yields higher significance.
@@ -154,17 +154,17 @@ int main() {
         double sw = weak.empty() ? 0.0 : weak.front().parameters.at("significance_sigma");
         double ss = strong.empty() ? 0.0 : strong.front().parameters.at("significance_sigma");
         std::cout << "  weak sig=" << sw << " strong sig=" << ss << std::endl;
-        assert(ss > sw && "Stronger SGWB must give higher significance");
+        QV_CHECK(ss > sw);
     }
 
     // 6. Parameter ranges are well-formed and finite.
     {
         SGWBBackgroundAnalyzer sgwb;
         auto ranges = sgwb.getParameterRanges();
-        assert(!ranges.empty() && "Parameter ranges must be defined");
+        QV_CHECK(!ranges.empty());
         for ([[maybe_unused]] const auto& kv : ranges) {
-            assert(std::isfinite(kv.second.first) && std::isfinite(kv.second.second));
-            assert(kv.second.second > kv.second.first && "Range max must exceed min");
+            QV_CHECK(std::isfinite(kv.second.first) && std::isfinite(kv.second.second));
+            QV_CHECK(kv.second.second > kv.second.first);
         }
     }
 
@@ -179,7 +179,7 @@ int main() {
         sgwb.setReferenceStrain(b);
         auto findings = sgwb.analyze(metric, location, traj);
         std::cout << "  analyze(reference) findings: " << findings.size() << std::endl;
-        assert(!findings.empty() && "analyze() with reference strain must detect SGWB");
+        QV_CHECK(!findings.empty());
     }
 
     // 7b. analyze() single-detector fallback (split-half) detects a signal
@@ -189,7 +189,7 @@ int main() {
         auto traj = makeSlowCorrelatedTrajectory();
         auto findings = sgwb.analyze(metric, location, traj);
         std::cout << "  analyze(fallback) findings: " << findings.size() << std::endl;
-        assert(!findings.empty() && "analyze() fallback must detect persistent correlated signal");
+        QV_CHECK(!findings.empty());
     }
 
     std::cout << "All SGWBBackgroundAnalyzerTest checks passed." << std::endl;

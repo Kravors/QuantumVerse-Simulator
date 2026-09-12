@@ -3,7 +3,6 @@
 // oscillatory signal. Builds a trajectory whose x-coordinate is a pure sine
 // wave and verifies the detector recovers its frequency and amplitude.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -11,6 +10,7 @@
 #include "discovery/UltralightDMWaveInterferometer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== UltralightDMWaveInterferometer Test ===" << std::endl;
@@ -36,16 +36,16 @@ int main() {
     quantumverse::UltralightDMWaveInterferometer detector;
     auto findings = detector.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No DM wave detected");
+    QV_CHECK(!findings.empty());
 
     const auto& f = findings.front();
     auto fit = f.parameters.find("oscillation_freq_rad_s");
-    assert(fit != f.parameters.end() && "oscillation_freq_rad_s missing");
-    assert(std::abs(fit->second - omega) < 1e-3 && "Detected frequency mismatch");
+    QV_CHECK(fit != f.parameters.end());
+    QV_CHECK_NEAR(fit, >second - omega, 1e-3);
 
     auto ait = f.parameters.find("signal_amplitude");
-    assert(ait != f.parameters.end() && "signal_amplitude missing");
-    assert(std::abs(ait->second - amplitude) < 0.01 && "Detected amplitude mismatch");
+    QV_CHECK(ait != f.parameters.end());
+    QV_CHECK_NEAR(ait, >second - amplitude, 0.01);
 
     std::cout << "Detected DM wave: freq=" << fit->second
               << " rad/s, amplitude=" << ait->second << std::endl;
@@ -56,7 +56,7 @@ int main() {
         steady.emplace_back(i * dt, 0.5, 0.0, 0.0);
     }
     auto none = detector.analyze(metric, location, steady);
-    assert(none.empty() && "Constant signal should not trigger detection");
+    QV_CHECK(none.empty());
 
     // --- Edge case: too few points -----------------------------------------
     std::vector<quantumverse::Event4D> tiny = {
@@ -64,7 +64,7 @@ int main() {
         quantumverse::Event4D(0.02, 0.0, 0.0, 0.0),
     };
     auto few = detector.analyze(metric, location, tiny);
-    assert(few.empty() && "Too-few-point trajectory should not produce a finding");
+    QV_CHECK(few.empty());
 
     std::cout << "All UltralightDMWaveInterferometer tests passed." << std::endl;
     return 0;

@@ -4,8 +4,8 @@
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -22,32 +22,32 @@ void test_advariable_basic_operations() {
     ADVariable<1> y = ADVariable<1>::constant(3.0);
 
     auto sum = x + y;
-    assert(std::abs(sum.getValue() - 5.0) < 1e-12 && "AD sum value");
-    assert(std::abs(sum[0] - 1.0) < 1e-12 && "AD sum derivative w.r.t. independent var");
+    QV_CHECK_NEAR(sum.getValue() - 5.0, 0.0, 1e-12);
+    QV_CHECK_NEAR(sum[0] - 1.0, 0.0, 1e-12);
     (void)sum;
 
     auto prod = x * y;
-    assert(std::abs(prod.getValue() - 6.0) < 1e-12 && "AD product value");
+    QV_CHECK_NEAR(prod.getValue() - 6.0, 0.0, 1e-12);
     (void)prod;
 
     auto sin_x = sin(x);
-    assert(std::abs(sin_x.getValue() - std::sin(2.0)) < 1e-12 && "AD sin value");
+    QV_CHECK_NEAR(sin_x.getValue() - std::sin(2.0), 0.0, 1e-12);
     (void)sin_x;
 
     auto cos_x = cos(x);
-    assert(std::abs(cos_x.getValue() - std::cos(2.0)) < 1e-12 && "AD cos value");
+    QV_CHECK_NEAR(cos_x.getValue() - std::cos(2.0), 0.0, 1e-12);
     (void)cos_x;
 
     auto exp_x = exp(x);
-    assert(std::abs(exp_x.getValue() - std::exp(2.0)) < 1e-12 && "AD exp value");
+    QV_CHECK_NEAR(exp_x.getValue() - std::exp(2.0), 0.0, 1e-12);
     (void)exp_x;
 
     auto log_x = log(x);
-    assert(std::abs(log_x.getValue() - std::log(2.0)) < 1e-12 && "AD log value");
+    QV_CHECK_NEAR(log_x.getValue() - std::log(2.0), 0.0, 1e-12);
     (void)log_x;
 
     auto sqrt_x = sqrt(x);
-    assert(std::abs(sqrt_x.getValue() - std::sqrt(2.0)) < 1e-12 && "AD sqrt value");
+    QV_CHECK_NEAR(sqrt_x.getValue() - std::sqrt(2.0), 0.0, 1e-12);
     (void)sqrt_x;
 
     std::cout << "[PASS] ADVariable basic operations and transcendental functions" << std::endl;
@@ -66,7 +66,7 @@ void test_ad_gradient_computation() {
     auto grad = gradient<1>(f, x);
 
     double expected_dfdx = 3.0 * 1.5 * 1.5 + std::cos(1.5);
-    assert(std::abs(grad[0] - expected_dfdx) < 1e-6 && "AD gradient should match analytic");
+    QV_CHECK_NEAR(grad[0] - expected_dfdx, 0.0, 1e-6);
 
     std::cout << "[PASS] AD gradient: computed=" << grad[0] << ", expected=" << expected_dfdx << std::endl;
 }
@@ -92,7 +92,7 @@ void test_ad_chain_rule() {
     auto grad = gradient<1>(composite, x);
 
     double expected = std::exp(4.0) * 2.0 * 2.0;
-    assert(std::abs(grad[0] - expected) < 1e-5 && "Chain rule gradient should match analytic");
+    QV_CHECK_NEAR(grad[0] - expected, 0.0, 1e-5);
 
     std::cout << "[PASS] AD chain rule: computed=" << grad[0] << ", expected=" << expected << std::endl;
 }
@@ -120,9 +120,9 @@ void test_differentiable_curvature_kretschmann_gradient() {
     double M = M_geom;
     double expected_dKdM = 96.0 * M / (r * r * r * r * r * r);
 
-    assert(std::isfinite(grad[0]) && "Kretschmann gradient should be finite");
+    QV_CHECK(std::isfinite(grad[0]));
     double relError = std::abs(grad[0] - expected_dKdM) / (std::abs(expected_dKdM) + 1e-30);
-    assert(relError < 1e-3 && "Kretschmann gradient should match analytic d(48M^2/r^6)/dM = 96M/r^6");
+    QV_CHECK(relError < 1e-3);
     (void)relError;
 
     std::cout << "[PASS] Kretschmann gradient: computed=" << grad[0]
@@ -143,12 +143,12 @@ void test_differentiable_geodesic_gradients() {
 
     auto result = diffInt.integrateAD1(start, vel, GeodesicType::TIMELIKE, 10.0, 0.0, false);
 
-    assert(result.success && "Integration should succeed");
-    assert(std::isfinite(result.finalPosition[0].getValue()) && "Final t should be finite");
+    QV_CHECK(result.success);
+    QV_CHECK(std::isfinite(result.finalPosition[0].getValue()));
 
     for (int i = 0; i < 4; ++i) {
-        assert(std::isfinite(result.finalPosition[i].getValue()) && "Final position component should be finite");
-        assert(std::isfinite(result.finalPosition[i][0]) && "Final position gradient should be finite");
+        QV_CHECK(std::isfinite(result.finalPosition[i].getValue()));
+        QV_CHECK(std::isfinite(result.finalPosition[i][0]));
     }
     (void)result;
 
@@ -168,8 +168,8 @@ void test_ad_multiparameter_gradient() {
     std::vector<double> x = {3.0, 4.0};
     auto grad = math::gradient<2>(f, x);
 
-    assert(std::abs(grad[0] - 6.0) < 1e-6 && "df/dx should be 6");
-    assert(std::abs(grad[1] - 8.0) < 1e-6 && "df/dy should be 8");
+    QV_CHECK_NEAR(grad[0] - 6.0, 0.0, 1e-6);
+    QV_CHECK_NEAR(grad[1] - 8.0, 0.0, 1e-6);
 
     std::cout << "[PASS] AD multi-parameter gradient: [df/dx, df/dy] = [" << grad[0] << ", " << grad[1] << "]" << std::endl;
 }
@@ -190,7 +190,7 @@ void test_reverse_mode_chain_rule() {
     double computed = ADTape::get_gradient(x, grads);
     double expected = 2.0 * x_val * std::cos(x_val * x_val);
 
-    assert(std::abs(computed - expected) < 1e-6 && "Reverse-mode chain rule gradient should match analytic");
+    QV_CHECK_NEAR(computed - expected, 0.0, 1e-6);
 
     std::cout << "[PASS] Reverse-mode chain rule: computed=" << computed
               << ", expected=" << expected << std::endl;
@@ -220,7 +220,7 @@ void test_reverse_mode_gradient_vs_finite_diff() {
     double adjoint = ADTape::get_gradient(mass, grads);
 
     double relError = std::abs(adjoint - finite_diff) / (std::abs(finite_diff) + 1e-30);
-    assert(relError < 1e-4 && "Reverse-mode gradient should match finite difference");
+    QV_CHECK(relError < 1e-4);
     (void)relError;
 
     std::cout << "[PASS] Reverse-mode vs finite diff: adjoint=" << adjoint
@@ -247,8 +247,8 @@ void test_tape_isolation() {
     auto g2 = ADTape::compute_gradients(*c2);
     double grad_d_second = ADTape::get_gradient(d, g2);
 
-    assert(std::abs(grad_a_first - 3.0) < 1e-6 && "First tape: d(ab)/da = b = 3");
-    assert(std::abs(grad_d_second - 5.0) < 1e-6 && "Second tape: d(de)/dd = e = 5");
+    QV_CHECK_NEAR(grad_a_first - 3.0, 0.0, 1e-6);
+    QV_CHECK_NEAR(grad_d_second - 5.0, 0.0, 1e-6);
 
     std::cout << "[PASS] Tape isolation: first grad(a)=" << grad_a_first
               << ", second grad(d)=" << grad_d_second << std::endl;
@@ -277,9 +277,9 @@ void test_differentiable_curvature_adjoint_gradient() {
         if (v->value == M) dKdM = g;
     }
 
-    assert(std::isfinite(dKdM) && "Adjoint Kretschmann gradient should be finite");
+    QV_CHECK(std::isfinite(dKdM));
     double relError = std::abs(dKdM - expected_dKdM) / (std::abs(expected_dKdM) + 1e-30);
-    assert(relError < 1e-4 && "Adjoint gradient should match analytic d(48M^2/r^6)/dM = 96M/r^6");
+    QV_CHECK(relError < 1e-4);
     (void)relError;
 
     std::cout << "[PASS] Adjoint Kretschmann gradient: computed=" << dKdM
@@ -307,7 +307,7 @@ void test_differentiable_geodesic_adjoint() {
         if (std::abs(v->value - M) < 1e-6) dM = g;
     }
 
-    assert(std::isfinite(dM) && "Adjoint geodesic gradient should be finite");
+    QV_CHECK(std::isfinite(dM));
     std::cout << "[PASS] Adjoint geodesic: d(final_sum)/dM=" << dM << std::endl;
 }
 

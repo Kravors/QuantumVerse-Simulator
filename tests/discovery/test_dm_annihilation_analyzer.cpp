@@ -19,7 +19,6 @@
  * sigma), flagged when it exceeds the configured threshold (default 3.0).
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -29,6 +28,7 @@
 #include "discovery/DarkMatterAnnihilationAnalyzer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -78,13 +78,13 @@ int main() {
         C = makeSpectrum(E, norm, index, nBins, dE, lineEnergy, 8.0, 12345);
         auto findings = dma.analyzeSpectrum(E, C, lineEnergy);
         std::cout << "  DM line findings: " << findings.size() << std::endl;
-        assert(!findings.empty() && "DM annihilation line must be detected");
-        assert(findings.front().isAnomaly && "Detected line must be flagged as anomaly");
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.front().isAnomaly);
         double sig = findings.front().parameters.at("significance_sigma");
         double le = findings.front().parameters.at("line_energy");
         std::cout << "    significance=" << sig << " sigma, line_energy=" << le << std::endl;
-        assert(sig > 3.0 && "Significance must exceed the 3-sigma threshold");
-        assert(std::fabs(le - lineEnergy) < 5.0 && "Recovered line energy must be near injected value");
+        QV_CHECK(sig > 3.0);
+        QV_CHECK_NEAR(le - lineEnergy, 0.0, 5.0);
     }
 
     // 2. Pure power-law background must NOT be flagged (null case).
@@ -115,7 +115,7 @@ int main() {
                 && std::isfinite(f.confidence)
                 && std::isfinite(f.parameters.at("significance_sigma"));
         }
-        assert(allFinite && "NaN/Inf counts must be skipped so findings stay finite");
+        QV_CHECK(allFinite);
         std::cout << "  NaN/Inf robustness findings: " << findings.size()
                   << " allFinite=" << (allFinite ? 1 : 0) << std::endl;
     }
@@ -125,7 +125,7 @@ int main() {
         DarkMatterAnnihilationAnalyzer dma;
         std::vector<double> E(5, 1.0), C(5, 2.0);
         auto findings = dma.analyzeSpectrum(E, C, 1.0);
-        assert(findings.empty() && "Too-few-bin input must not flag");
+        QV_CHECK(findings.empty());
     }
 
     // 5. Stronger annihilation line yields higher significance.
@@ -139,7 +139,7 @@ int main() {
         double sw = weak.empty() ? 0.0 : weak.front().parameters.at("significance_sigma");
         double ss = strong.empty() ? 0.0 : strong.front().parameters.at("significance_sigma");
         std::cout << "  weak sig=" << sw << " strong sig=" << ss << std::endl;
-        assert(ss > sw && "Stronger line must give higher significance");
+        QV_CHECK(ss > sw);
     }
 
     // 6. Parameter ranges are well-formed and finite.
@@ -152,7 +152,7 @@ int main() {
                 && std::isfinite(kv.second.first) && std::isfinite(kv.second.second)
                 && (kv.second.second > kv.second.first);
         }
-        assert(rangesOk && "Parameter ranges must be well-formed and finite");
+        QV_CHECK(rangesOk);
         std::cout << "  parameter ranges ok=" << (rangesOk ? 1 : 0) << std::endl;
     }
 
@@ -166,7 +166,7 @@ int main() {
         for (size_t i = 0; i < E.size(); ++i) traj.emplace_back(E[i], C[i], 0.0, 0.0); // t=E, x=counts
         auto findings = dma.analyze(metric, location, traj);
         std::cout << "  analyze(scan) findings: " << findings.size() << std::endl;
-        assert(!findings.empty() && "analyze() must detect the line via mass-range scan");
+        QV_CHECK(!findings.empty());
     }
 
     std::cout << "All DarkMatterAnnihilationAnalyzerTest checks passed." << std::endl;

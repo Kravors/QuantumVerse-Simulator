@@ -10,7 +10,6 @@
  *   - Robustness (NaN/Inf, empty, short data)
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -19,6 +18,7 @@
 #include "discovery/MergingBinaryInspiralAnalyzer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -82,14 +82,14 @@ int main() {
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = !findings.empty();
-        assert(ok && "Injected chirp signal should be detected");
+        QV_CHECK(ok);
         if (!findings.empty()) {
             double mcRecovered = findings[0].parameters.at("chirp_mass");
             double relErr = std::abs(mcRecovered - mcTrue) / mcTrue;
             [[maybe_unused]] bool okMc = relErr < 0.1;
-            assert(okMc && "Recovered chirp mass should be within 10% of true value");
+            QV_CHECK(okMc);
             [[maybe_unused]] bool okConf = findings[0].confidence > 0.5;
-            assert(okConf && "Confidence should be reasonable");
+            QV_CHECK(okConf);
         }
         std::cout << "  Chirp mass recovery: OK." << std::endl;
     }
@@ -103,11 +103,11 @@ int main() {
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = !findings.empty();
-        assert(ok && "Signal should be detected");
+        QV_CHECK(ok);
         if (!findings.empty()) {
             double q = findings[0].parameters.at("mass_ratio");
             [[maybe_unused]] bool okQ = q >= 0.1 && q <= 1.0;
-            assert(okQ && "Mass ratio should be in [0.1, 1.0]");
+            QV_CHECK(okQ);
         }
         std::cout << "  Mass ratio recovery: OK." << std::endl;
     }
@@ -121,7 +121,7 @@ int main() {
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 5.0);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "High-noise signal should not be detected");
+        QV_CHECK(ok);
         std::cout << "  SNR cutoff: OK." << std::endl;
     }
 
@@ -136,7 +136,7 @@ int main() {
         }
         auto findings = analyzer.analyze(metric, location, noiseTraj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Random noise should not be detected");
+        QV_CHECK(ok);
         std::cout << "  Noise rejection: OK." << std::endl;
     }
 
@@ -146,7 +146,7 @@ int main() {
         std::vector<Event4D> empty;
         auto findings = analyzer.analyze(metric, location, empty);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Empty trajectory must yield no findings");
+        QV_CHECK(ok);
         std::cout << "  Empty trajectory handled." << std::endl;
     }
 
@@ -160,7 +160,7 @@ int main() {
         }
         auto findings = analyzer.analyze(metric, location, nanTraj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "NaN waveform must yield no findings");
+        QV_CHECK(ok);
 
         std::vector<Event4D> infTraj;
         for (size_t i = 0; i < 64; ++i) {
@@ -169,7 +169,7 @@ int main() {
         }
         auto findings2 = analyzer.analyze(metric, location, infTraj);
         [[maybe_unused]] bool ok2 = findings2.empty();
-        assert(ok2 && "Inf waveform must yield no findings");
+        QV_CHECK(ok2);
         std::cout << "  NaN/Inf handled." << std::endl;
     }
 
@@ -178,12 +178,12 @@ int main() {
         MergingBinaryInspiralAnalyzer analyzer;
         auto ranges = analyzer.getParameterRanges();
         [[maybe_unused]] bool ok = ranges.size() >= 3;
-        assert(ok && "Must have at least 3 parameter ranges");
+        QV_CHECK(ok);
         for ([[maybe_unused]] const auto& kv : ranges) {
             [[maybe_unused]] bool okRange = std::isfinite(kv.second.first) &&
                                            std::isfinite(kv.second.second) &&
                                            kv.second.first < kv.second.second;
-            assert(okRange && "Range bounds must be finite and ordered");
+            QV_CHECK(okRange);
         }
         std::cout << "  Parameter ranges valid: OK." << std::endl;
     }
@@ -197,12 +197,12 @@ int main() {
         auto trajSmall = makeInspiralWaveform(0.001, tc, dt, 16384, 0.01);
         auto findingsSmall = analyzer.analyze(metric, location, trajSmall);
         [[maybe_unused]] bool okSmall = findingsSmall.empty();
-        assert(okSmall && "Very small chirp mass should not be detected (below coarse grid)");
+        QV_CHECK(okSmall);
 
         auto trajLarge = makeInspiralWaveform(200.0, tc, dt, 16384, 0.01);
         auto findingsLarge = analyzer.analyze(metric, location, trajLarge);
         [[maybe_unused]] bool okLarge = findingsLarge.empty();
-        assert(okLarge && "Very large chirp mass should not be detected (above coarse grid)");
+        QV_CHECK(okLarge);
 
         std::cout << "  Boundary chirp masses: OK." << std::endl;
     }
@@ -216,12 +216,12 @@ int main() {
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.01);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = !findings.empty();
-        assert(ok && "Off-grid chirp signal should still be detected");
+        QV_CHECK(ok);
         if (!findings.empty()) {
             double mcRecovered = findings[0].parameters.at("chirp_mass");
             double relErr = std::abs(mcRecovered - mcTrue) / mcTrue;
             [[maybe_unused]] bool okMc = relErr < 0.05;
-            assert(okMc && "Off-grid chirp mass should be recovered within 5%");
+            QV_CHECK(okMc);
         }
         std::cout << "  Off-grid chirp mass recovery: OK." << std::endl;
     }
@@ -235,7 +235,7 @@ int main() {
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 64, 0.0);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Very short track should yield no findings (or very low confidence)");
+        QV_CHECK(ok);
         std::cout << "  Short frequency track: OK." << std::endl;
     }
 
@@ -248,7 +248,7 @@ int main() {
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 0.5);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Intermediate noise should not trigger false positive");
+        QV_CHECK(ok);
         std::cout << "  Intermediate noise rejection: OK." << std::endl;
     }
 
@@ -261,7 +261,7 @@ int main() {
         auto traj = makeInspiralWaveform(mcTrue, tc, dt, 16384, 10.0);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Very high noise should not trigger detection");
+        QV_CHECK(ok);
         std::cout << "  Very high noise rejection: OK." << std::endl;
     }
 
@@ -286,7 +286,7 @@ int main() {
             }
         }
         [[maybe_unused]] bool okConsistent = passCount >= static_cast<int>(kRuns * 0.9);
-        assert(okConsistent && "Chirp mass should be recovered within 20% in >= 90% of seeds");
+        QV_CHECK(okConsistent);
         std::cout << "  Seed consistency: " << passCount << "/" << kRuns << " passed." << std::endl;
     }
 

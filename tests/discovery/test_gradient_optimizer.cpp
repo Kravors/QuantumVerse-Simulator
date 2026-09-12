@@ -1,13 +1,13 @@
 // Phase 33: Gradient Optimizer Test
 // Validates optimizeWithGradient in TheoryDiscoveryAgent.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <vector>
 
 #include "discovery/TheoryDiscoveryAgent.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 using namespace quantumverse::discovery;
@@ -23,20 +23,19 @@ void test_gradient_optimization_reduces_chi2() {
     std::vector<double> params = {500.0, 0.9};
     auto init_result = agent.evaluateTheory(params);
     double init_chi2 = init_result.observational_chi2;
-    assert(std::isfinite(init_chi2) && init_chi2 > 0.0);
+    QV_CHECK(std::isfinite(init_chi2) && init_chi2 > 0.0);
 
     std::cout << "  Initial chi2 = " << init_chi2 << "\n";
 
     auto opt_result = agent.optimizeWithGradient(20, 0.1, 1e-6);
 
-    assert(std::isfinite(opt_result.observational_chi2));
-    assert(opt_result.observational_chi2 > 0.0);
+    QV_CHECK(std::isfinite(opt_result.observational_chi2));
+    QV_CHECK(opt_result.observational_chi2 > 0.0);
 
     std::cout << "  Final chi2   = " << opt_result.observational_chi2 << "\n";
 
     // Chi2 should not increase after optimization
-    assert(opt_result.observational_chi2 <= init_chi2 + 1e-6 &&
-           "Optimization should not increase chi2");
+    QV_CHECK(opt_result.observational_chi2 <= init_chi2 + 1e-6);
 }
 
 void test_gradient_optimization_from_best() {
@@ -48,9 +47,8 @@ void test_gradient_optimization_from_best() {
 
     auto opt_result = agent.optimizeWithGradient(10, 0.01, 1e-6);
 
-    assert(std::isfinite(opt_result.total_reward));
-    assert(opt_result.total_reward >= best_before - 1e-6 &&
-           "Optimization should not degrade best reward");
+    QV_CHECK(std::isfinite(opt_result.total_reward));
+    QV_CHECK(opt_result.total_reward >= best_before - 1e-6);
 
     std::cout << "  Reward before = " << best_before
               << ", after = " << opt_result.total_reward << "\n";
@@ -69,7 +67,7 @@ void test_gradient_optimization_updates_pareto() {
     (void)opt_result;
 
     size_t final_size = agent.getParetoFront().size();
-    assert(final_size >= initial_size && "Pareto archive should not shrink");
+    QV_CHECK(final_size >= initial_size);
 
     std::cout << "  Pareto size: " << initial_size << " -> " << final_size << "\n";
 }
@@ -83,7 +81,7 @@ void test_gradient_optimization_clamps_params() {
     (void)result;
 
     // Should not crash with large learning rate
-    assert(std::isfinite(result.total_reward));
+    QV_CHECK(std::isfinite(result.total_reward));
     std::cout << "  Boundary param optimization survived.\n";
 }
 

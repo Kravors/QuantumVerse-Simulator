@@ -3,7 +3,6 @@
 // Verifies GR-consistent ringdown, injected anomalies, empty input,
 // NaN/Inf robustness, and suppression of tiny deviations below the 3σ threshold.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -12,6 +11,7 @@
 #include "discovery/GWRingdownScanner.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -82,7 +82,7 @@ int main() {
         GWRingdownScanner scanner;
         auto traj = makeGRConsistentTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "GR-consistent ringdown should not trigger anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  GR-consistent ringdown: no anomaly (findings=" << findings.size() << ")" << std::endl;
     }
 
@@ -91,10 +91,10 @@ int main() {
         GWRingdownScanner scanner;
         auto traj = makeAnomalousRingdownTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(!findings.empty() && "Anomalous ringdown should produce a finding");
-        assert(findings.size() == 1u);
-        assert(findings[0].isAnomaly);
-        assert(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.size() == 1u);
+        QV_CHECK(findings[0].isAnomaly);
+        QV_CHECK(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
         std::cout << "  Anomalous ringdown: confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity) << std::endl;
     }
@@ -104,7 +104,7 @@ int main() {
         GWRingdownScanner scanner;
         std::vector<Event4D> empty;
         auto findings = scanner.analyze(metric, location, empty);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Empty trajectory handled safely." << std::endl;
     }
 
@@ -114,13 +114,13 @@ int main() {
         std::vector<Event4D> nanTraj;
         nanTraj.emplace_back(0.0, kNaN, kNaN, 0.1);
         auto findings = scanner.analyze(metric, location, nanTraj);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  NaN observations handled safely." << std::endl;
 
         std::vector<Event4D> infTraj;
         infTraj.emplace_back(0.0, kInf, kInf, 0.1);
         auto findings2 = scanner.analyze(metric, location, infTraj);
-        assert(findings2.empty());
+        QV_CHECK(findings2.empty());
         std::cout << "  Inf observations handled safely." << std::endl;
     }
 
@@ -129,7 +129,7 @@ int main() {
         GWRingdownScanner scanner;
         auto traj = makeTinyDeviationTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "Tiny deviations should not trigger anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  Tiny deviations suppressed correctly." << std::endl;
     }
 
@@ -137,12 +137,12 @@ int main() {
     {
         GWRingdownScanner scanner;
         auto ranges = scanner.getParameterRanges();
-        assert(ranges.count("sigma_threshold") > 0);
-        assert(ranges.count("spin") > 0);
-        assert(ranges.count("mass_solar") > 0);
-        assert(ranges["sigma_threshold"].first < ranges["sigma_threshold"].second);
-        assert(ranges["spin"].first < ranges["spin"].second);
-        assert(ranges["mass_solar"].first < ranges["mass_solar"].second);
+        QV_CHECK(ranges.count("sigma_threshold") > 0);
+        QV_CHECK(ranges.count("spin") > 0);
+        QV_CHECK(ranges.count("mass_solar") > 0);
+        QV_CHECK(ranges["sigma_threshold"].first < ranges["sigma_threshold"].second);
+        QV_CHECK(ranges["spin"].first < ranges["spin"].second);
+        QV_CHECK(ranges["mass_solar"].first < ranges["mass_solar"].second);
         std::cout << "  Parameter ranges are valid." << std::endl;
     }
 

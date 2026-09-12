@@ -5,7 +5,6 @@
 #include <cmath>
 #include <vector>
 #include <array>
-#include <cassert>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -14,6 +13,7 @@
 #include "physics/GeodesicIntegrator.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -32,8 +32,8 @@ int main() {
 
         auto trajectory = integrator.integrate(start, velocity, GeodesicType::TIMELIKE, 0.1);
 
-        assert(!trajectory.empty() && "Trajectory should not be empty");
-        assert(trajectory.front().valid && "First step should be valid");
+        QV_CHECK(!trajectory.empty());
+        QV_CHECK(trajectory.front().valid);
         std::cout << "[PASS] Minkowski geodesic produces non-empty trajectory" << std::endl;
     }
 
@@ -48,8 +48,8 @@ int main() {
 
         auto trajectory = integrator.integrate(start, velocity, GeodesicType::TIMELIKE, 0.1);
 
-        assert(!trajectory.empty() && "Trajectory should not be empty");
-        assert(trajectory.front().valid && "First step should be valid");
+        QV_CHECK(!trajectory.empty());
+        QV_CHECK(trajectory.front().valid);
         std::cout << "[PASS] Schwarzschild geodesic integrates without crash" << std::endl;
     }
 
@@ -67,7 +67,7 @@ int main() {
 
         auto trajectory = integrator.integrate(start, velocity, GeodesicType::TIMELIKE, 0.01);
 
-        assert(!trajectory.empty() && "Trajectory should not be empty near singularity");
+        QV_CHECK(!trajectory.empty());
         std::cout << "[PASS] Near-singularity integration terminates safely" << std::endl;
     }
 
@@ -85,7 +85,7 @@ int main() {
 
         auto trajectory = integrator.integrate(start, velocity, GeodesicType::TIMELIKE, 0.1);
 
-        assert(!trajectory.empty() && "Trajectory should not be empty with changing metric");
+        QV_CHECK(!trajectory.empty());
         std::cout << "[PASS] Changing metric field integrates without crash" << std::endl;
     }
 
@@ -101,7 +101,7 @@ int main() {
 
         auto trajectory = integrator.integrate(start, velocity, GeodesicType::LIGHTLIKE, 0.1);
 
-        assert(!trajectory.empty() && "Lightlike trajectory should not be empty");
+        QV_CHECK(!trajectory.empty());
         std::cout << "[PASS] Lightlike geodesic integrates without crash" << std::endl;
     }
 
@@ -117,7 +117,7 @@ int main() {
 
         auto trajectory = integrator.integrate(start, velocity, GeodesicType::SPACELIKE, 0.1);
 
-        assert(!trajectory.empty() && "Spacelike trajectory should not be empty");
+        QV_CHECK(!trajectory.empty());
         std::cout << "[PASS] Spacelike geodesic integrates without crash" << std::endl;
     }
 
@@ -133,7 +133,7 @@ int main() {
 
         auto path = integrator.integrateSimple(start, velocity, 1, 0.01);
 
-        assert(path.size() >= 1 && "Path should have at least the start point");
+        QV_CHECK(path.size() >= 1);
         std::cout << "[PASS] integrateSimple with 1 step produces valid path" << std::endl;
     }
 
@@ -151,7 +151,7 @@ int main() {
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 for (int k = 0; k < 4; k++)
-                    assert(std::abs(symbols[i][j][k]) < 1e-6 && "Minkowski Christoffel should be zero");
+                    QV_CHECK_NEAR(symbols[i][j][k], 0.0, 1e-6);
         (void)symbols;
 
         std::cout << "[PASS] Christoffel symbols are zero in Minkowski spacetime" << std::endl;

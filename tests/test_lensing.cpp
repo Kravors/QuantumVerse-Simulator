@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <cassert>
 #include <stdexcept>
 #include <array>
 #include <vector>
@@ -18,6 +17,7 @@
 #include "spacetime/KerrMetric.h"
 #include "spacetime/Event4D.h"
 #include "physics/PhysicsConstants.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -40,8 +40,7 @@ int main() {
         double photonSphere = lensing->computePhotonSphereRadius();
 
         // computePhotonSphereRadius() returns geometric units (multiples of M)
-        assert(std::abs(photonSphere - 3.0) < 0.1 &&
-               "Photon sphere radius should be approximately 3M for Schwarzschild");
+        QV_CHECK_NEAR(photonSphere - 3.0, 0.0, 0.1);
 
         std::cout << "[PASS] Photon sphere radius correct for Schwarzschild" << std::endl;
         std::cout << "       r_photon = " << photonSphere << " M (geometric)" << std::endl;
@@ -63,8 +62,7 @@ int main() {
         double isco = lensing->computeISCO();
         double expectedISCO = 6.0;  // 6M for Schwarzschild
 
-        assert(std::abs(isco - expectedISCO) / expectedISCO < 0.01 &&
-               "ISCO should be 6M for Schwarzschild");
+        QV_CHECK(std::abs(isco - expectedISCO) / expectedISCO < 0.01);
 
         std::cout << "[PASS] ISCO correct for Schwarzschild (6M)" << std::endl;
         std::cout << "       r_isco = " << isco << " M" << std::endl;
@@ -84,8 +82,8 @@ int main() {
         double iscoPrograde = lensing->computeISCO();
 
         // For Kerr with spin 0.5, ISCO should be less than 6M
-        assert(iscoPrograde < 6.0 && "Kerr ISCO should be less than Schwarzschild for prograde orbits");
-        assert(iscoPrograde > 0.0 && "ISCO should be positive");
+        QV_CHECK(iscoPrograde < 6.0);
+        QV_CHECK(iscoPrograde > 0.0);
 
         std::cout << "[PASS] ISCO reduced for Kerr spin=0.5" << std::endl;
         std::cout << "       r_isco = " << iscoPrograde << " M (< 6M)" << std::endl;
@@ -104,8 +102,7 @@ int main() {
         double isco = lensing->computeISCO();
 
         // For extremal Kerr (a -> 1), prograde ISCO -> M
-        assert(isco > 0.5 && isco < 2.0 &&
-               "Extremal Kerr ISCO should be close to M");
+        QV_CHECK(isco > 0.5 && isco < 2.0);
 
         std::cout << "[PASS] Extremal Kerr ISCO near M" << std::endl;
         std::cout << "       r_isco = " << isco << " M (expected ~1)" << std::endl;
@@ -118,17 +115,17 @@ int main() {
 
         // Test step count bounds
         lensing->setRaySteps(32);
-        assert(lensing->raySteps() == 32 && "Ray steps should be set to 32");
+        QV_CHECK(lensing->raySteps() == 32);
 
         lensing->setRaySteps(1024);
-        assert(lensing->raySteps() == 1024 && "Ray steps should be set to 1024");
+        QV_CHECK(lensing->raySteps() == 1024);
 
         // Test clamping
         lensing->setRaySteps(10);
-        assert(lensing->raySteps() >= 32 && "Ray steps should be clamped to min 32");
+        QV_CHECK(lensing->raySteps() >= 32);
 
         lensing->setRaySteps(2000);
-        assert(lensing->raySteps() <= 1024 && "Ray steps should be clamped to max 1024");
+        QV_CHECK(lensing->raySteps() <= 1024);
 
         std::cout << "[PASS] Ray marching step validation correct" << std::endl;
     }
@@ -139,20 +136,16 @@ int main() {
             std::make_shared<SchwarzschildMetric>(1.989e30));
 
         lensing->setShadowIntensity(0.0);
-        assert(std::abs(lensing->shadowIntensity() - 0.0) < 0.001 &&
-               "Shadow intensity should be 0.0");
+        QV_CHECK_NEAR(lensing->shadowIntensity(), 0.0, 0.001);
 
         lensing->setShadowIntensity(1.0);
-        assert(std::abs(lensing->shadowIntensity() - 1.0) < 0.001 &&
-               "Shadow intensity should be 1.0");
+        QV_CHECK_NEAR(lensing->shadowIntensity(), 1.0, 0.001);
 
         lensing->setShadowIntensity(2.0);
-        assert(lensing->shadowIntensity() <= 1.0 &&
-               "Shadow intensity should be clamped to max 1.0");
+        QV_CHECK(lensing->shadowIntensity() <= 1.0);
 
         lensing->setShadowIntensity(-1.0);
-        assert(lensing->shadowIntensity() >= 0.0 &&
-               "Shadow intensity should be clamped to min 0.0");
+        QV_CHECK(lensing->shadowIntensity() >= 0.0);
 
         std::cout << "[PASS] Shadow intensity bounds correct" << std::endl;
     }
@@ -171,11 +164,11 @@ int main() {
         lensing->setParams(params);
 
         const auto& retrieved = lensing->params();
-        assert(std::abs(retrieved.mass - 1.5f) < 0.001f && "Mass should be 1.5");
-        assert(std::abs(retrieved.spin - 0.7f) < 0.001f && "Spin should be 0.7");
-        assert(std::abs(retrieved.cameraDistance - 15.0f) < 0.001f && "Distance should be 15");
-        assert(retrieved.raySteps == 128 && "Steps should be 128");
-        assert(std::abs(retrieved.shadowIntensity - 0.9f) < 0.001f && "Shadow intensity should be 0.9");
+        QV_CHECK_NEAR(retrieved.mass - 1.5f, 0.0, 0.001f);
+        QV_CHECK_NEAR(retrieved.spin - 0.7f, 0.0, 0.001f);
+        QV_CHECK_NEAR(retrieved.cameraDistance - 15.0f, 0.0, 0.001f);
+        QV_CHECK(retrieved.raySteps == 128);
+        QV_CHECK_NEAR(retrieved.shadowIntensity - 0.9f, 0.0, 0.001f);
 
         std::cout << "[PASS] Parameter structure validation correct" << std::endl;
     }
@@ -185,13 +178,13 @@ int main() {
         auto lensing = std::make_shared<GravitationalLensing>(
             std::make_shared<SchwarzschildMetric>(1.989e30));
 
-        assert(lensing->isEnabled() && "Lensing should be enabled by default");
+        QV_CHECK(lensing->isEnabled());
 
         lensing->setEnabled(false);
-        assert(!lensing->isEnabled() && "Lensing should be disabled");
+        QV_CHECK(!lensing->isEnabled());
 
         lensing->setEnabled(true);
-        assert(lensing->isEnabled() && "Lensing should be re-enabled");
+        QV_CHECK(lensing->isEnabled());
 
         std::cout << "[PASS] Enable/disable lensing works correctly" << std::endl;
     }
@@ -203,10 +196,10 @@ int main() {
 
         auto lensing = std::make_shared<GravitationalLensing>(schwarzschildMetric);
 
-        assert(lensing->metric() == schwarzschildMetric && "Metric should be Schwarzschild");
+        QV_CHECK(lensing->metric() == schwarzschildMetric);
 
         lensing->setMetric(kerrMetric);
-        assert(lensing->metric() == kerrMetric && "Metric should now be Kerr");
+        QV_CHECK(lensing->metric() == kerrMetric);
 
         std::cout << "[PASS] Metric switching works correctly" << std::endl;
     }
@@ -223,9 +216,8 @@ int main() {
         double deflection1 = 2.0 / (r1 * r1);  // ~0.02
         double deflection2 = 2.0 / (r2 * r2);  // ~0.0002
 
-        assert(deflection1 > deflection2 && "Deflection should be stronger closer to BH");
-        assert(std::abs(deflection1 / deflection2 - r2 * r2 / (r1 * r1)) < 0.01 &&
-               "Deflection should scale as 1/r^2");
+        QV_CHECK(deflection1 > deflection2);
+        QV_CHECK_NEAR(deflection1 / deflection2 - r2 * r2 / (r1 * r1), 0.0, 0.01);
 
         std::cout << "[PASS] Lens distortion pattern scales correctly with distance" << std::endl;
         std::cout << "       deflection(10M) = " << deflection1 << std::endl;
@@ -247,7 +239,7 @@ int main() {
         double photonSphere = lensing->computePhotonSphereRadius();
 
         // For Kerr with spin 0.9, photon sphere < 3M
-        assert(photonSphere < 3.0 && "Kerr photon sphere should be less than Schwarzschild");
+        QV_CHECK(photonSphere < 3.0);
 
         std::cout << "[PASS] Kerr shadow asymmetry (photon sphere < 3M)" << std::endl;
         std::cout << "       r_photon = " << photonSphere << " M (spin=0.9)" << std::endl;
@@ -289,12 +281,12 @@ int main() {
         float e2 = GravitationalLensing::computeVolumetricDiskEmissivity(p2, params, mass);
         float e3 = GravitationalLensing::computeVolumetricDiskEmissivity(p3, params, mass);
 
-        assert(e1 >= 0.0f && "Disk emissivity must be non-negative at mid-disk");
-        assert(e2 >= 0.0f && "Disk emissivity must be non-negative off-plane");
-        assert(e3 == 0.0f && "Emissivity must be zero outside the disk");
+        QV_CHECK(e1 >= 0.0f);
+        QV_CHECK(e2 >= 0.0f);
+        QV_CHECK(e3 == 0.0f);
 
         // Hotter near the inner edge (r=8M) than far out (r=12M): T ~ r^(-3/4)
-        assert(e1 > e2 && "Emissivity must decrease with radius (T ~ r^-3/4)");
+        QV_CHECK(e1 > e2);
 
         std::cout << "[PASS] Volumetric disk emissivity non-negative and radially decreasing" << std::endl;
         std::cout << "       emissivity(8M)  = " << e1 << std::endl;
@@ -323,10 +315,9 @@ int main() {
         hot.diskTemperature = 2.0f;
         float Lhot = GravitationalLensing::computeDiskLuminosity(hot, mass);
 
-        assert(L0 > 0.0f && "Disk luminosity must be positive");
-        assert(std::abs(Ldense / L0 - 2.0f) < 0.05 &&
-               "Luminosity must scale linearly with density");
-        assert(Lhot > L0 && "Luminosity must increase with temperature");
+        QV_CHECK(L0 > 0.0f);
+        QV_CHECK_NEAR(Ldense / L0 - 2.0f, 0.0, 0.05);
+        QV_CHECK(Lhot > L0);
 
         std::cout << "[PASS] Disk luminosity scales correctly with density and temperature" << std::endl;
         std::cout << "       L(density=1)  = " << L0 << std::endl;
@@ -340,17 +331,14 @@ int main() {
             std::make_shared<SchwarzschildMetric>(1.989e30));
 
         // Disabled by default
-        assert(!lensing->isVolumetricDiskEnabled() &&
-               "Volumetric disk should be disabled by default");
+        QV_CHECK(!lensing->isVolumetricDiskEnabled());
 
         // Toggle on/off
         lensing->setEnabledVolumetricDisk(true);
-        assert(lensing->isVolumetricDiskEnabled() &&
-               "Volumetric disk should be enabled");
+        QV_CHECK(lensing->isVolumetricDiskEnabled());
 
         lensing->setEnabledVolumetricDisk(false);
-        assert(!lensing->isVolumetricDiskEnabled() &&
-               "Volumetric disk should be disabled");
+        QV_CHECK(!lensing->isVolumetricDiskEnabled());
 
         // Round-trip params
         GravitationalLensing::VolumetricDiskParams params;
@@ -366,22 +354,14 @@ int main() {
 
         lensing->setVolumetricDiskParams(params);
         const auto& retrieved = lensing->volumetricDiskParams();
-        assert(std::abs(retrieved.diskDensity - 2.5f) < 0.001f &&
-               "Disk density should round-trip");
-        assert(std::abs(retrieved.diskTemperature - 1.5f) < 0.001f &&
-               "Disk temperature should round-trip");
-        assert(std::abs(retrieved.diskScaleHeight - 0.2f) < 0.001f &&
-               "Disk scale height should round-trip");
-        assert(std::abs(retrieved.diskInnerRadius - 5.0f) < 0.001f &&
-               "Disk inner radius should round-trip");
-        assert(std::abs(retrieved.diskOuterRadius - 30.0f) < 0.001f &&
-               "Disk outer radius should round-trip");
-        assert(retrieved.diskRaySteps == 128 &&
-               "Disk ray steps should round-trip");
-        assert(std::abs(retrieved.diskOpacity - 0.8f) < 0.001f &&
-               "Disk opacity should round-trip");
-        assert(std::abs(retrieved.diskDopplerBoost - 1.2f) < 0.001f &&
-               "Disk Doppler boost should round-trip");
+        QV_CHECK_NEAR(retrieved.diskDensity - 2.5f, 0.0, 0.001f);
+        QV_CHECK_NEAR(retrieved.diskTemperature - 1.5f, 0.0, 0.001f);
+        QV_CHECK_NEAR(retrieved.diskScaleHeight - 0.2f, 0.0, 0.001f);
+        QV_CHECK_NEAR(retrieved.diskInnerRadius - 5.0f, 0.0, 0.001f);
+        QV_CHECK_NEAR(retrieved.diskOuterRadius - 30.0f, 0.0, 0.001f);
+        QV_CHECK(retrieved.diskRaySteps == 128);
+        QV_CHECK_NEAR(retrieved.diskOpacity - 0.8f, 0.0, 0.001f);
+        QV_CHECK_NEAR(retrieved.diskDopplerBoost - 1.2f, 0.0, 0.001f);
 
         std::cout << "[PASS] Volumetric disk parameter validation correct" << std::endl;
     }
@@ -400,21 +380,20 @@ int main() {
         // Thin case: τ = 0.01, expect I ≈ τ = 0.01
         auto thin = GravitationalLensing::marchFlatSlab(0.01, j, 1000);
         double thinExpected = 0.01;  // Analytical: (1 - exp(-τ)) ≈ τ for τ≪1
-        assert(std::abs(thin.emission - thinExpected) < 1e-4 &&
-               "Thin regime: I ≈ τ");
-        assert(thin.tau > 0 && "τ should be accumulated");
+        QV_CHECK_NEAR(thin.emission - thinExpected, 0.0, 1e-4);
+        QV_CHECK(thin.tau > 0);
 
         // Thick case: τ = 100, expect I ≈ 1.0 (saturated blackbody)
         auto thick = GravitationalLensing::marchFlatSlab(100.0, j, 10000);
-        assert(thick.emission > 0.99 && "Thick regime: I → 1.0 (saturated)");
-        assert(thick.emission < 1.1 && "I must not exceed B(T)=1");
-        assert(thick.tau > 99.0 && "Final τ should approach input τ");
+        QV_CHECK(thick.emission > 0.99);
+        QV_CHECK(thick.emission < 1.1);
+        QV_CHECK(thick.tau > 99.0);
 
         // Critical: thick/thin ratio ≈ 100, NOT 100,000
         // If emissivity scaled linearly (buggy), ratio would be thick em / thin em
         // = 1.0 / 0.01 = 100. But if τ = 1000 (100× heavier), buggy ratio → 100,000.
         double ratio = thick.emission / thin.emission;
-        assert(ratio < 150.0 && "Saturation test: thick/thin ratio must be ~1, not 100000");
+        QV_CHECK(ratio < 150.0);
 
         std::cout << "[PASS] Optically thick saturation test passed" << std::endl;
         std::cout << "       Thin (tau=0.01)   I = " << thin.emission << " (expected ~0.01)" << std::endl;
@@ -468,8 +447,8 @@ int main() {
         // Self-shadowing: hot inner emission must be attenuated
         // Without T_before attenuation, total would be ~16.8
         // With attenuation, total should be ~1.1
-        assert(emission < 3.0 && "Self-shadowing must attenuate inner emission");
-        assert(emission > 1.0 && "Outer layer contribution must still be visible");
+        QV_CHECK(emission < 3.0);
+        QV_CHECK(emission > 1.0);
 
         std::cout << "[PASS] Two-layer self-shadowing test passed" << std::endl;
         std::cout << "       Total emission = " << emission << " (shadowed, not ~16.8)" << std::endl;
@@ -489,10 +468,8 @@ int main() {
 
         // Schwarzschild ISCO is exactly 6M
         double isco = lensing->computeISCO();
-        assert(std::abs(isco - 6.0) < 0.01 &&
-               "Schwarzschild ISCO should be 6M");
-        assert(std::abs(GravitationalLensing::computeISCORadius(0.0) - 6.0) < 0.01 &&
-               "computeISCORadius(0) should be 6.0");
+        QV_CHECK_NEAR(isco - 6.0, 0.0, 0.01);
+        QV_CHECK_NEAR(GravitationalLensing::computeISCORadius(0.0) - 6.0, 0.0, 0.01);
 
         std::cout << "[PASS] ISCO exact for Schwarzschild (6M)" << std::endl;
         std::cout << "       r_isco = " << isco << " M" << std::endl;
@@ -512,10 +489,9 @@ int main() {
         double iscoRetrograde = GravitationalLensing::computeISCORadius(-0.5);
 
         // Reference values for the Bardeen formula: a=0.5 -> 4.2330 M
-        assert(std::abs(iscoPrograde - 4.2330) < 0.01 &&
-               "Kerr ISCO(a=0.5) should be ~4.233M");
-        assert(iscoPrograde < 6.0 && "Prograde ISCO must be below Schwarzschild");
-        assert(iscoRetrograde > 6.0 && "Retrograde ISCO must be above Schwarzschild");
+        QV_CHECK_NEAR(iscoPrograde - 4.2330, 0.0, 0.01);
+        QV_CHECK(iscoPrograde < 6.0);
+        QV_CHECK(iscoRetrograde > 6.0);
 
         std::cout << "[PASS] Kerr ISCO shrinks for prograde, expands for retrograde" << std::endl;
         std::cout << "       r_isco(a=+0.5) = " << iscoPrograde << " M" << std::endl;
@@ -536,10 +512,8 @@ int main() {
         double iscoPure = GravitationalLensing::computeISCORadius(0.998);
 
         // Extremal prograde Kerr ISCO -> 1.237 M (Thorne 1974 limit)
-        assert(std::abs(isco - 1.237) < 0.02 &&
-               "Extremal Kerr ISCO should approach 1.237M");
-        assert(std::abs(iscoPure - 1.237) < 0.02 &&
-               "computeISCORadius(0.998) should approach 1.237");
+        QV_CHECK_NEAR(isco - 1.237, 0.0, 0.02);
+        QV_CHECK_NEAR(iscoPure - 1.237, 0.0, 0.02);
 
         std::cout << "[PASS] Extremal Kerr ISCO approaches Thorne limit (1.237M)" << std::endl;
         std::cout << "       r_isco(a=0.998) = " << isco << " M" << std::endl;
@@ -569,8 +543,7 @@ int main() {
         for (double s : spins) {
             double cpu  = GravitationalLensing::computeISCORadius(s);
             double glsl = glsl_isco_mirror(s);
-            assert(std::abs(cpu - glsl) < 1e-4 &&
-                   "CPU ISCO reference must match GLSL mirror");
+            QV_CHECK_NEAR(cpu - glsl, 0.0, 1e-4);
         }
 
         std::cout << "[PASS] CPU ISCO reference matches GLSL mirror across spins" << std::endl;
@@ -608,8 +581,7 @@ int main() {
 
         // Same radius -> same density and temperature -> the only asymmetry is
         // the Doppler factor.  Approaching side must be brighter.
-        assert(eApproach > eRecede &&
-               "Doppler beaming must blueshift the approaching side");
+        QV_CHECK(eApproach > eRecede);
 
         std::cout << "[PASS] Doppler beaming is signed (approaching side brighter)" << std::endl;
         std::cout << "       emissivity(approaching -8M) = " << eApproach << std::endl;
@@ -637,8 +609,7 @@ int main() {
 
         // Fixed inner edge -> spin has no other effect on the CPU reference,
         // so the two must agree.
-        assert(std::abs(Lfixed0 - LfixedKerr) < 1e-3 &&
-               "Fixed inner radius must make luminosity spin-independent");
+        QV_CHECK_NEAR(Lfixed0 - LfixedKerr, 0.0, 1e-3);
 
         // Now let the inner edge follow the ISCO: spin must change the result.
         GravitationalLensing::VolumetricDiskParams isco = fixed;
@@ -646,8 +617,7 @@ int main() {
         float Lisco0    = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.0f);
         float Liskerr  = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.9f);
 
-        assert(std::abs(Lisco0 - Liskerr) > 1.0f &&
-               "ISCO inner edge must make luminosity depend on spin");
+        QV_CHECK(std::abs(Lisco0 - Liskerr) > 1.0f);
 
         std::cout << "[PASS] Spin reaches luminosity through the ISCO inner edge" << std::endl;
         std::cout << "       L(fixed rInner, spin=0)   = " << Lfixed0 << std::endl;
@@ -667,8 +637,8 @@ int main() {
     // NOTE: this is a single-point lookup (computeVolumetricDiskEmissivity
     // returns j·beaming directly, no integration), so the ratio is exactly
     // κ2/κ1 -- no thin/thick subtlety.  We use an explicit throw instead of
-    // assert() because the test binary is built Release (/DNDEBUG), where
-    // assert() is compiled out and would silently swallow the failure.
+    // QV_CHECK() because the test binary is built Release (/DNDEBUG), where
+    // QV_CHECK() is compiled out and would silently swallow the failure.
     {
         auto require = [&](bool cond, const char* msg) {
             if (!cond) throw std::runtime_error(msg);

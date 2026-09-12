@@ -6,8 +6,8 @@
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
 #include "discovery/GalacticRotationCurveScanner.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -20,12 +20,12 @@ int main() {
     SceneGraphManager sceneGraph(metric);
     sceneGraph.createSolarSystem();
     const auto& scene = sceneGraph.getScene();
-    assert(!scene.objects.empty() && "Scene should contain celestial bodies");
+    QV_CHECK(!scene.objects.empty());
     std::cout << "[PASS] Celestial bodies rendered: " << scene.objects.size() << std::endl;
 
     auto scalar = metric->curvatureScalars(Event4D(0, 1e10, 0, 0));
-    assert(scalar.valid);
-    assert(scalar.kretschmann > 0.0 && "Curvature should be non-zero away from horizon");
+    QV_CHECK(scalar.valid);
+    QV_CHECK(scalar.kretschmann > 0.0);
     std::cout << "[PASS] Curvature non-zero: K = " << scalar.kretschmann << std::endl;
 
     Event4D start(0, 1e10, 0, 0);
@@ -33,7 +33,7 @@ int main() {
     GeodesicIntegrator integrator;
     integrator.setMetric(metric);
     auto trajectory = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 100.0, true);
-    assert(!trajectory.empty() && "Geodesic should produce non-empty trajectory");
+    QV_CHECK(!trajectory.empty());
     std::cout << "[PASS] Geodesic integrated: " << trajectory.size() << " steps" << std::endl;
 
     ExoplanetaryTTVFifthForceHunter ttvHunter;
@@ -51,7 +51,7 @@ int main() {
     auto ttvFindings = ttvHunter.analyze(*metric, Event4D(0, 0, 0, 0), scanTrajectory);
     auto rotFindings = rotScanner.analyze(*metric, Event4D(0, 0, 0, 0), scanTrajectory);
     size_t totalFindings = ttvFindings.size() + rotFindings.size();
-    assert(totalFindings > 0 && "Discovery instruments should produce findings");
+    QV_CHECK(totalFindings > 0);
     std::cout << "[PASS] Discovery findings produced: " << totalFindings << std::endl;
 
     std::cout << "=== SCENARIO INTEGRATION TEST PASSED ===" << std::endl;

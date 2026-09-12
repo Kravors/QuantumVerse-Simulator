@@ -5,10 +5,10 @@
 #include "physics/CurvatureCalculator.h"
 #include "physics/SingularityHandler.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -97,7 +97,7 @@ void test_backwards_integration() {
     std::array<double, 4> vel = {0.0, 0.0, 0.1, 0.0};
 
     auto traj_forward = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
-    assert(!traj_forward.empty());
+    QV_CHECK(!traj_forward.empty());
 
     Event4D end_ev = traj_forward.back().event;
     // Reverse the actual endpoint four-velocity to retrace the geodesic
@@ -106,7 +106,7 @@ void test_backwards_integration() {
     std::array<double, 4> vel_rev = {-end_vel[0], -end_vel[1], -end_vel[2], -end_vel[3]};
 
     auto traj_backward = integrator.integrate(end_ev, vel_rev, GeodesicType::TIMELIKE, 2.0, true);
-    assert(!traj_backward.empty());
+    QV_CHECK(!traj_backward.empty());
 
     Event4D final_ev = traj_backward.back().event;
     double dist = std::sqrt(
@@ -117,7 +117,7 @@ void test_backwards_integration() {
 
     // Allow 1e-8 * distance traveled
     double maxDrift = 1e-8 * 20.0 * M;
-    assert(dist < maxDrift && "Backward integration should return near start");
+    QV_CHECK(dist < maxDrift);
     std::cout << "[PASS] Backwards integration: final drift = " << dist << " < " << maxDrift << std::endl;
 }
 
@@ -135,7 +135,7 @@ void test_energy_conservation_long_integration() {
     std::array<double, 4> vel = {0.8, 0.0, 0.0, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 10.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     // The conserved quantity along a geodesic is the norm g_μν u^μ u^ν, evaluated
     // with the *actual* per-step four-velocity (now stored in each GeodesicStep).
     auto g0 = sch->evaluate(traj[0].event);
@@ -156,7 +156,7 @@ void test_energy_conservation_long_integration() {
     }
 
     // For a geodesic the norm g_μν u^μ u^ν is conserved to integration tolerance
-    assert(maxDrift < 1e-6 && "Energy drift too large over long integration");
+    QV_CHECK(maxDrift < 1e-6);
     std::cout << "[PASS] Energy conservation: max drift = " << maxDrift << std::endl;
 }
 
@@ -179,7 +179,7 @@ void test_christoffel_finite_difference() {
     for (int l = 0; l < 4; l++)
         for (int m = 0; m < 4; m++)
             for (int n = 0; n < 4; n++)
-                assert(std::isfinite(Gamma[l][m][n]) && "Christoffel should be finite");
+                QV_CHECK(std::isfinite(Gamma[l][m][n]));
 
     // For Schwarzschild, Gamma^r_tt = (M/r^2) * (1 - 2M/r) at large r
     double r = 10.0 * M;
@@ -187,8 +187,7 @@ void test_christoffel_finite_difference() {
     double Gamma_r_tt_expected = (rs / 2.0) / (r * r) * (1.0 - rs / r);
     // The computed value may differ due to finite differences, but should be close
     double Gamma_r_tt_actual = Gamma[1][0][0];
-    assert(std::abs(Gamma_r_tt_actual - Gamma_r_tt_expected) < 1e-4 &&
-           "Christoffel Gamma^r_tt should match analytic");
+    QV_CHECK_NEAR(Gamma_r_tt_actual - Gamma_r_tt_expected, 0.0, 1e-4);
     std::cout << "[PASS] Christoffel symbols: analytic vs FD (Gamma^r_tt err = "
               << std::abs(Gamma_r_tt_actual - Gamma_r_tt_expected) << ")" << std::endl;
 }
@@ -218,8 +217,7 @@ void test_christoffel_fd_consistency() {
     double rs = 2.0 * M;
     double dg_rr_dr_analytic = -rs / std::pow(r - rs, 2);
 
-    assert(std::abs(dg_rr_dr_fd - dg_rr_dr_analytic) < 1e-4 &&
-           "FD derivative of g_rr should match analytic");
+    QV_CHECK_NEAR(dg_rr_dr_fd - dg_rr_dr_analytic, 0.0, 1e-4);
     std::cout << "[PASS] Christoffel FD consistency: dg_rr/dr error = "
               << std::abs(dg_rr_dr_fd - dg_rr_dr_analytic) << std::endl;
 }
@@ -284,7 +282,7 @@ void test_kretschmann_fd_step_convergence() {
                   << ", err=" << err << std::endl;
         maxErr = std::max(maxErr, err);
     }
-    assert(maxErr < 1e-3 && "Kretschmann FD path must converge to the closed-form invariant");
+    QV_CHECK(maxErr < 1e-3);
     std::cout << "[PASS] Kretschmann converges with FD step refinement (maxErr=" << maxErr << ")" << std::endl;
 }
 
@@ -301,8 +299,8 @@ void test_proper_time_radial() {
     std::array<double, 4> vel = {0.5, -0.01, 0.0, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 5.0, true);
 
-    assert(!traj.empty());
-    assert(traj.back().properTime > 0.0 && "Proper time should be positive");
+    QV_CHECK(!traj.empty());
+    QV_CHECK(traj.back().properTime > 0.0);
     std::cout << "[PASS] Proper time radial trajectory: tau = " << traj.back().properTime << std::endl;
 }
 
@@ -319,7 +317,7 @@ void test_null_geodesic_condition() {
     std::array<double, 4> vel = {1.0, 0.0, 0.0, 0.0};  // null at start
     auto traj = integrator.integrate(start, vel, GeodesicType::LIGHTLIKE, 2.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     for (const auto& step : traj) {
         auto g = sch->evaluate(step.event);
         double norm = 0.0;
@@ -354,7 +352,7 @@ void test_metric_fd_accuracy_vs_h() {
         double dg_fd = (g_p[0][0] - g_m[0][0]) / (2.0 * h);
         double err = std::abs(dg_fd - dg_tt_dr_analytic);
         std::cout << " h=" << h << " err=" << err;
-        assert(err < 1e-3 && "FD should converge");
+        QV_CHECK(err < 1e-3);
     }
     std::cout << std::endl;
 }
@@ -372,12 +370,12 @@ void test_adaptive_step_bounds() {
     std::array<double, 4> vel = {0.0, 0.0, 0.05, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 5.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     // Skip the initial point (index 0), whose stepSize is 0 by design.
     for (size_t i = 1; i < traj.size(); ++i) {
         const auto& step [[maybe_unused]] = traj[i];
-        assert(step.stepSize > 0.0 && "Step size should be positive");
-        assert(std::isfinite(step.stepSize) && "Step size should be finite");
+        QV_CHECK(step.stepSize > 0.0);
+        QV_CHECK(std::isfinite(step.stepSize));
     }
     std::cout << "[PASS] Adaptive step size stays within bounds: " << traj.size() << " steps" << std::endl;
 }
@@ -398,7 +396,7 @@ void test_ricci_scalar_convergence() {
         Event4D ev(0.0, r, 0.0, 0.0);
         auto result = calc.computeAll(ev);
         std::cout << " h=" << h << " R=" << result.ricciScalar;
-        assert(std::abs(result.ricciScalar) < 1e-2 && "Ricci should be ~0");
+        QV_CHECK_NEAR(result.ricciScalar, 0.0, 1e-2);
     }
     std::cout << std::endl;
 }
@@ -420,7 +418,7 @@ void test_kretschmann_scaling() {
         double ratio = s.kretschmann / s_base.kretschmann;
         double expected_ratio = 1.0 / std::pow(scale, 6);
         double err = relError(ratio, expected_ratio);
-        assert(err < 1e-12 && "Kretschmann should scale as 1/r^6");
+        QV_CHECK(err < 1e-12);
         (void)err;
     }
     std::cout << "[PASS] Kretschmann scales exactly as 1/r^6" << std::endl;
@@ -440,7 +438,7 @@ void test_circular_orbit_stability() {
     std::array<double, 4> vel = {1.0, 0.0, 0.3, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 5.0, true);
 
-    assert(!traj.empty() && traj.size() > 2 && "Integration should produce a resolved trajectory");
+    QV_CHECK(!traj.empty() && traj.size() > 2);
     // r should stay roughly constant
     double r_min = INF, r_max = -INF;
     for (const auto& step : traj) {
@@ -449,7 +447,7 @@ void test_circular_orbit_stability() {
         r_max = std::max(r_max, ri);
     }
     double amplitude = (r_max - r_min) / 2.0;
-    assert(amplitude < 5.0 * M && "Orbit should remain bounded");
+    QV_CHECK(amplitude < 5.0 * M);
     std::cout << "[PASS] Circular orbit stable: amplitude = " << amplitude << " < " << 5.0 * M << std::endl;
 }
 
@@ -468,8 +466,8 @@ void test_schwarzschild_weak_field() {
     double grr_exp = 1.0 / (1.0 - rs / r);
     (void)g_tt_exp; (void)grr_exp;
 
-    assert(std::abs(g[0][0] - g_tt_exp) < 1e-10);
-    assert(std::abs(g[1][1] - grr_exp) < 1e-10);
+    QV_CHECK_NEAR(g[0][0] - g_tt_exp, 0.0, 1e-10);
+    QV_CHECK_NEAR(g[1][1] - grr_exp, 0.0, 1e-10);
     std::cout << "[PASS] Schwarzschild weak field: g_tt = " << g[0][0]
               << ", grr = " << g[1][1] << std::endl;
 }
@@ -487,7 +485,7 @@ void test_schwarzschild_diagonal_at_large_r() {
 
     for (int i = 0; i < 4; i++)
         for (int j = i + 1; j < 4; j++)
-            assert(std::abs(g[i][j]) < 1e-10 && "Off-diagonal should vanish at large r");
+            QV_CHECK_NEAR(g[i][j], 0.0, 1e-10);
     std::cout << "[PASS] Schwarzschild off-diagonals vanish at large r" << std::endl;
 }
 
@@ -504,10 +502,9 @@ void test_timelike_coordinate_time_monotonic() {
     std::array<double, 4> vel = {0.9, 0.0, 0.0, 0.05};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 3.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     for (size_t i = 1; i < traj.size(); i++) {
-        assert(traj[i].event.t >= traj[i - 1].event.t - 1e-10 &&
-               "Coordinate time should not decrease for timelike");
+        QV_CHECK(traj[i].event.t >= traj[i - 1].event.t - 1e-10);
     }
     std::cout << "[PASS] Timelike geodesic: coordinate time monotonic" << std::endl;
 }
@@ -525,13 +522,13 @@ void test_radial_plunge_near_horizon() {
     std::array<double, 4> vel = {1.0, -0.2, 0.0, 0.0};  // inward plunge
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 20.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     double r_min = INF;
     for (const auto& step : traj) {
         double ri = step.event.spatialLength();
         r_min = std::min(r_min, ri);
     }
-    assert(r_min < 20.0 * M && "Plunge should move the particle inward");
+    QV_CHECK(r_min < 20.0 * M);
     std::cout << "[PASS] Radial plunge: r_min = " << r_min << " (start < " << 20.0 * M << ")" << std::endl;
 }
 
@@ -544,9 +541,9 @@ void test_kretschmann_large_r_precision() {
     double r = 1e14;
     Event4D ev(0.0, r, 0.0, 0.0);
     auto s = sch.curvatureScalars(ev);
-    assert(s.valid);
-    assert(std::isfinite(s.kretschmann));
-    assert(s.kretschmann > 0.0 && "Kretschmann should be positive");
+    QV_CHECK(s.valid);
+    QV_CHECK(std::isfinite(s.kretschmann));
+    QV_CHECK(s.kretschmann > 0.0);
     std::cout << "[PASS] Kretschmann at very large r: " << s.kretschmann << std::endl;
 }
 
@@ -563,7 +560,7 @@ void test_angular_momentum_conservation() {
     std::array<double, 4> vel = {1.0, 0.0, 0.0, 0.5};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 3.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     // Angular momentum L = g_φφ * u^φ should be conserved
     auto g0 = sch->evaluate(start);
     double L0 = g0[3][3] * vel[3];
@@ -574,7 +571,7 @@ void test_angular_momentum_conservation() {
         double L = g[3][3] * vel[3];
         maxDrift = std::max(maxDrift, std::abs(L - L0));
     }
-    assert(maxDrift < 1e-3 && "Angular momentum drift too large");
+    QV_CHECK(maxDrift < 1e-3);
     std::cout << "[PASS] Angular momentum conservation: max drift = " << maxDrift << std::endl;
 }
 
@@ -594,7 +591,7 @@ void test_time_dilation_heatmap() {
         Event4D ev(0.0, r, 0.0, 0.0);
         double z = handler.getGravitationalRedshift(ev);
         double z_expected = 1.0 / std::sqrt(1.0 - rs / r) - 1.0;
-        assert(std::abs(z - z_expected) < 1e-10);
+        QV_CHECK_NEAR(z - z_expected, 0.0, 1e-10);
         (void)z; (void)z_expected;
     }
     std::cout << "[PASS] Time dilation heatmap: redshift exact" << std::endl;
@@ -612,7 +609,7 @@ void test_proper_time_static_observer() {
     double dt = 1.0;
     double dtau = std::sqrt(-g[0][0]) * dt;
     double dtau_expected = std::sqrt(1.0 - 2.0 * M / (10.0 * M));
-    assert(std::abs(dtau - dtau_expected) < 1e-10);
+    QV_CHECK_NEAR(dtau - dtau_expected, 0.0, 1e-10);
     (void)dtau; (void)dtau_expected;
     std::cout << "[PASS] Proper time static observer exact" << std::endl;
 }
@@ -633,7 +630,7 @@ void test_schwarzschild_radius_formula() {
     // K = 48 * G^2 * M^2 / (c^4 * r^6)
     [[maybe_unused]] double K_expected = 48.0 * Event4D::G * Event4D::G * M * M /
                         std::pow(Event4D::C, 4) / std::pow(r_test, 6);
-    assert(std::abs(K - K_expected) < 1e-10);
+    QV_CHECK_NEAR(K - K_expected, 0.0, 1e-10);
     std::cout << "[PASS] Schwarzschild radius formula verified via Kretschmann" << std::endl;
 }
 
@@ -648,7 +645,7 @@ void test_schwarzschild_g_tt_at_horizon() {
     // On the radial x-axis so the Cartesian radius equals rs (g_tt -> 0 at horizon)
     Event4D on_horizon(0.0, rs, 0.0, 0.0);
     auto g = sch.evaluate(on_horizon);
-    assert(std::abs(g[0][0] - 0.0) < 1e-10 && "g_tt should be 0 at horizon");
+    QV_CHECK_NEAR(g[0][0] - 0.0, 0.0, 1e-10);
     (void)g;
     std::cout << "[PASS] Schwarzschild g_tt = 0 at horizon" << std::endl;
 }
@@ -673,12 +670,12 @@ void test_null_geodesic_photon_sphere() {
     std::array<double, 4> vel = {1.0, ux, uy, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::LIGHTLIKE, 5.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     // Critical photon is captured and approaches the photon sphere (r -> 3M).
     double r_min = INF;
     for (const auto& step : traj) r_min = std::min(r_min, step.event.spatialLength());
     std::cout << "[DIAG] photon sphere: r_min=" << r_min << std::endl;
-    assert(r_min < 4.5 * M && "Photon at b=3sqrt(3)M should approach the photon sphere (r->3M)");
+    QV_CHECK(r_min < 4.5 * M);
     std::cout << "[PASS] Null geodesic at photon sphere: r_min = " << r_min << std::endl;
 }
 
@@ -700,7 +697,7 @@ void test_multiple_geodesics() {
 
     for (const auto& vel : velocities) {
         auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
-        assert(!traj.empty() && "Geodesic should not be empty");
+        QV_CHECK(!traj.empty());
     }
     std::cout << "[PASS] Multiple geodesics from same start: " << velocities.size() << " completed" << std::endl;
 }
@@ -714,9 +711,9 @@ void test_schwarzschild_origin_safe() {
     Event4D near_origin(0.0, 1e-6, 0.0, 0.0);
     auto g = sch.evaluate(near_origin);
     // At r=1e-6, should have huge curvature but finite metric
-    assert(std::isfinite(g[0][0]) && "g_tt should be finite near origin");
+    QV_CHECK(std::isfinite(g[0][0]));
     (void)g;
-    assert(std::isfinite(g[1][1]) && "g_rr should be finite near origin");
+    QV_CHECK(std::isfinite(g[1][1]));
     std::cout << "[PASS] Schwarzschild near origin: metric finite (curvature huge)" << std::endl;
 }
 
@@ -728,8 +725,8 @@ void test_schwarzschild_vacuum_stress_energy() {
     SchwarzschildMetric sch(M);
     Event4D ev(0.0, 1e8, 0.0, 0.0);
     [[maybe_unused]] auto s = sch.curvatureScalars(ev);
-    assert(s.valid);
-    assert(std::abs(s.ricciScalar) < 1e-6 && "Ricci=0 implies T_μν=0 via EFE");
+    QV_CHECK(s.valid);
+    QV_CHECK_NEAR(s.ricciScalar, 0.0, 1e-6);
     std::cout << "[PASS] Schwarzschild vacuum: Ricci=0 => T_μν=0" << std::endl;
 }
 
@@ -743,9 +740,9 @@ void test_kretschmann_at_2rs() {
     // On the radial x-axis so the Cartesian radius equals 2*rs
     Event4D ev(0.0, 2.0 * rs, 0.0, 0.0);
     auto s = sch.curvatureScalars(ev);
-    assert(s.valid);
+    QV_CHECK(s.valid);
     double K_expected = 48.0 * std::pow(rs / 2.0, 2) / std::pow(2.0 * rs, 6);
-    assert(relError(s.kretschmann, K_expected) < 1e-12);
+    QV_CHECK(relError(s.kretschmann, K_expected) < 1e-12);
     (void)s; (void)K_expected;
     std::cout << "[PASS] Kretschmann at r=2rs exact" << std::endl;
 }
@@ -766,7 +763,7 @@ void test_schwarzschild_minkowski_transition() {
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 diff += std::abs(g[i][j] - mink.g[i][j]);
-        assert(diff < 1e-6 && "Should approach Minkowski for small M");
+        QV_CHECK(diff < 1e-6);
     }
     std::cout << "[PASS] Schwarzschild -> Minkowski for M << r" << std::endl;
 }

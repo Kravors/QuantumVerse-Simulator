@@ -3,7 +3,6 @@
 // synthetic time series with a linear drift α(t) = α₀ + δα·t and verifies the
 // detector recovers the drift rate. Convention: t = time, z = measured α.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -11,6 +10,7 @@
 #include "discovery/FineStructureConstantDriftObservatory.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== FineStructureConstantDriftObservatory Test ===" << std::endl;
@@ -34,12 +34,12 @@ int main() {
     quantumverse::FineStructureConstantDriftObservatory obs;
     auto findings = obs.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No alpha drift detected");
+    QV_CHECK(!findings.empty());
 
     const auto& f = findings.front();
     auto dit = f.parameters.find("drift_rate");
-    assert(dit != f.parameters.end() && "drift_rate parameter missing");
-    assert(std::abs(dit->second - drift) < 1e-9 && "Drift rate mismatch");
+    QV_CHECK(dit != f.parameters.end());
+    QV_CHECK_NEAR(dit, >second - drift, 1e-9);
 
     std::cout << "Detected α drift: dα/dt=" << dit->second
               << " (expected " << drift << ")" << std::endl;
@@ -51,7 +51,7 @@ int main() {
         steady.emplace_back(t, 0.0, 0.0, alpha0);
     }
     auto none = obs.analyze(metric, location, steady);
-    assert(none.empty() && "Constant alpha should not trigger a finding");
+    QV_CHECK(none.empty());
 
     // --- Edge case: too few points ----------------------------------------
     std::vector<quantumverse::Event4D> tiny = {
@@ -59,7 +59,7 @@ int main() {
         quantumverse::Event4D(1.0, 0.0, 0.0, alpha0 + drift),
     };
     auto few = obs.analyze(metric, location, tiny);
-    assert(few.empty() && "Too-few-point trajectory should not produce a finding");
+    QV_CHECK(few.empty());
 
     std::cout << "All FineStructureConstantDriftObservatory tests passed." << std::endl;
     return 0;

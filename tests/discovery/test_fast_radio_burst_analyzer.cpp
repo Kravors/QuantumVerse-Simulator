@@ -12,7 +12,6 @@
  *   - Parameter ranges well-formed
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -21,6 +20,7 @@
 #include "discovery/FastRadioBurstAnalyzer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -92,10 +92,10 @@ int main() {
         auto traj = makeRadioWithBurst(1.0, 0.0005, 0.5, 5.0, 0.005);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(!findings.empty() && "Injected burst should be detected");
+        QV_CHECK(!findings.empty());
         if (!findings.empty()) {
             [[maybe_unused]] double snr = findings[0].parameters.at("snr");
-            assert(snr > 5.0 && "SNR should exceed threshold");
+            QV_CHECK(snr > 5.0);
         }
         std::cout << "  Burst detection: OK." << std::endl;
     }
@@ -110,7 +110,7 @@ int main() {
         auto traj = makeRadioWithBurst(1.0, 0.0005, 0.5, 1.0, 0.005);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(findings.empty() && "Weak burst should not be detected");
+        QV_CHECK(findings.empty());
         std::cout << "  SNR cutoff: OK." << std::endl;
     }
 
@@ -124,10 +124,10 @@ int main() {
         auto traj = makeRadioWithBurst(1.0, 0.0005, 0.5, 5.0, 0.005);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(!findings.empty() && "Burst should be detected");
+        QV_CHECK(!findings.empty());
         if (!findings.empty()) {
             [[maybe_unused]] double hasCoincidence = findings[0].parameters.at("has_coincidence");
-            assert(hasCoincidence > 0.5 && "GW coincidence should be flagged");
+            QV_CHECK(hasCoincidence > 0.5);
         }
         std::cout << "  GW coincidence: OK." << std::endl;
     }
@@ -144,7 +144,7 @@ int main() {
 
         if (!findings.empty()) {
             [[maybe_unused]] double hasCoincidence = findings[0].parameters.at("has_coincidence");
-            assert(hasCoincidence < 0.5 && "No coincidence with tiny time window");
+            QV_CHECK(hasCoincidence < 0.5);
         }
         std::cout << "  No false positive: OK." << std::endl;
     }
@@ -159,7 +159,7 @@ int main() {
         auto traj = makePureNoise(2000, 0.1);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(findings.empty() && "Pure noise should not trigger detection");
+        QV_CHECK(findings.empty());
         std::cout << "  Noise rejection: OK." << std::endl;
     }
 
@@ -172,7 +172,7 @@ int main() {
 
         std::vector<Event4D> empty;
         auto findings = analyzer.analyze(metric, location, empty);
-        assert(findings.empty() && "Empty trajectory must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> nanTraj;
         for (size_t i = 0; i < 64; ++i) {
@@ -180,7 +180,7 @@ int main() {
             nanTraj.emplace_back(t, kNaN, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, nanTraj);
-        assert(findings.empty() && "NaN waveform must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> infTraj;
         for (size_t i = 0; i < 64; ++i) {
@@ -188,7 +188,7 @@ int main() {
             infTraj.emplace_back(t, kInf, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, infTraj);
-        assert(findings.empty() && "Inf waveform must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> shortTraj;
         for (size_t i = 0; i < 10; ++i) {
@@ -196,7 +196,7 @@ int main() {
             shortTraj.emplace_back(t, 1.0, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, shortTraj);
-        assert(findings.empty() && "Short trajectory must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::cout << "  Robustness handled." << std::endl;
     }
@@ -205,13 +205,12 @@ int main() {
     {
         FastRadioBurstAnalyzer analyzer;
         auto ranges = analyzer.getParameterRanges();
-        assert(ranges.size() >= 5 && "Must have at least 5 parameter ranges");
+        QV_CHECK(ranges.size() >= 5);
 
         for ([[maybe_unused]] const auto& kv : ranges) {
-            assert(std::isfinite(kv.second.first) &&
+            QV_CHECK(std::isfinite(kv.second.first) &&
                    std::isfinite(kv.second.second) &&
-                   kv.second.first < kv.second.second &&
-                   "Range bounds must be finite and ordered");
+                   kv.second.first < kv.second.second);
         }
         std::cout << "  Parameter ranges valid." << std::endl;
     }

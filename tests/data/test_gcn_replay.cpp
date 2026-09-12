@@ -13,10 +13,10 @@
 #include <QJsonDocument>
 #include <QSignalSpy>
 #include <QTimer>
-#include <cassert>
 #include <iostream>
 
 #include "data/GCNReplayStream.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
     std::cout << "=== GCNReplayStream Test ===" << std::endl;
 
     QTemporaryDir tmpDir;
-    assert(tmpDir.isValid() && "Temporary directory should be valid");
+    QV_CHECK(tmpDir.isValid());
 
     writeGcnFile(tmpDir.path(), "C.json", 100.0);
     writeGcnFile(tmpDir.path(), "A.json", 50.0);
@@ -50,13 +50,13 @@ int main(int argc, char** argv)
     GCNReplayStream stream;
     stream.setDirectory(tmpDir.path());
 
-    assert(stream.totalFiles() == 3 && "Should load 3 JSON files");
-    assert(stream.files().size() == 3);
+    QV_CHECK(stream.totalFiles() == 3);
+    QV_CHECK(stream.files().size() == 3);
 
     const QStringList ordered = stream.files();
-    assert(ordered[0].endsWith("A.json") && "First file should be A (ts=50)");
-    assert(ordered[1].endsWith("B.json") && "Second file should be B (ts=75)");
-    assert(ordered[2].endsWith("C.json") && "Third file should be C (ts=100)");
+    QV_CHECK(ordered[0].endsWith("A.json"));
+    QV_CHECK(ordered[1].endsWith("B.json"));
+    QV_CHECK(ordered[2].endsWith("C.json"));
 
     QSignalSpy spy(&stream, &GCNReplayStream::alertAvailable);
     QSignalSpy finishedSpy(&stream, &GCNReplayStream::replayFinished);
@@ -64,15 +64,15 @@ int main(int argc, char** argv)
     stream.start();
 
     bool finished = finishedSpy.wait(10000);
-    assert(finished && "Replay should finish within timeout");
+    QV_CHECK(finished);
     (void)finished;
 
-    assert(spy.count() == 3 && "Should emit 3 alerts");
+    QV_CHECK(spy.count() == 3);
 
     const QJsonObject first = spy.value(0).at(0).toJsonObject();
-    assert(first.value("event_id").toString() == "TEST_EVENT");
+    QV_CHECK(first.value("event_id").toString() == "TEST_EVENT");
 
-    assert(stream.currentIndex() == 3 && "Current index should be at end after replay");
+    QV_CHECK(stream.currentIndex() == 3);
 
     std::cout << "All GCNReplayStream tests passed." << std::endl;
     return 0;

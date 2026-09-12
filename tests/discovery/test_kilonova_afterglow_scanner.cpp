@@ -11,7 +11,6 @@
  *   - Parameter ranges well-formed
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -20,6 +19,7 @@
 #include "discovery/KilonovaAfterglowScanner.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -104,12 +104,12 @@ int main() {
         auto traj = makeMergerWithKilonova(2.0, 0.001, 0.3, 1.0e-12, 0.5);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(!findings.empty() && "Post-merger kilonova signal should be detected");
+        QV_CHECK(!findings.empty());
         if (!findings.empty()) {
             double lum = findings[0].parameters.at("peak_luminosity");
             [[maybe_unused]] double snr = findings[0].parameters.at("significance");
-            assert(lum > 0.0 && "Peak luminosity should be positive");
-            assert(snr > 2.0 && "Significance should exceed threshold");
+            QV_CHECK(lum > 0.0);
+            QV_CHECK(snr > 2.0);
         }
         std::cout << "  Afterglow detection: OK." << std::endl;
     }
@@ -127,7 +127,7 @@ int main() {
         auto traj = makeMergerWithKilonova(2.0, 0.001, 0.3, 0.0, 0.5);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(findings.empty() && "No post-merger signal should not be detected");
+        QV_CHECK(findings.empty());
         std::cout << "  No false detection: OK." << std::endl;
     }
 
@@ -144,7 +144,7 @@ int main() {
         auto traj = makePureNoise(2000, 1.0e-21);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(findings.empty() && "Pure noise should not trigger detection");
+        QV_CHECK(findings.empty());
         std::cout << "  Noise rejection: OK." << std::endl;
     }
 
@@ -173,7 +173,7 @@ int main() {
         if (!findings1.empty() && !findings2.empty()) {
             [[maybe_unused]] double lum1 = findings1[0].parameters.at("peak_luminosity");
             double lum2 = findings2[0].parameters.at("peak_luminosity");
-            assert(lum2 > lum1 && "Larger ejecta mass should yield higher luminosity");
+            QV_CHECK(lum2 > lum1);
         }
         std::cout << "  Ejecta mass scaling: OK." << std::endl;
     }
@@ -188,7 +188,7 @@ int main() {
 
         std::vector<Event4D> empty;
         auto findings = analyzer.analyze(metric, location, empty);
-        assert(findings.empty() && "Empty trajectory must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> nanTraj;
         for (size_t i = 0; i < 64; ++i) {
@@ -196,7 +196,7 @@ int main() {
             nanTraj.emplace_back(t, kNaN, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, nanTraj);
-        assert(findings.empty() && "NaN waveform must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> infTraj;
         for (size_t i = 0; i < 64; ++i) {
@@ -204,7 +204,7 @@ int main() {
             infTraj.emplace_back(t, kInf, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, infTraj);
-        assert(findings.empty() && "Inf waveform must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> shortTraj;
         for (size_t i = 0; i < 10; ++i) {
@@ -212,7 +212,7 @@ int main() {
             shortTraj.emplace_back(t, 1.0, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, shortTraj);
-        assert(findings.empty() && "Short trajectory must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::cout << "  Robustness handled." << std::endl;
     }
@@ -221,13 +221,12 @@ int main() {
     {
         KilonovaAfterglowScanner analyzer;
         auto ranges = analyzer.getParameterRanges();
-        assert(ranges.size() >= 6 && "Must have at least 6 parameter ranges");
+        QV_CHECK(ranges.size() >= 6);
 
         for (const auto& kv : ranges) {
-            assert(std::isfinite(kv.second.first) &&
+            QV_CHECK(std::isfinite(kv.second.first) &&
                    std::isfinite(kv.second.second) &&
-                   kv.second.first < kv.second.second &&
-                   "Range bounds must be finite and ordered");
+                   kv.second.first < kv.second.second);
         }
         std::cout << "  Parameter ranges valid." << std::endl;
     }

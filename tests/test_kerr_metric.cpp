@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <cassert>
 #include <array>
 
 #ifndef M_PI
@@ -14,6 +13,7 @@
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
 #include "physics/PhysicsConstants.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -34,9 +34,8 @@ int main() {
         auto g_kerr = kerr.evaluate(event);
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                assert(std::abs(g_kerr[i][j] - g_schwarzschild[i][j]) /
-                       std::max(std::abs(g_schwarzschild[i][j]), 1.0) < tol
-                       && "Kerr should reduce to Schwarzschild when spin=0");
+                QV_CHECK(std::abs(g_kerr[i][j] - g_schwarzschild[i][j]) /
+                       std::max(std::abs(g_schwarzschild[i][j]), 1.0) < tol);
             }
         }
         (void)tol;
@@ -58,12 +57,12 @@ int main() {
         double expected_r_plus = M * (1.0 + std::sqrt(1.0 - 0.25));
         double expected_r_minus = M * (1.0 - std::sqrt(1.0 - 0.25));
 
-        assert(std::abs(r_plus - expected_r_plus) / expected_r_plus < 1e-6 && "Outer horizon radius incorrect");
-        assert(std::abs(r_minus - expected_r_minus) / expected_r_minus < 1e-6 && "Inner horizon radius incorrect");
+        QV_CHECK(std::abs(r_plus - expected_r_plus) / expected_r_plus < 1e-6);
+        QV_CHECK(std::abs(r_minus - expected_r_minus) / expected_r_minus < 1e-6);
         (void)expected_r_plus;
         (void)expected_r_minus;
-        assert(r_plus < rs && "Outer horizon should be inside Schwarzschild radius");
-        assert(r_minus < r_plus && "Inner horizon should be inside outer horizon");
+        QV_CHECK(r_plus < rs);
+        QV_CHECK(r_minus < r_plus);
 
         std::cout << "[PASS] Horizon radius calculation correct" << std::endl;
         std::cout << "       r_s = " << rs << " m" << std::endl;
@@ -80,13 +79,13 @@ int main() {
         double theta = M_PI / 2.0;  // Equatorial plane
 
         double omega = kerr.frameDraggingOmega(r, theta);
-        assert(std::abs(omega) > 1e-20 && "Frame-dragging should be non-zero for spinning black hole");
-        assert(omega > 0.0 && "Frame-dragging should be positive (co-rotating)");
+        QV_CHECK(std::abs(omega) > 1e-20);
+        QV_CHECK(omega > 0.0);
 
         // Schwarzschild should have zero frame-dragging
         SchwarzschildMetric schwarzschild(mass);
         double omega_schwarz = schwarzschild.frameDraggingOmega(r, theta);
-        assert(std::abs(omega_schwarz) < 1e-30 && "Schwarzschild should have zero frame-dragging");
+        QV_CHECK(std::abs(omega_schwarz) < 1e-30);
         (void)omega_schwarz;
 
         std::cout << "[PASS] Frame-dragging is non-zero for spin > 0" << std::endl;
@@ -101,7 +100,7 @@ int main() {
         {
             double r_eq_ergo = kerr.ergosphereRadiusEquatorial();
             double r_eq_expected = kerr.schwarzschildRadius();
-            assert(std::abs(r_eq_ergo - r_eq_expected) / r_eq_expected < 1e-6 && "Equatorial ergosphere should equal rs");
+            QV_CHECK(std::abs(r_eq_ergo - r_eq_expected) / r_eq_expected < 1e-6);
             (void)r_eq_ergo;
             (void)r_eq_expected;
         }
@@ -110,7 +109,7 @@ int main() {
         {
             double r_pole_ergo = kerr.ergosphereRadius(0.0);
             double r_pole_horizon = kerr.outerHorizonRadius();
-            assert(std::abs(r_pole_ergo - r_pole_horizon) / r_pole_horizon < 1e-6 && "Polar ergosphere should equal horizon");
+            QV_CHECK(std::abs(r_pole_ergo - r_pole_horizon) / r_pole_horizon < 1e-6);
             (void)r_pole_ergo;
             (void)r_pole_horizon;
         }
@@ -120,7 +119,7 @@ int main() {
             double theta = M_PI * i / 20.0;
             double r_ergo = kerr.ergosphereRadius(theta);
             double r_horizon = kerr.outerHorizonRadius();
-            assert(r_ergo >= r_horizon && "Ergosphere should be outside horizon at all angles");
+            QV_CHECK(r_ergo >= r_horizon);
             (void)r_ergo;
             (void)r_horizon;
         }
@@ -140,7 +139,7 @@ int main() {
         // Construct MetricTensor from evaluated g to check Lorentzian signature
         MetricTensor m;
         m.g = g;
-        assert(m.isLorentzian() && "Kerr metric should be Lorentzian outside horizon");
+        QV_CHECK(m.isLorentzian());
 
         std::cout << "[PASS] Metric is Lorentzian outside horizon" << std::endl;
     }
@@ -154,10 +153,10 @@ int main() {
         auto scalars = kerr.curvatureScalars(event);
         (void)scalars;
 
-        assert(scalars.valid && "Curvature scalars should be valid");
-        assert(std::abs(scalars.ricciScalar) < 1e-10 && "Ricci scalar should be zero (vacuum)");
-        assert(scalars.kretschmann > 0.0 && "Kretschmann scalar should be positive");
-        assert(scalars.weylSquared > 0.0 && "Weyl squared should be positive");
+        QV_CHECK(scalars.valid);
+        QV_CHECK(std::abs(scalars.ricciScalar) < 1e-10);
+        QV_CHECK(scalars.kretschmann > 0.0);
+        QV_CHECK(scalars.weylSquared > 0.0);
 
         std::cout << "[PASS] Curvature scalars are physically correct (vacuum)" << std::endl;
     }
@@ -175,7 +174,7 @@ int main() {
         double omega1 = kerr.frameDraggingOmega(r1, theta);
         double omega2 = kerr.frameDraggingOmega(r2, theta);
 
-        assert(omega1 > omega2 && "Frame-dragging should decrease with distance");
+        QV_CHECK(omega1 > omega2);
 
         std::cout << "[PASS] Frame-dragging decreases with distance" << std::endl;
         std::cout << "       omega(5rs) = " << omega1 << " rad/s" << std::endl;
@@ -193,8 +192,8 @@ int main() {
 
         // In extremal limit, r_+ = r_- = M
         double M = PHYS_G() * mass / (PHYS_C() * PHYS_C());
-        assert(std::abs(r_plus - M) / M < 0.01 && "Near-extremal outer horizon should be close to M");
-        assert(std::abs(r_minus - M) / M < 0.01 && "Near-extremal inner horizon should be close to M");
+        QV_CHECK(std::abs(r_plus - M) / M < 0.01);
+        QV_CHECK(std::abs(r_minus - M) / M < 0.01);
 
         std::cout << "[PASS] Extremal Kerr limit (spin -> 1) correct" << std::endl;
         std::cout << "       r_+ = " << r_plus << " m, M = " << M << " m" << std::endl;

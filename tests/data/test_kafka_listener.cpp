@@ -10,7 +10,6 @@
 
 #include <QCoreApplication>
 #include <QSignalSpy>
-#include <cassert>
 #include <iostream>
 
 #include "data/KafkaAlertListener.h"
@@ -21,6 +20,7 @@
 #include "data/IceCubeAdapter.h"
 #include "data/TESSAlertAdapter.h"
 #include "data/FermiGBMAdapter.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -38,8 +38,8 @@ int main(int argc, char** argv)
     localConfig.autoOffsetResetLatest = true;
 
     KafkaAlertListener listener(localConfig);
-    assert(listener.topics().size() == 2);
-    assert(listener.topics().contains(QStringLiteral("gcn.notices.LVC")));
+    QV_CHECK(listener.topics().size() == 2);
+    QV_CHECK(listener.topics().contains(QStringLiteral("gcn.notices.LVC")));
 
     // --- Start without a broker ------------------------------------------------
     // Should emit consumerError and NOT crash.
@@ -78,8 +78,8 @@ int main(int argc, char** argv)
     ligoAlert.insert("m2", QJsonValue(26.0));
     ligoAlert.insert("confidence", QJsonValue(0.98));
     router.routeAlert(ligoAlert);
-    assert(ligo.receivedAlerts().size() == 1);
-    assert(ligo.receivedAlerts()[0].event_id == "GW250601A");
+    QV_CHECK(ligo.receivedAlerts().size() == 1);
+    QV_CHECK(ligo.receivedAlerts()[0].event_id == "GW250601A");
 
     // Simulate an IceCube alert through the router
     QJsonObject nuAlert;
@@ -91,8 +91,8 @@ int main(int argc, char** argv)
     nuAlert.insert("dec", QJsonValue(12.0));
     nuAlert.insert("confidence", QJsonValue(0.91));
     router.routeAlert(nuAlert);
-    assert(icecube.receivedAlerts().size() == 1);
-    assert(icecube.receivedAlerts()[0].event_id == "IC250601A");
+    QV_CHECK(icecube.receivedAlerts().size() == 1);
+    QV_CHECK(icecube.receivedAlerts()[0].event_id == "IC250601A");
 
     // Simulate a TESS alert through the router
     QJsonObject tessAlert;
@@ -105,8 +105,8 @@ int main(int argc, char** argv)
     tessAlert.insert("ra", QJsonValue(180.0));
     tessAlert.insert("dec", QJsonValue(-45.0));
     router.routeAlert(tessAlert);
-    assert(tess.receivedAlerts().size() == 1);
-    assert(tess.receivedAlerts()[0].toi_id == "TOI-1234.01");
+    QV_CHECK(tess.receivedAlerts().size() == 1);
+    QV_CHECK(tess.receivedAlerts()[0].toi_id == "TOI-1234.01");
 
     // Simulate a Fermi GBM alert through the router
     FermiGBMAdapter fermi;
@@ -124,8 +124,8 @@ int main(int argc, char** argv)
     grbAlert.insert("false_alarm_rate", QJsonValue(0.001));
     grbAlert.insert("confidence", QJsonValue(0.95));
     router.routeAlert(grbAlert);
-    assert(fermi.receivedAlerts().size() == 1);
-    assert(fermi.receivedAlerts()[0].trigger_id == "bn240512001");
+    QV_CHECK(fermi.receivedAlerts().size() == 1);
+    QV_CHECK(fermi.receivedAlerts()[0].trigger_id == "bn240512001");
 
     std::cout << "KafkaListenerTest checks passed." << std::endl;
     return 0;

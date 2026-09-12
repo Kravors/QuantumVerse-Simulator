@@ -3,7 +3,6 @@
 // Verifies GR-consistent ringdown (no echo), injected horizon-echo anomaly,
 // empty input, NaN/Inf robustness, and suppression of tiny deviations.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -12,6 +11,7 @@
 #include "discovery/GWEchoHunter.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -74,7 +74,7 @@ int main() {
     {
         GWEchoHunter hunter;
         auto findings = hunter.analyze(metric, location, makePureRingdown());
-        assert(findings.empty() && "Pure ringdown must not trigger echo anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  Pure ringdown: no echo (findings=" << findings.size() << ")" << std::endl;
     }
 
@@ -82,10 +82,10 @@ int main() {
     {
         GWEchoHunter hunter;
         auto findings = hunter.analyze(metric, location, makeEchoRingdown());
-        assert(!findings.empty() && "Echo ringdown should produce a finding");
-        assert(findings.size() == 1u);
-        assert(findings[0].isAnomaly);
-        assert(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.size() == 1u);
+        QV_CHECK(findings[0].isAnomaly);
+        QV_CHECK(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
         std::cout << "  Echo ringdown: confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity) << std::endl;
     }
@@ -95,7 +95,7 @@ int main() {
         GWEchoHunter hunter;
         std::vector<Event4D> empty;
         auto findings = hunter.analyze(metric, location, empty);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Empty trajectory handled safely." << std::endl;
     }
 
@@ -105,7 +105,7 @@ int main() {
         std::vector<Event4D> small;
         for (int i = 0; i < 5; ++i) small.emplace_back(i * 0.05, 0.1, 0.0, 0.0);
         auto findings = hunter.analyze(metric, location, small);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Small trajectory handled safely." << std::endl;
     }
 
@@ -115,13 +115,13 @@ int main() {
         auto traj = makePureRingdown();
         traj[10] = Event4D(kNaN, traj[10].x, 0.0, 0.0);
         auto f1 = hunter.analyze(metric, location, traj);
-        assert(f1.empty());
+        QV_CHECK(f1.empty());
         std::cout << "  NaN observation handled safely." << std::endl;
 
         auto traj2 = makePureRingdown();
         traj2[20] = Event4D(traj2[20].t, kInf, 0.0, 0.0);
         auto f2 = hunter.analyze(metric, location, traj2);
-        assert(f2.empty());
+        QV_CHECK(f2.empty());
         std::cout << "  Inf observation handled safely." << std::endl;
     }
 
@@ -129,7 +129,7 @@ int main() {
     {
         GWEchoHunter hunter;
         auto findings = hunter.analyze(metric, location, makeNoisyRingdown());
-        assert(findings.empty() && "Tiny noise should not trigger echo anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  Tiny deviations suppressed correctly." << std::endl;
     }
 
@@ -137,10 +137,10 @@ int main() {
     {
         GWEchoHunter hunter;
         auto ranges = hunter.getParameterRanges();
-        assert(ranges.count("echo_delay") > 0);
-        assert(ranges.count("echo_ratio_threshold") > 0);
-        assert(ranges["echo_delay"].first < ranges["echo_delay"].second);
-        assert(ranges["echo_ratio_threshold"].first < ranges["echo_ratio_threshold"].second);
+        QV_CHECK(ranges.count("echo_delay") > 0);
+        QV_CHECK(ranges.count("echo_ratio_threshold") > 0);
+        QV_CHECK(ranges["echo_delay"].first < ranges["echo_delay"].second);
+        QV_CHECK(ranges["echo_ratio_threshold"].first < ranges["echo_ratio_threshold"].second);
         std::cout << "  Parameter ranges are valid." << std::endl;
     }
 

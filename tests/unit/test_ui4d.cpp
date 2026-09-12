@@ -6,8 +6,8 @@
 #include "spacetime/Event4D.h"
 #include "spacetime/MetricTensor.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -23,23 +23,23 @@ int main()
     UI4D ui4d;
     {
         const auto& solar = ui4d.getSolarSystemData();
-        assert(solar.bodies.count("Sun") == 1);
-        assert(solar.bodies.count("Earth") == 1);
-        assert(solar.bodies.at("Sun").isCentralBody);
-        assert(solar.bodies.at("Earth").semiMajorAxis > 0.0);
+        QV_CHECK(solar.bodies.count("Sun") == 1);
+        QV_CHECK(solar.bodies.count("Earth") == 1);
+        QV_CHECK(solar.bodies.at("Sun").isCentralBody);
+        QV_CHECK(solar.bodies.at("Earth").semiMajorAxis > 0.0);
         (void)solar;
     }
 
     // --- Config toggles -------------------------------------------------------
     ui4d.toggle4DView();
-    assert(ui4d.getConfig().showLightCones == true);
+    QV_CHECK(ui4d.getConfig().showLightCones == true);
     ui4d.toggleLightCones();
-    assert(ui4d.getConfig().showLightCones == false);
+    QV_CHECK(ui4d.getConfig().showLightCones == false);
     ui4d.toggleLightCones();
-    assert(ui4d.getConfig().showLightCones == true);
+    QV_CHECK(ui4d.getConfig().showLightCones == true);
 
     ui4d.toggleCausalGraph();
-    assert(ui4d.getConfig().showCausalStructure == true);
+    QV_CHECK(ui4d.getConfig().showCausalStructure == true);
 
     // --- Camera controls ------------------------------------------------------
     {
@@ -50,7 +50,7 @@ int main()
         {
             const auto& p = ui4d.getCamera().getPosition();
             (void)origPos;
-            assert(p.x == origPos.x + 1.0);
+            QV_CHECK(p.x == origPos.x + 1.0);
             (void)p;
         }
 
@@ -65,9 +65,9 @@ int main()
     {
         const auto& slices = ui4d.getSliceViews();
         (void)slices;
-        assert(slices.size() >= 2u);
-        assert(slices[0].getParameter() == 7.5);
-        assert(slices[1].getParameter() == -3.0);
+        QV_CHECK(slices.size() >= 2u);
+        QV_CHECK(slices[0].getParameter() == 7.5);
+        QV_CHECK(slices[1].getParameter() == -3.0);
     }
 
     // --- Causal graph ---------------------------------------------------------
@@ -81,23 +81,23 @@ int main()
         int idx2 = ui4d.addEvent(e2);
         int idx3 = ui4d.addEvent(e3);
         (void)idx1; (void)idx2; (void)idx3;
-        assert(ui4d.getCausalGraph().getNodes().size() == 3u);
+        QV_CHECK(ui4d.getCausalGraph().getNodes().size() == 3u);
     }
 
     ui4d.selectEvent(1);
-    assert(ui4d.getCausalGraph().getNodes().size() == 3u);
-    assert(ui4d.getCausalGraph().areCausallyRelated(0, 1) == true);
+    QV_CHECK(ui4d.getCausalGraph().getNodes().size() == 3u);
+    QV_CHECK(ui4d.getCausalGraph().areCausallyRelated(0, 1) == true);
 
     // --- Discovery probe ------------------------------------------------------
     ui4d.moveProbeTo(Event4D(0.0, 1e10, 0.0, 0.0));
-    assert(ui4d.getProbe().getPosition().x == 1e10);
+    QV_CHECK(ui4d.getProbe().getPosition().x == 1e10);
 
     {
         auto metric = std::make_shared<MetricTensor>();
         auto sample = ui4d.getProbe().sampleCurvature(metric);
         (void)sample;
-        assert(sample.kretschmann >= 0.0);
-        assert(sample.ricci == 0.0);
+        QV_CHECK(sample.kretschmann >= 0.0);
+        QV_CHECK(sample.ricci == 0.0);
     }
 
     // --- Waypoints ------------------------------------------------------------

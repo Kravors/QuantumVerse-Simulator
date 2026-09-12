@@ -11,7 +11,6 @@
  *   - Parameter ranges well-formed
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -20,6 +19,7 @@
 #include "discovery/GravitationalWaveMemoryAnalyzer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -93,12 +93,12 @@ int main() {
         auto traj = makeBurstWithMemory(1.0e-20, 1.0, 0.0001, memoryOffset);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(!findings.empty() && "Injected memory offset should be detected");
+        QV_CHECK(!findings.empty());
         if (!findings.empty()) {
             [[maybe_unused]] double observed = findings[0].parameters.at("observed_offset");
             [[maybe_unused]] double snr = findings[0].parameters.at("snr");
-            assert(snr > 1.5 && "SNR should exceed threshold");
-            assert(std::abs(observed) > 0.0 && "Observed offset should be nonzero");
+            QV_CHECK(snr > 1.5);
+            QV_CHECK(std::abs(observed) > 0.0);
         }
         std::cout << "  Memory offset recovery: OK." << std::endl;
     }
@@ -114,7 +114,7 @@ int main() {
         auto traj = makeBurstWithMemory(1.0e-20, 1.0, 0.0001, 0.0);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(findings.empty() && "Burst without memory offset should not be detected");
+        QV_CHECK(findings.empty());
         std::cout << "  Burst-only rejection: OK." << std::endl;
     }
 
@@ -129,7 +129,7 @@ int main() {
         auto traj = makePureNoise(10000, 1.0e-21);
         auto findings = analyzer.analyze(metric, location, traj);
 
-        assert(findings.empty() && "Pure noise should not trigger detection");
+        QV_CHECK(findings.empty());
         std::cout << "  Noise rejection: OK." << std::endl;
     }
 
@@ -156,8 +156,7 @@ int main() {
         if (!findings1.empty() && !findings2.empty()) {
             [[maybe_unused]] double expected1 = findings1[0].parameters.at("expected_offset");
             [[maybe_unused]] double expected2 = findings2[0].parameters.at("expected_offset");
-            assert(std::abs(expected2 - expected1) > 0.0 &&
-                   "Different energies should yield different expected offsets");
+            QV_CHECK(std::abs(expected2 - expected1) > 0.0);
         }
         std::cout << "  Varied energy scaling: OK." << std::endl;
     }
@@ -171,7 +170,7 @@ int main() {
 
         std::vector<Event4D> empty;
         auto findings = analyzer.analyze(metric, location, empty);
-        assert(findings.empty() && "Empty trajectory must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> nanTraj;
         for (size_t i = 0; i < 64; ++i) {
@@ -179,7 +178,7 @@ int main() {
             nanTraj.emplace_back(t, kNaN, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, nanTraj);
-        assert(findings.empty() && "NaN waveform must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> infTraj;
         for (size_t i = 0; i < 64; ++i) {
@@ -187,7 +186,7 @@ int main() {
             infTraj.emplace_back(t, kInf, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, infTraj);
-        assert(findings.empty() && "Inf waveform must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::vector<Event4D> shortTraj;
         for (size_t i = 0; i < 10; ++i) {
@@ -195,7 +194,7 @@ int main() {
             shortTraj.emplace_back(t, 1.0, 0.0, 0.0);
         }
         findings = analyzer.analyze(metric, location, shortTraj);
-        assert(findings.empty() && "Short trajectory must yield no findings");
+        QV_CHECK(findings.empty());
 
         std::cout << "  Robustness handled." << std::endl;
     }
@@ -204,13 +203,12 @@ int main() {
     {
         GravitationalWaveMemoryAnalyzer analyzer;
         auto ranges = analyzer.getParameterRanges();
-        assert(ranges.size() >= 4 && "Must have at least 4 parameter ranges");
+        QV_CHECK(ranges.size() >= 4);
 
         for ([[maybe_unused]] const auto& kv : ranges) {
-            assert(std::isfinite(kv.second.first) &&
+            QV_CHECK(std::isfinite(kv.second.first) &&
                    std::isfinite(kv.second.second) &&
-                   kv.second.first < kv.second.second &&
-                   "Range bounds must be finite and ordered");
+                   kv.second.first < kv.second.second);
         }
         std::cout << "  Parameter ranges valid." << std::endl;
     }

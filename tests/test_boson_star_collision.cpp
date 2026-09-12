@@ -3,7 +3,6 @@
 // strain: a pre-merger chirp (growing frequency/amplitude) followed by a
 // damped ringdown. Convention: t = time, z = GW strain.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -11,6 +10,7 @@
 #include "discovery/BosonStarCollisionPredictor.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== BosonStarCollisionPredictor Test ===" << std::endl;
@@ -40,17 +40,17 @@ int main() {
     quantumverse::BosonStarCollisionPredictor predictor;
     auto findings = predictor.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No merger detected");
+    QV_CHECK(!findings.empty());
 
     const auto& f = findings.front();
     bool mentions = f.description.find("boson star") != std::string::npos ||
                     f.description.find("merger") != std::string::npos;
-    assert(mentions && "Finding does not mention boson star merger");
+    QV_CHECK(mentions);
     (void)mentions;
 
     auto mit = f.parameters.find("merger_time");
-    assert(mit != f.parameters.end() && "merger_time parameter missing");
-    assert(std::abs(mit->second - tMerger) < 1.0 && "Merger time mismatch");
+    QV_CHECK(mit != f.parameters.end());
+    QV_CHECK_NEAR(mit, >second - tMerger, 1.0);
 
     std::cout << "Detected boson star merger at t=" << mit->second << std::endl;
 
@@ -60,12 +60,12 @@ int main() {
         zeroTraj.emplace_back(t, 0.0, 0.0, 0.0);
     }
     auto zero = predictor.analyze(metric, location, zeroTraj);
-    assert(zero.empty() && "False positive on zero signal");
+    QV_CHECK(zero.empty());
 
     // --- Edge case: too few points -----------------------------------------
     std::vector<quantumverse::Event4D> tiny(5);
     auto few = predictor.analyze(metric, location, tiny);
-    assert(few.empty() && "Short trajectory should yield no findings");
+    QV_CHECK(few.empty());
 
     std::cout << "All BosonStarCollisionPredictor tests passed." << std::endl;
     return 0;

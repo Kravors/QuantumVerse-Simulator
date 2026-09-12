@@ -2,7 +2,6 @@
 // Validates EMBrightGWCounterpartDetector against synthetic GW-EM
 // coincidences, non-coincident pairs, and degenerate inputs.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -11,6 +10,7 @@
 #include "discovery/EMBrightGWCounterpartDetector.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -58,7 +58,7 @@ int main() {
     {
         EMBrightGWCounterpartDetector detector;
         auto findings = detector.analyze(metric, location, emptyTrajectory);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Empty trajectory handled safely." << std::endl;
     }
 
@@ -67,7 +67,7 @@ int main() {
         EMBrightGWCounterpartDetector detector;
         auto traj = makeNonCoincidentTrajectory();
         auto findings = detector.analyze(metric, location, traj);
-        assert(findings.empty() && "Non-coincident trajectory should not trigger");
+        QV_CHECK(findings.empty());
         std::cout << "  Non-coincident trajectory: no findings." << std::endl;
     }
 
@@ -76,10 +76,10 @@ int main() {
         EMBrightGWCounterpartDetector detector;
         auto traj = makeCoincidentTrajectory();
         auto findings = detector.analyze(metric, location, traj);
-        assert(!findings.empty() && "Coincident GW-EM pair should produce a finding");
-        assert(findings.size() == 1u);
-        assert(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
-        assert(findings[0].severity >= AlertSeverity::MEDIUM);
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.size() == 1u);
+        QV_CHECK(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
+        QV_CHECK(findings[0].severity >= AlertSeverity::MEDIUM);
         std::cout << "  Coincident GW-EM pair: finding confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity) << std::endl;
     }
@@ -91,14 +91,14 @@ int main() {
         nanTraj.emplace_back(kNaN, 0.0, 0.0, 0.0);
         nanTraj.emplace_back(0.0, kNaN, 0.0, 0.0);
         auto findings = detector.analyze(metric, location, nanTraj);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  NaN coordinates handled safely." << std::endl;
 
         std::vector<Event4D> infTraj;
         infTraj.emplace_back(kInf, 0.0, 0.0, 0.0);
         infTraj.emplace_back(0.0, kInf, 0.0, 0.0);
         auto findings2 = detector.analyze(metric, location, infTraj);
-        assert(findings2.empty());
+        QV_CHECK(findings2.empty());
         std::cout << "  Inf coordinates handled safely." << std::endl;
     }
 
@@ -108,7 +108,7 @@ int main() {
         detector.setParameter("angular_threshold_deg", 0.01);
         auto traj = makeCoincidentTrajectory();
         auto findings = detector.analyze(metric, location, traj);
-        assert(findings.empty() && "Tight angular threshold should suppress the counterpart");
+        QV_CHECK(findings.empty());
         std::cout << "  Tight angular threshold suppressed counterpart correctly." << std::endl;
     }
 
@@ -122,7 +122,7 @@ int main() {
             detector.setParameter("time_window_sec", 5.0);
             auto traj = makeCoincidentTrajectory();
             auto findings = detector.analyze(metric, location, traj);
-            assert(!findings.empty() && "Wider time window should recover the counterpart");
+            QV_CHECK(!findings.empty());
             std::cout << "  Wider time window recovered counterpart." << std::endl;
         }
 

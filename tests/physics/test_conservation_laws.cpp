@@ -7,9 +7,9 @@
 #include "physics/GeodesicDeviation.h"
 #include "coord_helpers.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
 #include <vector>
+#include "test_assert.h"
 
 using namespace quantumverse::test_helpers;
 
@@ -49,8 +49,7 @@ void test_bianchi_schwarzschild() {
         // In vacuum, Einstein tensor = 0, so Bianchi is satisfied
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                assert(std::abs(result.einstein[i][j]) < 1e-2 &&
-                       "Einstein tensor should be ~0 in Schwarzschild vacuum");
+                QV_CHECK_NEAR(result.einstein[i][j], 0.0, 1e-2);
             }
         }
     }
@@ -71,13 +70,13 @@ void test_stress_energy_conservation() {
     auto result = calc.computeAll(ev);
 
     // Vacuum: Ricci = 0 => via EFE: G_μν = 8π T_μν => T_μν = 0
-    assert(std::abs(result.ricciScalar) < 1e-2 && "Ricci scalar should be ~0 in vacuum");
+    QV_CHECK_NEAR(result.ricciScalar, 0.0, 1e-2);
     // If Ricci = 0 and Einstein = 0, then stress-energy is conserved
     double maxEinstein = 0.0;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             maxEinstein = std::max(maxEinstein, std::abs(result.einstein[i][j]));
-    assert(maxEinstein < 1e-2 && "Einstein tensor should be ~0 in vacuum");
+    QV_CHECK(maxEinstein < 1e-2);
     std::cout << "[PASS] Stress-energy conservation: vacuum T_μν=0" << std::endl;
 }
 
@@ -107,7 +106,7 @@ void test_geodesic_constraint_timelike() {
     for (int i = 0; i < 4; i++) vel[i] *= scale;
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
-    assert(!traj.empty() && traj.size() > 5);
+    QV_CHECK(!traj.empty() && traj.size() > 5);
 
     double maxDrift = 0.0;
     for (const auto& step : traj) {
@@ -118,7 +117,7 @@ void test_geodesic_constraint_timelike() {
                 norm += g[i][j] * vel[i] * vel[j];
         maxDrift = std::max(maxDrift, std::abs(norm + 1.0));
     }
-    assert(maxDrift < 1e-3 && "Timelike norm should stay near -1");
+    QV_CHECK(maxDrift < 1e-3);
     std::cout << "[PASS] Geodesic constraint: max drift from -1 = " << maxDrift << std::endl;
 }
 
@@ -142,7 +141,7 @@ void test_raychaudhuri_vacuum() {
     auto expansion = GeodesicDeviation::raychaudhuriExpansion(
         *sch, 1.0, 0.1, 2.0);
 
-    assert(std::isfinite(expansion) && "Expansion should be finite");
+    QV_CHECK(std::isfinite(expansion));
     std::cout << "[PASS] Raychaudhuri expansion computed: " << expansion << std::endl;
 }
 
@@ -162,8 +161,7 @@ void test_riemann_antisymmetry() {
         for (int sigma = 0; sigma < 4; sigma++)
             for (int mu = 0; mu < 4; mu++)
                 for (int nu = 0; nu < 4; nu++)
-                    assert(std::abs(R[rho][sigma][mu][nu] + R[rho][sigma][nu][mu]) < 1e-6 &&
-                           "Riemann should be antisymmetric in μν");
+                    QV_CHECK_NEAR(R[rho][sigma][mu][nu] + R[rho][sigma][nu][mu], 0.0, 1e-6);
 
     std::cout << "[PASS] Riemann antisymmetric in μ↔ν" << std::endl;
 }
@@ -214,8 +212,7 @@ void test_ricci_contraction() {
             for (int lam = 0; lam < 4; lam++) {
                 R_manual += R[lam][mu][lam][nu];
             }
-            assert(std::abs(Ricci[mu][nu] - R_manual) < 1e-3 &&
-                   "Ricci should match Riemann contraction");
+            QV_CHECK_NEAR(Ricci[mu][nu] - R_manual, 0.0, 1e-3);
         }
     }
     std::cout << "[PASS] Ricci = R^λ_μλν contraction verified" << std::endl;
@@ -232,7 +229,7 @@ void test_ricci_scalar_trace() {
     Event4D ev(0.0, 1e8, 0.0, 0.0);
     calc.computeRicciScalar(ev);
     double R = calc.getRicciScalar();
-    assert(std::abs(R) < 1e-2 && "Ricci scalar should be ~0 in Schwarzschild");
+    QV_CHECK_NEAR(R, 0.0, 1e-2);
     std::cout << "[PASS] Ricci scalar trace: R = " << R << " (vacuum ~0)" << std::endl;
 }
 
@@ -253,8 +250,7 @@ void test_einstein_tensor_formula() {
             // Wait, einstein IS G_μν. So check that G_μν = R_μν - 0.5 g_μν R
             auto g = sch->evaluate(ev);
             [[maybe_unused]] double G_check = result.ricci[i][j] - 0.5 * g[i][j] * result.ricciScalar;
-            assert(std::abs(result.einstein[i][j] - G_check) < 1e-3 &&
-                   "Einstein tensor should equal R_μν - 0.5 g_μν R");
+            QV_CHECK_NEAR(result.einstein[i][j] - G_check, 0.0, 1e-3);
         }
     }
     std::cout << "[PASS] Einstein tensor: G_μν = R_μν - 0.5 g_μν R verified" << std::endl;
@@ -273,7 +269,7 @@ void test_kretschmann_full_contraction() {
     // Exact value
     double K_exact = 48.0 * Event4D::G * Event4D::G * M * M /
                      std::pow(Event4D::C, 4) / std::pow(1e8, 6);
-    assert(std::abs(result.kretschmann - K_exact) < 1e-6);
+    QV_CHECK_NEAR(result.kretschmann - K_exact, 0.0, 1e-6);
     std::cout << "[PASS] Kretschmann full contraction: " << result.kretschmann
               << " == " << K_exact << std::endl;
 }
@@ -300,7 +296,7 @@ void test_timelike_norm_preservation() {
     for (int i = 0; i < 4; i++) vel[i] *= scale;
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 3.0, true);
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
 
     double maxNormDrift = 0.0;
     for (const auto& step : traj) {
@@ -311,7 +307,7 @@ void test_timelike_norm_preservation() {
                 norm += g[i][j] * vel[i] * vel[j];
         maxNormDrift = std::max(maxNormDrift, std::abs(norm + 1.0));
     }
-    assert(maxNormDrift < 1e-3 && "Timelike norm should stay near -1");
+    QV_CHECK(maxNormDrift < 1e-3);
     std::cout << "[PASS] Timelike norm preservation: max drift = " << maxNormDrift << std::endl;
 }
 
@@ -332,8 +328,7 @@ void test_riemann_index_exchange() {
         for (int nu = 0; nu < 4; nu++)
             for (int rho = 0; rho < 4; rho++)
                 for (int sigma = 0; sigma < 4; sigma++)
-                    assert(std::abs(R[mu][nu][rho][sigma] + R[nu][mu][rho][sigma]) < 1e-6 &&
-                           "Riemann antisymmetric in first two indices");
+                    QV_CHECK_NEAR(R[mu][nu][rho][sigma] + R[nu][mu][rho][sigma], 0.0, 1e-6);
 
     std::cout << "[PASS] R_μνρσ = -R_νμρσ verified" << std::endl;
 }
@@ -349,8 +344,7 @@ void test_weyl_equals_kretschmann() {
     Event4D ev(0.0, 1e8, 0.0, 0.0);
     [[maybe_unused]] auto result = calc.computeAll(ev);
 
-    assert(std::abs(result.weylSquared - result.kretschmann) < 1e-3 &&
-           "Weyl^2 should equal Kretschmann in vacuum");
+    QV_CHECK_NEAR(result.weylSquared - result.kretschmann, 0.0, 1e-3);
     std::cout << "[PASS] Weyl^2 = Kretschmann in vacuum Schwarzschild" << std::endl;
 }
 
@@ -367,7 +361,7 @@ void test_frw_matter_conservation() {
         double a = frw.scaleFactor(f * t0);
         double rho_propto = 1.0 / (a * a * a);
         (void)rho_propto;
-        assert(a > 0.0 && "Scale factor should be positive");
+        QV_CHECK(a > 0.0);
     }
     std::cout << "[PASS] FRW matter density conservation: ρ ∝ a^{-3}" << std::endl;
 }
@@ -383,9 +377,9 @@ void test_geodesic_deviation_exact() {
 
     [[maybe_unused]] auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
     [[maybe_unused]] double r = 10.0 * M;
-    assert(std::abs(tidal[0][0] - (-2.0 * M / (r * r * r))) < 1e-5);
-    assert(std::abs(tidal[1][1] - (M / (r * r * r))) < 1e-5);
-    assert(std::abs(tidal[2][2] - (M / (r * r * r))) < 1e-5);
+    QV_CHECK_NEAR(tidal[0][0] - (-2.0 * M / (r * r * r)), 0.0, 1e-5);
+    QV_CHECK_NEAR(tidal[1][1] - (M / (r * r * r)), 0.0, 1e-5);
+    QV_CHECK_NEAR(tidal[2][2] - (M / (r * r * r)), 0.0, 1e-5);
     std::cout << "[PASS] Geodesic deviation tidal tensor exact" << std::endl;
 }
 
@@ -402,7 +396,7 @@ void test_schwarzschild_determinant() {
     gm.g = g;
 
     [[maybe_unused]] double det = gm.determinant();
-    assert(std::abs(det - (-1.0)) < 1e-9);
+    QV_CHECK_NEAR(det - (-1.0), 0.0, 1e-9);
     std::cout << "[PASS] Schwarzschild determinant exact" << std::endl;
 }
 
@@ -429,7 +423,7 @@ void test_metric_inverse_delta() {
             for (int k = 0; k < 4; k++)
                 delta += g_inv[mu][k] * g[k][nu];
             double expected = (mu == nu) ? 1.0 : 0.0;
-            assert(std::abs(delta - expected) < 1e-10);
+            QV_CHECK_NEAR(delta - expected, 0.0, 1e-10);
             (void)delta;
             (void)expected;
         }
@@ -453,7 +447,7 @@ void test_null_vector_norm() {
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             norm += g[i][j] * k[i] * k[j];
-    assert(std::abs(norm) < 1e-8 && "Null vector should have zero norm");
+    QV_CHECK_NEAR(norm, 0.0, 1e-8);
     std::cout << "[PASS] Null vector norm = 0 verified" << std::endl;
 }
 
@@ -472,7 +466,7 @@ void test_frw_metric_determinant() {
     double r = ev.x;
     double det_expected = -Event4D::C * Event4D::C * a * a * a * a * a * a *
                           r * r * r * r * std::sin(ev.y) * std::sin(ev.y);
-    assert(std::abs(det - det_expected) < 1e-6);
+    QV_CHECK_NEAR(det - det_expected, 0.0, 1e-6);
     (void)det;
     (void)det_expected;
     std::cout << "[PASS] FRW metric determinant exact" << std::endl;
@@ -495,8 +489,8 @@ void test_sphere_geodesic() {
     // For θ=π/2: dθ^2 + dφ^2 is the metric on unit sphere scaled by r
     // Use a relative tolerance (r^2 is ~1e16, so an absolute 1e-2 is too tight
     // for the Cartesian->spherical round-trip).
-    assert(std::abs(g[2][2] - r * r) < r * r * 1e-6);
-    assert(std::abs(g[3][3] - r * r) < r * r * 1e-6);
+    QV_CHECK_NEAR(g[2][2] - r * r, 0.0, r * r * 1e-6);
+    QV_CHECK_NEAR(g[3][3] - r * r, 0.0, r * r * 1e-6);
     std::cout << "[PASS] Spatial 2-sphere geodesic metric correct" << std::endl;
 }
 
@@ -510,9 +504,9 @@ void test_riemann_invariants() {
     Event4D ev(0.0, 1e8, 0.0, 0.0);
     auto result = calc.computeAll(ev);
 
-    assert(result.kretschmann > 0.0 && "Kretschmann should be positive");
-    assert(std::isfinite(result.kretschmann));
-    assert(result.ricciScalar >= 0.0 || std::abs(result.ricciScalar) < 1e-2);
+    QV_CHECK(result.kretschmann > 0.0);
+    QV_CHECK(std::isfinite(result.kretschmann));
+    QV_CHECK(result.ricciScalar >= 0.0 || std::abs(result.ricciScalar) < 1e-2);
     std::cout << "[PASS] Riemann invariants: K = " << result.kretschmann
               << ", R = " << result.ricciScalar << std::endl;
 }
@@ -529,9 +523,9 @@ void test_jacobi_field() {
     Event4D dxi(0.0, 0.0, 1.0, 0.0);
 
     auto jacobi = GeodesicDeviation::solve(sch, pos, vel, xi, dxi, 2.0, 100);
-    assert(!jacobi.empty() && "Jacobi field should not be empty");
+    QV_CHECK(!jacobi.empty());
     for (const auto& j : jacobi) {
-        assert(std::isfinite(j.xi.t) && "Jacobi xi.t should be finite");
+        QV_CHECK(std::isfinite(j.xi.t));
         (void)j;
     }
     std::cout << "[PASS] Jacobi field geodesic deviation: " << jacobi.size() << " points" << std::endl;
@@ -550,8 +544,7 @@ void test_tidal_tensor_symmetry() {
     [[maybe_unused]] auto tidal = GeodesicDeviation::tidalTensor(sch, pos, vel);
     for (int i = 0; i < 3; i++)
         for (int j = i + 1; j < 3; j++)
-            assert(std::abs(tidal[i][j] - tidal[j][i]) < 1e-6 &&
-                   "Tidal tensor should be symmetric");
+            QV_CHECK_NEAR(tidal[i][j] - tidal[j][i], 0.0, 1e-6);
     std::cout << "[PASS] Tidal tensor symmetric" << std::endl;
 }
 
@@ -570,7 +563,7 @@ void test_redshift_finite_outside_horizon() {
         if (r <= rs) continue;
         Event4D ev(0.0, r, 0.0, 0.0);
         double z = handler.getGravitationalRedshift(ev);
-        assert(std::isfinite(z) && z > 0.0 && "Redshift should be finite and positive");
+        QV_CHECK(std::isfinite(z) && z > 0.0);
         (void)z;
     }
     std::cout << "[PASS] Redshift finite and positive outside horizon" << std::endl;
@@ -591,7 +584,7 @@ void test_killing_energy_conservation() {
     std::array<double, 4> vel = {0.8, 0.0, 0.0, 0.1};
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 3.0, true);
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
 
     // E = -g_tt u^t should be conserved
     auto g0 = sch->evaluate(start);
@@ -603,7 +596,7 @@ void test_killing_energy_conservation() {
         double E = -g[0][0] * vel[0];
         maxDrift = std::max(maxDrift, std::abs(E - E0));
     }
-    assert(maxDrift < 1e-2 && "Killing energy should be conserved");
+    QV_CHECK(maxDrift < 1e-2);
     std::cout << "[PASS] Killing energy conservation: max drift = " << maxDrift << std::endl;
 }
 
@@ -619,7 +612,7 @@ void test_stress_energy_trace_vacuum() {
     [[maybe_unused]] auto result = calc.computeAll(ev);
 
     // In vacuum, Ricci = 0 and Einstein = 0
-    assert(std::abs(result.ricciScalar) < 1e-2);
+    QV_CHECK_NEAR(result.ricciScalar, 0.0, 1e-2);
     std::cout << "[PASS] Stress-energy trace = 0 in vacuum" << std::endl;
 }
 
@@ -644,7 +637,7 @@ void test_einstein_zero_grid() {
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 maxG = std::max(maxG, std::abs(result.einstein[i][j]));
-        assert(maxG < 1e-1 && "Einstein should be ~0 everywhere in vacuum");
+        QV_CHECK(maxG < 1e-1);
     }
     (void)maxG;
     std::cout << "[PASS] Einstein = 0 at " << points.size() << " grid points" << std::endl;
@@ -675,7 +668,7 @@ void test_long_timelike_norm_drift() {
     for (int i = 0; i < 4; i++) vel[i] *= scale;
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
-    assert(!traj.empty() && traj.size() > 20);
+    QV_CHECK(!traj.empty() && traj.size() > 20);
 
     double maxDrift = 0.0;
     for (const auto& step : traj) {
@@ -686,7 +679,7 @@ void test_long_timelike_norm_drift() {
                 norm += g[i][j] * vel[i] * vel[j];
         maxDrift = std::max(maxDrift, std::abs(norm + 1.0));
     }
-    assert(maxDrift < 1e-2 && "Long-term norm drift should be small");
+    QV_CHECK(maxDrift < 1e-2);
     std::cout << "[PASS] Long timelike geodesic norm drift = " << maxDrift << std::endl;
 }
 
@@ -702,7 +695,7 @@ void test_conjugate_points() {
     Event4D dxi(0.0, 0.0, 0.1, 0.0);
 
     auto jacobi = GeodesicDeviation::solve(sch, pos, vel, xi, dxi, 5.0, 200);
-    assert(!jacobi.empty());
+    QV_CHECK(!jacobi.empty());
     auto conj = GeodesicDeviation::findConjugatePoints(jacobi);
     (void)conj;
     std::cout << "[PASS] Conjugate points computed: " << jacobi.size() << " Jacobi steps" << std::endl;
@@ -721,7 +714,7 @@ void test_ricci_flat_grid() {
         for (double th = 0.1; th < M_PI; th += 0.7) {
             Event4D ev(0.0, r, th, 0.5);
             [[maybe_unused]] auto result = calc.computeAll(ev);
-            assert(std::abs(result.ricciScalar) < 1e-2);
+            QV_CHECK_NEAR(result.ricciScalar, 0.0, 1e-2);
             count++;
         }
     }
@@ -738,7 +731,7 @@ void test_kretschmann_positive() {
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
         [[maybe_unused]] auto s = sch.curvatureScalars(ev);
-        assert(s.kretschmann > 0.0 && "Kretschmann should be positive");
+        QV_CHECK(s.kretschmann > 0.0);
     }
     std::cout << "[PASS] Kretschmann positive definite" << std::endl;
 }
@@ -753,8 +746,8 @@ void test_max_riemann_component() {
     Event4D ev(0.0, 1e8, 0.0, 0.0);
     auto result = calc.computeAll(ev);
 
-    assert(result.maxRiemannComponent > 0.0 && "Max Riemann should be positive");
-    assert(std::isfinite(result.maxRiemannComponent));
+    QV_CHECK(result.maxRiemannComponent > 0.0);
+    QV_CHECK(std::isfinite(result.maxRiemannComponent));
     std::cout << "[PASS] Max Riemann component = " << result.maxRiemannComponent << std::endl;
 }
 
@@ -771,11 +764,10 @@ void test_geodesic_equatorial_plane() {
     std::array<double, 4> vel = {1.0, 0.0, 0.0, 0.2};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     (void)traj;
     for (const auto& step [[maybe_unused]] : traj) {
-        assert(std::abs(step.event.y - M_PI / 2.0) < 0.1 &&
-               "Geodesic should stay near equatorial plane");
+        QV_CHECK_NEAR(step.event.y - M_PI / 2.0, 0.0, 0.1);
     }
     std::cout << "[PASS] Geodesic stays in equatorial plane" << std::endl;
 }

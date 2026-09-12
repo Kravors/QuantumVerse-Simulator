@@ -7,9 +7,9 @@
 #include "physics/SingularityHandler.h"
 #include "physics/PhysicsValidator.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
 #include <vector>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -42,7 +42,7 @@ void test_schwarzschild_singularity_approach() {
     std::array<double, 4> vel = {1.0, -0.02, 0.0, 0.0};  // inward
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     bool hit_singularity = false;
     for (const auto& step : traj) {
         double r = step.event.spatialLength();
@@ -51,10 +51,10 @@ void test_schwarzschild_singularity_approach() {
             break;
         }
         // No NaN in trajectory
-        assert(std::isfinite(step.event.t) && "t should be finite");
-        assert(std::isfinite(step.event.x) && "x should be finite");
-        assert(std::isfinite(step.event.y) && "y should be finite");
-        assert(std::isfinite(step.event.z) && "z should be finite");
+        QV_CHECK(std::isfinite(step.event.t));
+        QV_CHECK(std::isfinite(step.event.x));
+        QV_CHECK(std::isfinite(step.event.y));
+        QV_CHECK(std::isfinite(step.event.z));
     }
     std::cout << "[PASS] Schwarzschild singularity approach: hit_singularity="
               << hit_singularity << ", steps=" << traj.size() << std::endl;
@@ -70,16 +70,16 @@ void test_planck_scale_curvature() {
 
     Event4D ev(0.0, r_planck, 0.0, 0.0);
     auto s = sch.curvatureScalars(ev);
-    assert(s.valid);
+    QV_CHECK(s.valid);
     // At Planck scale, Kretschmann should be enormous but finite (or clamped)
-    assert(std::isfinite(s.kretschmann) && "Kretschmann should be finite at Planck scale");
+    QV_CHECK(std::isfinite(s.kretschmann));
     std::cout << "[PASS] Planck-scale curvature: K = " << s.kretschmann << std::endl;
 
     // CurvatureCalculator should not crash
     auto metric = std::make_shared<SchwarzschildMetric>(M);
     CurvatureCalculator calc(metric);
     auto result = calc.computeAll(ev);
-    assert(std::isfinite(result.kretschmann) && "FD curvature should be finite");
+    QV_CHECK(std::isfinite(result.kretschmann));
     (void)result;
 }
 
@@ -93,12 +93,12 @@ void test_frw_big_bang() {
 
     double t_early = 1e-10;
     double a = frw.scaleFactor(t_early);
-    assert(a >= 0.0 && "Scale factor should be non-negative");
-    assert(std::isfinite(a) && "Scale factor should be finite");
+    QV_CHECK(a >= 0.0);
+    QV_CHECK(std::isfinite(a));
 
     // H diverges as t->0, but implementation should clamp
     double H = frw.hubbleParameter(t_early);
-    assert(std::isfinite(H) || (H == 0.0));
+    QV_CHECK(std::isfinite(H) || (H == 0.0));
     std::cout << "[PASS] FRW Big Bang: a(1e-10) = " << a << ", H = " << H << std::endl;
 }
 
@@ -114,9 +114,9 @@ void test_kerr_naked_singularity() {
         M * Event4D::C * Event4D::C / Event4D::G,
         a * M * Event4D::C * Event4D::C * Event4D::C / Event4D::G, 0.0);
 
-    assert(handler.getProperties().is_naked && "Should detect naked singularity");
+    QV_CHECK(handler.getProperties().is_naked);
     Event4D ev(0.0, 5.0 * M, 0.0, 0.0);
-    assert(!handler.isInsideEventHorizon(ev) && "Naked singularity has no horizon");
+    QV_CHECK(!handler.isInsideEventHorizon(ev));
     std::cout << "[PASS] Kerr naked singularity (a > rs/2) detected" << std::endl;
 }
 
@@ -128,12 +128,12 @@ void test_schwarzschild_tiny_mass() {
     SchwarzschildMetric sch(M);
     Event4D ev(0.0, 1e5, 0.0, 0.0);
     auto g = sch.evaluate(ev);
-    assert(std::isfinite(g[0][0]) && "g_tt should be finite");
-    assert(std::isfinite(g[1][1]) && "g_rr should be finite");
+    QV_CHECK(std::isfinite(g[0][0]));
+    QV_CHECK(std::isfinite(g[1][1]));
     (void)g;
     auto s = sch.curvatureScalars(ev);
-    assert(s.valid);
-    assert(std::isfinite(s.kretschmann));
+    QV_CHECK(s.valid);
+    QV_CHECK(std::isfinite(s.kretschmann));
     (void)s;
     (void)s;
     std::cout << "[PASS] Schwarzschild tiny mass (M=1e-50) stable" << std::endl;
@@ -147,12 +147,12 @@ void test_schwarzschild_huge_mass() {
     SchwarzschildMetric sch(M);
     Event4D ev(0.0, 1e20, 0.0, 0.0);
     auto g = sch.evaluate(ev);
-    assert(std::isfinite(g[0][0]) && "g_tt should be finite");
-    assert(std::isfinite(g[1][1]) && "g_rr should be finite");
+    QV_CHECK(std::isfinite(g[0][0]));
+    QV_CHECK(std::isfinite(g[1][1]));
     (void)g;
     auto s = sch.curvatureScalars(ev);
-    assert(s.valid);
-    assert(std::isfinite(s.kretschmann));
+    QV_CHECK(s.valid);
+    QV_CHECK(std::isfinite(s.kretschmann));
     (void)s;
     (void)s;
     std::cout << "[PASS] Schwarzschild huge mass (M=1e50) stable" << std::endl;
@@ -170,8 +170,8 @@ void test_kerr_extremal_spin() {
         M * Event4D::C * Event4D::C / Event4D::G,
         a * M * Event4D::C * Event4D::C / Event4D::G, 0.0);
 
-    assert(!handler.getProperties().is_naked && "Should have event horizon");
-    assert(handler.getProperties().event_horizon_radius > 0.0);
+    QV_CHECK(!handler.getProperties().is_naked);
+    QV_CHECK(handler.getProperties().event_horizon_radius > 0.0);
     std::cout << "[PASS] Kerr extremal spin (a ~ rs/2): horizon exists" << std::endl;
 }
 
@@ -188,9 +188,9 @@ void test_event_horizon_boundary() {
     Event4D inside(0.0, rs * 0.5, 0.0, 0.0);
     Event4D on_horizon(0.0, rs, 0.0, 0.0);
 
-    assert(!handler.isInsideEventHorizon(outside));
-    assert(handler.isInsideEventHorizon(inside));
-    assert(handler.isInsideEventHorizon(on_horizon));
+    QV_CHECK(!handler.isInsideEventHorizon(outside));
+    QV_CHECK(handler.isInsideEventHorizon(inside));
+    QV_CHECK(handler.isInsideEventHorizon(on_horizon));
     std::cout << "[PASS] Event horizon boundary detection correct" << std::endl;
 }
 
@@ -201,9 +201,9 @@ void test_hawking_evaporation_stability() {
     SingularityHandler handler(SingularityType::SCHWARZSCHILD, 1e20, 0.0, 0.0);
     for (int i = 0; i < 1000; i++) {
         handler.evolveHawkingEvaporation(1e15);
-        assert(!std::isnan(handler.getProperties().mass) && "Mass became NaN");
-        assert(!std::isinf(handler.getProperties().mass) && "Mass became Inf");
-        assert(handler.getProperties().mass >= 0.0 && "Mass became negative");
+        QV_CHECK(!std::isnan(handler.getProperties().mass));
+        QV_CHECK(!std::isinf(handler.getProperties().mass));
+        QV_CHECK(handler.getProperties().mass >= 0.0);
     }
     std::cout << "[PASS] Hawking evaporation stable for 1000 steps" << std::endl;
 }
@@ -217,7 +217,7 @@ void test_hayward_r0_finite() {
         M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     double K = handler.computeKretschmannAtRadius(1e-20);
-    assert(std::isfinite(K) && K > 0.0 && "Hayward K(0) should be finite positive");
+    QV_CHECK(std::isfinite(K) && K > 0.0);
     std::cout << "[PASS] Hayward K(0) finite: " << K << std::endl;
 }
 
@@ -240,16 +240,16 @@ void test_radial_plunge_to_singularity() {
     // Verify the plunge reaches the horizon with every coordinate finite.
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2000.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     double r_min = INF;
     for (const auto& step : traj) {
         double ri = step.event.spatialLength();
         r_min = std::min(r_min, ri);
-        assert(std::isfinite(step.event.x) && "x should stay finite");
+        QV_CHECK(std::isfinite(step.event.x));
     }
     // The clamp makes the integrator terminate at the horizon (r_min approaches
     // rs from outside), so assert it reaches the horizon rather than r -> 0.
-    assert(r_min <= rs * 1.01 && "Radial plunge should reach the event horizon");
+    QV_CHECK(r_min <= rs * 1.01);
     std::cout << "[PASS] Radial plunge reaches horizon: r_min = " << r_min << " <= rs = " << rs << std::endl;
 }
 
@@ -268,7 +268,7 @@ void test_frw_big_crunch() {
 
     double t_crunch = t0 * 1.5;
     double a = frw.scaleFactor(t_crunch);
-    assert(std::isfinite(a) && "Scale factor should be finite");
+    QV_CHECK(std::isfinite(a));
     (void)a;
     std::cout << "[PASS] FRW Big Crunch (closed universe) handled" << std::endl;
 }
@@ -313,7 +313,7 @@ void test_kerr_near_extremal_stability() {
 
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            assert(std::isfinite(kerr.g[i][j]) && "Kerr metric should be finite near extremal");
+            QV_CHECK(std::isfinite(kerr.g[i][j]));
 
     std::cout << "[PASS] Kerr near-extremal spin: metric finite" << std::endl;
 }
@@ -331,7 +331,7 @@ void test_schwarzschild_large_r_minkowski() {
     MetricTensor mink;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            assert(std::abs(g[i][j] - mink.g[i][j]) < 1e-10);
+            QV_CHECK_NEAR(g[i][j] - mink.g[i][j], 0.0, 1e-10);
     std::cout << "[PASS] Schwarzschild at r=1e20 -> Minkowski" << std::endl;
 }
 
@@ -345,7 +345,7 @@ void test_schwarzschild_negative_r() {
     [[maybe_unused]] auto g = sch.evaluate(ev);
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            assert(std::isfinite(g[i][j]) && "Metric should be finite for negative r");
+            QV_CHECK(std::isfinite(g[i][j]));
     std::cout << "[PASS] Schwarzschild negative r handled safely" << std::endl;
 }
 
@@ -359,7 +359,7 @@ void test_schwarzschild_zero_r() {
     [[maybe_unused]] auto g = sch.evaluate(ev);
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            assert(std::isfinite(g[i][j]) && "Metric should be finite at origin");
+            QV_CHECK(std::isfinite(g[i][j]));
     std::cout << "[PASS] Schwarzschild at r=0 handled safely" << std::endl;
 }
 
@@ -372,8 +372,8 @@ void test_kretschmann_near_singularity() {
     double r = 1e-8 * 1.0;  // r in geometric units
     Event4D ev(0.0, r * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
     [[maybe_unused]] auto s = sch.curvatureScalars(ev);
-    assert(s.valid);
-    assert(std::isfinite(s.kretschmann) && s.kretschmann > 0.0);
+    QV_CHECK(s.valid);
+    QV_CHECK(std::isfinite(s.kretschmann) && s.kretschmann > 0.0);
     std::cout << "[PASS] Kretschmann near singularity finite and positive" << std::endl;
 }
 
@@ -394,16 +394,16 @@ void test_geodesic_through_horizon() {
     // required (consistent with test_radial_plunge_to_singularity).
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2000.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     bool reached_horizon = false;
     for (const auto& step : traj) {
         double r = step.event.spatialLength();
         // SchwarzschildMetric clamps the radial term at the horizon, so the
         // integrator terminates at the horizon rather than crossing it.
         if (r <= 2.0 * M * 1.01) reached_horizon = true;
-        assert(std::isfinite(step.event.t) && "t should remain finite");
+        QV_CHECK(std::isfinite(step.event.t));
     }
-    assert(reached_horizon && "Should reach the event horizon");
+    QV_CHECK(reached_horizon);
     std::cout << "[PASS] Geodesic reaches horizon: reached=" << reached_horizon << std::endl;
     std::cout << "[PASS] Geodesic reaches horizon: reached=" << reached_horizon << std::endl;
 }
@@ -418,11 +418,11 @@ void test_dilaton_conformal_singularity() {
 
     double xp = 1.0;
     double xm = -1.0 / (M * std::exp(2.0 * sigma));
-    assert(dm.isSingularity(xp, xm, 1e-8));
+    QV_CHECK(dm.isSingularity(xp, xm, 1e-8));
 
     // Check that conformal factor approaches zero
     double Omega = dm.conformalFactor(xp, xm);
-    assert(std::abs(Omega) < 1e-6 && "Conformal factor should be near zero at singularity");
+    QV_CHECK_NEAR(Omega, 0.0, 1e-6);
     (void)Omega;
     std::cout << "[PASS] Dilaton conformal singularity detected" << std::endl;
 }
@@ -437,9 +437,9 @@ void test_tidal_forces_near_horizon() {
 
     Event4D near_horizon(0.0, rs * 1.1, 0.0, 0.0);
     auto forces = handler.computeTidalForces(near_horizon);
-    assert(std::isfinite(forces.radial_stretch) && "Tidal stretch should be finite");
-    assert(std::isfinite(forces.lateral_compression) && "Lateral compression should be finite");
-    assert(forces.radial_stretch > 0.0 && "Radial stretch should be positive");
+    QV_CHECK(std::isfinite(forces.radial_stretch));
+    QV_CHECK(std::isfinite(forces.lateral_compression));
+    QV_CHECK(forces.radial_stretch > 0.0);
     std::cout << "[PASS] Tidal forces near horizon: stretch=" << forces.radial_stretch << std::endl;
 }
 
@@ -452,8 +452,8 @@ void test_singularity_at_origin() {
         M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     Event4D origin(0.0, 0.0, 0.0, 0.0);
-    assert(handler.isInsideEventHorizon(origin));
-    assert(handler.shouldTerminateGeodesic(origin, 1.0));
+    QV_CHECK(handler.isInsideEventHorizon(origin));
+    QV_CHECK(handler.shouldTerminateGeodesic(origin, 1.0));
     std::cout << "[PASS] Singularity at origin: inside horizon, terminate" << std::endl;
 }
 
@@ -468,10 +468,10 @@ void test_evaporation_to_planck() {
         if (handler.isEvaporated()) break;
     }
     double final = handler.getProperties().mass;
-    assert(!std::isnan(final));
-    assert(!std::isinf(final));
-    assert(final >= 0.0);
-    assert(final <= initial && "Mass should decrease");
+    QV_CHECK(!std::isnan(final));
+    QV_CHECK(!std::isinf(final));
+    QV_CHECK(final >= 0.0);
+    QV_CHECK(final <= initial);
     std::cout << "[PASS] Evaporation to Planck remnant: " << initial << " -> " << final << std::endl;
 }
 
@@ -491,7 +491,7 @@ void test_kerr_over_extremal() {
     SingularityHandler handler(SingularityType::KERR, mass_si, J, 0.0);
 
     // Naked singularity detected
-    assert(handler.getProperties().is_naked || !handler.getProperties().has_ergosphere);
+    QV_CHECK(handler.getProperties().is_naked || !handler.getProperties().has_ergosphere);
     std::cout << "[PASS] Kerr over-extremal spin handled" << std::endl;
 }
 
@@ -509,8 +509,8 @@ void test_curvature_diverges_at_origin() {
         if (r_meters < 1e-15) continue;
         Event4D ev(0.0, r_meters, 0.0, 0.0);
         auto s = sch.curvatureScalars(ev);
-        assert(s.valid);
-        assert(s.kretschmann > K_prev && "K should increase as r->0");
+        QV_CHECK(s.valid);
+        QV_CHECK(s.kretschmann > K_prev);
         K_prev = s.kretschmann;
     }
     std::cout << "[PASS] Curvature diverges monotonically as r->0" << std::endl;
@@ -533,7 +533,7 @@ void test_tidal_forces_increase_near_singularity() {
         if (r < rs * 1.01) continue;
         Event4D ev(0.0, r, 0.0, 0.0);
         auto forces = handler.computeTidalForces(ev);
-        assert(forces.radial_stretch > stretch_prev && "Tidal stretch should increase");
+        QV_CHECK(forces.radial_stretch > stretch_prev);
         stretch_prev = forces.radial_stretch;
     }
     std::cout << "[PASS] Tidal forces increase monotonically near singularity" << std::endl;
@@ -552,9 +552,9 @@ void test_geodesic_inside_horizon() {
     std::array<double, 4> vel = {1.0, -0.3, 0.0, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     for (const auto& step [[maybe_unused]] : traj) {
-        assert(std::isfinite(step.event.x) && "x should be finite inside horizon");
+        QV_CHECK(std::isfinite(step.event.x));
     }
     std::cout << "[PASS] Geodesic inside horizon: all positions finite" << std::endl;
 }
@@ -573,7 +573,7 @@ void test_schwarzschild_infinity_minkowski() {
     MetricTensor mink;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            assert(std::abs(g[i][j] - mink.g[i][j]) < 1e-10);
+            QV_CHECK_NEAR(g[i][j] - mink.g[i][j], 0.0, 1e-10);
     std::cout << "[PASS] Schwarzschild at r=1e30 -> Minkowski" << std::endl;
 }
 
@@ -588,7 +588,7 @@ void test_hawking_temperature_formula() {
 
     double T_expected = Event4D::C2 * Event4D::C / (8.0 * M_PI * Event4D::G * M);
     [[maybe_unused]] double err = relError(T, T_expected);
-    assert(err < 1e-6 && "Hawking temperature should match 1/(8*pi*M)");
+    QV_CHECK(err < 1e-6);
     std::cout << "[PASS] Hawking temperature exact: T = " << T << std::endl;
 }
 
@@ -604,8 +604,8 @@ void test_regular_bh_no_nan_at_origin() {
         SingularityHandler handler(type, 1.0, 0.0, 0.0);
         Event4D origin(0.0, 0.0, 0.0, 0.0);
         auto forces = handler.computeTidalForces(origin);
-        assert(!std::isnan(forces.radial_stretch));
-        assert(!std::isnan(forces.lateral_compression));
+        QV_CHECK(!std::isnan(forces.radial_stretch));
+        QV_CHECK(!std::isnan(forces.lateral_compression));
         (void)forces;
     }
     std::cout << "[PASS] Regular BHs: no NaN at r=0" << std::endl;
@@ -625,9 +625,9 @@ void test_geodesic_near_horizon_outside() {
     std::array<double, 4> vel = {1.0, 0.0, 0.0, 0.1};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     for (const auto& step [[maybe_unused]] : traj) {
-        assert(std::isfinite(step.event.x) && "x should be finite");
+        QV_CHECK(std::isfinite(step.event.x));
     }
     std::cout << "[PASS] Geodesic near horizon (just outside): " << traj.size() << " steps" << std::endl;
 }
@@ -644,9 +644,9 @@ void test_high_curvature_numerical_stability() {
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
         auto result = calc.computeAll(ev);
-        assert(std::isfinite(result.kretschmann));
-        assert(std::isfinite(result.ricciScalar));
-        assert(std::isfinite(result.maxRiemannComponent));
+        QV_CHECK(std::isfinite(result.kretschmann));
+        QV_CHECK(std::isfinite(result.ricciScalar));
+        QV_CHECK(std::isfinite(result.maxRiemannComponent));
         (void)result;
     }
     std::cout << "[PASS] High curvature numerical stability" << std::endl;
@@ -665,9 +665,9 @@ void test_zero_velocity_infinity() {
     std::array<double, 4> vel = {1.0, 0.0, 0.0, 0.0};
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
 
-    assert(!traj.empty());
+    QV_CHECK(!traj.empty());
     for (const auto& step [[maybe_unused]] : traj) {
-        assert(std::isfinite(step.event.x) && "x should be finite");
+        QV_CHECK(std::isfinite(step.event.x));
     }
     std::cout << "[PASS] Zero angular velocity at large r stable" << std::endl;
 }
@@ -690,7 +690,7 @@ void test_coordinate_system_robustness() {
         auto g = sch.evaluate(ev);
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
-                assert(std::isfinite(g[i][j]) && "Metric should be finite at all angles");
+                QV_CHECK(std::isfinite(g[i][j]));
         (void)g;
     }
     std::cout << "[PASS] Coordinate system robustness at various angles" << std::endl;

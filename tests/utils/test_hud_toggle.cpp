@@ -8,6 +8,7 @@
 
 #include "qmlglviewport.h"
 #include "ui4d/UI4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -19,38 +20,38 @@ int main(int argc, char** argv)
     QmlGlViewport* viewport = new QmlGlViewport(nullptr);
 
     // Default state: HUD off
-    assert(viewport->showHUD() == false);
+    QV_CHECK(viewport->showHUD() == false);
 
     // Toggle on
     QSignalSpy hudSpy(viewport, &QmlGlViewport::showHUDChanged);
     viewport->setShowHUD(true);
-    assert(hudSpy.count() == 1);
-    assert(viewport->showHUD() == true);
+    QV_CHECK(hudSpy.count() == 1);
+    QV_CHECK(viewport->showHUD() == true);
 
     // Toggle off
     viewport->setShowHUD(false);
-    assert(hudSpy.count() == 2);
-    assert(viewport->showHUD() == false);
+    QV_CHECK(hudSpy.count() == 2);
+    QV_CHECK(viewport->showHUD() == false);
 
     // Rapid toggle stress
     for (int i = 0; i < 100; ++i) {
         viewport->setShowHUD(i % 2 == 0);
     }
-    assert(viewport->showHUD() == false);
+    QV_CHECK(viewport->showHUD() == false);
 
     // HUD toggle does not affect other properties
     viewport->setShowGrid(true);
     viewport->setShowGeodesics(true);
     viewport->setShowQuantumGeometry(false);
-    assert(viewport->showGrid() == true);
-    assert(viewport->showGeodesics() == true);
-    assert(viewport->showQuantumGeometry() == false);
+    QV_CHECK(viewport->showGrid() == true);
+    QV_CHECK(viewport->showGeodesics() == true);
+    QV_CHECK(viewport->showQuantumGeometry() == false);
 
     viewport->setShowHUD(true);
-    assert(viewport->showGrid() == true);
-    assert(viewport->showGeodesics() == true);
-    assert(viewport->showQuantumGeometry() == false);
-    assert(viewport->showHUD() == true);
+    QV_CHECK(viewport->showGrid() == true);
+    QV_CHECK(viewport->showGeodesics() == true);
+    QV_CHECK(viewport->showQuantumGeometry() == false);
+    QV_CHECK(viewport->showHUD() == true);
 
     delete viewport;
 

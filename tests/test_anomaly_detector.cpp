@@ -3,11 +3,11 @@
 
 #include <cmath>
 #include <iostream>
-#include <cassert>
 #include <chrono>
 
 #include "ml/FeatureVector.h"
 #include "ml/AnomalyDetector.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -32,8 +32,8 @@ int main() {
     // Test 1: Default state
     {
         AnomalyDetector det;
-        assert(!det.isLoaded());
-        assert(det.threshold() == 0.05);
+        QV_CHECK(!det.isLoaded());
+        QV_CHECK(det.threshold() == 0.05);
         std::cout << "[PASS] Default state correct" << std::endl;
     }
 
@@ -41,11 +41,11 @@ int main() {
     {
         AnomalyDetector det;
         bool ok = det.loadFromString(tinyModelJson());
-        assert(ok);
-        assert(det.isLoaded());
-        assert(det.getMetadata().feature_dim == 20);
-        assert(det.getMetadata().encoder.size() == 2);
-        assert(det.getMetadata().decoder.size() == 2);
+        QV_CHECK(ok);
+        QV_CHECK(det.isLoaded());
+        QV_CHECK(det.getMetadata().feature_dim == 20);
+        QV_CHECK(det.getMetadata().encoder.size() == 2);
+        QV_CHECK(det.getMetadata().decoder.size() == 2);
         std::cout << "[PASS] JSON model loaded correctly" << std::endl;
     }
 
@@ -57,8 +57,8 @@ int main() {
         FeatureVector fv;
         fv.data.fill(0.0);
         double s = det.score(fv);
-        assert(std::isfinite(s));
-        assert(s >= 0.0);
+        QV_CHECK(std::isfinite(s));
+        QV_CHECK(s >= 0.0);
         std::cout << "[PASS] Score finite and non-negative: " << s << std::endl;
     }
 
@@ -70,10 +70,10 @@ int main() {
 
         FeatureVector fv;
         fv.data.fill(0.0);
-        assert(!det.isAnomalous(fv)); // score should be 0 with zero weights
+        QV_CHECK(!det.isAnomalous(fv)); // score should be 0 with zero weights
 
         det.setThreshold(-1.0);
-        assert(det.isAnomalous(fv));
+        QV_CHECK(det.isAnomalous(fv));
         std::cout << "[PASS] Threshold classification works" << std::endl;
     }
 
@@ -91,7 +91,7 @@ int main() {
         } catch (...) {
             threw = true;
         }
-        assert(!threw); // no throw expected here
+        QV_CHECK(!threw); // no throw expected here
         std::cout << "[PASS] Dimension checks intact" << std::endl;
     }
 
@@ -99,8 +99,8 @@ int main() {
     {
         AnomalyDetector det;
         bool ok = det.loadFromString("not json");
-        assert(!ok);
-        assert(!det.isLoaded());
+        QV_CHECK(!ok);
+        QV_CHECK(!det.isLoaded());
         std::cout << "[PASS] Invalid JSON rejected" << std::endl;
     }
 
@@ -113,7 +113,7 @@ int main() {
         fv.data.fill(1.0);
         double s1 = det.score(fv);
         double s2 = det.score(fv);
-        assert(s1 == s2);
+        QV_CHECK(s1 == s2);
         std::cout << "[PASS] Deterministic output: " << s1 << std::endl;
     }
 

@@ -10,7 +10,6 @@
  *   - Parameter ranges are well-formed
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -19,6 +18,7 @@
 #include "discovery/KerrNoHairViolationAnalyzer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -76,7 +76,7 @@ int main() {
             std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM220Imag(a)) &&
             std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM221Real(a)) &&
             std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM221Imag(a));
-        assert(ok && "Kerr QNM functions must return finite values");
+        QV_CHECK(ok);
     }
     std::cout << "  Static QNM functions: finite." << std::endl;
 
@@ -87,7 +87,7 @@ int main() {
         auto traj = makeKerrConsistentWaveform(0.5, dt, 64);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Kerr-consistent ringdown should not trigger violation");
+        QV_CHECK(ok);
         std::cout << "  Kerr-consistent ringdown: no violation." << std::endl;
     }
 
@@ -98,14 +98,14 @@ int main() {
         auto traj = makeNoHairViolationWaveform(0.5, 1.0, dt, 512);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = !findings.empty();
-        assert(ok && "Frequency mismatch should trigger a violation finding");
+        QV_CHECK(ok);
         if (!findings.empty()) {
             [[maybe_unused]] bool okAnomaly = findings[0].isAnomaly;
-            assert(okAnomaly && "Violation finding must be flagged as anomaly");
+            QV_CHECK(okAnomaly);
             [[maybe_unused]] bool okConf = findings[0].confidence > 0.0 && findings[0].confidence <= 1.0;
-            assert(okConf && "Confidence must be in (0, 1]");
+            QV_CHECK(okConf);
             [[maybe_unused]] bool okSigma = findings[0].parameters.at("deviation_sigma") > 0.0;
-            assert(okSigma && "Deviation sigma must be positive");
+            QV_CHECK(okSigma);
         }
         std::cout << "  No-hair violation detected." << std::endl;
     }
@@ -116,7 +116,7 @@ int main() {
         std::vector<Event4D> empty;
         auto findings = analyzer.analyze(metric, location, empty);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Empty trajectory must yield no findings");
+        QV_CHECK(ok);
         std::cout << "  Empty trajectory handled." << std::endl;
     }
 
@@ -126,7 +126,7 @@ int main() {
         auto traj = makeKerrConsistentWaveform(0.5, 0.01, 4);
         auto findings = analyzer.analyze(metric, location, traj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "Short trajectory must yield no findings");
+        QV_CHECK(ok);
         std::cout << "  Short trajectory handled." << std::endl;
     }
 
@@ -140,7 +140,7 @@ int main() {
         }
         auto findings = analyzer.analyze(metric, location, nanTraj);
         [[maybe_unused]] bool ok = findings.empty();
-        assert(ok && "NaN waveform must yield no findings");
+        QV_CHECK(ok);
 
         std::vector<Event4D> infTraj;
         for (size_t i = 0; i < 32; ++i) {
@@ -149,7 +149,7 @@ int main() {
         }
         auto findings2 = analyzer.analyze(metric, location, infTraj);
         [[maybe_unused]] bool ok2 = findings2.empty();
-        assert(ok2 && "Inf waveform must yield no findings");
+        QV_CHECK(ok2);
         std::cout << "  NaN/Inf handled." << std::endl;
     }
 
@@ -158,12 +158,12 @@ int main() {
         KerrNoHairViolationAnalyzer analyzer;
         auto ranges = analyzer.getParameterRanges();
         [[maybe_unused]] bool ok = ranges.size() >= 3;
-        assert(ok && "Must have at least 3 parameter ranges");
+        QV_CHECK(ok);
         for ([[maybe_unused]] const auto& kv : ranges) {
             [[maybe_unused]] bool okRange = std::isfinite(kv.second.first) &&
                                            std::isfinite(kv.second.second) &&
                                            kv.second.first < kv.second.second;
-            assert(okRange && "Range bounds must be finite and ordered");
+            QV_CHECK(okRange);
         }
         std::cout << "  Parameter ranges valid." << std::endl;
     }

@@ -2,7 +2,6 @@
 // Validates RLDiscoveryAgent and RLTrainer produce finite rewards,
 // converge over episodes, and survive edge cases without crashing.
 
-#include <cassert>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -13,6 +12,7 @@
 
 #include "discovery/RLDiscoveryAgent.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse::discovery;
 
@@ -20,7 +20,7 @@ namespace {
 constexpr double kEps = 1e-9;
 
 void assertFinite(const std::string& label, double v) {
-    assert(std::isfinite(v) && ("Non-finite value for " + label).c_str());
+    QV_CHECK(std::isfinite(v) && ("Non-finite value for " + label).c_str());
     (void)label;
     (void)v;
 }
@@ -40,8 +40,8 @@ int main() {
     // --- 1. Basic agent construction --------------------------------------------
     {
         RLDiscoveryAgent agent(3, makeDefaultRanges(3));
-        assert(agent.getEpisodeCount() == 0);
-        assert(agent.getEpsilon() > 0.0);
+        QV_CHECK(agent.getEpisodeCount() == 0);
+        QV_CHECK(agent.getEpsilon() > 0.0);
         std::cout << "  Agent constructed. Epsilon = " << agent.getEpsilon() << std::endl;
     }
 
@@ -49,8 +49,8 @@ int main() {
     {
         RLDiscoveryAgent agent(2, makeDefaultRanges(2));
         double reward = agent.trainEpisode();
-        assert(std::isfinite(reward));
-        assert(agent.getEpisodeCount() == 1);
+        QV_CHECK(std::isfinite(reward));
+        QV_CHECK(agent.getEpisodeCount() == 1);
         std::cout << "  Episode reward = " << reward << std::endl;
     }
 
@@ -60,11 +60,11 @@ int main() {
         double eps_start = agent.getEpsilon();
         for (int i = 0; i < 20; ++i) {
             double r = agent.trainEpisode();
-            assert(std::isfinite(r));
+            QV_CHECK(std::isfinite(r));
             (void)r;
         }
         double eps_end = agent.getEpsilon();
-        assert(eps_end <= eps_start + kEps);
+        QV_CHECK(eps_end <= eps_start + kEps);
         std::cout << "  Epsilon decay: " << eps_start << " -> " << eps_end << std::endl;
     }
 
@@ -75,7 +75,7 @@ int main() {
             agent.trainEpisode();
         }
         double avg = agent.getAverageReward();
-        assert(std::isfinite(avg));
+        QV_CHECK(std::isfinite(avg));
         std::cout << "  Average reward = " << avg << std::endl;
     }
 
@@ -83,7 +83,7 @@ int main() {
     {
         RLDiscoveryAgent agent(3, makeDefaultRanges(3));
         auto best = agent.discoverTheory(20);
-        assert(!best.empty());
+        QV_CHECK(!best.empty());
         for (double p : best) {
             assertFinite("discovered param", p);
         }
@@ -99,11 +99,11 @@ int main() {
         // and would make savePolicy throw -> uncaught exception -> abort (0xc0000409).
         std::string path = (std::filesystem::temp_directory_path() / "test_rl_policy_roundtrip.bin").string();
         agent.savePolicy(path);
-        assert(std::ifstream(path).good());
+        QV_CHECK(std::ifstream(path).good());
 
         RLDiscoveryAgent agent2(2, makeDefaultRanges(2));
         agent2.loadPolicy(path);
-        assert(agent2.getEpisodeCount() == 0);
+        QV_CHECK(agent2.getEpisodeCount() == 0);
         std::cout << "  Policy save/load roundtrip passed." << std::endl;
     }
 
@@ -111,9 +111,9 @@ int main() {
     {
         RLDiscoveryAgent agent(2, makeDefaultRanges(2));
         agent.setEpsilon(2.0);
-        assert(agent.getEpsilon() <= 1.0);
+        QV_CHECK(agent.getEpsilon() <= 1.0);
         agent.setEpsilon(-1.0);
-        assert(agent.getEpsilon() >= 0.0);
+        QV_CHECK(agent.getEpsilon() >= 0.0);
         std::cout << "  Epsilon clamping verified." << std::endl;
     }
 
@@ -123,9 +123,9 @@ int main() {
         RLTrainer trainer(2, makeDefaultRanges(2), 10, 5, ckpt_dir);
         trainer.train();
         auto history = trainer.getRewardHistory();
-        assert(history.size() == 10);
+        QV_CHECK(history.size() == 10);
         for (double r : history) {
-            assert(std::isfinite(r));
+            QV_CHECK(std::isfinite(r));
             (void)r;
         }
         std::cout << "  RLTrainer completed " << history.size() << " episodes." << std::endl;
@@ -136,7 +136,7 @@ int main() {
         RLDiscoveryAgent agent(1, std::vector<std::pair<double, double>>{{-5.0, 5.0}});
         for (int i = 0; i < 5; ++i) {
             double r = agent.trainEpisode();
-            assert(std::isfinite(r));
+            QV_CHECK(std::isfinite(r));
             (void)r;
         }
         std::cout << "  Single-dimension agent survived." << std::endl;
@@ -147,7 +147,7 @@ int main() {
         RLDiscoveryAgent agent(2, makeDefaultRanges(2));
         agent.setEpsilon(0.0);
         double r = agent.trainEpisode();
-        assert(std::isfinite(r));
+        QV_CHECK(std::isfinite(r));
         (void)r;
         std::cout << "  Zero-epsilon agent survived." << std::endl;
     }

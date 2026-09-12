@@ -4,9 +4,9 @@
 
 #include <QGuiApplication>
 #include <QDebug>
-#include <cassert>
 
 #include "qmlglviewport.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -16,7 +16,7 @@ int main(int argc, char** argv)
     qDebug() << "=== ResizeStressTest ===";
 
     QmlGlViewport* vp = new QmlGlViewport(nullptr);
-    assert(vp != nullptr);
+    QV_CHECK(vp != nullptr);
 
     vp->setShowGrid(true);
     vp->setShowGeodesics(true);

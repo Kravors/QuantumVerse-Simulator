@@ -2,7 +2,6 @@
 // Validates CosmicShearScanner against synthetic shear correlation functions,
 // injected anomalies, and robustness with degenerate inputs.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -11,6 +10,7 @@
 #include "discovery/CosmicShearScanner.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -60,7 +60,7 @@ int main() {
         CosmicShearScanner scanner;
         auto traj = makeLambdaCDMShearTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "Clean ΛCDM shear trajectory should not trigger an anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  Clean ΛCDM shear trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
     }
 
@@ -69,10 +69,10 @@ int main() {
         CosmicShearScanner scanner;
         auto traj = makeAnomalousShearTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(!findings.empty() && "Anomalous shear trajectory should produce a finding");
-        assert(findings.size() == 1u);
-        assert(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
-        assert(findings[0].severity >= AlertSeverity::HIGH);
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.size() == 1u);
+        QV_CHECK(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
+        QV_CHECK(findings[0].severity >= AlertSeverity::HIGH);
         std::cout << "  Anomalous shear trajectory: finding confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity) << std::endl;
     }
@@ -81,7 +81,7 @@ int main() {
     {
         CosmicShearScanner scanner;
         auto findings = scanner.analyze(metric, location, emptyTrajectory);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Empty trajectory handled safely." << std::endl;
     }
 
@@ -93,7 +93,7 @@ int main() {
             nanTraj.emplace_back(1.0 + i * 0.5, kNaN, 0.01, 1e-4 / ((1.0 + i * 0.5) * (1.0 + i * 0.5)));
         }
         auto findings = scanner.analyze(metric, location, nanTraj);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  NaN observations handled safely." << std::endl;
 
         std::vector<Event4D> infTraj;
@@ -101,7 +101,7 @@ int main() {
             infTraj.emplace_back(1.0 + i * 0.5, 1e-4 / ((1.0 + i * 0.5) * (1.0 + i * 0.5)), kInf, 0.01);
         }
         auto findings2 = scanner.analyze(metric, location, infTraj);
-        assert(findings2.empty());
+        QV_CHECK(findings2.empty());
         std::cout << "  Inf observations handled safely." << std::endl;
     }
 
@@ -111,7 +111,7 @@ int main() {
         scanner.setParameter("chi2_threshold", 100.0);
         auto traj = makeAnomalousShearTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "High chi2 threshold should suppress the anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  High chi2 threshold suppressed anomaly correctly." << std::endl;
     }
 

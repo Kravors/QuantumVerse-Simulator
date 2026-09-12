@@ -2,7 +2,6 @@
 // Validates PTAScanner against synthetic Hellings–Downs correlations,
 // injected GW anomalies, and robustness with degenerate inputs.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -11,6 +10,7 @@
 #include "discovery/PTAScanner.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -56,7 +56,7 @@ int main() {
         PTAScanner scanner;
         auto traj = makeHellingsDownsTrajectory(false);
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "Clean GR trajectory should not trigger an anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  Clean GR trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
     }
 
@@ -65,10 +65,10 @@ int main() {
         PTAScanner scanner;
         auto traj = makeHellingsDownsTrajectory(true);
         auto findings = scanner.analyze(metric, location, traj);
-        assert(!findings.empty() && "Anomalous trajectory should produce a finding");
-        assert(findings.size() == 1u);
-        assert(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
-        assert(findings[0].severity >= AlertSeverity::HIGH);
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.size() == 1u);
+        QV_CHECK(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
+        QV_CHECK(findings[0].severity >= AlertSeverity::HIGH);
         std::cout << "  Anomalous trajectory: finding confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity) << std::endl;
     }
@@ -77,7 +77,7 @@ int main() {
     {
         PTAScanner scanner;
         auto findings = scanner.analyze(metric, location, emptyTrajectory);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Empty trajectory handled safely." << std::endl;
     }
 
@@ -89,7 +89,7 @@ int main() {
             badTraj.emplace_back(static_cast<double>(i), kNaN, 0.1, 0.5);
         }
         auto findings = scanner.analyze(metric, location, badTraj);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  NaN observations handled safely." << std::endl;
 
         std::vector<Event4D> infTraj;
@@ -97,7 +97,7 @@ int main() {
             infTraj.emplace_back(static_cast<double>(i), 0.5, 0.1, kInf);
         }
         auto findings2 = scanner.analyze(metric, location, infTraj);
-        assert(findings2.empty());
+        QV_CHECK(findings2.empty());
         std::cout << "  Inf observations handled safely." << std::endl;
     }
 
@@ -107,7 +107,7 @@ int main() {
         scanner.setParameter("sigma_threshold", 100.0);
         auto traj = makeHellingsDownsTrajectory(true);
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "High threshold should suppress the anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  High sigma threshold suppressed anomaly correctly." << std::endl;
     }
 

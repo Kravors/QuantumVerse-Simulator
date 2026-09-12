@@ -12,7 +12,6 @@
  *      metric diverges from the GR geodesic.
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -22,6 +21,7 @@
 #include "spacetime/Event4D.h"
 #include "physics/GeodesicIntegrator.h"
 #include "discovery/DiscoveryEngine.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -36,15 +36,15 @@ void test_metric_invariants() {
 
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j)
-            assert(std::fabs(m.g[i][j] - m.g[j][i]) < 1e-12 && "Metric must be symmetric");
+            QV_CHECK_NEAR(m.g[i][j] - m.g[j][i], 0.0, 1e-12);
 
-    assert(m.g[0][0] < 0.0 && "g_tt must be negative (Lorentz signature)");
-    assert(m.g[1][1] > 0.0 && "g_rr must be positive");
-    assert(m.g[2][2] > 0.0 && "g_theta must be positive");
-    assert(m.g[3][3] > 0.0 && "g_phi must be positive");
+    QV_CHECK(m.g[0][0] < 0.0);
+    QV_CHECK(m.g[1][1] > 0.0);
+    QV_CHECK(m.g[2][2] > 0.0);
+    QV_CHECK(m.g[3][3] > 0.0);
 
     double det = m.determinant();
-    assert(det < 0.0 && "Determinant must be negative");
+    QV_CHECK(det < 0.0);
     (void)det;
 }
 
@@ -58,8 +58,7 @@ void test_gr_recovery() {
     MetricTensor mg = gr.computeMetric(loc, {});
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j)
-            assert(std::fabs(my.g[i][j] - mg.g[i][j]) < 1e-12 &&
-                   "alpha=0 Yukawa must equal Schwarzschild");
+            QV_CHECK_NEAR(my.g[i][j] - mg.g[i][j], 0.0, 1e-12);
 }
 
 void test_yukawa_deviation() {
@@ -72,10 +71,8 @@ void test_yukawa_deviation() {
     MetricTensor m0 = plugin.computeMetric(loc, p0);
     MetricTensor m1 = plugin.computeMetric(loc, p1);
     MetricTensor m2 = plugin.computeMetric(loc, p2);
-    assert(std::fabs(m1.g[0][0] - m0.g[0][0]) > 1e-6 &&
-           "Yukawa coupling must modify the metric");
-    assert(std::fabs(m2.g[0][0] - m0.g[0][0]) > std::fabs(m1.g[0][0] - m0.g[0][0]) &&
-           "Stronger coupling must give stronger deviation");
+    QV_CHECK(std::fabs(m1.g[0][0] - m0.g[0][0]) > 1e-6);
+    QV_CHECK(std::fabs(m2.g[0][0] - m0.g[0][0]) > std::fabs(m1.g[0][0] - m0.g[0][0]));
 }
 
 void test_geodesic_integration() {
@@ -97,12 +94,11 @@ void test_geodesic_integration() {
     integ.setMetricField(makeField(0.9));
     auto yTraj = integ.integrate(start, vel, GeodesicType::TIMELIKE, 100.0);
 
-    assert(!grTraj.empty() && !yTraj.empty() && "Trajectories must be non-empty");
+    QV_CHECK(!grTraj.empty() && !yTraj.empty());
     const auto& grEnd = grTraj.back().event;
     const auto& yEnd = yTraj.back().event;
-    assert(std::isfinite(grEnd.x) && std::isfinite(yEnd.x) && "Endpoints must be finite");
-    assert(std::fabs(yEnd.x - grEnd.x) > 1e-3 &&
-           "Yukawa fifth-force must deflect the trajectory from GR");
+    QV_CHECK(std::isfinite(grEnd.x) && std::isfinite(yEnd.x));
+    QV_CHECK(std::fabs(yEnd.x - grEnd.x) > 1e-3);
     (void)grEnd;
     (void)yEnd;
 }

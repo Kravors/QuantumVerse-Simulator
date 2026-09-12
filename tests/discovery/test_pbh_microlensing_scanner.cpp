@@ -4,7 +4,6 @@
 // bump (flagged), a symmetric transit dip (not a brightening lens -> not
 // flagged), empty/small input, NaN/Inf robustness, and parameter ranges.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -14,6 +13,7 @@
 #include "discovery/PBHMicrolensingScanner.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -78,7 +78,7 @@ int main() {
     {
         PBHMicrolensingScanner scanner;
         auto findings = scanner.analyze(metric, location, makeFlat());
-        assert(findings.empty() && "Flat light curve must not trigger microlensing");
+        QV_CHECK(findings.empty());
         std::cout << "  Flat light curve: no event (findings=" << findings.size() << ")" << std::endl;
     }
 
@@ -86,19 +86,19 @@ int main() {
     {
         PBHMicrolensingScanner scanner;
         auto findings = scanner.analyze(metric, location, makeMicrolensing());
-        assert(!findings.empty() && "Microlensing event should produce a finding");
-        assert(findings.size() == 1u);
-        assert(findings[0].isAnomaly);
-        assert(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.size() == 1u);
+        QV_CHECK(findings[0].isAnomaly);
+        QV_CHECK(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
         std::cout << "  Microlensing event: confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity)
                   << " A0=" << findings[0].parameters["peak_magnification"] << std::endl;
 
         // PBH mass/velocity estimate should be populated and positive.
-        assert(findings[0].parameters.count("pbh_mass_solar") > 0);
-        assert(findings[0].parameters["pbh_mass_solar"] > 0.0);
-        assert(findings[0].parameters["einstein_radius_au"] > 0.0);
-        assert(findings[0].parameters["pbh_velocity_kms"] > 0.0);
+        QV_CHECK(findings[0].parameters.count("pbh_mass_solar") > 0);
+        QV_CHECK(findings[0].parameters["pbh_mass_solar"] > 0.0);
+        QV_CHECK(findings[0].parameters["einstein_radius_au"] > 0.0);
+        QV_CHECK(findings[0].parameters["pbh_velocity_kms"] > 0.0);
         std::cout << "  PBH estimate: M=" << findings[0].parameters["pbh_mass_solar"]
                   << " M_sun, R_E=" << findings[0].parameters["einstein_radius_au"]
                   << " AU" << std::endl;
@@ -108,7 +108,7 @@ int main() {
     {
         PBHMicrolensingScanner scanner;
         auto findings = scanner.analyze(metric, location, makeDip());
-        assert(findings.empty() && "Transit dip must not be flagged as microlensing");
+        QV_CHECK(findings.empty());
         std::cout << "  Transit dip: correctly not flagged (findings=" << findings.size() << ")" << std::endl;
     }
 
@@ -117,7 +117,7 @@ int main() {
         PBHMicrolensingScanner scanner;
         std::vector<Event4D> empty;
         auto findings = scanner.analyze(metric, location, empty);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Empty trajectory handled safely." << std::endl;
     }
 
@@ -127,7 +127,7 @@ int main() {
         std::vector<Event4D> small;
         for (int i = 0; i < 5; ++i) small.emplace_back(i * 0.05, 1.0, 0.0, 0.0);
         auto findings = scanner.analyze(metric, location, small);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Small trajectory handled safely." << std::endl;
     }
 
@@ -137,13 +137,13 @@ int main() {
         auto traj = makeFlat();
         traj[10] = Event4D(kNaN, traj[10].x, 0.0, 0.0);
         auto f1 = scanner.analyze(metric, location, traj);
-        assert(f1.empty());
+        QV_CHECK(f1.empty());
         std::cout << "  NaN observation handled safely." << std::endl;
 
         auto traj2 = makeFlat();
         traj2[20] = Event4D(traj2[20].t, kInf, 0.0, 0.0);
         auto f2 = scanner.analyze(metric, location, traj2);
-        assert(f2.empty());
+        QV_CHECK(f2.empty());
         std::cout << "  Inf observation handled safely." << std::endl;
     }
 
@@ -151,14 +151,14 @@ int main() {
     {
         PBHMicrolensingScanner scanner;
         auto ranges = scanner.getParameterRanges();
-        assert(ranges.count("min_magnification") > 0);
-        assert(ranges.count("fit_ratio_threshold") > 0);
-        assert(ranges.count("lens_distance_kpc") > 0);
-        assert(ranges.count("source_distance_kpc") > 0);
-        assert(ranges.count("lens_velocity_kms") > 0);
-        assert(ranges.count("seconds_per_time_unit") > 0);
-        assert(ranges["min_magnification"].first < ranges["min_magnification"].second);
-        assert(ranges["fit_ratio_threshold"].first < ranges["fit_ratio_threshold"].second);
+        QV_CHECK(ranges.count("min_magnification") > 0);
+        QV_CHECK(ranges.count("fit_ratio_threshold") > 0);
+        QV_CHECK(ranges.count("lens_distance_kpc") > 0);
+        QV_CHECK(ranges.count("source_distance_kpc") > 0);
+        QV_CHECK(ranges.count("lens_velocity_kms") > 0);
+        QV_CHECK(ranges.count("seconds_per_time_unit") > 0);
+        QV_CHECK(ranges["min_magnification"].first < ranges["min_magnification"].second);
+        QV_CHECK(ranges["fit_ratio_threshold"].first < ranges["fit_ratio_threshold"].second);
         std::cout << "  Parameter ranges are valid." << std::endl;
     }
 
@@ -176,16 +176,16 @@ int main() {
 
         double tE = tEfromMass(1.0, 4.0, 8.0, 200.0);
         auto est = PBHMicrolensingScanner::estimatePBH(tE, 0.3, 4.0, 8.0, 200.0, 0.9);
-        assert(std::abs(est.mass_solar - 1.0) < 1e-6);
-        assert(std::abs(est.velocity_kms - 200.0) < 1e-9);
-        assert(est.einstein_radius_au > 0.0);
+        QV_CHECK_NEAR(est.mass_solar - 1.0, 0.0, 1e-6);
+        QV_CHECK_NEAR(est.velocity_kms - 200.0, 0.0, 1e-9);
+        QV_CHECK(est.einstein_radius_au > 0.0);
         std::cout << "  Mass mapping round-trip: M=" << est.mass_solar
                   << " M_sun (expected 1.0)" << std::endl;
 
         // A heavier PBH should map to a larger mass.
         double tE2 = tEfromMass(10.0, 4.0, 8.0, 200.0);
         auto est2 = PBHMicrolensingScanner::estimatePBH(tE2, 0.3, 4.0, 8.0, 200.0, 0.9);
-        assert(est2.mass_solar > est.mass_solar);
+        QV_CHECK(est2.mass_solar > est.mass_solar);
         std::cout << "  Heavier PBH maps to larger mass: M=" << est2.mass_solar
                   << " M_sun" << std::endl;
     }
@@ -193,10 +193,10 @@ int main() {
     // --- 9. Degenerate/ill-posed geometry returns a zero estimate -------
     {
         auto bad = PBHMicrolensingScanner::estimatePBH(0.0, 0.3, 4.0);
-        assert(bad.mass_solar == 0.0);
+        QV_CHECK(bad.mass_solar == 0.0);
         (void)bad;
         auto bad2 = PBHMicrolensingScanner::estimatePBH(100.0, 0.3, 8.0, 4.0); // lens behind source
-        assert(bad2.mass_solar == 0.0);
+        QV_CHECK(bad2.mass_solar == 0.0);
         (void)bad2;
         std::cout << "  Degenerate geometry handled safely (M=0)." << std::endl;
     }

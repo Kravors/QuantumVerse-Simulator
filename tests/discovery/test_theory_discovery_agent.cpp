@@ -2,7 +2,6 @@
 // Validates TheoryDiscoveryAgent integrates with RLDiscoveryAgent,
 // TheoryManager, and the physics core to evaluate modified-gravity theories.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -17,6 +16,7 @@
 #include "spacetime/Event4D.h"
 #include "spacetime/Event4D.h"
 #include "physics/CurvatureCalculator.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 using namespace quantumverse::discovery;
@@ -25,7 +25,7 @@ namespace {
 constexpr double kEps = 1e-9;
 
 void assertFinite(const std::string& label, double v) {
-    assert(std::isfinite(v) && ("Non-finite value for " + label).c_str());
+    QV_CHECK(std::isfinite(v) && ("Non-finite value for " + label).c_str());
     (void)label;
     (void)v;
 }
@@ -33,15 +33,15 @@ void assertFinite(const std::string& label, double v) {
 
 void test_active_learning_disabled_by_default() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
-    assert(!agent.isActiveLearningEnabled() && "Active learning should be disabled by default");
+    QV_CHECK(!agent.isActiveLearningEnabled());
 }
 
 void test_active_learning_enable_toggle() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
     agent.setActiveLearningEnabled(true);
-    assert(agent.isActiveLearningEnabled() && "Active learning should be enabled after set(true)");
+    QV_CHECK(agent.isActiveLearningEnabled());
     agent.setActiveLearningEnabled(false);
-    assert(!agent.isActiveLearningEnabled() && "Active learning should be disabled after set(false)");
+    QV_CHECK(!agent.isActiveLearningEnabled());
 }
 
 void test_surrogate_prediction_after_training() {
@@ -56,14 +56,14 @@ void test_surrogate_prediction_after_training() {
     agent.evaluateTheory(p3);
 
     const TheorySurrogate* surrogate = agent.getSurrogate();
-    assert(surrogate != nullptr);
-    assert(surrogate->getTrainingSize() >= 3);
+    QV_CHECK(surrogate != nullptr);
+    QV_CHECK(surrogate->getTrainingSize() >= 3);
 
     double mean = 0.0, std = 0.0;
     surrogate->predict({0.2, 1.2}, mean, std);
-    assert(std::isfinite(mean) && "Prediction mean should be finite");
-    assert(std::isfinite(std) && "Prediction std should be finite");
-    assert(std >= 0.0 && "Predictive std should be non-negative");
+    QV_CHECK(std::isfinite(mean));
+    QV_CHECK(std::isfinite(std));
+    QV_CHECK(std >= 0.0);
 }
 
 void test_uncertainty_sampling_selects_point() {
@@ -78,9 +78,9 @@ void test_uncertainty_sampling_selects_point() {
     agent.setActiveLearningEnabled(
         true, TheoryDiscoveryAgent::ActiveLearningMode::UNCERTAINTY);
     std::vector<double> next = agent.selectNextActiveLearningPoint();
-    assert(next.size() == 2);
-    assert(next[0] >= -2.0 && next[0] <= 2.0);
-    assert(next[1] >= -2.0 && next[1] <= 2.0);
+    QV_CHECK(next.size() == 2);
+    QV_CHECK(next[0] >= -2.0 && next[0] <= 2.0);
+    QV_CHECK(next[1] >= -2.0 && next[1] <= 2.0);
 }
 
 void test_expected_improvement_selects_point() {
@@ -94,19 +94,19 @@ void test_expected_improvement_selects_point() {
 
     agent.setActiveLearningEnabled(true, TheoryDiscoveryAgent::ActiveLearningMode::EI);
     std::vector<double> next = agent.selectNextActiveLearningPoint();
-    assert(next.size() == 2);
-    assert(next[0] >= -2.0 && next[0] <= 2.0);
-    assert(next[1] >= -2.0 && next[1] <= 2.0);
+    QV_CHECK(next.size() == 2);
+    QV_CHECK(next[0] >= -2.0 && next[0] <= 2.0);
+    QV_CHECK(next[1] >= -2.0 && next[1] <= 2.0);
 }
 
 void test_evaluation_count_tracks() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
     agent.setActiveLearningEnabled(true);
-    assert(agent.getEvaluationCount() == 0u);
+    QV_CHECK(agent.getEvaluationCount() == 0u);
     agent.evaluateTheory({0.2, 1.0});
-    assert(agent.getEvaluationCount() == 1u);
+    QV_CHECK(agent.getEvaluationCount() == 1u);
     agent.evaluateTheory({0.3, 1.5});
-    assert(agent.getEvaluationCount() == 2u);
+    QV_CHECK(agent.getEvaluationCount() == 2u);
 }
 
 // ============================================================================
@@ -125,15 +125,15 @@ void test_model_weights_sum_to_one() {
     agent.evaluateTheory(p3);
 
     auto weights = agent.computeModelWeights();
-    assert(!weights.empty());
-    assert(weights.size() >= 1u);
+    QV_CHECK(!weights.empty());
+    QV_CHECK(weights.size() >= 1u);
 
     double sum = 0.0;
     for (double w : weights) {
-        assert(w >= 0.0 && "Weights must be non-negative");
+        QV_CHECK(w >= 0.0);
         sum += w;
     }
-    assert(std::fabs(sum - 1.0) < 1e-6 && "Weights must sum to 1");
+    QV_CHECK_NEAR(sum - 1.0, 0.0, 1e-6);
     std::cout << "  Model weights sum to " << sum << std::endl;
 }
 
@@ -149,7 +149,7 @@ void test_bma_prediction_gr_limit() {
     auto bma_H0 = agent.predictBMA([](const TheoryDiscoveryAgent::DiscoveryResult& r) {
         return r.parameters.empty() ? 0.0 : r.parameters[0];
     });
-    assert(std::isfinite(bma_H0));
+    QV_CHECK(std::isfinite(bma_H0));
     std::cout << "  BMA prediction (GR limit) = " << bma_H0 << std::endl;
 }
 
@@ -167,8 +167,8 @@ void test_bma_variance_nonnegative() {
     auto variance = agent.predictiveVarianceBMA([](const TheoryDiscoveryAgent::DiscoveryResult& r) {
         return r.parameters.empty() ? 0.0 : r.parameters[0];
     });
-    assert(variance >= 0.0 && "Predictive variance must be non-negative");
-    assert(std::isfinite(variance));
+    QV_CHECK(variance >= 0.0);
+    QV_CHECK(std::isfinite(variance));
     std::cout << "  BMA predictive variance = " << variance << std::endl;
 }
 
@@ -180,13 +180,13 @@ void test_bma_with_single_model() {
     agent.evaluateTheory(p);
 
     auto weights = agent.computeModelWeights();
-    assert(weights.size() == 1u);
-    assert(std::fabs(weights[0] - 1.0) < 1e-6 && "Single model weight must be 1");
+    QV_CHECK(weights.size() == 1u);
+    QV_CHECK_NEAR(weights[0] - 1.0, 0.0, 1e-6);
 
     auto bma_val = agent.predictBMA([](const TheoryDiscoveryAgent::DiscoveryResult& r) {
         return r.parameters.empty() ? 0.0 : r.parameters[1];
     });
-    assert(std::fabs(bma_val - 1e-55) < 1e-60 || bma_val > 0.0);
+    QV_CHECK_NEAR(bma_val - 1e, 55, 1e-60 || bma_val > 0.0);
     std::cout << "  BMA single-model weight = " << weights[0]
               << ", prediction = " << bma_val << std::endl;
 }
@@ -207,9 +207,9 @@ void test_ehvi_mode_selects_point() {
     }
 
     std::vector<double> next = agent.selectNextActiveLearningPoint();
-    assert(next.size() == 2);
-    assert(next[0] >= -2.0 && next[0] <= 2.0);
-    assert(next[1] >= -2.0 && next[1] <= 2.0);
+    QV_CHECK(next.size() == 2);
+    QV_CHECK(next[0] >= -2.0 && next[0] <= 2.0);
+    QV_CHECK(next[1] >= -2.0 && next[1] <= 2.0);
     std::cout << "  EHVI mode selected point: " << next[0] << ", " << next[1] << std::endl;
 }
 
@@ -224,9 +224,9 @@ void test_ucb_mode_selects_point() {
     }
 
     std::vector<double> next = agent.selectNextActiveLearningPoint();
-    assert(next.size() == 2);
-    assert(next[0] >= -2.0 && next[0] <= 2.0);
-    assert(next[1] >= -2.0 && next[1] <= 2.0);
+    QV_CHECK(next.size() == 2);
+    QV_CHECK(next[0] >= -2.0 && next[0] <= 2.0);
+    QV_CHECK(next[1] >= -2.0 && next[1] <= 2.0);
     std::cout << "  UCB mode selected point: " << next[0] << ", " << next[1] << std::endl;
 }
 
@@ -236,19 +236,19 @@ void test_acquisition_mode_toggle() {
 
     agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::UNCERTAINTY);
     std::vector<double> next1 = agent.selectNextActiveLearningPoint();
-    assert(next1.size() == 2);
+    QV_CHECK(next1.size() == 2);
 
     agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::EI);
     std::vector<double> next2 = agent.selectNextActiveLearningPoint();
-    assert(next2.size() == 2);
+    QV_CHECK(next2.size() == 2);
 
     agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::EHVI);
     std::vector<double> next3 = agent.selectNextActiveLearningPoint();
-    assert(next3.size() == 2);
+    QV_CHECK(next3.size() == 2);
 
     agent.setAcquisitionMode(TheoryDiscoveryAgent::AcquisitionMode::UCB);
     std::vector<double> next4 = agent.selectNextActiveLearningPoint();
-    assert(next4.size() == 2);
+    QV_CHECK(next4.size() == 2);
 
     std::cout << "  Acquisition mode toggle works (UNCERTAINTY, EI, EHVI, UCB)." << std::endl;
 }
@@ -292,7 +292,7 @@ void test_ehvi_improves_hypervolume() {
     double hv_before = agent.computeHypervolume(front_before, ref);
     double hv_after = agent.computeHypervolume(front_after, ref);
 
-    assert(hv_after >= hv_before && "Hypervolume should not decrease after more evaluations");
+    QV_CHECK(hv_after >= hv_before);
     std::cout << "  Hypervolume before = " << hv_before
               << ", after = " << hv_after << std::endl;
 }
@@ -303,7 +303,7 @@ int main() {
     // --- 1. Construct agent for f(R) gravity ------------------------------------
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
-        assert(agent.getEpisodeCount() == 0);
+        QV_CHECK(agent.getEpisodeCount() == 0);
         std::cout << "  f(R) agent constructed. Param dim = "
                   << agent.getEpisodeCount() << " (episodes)" << std::endl;
     }
@@ -331,7 +331,7 @@ int main() {
         assertFinite("total_reward", result.total_reward);
         assertFinite("observational_chi2", result.observational_chi2);
         assertFinite("theoretical_penalty", result.theoretical_penalty);
-        assert(result.lorentzian_valid);
+        QV_CHECK(result.lorentzian_valid);
         std::cout << "  Near-GR f(R) reward = " << result.total_reward
                   << " chi2 = " << result.observational_chi2 << std::endl;
     }
@@ -342,7 +342,7 @@ int main() {
         // Extreme values that produce pathological metrics
         std::vector<double> params = {100.0, 100.0};
         auto result = agent.evaluateTheory(params);
-        assert(result.total_reward < 0.0);
+        QV_CHECK(result.total_reward < 0.0);
         std::cout << "  Pathological f(R) reward = " << result.total_reward << std::endl;
     }
 
@@ -350,7 +350,7 @@ int main() {
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
         auto best = agent.discoverBestTheory(10);
-        assert(!best.empty());
+        QV_CHECK(!best.empty());
         for (size_t i = 0; i < best.size(); ++i) {
             assertFinite("best_param[" + std::to_string(i) + "]", best[i]);
         }
@@ -375,7 +375,7 @@ int main() {
         agent.discoverBestTheory(5);
         const auto& best = agent.getBestResult();
         assertFinite("best_result_reward", best.total_reward);
-        assert(!best.theory_name.empty());
+        QV_CHECK(!best.theory_name.empty());
         std::cout << "  Best result theory = " << best.theory_name
                   << " reward = " << best.total_reward << std::endl;
     }
@@ -387,7 +387,7 @@ int main() {
         (void)manager;
         std::vector<double> params = {0.5, 0.5};
         auto result = agent.evaluateTheory(params);
-        assert(result.theory_name == "FRLGravity");
+        QV_CHECK(result.theory_name == "FRLGravity");
         std::cout << "  Theory name correctly set to " << result.theory_name << std::endl;
     }
 
@@ -396,7 +396,7 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         std::vector<double> empty;
         auto result = agent.evaluateTheory(empty);
-        assert(result.total_reward < 0.0);
+        QV_CHECK(result.total_reward < 0.0);
         std::cout << "  Empty params handled gracefully. reward = "
                   << result.total_reward << std::endl;
     }
@@ -419,7 +419,7 @@ int main() {
         auto result = agent.evaluateTheory(params);
         assertFinite("tev_reward", result.total_reward);
         assertFinite("tev_obs_chi2", result.observational_chi2);
-        assert(result.theory_name == "TeVeS");
+        QV_CHECK(result.theory_name == "TeVeS");
         std::cout << "  TeVeS reward = " << result.total_reward
                   << " chi2 = " << result.observational_chi2 << std::endl;
     }
@@ -430,7 +430,7 @@ int main() {
         std::vector<double> params = {0.0, 0.0, 0.0};
         auto result = agent.evaluateTheory(params);
         assertFinite("ea_reward", result.total_reward);
-        assert(result.theory_name == "EinsteinAether");
+        QV_CHECK(result.theory_name == "EinsteinAether");
         std::cout << "  Einstein-Aether reward = " << result.total_reward << std::endl;
     }
 
@@ -440,7 +440,7 @@ int main() {
         std::vector<double> params = {0.0, 0.0, 0.0};
         auto result = agent.evaluateTheory(params);
         assertFinite("hor_reward", result.total_reward);
-        assert(result.theory_name == "Horndeski");
+        QV_CHECK(result.theory_name == "Horndeski");
         std::cout << "  Horndeski reward = " << result.total_reward << std::endl;
     }
 
@@ -451,7 +451,7 @@ int main() {
         std::vector<double> params = {0.01, 1.0};
         auto result = agent.evaluateTheory(params);
         assertFinite("obs_chi2_near_gr", result.observational_chi2);
-        assert(result.observational_chi2 >= 0.0);
+        QV_CHECK(result.observational_chi2 >= 0.0);
         std::cout << "  Near-GR f(R) obs chi2 = " << result.observational_chi2
                   << " (should be finite and >= 0)" << std::endl;
     }
@@ -467,7 +467,7 @@ int main() {
         std::vector<double> wild = {10.0, 10.0};
         auto wild_result = agent.evaluateTheory(wild);
 
-        assert(wild_result.observational_chi2 >= near_result.observational_chi2
+        QV_CHECK(wild_result.observational_chi2 >= near_result.observational_chi2
                || wild_result.theoretical_penalty > near_result.theoretical_penalty);
         std::cout << "  Near-GR chi2 = " << near_result.observational_chi2
                   << ", wild chi2 = " << wild_result.observational_chi2 << std::endl;
@@ -501,7 +501,7 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         double ll = agent.computeLogLikelihood(10.0, 10);
         assertFinite("log_likelihood", ll);
-        assert(ll < 0.0); // log-likelihood should be negative for chi2 > 0
+        QV_CHECK(ll < 0.0); // log-likelihood should be negative for chi2 > 0
         std::cout << "  Log-likelihood (chi2=10, N=10) = " << ll << std::endl;
     }
 
@@ -510,7 +510,7 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         double bic_1param = agent.computeBIC(10.0, 1, 20);
         double bic_2param = agent.computeBIC(10.0, 2, 20);
-        assert(bic_2param > bic_1param);
+        QV_CHECK(bic_2param > bic_1param);
         std::cout << "  BIC(1 param) = " << bic_1param
                   << ", BIC(2 param) = " << bic_2param << std::endl;
     }
@@ -523,8 +523,8 @@ int main() {
         auto bf_result = agent.computeBayesFactor(params);
         assertFinite("log_bayes_factor", bf_result.log_bayes_factor);
         assertFinite("bayes_factor", bf_result.bayes_factor);
-        assert(bf_result.bic_candidate >= 0.0);
-        assert(bf_result.bic_baseline >= 0.0);
+        QV_CHECK(bf_result.bic_candidate >= 0.0);
+        QV_CHECK(bf_result.bic_baseline >= 0.0);
         std::cout << "  Near-GR f(R) log BF = " << bf_result.log_bayes_factor
                   << ", preferred = " << bf_result.preferred_model << std::endl;
     }
@@ -535,7 +535,7 @@ int main() {
         // Extreme parameters produce bad chi2, so GR should be preferred
         std::vector<double> params = {1.0, 0.001};
         auto bf_result = agent.computeBayesFactor(params);
-        assert(bf_result.preferred_model == "GR" || bf_result.log_bayes_factor < 0.0);
+        QV_CHECK(bf_result.preferred_model == "GR" || bf_result.log_bayes_factor < 0.0);
         std::cout << "  Pathological BD log BF = " << bf_result.log_bayes_factor
                   << ", preferred = " << bf_result.preferred_model << std::endl;
     }
@@ -547,7 +547,7 @@ int main() {
         std::vector<double> gr_params = {0.0, 1.0};
         auto bf_result = agent.computeBayesFactor(gr_params);
         assertFinite("gr_log_bf", bf_result.log_bayes_factor);
-        assert(bf_result.bayes_factor > 0.0);
+        QV_CHECK(bf_result.bayes_factor > 0.0);
         // Near-GR should give log BF close to 0 (no strong preference either way)
         std::cout << "  Pure GR f(R) log BF = " << bf_result.log_bayes_factor
                   << ", BF = " << bf_result.bayes_factor
@@ -559,7 +559,7 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::TE_VES);
         double chi2 = agent.computeGRBaselineChi2();
         assertFinite("tev_gr_chi2", chi2);
-        assert(chi2 >= 0.0);
+        QV_CHECK(chi2 >= 0.0);
         std::cout << "  TeVeS GR baseline chi2 = " << chi2 << std::endl;
     }
 
@@ -568,7 +568,7 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::EINSTEIN_AETHER);
         double chi2 = agent.computeGRBaselineChi2();
         assertFinite("ea_gr_chi2", chi2);
-        assert(chi2 >= 0.0);
+        QV_CHECK(chi2 >= 0.0);
         std::cout << "  Einstein-Aether GR baseline chi2 = " << chi2 << std::endl;
     }
 
@@ -577,7 +577,7 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::HORNDESKI);
         double chi2 = agent.computeGRBaselineChi2();
         assertFinite("hor_gr_chi2", chi2);
-        assert(chi2 >= 0.0);
+        QV_CHECK(chi2 >= 0.0);
         std::cout << "  Horndeski GR baseline chi2 = " << chi2 << std::endl;
     }
 
@@ -587,7 +587,7 @@ int main() {
         std::vector<double> gr_params = {0.0, 0.0, 0.0};
         auto bf_result = agent.computeBayesFactor(gr_params);
         assertFinite("ea_log_bf", bf_result.log_bayes_factor);
-        assert(bf_result.bayes_factor > 0.0);
+        QV_CHECK(bf_result.bayes_factor > 0.0);
         std::cout << "  Einstein-Aether GR log BF = " << bf_result.log_bayes_factor
                   << ", preferred = " << bf_result.preferred_model << std::endl;
     }
@@ -598,7 +598,7 @@ int main() {
         std::vector<double> gr_params = {0.0, 0.0, 0.0};
         auto bf_result = agent.computeBayesFactor(gr_params);
         assertFinite("hor_log_bf", bf_result.log_bayes_factor);
-        assert(bf_result.bayes_factor > 0.0);
+        QV_CHECK(bf_result.bayes_factor > 0.0);
         std::cout << "  Horndeski GR log BF = " << bf_result.log_bayes_factor
                   << ", preferred = " << bf_result.preferred_model << std::endl;
     }
@@ -606,11 +606,11 @@ int main() {
     // --- 26. Active learning: enable/disable toggle -------------------------------
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
-        assert(!agent.isActiveLearningEnabled());
+        QV_CHECK(!agent.isActiveLearningEnabled());
         agent.setActiveLearningEnabled(true);
-        assert(agent.isActiveLearningEnabled());
+        QV_CHECK(agent.isActiveLearningEnabled());
         agent.setActiveLearningEnabled(false);
-        assert(!agent.isActiveLearningEnabled());
+        QV_CHECK(!agent.isActiveLearningEnabled());
         std::cout << "  Active learning toggle works." << std::endl;
     }
 
@@ -620,7 +620,7 @@ int main() {
         agent.setActiveLearningEnabled(true);
         std::vector<double> params = {0.5, 0.5};
         agent.evaluateTheory(params);
-        assert(agent.getEvaluationCount() >= 1);
+        QV_CHECK(agent.getEvaluationCount() >= 1);
         std::cout << "  Active learning history size = "
                   << agent.getEvaluationCount() << std::endl;
     }
@@ -633,15 +633,15 @@ int main() {
         std::vector<double> p2 = {1.0, 0.5};
         agent.evaluateTheory(p1);
         agent.evaluateTheory(p2);
-        assert(agent.getEvaluationCount() >= 2);
+        QV_CHECK(agent.getEvaluationCount() >= 2);
         const TheorySurrogate* surr = agent.getSurrogate();
-        assert(surr != nullptr);
-        assert(surr->getTrainingSize() >= 2);
+        QV_CHECK(surr != nullptr);
+        QV_CHECK(surr->getTrainingSize() >= 2);
         double mean = 0.0, std = 0.0;
         surr->predict({0.0, 1.0}, mean, std);
         assertFinite("surrogate_mean", mean);
         assertFinite("surrogate_std", std);
-        assert(std >= 0.0);
+        QV_CHECK(std >= 0.0);
         std::cout << "  Surrogate mean = " << mean
                   << " std = " << std << std::endl;
     }
@@ -652,9 +652,9 @@ int main() {
         agent.setActiveLearningEnabled(true);
         std::vector<double> params = {0.2375, 1.616e-35};
         agent.evaluateTheory(params);
-        assert(agent.getEvaluationCount() >= 1);
+        QV_CHECK(agent.getEvaluationCount() >= 1);
         agent.resetActiveLearning();
-        assert(agent.getEvaluationCount() == 0);
+        QV_CHECK(agent.getEvaluationCount() == 0);
         std::cout << "  Active learning reset works." << std::endl;
     }
 
@@ -667,7 +667,7 @@ int main() {
         agent.evaluateTheory(p1);
         agent.evaluateTheory(p2);
         auto best = agent.discoverBestTheory(5);
-        assert(!best.empty());
+        QV_CHECK(!best.empty());
         for (size_t i = 0; i < best.size(); ++i) {
             assertFinite("active_best_param[" + std::to_string(i) + "]", best[i]);
         }
@@ -697,7 +697,7 @@ int main() {
     // --- 37. Multi-objective Pareto: disabled by default ---------------------------
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
-        assert(!agent.isMultiObjectiveEnabled());
+        QV_CHECK(!agent.isMultiObjectiveEnabled());
         std::cout << "  Multi-objective mode disabled by default." << std::endl;
     }
 
@@ -705,9 +705,9 @@ int main() {
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         agent.setMultiObjectiveEnabled(true);
-        assert(agent.isMultiObjectiveEnabled());
+        QV_CHECK(agent.isMultiObjectiveEnabled());
         agent.setMultiObjectiveEnabled(false);
-        assert(!agent.isMultiObjectiveEnabled());
+        QV_CHECK(!agent.isMultiObjectiveEnabled());
         std::cout << "  Multi-objective toggle works." << std::endl;
     }
 
@@ -718,11 +718,11 @@ int main() {
         std::vector<double> params = {0.5, 1.0};
         auto result = agent.evaluateTheory(params);
         auto objectives = agent.computeObjectives(result);
-        assert(objectives.size() == 4);
+        QV_CHECK(objectives.size() == 4);
         assertFinite("obj_chi2", objectives[0]);
         assertFinite("obj_penalty", objectives[1]);
         assertFinite("obj_simplicity", objectives[2]);
-        assert(objectives[3] == 0.0 || objectives[3] == 1000.0);
+        QV_CHECK(objectives[3] == 0.0 || objectives[3] == 1000.0);
         std::cout << "  Objectives: chi2=" << objectives[0]
                   << " penalty=" << objectives[1]
                   << " simplicity=" << objectives[2]
@@ -738,14 +738,14 @@ int main() {
         TheoryDiscoveryAgent::ParetoPoint b(
             {0.5, 1.0}, {2.0, 1.0, 0.02, 0.0}, -2.0, true, false, "B"
         );
-        assert(TheoryDiscoveryAgent::dominates(a, b) && "A should dominate B");
-        assert(!TheoryDiscoveryAgent::dominates(b, a) && "B should not dominate A");
+        QV_CHECK(TheoryDiscoveryAgent::dominates(a, b));
+        QV_CHECK(!TheoryDiscoveryAgent::dominates(b, a));
 
         TheoryDiscoveryAgent::ParetoPoint c(
             {0.3, 1.0}, {1.0, 0.5, 0.02, 0.0}, -1.5, true, false, "C"
         );
-        assert(!TheoryDiscoveryAgent::dominates(a, c) && "A and C should be non-dominated");
-        assert(!TheoryDiscoveryAgent::dominates(c, a) && "C and A should be non-dominated");
+        QV_CHECK(!TheoryDiscoveryAgent::dominates(a, c));
+        QV_CHECK(!TheoryDiscoveryAgent::dominates(c, a));
         std::cout << "  Pareto dominance logic verified." << std::endl;
     }
 
@@ -763,13 +763,13 @@ int main() {
         agent.evaluateTheory(p3);
 
         auto front = agent.getParetoFront();
-        assert(!front.empty() && "Pareto front should not be empty after evaluations");
+        QV_CHECK(!front.empty());
 
         // Verify all points in front are non-dominated
         for (size_t i = 0; i < front.size(); ++i) {
             for (size_t j = 0; j < front.size(); ++j) {
                 if (i != j) {
-                    assert(!TheoryDiscoveryAgent::dominates(front[i], front[j]) ||
+                    QV_CHECK(!TheoryDiscoveryAgent::dominates(front[i], front[j]) ||
                            TheoryDiscoveryAgent::dominates(front[j], front[i]));
                 }
             }
@@ -782,9 +782,9 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         agent.setMultiObjectiveEnabled(true);
         agent.evaluateTheory({0.2, 1.0});
-        assert(!agent.getParetoFront().empty());
+        QV_CHECK(!agent.getParetoFront().empty());
         agent.resetParetoArchive();
-        assert(agent.getParetoFront().empty());
+        QV_CHECK(agent.getParetoFront().empty());
         std::cout << "  Pareto archive reset works." << std::endl;
     }
 
@@ -797,7 +797,7 @@ int main() {
         agent.evaluateTheory(p1);
         agent.evaluateTheory(p2);
         auto best = agent.discoverBestTheory(5);
-        assert(!best.empty());
+        QV_CHECK(!best.empty());
         for (size_t i = 0; i < best.size(); ++i) {
             assertFinite("pareto_best_param[" + std::to_string(i) + "]", best[i]);
         }
@@ -839,7 +839,7 @@ int main() {
         std::vector<double> params = {40000.0, 1.0};
         auto result = agent.evaluateTheory(params);
         assertFinite("combined_chi2", result.observational_chi2);
-        assert(result.observational_chi2 >= 0.0);
+        QV_CHECK(result.observational_chi2 >= 0.0);
         std::cout << "  Combined observational chi2 = " << result.observational_chi2 << std::endl;
     }
 
@@ -847,7 +847,7 @@ int main() {
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         agent.setActiveLearningEnabled(false);
-        assert(agent.getLiveObservationCount() == 0u);
+        QV_CHECK(agent.getLiveObservationCount() == 0u);
 
         QJsonObject alert;
         alert["alert_type"] = "LIGO";
@@ -857,10 +857,10 @@ int main() {
         alert["origin"] = "LIGO";
 
         agent.ingestLiveAlert(alert);
-        assert(agent.getLiveObservationCount() == 1u);
+        QV_CHECK(agent.getLiveObservationCount() == 1u);
 
         agent.ingestLiveAlert(alert);
-        assert(agent.getLiveObservationCount() == 2u);
+        QV_CHECK(agent.getLiveObservationCount() == 2u);
 
         std::cout << "  Live observations ingested: " << agent.getLiveObservationCount() << "\n";
     }
@@ -882,7 +882,7 @@ int main() {
 
         auto result_after = agent.evaluateTheory(gr_params);
         double chi2_after = result_after.observational_chi2;
-        assert(chi2_after == chi2_before);
+        QV_CHECK(chi2_after == chi2_before);
         (void)chi2_before;
         std::cout << "  Invalid alert rejected, chi2 unchanged = " << chi2_after << "\n";
     }
@@ -923,9 +923,9 @@ int main() {
         agent.evaluateTheory(p2);
 
         std::vector<double> weights_before = agent.getModelWeights();
-        assert(weights_before.size() == 2u);
+        QV_CHECK(weights_before.size() == 2u);
         double weight_sum_before = std::accumulate(weights_before.begin(), weights_before.end(), 0.0);
-        assert(std::abs(weight_sum_before - 1.0) < 1e-6);
+        QV_CHECK_NEAR(weight_sum_before - 1.0, 0.0, 1e-6);
         (void)weight_sum_before;
 
         QJsonObject alert;
@@ -936,12 +936,12 @@ int main() {
         alert["origin"] = "LIGO";
 
         agent.ingestLiveAlert(alert);
-        assert(agent.getLiveObservationCount() == 1u);
+        QV_CHECK(agent.getLiveObservationCount() == 1u);
 
         std::vector<double> weights_after = agent.getModelWeights();
-        assert(weights_after.size() == 2u);
+        QV_CHECK(weights_after.size() == 2u);
         double weight_sum_after = std::accumulate(weights_after.begin(), weights_after.end(), 0.0);
-        assert(std::abs(weight_sum_after - 1.0) < 1e-6);
+        QV_CHECK_NEAR(weight_sum_after - 1.0, 0.0, 1e-6);
         (void)weight_sum_after;
 
         bool weights_changed = false;
@@ -951,7 +951,7 @@ int main() {
                 break;
             }
         }
-        assert(weights_changed && "BMA weights should shift after live alert ingestion");
+        QV_CHECK(weights_changed);
         std::cout << "  Live alert weight shift verified.\n";
     }
 

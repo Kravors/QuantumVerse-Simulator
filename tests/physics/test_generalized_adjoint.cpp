@@ -2,7 +2,6 @@
 // Validates that the adjoint integrator works with arbitrary MetricTensor
 // implementations via the evaluateAD / computeChristoffelAD interface.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -13,6 +12,7 @@
 #include "spacetime/Event4D.h"
 #include "physics/AdjointGeodesicIntegrator.h"
 #include "discovery/DiscoveryEngine.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 using namespace quantumverse::physics;
@@ -183,22 +183,20 @@ void test_generalized_adjoint_schwarzschild() {
 
     auto result = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 0.01);
 
-    assert(result.success && "Integration should succeed");
-    assert(result.finalState.size() == 8 && "Final state should have 8 components");
-    assert(!result.dState_dParams.empty() && "Gradient matrix should not be empty");
-    assert(result.dState_dParams.size() == 8 && "Gradient matrix should have 8 rows");
-    assert(result.dState_dParams[0].size() == 1 && "Gradient matrix should have 1 column (mass)");
-    assert(std::isfinite(result.dState_dParams[1][0]) && "dr/dM should be finite");
+    QV_CHECK(result.success);
+    QV_CHECK(result.finalState.size() == 8);
+    QV_CHECK(!result.dState_dParams.empty());
+    QV_CHECK(result.dState_dParams.size() == 8);
+    QV_CHECK(result.dState_dParams[0].size() == 1);
+    QV_CHECK(std::isfinite(result.dState_dParams[1][0]));
 
     std::cout << "    dr/dM = " << result.dState_dParams[1][0] << "\n";
 
     AdjointGeodesicIntegrator legacy_integrator(1.0, 1e-6, 1e-10, 0.5, 0.9, 100000);
     auto legacy_result = legacy_integrator.integrate(start, vel, GeodesicType::TIMELIKE, 0.01);
 
-    assert(std::fabs(legacy_result.finalState[1] - result.finalState[1]) < 1e-10 &&
-           "Generalized and legacy integrators should agree on final state");
-    assert(std::fabs(legacy_result.dState_dParams[1][0] - result.dState_dParams[1][0]) < 1e-10 &&
-           "Generalized and legacy integrators should agree on gradient");
+    QV_CHECK_NEAR(legacy_result.finalState[1] - result.finalState[1], 0.0, 1e-10);
+    QV_CHECK_NEAR(legacy_result.dState_dParams[1][0] - result.dState_dParams[1][0], 0.0, 1e-10);
 }
 
 void test_generalized_adjoint_fr_gravity() {
@@ -221,11 +219,9 @@ void test_generalized_adjoint_fr_gravity() {
 
     auto result = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 0.01);
 
-    assert(result.success && "Integration should succeed");
-    assert(result.dState_dParams[1][0] == 0.0 &&
-           "Gradient w.r.t. alpha should be zero (metric does not depend on alpha)");
-    assert(result.dState_dParams[1][1] == 0.0 &&
-           "Gradient w.r.t. n should be zero (metric does not depend on n)");
+    QV_CHECK(result.success);
+    QV_CHECK(result.dState_dParams[1][0] == 0.0);
+    QV_CHECK(result.dState_dParams[1][1] == 0.0);
 
     std::cout << "    FRL gradients are zero as expected (no AD support yet).\n";
 }
@@ -242,10 +238,10 @@ void test_generalized_adjoint_parameter_gradient() {
 
     auto result = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 0.01);
 
-    assert(result.success && "Integration should succeed");
-    assert(result.dState_dParams.size() == 8 && "Should have 8 state components");
-    assert(result.dState_dParams[0].size() == 1 && "Should have 1 parameter");
-    assert(std::isfinite(result.dState_dParams[1][0]) && "dr/da should be finite");
+    QV_CHECK(result.success);
+    QV_CHECK(result.dState_dParams.size() == 8);
+    QV_CHECK(result.dState_dParams[0].size() == 1);
+    QV_CHECK(std::isfinite(result.dState_dParams[1][0]));
 
     double dr_da = result.dState_dParams[1][0];
     std::cout << "    dr/da = " << dr_da << "\n";
@@ -261,8 +257,7 @@ void test_generalized_adjoint_parameter_gradient() {
     double fd_dr_da = (result_plus.finalState[1] - result_minus.finalState[1]) / (2.0 * eps);
     std::cout << "    FD dr/da = " << fd_dr_da << "\n";
 
-    assert(std::fabs(dr_da - fd_dr_da) < 1e-4 &&
-           "Adjoint gradient should match finite difference");
+    QV_CHECK_NEAR(dr_da - fd_dr_da, 0.0, 1e-4);
 }
 
 int main() {

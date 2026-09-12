@@ -3,7 +3,6 @@
 // path with a sudden kink (deflection) at a known time and verifies the
 // detector flags the anomaly and reports its location/type.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -11,6 +10,7 @@
 #include "discovery/GalacticTidalStreamCartographer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== GalacticTidalStreamCartographer Test ===" << std::endl;
@@ -32,17 +32,17 @@ int main() {
     quantumverse::GalacticTidalStreamCartographer cartographer;
     auto findings = cartographer.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No stream anomaly detected");
+    QV_CHECK(!findings.empty());
 
     const auto& f = findings.front();
     bool mentions = f.description.find("stream") != std::string::npos ||
                     f.description.find("anomaly") != std::string::npos;
-    assert(mentions && "Finding does not mention stream anomaly");
+    QV_CHECK(mentions);
     (void)mentions;
 
     auto ait = f.parameters.find("anomaly_time");
-    assert(ait != f.parameters.end() && "anomaly_time parameter missing");
-    assert(std::abs(ait->second - tAnomaly) < 2.0 && "Anomaly time mismatch");
+    QV_CHECK(ait != f.parameters.end());
+    QV_CHECK_NEAR(ait, >second - tAnomaly, 2.0);
 
     std::cout << "Detected stream "
               << (f.parameters.at("anomaly_type") > 0.5 ? "gap" : "kink")
@@ -54,12 +54,12 @@ int main() {
         smooth.emplace_back(t, t, 0.0, 0.0);
     }
     auto none = cartographer.analyze(metric, location, smooth);
-    assert(none.empty() && "Smooth straight stream should not trigger a finding");
+    QV_CHECK(none.empty());
 
     // --- Edge case: too few points ----------------------------------------
     std::vector<quantumverse::Event4D> tiny(5);
     auto few = cartographer.analyze(metric, location, tiny);
-    assert(few.empty() && "Too-few-point trajectory should not produce a finding");
+    QV_CHECK(few.empty());
 
     std::cout << "All GalacticTidalStreamCartographer tests passed." << std::endl;
     return 0;

@@ -25,11 +25,11 @@
 #include "spacetime/Event4D.h"
 #include "physics/CurvatureCalculator.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
 #include <limits>
 #include <vector>
 #include <functional>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -64,8 +64,8 @@ void test_frw_matter_scale_factor_exact() {
     for (double t : times) {
         double a = frw.scaleFactor(t);
         double a_expected = std::pow(t / T0, 2.0 / 3.0);
-        assert(a > 0.0 && "Scale factor should be positive");
-        assert(relError(a, a_expected) < 1e-12 && "Matter-dominated scale factor mismatch");
+        QV_CHECK(a > 0.0);
+        QV_CHECK(relError(a, a_expected) < 1e-12);
         (void)a; (void)a_expected;
         count++;
     }
@@ -83,8 +83,8 @@ void test_frw_radiation_scale_factor_exact() {
     for (double t : times) {
         double a = frw.scaleFactor(t);
         double a_expected = std::pow(t / T0, 0.5);
-        assert(a > 0.0 && "Scale factor should be positive");
-        assert(relError(a, a_expected) < 1e-12 && "Radiation-dominated scale factor mismatch");
+        QV_CHECK(a > 0.0);
+        QV_CHECK(relError(a, a_expected) < 1e-12);
         (void)a; (void)a_expected;
         count++;
     }
@@ -102,8 +102,8 @@ void test_frw_de_sitter_exact() {
     for (double t : times) {
         double a = frw.scaleFactor(t);
         double a_expected = std::exp(H0 * t);
-        assert(std::isfinite(a) && "de Sitter scale factor should be finite");
-        assert(relError(a, a_expected) < 1e-12 && "de Sitter scale factor mismatch");
+        QV_CHECK(std::isfinite(a));
+        QV_CHECK(relError(a, a_expected) < 1e-12);
         (void)a; (void)a_expected;
         count++;
     }
@@ -115,13 +115,13 @@ void test_frw_de_sitter_exact() {
 // ============================================================================
 void test_frw_lambda_cdm_flat_constraint() {
     auto frw = FRWMetric::lambdaCDM(0.31, 0.69, H0);
-    assert(frw.curvature() == 0 && "ΛCDM should be flat");
-    assert(frw.hubbleConstant() == H0);
+    QV_CHECK(frw.curvature() == 0);
+    QV_CHECK(frw.hubbleConstant() == H0);
 
     double t = T0 * 0.8;
     [[maybe_unused]] double a = frw.scaleFactor(t);
-    assert(a > 0.0 && "ΛCDM scale factor should be positive");
-    assert(std::isfinite(a) && "ΛCDM scale factor should be finite");
+    QV_CHECK(a > 0.0);
+    QV_CHECK(std::isfinite(a));
     std::cout << "[PASS] FRW ΛCDM flat constraint and scale factor valid" << std::endl;
 }
 
@@ -139,8 +139,8 @@ void test_frw_hubble_parameter_consistency() {
         double h = std::max(1e-6, std::abs(t) * 1e-5);
         double adot = (frw.scaleFactor(t + h) - frw.scaleFactor(t - h)) / (2.0 * h);
         double H_expected = adot / a;
-        assert(std::isfinite(H) && H > 0.0 && "Hubble parameter should be finite and positive");
-        assert(relError(H, H_expected) < 1e-6 && "Hubble parameter H = ȧ/a mismatch");
+        QV_CHECK(std::isfinite(H) && H > 0.0);
+        QV_CHECK(relError(H, H_expected) < 1e-6);
         (void)H; (void)H_expected;
         count++;
     }
@@ -154,7 +154,7 @@ void test_frw_age_of_universe() {
     auto frw = FRWMetric::matterDominated(H0, T0);
     double t_age = frw.ageOfUniverse();
     double t_expected = 2.0 / (3.0 * H0);
-    assert(std::abs(t_age - t_expected) < 1e-6 * t_expected && "Age of universe mismatch");
+    QV_CHECK_NEAR(t_age - t_expected, 0.0, 1e-6 * t_expected);
     (void)t_age; (void)t_expected;
     std::cout << "[PASS] FRW age of universe = 2/(3H0) exact" << std::endl;
 }
@@ -169,7 +169,7 @@ void test_frw_metric_diagonal() {
 
     for (int i = 0; i < 4; i++) {
         for (int j = i + 1; j < 4; j++) {
-            assert(std::abs(g.g[i][j]) < 1e-12 && "FRW metric should be diagonal");
+            QV_CHECK_NEAR(g.g[i][j], 0.0, 1e-12);
         }
     }
     std::cout << "[PASS] FRW metric is diagonal (no cross terms)" << std::endl;
@@ -183,10 +183,10 @@ void test_frw_lorentzian_signature() {
     Event4D ev(T0 * 0.8, 1e9, M_PI / 4.0, M_PI / 3.0);
     auto g = frw.evaluate(ev);
 
-    assert(g.g[0][0] < 0.0 && "g_tt should be negative");
-    assert(g.g[1][1] > 0.0 && "g_rr should be positive");
-    assert(g.g[2][2] > 0.0 && "g_θθ should be positive");
-    assert(g.g[3][3] > 0.0 && "g_φφ should be positive");
+    QV_CHECK(g.g[0][0] < 0.0);
+    QV_CHECK(g.g[1][1] > 0.0);
+    QV_CHECK(g.g[2][2] > 0.0);
+    QV_CHECK(g.g[3][3] > 0.0);
     std::cout << "[PASS] FRW metric has Lorentzian signature (-,+,+,+)" << std::endl;
 }
 
@@ -199,9 +199,9 @@ void test_frw_redshift_consistency() {
     double a_em = frw.scaleFactor(t_em);
     double z = (1.0 / a_em) - 1.0;
 
-    assert(z > 0.0 && "Redshift should be positive for emission in the past");
-    assert(std::isfinite(z) && "Redshift should be finite");
-    assert(relError(a_em, 1.0 / (1.0 + z)) < 1e-12 && "Redshift consistency 1+z = 1/a");
+    QV_CHECK(z > 0.0);
+    QV_CHECK(std::isfinite(z));
+    QV_CHECK(relError(a_em, 1.0 / (1.0 + z)) < 1e-12);
     std::cout << "[PASS] FRW redshift consistency: 1+z = 1/a(t_em) = " << (1.0 + z) << std::endl;
 }
 
@@ -216,9 +216,9 @@ void test_frw_comoving_distance() {
     double d_proper = a * chi;
     (void)d_proper;
 
-    assert(d_proper > 0.0 && "Proper distance should be positive");
-    assert(std::isfinite(d_proper) && "Proper distance should be finite");
-    assert(relError(d_proper / chi, a) < 1e-12 && "Proper = a * comoving mismatch");
+    QV_CHECK(d_proper > 0.0);
+    QV_CHECK(std::isfinite(d_proper));
+    QV_CHECK(relError(d_proper / chi, a) < 1e-12);
     std::cout << "[PASS] FRW comoving/proper distance: d = a * chi" << std::endl;
 }
 
@@ -233,9 +233,9 @@ void test_frw_angular_diameter_distance() {
     double d_A = a_em * chi;
     (void)d_A;
 
-    assert(d_A > 0.0 && "Angular diameter distance should be positive");
-    assert(std::isfinite(d_A) && "Angular diameter distance should be finite");
-    assert(relError(d_A / chi, a_em) < 1e-12 && "d_A = a(t_em) * chi mismatch");
+    QV_CHECK(d_A > 0.0);
+    QV_CHECK(std::isfinite(d_A));
+    QV_CHECK(relError(d_A / chi, a_em) < 1e-12);
     std::cout << "[PASS] FRW angular diameter distance: d_A = a(t_em) * chi" << std::endl;
 }
 
@@ -250,8 +250,8 @@ void test_frw_luminosity_distance() {
     double d_A = a_em * chi;
     double d_L = d_A / (a_em * a_em);
 
-    assert(d_L > d_A && "Luminosity distance should exceed angular diameter distance");
-    assert(relError(d_L, chi / a_em) < 1e-12 && "d_L = chi/a(t_em) mismatch");
+    QV_CHECK(d_L > d_A);
+    QV_CHECK(relError(d_L, chi / a_em) < 1e-12);
     std::cout << "[PASS] FRW luminosity distance: d_L = d_A / a^2 = " << d_L << std::endl;
 }
 
@@ -265,9 +265,9 @@ void test_frw_curvature_types() {
     auto open = FRWMetric(FRWMetric::Curvature::OPEN,
         [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
 
-    assert(flat.curvature() == 0 && "Flat universe should have k=0");
-    assert(closed.curvature() == 1 && "Closed universe should have k=+1");
-    assert(open.curvature() == -1 && "Open universe should have k=-1");
+    QV_CHECK(flat.curvature() == 0);
+    QV_CHECK(closed.curvature() == 1);
+    QV_CHECK(open.curvature() == -1);
 
     // In the FLRW line element ds² = -c²dt² + a²[dr²/(1-kr²) + r²dΩ²] the comoving
     // radial coordinate r is measured in units of the curvature radius whenever
@@ -283,13 +283,13 @@ void test_frw_curvature_types() {
     auto g_closed = closed.evaluate(ev);
     auto g_open = open.evaluate(ev);
 
-    assert(1.0 - 1.0 * r * r > 0.0 && "Test radius must lie inside the closed FRW chart");
-    assert(g_flat.g[1][1] > 0.0 && "Flat g_rr should be positive");
-    assert(g_closed.g[1][1] > 0.0 && "Closed g_rr should be positive");
-    assert(g_open.g[1][1] > 0.0 && "Open g_rr should be positive");
+    QV_CHECK(1.0 - 1.0 * r * r > 0.0);
+    QV_CHECK(g_flat.g[1][1] > 0.0);
+    QV_CHECK(g_closed.g[1][1] > 0.0);
+    QV_CHECK(g_open.g[1][1] > 0.0);
     // Closed slices are "smaller" than flat ones at fixed r (1-r² < 1), open larger.
-    assert(g_closed.g[1][1] > g_flat.g[1][1] && "Closed g_rr must exceed flat g_rr for |r|<1");
-    assert(g_open.g[1][1] < g_flat.g[1][1] && "Open g_rr must be below flat g_rr");
+    QV_CHECK(g_closed.g[1][1] > g_flat.g[1][1]);
+    QV_CHECK(g_open.g[1][1] < g_flat.g[1][1]);
     std::cout << "[PASS] FRW curvature types: flat/closed/open verified" << std::endl;
 }
 
@@ -306,7 +306,7 @@ void test_frw_ricci_scalar_matter() {
     calc.setFDStep(1e-4);
     auto result = calc.computeAll(ev);
     (void)g;
-    assert(std::isfinite(result.ricciScalar) && "Ricci scalar should be finite");
+    QV_CHECK(std::isfinite(result.ricciScalar));
     (void)result;
     std::cout << "[PASS] FRW Ricci scalar finite at t = " << t / T0 << " t0" << std::endl;
 }
@@ -322,8 +322,8 @@ void test_frw_weyl_zero() {
     // FRW is conformally flat → Weyl tensor = 0
     // Since we don't have a direct Weyl API, verify via metric structure:
     // conformally flat metrics have R_ijkl = (1/4) R_ijkl_Minkowski
-    assert(g.g[0][0] < 0.0 && "g_tt negative for Lorentzian");
-    assert(g.g[1][1] > 0.0 && "g_rr positive");
+    QV_CHECK(g.g[0][0] < 0.0);
+    QV_CHECK(g.g[1][1] > 0.0);
     std::cout << "[PASS] FRW Weyl = 0 (conformally flat)" << std::endl;
 }
 
@@ -356,15 +356,15 @@ void test_frw_deceleration_parameter() {
 
     // Matter: q = 1/2
     double q_mat = decelerationParameter(matter);
-    assert(std::abs(q_mat - 0.5) < 1e-3 && "Matter deceleration q should be ~0.5");
+    QV_CHECK_NEAR(q_mat - 0.5, 0.0, 1e-3);
 
     // Radiation: q = 1
     double q_rad = decelerationParameter(radiation);
-    assert(std::abs(q_rad - 1.0) < 1e-3 && "Radiation deceleration q should be ~1.0");
+    QV_CHECK_NEAR(q_rad - 1.0, 0.0, 1e-3);
 
     // de Sitter: q = -1
     double q_ds = decelerationParameter(desitter);
-    assert(std::abs(q_ds - (-1.0)) < 1e-3 && "de Sitter deceleration q should be ~-1.0");
+    QV_CHECK_NEAR(q_ds - (-1.0), 0.0, 1e-3);
 
     std::cout << "[PASS] FRW deceleration parameter: q_mat=" << q_mat
               << ", q_rad=" << q_rad << ", q_ds=" << q_ds << std::endl;
@@ -379,8 +379,8 @@ void test_frw_metric_determinant() {
     auto g = frw.evaluate(ev);
 
     double det = g.g[0][0] * g.g[1][1] * g.g[2][2] * g.g[3][3];
-    assert(det < 0.0 && "FRW determinant should be negative (Lorentzian)");
-    assert(std::isfinite(det) && "FRW determinant should be finite");
+    QV_CHECK(det < 0.0);
+    QV_CHECK(std::isfinite(det));
     std::cout << "[PASS] FRW metric determinant negative: det = " << det << std::endl;
 }
 
@@ -397,7 +397,7 @@ void test_frw_g_tt_constant() {
     for (double t : times) {
         Event4D ev(t, 1e9, M_PI / 4.0, M_PI / 3.0);
         auto g = frw.evaluate(ev);
-        assert(std::abs(g.g[0][0] - (-c2)) < 1e-6 && "g_tt should be -c^2");
+        QV_CHECK_NEAR(g.g[0][0] - (-c2), 0.0, 1e-6);
         count++;
     }
     std::cout << "[PASS] FRW g_tt = -c^2 constant: " << count << " points" << std::endl;
@@ -427,9 +427,9 @@ void test_frw_g_rr_curvature_dependence() {
     double g_rr_open = a * a / (1.0 - (-1.0) * r * r);
     (void)g_rr_flat; (void)g_rr_closed; (void)g_rr_open;
 
-    assert(relError(g_flat.g[1][1], g_rr_flat) < 1e-10 && "Flat g_rr mismatch");
-    assert(relError(g_open.g[1][1], g_rr_open) < 1e-10 && "Open g_rr mismatch");
-    assert(relError(g_closed.g[1][1], g_rr_closed) < 1e-10 && "Closed g_rr mismatch");
+    QV_CHECK(relError(g_flat.g[1][1], g_rr_flat) < 1e-10);
+    QV_CHECK(relError(g_open.g[1][1], g_rr_open) < 1e-10);
+    QV_CHECK(relError(g_closed.g[1][1], g_rr_closed) < 1e-10);
     std::cout << "[PASS] FRW g_rr curvature dependence verified" << std::endl;
 }
 
@@ -444,8 +444,8 @@ void test_frw_lookback_time() {
 
     // Matter-dominated lookback time ≈ (2/3H0) * [1 - 1/sqrt(1+z)]
     double t_lookback_expected = (2.0 / (3.0 * H0)) * (1.0 - 1.0 / std::sqrt(1.0 + z));
-    assert(t_lookback_expected > 0.0 && "Lookback time should be positive");
-    assert(std::isfinite(t_lookback_expected) && "Lookback time should be finite");
+    QV_CHECK(t_lookback_expected > 0.0);
+    QV_CHECK(std::isfinite(t_lookback_expected));
     std::cout << "[PASS] FRW lookback time for z=1: " << t_lookback_expected / (60.0 * 60.0 * 24.0 * 365.25)
               << " Gyr" << std::endl;
 }
@@ -468,7 +468,7 @@ void test_frw_conformal_time() {
         double ai = frw.scaleFactor(ti);
         if (ai > 1e-30) eta += dt / ai;
     }
-    assert(std::isfinite(eta) && eta > 0.0 && "Conformal time should be finite and positive");
+    QV_CHECK(std::isfinite(eta) && eta > 0.0);
     std::cout << "[PASS] FRW conformal time integral converges: eta = " << eta << std::endl;
 }
 
@@ -478,8 +478,8 @@ void test_frw_conformal_time() {
 void test_frw_critical_density() {
     double H = H0;
     double rho_crit = 3.0 * H * H / (8.0 * M_PI * Event4D::G);
-    assert(rho_crit > 0.0 && "Critical density should be positive");
-    assert(std::isfinite(rho_crit) && "Critical density should be finite");
+    QV_CHECK(rho_crit > 0.0);
+    QV_CHECK(std::isfinite(rho_crit));
 
     // rho_crit = 3H0^2/(8 pi G) with H0 = 2.27e-18 s^-1 (~70 km/s/Mpc) and
     // G = 6.6743e-11 m^3 kg^-1 s^-2 evaluates to ~9.22e-27 kg/m^3, i.e. about
@@ -487,10 +487,8 @@ void test_frw_critical_density() {
     // wrong by seven orders of magnitude and could never hold for a physically
     // correct closed form; pin the literature value instead.
     [[maybe_unused]] const double rho_crit_expected = 9.2156e-27;   // kg/m^3
-    assert(relError(rho_crit, rho_crit_expected) < 1e-3
-           && "Critical density should match 3H0^2/(8 pi G) ~ 9.22e-27 kg/m^3");
-    assert(rho_crit > 1e-28 && rho_crit < 1e-25
-           && "Critical density should sit in the 1e-28..1e-25 kg/m^3 band");
+    QV_CHECK(relError(rho_crit, rho_crit_expected) < 1e-3);
+    QV_CHECK(rho_crit > 1e-28 && rho_crit < 1e-25);
     std::cout << "[PASS] FRW critical density: rho_crit = " << rho_crit << " kg/m^3" << std::endl;
 }
 
@@ -506,8 +504,8 @@ void test_frw_matter_density_scaling() {
 
     // rho_matter ∝ a^-3
     double rho_ratio = (a2 * a2 * a2) / (a1 * a1 * a1);
-    assert(rho_ratio > 0.0 && "Density ratio should be positive");
-    assert(std::isfinite(rho_ratio) && "Density ratio should be finite");
+    QV_CHECK(rho_ratio > 0.0);
+    QV_CHECK(std::isfinite(rho_ratio));
     std::cout << "[PASS] FRW matter density scaling: rho2/rho1 = (a1/a2)^3 = " << rho_ratio << std::endl;
 }
 
@@ -523,8 +521,8 @@ void test_frw_radiation_density_scaling() {
 
     // rho_rad ∝ a^-4
     double rho_ratio = (a2 * a2 * a2 * a2) / (a1 * a1 * a1 * a1);
-    assert(rho_ratio > 0.0 && "Density ratio should be positive");
-    assert(std::isfinite(rho_ratio) && "Density ratio should be finite");
+    QV_CHECK(rho_ratio > 0.0);
+    QV_CHECK(std::isfinite(rho_ratio));
     std::cout << "[PASS] FRW radiation density scaling: rho2/rho1 = (a1/a2)^4 = " << rho_ratio << std::endl;
 }
 
@@ -543,7 +541,7 @@ void test_frw_distance_duality() {
     double d_L = d_A / (a_em * a_em);
     (void)d_L;
 
-    assert(relError(d_L, (1.0 + z) * (1.0 + z) * d_A) < 1e-12 && "Etherington distance duality violated");
+    QV_CHECK(relError(d_L, (1.0 + z) * (1.0 + z) * d_A) < 1e-12);
     std::cout << "[PASS] FRW Etherington distance duality: d_L = (1+z)^2 d_A" << std::endl;
 }
 
@@ -558,15 +556,13 @@ void test_frw_hubble_constant_at_present() {
     // H(T0) == H0 could never hold. Check the analytic relation...
     auto frw = FRWMetric::matterDominated(H0, T0);
     double H = frw.hubbleParameter(T0);
-    assert(relError(H, 2.0 / (3.0 * T0)) < 1e-6
-           && "Matter-dominated H(t) must equal 2/(3t)");
+    QV_CHECK(relError(H, 2.0 / (3.0 * T0)) < 1e-6);
 
     // ...and that a self-consistent construction does reproduce H0 at t0.
     const double t0_selfConsistent = 2.0 / (3.0 * H0);
     auto frwSelfConsistent = FRWMetric::matterDominated(H0, t0_selfConsistent);
     double H_selfConsistent = frwSelfConsistent.hubbleParameter(t0_selfConsistent);
-    assert(std::abs(H_selfConsistent - H0) < 1e-6 * H0
-           && "Hubble parameter at t0 = 2/(3H0) should equal H0");
+    QV_CHECK_NEAR(H_selfConsistent - H0, 0.0, 1e-6 * H0);
 
     std::cout << "[PASS] FRW H(t0) = 2/(3 t0) = " << H
               << " s^-1; self-consistent H(2/(3H0)) = " << H_selfConsistent << " s^-1" << std::endl;
@@ -581,10 +577,10 @@ void test_frw_standard_models_flat() {
     auto desitter = FRWMetric::deSitter(H0);
     auto lcdm = FRWMetric::lambdaCDM(0.31, 0.69, H0);
 
-    assert(matter.curvature() == 0 && "Matter-dominated should be flat");
-    assert(radiation.curvature() == 0 && "Radiation-dominated should be flat");
-    assert(desitter.curvature() == 0 && "de Sitter should be flat");
-    assert(lcdm.curvature() == 0 && "ΛCDM should be flat");
+    QV_CHECK(matter.curvature() == 0);
+    QV_CHECK(radiation.curvature() == 0);
+    QV_CHECK(desitter.curvature() == 0);
+    QV_CHECK(lcdm.curvature() == 0);
     std::cout << "[PASS] FRW standard models all flat (k=0)" << std::endl;
 }
 
@@ -601,21 +597,20 @@ void test_frw_scale_factor_normalization() {
     auto lcdm = FRWMetric::lambdaCDM(omegaM, omegaLambda, H0);
 
     // matterDominated/radiationDominated take t0 explicitly and normalise there.
-    assert(relError(matter.scaleFactor(T0), 1.0) < 1e-12 && "Matter a(t0) should be 1");
-    assert(relError(radiation.scaleFactor(T0), 1.0) < 1e-12 && "Radiation a(t0) should be 1");
+    QV_CHECK(relError(matter.scaleFactor(T0), 1.0) < 1e-12);
+    QV_CHECK(relError(radiation.scaleFactor(T0), 1.0) < 1e-12);
 
     // deSitter(H0) has no t0 parameter: a(t) = exp(H0 t), so its normalisation
     // epoch is t = 0 (see test_frw_de_sitter_exact, which pins that closed form).
     // Asserting a(T0) == 1 would contradict a(t) = exp(H0 t).
-    assert(relError(desitter.scaleFactor(0.0), 1.0) < 1e-12 && "de Sitter a(0) should be 1");
+    QV_CHECK(relError(desitter.scaleFactor(0.0), 1.0) < 1e-12);
 
     // lambdaCDM's normalisation epoch is likewise implied by H0 and the density
     // parameters, not by T0: a(t) = (Om/OL)^(1/3) sinh(3/2 H0 sqrt(OL) t)^(2/3)
     // reaches 1 when sinh(3/2 H0 sqrt(OL) t) = sqrt(OL/Om).
     const double t_age_lcdm = std::asinh(std::sqrt(omegaLambda / omegaM))
                             / (1.5 * H0 * std::sqrt(omegaLambda));
-    assert(relError(lcdm.scaleFactor(t_age_lcdm), 1.0) < 1e-9
-           && "LCDM a(t_age) should be 1");
+    QV_CHECK(relError(lcdm.scaleFactor(t_age_lcdm), 1.0) < 1e-9);
 
     std::cout << "[PASS] FRW a = 1 at each model's normalisation epoch"
               << " (LCDM t_age = " << t_age_lcdm / 3.1557e16 << " Gyr)" << std::endl;
@@ -634,7 +629,7 @@ void test_frw_matter_radiation_equality() {
     double t_eq = T0;
     double a_eq_mat = matter.scaleFactor(t_eq);
     double a_eq_rad = radiation.scaleFactor(t_eq);
-    assert(relError(a_eq_mat, a_eq_rad) < 1e-12 && "Equality scale factors should match");
+    QV_CHECK(relError(a_eq_mat, a_eq_rad) < 1e-12);
     (void)a_eq_mat; (void)a_eq_rad;
     std::cout << "[PASS] FRW matter-radiation equality verified at t = " << t_eq / T0 << " t0" << std::endl;
 }
@@ -650,22 +645,21 @@ void test_frw_early_time_small_a() {
     // a(t) = (t/t0)^(2/3), so a(1e-10 t0) = 1e-20/3 ~ 2.15e-7 -- NOT < 1e-10.
     // The old bound implicitly assumed a ~ t/t0. Assert the actual power law and
     // demonstrate a -> 0 by driving t/t0 down instead.
-    assert(relError(a_early, std::pow(1e-10, 2.0 / 3.0)) < 1e-12
-           && "Matter-dominated a(t) must follow (t/t0)^(2/3)");
-    assert(a_early > 0.0 && "Early universe scale factor should be positive");
-    assert(std::isfinite(a_early) && "Early universe scale factor should be finite");
-    assert(a_early < 1e-6 && "a(1e-10 t0) should be far below the present-day value");
+    QV_CHECK(relError(a_early, std::pow(1e-10, 2.0 / 3.0)) < 1e-12);
+    QV_CHECK(a_early > 0.0);
+    QV_CHECK(std::isfinite(a_early));
+    QV_CHECK(a_early < 1e-6);
 
     // Monotone approach to zero as t -> 0.
     double a_prev = a_early;
     for (double frac : {1e-12, 1e-15, 1e-18, 1e-21}) {
         double a_i = frw.scaleFactor(T0 * frac);
-        assert(a_i > 0.0 && std::isfinite(a_i) && "Scale factor must stay positive and finite");
-        assert(a_i < a_prev && "Scale factor must decrease monotonically toward t = 0");
+        QV_CHECK(a_i > 0.0 && std::isfinite(a_i));
+        QV_CHECK(a_i < a_prev);
         a_prev = a_i;
     }
-    assert(a_prev < 1e-13 && "a(1e-21 t0) should be vanishingly small");
-    assert(frw.scaleFactor(0.0) == 0.0 && "a(0) should be exactly 0");
+    QV_CHECK(a_prev < 1e-13);
+    QV_CHECK(frw.scaleFactor(0.0) == 0.0);
 
     std::cout << "[PASS] FRW early time a(t) -> 0: a(1e-10 t0) = " << a_early
               << ", a(1e-21 t0) = " << a_prev << std::endl;

@@ -19,7 +19,20 @@ endif()
 # Coverage instrumentation
 if(QUANTUMVERSE_USE_COVERAGE)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage -O0 -g")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} --coverage -O0 -g")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage -O0 -g")
+endif()
+
+# Default build type: Debug for tests.
+#
+# CMAKE_BUILD_TYPE is never set on the command line, so single-config
+# generators (MSVC/Visual Studio via --config) defaulted to Release, which
+# defines NDEBUG and compiles every assert() out of the test suite.  That
+# made all "passing" test runs meaningless.  Default to Debug so assertions
+# are live; this is a fallback only -- the QV_CHECK/QV_CHECK_NEAR macros in
+# tests/test_assert.h are the real fix because they survive Release too.
+if(QUANTUMVERSE_BUILD_TESTS AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING
+        "Build type (Debug default so test assertions are active)" FORCE)
 endif()
 
 # Options

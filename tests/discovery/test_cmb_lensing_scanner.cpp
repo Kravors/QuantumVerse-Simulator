@@ -2,7 +2,6 @@
 // Validates CMBLensingScanner against synthetic ΛCDM power spectra,
 // anomaly injection, and robustness with degenerate inputs.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -12,6 +11,7 @@
 #include "discovery/DiscoveryPanelManager.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -66,7 +66,7 @@ int main() {
         CMBLensingScanner scanner;
         auto traj = makeLambdaCDMTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "Clean ΛCDM trajectory should not trigger an anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  Clean ΛCDM trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
     }
 
@@ -76,10 +76,10 @@ int main() {
         scanner.setParameter("cl_threshold_sigma", 4.0); // Lower threshold for test
         auto traj = makeAnomalousTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(!findings.empty() && "Anomalous trajectory should produce a finding");
-        assert(findings.size() == 1u);
-        assert(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
-        assert(findings[0].severity >= AlertSeverity::HIGH);
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.size() == 1u);
+        QV_CHECK(findings[0].confidence > 0.0 && findings[0].confidence <= 1.0);
+        QV_CHECK(findings[0].severity >= AlertSeverity::HIGH);
         std::cout << "  Anomalous trajectory: finding confidence=" << findings[0].confidence
                   << " severity=" << static_cast<int>(findings[0].severity) << std::endl;
     }
@@ -88,7 +88,7 @@ int main() {
     {
         CMBLensingScanner scanner;
         auto findings = scanner.analyze(metric, location, emptyTrajectory);
-        assert(findings.empty());
+        QV_CHECK(findings.empty());
         std::cout << "  Empty trajectory handled safely." << std::endl;
     }
 
@@ -118,7 +118,7 @@ int main() {
         scanner.setParameter("cl_threshold_sigma", 10.0);
         auto traj = makeAnomalousTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
-        assert(findings.empty() && "High threshold should suppress the anomaly");
+        QV_CHECK(findings.empty());
         std::cout << "  High sigma threshold suppressed anomaly correctly." << std::endl;
     }
 

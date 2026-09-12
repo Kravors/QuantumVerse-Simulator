@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <iostream>
-#include <cassert>
 #include <fstream>
 #include <chrono>
 #include <filesystem>
@@ -11,6 +10,7 @@
 #include "ml/FeatureVector.h"
 #include "ml/AnomalyDetector.h"
 #include "ml/TrainingDataCollector.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -82,11 +82,11 @@ int main() {
         collector.sample(tel, 1.989e30, bodies, makeFindings(false), 0.0, "test_scenario");
         collector.sample(tel, 1.989e30, bodies, makeFindings(false), 1.0, "test_scenario");
 
-        assert(collector.count() == 2);
+        QV_CHECK(collector.count() == 2);
         auto samples = collector.getSamples();
-        assert(samples[0].scenarioName == "test_scenario");
-        assert(samples[1].scenarioName == "test_scenario");
-        assert(!samples[0].isAnomalous);
+        QV_CHECK(samples[0].scenarioName == "test_scenario");
+        QV_CHECK(samples[1].scenarioName == "test_scenario");
+        QV_CHECK(!samples[0].isAnomalous);
         std::cout << "[PASS] Basic collection works" << std::endl;
     }
 
@@ -104,9 +104,9 @@ int main() {
         auto bodies = makeBodies();
         collector.sample(tel, 1.989e30, bodies, makeFindings(true), 0.0, "scenario");
 
-        assert(collector.count() == 1);
-        assert(collector.getSamples()[0].isAnomalous);
-        assert(collector.getSamples()[0].labelSource == "instrument");
+        QV_CHECK(collector.count() == 1);
+        QV_CHECK(collector.getSamples()[0].isAnomalous);
+        QV_CHECK(collector.getSamples()[0].labelSource == "instrument");
         std::cout << "[PASS] Anomaly labeling from instrument works" << std::endl;
     }
 
@@ -126,10 +126,10 @@ int main() {
         collector.markNextAnomalous("injected BH");
         collector.sample(tel, 1.989e30, bodies, makeFindings(false), 0.0, "");
 
-        assert(collector.count() == 1);
-        assert(collector.getSamples()[0].isAnomalous);
-        assert(collector.getSamples()[0].labelSource == "manual");
-        assert(collector.getSamples()[0].description == "injected BH");
+        QV_CHECK(collector.count() == 1);
+        QV_CHECK(collector.getSamples()[0].isAnomalous);
+        QV_CHECK(collector.getSamples()[0].labelSource == "manual");
+        QV_CHECK(collector.getSamples()[0].description == "injected BH");
         std::cout << "[PASS] Manual anomaly tagging works" << std::endl;
     }
 
@@ -150,15 +150,15 @@ int main() {
 
         collector.save();
         collector.clear();
-        assert(collector.count() == 0);
+        QV_CHECK(collector.count() == 0);
 
         bool loaded = collector.load(testPath);
-        assert(loaded);
-        assert(collector.count() == 2);
-        assert(collector.getSamples()[0].scenarioName == "scenario1");
-        assert(!collector.getSamples()[0].isAnomalous);
-        assert(collector.getSamples()[1].scenarioName == "scenario2");
-        assert(collector.getSamples()[1].isAnomalous);
+        QV_CHECK(loaded);
+        QV_CHECK(collector.count() == 2);
+        QV_CHECK(collector.getSamples()[0].scenarioName == "scenario1");
+        QV_CHECK(!collector.getSamples()[0].isAnomalous);
+        QV_CHECK(collector.getSamples()[1].scenarioName == "scenario2");
+        QV_CHECK(collector.getSamples()[1].isAnomalous);
         std::cout << "[PASS] Save/load round-trip works" << std::endl;
     }
 
@@ -177,7 +177,7 @@ int main() {
         collector.sample(tel, 1.989e30, bodies, makeFindings(false), 1.0);
         collector.sample(tel, 1.989e30, bodies, makeFindings(false), 11.0);
 
-        assert(collector.count() == 2);
+        QV_CHECK(collector.count() == 2);
         std::cout << "[PASS] Sampling interval respected" << std::endl;
     }
 
@@ -196,10 +196,10 @@ int main() {
 
         auto samples = collector.getSamples();
         auto v = samples[0].features.toVector();
-        assert(v.size() == FeatureVector::Dim);
+        QV_CHECK(v.size() == FeatureVector::Dim);
 
         auto restored = FeatureVector::fromVector(v);
-        assert(restored.toVector() == v);
+        QV_CHECK(restored.toVector() == v);
         std::cout << "[PASS] Feature vector round-trip preserved" << std::endl;
     }
 
@@ -219,8 +219,8 @@ int main() {
             collector.sample(tel, 1.989e30, bodies, makeFindings(false), i * 1.0);
         }
 
-        assert(collector.count() == 3);
-        assert(!collector.isActive());
+        QV_CHECK(collector.count() == 3);
+        QV_CHECK(!collector.isActive());
         std::cout << "[PASS] Max samples cap stops collection" << std::endl;
     }
 

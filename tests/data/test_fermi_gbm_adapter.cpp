@@ -6,12 +6,12 @@
  * delivered through the callback interface.
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
 
 #include "data/FermiGBMAdapter.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -40,25 +40,25 @@ int main(int argc, char** argv)
 
         adapter.simulateAlert(grb);
 
-        assert(adapter.receivedAlerts().size() == 1u);
-        assert(adapter.receivedAlerts()[0].trigger_id == "bn240512001");
-        assert(std::fabs(adapter.receivedAlerts()[0].duration - 2.5) < 1e-9);
-        assert(std::fabs(adapter.receivedAlerts()[0].peak_flux - 1.2e-7) < 1e-14);
-        assert(std::fabs(adapter.receivedAlerts()[0].ra - 45.6) < 1e-9);
-        assert(std::fabs(adapter.receivedAlerts()[0].dec - (-23.4)) < 1e-9);
-        assert(std::fabs(adapter.receivedAlerts()[0].error_radius - 2.0) < 1e-9);
-        assert(std::fabs(adapter.receivedAlerts()[0].false_alarm_rate - 0.001) < 1e-12);
-        assert(std::fabs(adapter.receivedAlerts()[0].confidence - 0.95) < 1e-9);
+        QV_CHECK(adapter.receivedAlerts().size() == 1u);
+        QV_CHECK(adapter.receivedAlerts()[0].trigger_id == "bn240512001");
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].duration - 2.5, 0.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].peak_flux - 1.2e, 7, 1e-14);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].ra - 45.6, 0.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].dec - (-23.4), 0.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].error_radius - 2.0, 0.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate - 0.001, 0.0, 1e-12);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].confidence - 0.95, 0.0, 1e-9);
 
-        assert(received.size() == 1u);
-        assert(received[0].trigger_id == "bn240512001");
+        QV_CHECK(received.size() == 1u);
+        QV_CHECK(received[0].trigger_id == "bn240512001");
     }
 
     // --- start() is a no-op ----------------------------------------------------
     {
         FermiGBMAdapter adapter;
         adapter.start();
-        assert(adapter.receivedAlerts().empty());
+        QV_CHECK(adapter.receivedAlerts().empty());
     }
 
     // --- Multiple alerts accumulate ---------------------------------------------
@@ -70,10 +70,10 @@ int main(int argc, char** argv)
         FermiGBMAlert g1; g1.trigger_id = "evt1"; adapter.simulateAlert(g1);
         FermiGBMAlert g2; g2.trigger_id = "evt2"; adapter.simulateAlert(g2);
 
-        assert(adapter.receivedAlerts().size() == 2u);
-        assert(count == 2);
-        assert(adapter.receivedAlerts()[0].trigger_id == "evt1");
-        assert(adapter.receivedAlerts()[1].trigger_id == "evt2");
+        QV_CHECK(adapter.receivedAlerts().size() == 2u);
+        QV_CHECK(count == 2);
+        QV_CHECK(adapter.receivedAlerts()[0].trigger_id == "evt1");
+        QV_CHECK(adapter.receivedAlerts()[1].trigger_id == "evt2");
     }
 
     std::cout << "All FermiGBMAdapterTest checks passed." << std::endl;

@@ -9,7 +9,6 @@
  *   4. Parameter ranges are well-formed.
  */
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -18,6 +17,7 @@
 #include "discovery/ECORingdownAnalyzer.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -69,11 +69,11 @@ int main() {
         eco.setParameter("echo_threshold", 0.05);
         auto findings = eco.analyze(metric, location, makeECORingdown());
         std::cout << "  ECO signal findings: " << findings.size() << std::endl;
-        assert(!findings.empty() && "ECO echo train must be detected");
-        assert(findings.front().isAnomaly && "Detected ECO must be flagged as anomaly");
-        assert(findings.front().confidence > 0.05 && "ECO confidence must exceed threshold");
+        QV_CHECK(!findings.empty());
+        QV_CHECK(findings.front().isAnomaly);
+        QV_CHECK(findings.front().confidence > 0.05);
         [[maybe_unused]] auto it = findings.front().parameters.find("echo_significance");
-        assert(it != findings.front().parameters.end() && it->second > 0.05);
+        QV_CHECK(it != findings.front().parameters.end() && it->second > 0.05);
     }
 
     // 2. Pure Kerr BH ringdown must NOT be flagged.
@@ -94,7 +94,7 @@ int main() {
         ECORingdownAnalyzer eco;
         std::vector<Event4D> tiny = makeECORingdown(10);
         auto findings = eco.analyze(metric, location, tiny);
-        assert(findings.empty() && "Too-few-sample input must not crash or flag");
+        QV_CHECK(findings.empty());
     }
 
     // 3b. Robustness: NaN / Inf strain values are skipped.
@@ -106,7 +106,7 @@ int main() {
         auto findings = eco.analyze(metric, location, traj);
         // Either rejected (too few valid) or, if still enough, must not be NaN.
         for ([[maybe_unused]] const auto& f : findings) {
-            assert(std::isfinite(f.confidence));
+            QV_CHECK(std::isfinite(f.confidence));
         }
     }
 
@@ -114,10 +114,10 @@ int main() {
     {
         ECORingdownAnalyzer eco;
         auto ranges = eco.getParameterRanges();
-        assert(!ranges.empty() && "Parameter ranges must be defined");
+        QV_CHECK(!ranges.empty());
         for ([[maybe_unused]] const auto& kv : ranges) {
-            assert(std::isfinite(kv.second.first) && std::isfinite(kv.second.second));
-            assert(kv.second.second > kv.second.first && "Range max must exceed min");
+            QV_CHECK(std::isfinite(kv.second.first) && std::isfinite(kv.second.second));
+            QV_CHECK(kv.second.second > kv.second.first);
         }
     }
 
@@ -130,7 +130,7 @@ int main() {
         double sw = weak.empty() ? 0.0 : weak.front().parameters.at("echo_significance");
         double ss = strong.empty() ? 0.0 : strong.front().parameters.at("echo_significance");
         std::cout << "  weak sig=" << sw << " strong sig=" << ss << std::endl;
-        assert(ss >= sw && "Stronger echo must give >= significance");
+        QV_CHECK(ss >= sw);
     }
 
     std::cout << "All ECORingdownAnalyzerTest checks passed." << std::endl;

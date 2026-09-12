@@ -6,13 +6,13 @@
 
 #include <QCoreApplication>
 
-#include <cassert>
 #include <iostream>
 
 #include "data/LIGOAdapter.h"
 #include "data/IceCubeAdapter.h"
 #include "data/AlertToFinding.h"
 #include "discovery/FindingsModel.h"
+#include "test_assert.h"
 
 int main(int argc, char** argv)
 {
@@ -38,11 +38,11 @@ int main(int argc, char** argv)
     gw.snr = 23.0;
     ligo.simulateAlert(gw);
 
-    assert(model.rowCount() == 1 && "LIGO alert should add one finding");
-    assert(model.data(model.index(0, 0),
+    QV_CHECK(model.rowCount() == 1);
+    QV_CHECK(model.data(model.index(0, 0),
                quantumverse::FindingsModel::InstrumentNameRole)
                .toString().toStdString() == "LIGO");
-    assert(model.data(model.index(0, 0),
+    QV_CHECK(model.data(model.index(0, 0),
                quantumverse::FindingsModel::SeverityRole)
                .toString().toStdString() == "CRITICAL");
 
@@ -53,11 +53,11 @@ int main(int argc, char** argv)
     nu.energy_tev = 145.0;
     icecube.simulateAlert(nu);
 
-    assert(model.rowCount() == 2 && "IceCube alert should add a second finding");
-    assert(model.data(model.index(1, 0),
+    QV_CHECK(model.rowCount() == 2);
+    QV_CHECK(model.data(model.index(1, 0),
                quantumverse::FindingsModel::InstrumentNameRole)
                .toString().toStdString() == "IceCube");
-    assert(model.data(model.index(1, 0),
+    QV_CHECK(model.data(model.index(1, 0),
                quantumverse::FindingsModel::SeverityRole)
                .toString().toStdString() == "CRITICAL");
 

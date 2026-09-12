@@ -2,7 +2,6 @@
 // Validates DiscoveryEngine end-to-end pipeline: hypothesis lifecycle,
 // anomaly detection, curvature features, and panel manager batch scan.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -17,6 +16,7 @@
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -24,7 +24,7 @@ namespace {
 constexpr double kEps = 1e-9;
 
 void assertFinite(const std::string& label, double v) {
-    assert(std::isfinite(v) && ("Non-finite value for " + label).c_str());
+    QV_CHECK(std::isfinite(v) && ("Non-finite value for " + label).c_str());
     (void)label;
     (void)v;
 }
@@ -62,8 +62,8 @@ int main() {
         engine.enableSymbolicRegression(true);
         engine.enableAnomalyDetection(true);
         engine.enableHypothesisTesting(true);
-        assert(engine.getDiscoveryCount() == 0);
-        assert(engine.getHypothesisCount() == 0);
+        QV_CHECK(engine.getDiscoveryCount() == 0);
+        QV_CHECK(engine.getHypothesisCount() == 0);
         std::cout << "  DiscoveryEngine initialized." << std::endl;
     }
 
@@ -71,7 +71,7 @@ int main() {
     {
         DiscoveryEngine engine;
         std::string eq = engine.generateFieldEquation(traj, schwarzschild, 1e-6);
-        assert(!eq.empty());
+        QV_CHECK(!eq.empty());
         std::cout << "  Field equation generated: " << eq.substr(0, 40) << "..." << std::endl;
     }
 
@@ -79,7 +79,7 @@ int main() {
     {
         DiscoveryEngine engine;
         auto features = engine.computeCurvatureFeatures(location, schwarzschild);
-        assert(features.size() == 15);
+        QV_CHECK(features.size() == 15);
         for (size_t i = 0; i < features.size(); ++i) {
             assertFinite("feature[" + std::to_string(i) + "]", features[i]);
         }
@@ -90,9 +90,9 @@ int main() {
     {
         DiscoveryEngine engine;
         auto result = engine.detectAnomaly(location, schwarzschild, traj);
-        assert(std::isfinite(result.confidence));
-        assert(!result.id.empty());
-        assert(!result.type.empty());
+        QV_CHECK(std::isfinite(result.confidence));
+        QV_CHECK(!result.id.empty());
+        QV_CHECK(!result.type.empty());
         std::cout << "  Anomaly detected: type=" << result.type
                   << " confidence=" << result.confidence << std::endl;
     }
@@ -105,8 +105,8 @@ int main() {
             "R_uv - 1/2 R g_uv + lambda * f(R) = 8 pi T_uv",
             {{"lambda", 1.0e-5}}
         );
-        assert(!hid.empty());
-        assert(engine.getHypothesisCount() == 1);
+        QV_CHECK(!hid.empty());
+        QV_CHECK(engine.getHypothesisCount() == 1);
 
         bool tested = engine.testHypothesis(hid, traj);
         (void)tested;
@@ -115,7 +115,7 @@ int main() {
         std::cout << "  Hypothesis " << hid << " validated=" << validated << std::endl;
 
         engine.refuteHypothesis(hid);
-        assert(engine.getHypothesisCount() == 1);
+        QV_CHECK(engine.getHypothesisCount() == 1);
         std::cout << "  Hypothesis refuted." << std::endl;
     }
 
@@ -166,7 +166,7 @@ int main() {
         bool callback_fired = false;
         engine.registerDiscoveryCallback([&](const DiscoveryResult& r) {
             callback_fired = true;
-            assert(std::isfinite(r.confidence));
+            QV_CHECK(std::isfinite(r.confidence));
             (void)r;
         });
 
@@ -190,14 +190,14 @@ int main() {
         result.fieldEquation = "R = 0";
         result.confidence = 0.9;
         std::string exported = engine.exportDiscovery(result);
-        assert(!exported.empty());
+        QV_CHECK(!exported.empty());
 
         Hypothesis hyp;
         hyp.id = "hyp_export";
         hyp.name = "TestHypothesis";
         hyp.fieldEquation = "G = 0";
         std::string hexport = engine.exportHypothesis(hyp);
-        assert(!hexport.empty());
+        QV_CHECK(!hexport.empty());
         std::cout << "  Export roundtrip verified." << std::endl;
     }
 
@@ -206,9 +206,9 @@ int main() {
         DiscoveryEngine engine;
         engine.proposeHypothesis("h1", "eq1", {});
         engine.proposeHypothesis("h2", "eq2", {});
-        assert(engine.getHypothesisCount() == 2);
+        QV_CHECK(engine.getHypothesisCount() == 2);
         engine.clearHypotheses();
-        assert(engine.getHypothesisCount() == 0);
+        QV_CHECK(engine.getHypothesisCount() == 0);
         std::cout << "  Clear methods verified." << std::endl;
     }
 
@@ -229,7 +229,7 @@ int main() {
         manager.registerInstrument(std::make_unique<GalacticRotationCurveScanner>());
         manager.runScan(schwarzschild, location);
         auto findings = manager.findings();
-        assert(findings.size() >= 0);
+        QV_CHECK(findings.size() >= 0);
         std::cout << "  Panel manager batch scan completed. Findings: " << findings.size() << std::endl;
     }
 

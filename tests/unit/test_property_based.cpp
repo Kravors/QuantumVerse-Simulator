@@ -5,9 +5,9 @@
 #include "quantumgravity/CDTEngine.h"
 #include "physics/CurvatureCalculator.h"
 #include <cmath>
-#include <cassert>
 #include <cstdlib>
 #include <ctime>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -54,7 +54,7 @@ void test_lorentz_interval_invariance_random() {
         );
         double ds2_boosted = eta.interval(e1p, e2p);
         (void)ds2_boosted;
-        assert(std::abs(ds2_original - ds2_boosted) < 1e-9 * std::max(std::abs(ds2_original), 1.0));
+        QV_CHECK_NEAR(ds2_original - ds2_boosted, 0.0, 1e-9 * std::max(std::abs(ds2_original), 1.0));
     }
 }
 
@@ -69,7 +69,7 @@ void test_metric_tensor_symmetry_random() {
         auto sch = MetricTensor::schwarzschild(mass, r, theta, 0.0);
         for (int i = 0; i < 4; i++) {
             for (int j = i + 1; j < 4; j++) {
-                assert(std::abs(sch.g[i][j] - sch.g[j][i]) < 1e-12);
+                QV_CHECK_NEAR(sch.g[i][j] - sch.g[j][i], 0.0, 1e-12);
             }
         }
 
@@ -77,7 +77,7 @@ void test_metric_tensor_symmetry_random() {
         auto kerr = MetricTensor::kerr(mass, a, r, theta);
         for (int i = 0; i < 4; i++) {
             for (int j = i + 1; j < 4; j++) {
-                assert(std::abs(kerr.g[i][j] - kerr.g[j][i]) < 1e-12);
+                QV_CHECK_NEAR(kerr.g[i][j] - kerr.g[j][i], 0.0, 1e-12);
             }
         }
     }
@@ -91,8 +91,8 @@ void test_kretschmann_non_negativity_random() {
         double r = randDouble(1e4, 1e15);
         Event4D ev(0.0, r, 0.0, 0.0);
         auto scalars = sch.curvatureScalars(ev);
-        assert(scalars.valid);
-        assert(scalars.kretschmann >= 0.0);
+        QV_CHECK(scalars.valid);
+        QV_CHECK(scalars.kretschmann >= 0.0);
         (void)scalars;
     }
 }
@@ -101,7 +101,7 @@ void test_metric_tensor_symmetry() {
     auto minkowski = MetricTensor();
     for (int i = 0; i < 4; i++) {
         for (int j = i + 1; j < 4; j++) {
-            assert(std::abs(minkowski.g[i][j] - minkowski.g[j][i]) < 1e-12);
+            QV_CHECK_NEAR(minkowski.g[i][j] - minkowski.g[j][i], 0.0, 1e-12);
         }
     }
 
@@ -109,7 +109,7 @@ void test_metric_tensor_symmetry() {
     auto g = sch.evaluate(Event4D(0, 1e10, 0, 0));
     for (int i = 0; i < 4; i++) {
         for (int j = i + 1; j < 4; j++) {
-            assert(std::abs(g[i][j] - g[j][i]) < 1e-12);
+            QV_CHECK_NEAR(g[i][j] - g[j][i], 0.0, 1e-12);
         }
     }
     (void)g;
@@ -117,7 +117,7 @@ void test_metric_tensor_symmetry() {
     auto kerrMetric = MetricTensor::kerr(1.989e30, 0.5 * 1.989e30 * 299792458.0, 1e10, M_PI / 2);
     for (int i = 0; i < 4; i++) {
         for (int j = i + 1; j < 4; j++) {
-            assert(std::abs(kerrMetric.g[i][j] - kerrMetric.g[j][i]) < 1e-12);
+            QV_CHECK_NEAR(kerrMetric.g[i][j] - kerrMetric.g[j][i], 0.0, 1e-12);
         }
     }
 }
@@ -149,7 +149,7 @@ void test_lorentz_interval_invariance() {
 
     double ds2_boosted = eta.interval(e1p, e2p);
     (void)ds2_boosted;
-    assert(std::abs(ds2_original - ds2_boosted) < 1e-9);
+    QV_CHECK_NEAR(ds2_original - ds2_boosted, 0.0, 1e-9);
 }
 
 void test_cdt_regge_action_idempotency() {
@@ -159,7 +159,7 @@ void test_cdt_regge_action_idempotency() {
     double action2 = engine.getManifold()->computeReggeAction();
     (void)action1;
     (void)action2;
-    assert(action1 == action2);
+    QV_CHECK(action1 == action2);
 }
 
 void test_kretschmann_non_negativity() {
@@ -168,8 +168,8 @@ void test_kretschmann_non_negativity() {
     for (double r : radii) {
         Event4D ev(0.0, r, 0.0, 0.0);
         auto scalars = sch.curvatureScalars(ev);
-        assert(scalars.valid);
-        assert(scalars.kretschmann >= 0.0);
+        QV_CHECK(scalars.valid);
+        QV_CHECK(scalars.kretschmann >= 0.0);
         (void)scalars;
     }
 }
@@ -183,7 +183,7 @@ void test_vector4d_lorentzian_symmetry() {
     (void)dot_ab;
     (void)dot_ba;
     
-    assert(dot_ab == dot_ba);
+    QV_CHECK(dot_ab == dot_ba);
 }
 
 void test_vector4d_euclidean_symmetry() {
@@ -195,7 +195,7 @@ void test_vector4d_euclidean_symmetry() {
     (void)dot_ab;
     (void)dot_ba;
     
-    assert(dot_ab == dot_ba);
+    QV_CHECK(dot_ab == dot_ba);
 }
 
 void test_vector4d_norm_consistency() {
@@ -206,7 +206,7 @@ void test_vector4d_norm_consistency() {
     (void)normSq;
     (void)dot;
     
-    assert(normSq == dot);
+    QV_CHECK(normSq == dot);
 }
 
 void test_matrix4x4_transpose_double() {
@@ -220,7 +220,7 @@ void test_matrix4x4_transpose_double() {
     
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            assert(tt(i, j) == m(i, j));
+            QV_CHECK(tt(i, j) == m(i, j));
         }
     }
     (void)tt;
@@ -229,15 +229,15 @@ void test_matrix4x4_transpose_double() {
 void test_matrix4x4_minkowski_signature() {
     auto eta = Matrix4x4<double>::minkowski();
     
-    assert(eta(0, 0) == -1.0);
-    assert(eta(1, 1) == 1.0);
-    assert(eta(2, 2) == 1.0);
-    assert(eta(3, 3) == 1.0);
+    QV_CHECK(eta(0, 0) == -1.0);
+    QV_CHECK(eta(1, 1) == 1.0);
+    QV_CHECK(eta(2, 2) == 1.0);
+    QV_CHECK(eta(3, 3) == 1.0);
     
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (i != j) {
-                assert(eta(i, j) == 0.0);
+                QV_CHECK(eta(i, j) == 0.0);
             }
         }
     }
@@ -249,9 +249,9 @@ void test_vector4d_timelike_classification() {
     Vector4d spacelike(1.0, 10.0, 0.0, 0.0);
     Vector4d lightlike(1.0, 1.0, 0.0, 0.0);
     
-    assert(timelike.isTimelike());
-    assert(spacelike.isSpacelike());
-    assert(lightlike.isLightlike());
+    QV_CHECK(timelike.isTimelike());
+    QV_CHECK(spacelike.isSpacelike());
+    QV_CHECK(lightlike.isLightlike());
 }
 
 void test_matrix4x4_identity_properties() {
@@ -260,9 +260,9 @@ void test_matrix4x4_identity_properties() {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (i == j) {
-                assert(I(i, j) == 1.0);
+                QV_CHECK(I(i, j) == 1.0);
             } else {
-                assert(I(i, j) == 0.0);
+                QV_CHECK(I(i, j) == 0.0);
             }
         }
     }

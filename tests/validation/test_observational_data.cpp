@@ -16,7 +16,6 @@
 #include "spacetime/Event4D.h"
 #include "discovery/DiscoveryInstrument.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -24,6 +23,7 @@
 
 #include <QCoreApplication>
 #include <QSignalSpy>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -131,9 +131,9 @@ void test_pantheon_lcdm_chi2() {
     // With 9 SNe and 3 fixed parameters, dof = 6.
     // Reduced χ² should be within a few σ of 1 for a consistent model.
     // For a small sample with real observational noise, we allow χ²/dof < 5.
-    assert(dof > 0 && "Degrees of freedom must be positive");
-    assert(reduced_chi2 > 0.0 && "Reduced χ² must be positive");
-    assert(reduced_chi2 < 5.0 && "Reduced χ² should be < 5 for consistent ΛCDM");
+    QV_CHECK(dof > 0);
+    QV_CHECK(reduced_chi2 > 0.0);
+    QV_CHECK(reduced_chi2 < 5.0);
 
     std::cout << "[PASS] Pantheon+ ΛCDM χ²/dof = " << reduced_chi2
               << " (χ² = " << chi2 << ", dof = " << dof << ")" << std::endl;
@@ -148,8 +148,7 @@ void test_pantheon_lcdm_chi2() {
             valid_count++;
         }
     }
-    assert(valid_count == static_cast<int>(PANETHEON_SAMPLE.size())
-           && "All SNe should have finite, bounded distance moduli");
+    QV_CHECK(valid_count == static_cast<int>(PANETHEON_SAMPLE.size()));
     std::cout << "[PASS] All " << PANETHEON_SAMPLE.size()
               << " Pantheon+ SNe produce finite, bounded distance moduli" << std::endl;
 }
@@ -167,12 +166,12 @@ void test_luminosity_distance_monotonic() {
         double dL = luminosityDistanceMpc(z, PLANCK_H0,
                                           PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
         dLs.push_back(dL);
-        assert(dL > 0.0 && "Luminosity distance must be positive");
-        assert(std::isfinite(dL) && "Luminosity distance must be finite");
+        QV_CHECK(dL > 0.0);
+        QV_CHECK(std::isfinite(dL));
     }
 
     for (size_t i = 1; i < dLs.size(); i++) {
-        assert(dLs[i] > dLs[i-1] && "Luminosity distance must increase with redshift");
+        QV_CHECK(dLs[i] > dLs[i-1]);
     }
 
     std::cout << "[PASS] Luminosity distance monotonic with redshift verified ("
@@ -191,12 +190,12 @@ void test_etherington_duality_lcdm() {
     for (double z : redshifts) {
         double dL = luminosityDistanceMpc(z, PLANCK_H0, PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
         dLs.push_back(dL);
-        assert(dL > 0.0 && "Luminosity distance must be positive");
-        assert(std::isfinite(dL) && "Luminosity distance must be finite");
+        QV_CHECK(dL > 0.0);
+        QV_CHECK(std::isfinite(dL));
     }
 
     for (size_t i = 1; i < dLs.size(); i++) {
-        assert(dLs[i] > dLs[i-1] && "Luminosity distance must increase with redshift");
+        QV_CHECK(dLs[i] > dLs[i-1]);
     }
 
     std::cout << "[PASS] Etherington distance duality: d_L = (1+z)^2 d_A verified for ΛCDM" << std::endl;
@@ -218,8 +217,7 @@ void test_distance_modulus_monotonic() {
         double mu_curr = distanceModulus(dL_curr);
         if (mu_curr > mu_prev) monotonic_count++;
     }
-    assert(monotonic_count == static_cast<int>(redshifts.size() - 1)
-           && "Distance modulus must increase with redshift");
+    QV_CHECK(monotonic_count == static_cast<int>(redshifts.size() - 1));
 
     std::cout << "[PASS] Distance modulus monotonic with redshift verified" << std::endl;
 }
@@ -262,14 +260,13 @@ void test_gw170817_time_delay() {
         correlator.addAlert(gw);
         correlator.addAlert(grb);
 
-        assert(correlator.correlationCount() == 1
-               && "GW170817 + GRB 1.74s delay should correlate within 2s window");
-        assert(spy.count() == 1);
-        assert(followUpSpy.count() == 1 && "Should emit follow-up trigger for GW+EM");
+        QV_CHECK(correlator.correlationCount() == 1);
+        QV_CHECK(spy.count() == 1);
+        QV_CHECK(followUpSpy.count() == 1);
 
         const CorrelationEvent ev = qvariant_cast<CorrelationEvent>(spy.value(0).at(0));
-        assert(ev.messengers.contains("LIGO"));
-        assert(ev.messengers.contains("Fermi"));
+        QV_CHECK(ev.messengers.contains("LIGO"));
+        QV_CHECK(ev.messengers.contains("Fermi"));
     }
 
     // Test 2: 5.0 s delay → should NOT correlate (exceeds 2.0 s window)
@@ -297,9 +294,8 @@ void test_gw170817_time_delay() {
         correlator.addAlert(gw);
         correlator.addAlert(grb_late);
 
-        assert(correlator.correlationCount() == 0
-               && "5.0 s delay should exceed 2.0 s time window");
-        assert(spy.count() == 0);
+        QV_CHECK(correlator.correlationCount() == 0);
+        QV_CHECK(spy.count() == 0);
     }
 
     std::cout << "[PASS] GW170817 time delay: 1.74 s correlates, 5.0 s rejected" << std::endl;
@@ -345,8 +341,7 @@ void test_gw170817_uncertainty() {
         correlator.addAlert(gw);
         correlator.addAlert(grb);
 
-        assert(correlator.correlationCount() == 1
-               && "1.79 s delay (within uncertainty) should correlate");
+        QV_CHECK(correlator.correlationCount() == 1);
     }
 
     // Beyond the uncertainty boundary: 1.80 s < 2.0 s, but this is a "worst case"

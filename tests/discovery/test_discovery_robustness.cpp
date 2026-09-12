@@ -2,7 +2,6 @@
 // Validates that discovery components handle missing ONNX models, NaN/inf
 // inputs, and extreme parameters without crashing.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -16,6 +15,7 @@
 #include "ml/GeodesicNeuralODE.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -72,10 +72,10 @@ int main() {
     {
         CurvatureNormalizingFlow flow;
         // Do NOT load an ONNX model; verify fallback behavior.
-        assert(!flow.isLoaded() && "Flow should not be loaded without ONNX model");
+        QV_CHECK(!flow.isLoaded());
         std::vector<double> features(10, 1.0);
         double prediction = flow.predict(features);
-        assert(std::isfinite(prediction) && "predict() must return finite value in fallback mode");
+        QV_CHECK(std::isfinite(prediction));
         std::cout << "  CurvatureNormalizingFlow fallback prediction: " << prediction << std::endl;
     }
 
@@ -88,8 +88,8 @@ int main() {
         std::array<double, 4> velocity = {1.0, 0.0, 0.0, 0.0};
         std::vector<double> metric_params = {1.0};
         auto predicted = ode.predict(initial, velocity, metric_params, 1.0);
-        assert(!predicted.empty() && "predict() should return at least one event in fallback mode");
-        assert(std::isfinite(predicted[0].t) && std::isfinite(predicted[0].x));
+        QV_CHECK(!predicted.empty());
+        QV_CHECK(std::isfinite(predicted[0].t) && std::isfinite(predicted[0].x));
         std::cout << "  GeodesicNeuralODE fallback prediction: t=" << predicted[0].t
                   << " x=" << predicted[0].x << std::endl;
     }

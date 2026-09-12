@@ -4,7 +4,6 @@
 // region flattens to a constant velocity, simulating dark-matter dominance.
 // Convention: radius is carried in (x, y), circular velocity in z.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -12,6 +11,7 @@
 #include "discovery/GalacticRotationCurveScanner.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== GalacticRotationCurveScanner Test ===" << std::endl;
@@ -33,16 +33,16 @@ int main() {
     quantumverse::GalacticRotationCurveScanner scanner;
     auto findings = scanner.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No dark matter signal detected");
+    QV_CHECK(!findings.empty());
 
     const auto& f = findings.front();
     bool mentionsDM = f.description.find("dark matter") != std::string::npos;
-    assert(mentionsDM && "Finding does not mention dark matter");
+    QV_CHECK(mentionsDM);
     (void)mentionsDM;
 
     auto rit = f.parameters.find("flatten_radius");
-    assert(rit != f.parameters.end() && "flatten_radius parameter missing");
-    assert(std::abs(rit->second - rFlat) < 2.0 && "Flattening radius mismatch");
+    QV_CHECK(rit != f.parameters.end());
+    QV_CHECK_NEAR(rit, >second - rFlat, 2.0);
 
     std::cout << "Detected dark matter halo: flatten_radius=" << rit->second
               << " (expected ~" << rFlat << ")" << std::endl;
@@ -54,7 +54,7 @@ int main() {
         kepler.emplace_back(r, r, 0.0, v);
     }
     auto none = scanner.analyze(metric, location, kepler);
-    assert(none.empty() && "Pure Keplerian curve should not trigger a finding");
+    QV_CHECK(none.empty());
 
     // --- Edge case: too few points -----------------------------------------
     std::vector<quantumverse::Event4D> tiny = {
@@ -62,7 +62,7 @@ int main() {
         quantumverse::Event4D(5.0, 5.0, 0.0, 2.0),
     };
     auto few = scanner.analyze(metric, location, tiny);
-    assert(few.empty() && "Too-few-point trajectory should not produce a finding");
+    QV_CHECK(few.empty());
 
     std::cout << "All GalacticRotationCurveScanner tests passed." << std::endl;
     return 0;

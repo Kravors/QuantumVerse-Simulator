@@ -4,7 +4,6 @@
 // C_l -> C_l*(1 + Δα/α) and verifies the detector recovers Δα/α.
 // Convention: ℓ is carried in t, C_l is carried in x.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -13,6 +12,7 @@
 #include "discovery/RecombinationConstantVariationImager.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 int main() {
     std::cout << "=== RecombinationConstantVariationImager Test ===" << std::endl;
@@ -33,21 +33,21 @@ int main() {
     quantumverse::RecombinationConstantVariationImager imager;
     auto findings = imager.analyze(metric, location, trajectory);
 
-    assert(!findings.empty() && "No variation detected");
+    QV_CHECK(!findings.empty());
 
     [[maybe_unused]] bool foundVariation = false;
     for (const auto& f : findings) {
         if (f.description.find("alpha") != std::string::npos) {
             foundVariation = true;
             auto it = f.parameters.find("delta_alpha_over_alpha");
-            assert(it != f.parameters.end() && "delta_alpha_over_alpha parameter missing");
-            assert(std::abs(it->second - deltaAlpha) < 1e-9 && "Recovered Δα/α mismatch");
+            QV_CHECK(it != f.parameters.end());
+            QV_CHECK_NEAR(it, >second - deltaAlpha, 1e-9);
             std::cout << "Recovered Δα/α = " << it->second
                       << " (injected " << deltaAlpha << ")" << std::endl;
             break;
         }
     }
-    assert(foundVariation && "Finding does not mention alpha variation");
+    QV_CHECK(foundVariation);
 
     // --- Negative case: standard (unmodified) spectrum -> no finding --------
     std::vector<quantumverse::Event4D> standard;
@@ -56,13 +56,13 @@ int main() {
         standard.emplace_back(l, cl, 0.0, 0.0);
     }
     auto stdFindings = imager.analyze(metric, location, standard);
-    assert(stdFindings.empty() && "False positive on standard spectrum");
+    QV_CHECK(stdFindings.empty());
     (void)stdFindings;
 
     // --- Edge case: too few points -> no finding ----------------------------
     std::vector<quantumverse::Event4D> shortTraj(3);
     auto shortFindings = imager.analyze(metric, location, shortTraj);
-    assert(shortFindings.empty() && "Short trajectory should yield no findings");
+    QV_CHECK(shortFindings.empty());
     (void)shortFindings;
 
     std::cout << "All RecombinationConstantVariationImager tests passed." << std::endl;

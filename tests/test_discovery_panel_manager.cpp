@@ -8,12 +8,12 @@
 
 #include <QCoreApplication>
 #include <QSignalSpy>
-#include <cassert>
 #include <iostream>
 
 #include "discovery/DiscoveryPanelManager.h"
 #include "discovery/DiscoveryEngine.h"
 #include "data/GCNNoticeParser.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -39,11 +39,11 @@ int main(int argc, char** argv)
     QSignalSpy liveSpy(&manager, &DiscoveryPanelManager::liveAlertProcessed);
     manager.ingestAlert(ligoAlert);
 
-    assert(manager.findings().size() == 1);
-    assert(manager.findings()[0].instrumentName == "LIGO (Live)");
-    assert(manager.findings()[0].confidence > 0.9);
-    assert(liveSpy.count() == 1);
-    assert(liveSpy.value(0).at(0).toString().startsWith("LIVE_LIGO"));
+    QV_CHECK(manager.findings().size() == 1);
+    QV_CHECK(manager.findings()[0].instrumentName == "LIGO (Live)");
+    QV_CHECK(manager.findings()[0].confidence > 0.9);
+    QV_CHECK(liveSpy.count() == 1);
+    QV_CHECK(liveSpy.value(0).at(0).toString().startsWith("LIVE_LIGO"));
 
     // --- IceCube alert -------------------------------------------------------
     QJsonObject nuAlert;
@@ -56,9 +56,9 @@ int main(int argc, char** argv)
     nuAlert.insert("confidence", QJsonValue(0.91));
 
     manager.ingestAlert(nuAlert);
-    assert(manager.findings().size() == 2);
-    assert(manager.findings()[1].instrumentName == "IceCube (Live)");
-    assert(manager.findings()[1].confidence > 0.9);
+    QV_CHECK(manager.findings().size() == 2);
+    QV_CHECK(manager.findings()[1].instrumentName == "IceCube (Live)");
+    QV_CHECK(manager.findings()[1].confidence > 0.9);
 
     // --- TESS alert ----------------------------------------------------------
     QJsonObject tessAlert;
@@ -72,9 +72,9 @@ int main(int argc, char** argv)
     tessAlert.insert("dec", QJsonValue(-45.0));
 
     manager.ingestAlert(tessAlert);
-    assert(manager.findings().size() == 3);
-    assert(manager.findings()[2].instrumentName == "TESS (Live)");
-    assert(std::fabs(manager.findings()[2].confidence - 0.95) < 1e-9);
+    QV_CHECK(manager.findings().size() == 3);
+    QV_CHECK(manager.findings()[2].instrumentName == "TESS (Live)");
+    QV_CHECK_NEAR(manager.findings()[2].confidence - 0.95, 0.0, 1e-9);
 
     // --- Fermi GBM alert -----------------------------------------------------
     // "Fermi/GBM" is a *supported* origin (GCNNoticeParser::classify matches the
@@ -91,8 +91,8 @@ int main(int argc, char** argv)
     fermiAlert.insert("dec", QJsonValue(-23.38));
 
     manager.ingestAlert(fermiAlert);
-    assert(manager.findings().size() == 4);
-    assert(manager.findings()[3].instrumentName == "Fermi GBM (Live)");
+    QV_CHECK(manager.findings().size() == 4);
+    QV_CHECK(manager.findings()[3].instrumentName == "Fermi GBM (Live)");
 
     // --- Genuinely unsupported alert type ------------------------------------
     // Use an origin no adapter claims so the default branch is exercised.
@@ -101,9 +101,9 @@ int main(int argc, char** argv)
     unknownAlert.insert("event_id", QJsonValue(QStringLiteral("FRB250601A")));
 
     manager.ingestAlert(unknownAlert);
-    assert(manager.findings().size() == 5);
-    assert(manager.findings()[4].instrumentName == "Unknown (Live)");
-    assert(manager.findings()[4].confidence == 0.0);
+    QV_CHECK(manager.findings().size() == 5);
+    QV_CHECK(manager.findings()[4].instrumentName == "Unknown (Live)");
+    QV_CHECK(manager.findings()[4].confidence == 0.0);
 
     std::cout << "All DiscoveryPanelManager ingestAlert tests passed." << std::endl;
     return 0;

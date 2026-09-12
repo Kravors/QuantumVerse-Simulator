@@ -2,8 +2,8 @@
 #include "quantumgravity/CausalSet.h"
 #include "quantumgravity/SpinFoam.h"
 #include <cmath>
-#include <cassert>
 #include <iostream>
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -23,10 +23,10 @@ void test_cdt_spectral_dimension_range() {
     double d_s = engine.getSpectralDimension();
     double d_H = engine.getHausdorffDimension();
 
-    assert(std::isfinite(d_s) && "Spectral dimension should be finite");
-    assert(std::isfinite(d_H) && "Hausdorff dimension should be finite");
-    assert(d_s >= 1.0 && d_s <= 6.0 && "CDT spectral dimension should be in measured range");
-    assert(d_H >= 0.0 && d_H <= 6.0 && "CDT Hausdorff dimension should be non-negative");
+    QV_CHECK(std::isfinite(d_s));
+    QV_CHECK(std::isfinite(d_H));
+    QV_CHECK(d_s >= 1.0 && d_s <= 6.0);
+    QV_CHECK(d_H >= 0.0 && d_H <= 6.0);
 
     std::cout << "[PASS] CDT dimensions: spectral=" << d_s << ", Hausdorff=" << d_H << std::endl;
 }
@@ -40,12 +40,12 @@ void test_causal_set_dimension_estimate() {
 
     engine.grow(500, 40.0);
 
-    assert(engine.getNumElements() > 100 && "Should have grown to >100 elements");
+    QV_CHECK(engine.getNumElements() > 100);
 
     double d_s = engine.computeSpectralDimension(10.0);
 
-    assert(std::isfinite(d_s) && "Spectral dimension should be finite");
-    assert(d_s > 0.0 && d_s < 6.0 && "Spectral dimension should be positive and finite");
+    QV_CHECK(std::isfinite(d_s));
+    QV_CHECK(d_s > 0.0 && d_s < 6.0);
 
     std::cout << "[PASS] Causal set dimension estimate: spectral_dim=" << d_s
               << ", elements=" << engine.getNumElements() << std::endl;
@@ -71,8 +71,8 @@ void test_spin_foam_amplitude_finite() {
     foam.setFaceSpins(face_spins);
 
     double amp = foam.computeAmplitude();
-    assert(std::isfinite(amp) && "Spin foam amplitude should be finite");
-    assert(!std::isnan(amp) && "Spin foam amplitude should not be NaN");
+    QV_CHECK(std::isfinite(amp));
+    QV_CHECK(!std::isnan(amp));
 
     std::cout << "[PASS] Spin foam amplitude: finite=" << amp << std::endl;
 }
@@ -86,13 +86,13 @@ void test_cdt_regge_action_positive() {
     engine.runMonteCarlo(100);
 
     const auto* manifold = engine.getManifold();
-    assert(manifold != nullptr && "Manifold should not be null");
+    QV_CHECK(manifold != nullptr);
 
     double action = manifold->computeReggeAction();
-    assert(std::isfinite(action) && "Regge action should be finite");
+    QV_CHECK(std::isfinite(action));
 
     double avgDeficit = manifold->getAverageDeficit();
-    assert(std::isfinite(avgDeficit) && "Average deficit should be finite");
+    QV_CHECK(std::isfinite(avgDeficit));
 
     std::cout << "[PASS] CDT Regge action: S=" << action << ", avg_deficit=" << avgDeficit << std::endl;
 }
@@ -105,14 +105,14 @@ void test_cdt_monte_carlo_stability() {
     engine.thermalize(50);
 
     int simplices_before = engine.getNumSimplices();
-    assert(simplices_before > 0 && "Should have simplices after thermalization");
+    QV_CHECK(simplices_before > 0);
 
     engine.runMonteCarlo(50);
     int simplices_after = engine.getNumSimplices();
-    assert(simplices_after > 0 && "Should still have simplices after MC");
+    QV_CHECK(simplices_after > 0);
 
     double ratio = static_cast<double>(simplices_after) / static_cast<double>(simplices_before);
-    assert(ratio > 0.5 && ratio < 2.0 && "Simplices count should be stable under MC");
+    QV_CHECK(ratio > 0.5 && ratio < 2.0);
     (void)ratio;
 
     std::cout << "[PASS] CDT MC stability: before=" << simplices_before << ", after=" << simplices_after << std::endl;

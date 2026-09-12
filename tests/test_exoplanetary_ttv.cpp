@@ -5,7 +5,6 @@
 // recovers a positive fifth-force strength. Also covers the clean (null) case,
 // the too-few-points edge case, and the grid-analysis path.
 
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -13,6 +12,7 @@
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "test_assert.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -41,12 +41,12 @@ int main() {
         hunter.setParameter("semi_major_axis", a);
 
         auto findings = hunter.analyze(metric, loc, transits);
-        assert(!findings.empty() && "Fifth-force TTV should be detected");
+        QV_CHECK(!findings.empty());
 
         const auto& f = findings.front();
         auto sit = f.parameters.find("fifth_force_strength");
-        assert(sit != f.parameters.end() && "fifth_force_strength missing");
-        assert(sit->second > 0.0 && "fifth force strength should be positive");
+        QV_CHECK(sit != f.parameters.end());
+        QV_CHECK(sit->second > 0.0);
         std::cout << "Detected fifth force: alpha=" << sit->second
                   << " confidence=" << f.confidence << std::endl;
     }
@@ -67,7 +67,7 @@ int main() {
         hunter.setParameter("timing_noise", 1e-4);
 
         auto findings = hunter.analyze(metric, loc, transits);
-        assert(findings.empty() && "Clean Keplerian signal should not trigger");
+        QV_CHECK(findings.empty());
     }
 
     // --- Too few transits ----------------------------------------------------
@@ -84,7 +84,7 @@ int main() {
         hunter.setParameter("semi_major_axis", a);
 
         auto findings = hunter.analyze(metric, loc, tiny);
-        assert(findings.empty() && "Too-few transits should not produce finding");
+        QV_CHECK(findings.empty());
     }
 
     // --- Grid analysis path --------------------------------------------------
@@ -101,12 +101,12 @@ int main() {
 
         quantumverse::ExoplanetaryTTVFifthForceHunter hunter;
         auto findings = hunter.analyzeGrid(grid);
-        assert(!findings.empty() && "Grid with anomalies should yield finding");
+        QV_CHECK(!findings.empty());
 
         const auto& f = findings.front();
         auto sit = f.parameters.find("fifth_force_strength");
-        assert(sit != f.parameters.end() && "grid fifth_force_strength missing");
-        assert(std::abs(sit->second - 3e-3) < 1e-12 && "grid mean strength wrong");
+        QV_CHECK(sit != f.parameters.end());
+        QV_CHECK_NEAR(sit, >second - 3e-3, 1e-12);
         std::cout << "Grid fifth-force mean: " << sit->second << std::endl;
     }
 
