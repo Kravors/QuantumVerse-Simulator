@@ -186,7 +186,7 @@ void test_bma_with_single_model() {
     auto bma_val = agent.predictBMA([](const TheoryDiscoveryAgent::DiscoveryResult& r) {
         return r.parameters.empty() ? 0.0 : r.parameters[1];
     });
-    QV_CHECK_NEAR(bma_val - 1e, 55, 1e-60 || bma_val > 0.0);
+    QV_CHECK(std::fabs(bma_val - 1e-55) < 1e-60 || bma_val > 0.0);
     std::cout << "  BMA single-model weight = " << weights[0]
               << ", prediction = " << bma_val << std::endl;
 }
@@ -888,28 +888,44 @@ int main() {
     }
 
     // --- 50. BMA: model weights sum to one -------------------------------------
+    std::cout << "[start] test_model_weights_sum_to_one" << std::endl;
     test_model_weights_sum_to_one();
+    std::cout << "[done ] test_model_weights_sum_to_one" << std::endl;
 
     // --- 51. BMA: prediction in GR limit ---------------------------------------
+    std::cout << "[start] test_bma_prediction_gr_limit" << std::endl;
     test_bma_prediction_gr_limit();
+    std::cout << "[done ] test_bma_prediction_gr_limit" << std::endl;
 
     // --- 52. BMA: predictive variance non-negative ------------------------------
+    std::cout << "[start] test_bma_variance_nonnegative" << std::endl;
     test_bma_variance_nonnegative();
+    std::cout << "[done ] test_bma_variance_nonnegative" << std::endl;
 
     // --- 53. BMA: single model has weight 1 ------------------------------------
+    std::cout << "[start] test_bma_with_single_model" << std::endl;
     test_bma_with_single_model();
+    std::cout << "[done ] test_bma_with_single_model" << std::endl;
 
     // --- 54. Phase 29: EHVI mode selects valid point -----------------------------
+    std::cout << "[start] test_ehvi_mode_selects_point" << std::endl;
     test_ehvi_mode_selects_point();
+    std::cout << "[done ] test_ehvi_mode_selects_point" << std::endl;
 
     // --- 55. Phase 29: UCB mode selects valid point ------------------------------
+    std::cout << "[start] test_ucb_mode_selects_point" << std::endl;
     test_ucb_mode_selects_point();
+    std::cout << "[done ] test_ucb_mode_selects_point" << std::endl;
 
     // --- 56. Phase 29: Acquisition mode toggle works -----------------------------
+    std::cout << "[start] test_acquisition_mode_toggle" << std::endl;
     test_acquisition_mode_toggle();
+    std::cout << "[done ] test_acquisition_mode_toggle" << std::endl;
 
     // --- 57. Phase 29: EHVI improves hypervolume over evaluations ----------------
+    std::cout << "[start] test_ehvi_improves_hypervolume" << std::endl;
     test_ehvi_improves_hypervolume();
+    std::cout << "[done ] test_ehvi_improves_hypervolume" << std::endl;
 
     // --- 58. Phase 31: Live alert shifts BMA weights -----------------------------
     {
