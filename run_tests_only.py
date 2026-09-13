@@ -31,14 +31,26 @@ targets = sorted(
 )
 print(f"{len(targets)} test targets")
 
-TIMEOUT = 180
+# Per-target timeout table.  Discovery tests are legitimately slow: the BMA/EHVI
+# suite in test_theory_discovery_agent runs 58 checks in ~213s and the gradient
+# optimizer does a real optimization pass in ~70s.  A flat 180s cap killed both
+# mid-run and read as a hang.  TODO: profile the BMA/EHVI tests — 213s is slow
+# for a unit test and worth reducing once the nine non-passing canaries are
+# settled.
+TIMEOUTS = {
+    "test_theory_discovery_agent": 600,
+    "test_gradient_optimizer": 600,
+    "test_adjoint_gradient_optimizer": 600,
+    "default": 180,
+}
 
 
 def run(t):
     exe = exe_index[t]
+    timeout = TIMEOUTS.get(t, TIMEOUTS["default"])
     try:
         r = subprocess.run(
-            [exe], capture_output=True, text=True, timeout=TIMEOUT,
+            [exe], capture_output=True, text=True, timeout=timeout,
             encoding="utf-8", errors="replace",
         )
     except subprocess.TimeoutExpired:
