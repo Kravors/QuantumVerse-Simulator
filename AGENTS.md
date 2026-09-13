@@ -65,6 +65,16 @@ cmake --build build --parallel
 ctest -C Release --output-on-failure
 ```
 
+### Assertions Must Survive NDEBUG
+
+**Tests must be built in Debug, or use `QV_CHECK`/`QV_CHECK_NEAR` from
+`tests/test_assert.h`.** `assert()` is compiled out under Release `/DNDEBUG`
+and silently passes — a Release build of the test suite asserts nothing. Every
+"all green" measured with `assert()` was vacuous until 2026-09-11, when the
+assert→QV_CHECK sweep (commit `d381c97`) revealed 9 pre-existing failures that
+had been invisible for months. Prefer `QV_CHECK`/`QV_CHECK_NEAR` over `assert()`
+in all test code so assertions stay live under any build type.
+
 ### Run Headless
 ```bash
 build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
@@ -81,6 +91,18 @@ Some rendering and performance tests are non-blocking canaries in CI:
 - `GLStrictAuditTest`
 
 Core scientific tests run in primary workflows and must remain green.
+
+> TODO(canary): the three `0xC0000409` canaries (`test_rendering_diagnostic`,
+> `test_viewport_content_test`, `test_viewport_state_test`) are
+> `STATUS_STACK_BUFFER_OVERRUN` — the `/GS` cookie firing, i.e. something wrote
+> past a stack buffer — **not** plain stack overflow (`0xC00000FD`). The
+> culprit may be Qt internals, the GL driver, or our code. "Known GL canary" is
+> an assumption, not a diagnosis; investigate before tolerating it forever.
+>
+> TODO(canary): the three timeouts (`test_adjoint_gradient_optimizer`,
+> `test_gradient_optimizer`, `test_theory_discovery_agent`) may be Debug
+> slowness, or they may be genuine hangs. Distinguish the two before accepting
+> either explanation.
 
 ## Testing & Verification
 
