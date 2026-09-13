@@ -182,6 +182,10 @@ Primary workflows:
 
 Nightly workflows (`Nightly Baseline Update`, `Nightly Deep Scan`) are allowed to fail without blocking mainline development. If they fail, check for environment-specific issues such as missing secrets or hardware differences before investigating code changes.
 
+### Windows App Execution Alias trap
+
+Windows App Execution Alias stubs (e.g. `%LOCALAPPDATA%\Microsoft\WindowsApps\python3.exe`) launch the Microsoft Store instead of a real interpreter and cause `std::system`/`_popen` calls to stall for minutes. Always reject paths containing `WindowsApps`; see `SymbolicMath::resolveExecutablePath` as the reference implementation.
+
 ## Known Issues
 
 - Windows COM exception `0x8001010D` may appear in headless/CI output; it is benign and caught by the VEH.
