@@ -134,7 +134,10 @@ endif()
 
 # Main library interface (header-only for now)
 add_library(dilaton INTERFACE)
-target_include_directories(dilaton INTERFACE ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(dilaton INTERFACE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
 target_link_libraries(dilaton INTERFACE nlohmann_json)
 if(CURL_FOUND)
     target_compile_definitions(dilaton INTERFACE HAVE_CURL=1)
@@ -1952,8 +1955,7 @@ endif()
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
-    target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QML)
+target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
     set_target_properties(test_theory_discovery_agent PROPERTIES AUTOMOC ON)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
 
@@ -2035,6 +2037,11 @@ endif()
         src/ml/CurvatureNormalizingFlow.cpp
     )
     target_link_libraries(test_adjoint_gradient_optimizer PRIVATE dilaton Qt6::Core)
+    target_include_directories(test_adjoint_gradient_optimizer PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
+    )
     add_test(NAME AdjointGradientOptimizerTest COMMAND test_adjoint_gradient_optimizer)
 
     # Phase 33.6: Generalized adjoint integrator
