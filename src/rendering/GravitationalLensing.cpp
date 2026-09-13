@@ -154,14 +154,12 @@ static const char* lensingFragmentSource = R"(
 
     // Sample star field (texture or procedural)
     vec3 sampleStarField(vec3 dir) {
-        if (u_enableStarField) {
-            vec3 texColor = texture(u_starField, dir).rgb;
-            if (texColor.r > 0.0 || texColor.g > 0.0 || texColor.b > 0.0) {
-                return texColor * u_starFieldIntensity;
-            }
-            return proceduralStarField(dir) * u_starFieldIntensity;
+        if (!u_enableStarField) return vec3(0.0);
+        vec3 texColor = texture(u_starField, dir).rgb;
+        if (texColor.r > 0.0 || texColor.g > 0.0 || texColor.b > 0.0) {
+            return texColor * u_starFieldIntensity;
         }
-        return proceduralStarField(dir);
+        return proceduralStarField(dir) * u_starFieldIntensity;
     }
 
     // Compute deflection due to gravity (weak field approximation for ray marching)

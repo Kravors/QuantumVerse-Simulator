@@ -167,6 +167,12 @@ public:
     void setEnabled(bool enabled) { m_enabled = enabled; }
 
     /**
+     * @brief Enable or disable the background star-field/nebula skybox.
+     * @param enabled true to render the skybox, false for a black background
+     */
+    void setStarFieldEnabled(bool enabled) { m_params.enableStarField = enabled; }
+
+    /**
      * @brief Check if lensing is enabled.
      * @return true if enabled
      */

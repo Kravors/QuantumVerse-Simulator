@@ -466,6 +466,13 @@ void QmlGlRenderer::render()
     if (m_lensing && m_lensing->isEnabled()) {
         PERF_SCOPE("renderLensing");
         renderLensing();
+    } else {
+        static int s_lensingSkip = 0;
+        if (s_lensingSkip++ < 5) {
+            qWarning() << "[DIAG-renderLensing] SKIPPED, m_lensing="
+                       << (m_lensing ? "set" : "null")
+                       << " enabled=" << (m_lensing ? m_lensing->isEnabled() : -1);
+        }
     }
 
     {
@@ -2907,6 +2914,7 @@ public:
         m_gl->setCamera4DAdapter(vp->m_camera4DAdapter);
         m_gl->setShowGrid(vp->m_showGrid);
         m_gl->setShowGeodesics(vp->m_showGeodesics);
+        m_gl->setLensingRenderer(vp->lensingRenderer());
         m_showHUD = vp->m_showHUD;
         if (vp->m_pendingScreenshotRequested) {
             m_gl->requestScreenshot(vp->m_pendingScreenshotPath);
@@ -3347,39 +3355,61 @@ double QmlGlViewport::recordingDuration() const {
   // Gravitational Lensing Implementation
   // ============================================================================
 
-  void QmlGlRenderer::renderLensing() {
-      if (!m_lensing || !m_lensing->isInitialized()) return;
+void QmlGlRenderer::renderLensing() {
+    if (!m_lensing) return;
 
-     // Save GL state
-     GLboolean prevDepthTest;
-     glGetBooleanv(GL_DEPTH_TEST, &prevDepthTest);
-     glDisable(GL_DEPTH_TEST);
+    // Lazily initialize on first draw -- the GL context exists by now, and
+    // relying solely on synchronize() (which may not run before the first
+    // frame in headless mode) leaves the renderer unbound.
+    if (!m_lensing->isInitialized()) {
+        try {
+            m_lensing->initialize(m_viewportWidth, m_viewportHeight);
+        } catch (const std::exception& e) {
+            qWarning() << "QmlGlRenderer: Failed to initialize lensing renderer:" << e.what();
+            return;
+        }
+    }
 
-     // Render lensing (background)
-     m_lensing->render(m_viewMatrix.constData(), m_projectionMatrix.constData());
+    // Save GL state
+    GLboolean prevDepthTest;
+    glGetBooleanv(GL_DEPTH_TEST, &prevDepthTest);
+    glDisable(GL_DEPTH_TEST);
 
-     // Restore GL state
-     if (prevDepthTest) glEnable(GL_DEPTH_TEST);
-     else glDisable(GL_DEPTH_TEST);
- }
+    // Render lensing (background)
+    m_lensing->render(m_viewMatrix.constData(), m_projectionMatrix.constData());
+
+    // Restore GL state
+    if (prevDepthTest) glEnable(GL_DEPTH_TEST);
+    else glDisable(GL_DEPTH_TEST);
+}
 
  void QmlGlRenderer::setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing) {
      m_lensing = std::move(lensing);
  }
 
 void QmlGlViewport::setLensingEnabled(bool enabled) {
-      if (m_lensingEnabled != enabled) {
-          m_lensingEnabled = enabled;
-          if (!m_lensing) syncLensingParams();  // Lazily build the renderer on first enable
-          if (m_lensing) {
-              m_lensing->setEnabled(enabled);
-          }
-          emit lensingEnabledChanged();
-          update();
-      }
-  }
+    if (m_lensingEnabled != enabled) {
+        m_lensingEnabled = enabled;
+        if (!m_lensing) syncLensingParams();  // Lazily build the renderer on first enable
+        if (m_lensing) {
+            m_lensing->setEnabled(enabled);
+        }
+        emit lensingEnabledChanged();
+        update();
+    }
+}
 
- void QmlGlViewport::setLensingSteps(int steps) {
+void QmlGlViewport::setLensingStarFieldEnabled(bool enabled) {
+    if (m_lensing) {
+        qWarning() << "[DIAG-setLensingStarFieldEnabled] setting starField=" << enabled;
+        m_lensing->setStarFieldEnabled(enabled);
+        update();
+    } else {
+        qWarning() << "[DIAG-setLensingStarFieldEnabled] m_lensing is null, cannot set starField=" << enabled;
+    }
+}
+
+void QmlGlViewport::setLensingSteps(int steps) {
      if (m_lensingSteps != steps) {
          m_lensingSteps = std::clamp(steps, 32, 1024);
          if (m_lensing) {

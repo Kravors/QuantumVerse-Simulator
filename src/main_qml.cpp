@@ -318,11 +318,17 @@ int main(int argc, char* argv[])
     QString sessionId;
     double fixedSimTime = -1.0;
     double lensingTheta = -1.0;  // <0 = not set; >=0 overrides QML default
+    bool disableCelestial = false;
+    bool noStarfield = false;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--lensing-theta") == 0 && i + 1 < argc) {
             lensingTheta = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--no-celestial") == 0) {
+            disableCelestial = true;
+        } else if (strcmp(argv[i], "--no-starfield") == 0) {
+            noStarfield = true;
         } else if (strcmp(argv[i], "--simTime") == 0 && i + 1 < argc) {
             fixedSimTime = atof(argv[++i]);
         } else if (strcmp(argv[i], "--screenshot") == 0 && i + 1 < argc) {
@@ -1020,8 +1026,32 @@ int main(int argc, char* argv[])
                     // Drive the lensing overlay from the CLI so headless
                     // verification renders the black-hole disk without a GUI.
                     viewport->setLensingEnabled(true);
+                    viewport->syncLensingParams();  // Builds m_lensing and pushes theta
                     viewport->setVolumetricDiskEnabled(true);
                     viewport->setLensingSpin(0.5f);
+                    // The star-field skybox draws a blue nebula background that
+                    // occludes the disk; drop it so the disk is the only thing
+                    // in frame.  Use --no-starfield to keep it.
+                    if (!noStarfield) {
+                        viewport->setLensingStarFieldEnabled(false);
+                    }
+                    // The QmlGlRenderer (which actually draws) pulls its
+                    // m_lensing from the viewport item in synchronize().  In
+                    // headless mode synchronize() may not run before the first
+                    // frame, so hand the renderer over explicitly.  GL
+                    // initialization happens lazily in renderLensing() once
+                    // the context exists.
+                    if (viewport->lensingRenderer() && viewport->renderer()) {
+                        viewport->renderer()->setLensingRenderer(
+                            viewport->lensingRenderer());
+                    }
+                }
+
+                if (disableCelestial) {
+                    // Drop the solar-system bodies so the lensing overlay is
+                    // the only thing in frame (the default skybox is a blue
+                    // quad that otherwise occludes the disk).
+                    viewport->setCelestialBodyRendererDirect(nullptr);
                 }
 
                 if (!frameTimesPath.isEmpty()) {

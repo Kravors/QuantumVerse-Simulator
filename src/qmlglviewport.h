@@ -729,6 +729,7 @@ public:
     Q_INVOKABLE void setLensingSpin(float spin);
     Q_INVOKABLE void setLensingDistance(float distance);
     Q_INVOKABLE void setLensingTheta(float theta);
+    Q_INVOKABLE void setLensingStarFieldEnabled(bool enabled);
     Q_INVOKABLE void setAccretionDiskEnabled(bool enabled);
     Q_INVOKABLE void setPhotonRingEnabled(bool enabled);
     Q_INVOKABLE void setAccretionDiskIntensity(float intensity);
@@ -781,9 +782,10 @@ public:
     // Post-processing pipeline access (for QmlGlRenderer synchronization)
      std::shared_ptr<PostProcess> postProcess() const { return m_postProcess; }
 
-     // Gravitational lensing access
-     void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
-     std::shared_ptr<GravitationalLensing> lensingRenderer() const { return m_lensing; }
+// Gravitational lensing access
+      void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
+      std::shared_ptr<GravitationalLensing> lensingRenderer() const { return m_lensing; }
+      QmlGlRenderer* renderer() const { return m_renderer; }
 
     void setHeadlessFrameTarget(int frames) {
         m_headlessTargetFrames = frames;
