@@ -22,29 +22,96 @@
 
 namespace quantumverse {
 
+/**
+ * @brief Resolve a bare executable name to its full path.
+ *
+ * Uses `where.exe` (Windows) / `which` (POSIX) to find the candidate and
+ * rejects the Windows App Execution Alias stubs under
+ * `%LOCALAPPDATA%\Microsoft\WindowsApps\`. Calling that stub from a
+ * subprocess launches the Microsoft Store and blocks on the pipe until the
+ * store window closes or the stub times out — a multi-minute hang for any
+ * user without Python installed. A stub is not a real interpreter.
+ *
+ * @param name Bare executable name (e.g. "python3").
+ * @return Full path to a real interpreter, or empty string if none found.
+ */
+static std::string resolveExecutablePath(const std::string& name) {
+#ifdef _WIN32
+    std::string cmd = "where.exe " + name + " 2>nul";
+    FILE* pipe = _popen(cmd.c_str(), "r");
+#else
+    std::string cmd = "which " + name + " 2>/dev/null";
+    FILE* pipe = popen(cmd.c_str(), "r");
+#endif
+    if (!pipe) return {};
+    char buffer[512] = {0};
+    std::string output;
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        output += buffer;
+    }
+#ifdef _WIN32
+    _pclose(pipe);
+#else
+    pclose(pipe);
+#endif
+
+    std::istringstream iss(output);
+    std::string line;
+    while (std::getline(iss, line)) {
+        auto start = line.find_first_not_of(" \t\r\n");
+        if (start == std::string::npos) continue;
+        auto end = line.find_last_not_of(" \t\r\n");
+        std::string path = line.substr(start, end - start + 1);
+        if (path.empty()) continue;
+        // Reject Windows App Execution Alias stubs.
+        if (path.find("WindowsApps") != std::string::npos) continue;
+        return path;
+    }
+    return {};
+}
+
+/**
+ * @brief Probe whether the interpreter at `path` actually runs.
+ *
+ * Runs `<path> -c "print('OK')"` and returns the path on success, empty on
+ * failure. Bounded by the pipe read — a real interpreter answers in <1s.
+ *
+ * @param path Full path to a candidate interpreter.
+ * @return `path` if it runs, empty string otherwise.
+ */
+static std::string probePython(const std::string& path) {
+    std::string cmd = "\"" + path + "\" -c \"print('OK')\" 2>&1";
+#ifdef _WIN32
+    FILE* pipe = _popen(cmd.c_str(), "r");
+#else
+    FILE* pipe = popen(cmd.c_str(), "r");
+#endif
+    if (!pipe) return {};
+    char buffer[128] = {0};
+    std::string output;
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        output += buffer;
+    }
+#ifdef _WIN32
+    _pclose(pipe);
+#else
+    pclose(pipe);
+#endif
+    if (output.find("OK") != std::string::npos) {
+        return path;
+    }
+    return {};
+}
+
 static std::string findPython() {
     const char* candidates[] = {"python3", "python", nullptr};
     for (int i = 0; candidates[i] != nullptr; ++i) {
-        std::string cmd = std::string(candidates[i]) + " -c \"print('OK')\" 2>&1";
-#ifdef _WIN32
-        FILE* pipe = _popen(cmd.c_str(), "r");
-#else
-        FILE* pipe = popen(cmd.c_str(), "r");
-#endif
-        if (pipe) {
-            char buffer[128] = {0};
-            std::string output;
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                output += buffer;
-            }
-#ifdef _WIN32
-            _pclose(pipe);
-#else
-            pclose(pipe);
-#endif
-            if (output.find("OK") != std::string::npos) {
-                return candidates[i];
-            }
+        std::string path = resolveExecutablePath(candidates[i]);
+        if (path.empty()) continue;
+        if (path.find("WindowsApps") != std::string::npos) continue;
+        std::string result = probePython(path);
+        if (!result.empty()) {
+            return result;
         }
     }
     return {};
