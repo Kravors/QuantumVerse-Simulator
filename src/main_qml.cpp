@@ -329,6 +329,7 @@ int main(int argc, char* argv[])
     QString diagnosticsPath;
     QString signalingServerUrl;
     QString sessionId;
+    QString startTourId;
     double fixedSimTime = -1.0;
     double lensingTheta = -1.0;  // <0 = not set; >=0 overrides QML default
     bool disableCelestial = false;
@@ -369,6 +370,8 @@ int main(int argc, char* argv[])
             signalingServerUrl = argv[++i];
         } else if (strcmp(argv[i], "--session-id") == 0 && i + 1 < argc) {
             sessionId = argv[++i];
+        } else if (strcmp(argv[i], "--start-tour") == 0 && i + 1 < argc) {
+            startTourId = argv[++i];
         }
     }
     if (fixedSimTime >= 0.0) {
@@ -1215,6 +1218,27 @@ int main(int argc, char* argv[])
         std::cerr << "  - Curvature renderer initialized" << std::endl;
         std::cerr << "  - Ready for 4D navigation" << std::endl;
         std::cerr.flush();
+
+        if (!startTourId.isEmpty()) {
+            QString tourPath = "data/tours/" + startTourId + ".json";
+            std::cerr << "[Tour] --start-tour " << startTourId.toStdString()
+                      << " (" << tourPath.toStdString() << ")" << std::endl;
+            std::cerr.flush();
+            bool ok = false;
+            QMetaObject::invokeMethod(tourController, "loadTourFromFile",
+                                      Q_RETURN_ARG(bool, ok),
+                                      Q_ARG(QString, tourPath));
+            std::cerr << "[Tour] loadTourFromFile returned: " << ok << std::endl;
+            std::cerr.flush();
+            if (ok) {
+                QMetaObject::invokeMethod(tourController, "start");
+                std::cerr << "[Tour] start() invoked" << std::endl;
+                std::cerr.flush();
+            } else {
+                std::cerr << "[Tour] Failed to load tour, not starting" << std::endl;
+            }
+        }
+
         std::cerr << "[DIAG] About to enter headless benchmark check, headlessFrames=" << headlessFrames << std::endl;
         std::cerr.flush();
 
