@@ -104,6 +104,16 @@ Core scientific tests run in primary workflows and must remain green.
 > slowness, or they may be genuine hangs. Distinguish the two before accepting
 > either explanation.
 
+### Qt 6.11 QML parser quirks
+
+- `function` declarations are not hoisted. Declare them before any visual
+  items that reference them via bindings, `onClicked`, etc. Symptom: parse
+  errors ("Cannot assign to non-existent property") or silent runtime failures.
+- Avoid `parent: ApplicationWindow.overlay` inside `Popup` components —
+  Qt 6.11 may reject this at parse time. Use explicit anchors instead.
+- Two `RowLayout`s directly inside a `ColumnLayout` inside a `Popup` may
+  fail to parse — wrap each `RowLayout` in an `Item` container.
+
 ## Testing & Verification
 
 ### Test Categories

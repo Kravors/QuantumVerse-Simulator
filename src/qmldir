@@ -1,2 +1,3 @@
 module QuantumVerse
 version 1.0
+EducationalTourOverlay 1.0 education/EducationalTourOverlay.qml

@@ -6,6 +6,7 @@
         <file>ToastNotification.qml</file>
         <file>ParameterSlider.qml</file>
         <file>DiscoveryDashboard.qml</file>
+        <file>education/EducationalTourOverlay.qml</file>
     </qresource>
     <qresource prefix="/">
         <file>icons/open.svg</file>

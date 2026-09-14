@@ -87,6 +87,11 @@ ApplicationWindow {
         id: toastNotification
     }
 
+    // Educational tour overlay: shown whenever tourController is Running or Paused
+    EducationalTourOverlay {
+        id: tourOverlay
+    }
+
     Connections {
         target: discoveryPanelManager
         function onLiveAlertProcessed(findingId) {
@@ -506,11 +511,31 @@ ApplicationWindow {
             ToolSeparator {}
 
             ToolButton {
-                text: "Discover"
+                text: qsTr("Discover")
                 checkable: true
                 checked: discoveryPanel.visible
                 onClicked: discoveryPanel.visible = checked
-                ToolTip.text: "Toggle Discovery Console"
+                ToolTip.text: qsTr("Toggle Discovery Console")
+            }
+
+            ToolButton {
+                text: qsTr("Tour")
+                checkable: true
+                checked: tourController && tourController.state !== TourController.Stopped
+                enabled: tourManager && tourManager.tourCount() > 0
+                onClicked: {
+                    if (!tourManager || !tourController) return
+                    if (tourController.state === TourController.Stopped) {
+                        var ids = tourManager.listTourIds()
+                        if (ids.length === 0) return
+                        tourController.loadTourFromFile(
+                            tourManager.tourDirectory() + "/" + ids[0] + ".json")
+                        tourController.start()
+                    } else {
+                        tourController.stop()
+                    }
+                }
+                ToolTip.text: qsTr("Start / stop educational tour")
             }
 
             ToolButton {
