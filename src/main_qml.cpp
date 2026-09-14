@@ -316,6 +316,7 @@ int main(int argc, char* argv[])
     // Headless detection - exit gracefully if no display (for CI environments)
     // But if --frames is specified, attempt headless benchmark rendering below.
     int headlessFrames = 0;
+    bool softwareRendering = false;
     bool autoScan = false;
     bool enableGeodesics = false;
     bool glStrict = false;
@@ -355,6 +356,11 @@ int main(int argc, char* argv[])
             autoScan = true;
         } else if (strcmp(argv[i], "--enable-geodesics") == 0) {
             enableGeodesics = true;
+        } else if (strcmp(argv[i], "--software-rendering") == 0) {
+            softwareRendering = true;
+            if (headlessFrames <= 0) {
+                headlessFrames = 1;
+            }
         } else if (strcmp(argv[i], "--gcn-test") == 0) {
             gcnTestMode = true;
         } else if (strcmp(argv[i], "--gcn-prod") == 0) {
@@ -407,7 +413,13 @@ int main(int argc, char* argv[])
     qputenv("QT_OPENGL", QByteArray("desktop"));
     qputenv("QT_ANGLE_PLATFORM", QByteArray("none"));
 
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+    if (softwareRendering) {
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
+        std::cerr << "Software rendering backend selected (--software-rendering)" << std::endl;
+        std::cerr.flush();
+    } else {
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+    }
 
     qDebug() << "QSG_RHI_BACKEND =" << qgetenv("QSG_RHI_BACKEND");
     qDebug() << "QSG_OPENGL_LEGACY =" << qgetenv("QSG_OPENGL_LEGACY");

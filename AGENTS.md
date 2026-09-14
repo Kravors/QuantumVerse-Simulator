@@ -80,6 +80,16 @@ in all test code so assertions stay live under any build type.
 build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
 ```
 
+#### Software Rendering (no GPU required)
+In headless CI environments or machines without a GPU, use `--software-rendering`
+to select Qt's software raster backend instead of OpenGL. This runs the full QML
+pipeline (UI controls, Popups, toolbutton bindings, PropertyChanges) but skips
+GL-dependent rendering (CelestialBodyRenderer, lensing overlay, curvature renderer).
+```bash
+build\Debug\quantumverse_qml.exe --software-rendering --frames 1 --metric schwarzschild
+```
+The flag implicitly sets `--frames 1` if no `--frames` is specified.
+
 ### CI Exclusions
 Some rendering and performance tests are non-blocking canaries in CI:
 - `PerformanceGateTest`
