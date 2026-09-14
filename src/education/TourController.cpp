@@ -107,12 +107,13 @@ bool TourController::loadTour(const EducationalTour& tour) {
     m_stepIndex = -1;
     m_stepElapsed = 0.0;
     m_stepDuration = 0.0;
+    emit tourLoaded();
     return true;
 }
 
-bool TourController::loadTourFromFile(const std::string& filepath) {
+Q_INVOKABLE bool TourController::loadTourFromFile(const QString& filepath) {
     EducationalTour tour;
-    if (!tour.loadFromFile(filepath)) {
+    if (!tour.loadFromFile(filepath.toStdString())) {
         return false;
     }
     return loadTour(tour);
@@ -166,6 +167,8 @@ void TourController::gotoStep(int index) {
     m_stepDuration = step.duration_sec;
     m_stepElapsed = 0.0;
 
+    emit currentStepChanged();
+
     if (m_stepDuration > 0.0) {
         m_timer->start(static_cast<int>(m_stepDuration * 1000.0));
     }
@@ -177,19 +180,26 @@ void TourController::start() {
         return;
     }
     m_state = TourState::Running;
+    emit stateChanged();
     gotoStep(0);
 }
 
 void TourController::next() {
     if (m_state == TourState::Stopped) return;
-    if (m_state == TourState::Paused) m_state = TourState::Running;
+    if (m_state == TourState::Paused) {
+        m_state = TourState::Running;
+        emit stateChanged();
+    }
     m_timer->stop();
     gotoStep(m_stepIndex + 1);
 }
 
 void TourController::prev() {
     if (m_state == TourState::Stopped) return;
-    if (m_state == TourState::Paused) m_state = TourState::Running;
+    if (m_state == TourState::Paused) {
+        m_state = TourState::Running;
+        emit stateChanged();
+    }
     m_timer->stop();
     // Clamp at the first step: going before step 0 is a no-op, not a
     // completion.  The tour is a linear script; there is nowhere to go.
@@ -200,6 +210,7 @@ void TourController::prev() {
 void TourController::pause() {
     if (m_state != TourState::Running) return;
     m_state = TourState::Paused;
+    emit stateChanged();
     m_timer->stop();
     if (m_onUserInput) m_onUserInput();
 }
@@ -207,6 +218,7 @@ void TourController::pause() {
 void TourController::resume() {
     if (m_state != TourState::Paused) return;
     m_state = TourState::Running;
+    emit stateChanged();
     if (m_stepDuration > 0.0) {
         m_timer->start(static_cast<int>((m_stepDuration - m_stepElapsed) * 1000.0));
     }
@@ -218,6 +230,8 @@ void TourController::stop() {
     m_stepIndex = -1;
     m_stepElapsed = 0.0;
     m_stepDuration = 0.0;
+    emit stateChanged();
+    emit currentStepChanged();
     // Camera ownership: deliberately NOT restored.  The controller leaves the
     // camera where the tour last put it, so the user keeps what they explored
     // while paused.  Callers that want a reset must do it explicitly.

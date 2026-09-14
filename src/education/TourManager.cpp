@@ -14,8 +14,12 @@ namespace quantumverse {
 namespace fs = std::filesystem;
 
 bool TourManager::initialize(const std::string& tour_dir) {
+    return initializeTour(QString::fromStdString(tour_dir));
+}
+
+bool TourManager::initializeTour(const QString& tourDir) {
     std::lock_guard<std::mutex> lock(mutex_);
-    tour_dir_ = tour_dir;
+    tour_dir_ = tourDir.toStdString();
 
     if (!fs::exists(tour_dir_)) {
         std::cerr << "[TourManager] Tour directory not found: " << tour_dir_ << std::endl;
@@ -31,6 +35,28 @@ bool TourManager::initialize(const std::string& tour_dir) {
     tours_.clear();
     name_to_filename_.clear();
     return doLoadAllTours();
+}
+
+QStringList TourManager::listTourIds() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    QStringList ids;
+    for (const auto& pair : name_to_filename_) {
+        ids << QString::fromStdString(pair.first);
+    }
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
+
+bool TourManager::hasTour(const QString& id) const {
+    return hasTour(id.toStdString());
+}
+
+bool TourManager::loadTour(const QString& filename) {
+    return loadTour(filename.toStdString());
+}
+
+int TourManager::tourCount() const {
+    return static_cast<int>(tours_.size());
 }
 
 std::vector<std::string> TourManager::listTours() const {
@@ -137,6 +163,30 @@ bool TourManager::doLoadAllTours() {
 
     std::cout << "[TourManager] Loaded " << loaded << " tours from " << tour_dir_ << std::endl;
     return loaded > 0;
+}
+
+bool TourManager::loadTourById(const QString& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = name_to_filename_.find(id.toStdString());
+    if (it == name_to_filename_.end()) {
+        std::cerr << "[TourManager] Tour id not found: " << id.toStdString() << std::endl;
+        return false;
+    }
+    const std::string& filename = it->second;
+    tours_.erase(filename);
+    std::string full_path = tour_dir_ + "/" + filename;
+    auto tour = std::make_shared<EducationalTour>();
+    if (!tour->loadFromFile(full_path)) {
+        std::cerr << "[TourManager] Failed to load by id: " << id.toStdString() << std::endl;
+        return false;
+    }
+    tours_[filename] = tour;
+    name_to_filename_[tour->id] = filename;
+    return true;
+}
+
+QString TourManager::tourDirectory() const {
+    return QString::fromStdString(tour_dir_);
 }
 
 void TourManager::reload() {

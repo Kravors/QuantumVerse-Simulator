@@ -56,6 +56,15 @@ bool EducationalTour::saveToFile(const std::string& filepath) const {
     return out.good();
 }
 
+QVariantList EducationalTour::stepsQml() const {
+    QVariantList list;
+    list.reserve(static_cast<int>(steps.size()));
+    for (const auto& s : steps) {
+        list.append(QVariant::fromValue(s));
+    }
+    return list;
+}
+
 bool EducationalTour::loadFromFile(const std::string& filepath) {
     std::ifstream in(filepath, std::ios::binary);
     if (!in) {

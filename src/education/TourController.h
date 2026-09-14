@@ -30,7 +30,9 @@
 #include <chrono>
 
 #include <QObject>
+#include <QMetaType>
 #include <QTimer>
+#include <QVariant>
 
 #include "EducationalTour.h"
 
@@ -76,6 +78,10 @@ enum class TourState {
  */
 class TourController : public QObject {
     Q_OBJECT
+    Q_ENUM(TourState)
+    Q_PROPERTY(TourState state          READ state          NOTIFY stateChanged)
+    Q_PROPERTY(int        currentStep    READ currentStepIndex  NOTIFY currentStepChanged)
+    Q_PROPERTY(QVariant   currentTour    READ currentTourVar    NOTIFY tourLoaded)
 public:
     explicit TourController(QObject* parent = nullptr);
 
@@ -114,9 +120,10 @@ public:
     // ----------------------------------------------------------------------
 
     bool loadTour(const EducationalTour& tour);
-    bool loadTourFromFile(const std::string& filepath);
+    Q_INVOKABLE bool loadTourFromFile(const QString& filepath);
     const EducationalTour* currentTour() const { return m_tour.get(); }
     const std::string& currentTourId() const { return m_tourId; }
+    QVariant currentTourVar() const { return m_tour ? QVariant::fromValue(*m_tour) : QVariant(); }
 
     // ----------------------------------------------------------------------
     // State machine
@@ -130,12 +137,12 @@ public:
     int currentStepIndex() const { return m_stepIndex; }
     const TourStep* currentStep() const;
 
-    void start();        ///< Begin the tour at step 0
-    void next();         ///< Advance to the next step (or complete)
-    void prev();         ///< Go back to the previous step
-    void pause();        ///< Pause due to user input (camera no longer driven)
-    void resume();       ///< Resume from Paused at the current step
-    void stop();         ///< End the tour; camera is left where it is
+    Q_INVOKABLE void start();        ///< Begin the tour at step 0
+    Q_INVOKABLE void next();         ///< Advance to the next step (or complete)
+    Q_INVOKABLE void prev();         ///< Go back to the previous step
+    Q_INVOKABLE void pause();        ///< Pause due to user input (camera no longer driven)
+    Q_INVOKABLE void resume();       ///< Resume from Paused at the current step
+    Q_INVOKABLE void stop();         ///< End the tour; camera is left where it is
 
     /**
      * @brief Called by the viewport when the user drags / scrolls.
@@ -152,7 +159,7 @@ public:
      * In production the QTimer calls this; in tests it is called directly so
      * the test controls timing exactly.
      */
-    void advance();
+    Q_INVOKABLE void advance();
 
     /**
      * @brief Interpolate the camera from `from` to `to` at parameter t in
@@ -171,6 +178,11 @@ public:
      * Pure function.
      */
     static double shortestAzimuthDelta(double from, double to);
+
+signals:
+    void stateChanged();
+    void currentStepChanged();
+    void tourLoaded();
 
 private:
     void applyStepActions(const TourStep& step);

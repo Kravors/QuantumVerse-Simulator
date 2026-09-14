@@ -16,19 +16,38 @@
 #include <unordered_map>
 #include <mutex>
 
+#include <QObject>
+#include <QMetaType>
+#include <QString>
+#include <QStringList>
+#include <QVariant>
+
 #include "EducationalTour.h"
 
 namespace quantumverse {
 
-class TourManager {
+class TourManager : public QObject {
+    Q_OBJECT
 public:
     static TourManager& instance() {
-        static TourManager inst;
-        return inst;
+        static TourManager* mgr = nullptr;
+        if (!mgr) {
+            // Heap-allocate and leak intentionally — avoids static destruction
+            // order issues with QObject and QML engine shutdown.
+            mgr = new TourManager();
+        }
+        return *mgr;
     }
 
-    bool initialize(const std::string& tour_dir = "data/tours/");
+    Q_INVOKABLE bool initializeTour(const QString& tourDir = "data/tours/");
+    Q_INVOKABLE QStringList listTourIds() const;
+    Q_INVOKABLE bool hasTour(const QString& id) const;
+    Q_INVOKABLE bool loadTour(const QString& filename);
+    Q_INVOKABLE bool loadTourById(const QString& id);
+    Q_INVOKABLE int tourCount() const;
+    Q_INVOKABLE QString tourDirectory() const;
 
+    bool initialize(const std::string& tour_dir = "data/tours/");
     std::vector<std::string> listTours() const;
     std::vector<std::string> listTourNames() const;
 
@@ -44,9 +63,8 @@ public:
 
     const std::string& tourDir() const { return tour_dir_; }
     size_t count() const { return tours_.size(); }
+    TourManager() : QObject(nullptr) {}
 
-private:
-    TourManager() = default;
 
     bool doLoadAllTours();
 
@@ -58,4 +76,7 @@ private:
 
 } // namespace quantumverse
 
+Q_DECLARE_METATYPE(quantumverse::TourManager*)
+
 #endif // QUANTUMVERSE_TOUR_MANAGER_H
+

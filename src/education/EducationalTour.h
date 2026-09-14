@@ -41,12 +41,15 @@
 #include <vector>
 #include <array>
 #include <cstdint>
+#include <QList>
+#include <QMetaType>
+#include <QVariantList>
 
 #include <nlohmann/json.hpp>
 
-namespace quantumverse {
-
 using json = nlohmann::json;
+
+namespace quantumverse {
 
 /**
  * @brief One scripted action applied when a step becomes active.
@@ -57,7 +60,7 @@ using json = nlohmann::json;
  */
 struct TourAction {
     std::string type;   ///< Action name, e.g. "enable_lensing", "set_bh_mass"
-    json value;         ///< Action payload (bool / number / string)
+    nlohmann::json value;         ///< Action payload (bool / number / string)
 };
 
 /**
@@ -77,22 +80,43 @@ struct TourCamera {
  * @brief One step of an educational tour.
  */
 struct TourStep {
+    Q_GADGET
+    Q_PROPERTY(QString title       READ qtitle)
+    Q_PROPERTY(QString body        READ qbody)
+    Q_PROPERTY(double  duration_sec READ dduration)
+public:
     std::string title;              ///< Short heading shown in the panel
     std::string body;               ///< Explanatory text (plain text or Markdown)
     double duration_sec = 6.0;      ///< Auto-advance after this many seconds;
-                                    ///  0 means "wait for the user to click Next"
+                                     ///  0 means "wait for the user to click Next"
     TourCamera camera;              ///< Camera to move to for this step
     std::vector<TourAction> actions; ///< State mutations applied on entry
+
+    QString qtitle() const { return QString::fromStdString(title); }
+    QString qbody() const { return QString::fromStdString(body); }
+    double dduration() const { return duration_sec; }
 };
 
 /**
  * @brief A complete educational tour: metadata plus an ordered step list.
  */
 struct EducationalTour {
+    Q_GADGET
+    Q_PROPERTY(QString id          READ qid)
+    Q_PROPERTY(QString title       READ qtitle)
+    Q_PROPERTY(QString description READ qdescription)
+    Q_PROPERTY(QVariantList steps   READ stepsQml)
+public:
     std::string id;                 ///< Stable identifier, e.g. "black_hole_basics"
-    std::string title;              ///< Human-readable title
-    std::string description;        ///< Short blurb for the selection panel
-    std::vector<TourStep> steps;    ///< Ordered step list (must be non-empty)
+    std::string title;             ///< Human-readable title
+    std::string description;       ///< Short blurb for the selection panel
+    std::vector<TourStep> steps;   ///< Ordered step list (must be non-empty)
+
+    QVariantList stepsQml() const;
+
+    QString qid() const { return QString::fromStdString(id); }
+    QString qtitle() const { return QString::fromStdString(title); }
+    QString qdescription() const { return QString::fromStdString(description); }
 
     // ----------------------------------------------------------------------
     // Validation
@@ -114,9 +138,16 @@ struct EducationalTour {
     bool loadFromFile(const std::string& filepath);
 };
 
+} // namespace quantumverse
+
+Q_DECLARE_METATYPE(quantumverse::TourStep)
+Q_DECLARE_METATYPE(quantumverse::EducationalTour)
+
 // ============================================================================
 // JSON (de)serialisation
 // ============================================================================
+
+namespace quantumverse {
 
 inline void to_json(json& j, const TourAction& a) {
     j = json{{"type", a.type}, {"value", a.value}};
