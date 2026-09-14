@@ -37,6 +37,7 @@
 #include "EducationalTour.h"
 
 namespace quantumverse {
+Q_NAMESPACE
 
 /**
  * @brief Camera snapshot used by the tour controller.
@@ -61,6 +62,7 @@ enum class TourState {
     Running,    ///< Tour active; controller drives the camera
     Paused,     ///< User input interrupted; waiting for Resume
 };
+Q_ENUM_NS(TourState)
 
 /**
  * @brief Drives a single EducationalTour from start to finish.
@@ -78,7 +80,6 @@ enum class TourState {
  */
 class TourController : public QObject {
     Q_OBJECT
-    Q_ENUM(TourState)
     Q_PROPERTY(TourState state          READ state          NOTIFY stateChanged)
     Q_PROPERTY(int        currentStep    READ currentStepIndex  NOTIFY currentStepChanged)
     Q_PROPERTY(QVariant   currentTour    READ currentTourVar    NOTIFY tourLoaded)

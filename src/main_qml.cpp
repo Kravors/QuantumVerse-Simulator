@@ -132,9 +132,11 @@ void registerQmlTypes()
         "QuantumVerse", 1, 0, "SceneGraphManager",
         "SceneGraphManager is created in C++");
 
-    // TourController: uncreatable (instantiated in C++ as a context property)
-    // but registered so QML can access the TourState enum values.
-    qmlRegisterUncreatableType<quantumverse::TourController>(
+    // TourController is instantiated in C++ as a context property.
+    // Register its namespace meta-object so QML can access TourState enum
+    // values (TourController.Stopped, TourController.Running, etc.)
+    qmlRegisterUncreatableMetaObject(
+        quantumverse::staticMetaObject,
         "QuantumVerse", 1, 0, "TourController",
         "TourController is created and wired in C++");
     // TourManager: singleton, registered for QML enum/meta-object access.
