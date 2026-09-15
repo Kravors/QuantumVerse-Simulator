@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "Running CBMC verification..."
           if command -v cbmc &> /dev/null; then
-            cbmc tests/verification/harness_metric.cpp --bounds-check --pointer-check --unwind 10 --32-bit || true
+            cbmc tests/verification/harness_metric.cpp --bounds-check --pointer-check --unwind 10
           fi
 
           echo "Running clang-tidy..."

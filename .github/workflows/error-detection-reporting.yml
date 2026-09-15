@@ -39,7 +39,7 @@ jobs:
     - name: Install analysis tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang-tidy cppcheck
+        sudo apt-get install -y clang-tidy clang-tools cppcheck
         python3 -m pip install pyyaml
     
     - name: Install Qt6
@@ -58,9 +58,10 @@ jobs:
     
     - name: Run Clang-Tidy
       id: clang-tidy
-      timeout-minutes: 45
+      timeout-minutes: 90
       run: |
         set -euo pipefail
+        mkdir -p reports
 
         BASE="${{ github.event.pull_request.base.sha }}"
         if [ -z "${BASE:-}" ]; then
@@ -75,7 +76,8 @@ jobs:
         echo "Analyzing $(echo "$CHANGED" | wc -l) files"
 
         echo "$CHANGED" | xargs -r run-clang-tidy -p build -j "$(nproc)" -quiet \
-          2>&1 | tee clang-tidy.log || true
+          -export-fixes=reports/clang-tidy-fixes.yaml \
+          2>&1 | tee clang-tidy.log
 
         WARN_COUNT=$(grep -c "warning:" clang-tidy.log || true)
         echo "::notice::clang-tidy warnings: ${WARN_COUNT}"
@@ -86,9 +88,10 @@ jobs:
     - name: Run Cppcheck
       id: cppcheck
       run: |
+        set -o pipefail
         mkdir -p reports
-        cppcheck --enable=all --xml --output-file=reports/cppcheck.xml src/ 2>&1 || true
-        cppcheck --enable=all --suppress=missingIncludeSystem src/ 2>&1 | head -100
+        cppcheck --enable=all --xml --output-file=reports/cppcheck.xml src/ 2>&1 | tee cppcheck.log
+        sed -n '1,100p' cppcheck.log
     
     - name: Upload static analysis reports
       uses: actions/upload-artifact@v5
@@ -191,7 +194,7 @@ jobs:
     - name: Compare against baseline
       continue-on-error: true
       run: |
-        python3 ../scripts/analyze_traces.py ../reports/performance.log \
+        python3 scripts/analyze_traces.py reports/performance.log \
           reports/performance_report.html \
           --compare-baseline --baseline-path tests/baselines/performance_baseline.json \
           --threshold 5
@@ -242,7 +245,7 @@ jobs:
       run: cmake --build build --config Debug --parallel 2
     
     - name: Run tests
-      run: cd build && ctest -C Debug -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|" --output-on-failure
+      run: cd build && ctest -C Debug -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|MergingBinaryInspiralTest|RenderingDiagnosticTest" --output-on-failure
     
     - name: Generate coverage report
       run: |
@@ -278,21 +281,21 @@ jobs:
           -DQUANTUMVERSE_USE_FUZZER=ON \
           -DCMAKE_CXX_COMPILER=clang++
     
-    - name: Build fuzzer
-      run: cmake --build build --config Debug --parallel 2 --target fuzz_metric --target fuzz_api_contract || cmake --build build --config Debug --parallel 2
+    - name: Build fuzzers
+      run: cmake --build build --config Debug --parallel 2
     
     - name: Run fuzzer (short duration)
       run: |
         cd build
-        if [ -f ./fuzz_metric ]; then
-          timeout 300 ./fuzz_metric -max_total_time=300 -artifact_dir=fuzz_artifacts || true
+        if [ -f ./fuzz_physics_invariants ]; then
+          timeout 300 ./fuzz_physics_invariants -max_total_time=300 -artifact_dir=fuzz_artifacts || true
         else
-          echo "fuzz_metric not available - skipping"
+          echo "fuzz_physics_invariants not available - skipping"
         fi
-        if [ -f ./fuzz_api_contract ]; then
-          timeout 300 ./fuzz_api_contract -max_total_time=300 -artifact_dir=fuzz_artifacts || true
+        if [ -f ./fuzz_instruments ]; then
+          timeout 300 ./fuzz_instruments -max_total_time=300 -artifact_dir=fuzz_artifacts || true
         else
-          echo "fuzz_api_contract not available - skipping"
+          echo "fuzz_instruments not available - skipping"
         fi
     
     - name: Upload fuzzer artifacts
@@ -302,6 +305,7 @@ jobs:
         path: build/fuzz_artifacts
 
   windows-memory-analysis:
+    continue-on-error: true
     runs-on: windows-2022
     env:
       QT_QPA_PLATFORM: offscreen

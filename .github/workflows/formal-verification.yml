@@ -41,11 +41,8 @@ jobs:
           cmake --build . --parallel 2
 
       # Run from the repository root: the harnesses live in tests/verification, not
-      # inside the build tree, so the previous `cd build-cbmc` made both paths
-      # unresolvable. cbmc 5.95 dropped the `--32-bit` option entirely (it fails
-      # with "Unknown option: --32-bit", exit 64), so we run at the native word
-      # width and capture the --xml-ui output so the artifact step has something
-      # to upload.
+      # inside the build tree. CBMC runs at the native word width and captures the
+      # XML output so the artifact step has something to upload.
       - name: Run CBMC verification
         run: |
           mkdir -p build-cbmc

@@ -200,20 +200,15 @@ jobs:
       - name: Run fuzzers for 60 seconds
         working-directory: build
         run: |
-          if [ -f ./fuzz_metric ]; then
-            timeout 60 ./fuzz_metric -max_total_time=60 || true
+          if [ -f ./fuzz_physics_invariants ]; then
+            timeout 60 ./fuzz_physics_invariants -max_total_time=60 || true
           else
-            echo "fuzz_metric not available - skipping"
+            echo "fuzz_physics_invariants not available - skipping"
           fi
-          if [ -f ./fuzz_geodesic ]; then
-            timeout 60 ./fuzz_geodesic -max_total_time=60 || true
+          if [ -f ./fuzz_instruments ]; then
+            timeout 60 ./fuzz_instruments -max_total_time=60 || true
           else
-            echo "fuzz_geodesic not available - skipping"
-          fi
-          if [ -f ./fuzz_event4d ]; then
-            timeout 60 ./fuzz_event4d -max_total_time=60 || true
-          else
-            echo "fuzz_event4d not available - skipping"
+            echo "fuzz_instruments not available - skipping"
           fi
       
       - name: Upload fuzz corpus

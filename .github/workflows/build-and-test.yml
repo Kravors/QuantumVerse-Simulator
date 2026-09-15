@@ -118,7 +118,7 @@ jobs:
         working-directory: build
         shell: bash
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline|"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY" --output-on-failure
           else
@@ -136,12 +136,12 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest|"
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|ViewportStateTest|ViewportContentTest"
           if [ "${{ runner.os }}" == "Linux" ]; then
             xvfb-run -a ctest -C ${{ matrix.build_type }} -R "$GPU_CANARY" --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest|"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest"
             ctest -C ${{ matrix.build_type }} -R "$GPU_CANARY" --output-on-failure
           fi
 
@@ -204,6 +204,7 @@ jobs:
       # every Qt-dependent header it could not parse). Install Qt and point
       # CMake at it, mirroring the working Clang-Tidy Analysis job.
       - name: Install Qt6
+        id: setup_qt
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.8.3'
@@ -218,15 +219,23 @@ jobs:
       # does not leak into the "Check for warnings" step below, which must
       # keep building exactly as it did before.
       - name: Configure CMake for clang-tidy
-        run: cmake -B build-tidy -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}"
+        run: cmake -B build-tidy -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Run clang-tidy
         continue-on-error: true
+        timeout-minutes: 90
         run: |
-          clang-tidy -p build-tidy -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' \
-            -header-filter='.*' \
-            $(find src -name '*.cpp' ! -name 'qmlglviewport.cpp') \
-            -- -std=c++17 2>&1 | tee clang-tidy.log || true
+          mapfile -d '' -t TIDY_FILES < <(find src -name '*.cpp' ! -name 'qmlglviewport.cpp' -print0)
+          if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
+            clang-tidy -p build-tidy \
+              -checks='bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,readability-*,cert-*,clang-analyzer-*' \
+              -header-filter='.*' \
+              -j "$(nproc)" \
+              "${TIDY_FILES[@]}" \
+              -- -std=c++17 2>&1 | tee clang-tidy.log
+          else
+            echo "No source files found, skipping clang-tidy"
+          fi
 
       - name: Check for warnings
         run: |

@@ -86,17 +86,24 @@ jobs:
           test -f CMakeLists.txt && echo "YES" || echo "NO"
       
       - name: Configure CMake
-        run:           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}"
+        run:           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
        
       - name: Run Clang-Tidy
         continue-on-error: true
+        timeout-minutes: 90
         run: |
           if [ -d src ]; then
-            clang-tidy -p build \
-              -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
-              -header-filter='.*' \
-              $(find src -name '*.cpp' ! -name 'qmlglviewport.cpp') \
-              -- -std=c++17
+            mapfile -d '' -t TIDY_FILES < <(find src -name '*.cpp' ! -name 'qmlglviewport.cpp' -print0)
+            if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
+              clang-tidy -p build \
+                -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
+                -header-filter='.*' \
+                -j "$(nproc)" \
+                "${TIDY_FILES[@]}" \
+                -- -std=c++17
+            else
+              echo "No source files found, skipping clang-tidy"
+            fi
           else
             echo "No src directory found, skipping clang-tidy"
           fi
@@ -129,6 +136,7 @@ jobs:
       
       - name: Run Cppcheck
         run: |
+          set -o pipefail
           CPPCHECK_DIRS=""
           if [ -d src ]; then
             CPPCHECK_DIRS="$CPPCHECK_DIRS src/"

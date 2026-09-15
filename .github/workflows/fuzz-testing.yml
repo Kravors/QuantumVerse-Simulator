@@ -77,10 +77,10 @@ jobs:
       - name: Run geodesic fuzzer
         run: |
           cd build
-          if [ -f ./fuzz_geodesic_differential ]; then
-            timeout 300 ./fuzz_geodesic_differential -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_physics_invariants ]; then
+            timeout 300 ./fuzz_physics_invariants -max_total_time=300 -detect_leaks=1 || true
           else
-            echo "fuzz_geodesic_differential not available - skipping"
+            echo "fuzz_physics_invariants not available - skipping"
           fi
 
       - name: Upload fuzzer crash reports
@@ -115,10 +115,10 @@ jobs:
       - name: Run ONNX fuzzer
         run: |
           cd build
-          if [ -f ./fuzz_discovery_instruments ]; then
-            timeout 300 ./fuzz_discovery_instruments -max_total_time=300 -detect_leaks=1 || true
+          if [ -f ./fuzz_instruments ]; then
+            timeout 300 ./fuzz_instruments -max_total_time=300 -detect_leaks=1 || true
           else
-            echo "fuzz_discovery_instruments not available - skipping"
+            echo "fuzz_instruments not available - skipping"
           fi
 
       - name: Upload fuzzer crash reports

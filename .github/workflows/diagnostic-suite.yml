@@ -43,15 +43,21 @@ jobs:
 
       - name: Configure CMake with clang-tidy as errors
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --parallel 2
 
       - name: Run clang-tidy with warnings-as-errors
+        timeout-minutes: 90
         run: |
           cd build
-          clang-tidy -p . --warnings-as-errors='*' src/**/*.cpp -- -std=c++17 -I../src || true
+          mapfile -d '' -t TIDY_FILES < <(find ../src -name '*.cpp' -print0)
+          if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
+            clang-tidy -p . --warnings-as-errors='*' -j "$(nproc)" "${TIDY_FILES[@]}" -- -std=c++17 -I../src
+          else
+            echo "No source files found, skipping clang-tidy"
+          fi
 
       - name: Run diagnostic suite
         run: |

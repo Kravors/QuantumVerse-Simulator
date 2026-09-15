@@ -51,7 +51,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_ENABLE_COVERAGE=ON \
+            -DQUANTUMVERSE_USE_COVERAGE=ON \
             -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_COMPILER=clang
 
