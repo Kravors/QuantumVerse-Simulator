@@ -41,11 +41,11 @@ int main() {
     const auto& f = findings.front();
     auto git = f.parameters.find("glitch_time");
     QV_CHECK(git != f.parameters.end());
-    QV_CHECK_NEAR(git, >second - glitchTime, 1.0);
+    QV_CHECK_NEAR(git->second, glitchTime, 1.0);
 
     auto dit = f.parameters.find("delta_rate");
     QV_CHECK(dit != f.parameters.end());
-    QV_CHECK_NEAR(dit, >second - (postRate - preRate), 0.01);
+    QV_CHECK_NEAR(dit->second, (postRate - preRate), 0.01);
 
     std::cout << "Detected glitch at t=" << git->second
               << " s, delta_rate=" << dit->second << std::endl;

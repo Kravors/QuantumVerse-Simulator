@@ -43,14 +43,14 @@ int main(int argc, char** argv)
 
         QV_CHECK(adapter.receivedAlerts().size() == 1u);
         QV_CHECK(adapter.receivedAlerts()[0].trigger_id == "swift_bat_240512A");
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].bat_rate - 4500.0, 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].xrt_flux - 3.2e, 8, 1e-14);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].duration - 1.8, 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate - 0.0005, 0.0, 1e-12);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].ra - 123.45, 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].dec - (-45.67), 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].error_radius - 1.5, 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].confidence - 0.98, 0.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].bat_rate, 4500.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].xrt_flux, 3.2e-8, 1e-14);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].duration, 1.8, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate, 0.0005, 1e-12);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].ra, 123.45, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].dec, (-45.67), 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].error_radius, 1.5, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].confidence, 0.98, 1e-9);
 
         QV_CHECK(received.size() == 1u);
         QV_CHECK(received[0].trigger_id == "swift_bat_240512A");

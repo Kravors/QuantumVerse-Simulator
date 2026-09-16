@@ -41,7 +41,7 @@ int main() {
             foundVariation = true;
             auto it = f.parameters.find("delta_alpha_over_alpha");
             QV_CHECK(it != f.parameters.end());
-            QV_CHECK_NEAR(it, >second - deltaAlpha, 1e-9);
+            QV_CHECK_NEAR(it->second, deltaAlpha, 1e-9);
             std::cout << "Recovered Δα/α = " << it->second
                       << " (injected " << deltaAlpha << ")" << std::endl;
             break;

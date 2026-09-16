@@ -40,7 +40,7 @@ int main() {
 
     auto mit = f.parameters.find("measured_abundance");
     QV_CHECK(mit != f.parameters.end());
-    QV_CHECK_NEAR(mit, >second - 4.75e-10, 1e-10);
+    QV_CHECK_NEAR(mit->second, 4.75e-10, 1e-10);
 
     std::cout << "Detected lithium-7 crisis: measured " << mit->second
               << " vs expected " << expected_li << std::endl;

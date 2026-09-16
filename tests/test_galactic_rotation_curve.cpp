@@ -42,7 +42,7 @@ int main() {
 
     auto rit = f.parameters.find("flatten_radius");
     QV_CHECK(rit != f.parameters.end());
-    QV_CHECK_NEAR(rit, >second - rFlat, 2.0);
+    QV_CHECK_NEAR(rit->second, rFlat, 2.0);
 
     std::cout << "Detected dark matter halo: flatten_radius=" << rit->second
               << " (expected ~" << rFlat << ")" << std::endl;

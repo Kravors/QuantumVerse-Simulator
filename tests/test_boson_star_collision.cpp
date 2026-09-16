@@ -50,7 +50,7 @@ int main() {
 
     auto mit = f.parameters.find("merger_time");
     QV_CHECK(mit != f.parameters.end());
-    QV_CHECK_NEAR(mit, >second - tMerger, 1.0);
+    QV_CHECK_NEAR(mit->second, tMerger, 1.0);
 
     std::cout << "Detected boson star merger at t=" << mit->second << std::endl;
 

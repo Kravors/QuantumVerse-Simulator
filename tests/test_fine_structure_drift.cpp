@@ -39,7 +39,7 @@ int main() {
     const auto& f = findings.front();
     auto dit = f.parameters.find("drift_rate");
     QV_CHECK(dit != f.parameters.end());
-    QV_CHECK_NEAR(dit, >second - drift, 1e-9);
+    QV_CHECK_NEAR(dit->second, drift, 1e-9);
 
     std::cout << "Detected α drift: dα/dt=" << dit->second
               << " (expected " << drift << ")" << std::endl;

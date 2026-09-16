@@ -42,7 +42,7 @@ int main() {
 
     auto ait = f.parameters.find("anomaly_time");
     QV_CHECK(ait != f.parameters.end());
-    QV_CHECK_NEAR(ait, >second - tAnomaly, 2.0);
+    QV_CHECK_NEAR(ait->second, tAnomaly, 2.0);
 
     std::cout << "Detected jet "
               << (f.parameters.at("anomaly_type") > 0.5 ? "precession" : "deflection")

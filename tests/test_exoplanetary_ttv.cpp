@@ -106,7 +106,7 @@ int main() {
         const auto& f = findings.front();
         auto sit = f.parameters.find("fifth_force_strength");
         QV_CHECK(sit != f.parameters.end());
-        QV_CHECK_NEAR(sit, >second - 3e-3, 1e-12);
+        QV_CHECK_NEAR(sit->second, 3e-3, 1e-12);
         std::cout << "Grid fifth-force mean: " << sit->second << std::endl;
     }
 

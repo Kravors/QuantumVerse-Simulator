@@ -42,13 +42,13 @@ int main(int argc, char** argv)
 
         QV_CHECK(adapter.receivedAlerts().size() == 1u);
         QV_CHECK(adapter.receivedAlerts()[0].trigger_id == "bn240512001");
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].duration - 2.5, 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].peak_flux - 1.2e, 7, 1e-14);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].ra - 45.6, 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].dec - (-23.4), 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].error_radius - 2.0, 0.0, 1e-9);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate - 0.001, 0.0, 1e-12);
-        QV_CHECK_NEAR(adapter.receivedAlerts()[0].confidence - 0.95, 0.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].duration, 2.5, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].peak_flux, 1.2e-7, 1e-14);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].ra, 45.6, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].dec, (-23.4), 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].error_radius, 2.0, 1e-9);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate, 0.001, 1e-12);
+        QV_CHECK_NEAR(adapter.receivedAlerts()[0].confidence, 0.95, 1e-9);
 
         QV_CHECK(received.size() == 1u);
         QV_CHECK(received[0].trigger_id == "bn240512001");
