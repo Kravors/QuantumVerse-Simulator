@@ -1072,7 +1072,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_educational.cpp)
         target_include_directories(test_educational PRIVATE
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/third_party)
-        target_link_libraries(test_educational PRIVATE Qt6::Core dilaton)
+        target_link_libraries(test_educational PRIVATE Qt6::Core Qt6::Gui dilaton)
         add_test(NAME EducationalTourTest COMMAND test_educational)
         set_tests_properties(EducationalTourTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -1081,7 +1081,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_educational.cpp)
     endif()
 endif()
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp)
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp AND QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
     # TourManager directory scanner (smoke test against data/tours/)
     add_executable(test_tour_manager
         tests/test_tour_manager.cpp
@@ -1090,11 +1090,17 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp)
     target_include_directories(test_tour_manager PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party)
-    target_link_libraries(test_tour_manager PRIVATE dilaton nlohmann_json)
+    target_link_libraries(test_tour_manager PRIVATE
+        dilaton
+        nlohmann_json::nlohmann_json
+        Qt6::Core
+        Qt6::Gui
+    )
     add_test(NAME TourManagerTest COMMAND test_tour_manager)
     set_tests_properties(TourManagerTest PROPERTIES
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     )
+    set_target_properties(test_tour_manager PROPERTIES AUTOMOC ON)
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_pbr_rendering.cpp)
