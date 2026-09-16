@@ -1957,6 +1957,7 @@ endif()
         src/ml/CurvatureNormalizingFlow.cpp
     )
 target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
+    target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QT=1)
     set_target_properties(test_theory_discovery_agent PROPERTIES AUTOMOC ON)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
 
