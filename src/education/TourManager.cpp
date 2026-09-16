@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <algorithm>
 #include <iostream>
+#include <QDir>
+#include <QFileInfo>
 
 namespace quantumverse {
 
@@ -18,8 +20,14 @@ bool TourManager::initialize(const std::string& tour_dir) {
 }
 
 bool TourManager::initializeTour(const QString& tourDir) {
+    if (tourDir.isEmpty()) {
+        return false;
+    }
+
     std::lock_guard<std::mutex> lock(mutex_);
-    tour_dir_ = tourDir.toStdString();
+    const QString normalized = QDir::cleanPath(
+        QDir::current().absoluteFilePath(tourDir));
+    tour_dir_ = normalized.toStdString();
 
     if (!fs::exists(tour_dir_)) {
         std::cerr << "[TourManager] Tour directory not found: " << tour_dir_ << std::endl;
@@ -56,6 +64,7 @@ bool TourManager::loadTour(const QString& filename) {
 }
 
 int TourManager::tourCount() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return static_cast<int>(tours_.size());
 }
 
@@ -90,24 +99,35 @@ std::shared_ptr<EducationalTour> TourManager::getTour(const std::string& name) {
 }
 
 std::shared_ptr<EducationalTour> TourManager::getTourByFilename(const std::string& filename) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto it = tours_.find(filename);
-    if (it != tours_.end()) return it->second;
-
-    std::string full_path = tour_dir_ + "/" + filename;
-    auto tour = std::make_shared<EducationalTour>();
-    if (!tour->loadFromFile(full_path)) {
+    const QString path = tourFilePath(QString::fromStdString(filename));
+    if (path.isEmpty()) {
         return nullptr;
     }
 
-    tours_[filename] = tour;
-    name_to_filename_[tour->id] = filename;
+    const std::string key = QFileInfo(path).fileName().toStdString();
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = tours_.find(key);
+    if (it != tours_.end()) return it->second;
+
+    auto tour = std::make_shared<EducationalTour>();
+    if (!tour->loadFromFile(path.toStdString())) {
+        return nullptr;
+    }
+
+    tours_[key] = tour;
+    name_to_filename_[tour->id] = key;
     return tour;
 }
 
 bool TourManager::loadTour(const std::string& filename) {
+    const QString path = tourFilePath(QString::fromStdString(filename));
+    if (path.isEmpty()) {
+        return false;
+    }
+
+    const std::string full_path = path.toStdString();
+    const std::string key = QFileInfo(path).fileName().toStdString();
     std::lock_guard<std::mutex> lock(mutex_);
-    std::string full_path = tour_dir_ + "/" + filename;
 
     auto tour = std::make_shared<EducationalTour>();
     if (!tour->loadFromFile(full_path)) {
@@ -115,8 +135,8 @@ bool TourManager::loadTour(const std::string& filename) {
         return false;
     }
 
-    tours_[filename] = tour;
-    name_to_filename_[tour->id] = filename;
+    tours_[key] = tour;
+    name_to_filename_[tour->id] = key;
 
     std::cout << "[TourManager] Loaded: " << tour->id << " from " << filename << std::endl;
     return true;
@@ -141,24 +161,30 @@ bool TourManager::doLoadAllTours() {
     }
 
     int loaded = 0;
+    const fs::path directory(tour_dir_);
 
-    for (const auto& entry : fs::directory_iterator(tour_dir_)) {
-        if (!entry.is_regular_file()) continue;
-        auto ext = entry.path().extension().string();
-        if (ext != ".json") continue;
+    try {
+        for (const auto& entry : fs::directory_iterator(directory)) {
+            if (!entry.is_regular_file()) continue;
+            auto ext = entry.path().extension().string();
+            if (ext != ".json") continue;
 
-        std::string filename = entry.path().filename().string();
-        std::string full_path = tour_dir_ + "/" + filename;
+            std::string filename = entry.path().filename().string();
+            std::string full_path = entry.path().string();
 
-        auto tour = std::make_shared<EducationalTour>();
-        if (!tour->loadFromFile(full_path)) {
-            std::cerr << "[TourManager] Skipping: " << filename << std::endl;
-            continue;
+            auto tour = std::make_shared<EducationalTour>();
+            if (!tour->loadFromFile(full_path)) {
+                std::cerr << "[TourManager] Skipping: " << filename << std::endl;
+                continue;
+            }
+
+            tours_[filename] = tour;
+            name_to_filename_[tour->id] = filename;
+            loaded++;
         }
-
-        tours_[filename] = tour;
-        name_to_filename_[tour->id] = filename;
-        loaded++;
+    } catch (const std::exception& e) {
+        std::cerr << "[TourManager] Failed to scan tour directory: " << e.what() << std::endl;
+        return false;
     }
 
     std::cout << "[TourManager] Loaded " << loaded << " tours from " << tour_dir_ << std::endl;
@@ -166,27 +192,36 @@ bool TourManager::doLoadAllTours() {
 }
 
 bool TourManager::loadTourById(const QString& id) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto it = name_to_filename_.find(id.toStdString());
-    if (it == name_to_filename_.end()) {
-        std::cerr << "[TourManager] Tour id not found: " << id.toStdString() << std::endl;
-        return false;
+    std::string filename;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = name_to_filename_.find(id.toStdString());
+        if (it == name_to_filename_.end()) {
+            std::cerr << "[TourManager] Tour id not found: " << id.toStdString() << std::endl;
+            return false;
+        }
+        filename = it->second;
     }
-    const std::string& filename = it->second;
-    tours_.erase(filename);
-    std::string full_path = tour_dir_ + "/" + filename;
-    auto tour = std::make_shared<EducationalTour>();
-    if (!tour->loadFromFile(full_path)) {
-        std::cerr << "[TourManager] Failed to load by id: " << id.toStdString() << std::endl;
-        return false;
-    }
-    tours_[filename] = tour;
-    name_to_filename_[tour->id] = filename;
-    return true;
+
+    return loadTour(QString::fromStdString(filename));
 }
 
 QString TourManager::tourDirectory() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return QString::fromStdString(tour_dir_);
+}
+
+QString TourManager::tourFilePath(const QString& idOrFilename) const {
+    if (idOrFilename.trimmed().isEmpty()) {
+        return QString();
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    QString filename = idOrFilename.trimmed();
+    if (!filename.endsWith(".json", Qt::CaseInsensitive)) {
+        filename += ".json";
+    }
+    return QDir::cleanPath(QDir(QString::fromStdString(tour_dir_)).filePath(filename));
 }
 
 void TourManager::reload() {

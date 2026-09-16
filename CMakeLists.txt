@@ -742,6 +742,7 @@ if(QUANTUMVERSE_USE_QT)
             set_target_properties(test_hud_toggle PROPERTIES AUTOMOC ON)
             target_compile_definitions(test_hud_toggle PRIVATE QUANTUMVERSE_USE_QML)
             target_include_directories(test_hud_toggle PRIVATE
+                ${CMAKE_SOURCE_DIR}/tests
                 ${CMAKE_SOURCE_DIR}/src
                 ${CMAKE_SOURCE_DIR}/third_party
                 ${CMAKE_SOURCE_DIR}/third_party/glad/include

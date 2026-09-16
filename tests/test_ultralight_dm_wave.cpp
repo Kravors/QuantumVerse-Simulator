@@ -41,11 +41,11 @@ int main() {
     const auto& f = findings.front();
     auto fit = f.parameters.find("oscillation_freq_rad_s");
     QV_CHECK(fit != f.parameters.end());
-    QV_CHECK_NEAR(fit, >second - omega, 1e-3);
+    QV_CHECK_NEAR(fit->second, omega, 1e-3);
 
     auto ait = f.parameters.find("signal_amplitude");
     QV_CHECK(ait != f.parameters.end());
-    QV_CHECK_NEAR(ait, >second - amplitude, 0.01);
+    QV_CHECK_NEAR(ait->second, amplitude, 0.01);
 
     std::cout << "Detected DM wave: freq=" << fit->second
               << " rad/s, amplitude=" << ait->second << std::endl;

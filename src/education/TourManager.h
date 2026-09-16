@@ -46,12 +46,16 @@ public:
     Q_INVOKABLE bool loadTourById(const QString& id);
     Q_INVOKABLE int tourCount() const;
     Q_INVOKABLE QString tourDirectory() const;
+    Q_INVOKABLE QString tourFilePath(const QString& idOrFilename) const;
 
     bool initialize(const std::string& tour_dir = "data/tours/");
     std::vector<std::string> listTours() const;
     std::vector<std::string> listTourNames() const;
 
     bool hasTour(const std::string& name) const;
+    bool hasTour(const char* id) const {
+        return hasTour(QString::fromUtf8(id));
+    }
     std::shared_ptr<EducationalTour> getTour(const std::string& name);
     std::shared_ptr<EducationalTour> getTourByFilename(const std::string& filename);
 

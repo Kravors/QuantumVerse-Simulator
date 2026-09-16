@@ -40,6 +40,14 @@ int main() {
         CHECK(!tour->steps.empty());
     }
 
+    const QString path = m.tourFilePath("black_hole_basics");
+    CHECK(!path.isEmpty());
+    CHECK(path.endsWith("data/tours/black_hole_basics.json"));
+    CHECK(m.tourFilePath("black_hole_basics.json") == path);
+    CHECK(m.loadTourById("black_hole_basics"));
+    CHECK(m.getTourByFilename("black_hole_basics.json") != nullptr);
+    CHECK(m.tourFilePath("").isEmpty());
+
     std::printf("TourManager tests: %d failures\n", g_failures);
     return g_failures == 0 ? 0 : 1;
 }

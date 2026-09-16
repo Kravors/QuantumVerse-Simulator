@@ -1,5 +1,5 @@
 #include "TheoryDiscoveryAgent.h"
-#ifdef QUANTUMVERSE_USE_QML
+#if defined(QUANTUMVERSE_USE_QML) || defined(QUANTUMVERSE_USE_QT)
 #include "data/GCNNoticeParser.h"
 #endif
 #include "physics/AdjointGeodesicIntegrator.h"
@@ -483,7 +483,7 @@ void TheoryDiscoveryAgent::setSymbolicVerificationEnabled(bool enabled) {
     symbolic_verification_enabled_ = enabled;
 }
 
-#ifdef QUANTUMVERSE_USE_QML
+#if defined(QUANTUMVERSE_USE_QML) || defined(QUANTUMVERSE_USE_QT)
 void TheoryDiscoveryAgent::ingestLiveAlert(const QJsonObject& alert) {
     auto parsed = GCNNoticeParser::parse(alert);
     if (!parsed.isValid) return;

@@ -10,7 +10,7 @@
 #include "spacetime/Event4D.h"
 #include "physics/CurvatureCalculator.h"
 #include <memory>
-#ifdef QUANTUMVERSE_USE_QML
+#if defined(QUANTUMVERSE_USE_QML) || defined(QUANTUMVERSE_USE_QT)
 #include <QJsonObject>
 #endif
 
@@ -99,6 +99,7 @@ public:
         return RLDiscoveryAgent::denormalizeParams(normalized);
     }
 
+#if defined(QUANTUMVERSE_USE_QML) || defined(QUANTUMVERSE_USE_QT)
     /**
      * @brief Update the agent's dataset with a new multi-messenger alert.
      * @param alert JSON object following the GCN schema (LIGO, Fermi, etc.)
@@ -108,7 +109,6 @@ public:
      * it to the internal dataset, and recomputes the Bayesian evidence
      * for the current best theory.
      */
-#ifdef QUANTUMVERSE_USE_QML
     void ingestLiveAlert(const QJsonObject& alert);
 #endif
 

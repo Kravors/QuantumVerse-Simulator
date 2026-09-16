@@ -62,7 +62,7 @@ void test_ligo_adapter_fidelity() {
     QV_CHECK(adapter.receivedAlerts().size() == 1u);
     QV_CHECK(received.size() == 1u);
     QV_CHECK(adapter.receivedAlerts()[0].event_id == "GW250601A");
-    QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate - 1.2e, 6, 1e-12);
+    QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate, 1.2e-6, 1e-12);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].snr - 23.4, 0.0, 1e-9);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].m1 - 35.0, 0.0, 1e-9);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].m2 - 26.0, 0.0, 1e-9);
@@ -96,7 +96,7 @@ void test_icecube_adapter_fidelity() {
     QV_CHECK(received.size() == 1u);
     QV_CHECK(adapter.receivedAlerts()[0].event_id == "IC250601A");
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].energy_tev - 145.2, 0.0, 1e-9);
-    QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate - 3.4e, 4, 1e-12);
+    QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate, 3.4e-4, 1e-12);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].confidence - 0.91, 0.0, 1e-9);
 
     QV_CHECK(received[0].event_id == "IC250601A");
@@ -129,7 +129,7 @@ void test_fermi_gbm_adapter_fidelity() {
     QV_CHECK(received.size() == 1u);
     QV_CHECK(adapter.receivedAlerts()[0].trigger_id == "bn240512001");
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].duration - 2.5, 0.0, 1e-9);
-    QV_CHECK_NEAR(adapter.receivedAlerts()[0].peak_flux - 1.2e, 7, 1e-14);
+    QV_CHECK_NEAR(adapter.receivedAlerts()[0].peak_flux, 1.2e-7, 1e-14);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].ra - 45.6, 0.0, 1e-9);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].dec - (-23.4), 0.0, 1e-9);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].error_radius - 2.0, 0.0, 1e-9);
@@ -168,7 +168,7 @@ void test_swift_bat_adapter_fidelity() {
     QV_CHECK(adapter.receivedAlerts()[0].trigger_id == "swift_bat_240512A");
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].ra - 123.45, 0.0, 1e-9);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].bat_rate - 4500.0, 0.0, 1e-9);
-    QV_CHECK_NEAR(adapter.receivedAlerts()[0].xrt_flux - 3.2e, 8, 1e-14);
+    QV_CHECK_NEAR(adapter.receivedAlerts()[0].xrt_flux, 3.2e-8, 1e-14);
     QV_CHECK_NEAR(adapter.receivedAlerts()[0].false_alarm_rate - 0.0005, 0.0, 1e-12);
 
     QV_CHECK(received[0].trigger_id == "swift_bat_240512A");
@@ -226,7 +226,7 @@ void test_gcn_parser_ligo_fidelity() {
     const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
     QV_CHECK(parsed.origin == AlertOrigin::LIGO);
     QV_CHECK(parsed.gw.event_id == "GW250601A");
-    QV_CHECK_NEAR(parsed.gw.false_alarm_rate - 1.2e, 6, 1e-12);
+    QV_CHECK_NEAR(parsed.gw.false_alarm_rate, 1.2e-6, 1e-12);
     QV_CHECK_NEAR(parsed.gw.snr - 23.4, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.gw.m1 - 35.0, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.gw.m2 - 26.0, 0.0, 1e-9);
@@ -253,7 +253,7 @@ void test_gcn_parser_icecube_fidelity() {
     QV_CHECK(parsed.origin == AlertOrigin::IceCube);
     QV_CHECK(parsed.neutrino.event_id == "IC250601A");
     QV_CHECK_NEAR(parsed.neutrino.energy_tev - 145.2, 0.0, 1e-9);
-    QV_CHECK_NEAR(parsed.neutrino.false_alarm_rate - 3.4e, 4, 1e-12);
+    QV_CHECK_NEAR(parsed.neutrino.false_alarm_rate, 3.4e-4, 1e-12);
     QV_CHECK_NEAR(parsed.neutrino.ra - 45.0, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.neutrino.dec - 12.0, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.neutrino.confidence - 0.91, 0.0, 1e-9);
@@ -281,7 +281,7 @@ void test_gcn_parser_fermi_fidelity() {
     QV_CHECK_NEAR(parsed.fermi_gbm.ra - 45.6, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.fermi_gbm.dec - (-23.4), 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.fermi_gbm.duration - 2.5, 0.0, 1e-9);
-    QV_CHECK_NEAR(parsed.fermi_gbm.peak_flux - 1.2e, 7, 1e-14);
+    QV_CHECK_NEAR(parsed.fermi_gbm.peak_flux, 1.2e-7, 1e-14);
     QV_CHECK_NEAR(parsed.fermi_gbm.error_radius - 2.0, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.fermi_gbm.false_alarm_rate - 0.001, 0.0, 1e-12);
     QV_CHECK_NEAR(parsed.fermi_gbm.confidence - 0.95, 0.0, 1e-9);
@@ -311,7 +311,7 @@ void test_gcn_parser_swift_fidelity() {
     QV_CHECK_NEAR(parsed.swift_bat.dec - (-45.67), 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.swift_bat.duration - 1.8, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.swift_bat.bat_rate - 4500.0, 0.0, 1e-9);
-    QV_CHECK_NEAR(parsed.swift_bat.xrt_flux - 3.2e, 8, 1e-14);
+    QV_CHECK_NEAR(parsed.swift_bat.xrt_flux, 3.2e-8, 1e-14);
     QV_CHECK_NEAR(parsed.swift_bat.error_radius - 1.5, 0.0, 1e-9);
     QV_CHECK_NEAR(parsed.swift_bat.false_alarm_rate - 0.0005, 0.0, 1e-12);
     QV_CHECK_NEAR(parsed.swift_bat.confidence - 0.98, 0.0, 1e-9);
