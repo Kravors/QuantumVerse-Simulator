@@ -317,6 +317,7 @@ int main(int argc, char* argv[])
     // But if --frames is specified, attempt headless benchmark rendering below.
     int headlessFrames = 0;
     bool softwareRendering = false;
+    bool noViewport = false;
     bool autoScan = false;
     bool enableGeodesics = false;
     bool glStrict = false;
@@ -357,6 +358,8 @@ int main(int argc, char* argv[])
             autoScan = true;
         } else if (strcmp(argv[i], "--enable-geodesics") == 0) {
             enableGeodesics = true;
+        } else if (strcmp(argv[i], "--noviewport") == 0) {
+            noViewport = true;
         } else if (strcmp(argv[i], "--software-rendering") == 0) {
             softwareRendering = true;
             if (headlessFrames <= 0) {
@@ -406,39 +409,30 @@ int main(int argc, char* argv[])
         std::cerr << "Starting QuantumVerse QML application" << std::endl;
         std::cerr.flush();
 
-    // Force desktop OpenGL backend before any Qt window is created.
-    // On Windows, Qt 6 defaults to ANGLE (OpenGL ES -> DirectX translation),
-    // which causes GL_INVALID_OPERATION on raw glClear/glDrawElements calls.
-    // Environment variables must be set first, followed by the application attributes,
-    // then the explicit graphics API override. QSG_OPENGL_LEGACY tells the RHI
-    // backend to use classic OpenGL calls instead of the modern RHI pipeline.
-    qputenv("QSG_RHI_BACKEND", QByteArray("opengl"));
-    qputenv("QT_OPENGL", QByteArray("desktop"));
-    qputenv("QT_ANGLE_PLATFORM", QByteArray("none"));
-
-    if (softwareRendering) {
-        QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
-        std::cerr << "Software rendering backend selected (--software-rendering)" << std::endl;
-        std::cerr.flush();
-    } else {
-        QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
-    }
-
-    qDebug() << "QSG_RHI_BACKEND =" << qgetenv("QSG_RHI_BACKEND");
-    qDebug() << "QSG_OPENGL_LEGACY =" << qgetenv("QSG_OPENGL_LEGACY");
-    qDebug() << "QT_OPENGL =" << qgetenv("QT_OPENGL");
-    qDebug() << "QT_ANGLE_PLATFORM =" << qgetenv("QT_ANGLE_PLATFORM");
-
-    // Force desktop OpenGL at the application level as well.
-    // This influences RHI backend selection even when setGraphicsApi() alone is insufficient.
-    QGuiApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
-    QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+        if (softwareRendering) {
+            qunsetenv("QSG_RHI_BACKEND");
+            qputenv("QT_QUICK_BACKEND", QByteArray("software"));
+            qunsetenv("QT_OPENGL");
+            qunsetenv("QT_ANGLE_PLATFORM");
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
+            std::cerr << "Software rendering backend selected (--software-rendering)" << std::endl;
+            std::cerr.flush();
+        } else {
+            qputenv("QSG_RHI_BACKEND", QByteArray("opengl"));
+            qputenv("QT_OPENGL", QByteArray("desktop"));
+            qputenv("QT_ANGLE_PLATFORM", QByteArray("none"));
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+            QGuiApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
+            QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+        }
 
     // Plugin/import paths are resolved automatically from the Qt installation
     // (see deploy/windows/windeployqt or the platform qt.conf). Do NOT hardcode
     // local absolute paths here: it crashes on any machine without that layout.
 
-    QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+    if (!softwareRendering) {
+        QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+    }
 
 #ifdef _WIN32
     // Initialize COM for Windows (required for QWidget::createWindowContainer and Planck Microscope)
@@ -462,8 +456,9 @@ int main(int argc, char* argv[])
         std::cerr << "Checking QML resources..." << std::endl;
         std::cerr.flush();
 
-        // Set OpenGL format before creating any windows
-        QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+        if (!softwareRendering) {
+            QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+        }
 
         // Register QML types
         registerQmlTypes();
@@ -663,25 +658,28 @@ int main(int argc, char* argv[])
         }, Qt::QueuedConnection);
 #endif
 
-        // Create the Planck Microscope widget for Planck-scale exploration
-        std::cerr << "QuantumVerse: Creating PlanckMicroscope..." << std::endl;
-        std::cerr.flush();
-        auto planckMicroscope = new quantumverse::PlanckMicroscope(nullptr);
-        std::cerr << "QuantumVerse: PlanckMicroscope created" << std::endl;
-        std::cerr.flush();
-        planckMicroscope->winId();
-        QWidget* planckContainer = QWidget::createWindowContainer(
-            planckMicroscope->windowHandle(), nullptr);
-        std::cerr << "QuantumVerse: planckContainer created" << std::endl;
-        std::cerr.flush();
-        planckContainer->setObjectName("planckContainer");
-        planckContainer->setVisible(false);
-        // The container embeds the microscope's window; reparenting the widget
-        // itself creates a recursive createWinId() chain under offscreen Qt.
-        QObject::connect(planckContainer, &QObject::destroyed,
-            planckMicroscope, &QObject::deleteLater);
-        std::cerr << "QuantumVerse: PlanckMicroscope setup complete" << std::endl;
-        std::cerr.flush();
+        QWidget* planckContainer = nullptr;
+        if (!softwareRendering && !noViewport) {
+            // Create the Planck Microscope widget for Planck-scale exploration
+            std::cerr << "QuantumVerse: Creating PlanckMicroscope..." << std::endl;
+            std::cerr.flush();
+            auto planckMicroscope = new quantumverse::PlanckMicroscope(nullptr);
+            std::cerr << "QuantumVerse: PlanckMicroscope created" << std::endl;
+            std::cerr.flush();
+            planckMicroscope->winId();
+            planckContainer = QWidget::createWindowContainer(
+                planckMicroscope->windowHandle(), nullptr);
+            std::cerr << "QuantumVerse: planckContainer created" << std::endl;
+            std::cerr.flush();
+            planckContainer->setObjectName("planckContainer");
+            planckContainer->setVisible(false);
+            // The container embeds the microscope's window; reparenting the widget
+            // itself creates a recursive createWinId() chain under offscreen Qt.
+            QObject::connect(planckContainer, &QObject::destroyed,
+                planckMicroscope, &QObject::deleteLater);
+            std::cerr << "QuantumVerse: PlanckMicroscope setup complete" << std::endl;
+            std::cerr.flush();
+        }
 
         // Set up the QML engine
         QQmlApplicationEngine engine;
@@ -1110,42 +1108,6 @@ int main(int argc, char* argv[])
                     quantumverse::GLDebug::instance().setStrictMode(true);
                 }
 
-                // Educational tour: bind the viewport-facing provider lambdas
-                // now that the QmlGlViewport exists.  The getter was already
-                // wired above; the setter and action handler need the
-                // viewport pointer, which is only available after findChild().
-                QVariant tourVar = rootContext->contextProperty("tourController");
-                auto* tourControllerPtr =
-                    tourVar.value<quantumverse::TourController*>();
-                if (tourControllerPtr) {
-                    tourControllerPtr->setCameraSetter(
-                        [camController, viewport](const quantumverse::TourCameraState& cs) {
-                            camController->setAzimuth(
-                                static_cast<float>(cs.azimuth * M_PI / 180.0));
-                            camController->setElevation(
-                                static_cast<float>(cs.elevation * M_PI / 180.0));
-                            camController->setDistance(static_cast<float>(cs.distance));
-                            if (viewport) {
-                                viewport->setCameraDistance(
-                                    static_cast<float>(cs.distance));
-                            }
-                        });
-                    tourControllerPtr->setActionHandler(
-                        [viewport](const quantumverse::TourAction& a) {
-                            if (!viewport) return;
-                            if (a.type == "enable_lensing") {
-                                viewport->setLensingEnabled(a.value.get<bool>());
-                            } else if (a.type == "enable_volumetric_disk") {
-                                viewport->setVolumetricDiskEnabled(
-                                    a.value.get<bool>());
-                            } else if (a.type == "set_bh_mass") {
-                                viewport->setBlackHoleMass(a.value.get<double>());
-                            } else if (a.type == "set_disk_density") {
-                                viewport->setVolumetricDiskDensity(
-                                    static_cast<float>(a.value.get<double>()));
-                            }
-                        });
-                }
 
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
@@ -1196,6 +1158,39 @@ int main(int argc, char* argv[])
             std::cerr.flush();
         }
 
+        QVariant tourVar = rootContext->contextProperty("tourController");
+        auto* tourControllerPtr =
+            tourVar.value<quantumverse::TourController*>();
+        if (tourControllerPtr) {
+            tourControllerPtr->setCameraSetter(
+                [camController, viewport](const quantumverse::TourCameraState& cs) {
+                    camController->setAzimuth(
+                        static_cast<float>(cs.azimuth * M_PI / 180.0));
+                    camController->setElevation(
+                        static_cast<float>(cs.elevation * M_PI / 180.0));
+                    camController->setDistance(static_cast<float>(cs.distance));
+                    if (viewport) {
+                        viewport->setCameraDistance(
+                            static_cast<float>(cs.distance));
+                    }
+                });
+            tourControllerPtr->setActionHandler(
+                [viewport](const quantumverse::TourAction& a) {
+                    if (!viewport) return;
+                    if (a.type == "enable_lensing") {
+                        viewport->setLensingEnabled(a.value.get<bool>());
+                    } else if (a.type == "enable_volumetric_disk") {
+                        viewport->setVolumetricDiskEnabled(
+                            a.value.get<bool>());
+                    } else if (a.type == "set_bh_mass") {
+                        viewport->setBlackHoleMass(a.value.get<double>());
+                    } else if (a.type == "set_disk_density") {
+                        viewport->setVolumetricDiskDensity(
+                            static_cast<float>(a.value.get<double>()));
+                    }
+                });
+        }
+
         // [DIAG] Auto-trigger a discovery scan a few seconds after startup so
         // the post-Scan render diagnostics can be captured without a manual
         // button click (use the --autoscan CLI flag).
@@ -1220,18 +1215,17 @@ int main(int argc, char* argv[])
         std::cerr.flush();
 
         if (!startTourId.isEmpty()) {
-            QString tourPath = "data/tours/" + startTourId + ".json";
+            auto tour = quantumverse::TourManager::instance().getTour(startTourId.toStdString());
+            bool ok = tour && tourController->loadTour(*tour);
+            QString tourPath = quantumverse::TourManager::instance().tourFilePath(startTourId);
+            if (!ok) {
+                ok = tourController->loadTourFromFile(tourPath);
+            }
             std::cerr << "[Tour] --start-tour " << startTourId.toStdString()
                       << " (" << tourPath.toStdString() << ")" << std::endl;
             std::cerr.flush();
-            bool ok = false;
-            QMetaObject::invokeMethod(tourController, "loadTourFromFile",
-                                      Q_RETURN_ARG(bool, ok),
-                                      Q_ARG(QString, tourPath));
-            std::cerr << "[Tour] loadTourFromFile returned: " << ok << std::endl;
-            std::cerr.flush();
             if (ok) {
-                QMetaObject::invokeMethod(tourController, "start");
+                tourController->start();
                 std::cerr << "[Tour] start() invoked" << std::endl;
                 std::cerr.flush();
             } else {

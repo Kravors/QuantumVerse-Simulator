@@ -1007,6 +1007,9 @@ endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/scenarios)
     file(COPY ${CMAKE_SOURCE_DIR}/data/scenarios DESTINATION ${CMAKE_BINARY_DIR}/data)
 endif()
+if(EXISTS ${CMAKE_SOURCE_DIR}/data/tours)
+    file(COPY ${CMAKE_SOURCE_DIR}/data/tours DESTINATION ${CMAKE_BINARY_DIR}/data)
+endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/ml)
     file(COPY ${CMAKE_SOURCE_DIR}/data/ml DESTINATION ${CMAKE_BINARY_DIR}/data)
 endif()
@@ -1081,26 +1084,28 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_educational.cpp)
     endif()
 endif()
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp AND QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
-    # TourManager directory scanner (smoke test against data/tours/)
-    add_executable(test_tour_manager
-        tests/test_tour_manager.cpp
-        src/education/EducationalTour.cpp
-        src/education/TourManager.cpp)
-    target_include_directories(test_tour_manager PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/third_party)
-    target_link_libraries(test_tour_manager PRIVATE
-        dilaton
-        nlohmann_json::nlohmann_json
-        Qt6::Core
-        Qt6::Gui
-    )
-    add_test(NAME TourManagerTest COMMAND test_tour_manager)
-    set_tests_properties(TourManagerTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    )
-    set_target_properties(test_tour_manager PROPERTIES AUTOMOC ON)
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp)
+    if(QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
+        # TourManager directory scanner (smoke test against data/tours/)
+        add_executable(test_tour_manager
+            tests/test_tour_manager.cpp
+            src/education/EducationalTour.cpp
+            src/education/TourManager.cpp)
+        target_include_directories(test_tour_manager PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/third_party)
+        target_link_libraries(test_tour_manager PRIVATE
+            dilaton
+            nlohmann_json::nlohmann_json
+            Qt6::Core
+            Qt6::Gui
+        )
+        add_test(NAME TourManagerTest COMMAND test_tour_manager)
+        set_tests_properties(TourManagerTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        )
+        set_target_properties(test_tour_manager PROPERTIES AUTOMOC ON)
+    endif()
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_pbr_rendering.cpp)
@@ -1661,6 +1666,15 @@ endif()
             TIMEOUT 120
         )
 
+        add_test(NAME SoftwareTourHeadlessTest COMMAND quantumverse_qml
+            --software-rendering --frames 1 --start-tour black_hole_basics
+        )
+        set_tests_properties(SoftwareTourHeadlessTest PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM=offscreen"
+            TIMEOUT 120
+        )
+
         # Phase 20: Viewport Physics Verification
         # 20.1 Grid deformation via headless screenshot
         add_executable(test_grid_deformation tests/rendering/test_grid_deformation.cpp)
@@ -1962,7 +1976,7 @@ endif()
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
-target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
+    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
     target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QT=1)
     set_target_properties(test_theory_discovery_agent PROPERTIES AUTOMOC ON)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
@@ -2299,6 +2313,12 @@ if(QUANTUMVERSE_USE_QT)
     install(TARGETS quantumverse_qml
         RUNTIME DESTINATION bin
         BUNDLE DESTINATION .
+    )
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/data/tours")
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/data/tours/"
+        DESTINATION bin/data/tours
     )
 endif()
 

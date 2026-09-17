@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <QString>
 
 using namespace quantumverse;
 
@@ -87,6 +88,30 @@ void test_json_round_trip() {
         }
         CHECK(r.steps[2].duration_sec == 0.0);
     }
+    std::remove(path.c_str());
+}
+
+// ---- 1b. File loading -------------------------------------------------------
+void test_file_loading() {
+    EducationalTour t;
+    t.id = "file_load";
+    t.title = "File Load";
+    TourStep step;
+    step.title = "Only step";
+    step.duration_sec = 0.0;
+    t.steps.push_back(step);
+
+    const std::string path = "test_tour_file_load.json";
+    CHECK(t.saveToFile(path));
+    CHECK(t.validate());
+
+    TourController c;
+    c.setCameraGetter([] { TourCameraState k; return k; });
+    c.setCameraSetter([](const TourCameraState&) {});
+    CHECK(c.loadTourFromFile(QString::fromStdString(path)));
+    CHECK(c.currentTourId() == "file_load");
+    CHECK(!c.loadTourFromFile(QString::fromStdString("missing_tour_file.json")));
+
     std::remove(path.c_str());
 }
 
@@ -269,6 +294,7 @@ void test_action_dispatch() {
 
 int main() {
     test_json_round_trip();
+    test_file_loading();
     test_state_machine();
     test_pause_resume();
     test_camera_interpolation();

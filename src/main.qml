@@ -36,8 +36,9 @@ ApplicationWindow {
         }
     }
 
-    property bool noViewport: Qt.application.arguments.indexOf("--noviewport") !== -1
-    property Item viewportItem: viewportLoader.item
+    property bool noViewport: Qt.application.arguments.indexOf("--noviewport") !== -1 ||
+                              Qt.application.arguments.indexOf("--software-rendering") !== -1
+    property Item viewportItem: noViewport ? null : viewportLoader.item
 
     Connections {
         target: camera4DAdapter
@@ -528,9 +529,10 @@ ApplicationWindow {
                     if (tourController.state === TourController.Stopped) {
                         var ids = tourManager.listTourIds()
                         if (ids.length === 0) return
-                        tourController.loadTourFromFile(
-                            tourManager.tourDirectory() + "/" + ids[0] + ".json")
-                        tourController.start()
+                        if (tourController.loadTourFromFile(
+                                tourManager.tourFilePath(ids[0]))) {
+                            tourController.start()
+                        }
                     } else {
                         tourController.stop()
                     }
@@ -1230,6 +1232,7 @@ ApplicationWindow {
                                                 console.log("DIAG selectedObjectIdChanged ->", sceneGraphModel.selectedObjectId)
                                                 var pos = sceneGraphModel.selectedObjectPosition()
                                                 console.log("DIAG selectedObjectPosition ->", JSON.stringify(pos))
+                                                if (!viewportItem) return
                                                 if (pos && pos.x !== undefined) viewportItem.probeAt(pos.x, pos.y, pos.z)
                                                 else { console.log("DIAG no position, clearProbe"); viewportItem.clearProbe() }
                                             }
@@ -1791,7 +1794,7 @@ ApplicationWindow {
             console.log("simTimer tick, paused=" + simulationPaused)
             var dt = (interval / 1000.0) * timeScale
             simulationTime += dt
-            viewportItem.updateSimulation(dt)
+            if (viewportItem) viewportItem.updateSimulation(dt)
             timeSlider.value = simulationTime
         }
     }
@@ -1815,7 +1818,7 @@ ApplicationWindow {
     function stepSimulation(dt) {
         if (dt === undefined) dt = 0.1
         simulationTime += dt
-        viewportItem.updateSimulation(dt)
+        if (viewportItem) viewportItem.updateSimulation(dt)
         timeSlider.value = simulationTime
     }
 
@@ -1824,7 +1827,7 @@ ApplicationWindow {
         timeScale = 1
         timeScaleSlider.value = 1
         timeSlider.value = 0
-        viewportItem.resetView()
+        if (viewportItem) viewportItem.resetView()
     }
 
     function loadConfiguration(url) {
