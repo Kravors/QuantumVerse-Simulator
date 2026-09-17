@@ -231,3 +231,16 @@ New code belongs under `src/<module>/` where `<module>` is one of:
 `spacetime`, `physics`, `rendering`, `ui4d`, `discovery`, `quantumgravity`, `data`, `ml`, `math`, `scenario`, `audio`, `vr`, `net`, `utils`, `config`.
 
 Tests belong in `tests/` and examples in `examples/`.
+
+### Convert-asserts tooling is unsafe
+
+The `d381c97` sweep mangled:
+- Scientific literals: `1.2e-7` -> `1.2e, 7` or `1.2e<sub>...</sub>`
+- Arrow members: `it->second` -> `it, >second`
+- Argument order: `assert(fabs(a-b) < c)` -> `QV_CHECK_NEAR(a-b, c, ...)`
+  instead of `QV_CHECK_NEAR(a, b, c)`
+
+Do not re-run it. Any future conversion must be manual or use a
+literal-aware parser with tests.
+
+The 12-file repair landed in `c7dd514`.
