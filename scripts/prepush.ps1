@@ -31,7 +31,7 @@ try {
         Pop-Location
     }
 
-    Write-Host "[prepush] OK — safe to push" -ForegroundColor Green
+    Write-Host "[prepush] OK - safe to push" -ForegroundColor Green
 } finally {
     Pop-Location
 }
