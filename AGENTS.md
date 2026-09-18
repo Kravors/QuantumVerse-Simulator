@@ -102,12 +102,40 @@ Some rendering and performance tests are non-blocking canaries in CI:
 
 Core scientific tests run in primary workflows and must remain green.
 
+### Qt 6 backend switching on Windows
+`QT_OPENGL=angle` is a no-op on Qt 6.2+ — ANGLE was removed.
+Use `QSG_RHI_BACKEND` instead: `d3d11`, `opengl`, `vulkan`,
+`software`. Setting `QT_OPENGL` in a Qt 6 project silently does
+nothing and makes backend comparisons misleading.
+
+### GL canary tests bypass backend selection
+`test_rendering_diagnostic`, `test_viewport_content_test`, and
+`test_viewport_state_test` create `QOpenGLContext` directly instead
+of going through QQuickWindow. This means:
+- `QT_OPENGL=*` and `QSG_RHI_BACKEND=*` env vars have no effect
+- `QT_QUICK_BACKEND=software` has no effect
+- The tests will always exercise the desktop GL driver
+
+To make them backend-switchable, mirror `main_qml.cpp`'s
+`--software-rendering` flag: gate `QOpenGLContext` creation on a
+CLI arg and skip GL init when not requested. Then the RHI/backend
+comparison becomes meaningful.
+
 > TODO(canary): the three `0xC0000409` canaries (`test_rendering_diagnostic`,
 > `test_viewport_content_test`, `test_viewport_state_test`) are
 > `STATUS_STACK_BUFFER_OVERRUN` — the `/GS` cookie firing, i.e. something wrote
-> past a stack buffer — **not** plain stack overflow (`0xC00000FD`). The
-> culprit may be Qt internals, the GL driver, or our code. "Known GL canary" is
-> an assumption, not a diagnosis; investigate before tolerating it forever.
+> past a stack buffer — **not** plain stack overflow (`0xC00000FD`). Backend
+> switching produced identical failures, but these tests create a
+> `QOpenGLContext` and use the OpenGL path directly, so the test is not
+> conclusive for driver attribution. WinDbg analysis of `non_asan_crash.dmp`
+> resolved the attribution: the non-ASan build crashes in
+> `Qt6Core!QtPrivate::sizedFree` during
+> `QGuiApplicationPrivate::init`/`createPlatformIntegration`, before any test
+> rendering code. `FAILURE_BUCKET_ID: FAIL_FAST_FATAL_APP_EXIT_c0000409_Qt6Core.dll!Unknown`.
+> This is a Qt 6.11.1 runtime/dependency crash, not project memory safety and
+> not a graphics-driver fault. The ASan build additionally shows an ASan runtime
+> initialization fault (`e0736170` in `clang_rt_asan_dynamic-x86_64.dll!EnlightenVSDebugger`),
+> which is separate from the source canary behavior.
 >
 > TODO(canary): the three timeouts (`test_adjoint_gradient_optimizer`,
 > `test_gradient_optimizer`, `test_theory_discovery_agent`) may be Debug
