@@ -149,7 +149,7 @@ jobs:
         working-directory: build
         shell: bash
         continue-on-error: true
-        if: runner.os == 'Linux'
+        if: always() && runner.os == 'Linux'
         run: |
           xvfb-run -a ./test_rendering_diagnostic
 
