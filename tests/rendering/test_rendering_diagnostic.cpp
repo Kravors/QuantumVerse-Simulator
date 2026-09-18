@@ -284,6 +284,7 @@ static int runMockGLMode()
     {
         quantumverse::CurvatureRenderer curv(10, 100.0f,
             quantumverse::CurvatureMode::GRID_DEFORMATION);
+        curv.setPlaneMode(false);
         // initializeGrid() is called in constructor
         const auto& verts = curv.getVertices();
         size_t expected = 10 * 10 * 10;

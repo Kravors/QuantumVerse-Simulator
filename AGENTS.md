@@ -142,6 +142,13 @@ comparison becomes meaningful.
 > slowness, or they may be genuine hangs. Distinguish the two before accepting
 > either explanation.
 
+### qFatal exit codes on Windows
+Qt's qFatal / `__fastfail` produces different exit codes depending on build type:
+- Release: `0xC0000409` (`STATUS_STACK_BUFFER_OVERRUN` via `__fastfail`)
+- Debug:   `0x80000003` (`STATUS_BREAKPOINT` via `__debugbreak`)
+Both indicate the same Qt init failure (`QGuiApplicationPrivate::init` /
+`QtPrivate::sizedFree`). Do not treat `0x80000003` as a distinct bug.
+
 ### Qt 6.11 QML parser quirks
 
 - `function` declarations are not hoisted. Declare them before any visual
