@@ -24,6 +24,8 @@ try {
     Write-Host "[prepush] Configuring Release..." -ForegroundColor Cyan
     cmake -B build_ci -G Ninja `
         -DCMAKE_BUILD_TYPE=Release `
+        -DCMAKE_CXX_COMPILER=cl.exe `
+        -DCMAKE_C_COMPILER=cl.exe `
         -DQUANTUMVERSE_BUILD_TESTS=ON `
         -DQUANTUMVERSE_USE_QT=ON `
         -DCMAKE_PREFIX_PATH="F:\qt\6.11.1\msvc2022_64"

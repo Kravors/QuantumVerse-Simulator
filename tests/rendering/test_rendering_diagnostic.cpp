@@ -111,6 +111,15 @@ static void saveFramebufferPNG(const char* filename, int w, int h)
 
 int main(int argc, char* argv[])
 {
+    // --mock: CPU-side validation only. Bypasses QGuiApplication entirely,
+    // so it runs on machines whose Qt6 install has no usable platform
+    // plugin (the local msvc2022_64 ships only 'windows', no 'offscreen').
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--mock") == 0) {
+            return runMockGLMode();
+        }
+    }
+
     // Force the Qt offscreen platform so no display is required.
     qputenv("QT_QPA_PLATFORM", "offscreen");
 
