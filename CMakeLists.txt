@@ -1738,7 +1738,7 @@ endif()
             ${CMAKE_SOURCE_DIR}/third_party/stb
             ${CMAKE_SOURCE_DIR}/src)
         set_target_properties(test_rendering_diagnostic PROPERTIES AUTOMOC ON)
-        add_test(NAME RenderingDiagnosticTest COMMAND test_rendering_diagnostic)
+        add_test(NAME RenderingDiagnosticTest COMMAND test_rendering_diagnostic --mock)
         set_tests_properties(RenderingDiagnosticTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
