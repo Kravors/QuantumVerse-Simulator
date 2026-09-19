@@ -153,9 +153,14 @@ jobs:
         working-directory: build
         shell: bash
         continue-on-error: true
-        if: always() && runner.os == 'Linux'
+        if: always()
         run: |
-          xvfb-run -a ./test_rendering_diagnostic
+          # --mock bypasses QGuiApplication entirely (the local MSVC Qt6
+          # ships only the 'windows' platform plugin, no 'offscreen', so
+          # the default path dies with 0xc0000409 in
+          # QGuiApplicationPrivate::init). CPU-side grid/curvature
+          # validation runs on any platform without a GL context.
+          ./test_rendering_diagnostic --mock
 
       - name: Ensure reports directory exists
         run: mkdir -p reports
