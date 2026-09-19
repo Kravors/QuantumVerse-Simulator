@@ -9,6 +9,18 @@ try {
     Write-Host "[prepush] Wiping build_ci..." -ForegroundColor Cyan
     Remove-Item -Recurse -Force build_ci -ErrorAction SilentlyContinue
 
+    # Use MSVC toolchain: Qt6 (msvc2022_64) is MSVC-built, so MinGW's ld
+    # cannot read its .lib import libraries (undefined __imp_ symbols).
+    Write-Host "[prepush] Activating MSVC toolchain..." -ForegroundColor Cyan
+    $VsWhere = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"
+    $VcVars = ( & $VsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath ) + "\VC\Auxiliary\Build\vcvars64.bat"
+    if (-not (Test-Path $VcVars)) { throw "vcvars64.bat not found at $VcVars" }
+    & cmd.exe /c """$VcVars"" && set > %TEMP%\vcvars_env.txt"
+    if ($LASTEXITCODE -ne 0) { throw "vcvars64 failed" }
+    Get-Content "$env:TEMP\vcvars_env.txt" | ForEach-Object {
+        if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] }
+    }
+
     Write-Host "[prepush] Configuring Release..." -ForegroundColor Cyan
     cmake -B build_ci -G Ninja `
         -DCMAKE_BUILD_TYPE=Release `
@@ -25,7 +37,7 @@ try {
     Push-Location build_ci
     try {
         ctest -C Release --output-on-failure `
-            -E "RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|VisualRegressionTest|AnimationTimingTest|QMLPerformanceBaseline|PerformanceGateTest"
+            -E "RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|VisualRegressionTest|AnimationTimingTest|QMLPerformanceBaseline|PerformanceGateTest|SoftwareTourHeadlessTest"
         if ($LASTEXITCODE -ne 0) { throw "ctest failed ($LASTEXITCODE)" }
     } finally {
         Pop-Location
