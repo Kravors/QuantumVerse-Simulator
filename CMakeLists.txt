@@ -284,7 +284,7 @@ if(QUANTUMVERSE_USE_QT)
             COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
             COMMAND cmd /c
-                "set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --no-compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
+                "set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${QT_HOST_PATH}/bin/Qt6Test.dll"
                 "${QT_RUNTIME_DEST}/"
@@ -1763,16 +1763,50 @@ if(QUANTUMVERSE_USE_QT)
         RUNTIME DESTINATION bin
         BUNDLE DESTINATION .
     )
+
+    # Deploy Qt runtime into the install tree so CPack sees DLLs/plugins.
+    install(CODE "
+      execute_process(
+        COMMAND \"${QT_HOST_PATH}/bin/windeployqt.exe\"
+          --dir \"\${CMAKE_INSTALL_PREFIX}/bin\"
+          --release --no-translations --compiler-runtime
+          --qmldir \"${CMAKE_SOURCE_DIR}/src\"
+          \"\${CMAKE_INSTALL_PREFIX}/bin/quantumverse_qml.exe\"
+        RESULT_VARIABLE _rc
+      )
+      if(NOT _rc EQUAL 0)
+        message(FATAL_ERROR \"windeployqt failed: \${_rc}\")
+      endif()
+    ")
+
+    # Data files — must land in bin/data so the relative path data/tours/
+    # resolves when the shortcut's cwd is $INSTDIR\bin
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/
+            DESTINATION bin/data
+            PATTERN "*.tmp" EXCLUDE)
 endif()
 
 # CPack configuration for packaging
-set(CPACK_PACKAGE_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "3.7.2")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AI-accelerated 4D spacetime simulator")
-set(CPACK_PACKAGE_VENDOR "Humanity")
-
-# Enable ZIP binary packaging
+set(CPACK_GENERATOR "ZIP;NSIS")
+set(CPACK_BINARY_NSIS ON)
 set(CPACK_BINARY_ZIP ON)
-set(CPACK_GENERATOR "ZIP")
+set(CPACK_PACKAGE_NAME "QuantumVerse")
+set(CPACK_PACKAGE_VERSION "5.5.2")
+set(CPACK_PACKAGE_VENDOR "QuantumVerse Project")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "4D Spacetime Cognition Lab")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "QuantumVerse")
+set(CPACK_NSIS_DISPLAY_NAME "QuantumVerse Simulator")
+set(CPACK_NSIS_PACKAGE_NAME "QuantumVerse Simulator")
+set(CPACK_NSIS_MENU_LINKS
+    "bin/quantumverse_qml.exe" "QuantumVerse Simulator")
+set(CPACK_PACKAGE_EXECUTABLES "quantumverse_qml" "QuantumVerse Simulator")
+
+# Force the Start Menu shortcut to use $INSTDIR\bin as working directory
+# so data/tours/ resolves correctly after install.
+set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+  CreateShortCut \\\"$SMPROGRAMS\\\\QuantumVerse\\\\QuantumVerse Simulator.lnk\\\" \\\"$INSTDIR\\\\bin\\\\quantumverse_qml.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\bin\\\\quantumverse_qml.exe\\\" 0
+")
+
+set(CPACK_CREATE_DESKTOP_LINKS "quantumverse_qml")
 
 include(CPack)
