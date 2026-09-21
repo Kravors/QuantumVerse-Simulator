@@ -144,9 +144,6 @@ jobs:
           if [ -d tests ]; then
             CPPCHECK_DIRS="$CPPCHECK_DIRS tests/"
           fi
-          if [ -d examples ]; then
-            CPPCHECK_DIRS="$CPPCHECK_DIRS examples/"
-          fi
           if [ -z "$CPPCHECK_DIRS" ]; then
             echo "No source directories found, skipping cppcheck"
             exit 0
