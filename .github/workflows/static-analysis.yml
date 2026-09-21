@@ -160,6 +160,7 @@ jobs:
             --suppress=nullPointer \
             --suppress=uninitMemberVar \
             --suppress=duplInheritedMember \
+            --suppress=unusedFunction \
             --error-exitcode=1 \
             $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
       

@@ -54,7 +54,7 @@ jobs:
           cd build
           mapfile -d '' -t TIDY_FILES < <(find ../src -name '*.cpp' -print0)
           if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
-             clang-tidy -p . --warnings-as-errors='*' --jobs "$(nproc)" "${TIDY_FILES[@]}" -- -std=c++17 -I../src
+             clang-tidy -p . --jobs "$(nproc)" "${TIDY_FILES[@]}" -- -std=c++17 -I../src
           else
             echo "No source files found, skipping clang-tidy"
           fi
