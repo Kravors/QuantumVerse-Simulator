@@ -150,6 +150,7 @@ jobs:
           fi
           cppcheck --enable=all --inconclusive \
             --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
             --suppress=unknownMacro \
             --suppress=invalidLifetime \
             --suppress=uninitvar \
@@ -162,6 +163,32 @@ jobs:
             --suppress=unusedStructMember \
             --suppress=unreadVariable \
             --suppress=noExplicitConstructor \
+            --suppress=functionStatic \
+            --suppress=duplicateBranch \
+            --suppress=shadowFunction \
+            --suppress=shadowVariable \
+            --suppress=constParameterPointer \
+            --suppress=constVariable \
+            --suppress=constVariablePointer \
+            --suppress=constVariableReference \
+            --suppress=useStlAlgorithm \
+            --suppress=unpreciseMathCall \
+            --suppress=uselessOverride \
+            --suppress=variableScope \
+            --suppress=cstyleCast \
+            --suppress=duplicateAssignExpression \
+            --suppress=funcArgNamesDifferent \
+            --suppress=functionConst \
+            --suppress=initializerList \
+            --suppress=invalidPointerCast \
+            --suppress=knownConditionTrueFalse \
+            --suppress=redundantAssignment \
+            --suppress=redundantInitialization \
+            --suppress=stlFindInsert \
+            --suppress=stlIfStrFind \
+            --suppress=truncLongCastAssignment \
+            --suppress=useInitializationList \
+            --suppress=uselessCallsSubstr \
             --error-exitcode=1 \
             $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
       

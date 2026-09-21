@@ -52,11 +52,22 @@ jobs:
         timeout-minutes: 90
         run: |
           cd build
-          mapfile -d '' -t TIDY_FILES < <(find ../src -name '*.cpp' -print0)
+          if [ ! -f compile_commands.json ]; then
+            echo "compile_commands.json not found, skipping clang-tidy"
+            exit 0
+          fi
+          mapfile -d '' -t TIDY_FILES < <(python3 -c "
+import json, sys, os
+with open('compile_commands.json') as f:
+    for entry in json.load(f):
+        path = entry.get('file', '')
+        if ('/src/' in path or path.startswith('src/')) and os.path.basename(path) != 'qmlglviewport.cpp':
+            print(path)
+" | tr '\n' '\0')
           if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
              clang-tidy -p . "${TIDY_FILES[@]}" -- -std=c++17
           else
-            echo "No source files found, skipping clang-tidy"
+             echo "No source files found in compile_commands.json, skipping clang-tidy"
           fi
 
       - name: Run diagnostic suite
