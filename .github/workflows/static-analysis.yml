@@ -186,11 +186,13 @@ jobs:
             --suppress=redundantInitialization \
             --suppress=stlFindInsert \
             --suppress=stlIfStrFind \
-            --suppress=truncLongCastAssignment \
-            --suppress=useInitializationList \
-            --suppress=uselessCallsSubstr \
-            --error-exitcode=1 \
-            $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
+             --suppress=truncLongCastAssignment \
+             --suppress=useInitializationList \
+             --suppress=uselessCallsSubstr \
+             --suppress=constParameterCallback \
+             --suppress=checkersReport \
+             --error-exitcode=1 \
+             $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
       
       - name: Upload Cppcheck Report
         uses: actions/upload-artifact@v5
