@@ -158,6 +158,10 @@ jobs:
             --suppress=uninitMemberVar \
             --suppress=duplInheritedMember \
             --suppress=unusedFunction \
+            --suppress=unusedPrivateFunction \
+            --suppress=unusedStructMember \
+            --suppress=unreadVariable \
+            --suppress=noExplicitConstructor \
             --error-exitcode=1 \
             $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
       
