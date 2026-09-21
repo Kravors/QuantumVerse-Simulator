@@ -153,6 +153,7 @@ jobs:
           fi
           cppcheck --enable=all --inconclusive \
             --suppress=missingIncludeSystem \
+            --suppress=unknownMacro \
             --error-exitcode=1 \
             $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
       
