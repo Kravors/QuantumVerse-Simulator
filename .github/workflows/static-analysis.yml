@@ -185,7 +185,7 @@ jobs:
             --suppress=redundantAssignment \
             --suppress=redundantInitialization \
             --suppress=stlFindInsert \
-            --suppress=stlIfStrFind \
+             --suppress=stlIfStrFind \
              --suppress=truncLongCastAssignment \
              --suppress=useInitializationList \
              --suppress=uselessCallsSubstr \
