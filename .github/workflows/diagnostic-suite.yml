@@ -56,11 +56,11 @@ jobs:
             echo "compile_commands.json not found, skipping clang-tidy"
             exit 0
           fi
-          mapfile -d $'\0' -t TIDY_FILES < <(find ../src -name '*.cpp' ! -name 'qmlglviewport.cpp' -print0)
+          mapfile -d $'\0' -t TIDY_FILES < <(python3 -c "import json; [print(e['file']) for e in json.load(open('compile_commands.json')) if e['file'].endswith('.cpp') and 'qmlglviewport.cpp' not in e['file'] and ('/src/' in e['file'] or e['file'].startswith('src/'))]" | tr '\n' '\0')
           if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
              clang-tidy -p . "${TIDY_FILES[@]}" -- -std=c++17
           else
-             echo "No source files found, skipping clang-tidy"
+             echo "No source files found in compile_commands.json, skipping clang-tidy"
           fi
 
       - name: Run diagnostic suite
