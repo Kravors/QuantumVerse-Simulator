@@ -56,6 +56,7 @@ jobs:
       run: cmake --build build --config ${{ matrix.build_type }} --target deploy_qt_runtime
     - name: Run tests (excl. slow)
       shell: bash
+      working-directory: build/${{ matrix.build_type }}
       run: |
         if [ "${{ runner.os }}" == "Linux" ]; then
           xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest" --output-on-failure
@@ -66,6 +67,7 @@ jobs:
     - name: Run ASan tests (Debug only)
       if: matrix.build_type == 'Debug'
       continue-on-error: true
+      working-directory: build/${{ matrix.build_type }}
       run: ctest -C Debug -R MemoryLeakTest --output-on-failure
 
   build-and-test-linux:
@@ -102,5 +104,6 @@ jobs:
       run: cmake --build build --config ${{ matrix.build_type }} --parallel 2
       
     - name: Run tests (excl. slow)
+      working-directory: build
       run: xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure
 

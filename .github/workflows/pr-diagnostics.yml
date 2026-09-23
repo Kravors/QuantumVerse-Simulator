@@ -108,6 +108,7 @@ jobs:
         run: cmake --build build --config ${{ matrix.config }}
       
       - name: Ensure reports directory exists
+        shell: bash
         run: mkdir -p reports
       
       # This matrix includes windows-latest, where xvfb-run does not exist, so the

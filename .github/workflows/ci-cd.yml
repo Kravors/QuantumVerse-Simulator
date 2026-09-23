@@ -89,7 +89,7 @@ jobs:
       # GridDeformationTest is additionally flaky on Ubuntu under xvfb/llvmpipe
       # due to QProcess timeouts in spawned quantumverse_qml runs.
       - name: Run Tests
-        working-directory: build
+        working-directory: ${{ runner.os == 'Windows' && format('build/{0}', env.BUILD_TYPE) || 'build' }}
         shell: bash
         run: |
           GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
@@ -104,7 +104,7 @@ jobs:
       # Rendering/visual tests are non-blocking canaries (headless software-GL
       # pixel/timing/--gl-strict mismatches). See build-and-test.yml for rationale.
       - name: Rendering tests (non-blocking canary)
-        working-directory: build
+        working-directory: ${{ runner.os == 'Windows' && format('build/{0}', env.BUILD_TYPE) || 'build' }}
         shell: bash
         continue-on-error: true
         run: |
@@ -122,7 +122,7 @@ jobs:
       # flake cannot block the release publish (mirrors the rendering canaries).
       - name: CrashHandlerTest (non-blocking canary)
         if: runner.os == 'Windows'
-        working-directory: build
+        working-directory: build/${{ env.BUILD_TYPE }}
         shell: bash
         continue-on-error: true
         run: |

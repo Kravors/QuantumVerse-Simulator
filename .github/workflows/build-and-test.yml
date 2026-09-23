@@ -115,7 +115,7 @@ jobs:
       # join the non-blocking canary set on those platforms instead of being
       # dropped from the suite.
       - name: Run tests
-        working-directory: build
+        working-directory: ${{ runner.os == 'Windows' && format('build/{0}', matrix.build_type) || 'build' }}
         shell: bash
         run: |
           GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline"
@@ -132,7 +132,7 @@ jobs:
             xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY|SoftwareTourHeadlessTest|UI4DTest|GridDeformationTest" --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|SoftwareTourHeadlessTest|UI4DTest"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|SoftwareTourHeadlessTest|UI4DTest"
             ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY" --output-on-failure
           fi
 
@@ -141,7 +141,7 @@ jobs:
       # --gl-strict mismatches). Keep them as a non-blocking canary so they
       # still surface in logs without gating merges.
       - name: Rendering tests (non-blocking canary)
-        working-directory: build
+        working-directory: ${{ runner.os == 'Windows' && format('build/{0}', matrix.build_type) || 'build' }}
         shell: bash
         continue-on-error: true
         run: |
@@ -155,7 +155,7 @@ jobs:
           fi
 
       - name: Canary — test_rendering_diagnostic (offscreen)
-        working-directory: build
+        working-directory: ${{ runner.os == 'Windows' && format('build/{0}', matrix.build_type) || 'build' }}
         shell: bash
         if: always()
         run: |
@@ -173,6 +173,7 @@ jobs:
           "$BIN" --mock
 
       - name: Ensure reports directory exists
+        shell: bash
         run: mkdir -p reports
 
       - name: Upload test results
