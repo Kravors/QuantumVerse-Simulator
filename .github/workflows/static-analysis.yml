@@ -86,7 +86,7 @@ jobs:
           test -f CMakeLists.txt && echo "YES" || echo "NO"
       
       - name: Configure CMake
-        run:           cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
+        run:           cmake -B build -G Ninja -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
        
       - name: Run Clang-Tidy
         continue-on-error: true
