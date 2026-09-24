@@ -43,7 +43,7 @@ jobs:
 
       - name: Configure CMake with clang-tidy as errors
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -180,7 +180,7 @@ jobs:
 
       - name: Configure and build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --parallel 2
       - name: Run UI tests
         run: |
@@ -224,7 +224,7 @@ jobs:
       # "unrecognized argument to '-fsanitize=' option: 'fuzzer'". Clang is already
       # installed above, so point CMake at it explicitly.
       - name: Configure CMake with fuzzing
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_FUZZER=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build --parallel 2
 
@@ -266,7 +266,7 @@ jobs:
           cache: true
 
       - name: Configure CMake with coverage
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_USE_COVERAGE=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
       - name: Build
         run: cmake --build build --parallel 2
 
@@ -332,7 +332,7 @@ jobs:
 
       - name: Configure and build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --parallel 2
       - name: Run benchmarks
         run: |

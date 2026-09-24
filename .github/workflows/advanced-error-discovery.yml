@@ -47,7 +47,7 @@ jobs:
       
       - name: Build verification tests
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release --parallel 2
       - name: Run CBMC verification
         working-directory: build
@@ -93,7 +93,7 @@ jobs:
       
       - name: Build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release --parallel 2
       
       - name: Run differential tests
@@ -140,7 +140,7 @@ jobs:
       
       - name: Build with sanitizers
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_USE_ASAN=ON \
             -DQUANTUMVERSE_BUILD_TESTS=ON \
             -DQUANTUMVERSE_USE_QT=ON \
@@ -189,7 +189,7 @@ jobs:
       # installed above, so point CMake at it explicitly.
       - name: Build fuzzer
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DQUANTUMVERSE_USE_FUZZER=ON \
             -DQUANTUMVERSE_USE_QT=ON \
             -DCMAKE_C_COMPILER=clang \
@@ -243,7 +243,7 @@ jobs:
       
       - name: Build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
           cmake --build build --config Release --parallel 2
       
       - name: Run chaos experiments
