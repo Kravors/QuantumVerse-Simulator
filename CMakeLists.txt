@@ -1980,6 +1980,7 @@ endif()
     target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QT=1)
     set_target_properties(test_theory_discovery_agent PROPERTIES AUTOMOC ON)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
+    set_tests_properties(TheoryDiscoveryAgentTest PROPERTIES TIMEOUT 600)
 
     # Phase 33: Gradient-based theory optimizer
     add_executable(test_gradient_optimizer
@@ -2021,6 +2022,7 @@ endif()
     target_link_libraries(test_gradient_optimizer PRIVATE dilaton Qt6::Core Qt6::Test)
     set_target_properties(test_gradient_optimizer PROPERTIES AUTOMOC ON)
     add_test(NAME GradientOptimizerTest COMMAND test_gradient_optimizer)
+    set_tests_properties(GradientOptimizerTest PROPERTIES TIMEOUT 600)
 
     # Phase 33.5: Adjoint gradient optimizer
     add_executable(test_adjoint_gradient_optimizer
@@ -2065,6 +2067,7 @@ endif()
         ${CMAKE_SOURCE_DIR}/third_party
     )
     add_test(NAME AdjointGradientOptimizerTest COMMAND test_adjoint_gradient_optimizer)
+    set_tests_properties(AdjointGradientOptimizerTest PROPERTIES TIMEOUT 600)
 
     # Phase 33.6: Generalized adjoint integrator
     add_executable(test_generalized_adjoint
