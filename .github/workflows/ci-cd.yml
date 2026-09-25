@@ -83,7 +83,7 @@ jobs:
       # quantumverse_qml to render (GridDeformationTest) or to capture a perf
       # trace (PerformanceGateTest, QMLPerformanceBaseline) cannot pass, so those
       # join the non-blocking canary set on those platforms instead of being
-      # dropped from the suite. UI4DTest and SoftwareTourHeadlessTest also crash
+      # dropped from the suite. SoftwareTourHeadlessTest also crashes
       # in QGuiApplicationPrivate::init on Windows (Qt 6.11.1 platform-plugin
       # availability, same as the --mock canary); excluded there too.
       # GridDeformationTest is additionally flaky on Ubuntu under xvfb/llvmpipe
@@ -94,10 +94,10 @@ jobs:
         run: |
           GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest"
           if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -E "$GPU_CANARY|SoftwareTourHeadlessTest|UI4DTest|GridDeformationTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
+            xvfb-run -a ctest -E "$GPU_CANARY|SoftwareTourHeadlessTest|GridDeformationTest" --output-on-failure -C ${{ env.BUILD_TYPE }}
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|SoftwareTourHeadlessTest|UI4DTest"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|SoftwareTourHeadlessTest"
             ctest -E "$GPU_CANARY" --output-on-failure -C ${{ env.BUILD_TYPE }}
           fi
 
