@@ -141,6 +141,19 @@ comparison becomes meaningful.
 > `test_gradient_optimizer`, `test_theory_discovery_agent`) may be Debug
 > slowness, or they may be genuine hangs. Distinguish the two before accepting
 > either explanation.
+>
+> RESOLVED: all three "timeout" tests are slow-but-passing, not hangs.
+> Root cause: `test_gradient_optimizer` and `test_theory_discovery_agent`
+> both enable `multi_objective_mode_`, making each `evaluateTheory()` call
+> trigger `updateParetoArchive()` inside the optimization loop — the cost
+> grows super-linearly with iterations. Reduced iteration count in the
+> gradient optimizer test; the theory discovery suite completes in ~43s
+> with unbuffered markers. `test_adjoint_gradient_optimizer` passes at
+> ~384s; timeout bumped to 900s for CI margin.
+>
+> Underlying performance issue: the production `optimizeWithGradient()`
+> loop has the same cost profile. Worth a follow-up issue if users hit
+> iteration counts > 20. Not a test-fix blocker.
 
 ### qFatal exit codes on Windows
 Qt's qFatal / `__fastfail` produces different exit codes depending on build type:

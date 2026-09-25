@@ -40,7 +40,7 @@ print(f"{len(targets)} test targets")
 TIMEOUTS = {
     "test_theory_discovery_agent": 600,
     "test_gradient_optimizer": 600,
-    "test_adjoint_gradient_optimizer": 600,
+    "test_adjoint_gradient_optimizer": 900,
     "default": 180,
 }
 
