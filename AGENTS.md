@@ -137,11 +137,6 @@ comparison becomes meaningful.
 > initialization fault (`e0736170` in `clang_rt_asan_dynamic-x86_64.dll!EnlightenVSDebugger`),
 > which is separate from the source canary behavior.
 >
-> TODO(canary): the three timeouts (`test_adjoint_gradient_optimizer`,
-> `test_gradient_optimizer`, `test_theory_discovery_agent`) may be Debug
-> slowness, or they may be genuine hangs. Distinguish the two before accepting
-> either explanation.
->
 > RESOLVED: all three "timeout" tests are slow-but-passing, not hangs.
 > Root cause: `test_gradient_optimizer` and `test_theory_discovery_agent`
 > both enable `multi_objective_mode_`, making each `evaluateTheory()` call
