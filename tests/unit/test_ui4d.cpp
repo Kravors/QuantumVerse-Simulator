@@ -15,9 +15,18 @@ using namespace quantumverse;
 #define M_PI 3.14159265358979323846
 #endif
 
-int main()
+int main(int argc, char* argv[])
 {
-    std::cout << "=== UI4DTest ===" << std::endl;
+    bool mock = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--mock") == 0) {
+            mock = true;
+        }
+    }
+
+    if (!mock) {
+        std::cout << "=== UI4DTest ===" << std::endl;
+    }
 
     // --- Construction and solar system ----------------------------------------
     UI4D ui4d;
@@ -140,6 +149,8 @@ int main()
     ui4d.updateResize(100, 100);
     ui4d.endResize();
 
-    std::cout << "All UI4DTest checks passed." << std::endl;
+    if (!mock) {
+        std::cout << "All UI4DTest checks passed." << std::endl;
+    }
     return 0;
 }

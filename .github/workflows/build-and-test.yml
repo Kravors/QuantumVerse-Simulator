@@ -123,16 +123,15 @@ jobs:
           # which still needs a Qt platform plugin. On Windows the Qt6 install ships
           # only the 'windows' plugin (no offscreen), so it dies with 0xc0000409 in
           # QGuiApplicationPrivate::init (see AGENTS.md qFatal exit codes). Excluded.
-          # UI4DTest hits the same Qt init crash on Windows (0xc0000409). Not a
-          # project bug; excluded on that platform only.
+          # UI4DTest runs in --mock mode and no longer needs exclusion.
           # GridDeformationTest is flaky on Ubuntu under xvfb/llvmpipe: QProcess
           # timeouts in test_geodesic_mode_produces_valid_image and
           # test_screenshot_dimensions_are_consistent. Excluded on Linux.
           if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY|SoftwareTourHeadlessTest|UI4DTest|GridDeformationTest" --output-on-failure
+            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY|SoftwareTourHeadlessTest|GridDeformationTest" --output-on-failure
           else
             export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|SoftwareTourHeadlessTest|UI4DTest"
+            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|SoftwareTourHeadlessTest"
             ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY" --output-on-failure
           fi
 

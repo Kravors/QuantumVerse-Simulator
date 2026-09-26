@@ -807,7 +807,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         endif()
         set_target_properties(test_ui4d PROPERTIES AUTOMOC ON)
         target_compile_definitions(test_ui4d PRIVATE QUANTUMVERSE_USE_QML)
-        add_test(NAME UI4DTest COMMAND test_ui4d)
+        add_test(NAME UI4DTest COMMAND test_ui4d --mock)
         set_tests_properties(UI4DTest PROPERTIES
             WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
             ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
