@@ -59,10 +59,10 @@ jobs:
       working-directory: build/${{ matrix.build_type }}
       run: |
         if [ "${{ runner.os }}" == "Linux" ]; then
-          xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest" --output-on-failure
+          xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest" --output-on-failure
         else
           export QT_QPA_PLATFORM=offscreen
-          ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest" --output-on-failure
+          ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest" --output-on-failure
         fi
     - name: Run ASan tests (Debug only)
       if: matrix.build_type == 'Debug'
@@ -105,5 +105,5 @@ jobs:
       
     - name: Run tests (excl. slow)
       working-directory: build
-      run: xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure
+      run: xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest" --output-on-failure
 
