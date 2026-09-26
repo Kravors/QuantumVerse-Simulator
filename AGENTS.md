@@ -102,6 +102,18 @@ Some rendering and performance tests are non-blocking canaries in CI:
 
 Core scientific tests run in primary workflows and must remain green.
 
+### Workflow parity
+
+Multiple workflows run ctest and must maintain the same canary exclusion
+list: `ci.yml`, `build-and-test.yml`, `ci-cd.yml`, `cross-platform-test.yml`,
+`pr-diagnostics.yml`. When adding or removing a canary, update all of them.
+A drifted exclusion list causes main to go red while other workflows pass,
+which is hard to diagnose from the failing job alone.
+
+Consider extracting the exclusion list into a shared file (e.g.,
+`.github/workflows/_canary_exclusions.txt`) and `cat`-ing it into each
+ctest invocation.
+
 ### Qt 6 backend switching on Windows
 `QT_OPENGL=angle` is a no-op on Qt 6.2+ — ANGLE was removed.
 Use `QSG_RHI_BACKEND` instead: `d3d11`, `opengl`, `vulkan`,
