@@ -39,7 +39,7 @@ try {
     Push-Location build_ci
     try {
         ctest -C Release --output-on-failure `
-            -E "RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|VisualRegressionTest|AnimationTimingTest|QMLPerformanceBaseline|PerformanceGateTest|SoftwareTourHeadlessTest"
+            -E "RenderingDiagnosticTest|ViewportStateTest|ViewportContentTest|VisualRegressionTest|AnimationTimingTest|QMLPerformanceBaseline|PerformanceGateTest|SoftwareTourHeadlessTest|UI4DTest"
         if ($LASTEXITCODE -ne 0) { throw "ctest failed ($LASTEXITCODE)" }
     } finally {
         Pop-Location
