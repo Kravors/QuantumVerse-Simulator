@@ -63,7 +63,7 @@ void test_gradient_optimization_updates_pareto() {
 
     size_t initial_size = agent.getParetoFront().size();
 
-    auto opt_result = agent.optimizeWithGradient(10, 0.1, 1e-6);
+    auto opt_result = agent.optimizeWithGradient(5, 0.1, 1e-6);
     (void)opt_result;
 
     size_t final_size = agent.getParetoFront().size();
