@@ -62,9 +62,9 @@ jobs:
       - name: Run Tests
         working-directory: build
         timeout-minutes: 60
-      run: |
-        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
-        ctest -E "$EXCLUSIONS" -C ${{ matrix.build_type }} --timeout 120 --output-on-failure -j 2
+        run: |
+          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+          ctest -E "$EXCLUSIONS" -C ${{ matrix.build_type }} --timeout 120 --output-on-failure -j 2
       
       - name: Upload Test Results
         if: always()

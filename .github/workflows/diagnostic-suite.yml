@@ -124,9 +124,9 @@ jobs:
       - name: Run tests with sanitizers (non-blocking canary)
         continue-on-error: true
         working-directory: build_${{ matrix.sanitizer }}
-      run: |
-        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
-        xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j2
+        run: |
+          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+          xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j2
 
       - name: Run Valgrind memcheck (nightly only)
         if: github.event_name == 'schedule'

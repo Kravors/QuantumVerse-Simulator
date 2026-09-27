@@ -117,15 +117,15 @@ jobs:
       - name: Run tests
         working-directory: build
         shell: bash
-      run: |
-        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
-        GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline"
-        if [ "${{ runner.os }}" == "Linux" ]; then
-          xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --output-on-failure
-        else
-          export QT_QPA_PLATFORM=offscreen
-          ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --output-on-failure
-        fi
+        run: |
+          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline"
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --output-on-failure
+          else
+            export QT_QPA_PLATFORM=offscreen
+            ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --output-on-failure
+          fi
 
       # Rendering/visual tests rely on a real GPU context and fail under the
       # headless offscreen/software-GL CI runners (pixel, frame-timing and

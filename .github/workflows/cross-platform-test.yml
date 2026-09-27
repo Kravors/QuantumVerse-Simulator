@@ -116,16 +116,16 @@ jobs:
       - name: Run tests
         working-directory: build
         shell: bash
-      run: |
-        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
-        if [ "${{ runner.os }}" == "Linux" ]; then
-          xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
-        elif [ "${{ runner.os }}" == "Windows" ]; then
-          export QT_QPA_PLATFORM=offscreen
-          ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
-        else
-          ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
-        fi
+        run: |
+          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            export QT_QPA_PLATFORM=offscreen
+            ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
+          else
+            ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
+          fi
 
       # Rendering/visual tests are non-blocking canaries (headless software-GL
       # pixel/timing/--gl-strict mismatches). See build-and-test.yml for rationale.

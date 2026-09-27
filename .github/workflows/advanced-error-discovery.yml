@@ -148,9 +148,9 @@ jobs:
           cmake --build build --config Debug --parallel 2
       - name: Run tests with runtime monitoring
         working-directory: build
-      run: |
-        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
-        xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j 2
+        run: |
+          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+          xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j 2
 
   fuzz-testing:
     name: Hybrid Fuzz Testing
