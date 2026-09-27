@@ -62,6 +62,7 @@ static const char* lensingFragmentSource = R"(
     uniform float u_volumetricDiskOpacity;
     uniform float u_volumetricDiskIntensity;
     uniform float u_volumetricDiskDopplerBoost;
+    uniform float u_volumetricDiskInnerEdgeFade;
 
     // Camera parameters
     uniform vec3 u_cameraPos;
@@ -74,6 +75,20 @@ static const char* lensingFragmentSource = R"(
 
     const float PI = 3.14159265358979323846;
     const float TWO_PI = 6.28318530717958647692;
+
+    // Approximate blackbody RGB from effective temperature.
+    // T=1.0 maps to a neutral tint (sum=1 so total intensity is unchanged);
+    // T<1 shifts warm (red/orange), T>1 shifts cool (blue/white).  The hue
+    // falls out from T_obs = T_emit * delta; the scalar T_obs^4 term in j
+    // carries the total luminosity.
+    vec3 blackbodyColor(float T) {
+        float t = max(T, 0.01);
+        vec3 color;
+        color.r = 1.0 / (1.0 + exp(2.0 * (0.8 - t)));
+        color.g = 1.0 / (1.0 + exp(3.0 * (1.0 - t)));
+        color.b = 1.0 / (1.0 + exp(4.0 * (1.3 - t)));
+        return color / (color.r + color.g + color.b);
+    }
 
     // Compute Schwarzschild radius
     float schwarzschildRadius(float mass) {
@@ -272,42 +287,57 @@ static const char* lensingFragmentSource = R"(
             float z = pos.y;
             float rPlane = length(pos.xz);
 
-            if (rPlane >= rInner && rPlane <= rOuter) {
-                // Scale height H/r = H0 (constant), H = H0 * r
-                float H = H0 * rPlane;
-                float zNorm = (H > 0.0001) ? z / H : 0.0;
-                float rho = density * pow(rInner / rPlane, 1.5) * exp(-zNorm * zNorm);
+            if (rPlane > rOuter) continue;
 
-                // Keplerian temperature profile T ~ r^(-3/4)
-                float T = temp0 * pow(rInner / rPlane, 0.75);
-                // Blackbody emissivity j = κ·ρ·B(T) ~ κ·ρ·T⁴ (Kirchhoff/Stefan-Boltzmann)
-                float j = opacity * rho * T * T * T * T;
+            // Smooth transition at the inner edge so the ISCO is not a hard cut-off.
+            // fadeWidth = 0 -> step function (legacy behaviour); >0 -> smoothstep over
+            // the interval [rInner, rInner + fadeWidth].
+            float innerFade = (u_volumetricDiskInnerEdgeFade > 0.0)
+                ? smoothstep(rInner, rInner + u_volumetricDiskInnerEdgeFade, rPlane)
+                : step(rInner, rPlane);
 
-                // Optical depth over this step
-                float dTau = rho * opacity * stepSize;
-                float T_before = exp(-tau);
-                float aStep    = 1.0 - exp(-dTau);
-                // Thin-slice series: (1-e^-dTau)/dTau → 1 - dTau/2 as dTau → 0.
-                float avg      = (dTau > 1e-3) ? (aStep / dTau) : (1.0 - 0.5 * dTau);
+            // Scale height H/r = H0 (constant), H = H0 * r
+            float H = H0 * rPlane;
+            float zNorm = (H > 0.0001) ? z / H : 0.0;
+            float rho = density * pow(rInner / rPlane, 1.5) * exp(-zNorm * zNorm);
+            rho *= innerFade;
 
-                // Doppler beaming: azimuthal orbital velocity v_phi = sqrt(M/r)
-                // (geometric units, c = 1). Prograde for Kerr.
-                float vPhi = sqrt(u_mass / rPlane);
-                float cosPhi = (rPlane > 0.0001) ? pos.x / rPlane : 0.0;
-                float sinPhi = (rPlane > 0.0001) ? pos.z / rPlane : 0.0;
-                // Velocity vector in the disk plane (tangential, +phi direction)
-                vec3 vel = vec3(-sinPhi, 0.0, cosPhi) * vPhi;
-                float vDotN = dot(vel, dir);
-                // Doppler factor delta = 1 / (1 - v . n); blueshift when v.n < 0
-                float delta = 1.0 / max(1.0 - vDotN, 0.01);
-                float beaming = delta * delta * delta * delta * u_volumetricDiskDopplerBoost;
+            // Keplerian temperature profile T ~ r^(-3/4)
+            float T = temp0 * pow(rInner / rPlane, 0.75);
+            // Doppler-shifted effective temperature.  The observed spectrum is a
+            // blackbody at T_obs = T * delta, not a delta^4 intensity boost
+            // applied to the emitted temperature.  The delta^4 factor moves into
+            // j below; beaming carries only the user gain.
+            float T_eff = T * delta;
+            // Kirchhoff's law: j = κ·ρ·B(T_eff) ∝ κ·ρ·T_eff⁴.
+            float j = opacity * rho * T_eff * T_eff * T_eff * T_eff;
+            vec3 bbColor = blackbodyColor(T_eff);
 
-                // Self-attenuated contribution: T_before · j · ds · avg, with j = κ·ρ·B(T).
-                // In the optically thick limit this saturates to B(T) (Kirchhoff,
-                // κ-independent); in the thin limit it scales as κ·ρ·L.
-                emissivity += T_before * j * stepSize * avg * beaming * u_volumetricDiskIntensity;
-                tau += dTau;
-            }
+            // Optical depth over this step
+            float dTau = rho * opacity * stepSize;
+            float T_before = exp(-tau);
+            float aStep    = 1.0 - exp(-dTau);
+            // Thin-slice series: (1-e^-dTau)/dTau → 1 - dTau/2 as dTau → 0.
+            float avg      = (dTau > 1e-3) ? (aStep / dTau) : (1.0 - 0.5 * dTau);
+
+            // Doppler beaming: azimuthal orbital velocity v_phi = sqrt(M/r)
+            // (geometric units, c = 1). Prograde for Kerr.
+            float vPhi = sqrt(u_mass / rPlane);
+            float cosPhi = (rPlane > 0.0001) ? pos.x / rPlane : 0.0;
+            float sinPhi = (rPlane > 0.0001) ? pos.z / rPlane : 0.0;
+            // Velocity vector in the disk plane (tangential, +phi direction)
+            vec3 vel = vec3(-sinPhi, 0.0, cosPhi) * vPhi;
+            float vDotN = dot(vel, dir);
+            // Doppler factor delta = 1 / (1 - v . n); blueshift when v.n < 0.
+            // The delta^4 intensity boost is already embedded in j via T_eff = T*delta,
+            // so beaming here is just the user gain.
+            float delta = 1.0 / max(1.0 - vDotN, 0.01);
+            float beaming = u_volumetricDiskDopplerBoost;
+
+            // Self-attenuated contribution: T_before · j · ds · avg, tinted by
+            // the Doppler-shifted blackbody color at T_obs = T * delta.
+            emissivity += bbColor * T_before * j * stepSize * avg * beaming * u_volumetricDiskIntensity;
+            tau += dTau;
 
             // Adaptive step near the black hole
             float adaptiveStep = stepSize * max(r / (3.0 * rs), 0.1);
@@ -849,6 +879,7 @@ void GravitationalLensing::updateUniforms() {
     setUniformInt("u_volumetricDiskSteps", m_volumetricDisk.diskRaySteps);
     setUniformFloat("u_volumetricDiskOpacity", m_volumetricDisk.diskOpacity);
     setUniformFloat("u_volumetricDiskDopplerBoost", m_volumetricDisk.diskDopplerBoost);
+    setUniformFloat("u_volumetricDiskInnerEdgeFade", m_volumetricDisk.diskInnerEdgeFade);
 
     // Camera position from spherical coordinates
     float camX = m_params.cameraDistance * sin(m_params.cameraTheta) * cos(m_params.cameraPhi);
@@ -933,7 +964,22 @@ GravitationalLensing::MarchResult GravitationalLensing::marchFlatSlab(double tau
     return result;
 }
 
-float GravitationalLensing::computeVolumetricDiskEmissivity(
+std::array<float, 3> GravitationalLensing::blackbodyColor(float T) {
+    float t = std::max(T, 0.01f);
+    std::array<float, 3> color;
+    color[0] = 1.0f / (1.0f + std::exp(2.0f * (0.8f - t)));
+    color[1] = 1.0f / (1.0f + std::exp(3.0f * (1.0f - t)));
+    color[2] = 1.0f / (1.0f + std::exp(4.0f * (1.3f - t)));
+    float sum = color[0] + color[1] + color[2];
+    if (sum > 0.0f) {
+        color[0] /= sum;
+        color[1] /= sum;
+        color[2] /= sum;
+    }
+    return color;
+}
+
+std::array<float, 3> GravitationalLensing::computeVolumetricDiskEmissivity(
     const std::array<float, 3>& pos,
     const VolumetricDiskParams& params,
     float mass,
@@ -942,33 +988,38 @@ float GravitationalLensing::computeVolumetricDiskEmissivity(
     float rPlane = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
     float rInner = params.diskInnerRadius;
     if (rInner <= 0.0f) {
-        // Exact Kerr ISCO (matches computeISCO_GLSL in the shader); the old
-        // hardcoded 6M only ever agreed at spin=0.
         rInner = static_cast<float>(computeISCORadius(spin)) * mass;
     }
-    if (rPlane < rInner || rPlane > params.diskOuterRadius) return 0.0f;
+    if (rPlane < rInner || rPlane > params.diskOuterRadius) return {0.0f, 0.0f, 0.0f};
+
+    float innerFade = (params.diskInnerEdgeFade > 0.0f)
+        ? std::clamp((rPlane - rInner) / params.diskInnerEdgeFade, 0.0f, 1.0f)
+        : (rPlane >= rInner ? 1.0f : 0.0f);
 
     float H = params.diskScaleHeight * rPlane;
     float zNorm = (H > 0.0001f) ? pos[1] / H : 0.0f;
     float rho = params.diskDensity * std::pow(rInner / rPlane, 1.5f) * std::exp(-zNorm * zNorm);
+    rho *= innerFade;
 
     float T = params.diskTemperature * std::pow(rInner / rPlane, 0.75f);
-    // Kirchhoff's law: blackbody emissivity j = κ·ρ·B(T) ∝ κ·ρ·T⁴.
-    // The κ factor must be present or the thick limit I → B(T)/κ becomes
-    // opacity-dependent, which is physically wrong.  (See Test 25.)
-    float j = params.diskOpacity * rho * T * T * T * T;
-
-    // Doppler beaming from azimuthal flow: v_phi = sqrt(M/r), delta = 1/(1 - v.n)
-    // Reference ray direction is +x (n = (1,0,0)), so only the x-component of the
-    // tangential velocity contributes.  Prograde (+phi) flow: vel = (-sin, 0, cos).
+    // Doppler-shifted effective temperature: T_obs = T_emit * delta.
+    // The delta^4 intensity boost moves from beaming into j below; beaming
+    // carries only the user gain.
     float vPhi = std::sqrt(mass / rPlane);
     float sinPhi = pos[2] / rPlane;
     float velX = -sinPhi * vPhi;
     float vDotN = velX;
     float delta = 1.0f / std::max(1.0f - vDotN, 0.01f);
-    float beaming = delta * delta * delta * delta * params.diskDopplerBoost;
+    float T_eff = T * delta;
+    float j = params.diskOpacity * rho * T_eff * T_eff * T_eff * T_eff;
+    std::array<float, 3> bbColor = blackbodyColor(T_eff);
+    float beaming = params.diskDopplerBoost;
 
-    return j * beaming;
+    std::array<float, 3> result;
+    result[0] = bbColor[0] * j * beaming;
+    result[1] = bbColor[1] * j * beaming;
+    result[2] = bbColor[2] * j * beaming;
+    return result;
 }
 
 float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& params, float mass,
@@ -998,7 +1049,9 @@ float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& pa
             for (int iz = 0; iz < NZ; ++iz) {
                 float y = -Hmax + (iz + 0.5f) * (2.0f * Hmax) / float(NZ);
                 std::array<float, 3> pos = {x, y, z};
-                lum += computeVolumetricDiskEmissivity(pos, params, mass, spin) * dr * dphi * r * (2.0f * Hmax) / float(NZ);
+                std::array<float, 3> emissivity = computeVolumetricDiskEmissivity(pos, params, mass, spin);
+                float dV = dr * dphi * r * (2.0f * Hmax) / float(NZ);
+                lum += (emissivity[0] + emissivity[1] + emissivity[2]) * dV;
             }
         }
     }
