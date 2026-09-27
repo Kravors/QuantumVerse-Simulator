@@ -66,7 +66,18 @@ public:
      * @param params Theory parameters in normalized [0,1] space.
      * @return DiscoveryResult with reward components and validity flags.
      */
-    DiscoveryResult evaluateTheory(const std::vector<double>& params) const;
+     DiscoveryResult evaluateTheory(const std::vector<double>& params) const;
+
+     /**
+      * @brief Run a single theory evaluation with optional Pareto archive update.
+      *
+      * Used internally to batch archive updates during optimization loops.
+      *
+      * @param params Theory parameters in normalized [0,1] space.
+      * @param updatePareto If true, update the Pareto archive after evaluation.
+      * @return DiscoveryResult with reward components and validity flags.
+      */
+     DiscoveryResult evaluateTheory(const std::vector<double>& params, bool updatePareto) const;
 
     /**
      * @brief Discover the best theory parameters over max_steps episodes.
