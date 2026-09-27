@@ -237,6 +237,7 @@ public:
         int diskRaySteps = 64;              ///< Steps per ray through the volume
         float diskOpacity = 1.0f;          ///< Tau per unit density (optical depth)
         float diskDopplerBoost = 1.0f;      ///< Global Doppler beaming gain
+        float diskInnerEdgeFade = 0.5f;     ///< Smooth transition width (in M) from rInner to full density
     };
 
     /**
@@ -296,7 +297,7 @@ public:
      * @param mass Black hole mass in geometric units
      * @param spin Dimensionless spin a/M (default 0 = Schwarzschild ISCO)
      */
-    static float computeVolumetricDiskEmissivity(
+    static std::array<float, 3> computeVolumetricDiskEmissivity(
         const std::array<float, 3>& pos,
         const VolumetricDiskParams& params,
         float mass,
@@ -314,6 +315,19 @@ public:
      */
     static float computeDiskLuminosity(const VolumetricDiskParams& params, float mass,
                                        float spin = 0.0f);
+
+    /**
+     * @brief Approximate blackbody RGB from effective temperature.
+     *
+     * Mirrors the GLSL `blackbodyColor()` used in the volumetric disk shader
+     * so the CPU reference and GPU path stay in sync.  T=1.0 maps to a neutral
+     * tint (sum=1 so total intensity is preserved by the scalar T_obs^4 term
+     * in j); T<1 shifts warm (red/orange), T>1 shifts cool (blue/white).
+     *
+     * @param T Effective temperature in geometric units
+     * @return RGB color tint as {R, G, B} summing to 1.0
+     */
+    static std::array<float, 3> blackbodyColor(float T);
 
 private:
     /**

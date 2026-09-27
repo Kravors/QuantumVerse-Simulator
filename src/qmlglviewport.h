@@ -517,7 +517,10 @@ class QmlGlViewport : public ::QQuickFramebufferObject
     Q_PROPERTY(float volumetricDiskScaleHeight READ volumetricDiskScaleHeight WRITE setVolumetricDiskScaleHeight NOTIFY volumetricDiskScaleHeightChanged)
     Q_PROPERTY(float volumetricDiskInnerRadius READ volumetricDiskInnerRadius WRITE setVolumetricDiskInnerRadius NOTIFY volumetricDiskInnerRadiusChanged)
     Q_PROPERTY(float volumetricDiskOuterRadius READ volumetricDiskOuterRadius WRITE setVolumetricDiskOuterRadius NOTIFY volumetricDiskOuterRadiusChanged)
-    Q_PROPERTY(float volumetricDiskOpacity READ volumetricDiskOpacity WRITE setVolumetricDiskOpacity NOTIFY volumetricDiskOpacityChanged)
+    Q_PROPERTY(float volumetricDiskOpacity READ volumetricDiskOpacity WRITE 
+setVolumetricDiskOpacity NOTIFY volumetricDiskOpacityChanged)
+    Q_PROPERTY(float volumetricDiskInnerEdgeFade READ volumetricDiskInnerEdgeFade WRITE 
+setVolumetricDiskInnerEdgeFade NOTIFY volumetricDiskInnerEdgeFadeChanged)
     Q_PROPERTY(float cameraDistance READ cameraDistance WRITE setCameraDistance NOTIFY cameraDistanceChanged)
     Q_PROPERTY(float cameraAngleX READ cameraAngleX WRITE setCameraAngleX NOTIFY cameraAngleXChanged)
     Q_PROPERTY(float cameraAngleY READ cameraAngleY WRITE setCameraAngleY NOTIFY cameraAngleYChanged)
@@ -720,6 +723,7 @@ public:
     float volumetricDiskInnerRadius() const { return m_volumetricDiskInnerRadius; }
     float volumetricDiskOuterRadius() const { return m_volumetricDiskOuterRadius; }
     float volumetricDiskOpacity() const { return m_volumetricDiskOpacity; }
+    float volumetricDiskInnerEdgeFade() const { return m_volumetricDiskInnerEdgeFade; }
 
     // Gravitational lensing QML methods
     Q_INVOKABLE void setLensingEnabled(bool enabled);
@@ -740,6 +744,7 @@ public:
     Q_INVOKABLE void setVolumetricDiskInnerRadius(float innerRadius);
     Q_INVOKABLE void setVolumetricDiskOuterRadius(float outerRadius);
     Q_INVOKABLE void setVolumetricDiskOpacity(float opacity);
+    Q_INVOKABLE void setVolumetricDiskInnerEdgeFade(float fade);
     Q_INVOKABLE void setLensingMetric(const QString& metricType);
 
      Q_INVOKABLE void setBloomEnabled(bool enabled);
@@ -868,6 +873,7 @@ signals:
       void volumetricDiskInnerRadiusChanged();
       void volumetricDiskOuterRadiusChanged();
       void volumetricDiskOpacityChanged();
+      void volumetricDiskInnerEdgeFadeChanged();
 
       void scenarioChanged();
      void scenarioListChanged();
@@ -1028,6 +1034,7 @@ bool m_accretionDiskEnabled = true;
     float m_volumetricDiskInnerRadius = 0.0f;
     float m_volumetricDiskOuterRadius = 20.0f;
     float m_volumetricDiskOpacity = 1.0f;
+    float m_volumetricDiskInnerEdgeFade = 0.5f;
     std::shared_ptr<GravitationalLensing> m_lensing;
      std::shared_ptr<MetricTensor> m_lensingMetric;
 

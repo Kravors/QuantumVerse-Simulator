@@ -3626,6 +3626,20 @@ void QmlGlViewport::setVolumetricDiskOpacity(float opacity) {
     }
 }
 
+void QmlGlViewport::setVolumetricDiskInnerEdgeFade(float fade) {
+    float clamped = std::clamp(fade, 0.0f, 5.0f);
+    if (std::abs(m_volumetricDiskInnerEdgeFade - clamped) > 0.001f) {
+        m_volumetricDiskInnerEdgeFade = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->volumetricDiskParams();
+            params.diskInnerEdgeFade = clamped;
+            m_lensing->setVolumetricDiskParams(params);
+        }
+        emit volumetricDiskInnerEdgeFadeChanged();
+        update();
+    }
+}
+
  void QmlGlViewport::setLensingMetric(const QString& metricType) {
      if (metricType == "kerr" || metricType == "Kerr") {
          m_lensingMetric = std::make_shared<KerrMetric>(

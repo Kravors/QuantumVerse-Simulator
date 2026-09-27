@@ -277,20 +277,22 @@ int main() {
         std::array<float, 3> p1 = {8.0f, 0.0f, 0.0f};  // mid-disk, equatorial
         std::array<float, 3> p2 = {12.0f, 0.5f, 0.0f}; // off-plane
         std::array<float, 3> p3 = {25.0f, 0.0f, 0.0f}; // outside disk
-        float e1 = GravitationalLensing::computeVolumetricDiskEmissivity(p1, params, mass);
-        float e2 = GravitationalLensing::computeVolumetricDiskEmissivity(p2, params, mass);
-        float e3 = GravitationalLensing::computeVolumetricDiskEmissivity(p3, params, mass);
+        auto e1 = GravitationalLensing::computeVolumetricDiskEmissivity(p1, params, mass);
+        auto e2 = GravitationalLensing::computeVolumetricDiskEmissivity(p2, params, mass);
+        auto e3 = GravitationalLensing::computeVolumetricDiskEmissivity(p3, params, mass);
 
-        QV_CHECK(e1 >= 0.0f);
-        QV_CHECK(e2 >= 0.0f);
-        QV_CHECK(e3 == 0.0f);
+        auto sum = [](const std::array<float, 3>& v) { return v[0] + v[1] + v[2]; };
+
+        QV_CHECK(sum(e1) >= 0.0f);
+        QV_CHECK(sum(e2) >= 0.0f);
+        QV_CHECK(sum(e3) == 0.0f);
 
         // Hotter near the inner edge (r=8M) than far out (r=12M): T ~ r^(-3/4)
-        QV_CHECK(e1 > e2);
+        QV_CHECK(sum(e1) > sum(e2));
 
         std::cout << "[PASS] Volumetric disk emissivity non-negative and radially decreasing" << std::endl;
-        std::cout << "       emissivity(8M)  = " << e1 << std::endl;
-        std::cout << "       emissivity(12M) = " << e2 << std::endl;
+        std::cout << "       emissivity(8M)  = (" << e1[0] << ", " << e1[1] << ", " << e1[2] << ")" << std::endl;
+        std::cout << "       emissivity(12M) = (" << e2[0] << ", " << e2[1] << ", " << e2[2] << ")" << std::endl;
     }
 
     // Test 14: Volumetric disk luminosity scales with density and temperature
@@ -576,16 +578,64 @@ int main() {
         std::array<float, 3> approaching = {0.0f, 0.0f, -8.0f};  // phi=-pi/2, vel.x > 0
         std::array<float, 3> receding    = {0.0f, 0.0f,  8.0f};  // phi=+pi/2, vel.x < 0
 
-        float eApproach = GravitationalLensing::computeVolumetricDiskEmissivity(approaching, params, mass);
-        float eRecede  = GravitationalLensing::computeVolumetricDiskEmissivity(receding, params, mass);
+        auto eApproach = GravitationalLensing::computeVolumetricDiskEmissivity(approaching, params, mass);
+        auto eRecede  = GravitationalLensing::computeVolumetricDiskEmissivity(receding, params, mass);
+
+        auto sum = [](const std::array<float, 3>& v) { return v[0] + v[1] + v[2]; };
 
         // Same radius -> same density and temperature -> the only asymmetry is
         // the Doppler factor.  Approaching side must be brighter.
-        QV_CHECK(eApproach > eRecede);
+        QV_CHECK(sum(eApproach) > sum(eRecede));
+
+        // Doppler color shift: approaching side is blueshifted (T_obs > T_emit)
+        // so its color should be bluer/whiter than the receding side.  We check
+        // that the B/R ratio is larger on the approaching side.
+        float bRatioApproach = eApproach[2] / std::max(eApproach[0], 0.001f);
+        float bRatioRecede    = eRecede[2] / std::max(eRecede[0], 0.001f);
+        QV_CHECK(bRatioApproach > bRatioRecede);
 
         std::cout << "[PASS] Doppler beaming is signed (approaching side brighter)" << std::endl;
-        std::cout << "       emissivity(approaching -8M) = " << eApproach << std::endl;
-        std::cout << "       emissivity(receding    +8M) = " << eRecede << std::endl;
+        std::cout << "       emissivity(approaching -8M) = (" << eApproach[0] << ", " << eApproach[1] << ", " << eApproach[2] << ")" << std::endl;
+        std::cout << "       emissivity(receding    +8M) = (" << eRecede[0] << ", " << eRecede[1] << ", " << eRecede[2] << ")" << std::endl;
+    }
+
+    // Test 23b: Doppler intensity scales as delta^4, not delta^8.
+    //
+    // Two points at the same radius (8M) but different azimuths: on the x axis
+    // v·n = 0 so delta = 1.0 (no boost); on the -z axis the tangential flow
+    // is toward the observer so delta > 1.  The intensity ratio must match
+    // delta^4 (Stefan-Boltzmann via T_obs = T*delta), not delta^8 (which
+    // would indicate the old beaming = delta^4 factor was left in j as well).
+    {
+        GravitationalLensing::VolumetricDiskParams params;
+        params.enableVolumetricDisk = true;
+        params.diskDensity = 1.0f;
+        params.diskTemperature = 1.0f;
+        params.diskScaleHeight = 0.1f;
+        params.diskInnerRadius = 6.0f;
+        params.diskOuterRadius = 20.0f;
+        params.diskDopplerBoost = 1.0f;
+        params.diskOpacity = 1.0f;
+
+        float mass = 1.0f;
+
+        // delta = 1.0 (on x axis: v perpendicular to n)
+        auto eNoBoost = GravitationalLensing::computeVolumetricDiskEmissivity({8.0f, 0.0f, 0.0f}, params, mass);
+        // delta > 1 (on -z axis: flow toward observer)
+        auto eBoost   = GravitationalLensing::computeVolumetricDiskEmissivity({0.0f, 0.0f, -8.0f}, params, mass);
+
+        auto sum = [](const std::array<float, 3>& v) { return v[0] + v[1] + v[2]; };
+
+        // delta ≈ 1.545 at -8M on the z axis; expected intensity ratio = delta^4.
+        float vPhi = std::sqrt(mass / 8.0f);
+        float delta = 1.0f / std::max(1.0f - vPhi, 0.01f);
+        float expectedRatio = std::pow(delta, 4.0f);
+        float actualRatio = sum(eBoost) / std::max(sum(eNoBoost), 0.001f);
+        bool ratioOk = std::fabs(actualRatio - expectedRatio) < 0.15f * expectedRatio;
+        QV_CHECK(ratioOk);
+
+        std::cout << "[PASS] Doppler intensity scales as delta^4" << std::endl;
+        std::cout << "       delta=" << delta << " expected_ratio=" << expectedRatio << " actual_ratio=" << actualRatio << std::endl;
     }
 
     // Test 24: The spin parameter reaches computeDiskLuminosity only through the
@@ -660,19 +710,72 @@ int main() {
         std::array<float, 3> pos = {8.0f, 0.0f, 0.0f};
 
         params.diskOpacity = 1.0f;
-        float e1 = GravitationalLensing::computeVolumetricDiskEmissivity(pos, params, mass);
+        auto e1 = GravitationalLensing::computeVolumetricDiskEmissivity(pos, params, mass);
 
         params.diskOpacity = 2.0f;
-        float e2 = GravitationalLensing::computeVolumetricDiskEmissivity(pos, params, mass);
+        auto e2 = GravitationalLensing::computeVolumetricDiskEmissivity(pos, params, mass);
 
-        // j = κ·ρ·T⁴, so doubling κ doubles the emissivity linearly.
-        double ratio = static_cast<double>(e2) / static_cast<double>(e1);
+        // j = κ·ρ·T_obs⁴, so doubling κ doubles the emissivity linearly.
+        // Sum RGB channels to get total intensity.
+        double ratio = (e2[0] + e2[1] + e2[2]) / (e1[0] + e1[1] + e1[2]);
         bool ok = std::abs(ratio - 2.0) < 0.01;
         require(ok, "Emissivity must scale linearly with opacity (kappa)");
 
         std::cout << "[PASS] Emissivity scales linearly with opacity (kappa)" << std::endl;
-        std::cout << "       emissivity(kappa=1) = " << e1 << std::endl;
-        std::cout << "       emissivity(kappa=2) = " << e2 << std::endl;
+        std::cout << "       emissivity(kappa=1) = (" << e1[0] << ", " << e1[1] << ", " << e1[2] << ")" << std::endl;
+        std::cout << "       emissivity(kappa=2) = (" << e2[0] << ", " << e2[1] << ", " << e2[2] << ")" << std::endl;
+    }
+
+    // Test 26: ISCO inner-edge fade smooths the hard cut-off.
+    //
+    // With fadeWidth = 0 the CPU reference falls back to a step function, so
+    // emissivity is zero for r < rInner and non-zero for r >= rInner.  With
+    // fadeWidth > 0 the density ramps from 0 to 1 over [rInner, rInner+fade],
+    // so a point just inside the fade band has intermediate emissivity and a
+    // point just outside has full strength.
+    //
+    // Emissivity = fadeFactor(r) * baseline(r); baseline is not asserted here,
+    // only the shape of the fade transition.
+    {
+        GravitationalLensing::VolumetricDiskParams params;
+        params.enableVolumetricDisk = true;
+        params.diskDensity = 1.0f;
+        params.diskTemperature = 1.0f;
+        params.diskScaleHeight = 0.1f;
+        params.diskInnerRadius = 6.0f;
+        params.diskOuterRadius = 20.0f;
+        params.diskDopplerBoost = 1.0f;
+        params.diskOpacity = 1.0f;
+
+        float mass = 1.0f;
+
+        // Hard cutoff baseline: fade = 0.
+        params.diskInnerEdgeFade = 0.0f;
+        auto eInside  = GravitationalLensing::computeVolumetricDiskEmissivity({5.9f, 0.0f, 0.0f}, params, mass);
+        auto eAtInner = GravitationalLensing::computeVolumetricDiskEmissivity({6.0f, 0.0f, 0.0f}, params, mass);
+
+        auto sum = [](const std::array<float, 3>& v) { return v[0] + v[1] + v[2]; };
+
+        QV_CHECK(sum(eInside) == 0.0f);
+        QV_CHECK(sum(eAtInner) > 0.0f);
+
+        // Smooth fade: fadeWidth = 1.0 M.
+        params.diskInnerEdgeFade = 1.0f;
+        // At rInner the fade is 0; halfway through the fade band it is 0.5;
+        // past the band it is 1.0.
+        auto eAtInnerFade  = GravitationalLensing::computeVolumetricDiskEmissivity({6.0f, 0.0f, 0.0f}, params, mass);
+        auto eFadeMid      = GravitationalLensing::computeVolumetricDiskEmissivity({6.5f, 0.0f, 0.0f}, params, mass);
+        auto eFadeFull     = GravitationalLensing::computeVolumetricDiskEmissivity({7.1f, 0.0f, 0.0f}, params, mass);
+        auto eInsideFade   = GravitationalLensing::computeVolumetricDiskEmissivity({5.9f, 0.0f, 0.0f}, params, mass);
+
+        QV_CHECK(sum(eInsideFade) == 0.0f);
+        QV_CHECK(sum(eAtInnerFade) == 0.0f);
+        QV_CHECK(sum(eFadeMid) > 0.0f);
+        QV_CHECK(sum(eFadeFull) > sum(eFadeMid));
+
+        std::cout << "[PASS] ISCO inner-edge fade smooths the hard cut-off" << std::endl;
+        std::cout << "       fade=0   : emissivity(5.9M)=sum=" << sum(eInside) << " emissivity(6.0M)=sum=" << sum(eAtInner) << std::endl;
+        std::cout << "       fade=1.0 : emissivity(5.9M)=sum=" << sum(eInsideFade) << " emissivity(6.0M)=sum=" << sum(eAtInnerFade) << " emissivity(6.5M)=sum=" << sum(eFadeMid) << " emissivity(7.1M)=sum=" << sum(eFadeFull) << std::endl;
     }
 
     std::cout << "=== ALL GRAVITATIONAL LENSING TESTS PASSED ===" << std::endl;
