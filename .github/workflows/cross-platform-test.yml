@@ -199,8 +199,8 @@ jobs:
         working-directory: build
         continue-on-error: true
         run: |
-        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
-        ctest -C Release -E "$EXCLUSIONS" --timeout 600 --output-on-failure
+          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+          ctest -C Release -E "$EXCLUSIONS" --timeout 600 --output-on-failure
 
   # Code quality checks
   code-quality:
