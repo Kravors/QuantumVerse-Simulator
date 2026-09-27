@@ -1070,9 +1070,6 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient
     DiscoveryResult best_result = evaluateTheory(params, false);
     double best_reward = best_result.total_reward;
 
-    std::vector<ParetoPoint> pending_pareto_points;
-    std::vector<DiscoveryResult> pending_pareto_results;
-
     for (size_t iter = 0; iter < maxIterations; ++iter) {
         std::vector<double> grad = computeAdjointGradient(params);
 
