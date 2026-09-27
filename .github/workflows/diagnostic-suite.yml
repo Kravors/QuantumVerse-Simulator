@@ -124,11 +124,9 @@ jobs:
       - name: Run tests with sanitizers (non-blocking canary)
         continue-on-error: true
         working-directory: build_${{ matrix.sanitizer }}
-        run: |
-          # GPU/visual/perf tests fail under the headless software-GL runner and are
-          # non-blocking canaries everywhere else; exclude them so ASan/UBSan/TSan
-          # actually validate the real code paths.
-          xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|MemoryLeakTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|NBodyTest" --output-on-failure -j2
+      run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j2
 
       - name: Run Valgrind memcheck (nightly only)
         if: github.event_name == 'schedule'
@@ -272,7 +270,9 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: build
-        run: xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|NBodyTest" --output-on-failure -j2
+        run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j2
 
       - name: Generate coverage report
         working-directory: build

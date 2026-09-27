@@ -119,18 +119,14 @@ jobs:
       - name: Run tests
         working-directory: build
         shell: bash
-        run: |
-          # GPU/visual/perf/stress tests are env-sensitive under headless
-          # software-GL and are tracked as non-blocking canaries
-          # elsewhere; exclude them so this job gates on the core
-          # invariant and functional tests.
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|SoftwareTourHeadlessTest|UI4DTest"
-          if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 600 --output-on-failure -j 2
-          else
-            export QT_QPA_PLATFORM=offscreen
-            ctest -C ${{ matrix.config }} -E "$GPU_CANARY" --timeout 600 --output-on-failure -j 2
-          fi
+      run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          xvfb-run -a ctest -C ${{ matrix.config }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 2
+        else
+          export QT_QPA_PLATFORM=offscreen
+          ctest -C ${{ matrix.config }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 2
+        fi
 
       # Rendering/visual tests are non-blocking canaries (headless software-GL
       # pixel/timing/--gl-strict mismatches). See build-and-test.yml for rationale.
@@ -224,14 +220,11 @@ jobs:
           modules: 'qtwebsockets'
           cache: true      
       - name: Build with sanitizers
-        run: |
-          cmake -B build -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
-          cmake --build build
-          # GPU/visual/perf tests are env-sensitive under headless
-          # software-GL and are tracked as non-blocking canaries
-          # elsewhere; exclude them so this job gates on the core
-          # invariant and functional tests.
-             cd build && xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|SoftwareTourHeadlessTest|UI4DTest" --timeout 600 --output-on-failure -j 2
+         run: |
+           cmake -B build -DQUANTUMVERSE_USE_ASAN=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_linux.outputs.Qt6_DIR }}"
+           cmake --build build
+           EXCLUSIONS=$(cat .github/workflows/_canary-exclusions.txt)
+           cd build && xvfb-run -a ctest -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 2
 
   all-deps-build:
       runs-on: ubuntu-latest
@@ -261,12 +254,9 @@ jobs:
         - name: Build
           run: cmake --build build --parallel 2
         - name: Run tests
-          run: |
-            # GPU/visual/perf tests are env-sensitive under headless
-            # software-GL and are tracked as non-blocking canaries
-            # elsewhere; exclude them so this job gates on the core
-            # invariant and functional tests.
-             cd build && xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|SoftwareTourHeadlessTest|UI4DTest" --timeout 600 --output-on-failure -j 2
+         run: |
+           EXCLUSIONS=$(cat .github/workflows/_canary-exclusions.txt)
+           cd build && xvfb-run -a ctest -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 2
 
 
   secret-scan:

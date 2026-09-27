@@ -54,7 +54,9 @@ jobs:
 
       - name: Run all tests
         working-directory: build
-        run: xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest|FuzzPhysicsInvariantsTest" --output-on-failure -j $(nproc)
+        run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j $(nproc)
 
       - name: Run static analysis
         run: |
@@ -107,7 +109,9 @@ jobs:
 
       - name: Run tests
         working-directory: build
-        run: ctest -C Release -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest|FuzzPhysicsInvariantsTest" --output-on-failure -j 4
+        run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        ctest -C Release -E "$EXCLUSIONS" --output-on-failure -j 4
 
       - name: Upload Windows test results
         uses: actions/upload-artifact@v5
