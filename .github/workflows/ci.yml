@@ -62,7 +62,7 @@ jobs:
           xvfb-run -a ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|UI4DTest" --output-on-failure
         else
           export QT_QPA_PLATFORM=offscreen
-          ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|UI4DTest" --output-on-failure
+          ctest -C ${{ matrix.build_type }} -E "PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|GridDeformationTest|SoftwareTourHeadlessTest|UI4DTest" --output-on-failure
         fi
     - name: Run ASan tests (Debug only)
       if: matrix.build_type == 'Debug'
