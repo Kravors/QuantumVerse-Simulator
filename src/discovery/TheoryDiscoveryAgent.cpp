@@ -242,6 +242,13 @@ RLState TheoryDiscoveryAgent::runSimulation(const std::vector<double>& params) c
 TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
     const std::vector<double>& params
 ) const {
+    return evaluateTheory(params, true);
+}
+
+TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
+    const std::vector<double>& params,
+    bool updatePareto
+) const {
     DiscoveryResult result;
     result.parameters = params;
     result.theory_name = param_space_.getTheoryName();
@@ -336,7 +343,7 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::evaluateTheory(
     }
 
     // Update Pareto archive if multi-objective mode is enabled
-    if (multi_objective_mode_) {
+    if (multi_objective_mode_ && updatePareto) {
         ParetoPoint point(
             params,
             computeObjectives(result),
@@ -394,7 +401,7 @@ std::vector<double> TheoryDiscoveryAgent::discoverBestTheory(int max_steps) {
 
             // Denormalize to physical space for evaluation
             std::vector<double> candidate_physical = denormalizeParams(candidate_norm);
-            auto result = evaluateTheory(candidate_physical);
+            auto result = evaluateTheory(candidate_physical, false);
             if (result.total_reward > best_expected) {
                 best_expected = result.total_reward;
                 best_params = candidate_physical;
@@ -429,7 +436,7 @@ std::vector<double> TheoryDiscoveryAgent::discoverBestTheory(int max_steps) {
             }
 
             std::vector<double> candidate_physical = denormalizeParams(candidate_norm);
-            auto result = evaluateTheory(candidate_physical);
+            auto result = evaluateTheory(candidate_physical, false);
 
             if (result.total_reward > best_reward) {
                 best_reward = result.total_reward;
@@ -983,10 +990,10 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
             double h = std::max(eps, range * 1e-6);
             std::vector<double> p_plus = params;
             p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
-            double chi2_plus = evaluateTheory(p_plus).observational_chi2;
+            double chi2_plus = evaluateTheory(p_plus, false).observational_chi2;
             std::vector<double> p_minus = params;
             p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
-            double chi2_minus = evaluateTheory(p_minus).observational_chi2;
+            double chi2_minus = evaluateTheory(p_minus, false).observational_chi2;
             grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
         }
         return grad;
@@ -1028,10 +1035,10 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
             double h = std::max(eps, range * 1e-6);
             std::vector<double> p_plus = params;
             p_plus[i] = std::max(lo, std::min(hi, params[i] + h));
-            double chi2_plus = evaluateTheory(p_plus).observational_chi2;
+            double chi2_plus = evaluateTheory(p_plus, false).observational_chi2;
             std::vector<double> p_minus = params;
             p_minus[i] = std::max(lo, std::min(hi, params[i] - h));
-            double chi2_minus = evaluateTheory(p_minus).observational_chi2;
+            double chi2_minus = evaluateTheory(p_minus, false).observational_chi2;
             grad[i] = (chi2_plus - chi2_minus) / (2.0 * h);
         }
     }
@@ -1059,9 +1066,12 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient
     auto param_list = param_space_.getParameters();
     int dim = static_cast<int>(params.size());
 
-    double prev_chi2 = evaluateTheory(params).observational_chi2;
-    DiscoveryResult best_result = evaluateTheory(params);
+    double prev_chi2 = evaluateTheory(params, false).observational_chi2;
+    DiscoveryResult best_result = evaluateTheory(params, false);
     double best_reward = best_result.total_reward;
+
+    std::vector<ParetoPoint> pending_pareto_points;
+    std::vector<DiscoveryResult> pending_pareto_results;
 
     for (size_t iter = 0; iter < maxIterations; ++iter) {
         std::vector<double> grad = computeAdjointGradient(params);
@@ -1073,7 +1083,7 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient
             params[i] = std::max(lo, std::min(hi, params[i] - learningRate * grad[i]));
         }
 
-        auto result = evaluateTheory(params);
+        auto result = evaluateTheory(params, false);
         double current_chi2 = result.observational_chi2;
         double current_reward = result.total_reward;
 
