@@ -116,15 +116,16 @@ jobs:
       - name: Run tests
         working-directory: build
         shell: bash
-        run: |
-          if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
-          elif [ "${{ runner.os }}" == "Windows" ]; then
-            export QT_QPA_PLATFORM=offscreen
-            ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
-          else
-            ctest -C ${{ matrix.build_type }} -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure -j 4
-          fi
+      run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
+        elif [ "${{ runner.os }}" == "Windows" ]; then
+          export QT_QPA_PLATFORM=offscreen
+          ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
+        else
+          ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --timeout 600 --output-on-failure -j 4
+        fi
 
       # Rendering/visual tests are non-blocking canaries (headless software-GL
       # pixel/timing/--gl-strict mismatches). See build-and-test.yml for rationale.
@@ -197,7 +198,9 @@ jobs:
       - name: Run all tests
         working-directory: build
         continue-on-error: true
-        run: ctest -C Release -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|GridDeformationTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|RenderingDiagnosticTest|UI4DTest|HeadlessUITest|UIAutomationTest|YukawaGravityTest" --timeout 600 --output-on-failure
+        run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        ctest -C Release -E "$EXCLUSIONS" --timeout 600 --output-on-failure
 
   # Code quality checks
   code-quality:

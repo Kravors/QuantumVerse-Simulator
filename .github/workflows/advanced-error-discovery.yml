@@ -148,12 +148,9 @@ jobs:
           cmake --build build --config Debug --parallel 2
       - name: Run tests with runtime monitoring
         working-directory: build
-        run: |
-          # GPU/visual/perf/stress tests are env-sensitive under headless
-          # software-GL and Debug+ASan and are tracked as non-blocking canaries
-          # elsewhere; exclude them so this job gates on the real invariant and
-          # functional tests.
-          xvfb-run -a ctest -E "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|PerformanceRegressionTest|QMLPerformanceBaseline|GridDeformationTest|ViewportIsolationTest|InteractionStressTest|ResizeStressTest|GeodesicRenderingTest|LightConeRenderingTest|MemoryLeakTest|RenderingDiagnosticTest|ConfigLoaderTest|KerrMetricTest|GravitationalLensingTest|PBRRenderingTest|NBodyTest|ScenarioSystemTest|MergingBinaryInspiralTest|SoftwareTourHeadlessTest" --output-on-failure -j 2
+      run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j 2
 
   fuzz-testing:
     name: Hybrid Fuzz Testing

@@ -117,24 +117,15 @@ jobs:
       - name: Run tests
         working-directory: build
         shell: bash
-        run: |
-          GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline"
-          # SoftwareTourHeadlessTest spawns quantumverse_qml with --software-rendering,
-          # which still needs a Qt platform plugin. On Windows the Qt6 install ships
-          # only the 'windows' plugin (no offscreen), so it dies with 0xc0000409 in
-          # QGuiApplicationPrivate::init (see AGENTS.md qFatal exit codes). Excluded.
-          # UI4DTest hits the same Qt init crash on Windows (0xc0000409). Not a
-          # project bug; excluded on that platform only.
-          # GridDeformationTest is flaky on Ubuntu under xvfb/llvmpipe: QProcess
-          # timeouts in test_geodesic_mode_produces_valid_image and
-          # test_screenshot_dimensions_are_consistent. Excluded on Linux.
-          if [ "${{ runner.os }}" == "Linux" ]; then
-            xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY|SoftwareTourHeadlessTest|UI4DTest|GridDeformationTest" --output-on-failure
-          else
-            export QT_QPA_PLATFORM=offscreen
-            GPU_CANARY="$GPU_CANARY|GridDeformationTest|PerformanceGateTest|QMLPerformanceBaseline|CrashHandlerTest|SoftwareTourHeadlessTest|UI4DTest"
-            ctest -C ${{ matrix.build_type }} -E "$GPU_CANARY" --output-on-failure
-          fi
+      run: |
+        EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+        GPU_CANARY="VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest|PerformanceGateTest|QMLPerformanceBaseline"
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          xvfb-run -a ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --output-on-failure
+        else
+          export QT_QPA_PLATFORM=offscreen
+          ctest -C ${{ matrix.build_type }} -E "$EXCLUSIONS" --output-on-failure
+        fi
 
       # Rendering/visual tests rely on a real GPU context and fail under the
       # headless offscreen/software-GL CI runners (pixel, frame-timing and
