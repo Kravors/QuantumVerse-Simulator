@@ -10,9 +10,15 @@
 #define QUANTUMVERSE_MULTI_USER_SERVER_H
 
 #include "../vr/VRCommon.h"
+#include <QObject>
+#include <QWebSocketServer>
+#include <QWebSocket>
+#include <QHostAddress>
+#include <QTimer>
 #include <string>
 #include <vector>
 #include <memory>
+#include <unordered_set>
 #include <functional>
 
 namespace quantumverse {
@@ -59,12 +65,12 @@ struct Message {
  * synchronizing head poses, controller states, and annotations
  * across all connected participants.
  */
-class MultiUserServer {
+class MultiUserServer : public QObject {
+    Q_OBJECT
 public:
-    MultiUserServer();
-    ~MultiUserServer();
+    explicit MultiUserServer(QObject* parent = nullptr);
+    ~MultiUserServer() override;
 
-    // Non-copyable
     MultiUserServer(const MultiUserServer&) = delete;
     MultiUserServer& operator=(const MultiUserServer&) = delete;
     MultiUserServer(MultiUserServer&&) = default;
@@ -90,7 +96,7 @@ public:
     /**
      * @brief Update server state (call regularly)
      */
-    void update();
+    void update() { cleanupStaleParticipants(); }
 
     /**
      * @brief Get list of connected participants
@@ -102,11 +108,116 @@ public:
      */
     void broadcastMessage(const Message& message);
 
+signals:
+    /**
+     * @brief Emitted when a client connects
+     */
+    void clientConnected(const std::string& clientId);
+
+    /**
+     * @brief Emitted when a client disconnects
+     */
+    void clientDisconnected(const std::string& clientId);
+
+    /**
+     * @brief Emitted when a client joins a session
+     */
+    void clientJoinedSession(const std::string& clientId, const std::string& sessionId);
+
+    /**
+     * @brief Emitted when a client leaves a session
+     */
+    void clientLeftSession(const std::string& clientId, const std::string& sessionId);
+
+private slots:
+    /**
+     * @brief Handle new WebSocket connection
+     */
+    void onNewConnection();
+
+    /**
+     * @brief Handle client disconnection
+     */
+    void onClientDisconnected();
+
+    /**
+     * @brief Handle incoming text message
+     */
+    void onTextMessageReceived(const QString& message);
+
 private:
+    struct ClientEntry {
+        QWebSocket* socket = nullptr;
+        std::string id;
+        std::string name;
+        std::string sessionId;
+        bool isPresent = false;
+        qint64 lastUpdateTime = 0;
+
+        Participant toParticipant() const {
+            Participant p;
+            p.id = id;
+            p.name = name;
+            p.isPresent = isPresent;
+            p.lastUpdateTime = static_cast<double>(lastUpdateTime);
+            return p;
+        }
+    };
+
+    /**
+     * @brief Handle join message from client
+     */
+    void handleJoin(const QString& clientId, const QJsonObject& obj);
+
+    /**
+     * @brief Handle leave message from client
+     */
+    void handleLeave(const QString& clientId, const QJsonObject& obj);
+
+    /**
+     * @brief Handle state update from client
+     */
+    void handleStateUpdate(const QString& clientId, const QJsonObject& obj);
+
+    /**
+     * @brief Handle head pose update from client
+     */
+    void handleHeadPoseUpdate(const QString& clientId, const QJsonObject& obj);
+
+    /**
+     * @brief Handle controller update from client
+     */
+    void handleControllerUpdate(const QString& clientId, const QJsonObject& obj);
+
+    /**
+     * @brief Broadcast message to all clients in a session except sender
+     */
+    void broadcastToSession(const std::string& sessionId,
+                           const QJsonObject& message,
+                           const std::string& excludeClientId);
+
+    /**
+     * @brief Remove stale participants that haven't updated recently
+     */
+    void cleanupStaleParticipants();
+
+    /**
+     * @brief Find client by ID
+     */
+    std::vector<ClientEntry>::iterator findClient(const std::string& clientId);
+
+    /**
+     * @brief Serialize message to JSON
+     */
+    QJsonObject serializeMessage(const Message& message) const;
+
     bool m_isRunning = false;
-    std::vector<Participant> m_participants;
     uint16_t m_port = 7777;
-    double m_lastUpdateTime = 0.0;
+    QWebSocketServer* m_server = nullptr;
+    QTimer* m_cleanupTimer = nullptr;
+
+    std::vector<ClientEntry> m_clients;
+    std::unordered_map<std::string, std::unordered_set<std::string>> m_sessions;
 };
 
 } // namespace vr
