@@ -76,7 +76,7 @@ jobs:
         echo "Analyzing $(echo "$CHANGED" | wc -l) files"
 
         echo "$CHANGED" | xargs -r run-clang-tidy -p build -j "$(nproc)" -quiet \
-          -export-fixes=reports/clang-tidy-fixes.yaml \
+          -export-fixes=reports/ \
           2>&1 | tee clang-tidy.log
 
         WARN_COUNT=$(grep -c "warning:" clang-tidy.log || true)
@@ -210,6 +210,8 @@ jobs:
   coverage:
     continue-on-error: true
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
     - uses: actions/checkout@v4
       with:
