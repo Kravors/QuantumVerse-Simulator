@@ -88,25 +88,18 @@ jobs:
       - name: Configure CMake
         run:           cmake -B build -G Ninja -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_clang_tidy.outputs.Qt6_DIR }}"
        
+      - name: Verify compile_commands.json
+        run: head -c 500 build/compile_commands.json
+
       - name: Run Clang-Tidy
         continue-on-error: true
         timeout-minutes: 90
         run: |
-          if [ -d src ]; then
-            mapfile -d '' -t TIDY_FILES < <(find src -name '*.cpp' ! -name 'qmlglviewport.cpp' -print0)
-            if [ "${#TIDY_FILES[@]}" -gt 0 ]; then
-              clang-tidy -p build \
-                -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
-                -header-filter='.*' \
-                -j "$(nproc)" \
-                "${TIDY_FILES[@]}" \
-                -- -std=c++17
-            else
-              echo "No source files found, skipping clang-tidy"
-            fi
-          else
-            echo "No src directory found, skipping clang-tidy"
-          fi
+          cd build
+          run-clang-tidy -p . \
+            -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
+            -header-filter='.*' \
+            -j "$(nproc)"
       
       - name: Upload Clang-Tidy Report
         uses: actions/upload-artifact@v5
