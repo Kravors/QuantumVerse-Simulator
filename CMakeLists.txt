@@ -176,6 +176,7 @@ if(QUANTUMVERSE_USE_QT)
     add_library(quantumverse_multi_user STATIC
         src/vr/SignalingClient.cpp
         src/vr/SharedSession.cpp
+        src/vr/MultiUserServer.cpp
     )
     target_include_directories(quantumverse_multi_user PUBLIC
         ${CMAKE_SOURCE_DIR}/src
@@ -2281,6 +2282,10 @@ endif()
         add_executable(test_signaling_client tests/unit/test_signaling_client.cpp)
         target_link_libraries(test_signaling_client PRIVATE dilaton quantumverse_multi_user)
         add_test(NAME SignalingClientTest COMMAND test_signaling_client)
+
+        add_executable(test_multi_user_server tests/unit/test_multi_user_server.cpp)
+        target_link_libraries(test_multi_user_server PRIVATE dilaton quantumverse_multi_user)
+        add_test(NAME MultiUserServerTest COMMAND test_multi_user_server)
     endif()
 endif()
 
