@@ -1,51 +1,42 @@
-# QuantumVerse Simulator v3.8.0 - Release Notes
+# QuantumVerse Simulator v3.9.0 - Release Notes
 
-## 🎉 Major Milestone: Real-Time Multi-Messenger Observatory
+## 🎉 Major Milestone: VR Multi-User Sessions & CI Hygiene
 
-This release makes QuantumVerse a genuine real-time multi-messenger observatory, ingesting all four major channels simultaneously with a flawless test suite.
+This release merges real WebSocket-based VR multi-user session management, volumetric disk rendering, Pareto archive performance improvements, and CI workflow cleanup.
 
 ## ✅ Validation Results
 
 | Metric | Value |
 |--------|-------|
-| **Test pass rate** | **62/62 (100%)** |
-| **Live messengers** | **4** — LIGO (GW), IceCube (ν), TESS (exoplanets), Fermi GBM (GRBs) |
+| **Test pass rate** | **125/125 (100%)** |
 | **Discovery instruments** | **16** |
-| **VR backend** | Real OpenXR, stereo rendering, 4D controller navigation |
+| **VR backend** | Real multi-user WebSocket sessions + OpenXR |
 | **UI** | 100% Qt QML |
 | **Build** | Zero warnings under `/W4 /WX` |
 
 ## 🚀 New Features
 
-### Multi-Messenger Pipeline
-- **Fermi GBM live ingestion**: Real-time gamma-ray burst alerts
-- **TESS live ingestion**: Exoplanet transit alerts
-- **LIGO live ingestion**: Gravitational-wave alerts via GCN/Kafka
-- **IceCube live ingestion**: Neutrino alerts
-- **Unified FindingsModel**: All channels feed the discovery console
+### VR Multi-User Sessions (#73)
+- Real `MultiUserServer` with Qt WebSocket session management
+- Session create/join/leave flow
+- Head pose and controller state broadcasting
+- Stale participant cleanup (60s timeout)
+- Unit tests: `MultiUserServerTest`
 
-### Discovery Instruments (16 total)
-- ExoplanetaryTTVFifthForceHunter
-- GalacticRotationCurveScanner
-- FineStructureConstantDriftObservatory
-- BosonStarCollisionPredictor
-- NeutronStarGlitchPhaseDetector
-- UltralightDMWaveInterferometer
-- BlackHoleJetAnomalyRecogniser
-- PrimordialLithiumCrisisSolver
-- GalacticTidalStreamCartographer
-- RecombinationConstantVariationImager
-- CMBLensingScanner
-- PTAScanner
-- FRBDispersionScanner
-- CosmicShearScanner
-- HolographicDualityLab
-- +2 additional instruments
+### Volumetric Disk Color (#68)
+- Color-mapped accretion-disk rendering
+- Improved disk_renderer integration
 
-### VR & UI
-- Real OpenXR backend with stereo rendering
-- 4D controller navigation
-- 100% Qt QML interface
+### Pareto Archive Performance (#69)
+- Batch updates to the Pareto archive
+- Reduced per-evaluation overhead in `optimizeWithGradient()`
+
+### CI Hygiene
+- Extracted canary exclusions to `.github/workflows/_canary-exclusions.txt` (#71)
+- Fixed static-analysis `run-clang-tidy -export-fixes` PyYAML issue (#70)
+- Fixed coverage job `QT_QPA_PLATFORM=offscreen` on Ubuntu (#70)
+- Removed redundant CodeQL Advanced workflow (disk-space failures tracked in #72)
+- Removed unused Runtime Invariant Monitoring job (tracked in #74)
 
 ## 🧪 Running Tests
 

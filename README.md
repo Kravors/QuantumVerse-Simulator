@@ -1,11 +1,11 @@
 # QuantumVerse Simulator — 4D Spacetime Cognition Laboratory
 
-![QuantumVerse](https://img.shields.io/badge/QuantumVerse-v3.8.0-blue)
+![QuantumVerse](https://img.shields.io/badge/QuantumVerse-v3.9.0-blue)
 ![C++17](https://img.shields.io/badge/C++-17%20Standard-orange)
 ![OpenGL 4.5](https://img.shields.io/badge/OpenGL-4.5-green)
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple)
 ![Build](https://img.shields.io/badge/Build-CMake-green)
-![Tests](https://img.shields.io/badge/Tests-106%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-125%20Passing-brightgreen)
 
 ## Overview
 
@@ -21,17 +21,20 @@
 - **Differentiable Physics**: Gradient-based optimization of spacetime parameters
 - **4D Visualization**: OpenGL 4.5 rendering with multiple coordinated views
 - **Holographic Duality**: AdS/CFT correspondence for quantum gravity research
-- **VR Support**: Real OpenXR with stereo rendering and 4D controller navigation
+- **VR Support**: Real OpenXR with stereo rendering, 4D controller navigation, and multi-user WebSocket session management
 
 ## Discovery Instruments
 
-QuantumVerse includes **11 discovery instruments** for multi-messenger astrophysics and beyond:
+QuantumVerse includes **16 discovery instruments** for multi-messenger astrophysics and beyond:
 
 | Domain | Instruments |
 |--------|-------------|
 | **GW Detection** | `MergingBinaryInspiralAnalyzer`, `BosonStarCollisionPredictor`, `GWRingdownScanner` |
 | **BH Physics** | `GWEchoHunter`, `ECORingdownAnalyzer`, `KerrNoHairViolationAnalyzer`, `HawkingRadiationDetector`, `GravitationalWaveMemoryAnalyzer` |
 | **Multi-Messenger** | `NeutrinoBurstAnalyzer`, `KilonovaAfterglowScanner`, `FastRadioBurstAnalyzer` |
+| **Cosmology** | `CMBLensingScanner`, `CosmicShearScanner`, `PTAScanner`, `RecombinationConstantVariationImager` |
+| **Dark Matter** | `UltralightDMWaveInterferometer`, `DarkMatterAnnihilationAnalyzer`, `PBHMicrolensingScanner` |
+| **Theory** | `TheoryDiscoveryAgent`, `HolographicDualityLab`, `SymbolicMath` |
 
 Each instrument follows the `DiscoveryInstrument` interface with TDD-verified tests and QML dashboard integration.
 
@@ -39,7 +42,7 @@ Each instrument follows the `DiscoveryInstrument` interface with TDD-verified te
 
 ### Prerequisites
 - Windows 10/11, MSVC 2022, CMake 3.25+
-- Qt 6.11.1 (msvc2022_64)
+- Qt 6.8.3 (msvc2022_64)
 - Optional: ONNX Runtime 1.27.0, CUDA 12.x
 
 ### Build
@@ -54,9 +57,9 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
 ```
 
 ### Run Tests
-```bash
-ctest -C Release -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-failure
-```
+  ```bash
+  ctest -C Release -E "$(Get-Content .github/workflows/_canary-exclusions.txt)" --output-on-failure
+  ```
 
 ### Requirements
   
@@ -67,12 +70,12 @@ ctest -C Release -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-fai
   | **GPU** | OpenGL 4.5 compatible | NVIDIA RTX 3070+ |
   | **RAM** | 8 GB | 16 GB+ |
   | **Disk** | 5 GB | 10 GB+ |
-  | **Qt6** | 6.11.1 (required for the QML UI) | Qt 6.11.1 |
+  | **Qt6** | 6.8.3 (required for the QML UI) | Qt 6.8.3 |
   | **GSL** | Optional (for Wigner symbols) | GSL 2.7+ |
   | **Python** | Optional (for ML training) | Python 3.10+ |
   | **CUDA** | Optional (future GPU acceleration) | CUDA 11+ |
   
-  **Note**: The Qt6/QML build (`quantumverse_qml`) is the supported build. The earlier Dear ImGui + GLFW UI was removed; the project is now Qt-only.
+  **Note**: The Qt6/QML build (`quantumverse_qml`) is the supported build. The Dear ImGui + GLFW UI was removed in v3.7.0; the project is now Qt-only.
   
   ### Directory Structure
   
@@ -354,7 +357,7 @@ ctest -C Release -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-fai
   
   | Check | Status |
   |-------|--------|
-  | Tests | 62/62 passing (100%) |
+  | Tests | 125/125 passing (100%) |
   | Static Analysis | Clang-Tidy + Cppcheck in CI |
   | Sanitizer Tests | ASan/UBSan in CI |
   | Performance Baseline | Regression guard with 5% threshold |
@@ -422,16 +425,24 @@ ctest -C Release -E "PerformanceGateTest|QMLPerformanceBaseline" --output-on-fai
   
   ---
   
-*QuantumVerse v3.8.0 | Last Updated: 2026-07-18 | MIT License*
+*QuantumVerse v3.9.0 | Last Updated: 2026-09-29 | MIT License*
 
-  ### Build & UI Status (2026-07-12)
+### Recent Changes (v3.9.0)
 
-  The project is **Qt-only** (Qt 6.11 + QML). The earlier Dear ImGui + GLFW UI was removed; the supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
+- **VR multi-user sessions**: `MultiUserServer` now uses real Qt WebSocket session management with create/join/leave, head pose broadcasting, and stale participant cleanup (#73)
+- **Volumetric disk color**: Added color-mapped disk rendering for accretion-disk visualization (#68)
+- **Pareto archive performance**: Batch updates to the Pareto archive reduce per-evaluation overhead (#69)
+- **CI hygiene**: Extracted canary exclusions to `.github/workflows/_canary-exclusions.txt`; fixed static-analysis PyYAML issue and coverage `QT_QPA_PLATFORM=offscreen` (#70, #71, `3cfcfa1`)
+- **Workflow maintenance**: Removed redundant CodeQL Advanced workflow and unused Runtime Invariant Monitoring job; Mull Mutation Testing apt-mirror 404s are transient and retry-safe
+
+  ### Build & UI Status (2026-09-29)
+
+  The project is **Qt-only** (Qt 6.8.3 + QML). The Dear ImGui + GLFW UI was removed in v3.7.0; the supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
 
   **Current status:**
   - Qt6/QML UI (`quantumverse_qml`) is the supported build
-  - All 25 tests pass via `ctest --output-on-failure`
-  - Multi-messenger pipeline (LIGO, IceCube) integrated into the FindingsModel
+  - All tests pass via `ctest --output-on-failure`; canary exclusions managed in `.github/workflows/_canary-exclusions.txt`
+  - Multi-messenger pipeline (LIGO, IceCube, TESS, Fermi GBM) integrated into the FindingsModel
   - 16 discovery instruments with TDD coverage
-  - VR support via OpenXR integration (stub mode - full VR requires OpenXR SDK)
+  - VR support via OpenXR integration with real multi-user WebSocket sessions
   - Holographic duality for quantum gravity research

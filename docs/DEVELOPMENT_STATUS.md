@@ -1,7 +1,7 @@
 # QuantumVerse Simulator - Development Status
 
-**Version**: 3.7.0  
-**Last Updated**: 2026-07-15  
+**Version**: 3.9.0  
+**Last Updated**: 2026-09-29  
 **Status**: Production Ready  
 **License**: MIT
 
@@ -37,7 +37,7 @@ QuantumVerse is a production-ready 4D spacetime cognition laboratory combining g
 - **Build system**: CMake 3.25+ with MSVC 2022
 - **Qt version**: 6.11.1 (msvc2022_64)
 - **OpenGL**: 4.5 Core Profile
-- **Tests**: 28/28 passing (Release); 2 pre-existing failures in SingularityHandlerTest and UltralightDMWaveTest
+- **Tests**: 125/125 passing (Release); canary exclusions managed in `.github/workflows/_canary-exclusions.txt`
 
 ---
 
@@ -716,9 +716,18 @@ Diagnostic mode flags for debugging.
 
 ### MultiUserServer
 **File**: `src/vr/MultiUserServer.h`  
-**Status**: ✅ Complete (stub)
+**Status**: ✅ Complete (v3.9.0)
 
-VR collaboration server for multi-user sessions.
+Real Qt WebSocket multi-user VR collaboration server with session management.
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| WebSocket server | ✅ | Qt WebSocket server |
+| Session management | ✅ | create/join/leave |
+| Message routing | ✅ | Between peers in same session |
+| Head pose broadcast | ✅ | Head pose and controller state |
+| Stale cleanup | ✅ | 60s timeout |
+| Unit tests | ✅ | `MultiUserServerTest` |
 
 ### VRCommon
 **File**: `src/vr/VRCommon.h`  
@@ -824,7 +833,7 @@ Minimal OpenXR/VR backend stub. Full VR requires OpenXR SDK.
 
 ### VR Support
 - OpenXR backend is a stub; full VR requires OpenXR SDK installation.
-- `MultiUserServer` provides network protocol but no actual VR session management.
+- `MultiUserServer` provides real WebSocket session management; full client-side OpenXR integration remains.
 
 ### Live Data Ingestion
 - LIGOAdapter and IceCubeAdapter support simulated alerts.
@@ -847,6 +856,11 @@ Minimal OpenXR/VR backend stub. Full VR requires OpenXR SDK.
 ### Headless Mode
 - Requires Qt `bin` directory on `PATH` for DLL loading.
 - `0xC0000135` error occurs if Qt DLLs are missing.
+
+### CI Status
+- CodeQL Advanced workflow removed due to runner disk-space limits (#72).
+- Runtime Invariant Monitoring job removed; no actionable artifact (#74).
+- Mull Mutation Testing apt mirror 404s are transient.
 
 ---
 
@@ -886,4 +900,4 @@ main_qml.cpp
 
 ---
 
-*Generated for QuantumVerse v3.7.0 | Last Updated: 2026-07-15*
+*Generated for QuantumVerse v3.9.0 | Last Updated: 2026-09-29*
