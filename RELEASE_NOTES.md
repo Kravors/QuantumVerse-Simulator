@@ -4,6 +4,8 @@
 
 This release merges real WebSocket-based VR multi-user session management, volumetric disk rendering, Pareto archive performance improvements, and CI workflow cleanup.
 
+**Version alignment:** Project version and CPack package version are now aligned to `3.9.0` across `CMakeLists.txt`, CI workflows, and documentation. Previous CPack remnant `5.5.2` has been removed.
+
 ## ✅ Validation Results
 
 | Metric | Value |
