@@ -2446,6 +2446,13 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/data/tours")
     )
 endif()
 
+if(EXISTS "${CMAKE_SOURCE_DIR}/config")
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/config/"
+        DESTINATION bin/config
+        PATTERN "*.tmp" EXCLUDE
+    )
+endif()
+
 # Stage the deployed Qt runtime (DLLs, plugins/, qml/) into the install tree so
 # that CPack (ZIP and NSIS) packages a self-contained, runnable application.
 # deploy_qt_runtime populates the target file directory before `cmake --install`
