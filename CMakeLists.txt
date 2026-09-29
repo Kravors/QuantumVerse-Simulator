@@ -1,7 +1,7 @@
 # QuantumVerse Simulator - CMakeLists.txt
 # Production-ready 4D spacetime cognition laboratory
 cmake_minimum_required(VERSION 3.20)
-project(QuantumVerse LANGUAGES C CXX VERSION 3.7.2)
+project(QuantumVerse LANGUAGES C CXX VERSION 3.9.0)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
@@ -292,7 +292,6 @@ if(QUANTUMVERSE_USE_QT)
         target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_VR)
         target_sources(quantumverse_qml PRIVATE
             src/vr/OpenXRBackend.cpp
-            src/vr/MultiUserServer.cpp
         )
         if(OPENXR_INCLUDE_DIR)
             find_library(OPENXR_LIBRARY NAMES openxr openxr_loader PATHS "${OPENXR_SDK_ROOT}/lib" NO_DEFAULT_PATH)
@@ -339,12 +338,108 @@ if(QUANTUMVERSE_USE_QT)
     )
 
     if(WIN32)
+        # Detect the VC install directory so windeployqt --compiler-runtime can
+        # locate the MSVC redistributables (msvcp140.dll, vcruntime140.dll, etc.).
+        # CMAKE_VS_VC_INSTALL_DIR is only available when CMake itself runs inside
+        # a VS Developer shell, so we probe vswhere / common paths at configure time.
+        if(NOT DEFINED VCINSTALLDIR_FOR_WINDEPLOY)
+            find_program(VSWHERE NAMES vswhere
+                PATHS "C:/Program Files (x86)/Microsoft Visual Studio/Installer")
+            if(VSWHERE)
+                execute_process(
+                    COMMAND "${VSWHERE}" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+                    OUTPUT_VARIABLE _vs_install_path
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                )
+                if(EXISTS "${_vs_install_path}/VC")
+                    set(VCINSTALLDIR_FOR_WINDEPLOY "${_vs_install_path}/VC" CACHE PATH
+                        "VC install directory for windeployqt --compiler-runtime")
+                endif()
+            endif()
+            if(NOT VCINSTALLDIR_FOR_WINDEPLOY)
+                foreach(_vc_path
+                    "$ENV{ProgramFiles}/Microsoft Visual Studio/18/Community/VC"
+                    "$ENV{ProgramFiles}/Microsoft Visual Studio/18/Professional/VC"
+                    "$ENV{ProgramFiles}/Microsoft Visual Studio/18/Enterprise/VC"
+                    "$ENV{ProgramFiles(x86)}/Microsoft Visual Studio/18/Community/VC"
+                    "$ENV{ProgramFiles(x86)}/Microsoft Visual Studio/18/Professional/VC"
+                    "$ENV{ProgramFiles(x86)}/Microsoft Visual Studio/18/Enterprise/VC"
+                )
+                    if(EXISTS "${_vc_path}")
+                        set(VCINSTALLDIR_FOR_WINDEPLOY "${_vc_path}" CACHE PATH
+                            "VC install directory for windeployqt --compiler-runtime")
+                        break()
+                    endif()
+                endforeach()
+            endif()
+            if(VCINSTALLDIR_FOR_WINDEPLOY)
+                message(STATUS "Detected VC install directory for windeployqt: ${VCINSTALLDIR_FOR_WINDEPLOY}")
+            else()
+                message(WARNING "Could not detect VC install directory; windeployqt --compiler-runtime may not copy MSVC runtime DLLs")
+            endif()
+        endif()
+
+        # Find the latest VC++ CRT redist directory with x64 DLLs.
+        # windeployqt --compiler-runtime ships the installer (vc_redist.x64.exe),
+        # not the raw DLLs, so we copy msvcp140.dll / vcruntime140.dll / concrt140.dll
+        # directly to make the app portable on clean Windows installs.
+        if(NOT DEFINED VC_REDIST_CRT_DIR)
+            set(_vc_redist_roots)
+            if(VCINSTALLDIR_FOR_WINDEPLOY)
+                list(APPEND _vc_redist_roots "${VCINSTALLDIR_FOR_WINDEPLOY}/Redist/MSVC")
+            endif()
+            # Also check the VSINSTALLDIR environment variable (set by VS Developer shells)
+            if(DEFINED ENV{VSINSTALLDIR} AND EXISTS "$ENV{VSINSTALLDIR}/VC/Redist/MSVC")
+                list(APPEND _vc_redist_roots "$ENV{VSINSTALLDIR}/VC/Redist/MSVC")
+            endif()
+            foreach(_redist_root IN LISTS _vc_redist_roots)
+                if(EXISTS "${_redist_root}")
+                    file(GLOB _redist_dirs "${_redist_root}/*")
+                    foreach(_dir IN LISTS _redist_dirs)
+                        if(IS_DIRECTORY "${_dir}/x64")
+                            file(GLOB _crt_dirs "${_dir}/x64/*")
+                            foreach(_crt_dir IN LISTS _crt_dirs)
+                                if(IS_DIRECTORY "${_crt_dir}" AND EXISTS "${_crt_dir}/msvcp140.dll")
+                                    set(VC_REDIST_CRT_DIR "${_crt_dir}")
+                                endif()
+                            endforeach()
+                        endif()
+                    endforeach()
+                endif()
+            endforeach()
+            if(NOT VC_REDIST_CRT_DIR)
+                # Fallback: hardcode the known-good path for VS 18 / v145 toolset
+                set(VC_REDIST_CRT_DIR "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Redist/MSVC/14.50.35710/x64/Microsoft.VC145.CRT" CACHE PATH
+                    "MSVC x64 CRT redist directory for runtime DLL deployment")
+            endif()
+            if(EXISTS "${VC_REDIST_CRT_DIR}/msvcp140.dll")
+                message(STATUS "Detected VC++ CRT redist directory: ${VC_REDIST_CRT_DIR}")
+            else()
+                message(WARNING "Could not detect VC++ CRT redist directory; runtime DLLs will not be deployed")
+            endif()
+        endif()
+
         set(QT_RUNTIME_DEST "$<TARGET_FILE_DIR:quantumverse_qml>")
+        if(VCINSTALLDIR_FOR_WINDEPLOY)
+            file(TO_NATIVE_PATH "${VCINSTALLDIR_FOR_WINDEPLOY}" _vc_install_dir_native)
+            set(_vc_install_cmd "set VCINSTALLDIR=${_vc_install_dir_native} && ")
+        else()
+            set(_vc_install_cmd "")
+        endif()
+        
         add_custom_target(deploy_qt_runtime
             COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
             COMMAND cmd /c
-                "set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
+                "${_vc_install_cmd}set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
+            # windeployqt --compiler-runtime ships the VC++ redist INSTALLER, not the raw
+            # DLLs. Copy the CRT DLLs directly so the app runs on a clean Windows install.
+            COMMAND ${CMAKE_COMMAND} -E echo "Copying MSVC runtime DLLs..."
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${VC_REDIST_CRT_DIR}/msvcp140.dll"
+                "${VC_REDIST_CRT_DIR}/vcruntime140.dll"
+                "${VC_REDIST_CRT_DIR}/concrt140.dll"
+                "${QT_RUNTIME_DEST}/"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${QT_HOST_PATH}/bin/Qt6Test.dll"
                 "${QT_RUNTIME_DEST}/"
@@ -2428,7 +2523,7 @@ set(CPACK_GENERATOR "ZIP;NSIS")
 set(CPACK_BINARY_NSIS ON)
 set(CPACK_BINARY_ZIP ON)
 set(CPACK_PACKAGE_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "5.5.2")
+set(CPACK_PACKAGE_VERSION "3.9.0")
 set(CPACK_PACKAGE_VENDOR "QuantumVerse Project")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "4D Spacetime Cognition Lab")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "QuantumVerse")
