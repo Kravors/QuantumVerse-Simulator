@@ -1,172 +1,141 @@
-# Release v1.0.0 - Execution Instructions
+# QuantumVerse Simulator v3.9.0 — Release Execution Instructions
 
-## Status: ⏳ In Progress
-
-**Started:** 2026-06-19 10:54 UTC
-**Stress test:** Running (log shows stable memory at ~187.56 MB, 1.27M+ geodesic rays processed)
-**WSL:** Not available on this system (manual step required)
-**Self-hosted runner:** `scripts/setup_runner.bat` created - run as Administrator to configure (now prompts for token instead of hardcoded)
+**Release Manager**: —  
+**Target Date**: 2026-09-29  
+**Release Branch**: `main`  
+**Tag**: `v3.9.0`
 
 ---
 
-## 🔴 Step 0: Set Up Self-Hosted Runner (Required for 3 workflows)
+## Pre-Flight Checklist
 
-The following workflows use a self-hosted runner:
-- `nightly-pipeline.yml`
-- `sanitization-pipeline.yml`
-- `security-audit.yml`
+Before starting, ensure:
 
-The `fuzz-testing.yml` uses `ubuntu-22.04` (runs in GitHub cloud).
-
-Run this **as Administrator** in PowerShell:
-
-```powershell
-cd f:\syyyy
-.\scripts\setup_runner.bat
-```
-
-This will:
-1. Prompt for your GitHub registration token
-2. Download the GitHub Actions runner
-3. Configure it with the repository
-4. Start the runner (keep the window open)
-
-**To get a token:**
-- Go to: https://github.com/Kravors/QuantumVerse-Simulator/settings/actions
-- Click "New runner" → "Add runner" → "Copy token"
-- Tokens expire after 1 hour - generate fresh if needed
+- [ ] You are on the `main` branch and up to date: `git pull origin main`
+- [ ] All CI workflows are green on `origin/main`
+- [ ] `CHANGELOG.md` is committed
+- [ ] `docs/PRODUCTION_RELEASE_PLAN_v3.9.0.md` is committed
+- [ ] `docs/PROJECT_PACKAGE_MANIFEST.md` is committed
+- [ ] `docs/VERIFICATION_3D_VIEWPORT.md` is committed
+- [ ] `docs/DEPLOYMENT.md` is committed
+- [ ] `docs/WINDOWS_DEPLOYMENT.md` is updated to v3.9.0
+- [ ] CodeQL workflow removal is committed (`.github/workflows/codeql.yml` deleted)
+- [ ] Runtime Monitoring job removal is committed (`.github/workflows/advanced-error-discovery.yml` updated)
 
 ---
 
-## 🔴 Step 1: Trigger GitHub CI Pipelines (Manual)
-
-Go to your GitHub repository → **Actions** tab → Run these workflows manually:
-
-1. **nightly-pipeline.yml**
-   - URL: `https://github.com/YOUR_USERNAME/REPO_NAME/actions/workflows/nightly-pipeline.yml`
-   - Click "Run workflow" → "Run workflow" button
-   - **Note:** Uses self-hosted runner (requires Step 0 to be running)
-
-2. **sanitization-pipeline.yml**
-   - URL: `https://github.com/YOUR_USERNAME/REPO_NAME/actions/workflows/sanitization-pipeline.yml`
-   - Click "Run workflow" → "Run workflow" button
-   - **Note:** Uses self-hosted runner (requires Step 0 to be running)
-
-3. **fuzz-testing.yml**
-   - URL: `https://github.com/YOUR_USERNAME/REPO_NAME/actions/workflows/fuzz-testing.yml`
-   - Click "Run workflow" → "Run workflow" button
-   - **Note:** Uses ubuntu-22.04 (runs in GitHub cloud, no self-hosted runner needed)
-
-4. **security-audit.yml**
-   - URL: `https://github.com/YOUR_USERNAME/REPO_NAME/actions/workflows/security-audit.yml`
-   - Click "Run workflow" → "Run workflow" button
-   - **Note:** Uses self-hosted runner (requires Step 0 to be running)
-
----
-
-## 🔴 Step 2: Start 24-Hour Stress Test (PowerShell)
-
-Open **PowerShell as Administrator** and run:
-
-```powershell
-cd f:\syyyy
-.\scripts\stress_test_24h.ps1
-```
-
-**Important:** Keep the PowerShell window open. The script will:
-- Run the application for 24 hours
-- Log memory usage every 5 minutes
-- Log progress every 10 minutes
-- Output to `test_output\stress_test\stress_test_YYYYMMDD_HHMMSS.log`
-
----
-
-## 🔴 Step 3: Run Fuzzer on WSL/Linux (6 hours)
-
-If you have WSL installed, run:
+## Step 1: Final Verification
 
 ```bash
-# In WSL terminal
-cd /mnt/f/syyyy
-mkdir -p build_fuzz
-cd build_fuzz
-cmake -B . -DCMAKE_BUILD_TYPE=Debug -DQUANTUMVERSE_BUILD_FUZZER=ON -DCMAKE_CXX_COMPILER=clang++
-cmake --build . --parallel
-./tests/fuzz_metric -max_total_time=21600
+# Run full test suite
+cd build
+ctest -C Release --output-on-failure
+
+# Run headless sanity check
+build/Release/quantumverse_qml.exe --headless --frames 1 --metric schwarzschild
+
+# Run 3D viewport verification
+# Follow docs/VERIFICATION_3D_VIEWPORT.md
 ```
 
-Or if the build directory already exists:
-```bash
-cd /mnt/f/syyyy/build_fuzz
-./tests/fuzz_metric -max_total_time=21600
-```
+**Expected**: All tests pass, headless run succeeds, viewport verification passes.
 
 ---
 
-## 🟢 Tomorrow (After 24h) - Validation Checklist
+## Step 2: Create Release Commit
 
-### Check Stress Test Window
-- [ ] Process is still running (not crashed)
-- [ ] No red ASan errors in the log
-- [ ] Memory usage is stable (not growing continuously)
-- [ ] Log file shows steady progress
-
-### Check GitHub Actions
-- [ ] All 4 workflows show **green** status
-- [ ] No failed jobs
-- [ ] All artifacts uploaded successfully
-
-### Check Fuzzer Output
-- [ ] Zero crashes reported
-- [ ] No `crash-*` files generated
-- [ ] Fuzzer completed 6 hours of execution
-
----
-
-## 🚀 Release v1.0.0 (If All Checks Pass)
-
-```batch
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Then:
-1. Go to GitHub Releases
-2. Find the auto-created v1.0.0 release
-3. Download the deploy package from CI artifacts
-4. Attach to release
-5. Mark as **Production Ready**
-
----
-
-## Files Verified
-
-| File | Status |
-|------|--------|
-| `.github/workflows/nightly-pipeline.yml` | ✅ Exists |
-| `.github/workflows/sanitization-pipeline.yml` | ✅ Exists |
-| `.github/workflows/fuzz-testing.yml` | ✅ Exists |
-| `.github/workflows/security-audit.yml` | ✅ Exists |
-| `.github/workflows/release.yml` | ✅ Exists |
-| `scripts/stress_test_24h.ps1` | ✅ Exists |
-| `deploy/windows/quantumverse_imgui.exe` | ✅ Exists |
-| `tests/fuzz_metric.cpp` | ✅ Exists |
-
----
-
-## Quick Commands Summary
-
-```powershell
-# Stress test (run in PowerShell Admin)
-cd f:\syyyy; .\scripts\stress_test_24h.ps1
-```
+If any last-minute fixes are needed, commit them now:
 
 ```bash
-# Fuzzer (run in WSL)
-cd /mnt/f/syyyy/build_fuzz && ./tests/fuzz_metric -max_total_time=21600
+git add .
+git commit -m "chore: final v3.9.0 release preparation"
 ```
 
-```batch
-# Release (run in CMD after validation)
-git tag v1.0.0
-git push origin v1.0.0
+---
+
+## Step 3: Create Annotated Tag
+
+```bash
+git tag -a v3.9.0 -m "QuantumVerse Simulator v3.9.0 (VR Multi-User & CI Hygiene) - Production Release"
+```
+
+Verify the tag:
+
+```bash
+git tag -l "v3.9.0" -n
+```
+
+Expected output:
+```
+v3.9.0  QuantumVerse Simulator v3.9.0 (VR Multi-User & CI Hygiene) - Production Release
+```
+
+---
+
+## Step 4: Push Tag to Remote
+
+```bash
+git push origin v3.9.0
+```
+
+---
+
+## Step 5: Create GitHub Release
+
+1. Go to https://github.com/Kravors/QuantumVerse-Simulator/releases/new
+2. Select tag: `v3.9.0`
+3. Title: `QuantumVerse Simulator v3.9.0`
+4. Description: Paste contents of `CHANGELOG.md` v3.9.0 section
+5. Attach artifacts (if any):
+   - `QuantumVerse-3.9.0-windows-x64.exe`
+   - `QuantumVerse-3.9.0-linux-x86_64.AppImage`
+   - `QuantumVerse-3.9.0-macos.dmg`
+6. Check "Set as latest release"
+7. Click "Publish release"
+
+---
+
+## Step 6: Post-Release Tasks
+
+- [ ] Update `docs/DEVELOPMENT_STATUS.md` version to next development version (e.g., `3.10.0-dev`)
+- [ ] Announce release to stakeholders
+- [ ] Monitor GitHub Issues for post-release bug reports
+
+---
+
+## Rollback Procedure
+
+If critical issues are discovered:
+
+```bash
+# Delete remote tag
+git push origin :refs/tags/v3.9.0
+
+# Delete local tag
+git tag -d v3.9.0
+
+# Revert release commit if needed
+git revert HEAD
+git push origin main
+```
+
+Then create a hotfix release from the revert commit.
+
+---
+
+## Quick Command Reference
+
+```bash
+# Full release sequence
+git pull origin main
+ctest --output-on-failure
+git add .
+git commit -m "chore: final v3.9.0 release preparation"
+git tag -a v3.9.0 -m "QuantumVerse Simulator v3.9.0 (VR Multi-User & CI Hygiene) - Production Release"
+git push origin main
+git push origin v3.9.0
+```
+
+---
+
+*Release execution instructions for QuantumVerse v3.9.0.*

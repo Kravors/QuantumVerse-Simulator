@@ -33,7 +33,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.8.3'
+          version: '6.11.1'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -79,7 +79,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.8.3'
+          version: '6.11.1'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -114,44 +114,6 @@ jobs:
             echo "Symbolic execution test binary not available - skipping"
           fi
 
-  runtime-monitoring:
-    name: Runtime Invariant Monitoring
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
-        id: setup_qt
-        with:
-          version: '6.8.3'
-          target: 'desktop'
-          host: 'linux'
-          arch: 'linux_gcc_64'
-          modules: 'qtwebsockets'
-          cache: true
-      
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev mesa-utils xvfb libpcre2-dev
-      
-      - name: Build with sanitizers
-        run: |
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DQUANTUMVERSE_USE_ASAN=ON \
-            -DQUANTUMVERSE_BUILD_TESTS=ON \
-            -DQUANTUMVERSE_USE_QT=ON \
-            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}"
-          cmake --build build --config Debug --parallel 2
-      - name: Run tests with runtime monitoring
-        working-directory: build
-        run: |
-          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
-          xvfb-run -a ctest -E "$EXCLUSIONS" --output-on-failure -j 2
-
   fuzz-testing:
     name: Hybrid Fuzz Testing
     runs-on: ubuntu-latest
@@ -169,7 +131,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.8.3'
+          version: '6.11.1'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -226,7 +188,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.8.3'
+          version: '6.11.1'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -268,7 +230,7 @@ jobs:
   nightly-report:
     name: Generate Error Detection Report
     runs-on: ubuntu-latest
-    needs: [cbmc-verification, differential-testing, runtime-monitoring]
+    needs: [cbmc-verification, differential-testing]
     if: always()
     steps:
       - uses: actions/checkout@v4

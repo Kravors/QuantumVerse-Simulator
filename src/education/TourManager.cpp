@@ -25,8 +25,7 @@ bool TourManager::initializeTour(const QString& tourDir) {
     }
 
     std::lock_guard<std::mutex> lock(mutex_);
-    const QString normalized = QDir::cleanPath(
-        QDir::current().absoluteFilePath(tourDir));
+    const QString normalized = QDir::cleanPath(tourDir);
     tour_dir_ = normalized.toStdString();
 
     if (!fs::exists(tour_dir_)) {

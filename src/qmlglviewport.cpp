@@ -462,6 +462,31 @@ void QmlGlRenderer::render()
                    << " m_curvatureRenderer=" << (m_curvatureRenderer ? "set" : "null");
     }
 
+    // Periodic reality dump: log actual runtime state every 60 frames
+    static int s_realityFrame = 0;
+    if (++s_realityFrame % 60 == 0) {
+        int bodyCount = 0;
+        if (m_ui4d) {
+            bodyCount = static_cast<int>(m_ui4d->getSolarSystem().bodies.size());
+        }
+        bool texValid = false;
+        unsigned int texId = 0;
+        if (m_celestialBodyRenderer) {
+            texValid = m_celestialBodyRenderer->isTextureArrayInitialized();
+            texId = m_celestialBodyRenderer->textureArrayId();
+        }
+        QString gridRange = "0..0";
+        if (m_curvatureRenderer) {
+            auto range = m_curvatureRenderer->gridZRange();
+            gridRange = QString("%1..%2").arg(range.first, 0, 'g', 3).arg(range.second, 0, 'g', 3);
+        }
+        qWarning() << "[REALITY]"
+                   << "bodies=" << bodyCount
+                   << "gridZRange=" << gridRange
+                   << "lensing=" << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
+                   << "texBound=" << texId;
+    }
+
     // Render gravitational lensing background (before other objects)
     if (m_lensing && m_lensing->isEnabled()) {
         PERF_SCOPE("renderLensing");
@@ -2355,11 +2380,13 @@ void QmlGlViewport::probeAt(double x, double y, double z)
 
     double gtt = metric->evaluate(event)[0][0];
     // Gravitational redshift: z = 1/sqrt(-g00) - 1 for timelike coordinates
-    // In (-,+,+,+) signature, g00 is negative for valid metrics
-    if (gtt < 0.0 && std::isfinite(gtt)) {
+    // In (-,+,+,+) signature, g00 is negative for valid metrics.
+    // Guard against pathological values near the singularity where the
+    // Schwarzschild approximation breaks down.
+    if (gtt < 0.0 && std::isfinite(gtt) && -gtt > 1e-6) {
         double z = 1.0 / std::sqrt(-gtt) - 1.0;
         m_redshift = QString::number(z, 'e', 3);
-    } else if (gtt > 0.0 && std::isfinite(gtt)) {
+    } else if (gtt > 0.0 && std::isfinite(gtt) && gtt > 1e-6) {
         // Handle (+,,-,-) signature or unusual metrics
         double z = 1.0 / std::sqrt(gtt) - 1.0;
         m_redshift = QString::number(z, 'e', 3);

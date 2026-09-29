@@ -1,6 +1,7 @@
 #include "glad.h"
 #include "UI4D.h"
 #include "../config/ConfigLoader.h"
+#include "../utils/DataPaths.h"
 #include "physics/PhysicsConstants.h"
 #include "../rendering/ComputeShader.h"
 #include <cmath>
@@ -536,7 +537,8 @@ void UI4D::endBodyPropertyEditing() {
     // Load config from file or use defaults
     auto& config = ConfigLoader::instance();
     if (!config.isLoaded()) {
-        config.loadFromFile("config/simulator.json");
+        QDir rootDir(QString::fromStdString(quantumverse::utils::repoRoot()));
+        config.loadFromFile(rootDir.filePath("config/simulator.json").toStdString());
     }
 
     const double AU = 149597870700.0;

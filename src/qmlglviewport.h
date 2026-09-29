@@ -402,26 +402,30 @@ private:
     float m_cameraPanX;
     float m_cameraPanY;
 
-    // VR head tracking state
+     // VR head tracking state
 #ifdef QUANTUMVERSE_USE_VR
-     // Multi-user remote participants (ghost cameras)
-     struct RemoteParticipant {
-         std::string id;
-         std::string name;
-         std::array<float, 16> cameraMatrix;
-         std::array<float, 3> position;
-         bool vrActive = false;
-         double lastUpdateTime = 0.0;
-     };
-     std::vector<RemoteParticipant> m_remoteParticipants;
-     bool m_showGhostCameras = true;
+     bool m_hasHeadPose = false;
+     quantumverse::vr::HeadPose m_headPose;
+     bool m_vrActive = false;
+     float m_vrIpd = 0.063f;
+     quantumverse::vr::VRConfig m_vrConfig;
+     QOpenGLFramebufferObject* m_vrFboLeft = nullptr;
+     QOpenGLFramebufferObject* m_vrFboRight = nullptr;
 
-     Q_PROPERTY(bool showGhostCameras READ showGhostCameras WRITE setShowGhostCameras NOTIFY showGhostCamerasChanged)
-     Q_INVOKABLE void updateRemoteParticipant(const QString& id, const QString& name, const QVariantList& cameraMatrix, const QVariantList& position, bool vrActive);
-     Q_INVOKABLE void removeRemoteParticipant(const QString& id);
+      // Multi-user remote participants (ghost cameras)
+      struct RemoteParticipant {
+          std::string id;
+          std::string name;
+          std::array<float, 16> cameraMatrix;
+          std::array<float, 3> position;
+          bool vrActive = false;
+          double lastUpdateTime = 0.0;
+      };
+       std::vector<RemoteParticipant> m_remoteParticipants;
+       bool m_showGhostCameras = true;
 #endif
 
-    // Pointers to core renderers (non-owning)
+     // Pointers to core renderers (non-owning)
     std::shared_ptr<CurvatureRenderer> m_curvatureRenderer;
     std::shared_ptr<QuantumGeometryRenderer> m_quantumRenderer;
 

@@ -110,6 +110,7 @@
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
 #include "utils/FrameDiagnostics.h"
+#include "utils/DataPaths.h"
 #include "config/ConfigLoader.h"
 #include "scenario/ScenarioManager.h"
 #include "education/TourManager.h"
@@ -442,6 +443,7 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
     app.setApplicationName("QuantumVerse Simulator");
     app.setOrganizationName("QuantumVerse");
+    qDebug() << "[DataPaths] appDir=" << QCoreApplication::applicationDirPath();
 
     std::ofstream("graphics_api.txt") << "Graphics API after QApplication/QQuickWindow setup: " << QQuickWindow::graphicsApi() << std::endl;
     qDebug() << "Graphics API after QApplication/QQuickWindow setup:" << QQuickWindow::graphicsApi();
@@ -471,15 +473,25 @@ int main(int argc, char* argv[])
         std::cerr.flush();
 
         // Create the physics engine components
+        // Resolve data paths relative to the executable so local dev runs
+        // (e.g. build/Release/) find the repo data/ tree correctly.
+        const std::string repoRoot = quantumverse::utils::repoRoot();
+        qDebug() << "[DataPaths] repoRoot=" << QString::fromStdString(repoRoot)
+                 << "dataRoot=" << QString::fromStdString(quantumverse::utils::dataRoot());
+
         // Load config from file (or use defaults)
-        quantumverse::ConfigLoader::instance().loadFromFile("config/simulator.json");
+        QDir rootDir(QString::fromStdString(repoRoot));
+        quantumverse::ConfigLoader::instance().loadFromFile(
+            rootDir.filePath("config/simulator.json").toStdString());
         const auto& config = quantumverse::ConfigLoader::instance().config();
 
         // Initialize scenario manager
-        quantumverse::ScenarioManager::instance().initialize("data/scenarios/");
+        quantumverse::ScenarioManager::instance().initialize(
+            quantumverse::utils::dataPath("scenarios/"));
 
         // Initialize educational tour manager (sibling of data/scenarios/)
-        quantumverse::TourManager::instance().initialize("data/tours/");
+        quantumverse::TourManager::instance().initialize(
+            quantumverse::utils::dataPath("tours/"));
 
         double blackHoleMass = config.black_hole.mass_solar_masses * 1.989e30;
         double blackHoleSpin = config.black_hole.spin;
@@ -603,6 +615,9 @@ int main(int argc, char* argv[])
         std::cerr << "QuantumVerse: Camera4DAdapter created" << std::endl;
         std::cerr.flush();
 
+        // Set up the QML engine
+        QQmlApplicationEngine engine;
+
         // Initialize VR backend if enabled
 #ifdef QUANTUMVERSE_USE_VR
         auto vrBackend = std::make_shared<quantumverse::vr::OpenXRBackend>();
@@ -617,7 +632,7 @@ int main(int argc, char* argv[])
         }
 
         // VR controller input → Camera4DAdapter wiring
-        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [vrBackend, camera4DAdapter](QObject* obj, const QUrl& objUrl) {
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [&engine, vrBackend, camera4DAdapter](QObject* obj, const QUrl& objUrl) {
             if (!obj) return;
             QTimer* vrInputTimer = new QTimer(&engine);
             vrInputTimer->setInterval(16); // ~60Hz polling
@@ -680,9 +695,6 @@ int main(int argc, char* argv[])
             std::cerr << "QuantumVerse: PlanckMicroscope setup complete" << std::endl;
             std::cerr.flush();
         }
-
-        // Set up the QML engine
-        QQmlApplicationEngine engine;
 
         // Add QML import paths
         // The qmldir file is in deploy/windows/qml/QuantumVerse/
@@ -758,6 +770,35 @@ int main(int argc, char* argv[])
             });
         findingsModel->setFindings(discoveryPanelManager->findings());
         rootContext->setContextProperty("findingsModel", findingsModel);
+
+        // ML Anomaly Monitor: sample simulation state and alert on anomalies
+        // Registered BEFORE engine.load() so QML can reference it during parsing.
+        auto anomalyMonitor = std::make_shared<quantumverse::AnomalyMonitor>();
+        auto anomalyDetector = std::make_shared<quantumverse::AnomalyDetector>();
+                if (anomalyDetector->load(quantumverse::utils::dataPath("ml/anomaly_model.json"))) {
+                    qDebug() << "AnomalyMonitor: ML model loaded from" << quantumverse::utils::dataPath("ml/anomaly_model.json");
+                    anomalyMonitor->setAnomalyDetector(anomalyDetector);
+                } else {
+                    qDebug() << "AnomalyMonitor: No ML model found at" << quantumverse::utils::dataPath("ml/anomaly_model.json") << ", running with empty detector";
+                }
+        anomalyMonitor->setUI4D(ui4d);
+        anomalyMonitor->setFindingsProvider([discoveryPanelManager]() {
+            return discoveryPanelManager->findings();
+        });
+        QObject::connect(anomalyMonitor.get(), &quantumverse::AnomalyMonitor::anomalyDetected,
+            [findingsModel](const QJsonObject& anomaly) {
+                quantumverse::InstrumentFinding f;
+                f.id = ("ML_Anomaly_" + QString::number(QDateTime::currentMSecsSinceEpoch())).toStdString();
+                f.instrumentName = "ML Anomaly Detector";
+                f.description = anomaly.value("description").toString().toStdString();
+                f.confidence = 0.5;
+                f.severity = quantumverse::AlertSeverity::MEDIUM;
+                f.timestamp = anomaly.value("timestamp").toDouble();
+                f.isAnomaly = true;
+                findingsModel->addFinding(f);
+            });
+        rootContext->setContextProperty("anomalyMonitor", anomalyMonitor.get());
+        qDebug() << "QuantumVerse: AnomalyMonitor registered as context property 'anomalyMonitor'";
 
         // Live multi-messenger alerts: LIGO/IceCube alerts flow into the same
         // FindingsModel so they appear in the QML Anomaly Feed alongside
@@ -1042,34 +1083,19 @@ int main(int argc, char* argv[])
                 }
 
                 if (lensingTheta >= 0.0) {
-                    // cameraTheta is the polar angle from the +y spin axis:
-                    //   pi/2 = equatorial (edge-on), < pi/2 = inclined
                     viewport->setLensingTheta(static_cast<float>(lensingTheta));
                 }
 
-                if (lensingTheta >= 0.0) {
-                    // Drive the lensing overlay from the CLI so headless
-                    // verification renders the black-hole disk without a GUI.
-                    viewport->setLensingEnabled(true);
-                    viewport->syncLensingParams();  // Builds m_lensing and pushes theta
-                    viewport->setVolumetricDiskEnabled(true);
-                    viewport->setLensingSpin(0.5f);
-                    // The star-field skybox draws a blue nebula background that
-                    // occludes the disk; drop it so the disk is the only thing
-                    // in frame.  Use --no-starfield to keep it.
-                    if (!noStarfield) {
-                        viewport->setLensingStarFieldEnabled(false);
-                    }
-                    // The QmlGlRenderer (which actually draws) pulls its
-                    // m_lensing from the viewport item in synchronize().  In
-                    // headless mode synchronize() may not run before the first
-                    // frame, so hand the renderer over explicitly.  GL
-                    // initialization happens lazily in renderLensing() once
-                    // the context exists.
-                    if (viewport->lensingRenderer() && viewport->renderer()) {
-                        viewport->renderer()->setLensingRenderer(
-                            viewport->lensingRenderer());
-                    }
+                viewport->setLensingEnabled(true);
+                viewport->syncLensingParams();
+                viewport->setVolumetricDiskEnabled(true);
+                viewport->setLensingSpin(0.5f);
+                if (!noStarfield) {
+                    viewport->setLensingStarFieldEnabled(false);
+                }
+                if (viewport->lensingRenderer() && viewport->renderer()) {
+                    viewport->renderer()->setLensingRenderer(
+                        viewport->lensingRenderer());
                 }
 
                 if (disableCelestial) {
@@ -1112,34 +1138,6 @@ int main(int argc, char* argv[])
                 qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
                 std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
                 std::cerr.flush();
-
-                // ML Anomaly Monitor: sample simulation state and alert on anomalies
-                auto anomalyMonitor = std::make_shared<quantumverse::AnomalyMonitor>();
-                auto anomalyDetector = std::make_shared<quantumverse::AnomalyDetector>();
-                if (anomalyDetector->load("data/ml/anomaly_model.json")) {
-                    qDebug() << "AnomalyMonitor: ML model loaded from data/ml/anomaly_model.json";
-                    anomalyMonitor->setAnomalyDetector(anomalyDetector);
-                } else {
-                    qDebug() << "AnomalyMonitor: No ML model found at data/ml/anomaly_model.json, running with empty detector";
-                }
-                anomalyMonitor->setUI4D(ui4d);
-                anomalyMonitor->setFindingsProvider([discoveryPanelManager]() {
-                    return discoveryPanelManager->findings();
-                });
-                QObject::connect(anomalyMonitor.get(), &quantumverse::AnomalyMonitor::anomalyDetected,
-                    [findingsModel](const QJsonObject& anomaly) {
-                        quantumverse::InstrumentFinding f;
-                        f.id = ("ML_Anomaly_" + QString::number(QDateTime::currentMSecsSinceEpoch())).toStdString();
-                        f.instrumentName = "ML Anomaly Detector";
-                        f.description = anomaly.value("description").toString().toStdString();
-                        f.confidence = 0.5;
-                        f.severity = quantumverse::AlertSeverity::MEDIUM;
-                        f.timestamp = anomaly.value("timestamp").toDouble();
-                        f.isAnomaly = true;
-                        findingsModel->addFinding(f);
-                    });
-                rootContext->setContextProperty("anomalyMonitor", anomalyMonitor.get());
-                qDebug() << "QuantumVerse: AnomalyMonitor registered as context property 'anomalyMonitor'";
 
                 // The OpenGL scene is composited onto the window in
                 // QmlGlViewport::renderGL() (beforeRendering); the viewport item

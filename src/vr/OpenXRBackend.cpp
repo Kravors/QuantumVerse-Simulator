@@ -9,6 +9,7 @@
 
 #include "OpenXRBackend.h"
 #include <QSize>
+#include <array>
 #include <cmath>
 #include <algorithm>
 
@@ -221,7 +222,7 @@ void OpenXRBackend::endFrame()
     // Stub: no-op
 }
 
-bool OpenXRBackend::beginFrame()
+bool OpenXRBackend::getControllerState(ControllerState& left, ControllerState& right)
 {
     if (!m_isActive) return false;
 

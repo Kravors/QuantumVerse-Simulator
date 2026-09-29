@@ -118,6 +118,9 @@ private:
     // relative to the base position rather than accumulating each frame.
     std::vector<float> m_baseZ;
     
+    // Scale factor for grid deformation (maps physical curvature to grid units)
+    float m_deformationScale;
+    
     // Light cone rendering buffers (reused each frame)
     unsigned int lightConeVao;
     unsigned int lightConeVbo;
@@ -199,6 +202,9 @@ public:
     // Initialize OpenGL resources (must be called with valid GL context)
     void initializeGL();
 
+    // Grid deformation range for diagnostics
+    std::pair<float, float> gridZRange() const;
+
     // Set visualization mode
     void setMode(CurvatureMode newMode);
 
@@ -274,6 +280,12 @@ public:
 
     // Get plane mode resolution
     int getPlaneResolution() const { return m_planeResolution; }
+
+    // Set deformation scale multiplier for grid Z displacement
+    void setDeformationScale(float scale) { m_deformationScale = scale; }
+
+    // Get deformation scale multiplier
+    float deformationScale() const { return m_deformationScale; }
 
     // Compile shader from source strings (implementation in .cpp)
     bool compileShader(unsigned int& program,

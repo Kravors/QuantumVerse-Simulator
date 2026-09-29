@@ -27,15 +27,6 @@ ApplicationWindow {
     title: "QuantumVerse Simulator - 4D Spacetime Explorer"
     color: "#0a0a1a"
 
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        onTriggered: {
-            console.log("TEST TIMER FIRED")
-        }
-    }
-
     property bool noViewport: Qt.application.arguments.indexOf("--noviewport") !== -1 ||
                               Qt.application.arguments.indexOf("--software-rendering") !== -1
     property Item viewportItem: noViewport ? null : viewportLoader.item

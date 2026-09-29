@@ -217,6 +217,7 @@ public:
     bool isTextureArrayEnabled() const { return m_useTextureArray; }
     bool initializeTextureArray(int numLayers, int width, int height);
     bool isTextureArrayInitialized() const { return m_textureArray.isValid(); }
+    unsigned int textureArrayId() const { return m_textureArray.getId(); }
 
     /**
      * @brief PBR texture generation

@@ -66,7 +66,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt_clang_tidy
         with:
-          version: '6.8.3'
+          version: '6.11.1'
           host: 'linux'
           target: 'desktop'
           arch: 'linux_gcc_64'

@@ -42,7 +42,7 @@ Each instrument follows the `DiscoveryInstrument` interface with TDD-verified te
 
 ### Prerequisites
 - Windows 10/11, MSVC 2022, CMake 3.25+
-- Qt 6.8.3 (msvc2022_64)
+- Qt 6.11.1 (msvc2022_64)
 - Optional: ONNX Runtime 1.27.0, CUDA 12.x
 
 ### Build
@@ -70,7 +70,7 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
   | **GPU** | OpenGL 4.5 compatible | NVIDIA RTX 3070+ |
   | **RAM** | 8 GB | 16 GB+ |
   | **Disk** | 5 GB | 10 GB+ |
-  | **Qt6** | 6.8.3 (required for the QML UI) | Qt 6.8.3 |
+  | **Qt6** | 6.11.1 (required for the QML UI) | Qt 6.11.1 |
   | **GSL** | Optional (for Wigner symbols) | GSL 2.7+ |
   | **Python** | Optional (for ML training) | Python 3.10+ |
   | **CUDA** | Optional (future GPU acceleration) | CUDA 11+ |
@@ -437,7 +437,7 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
 
   ### Build & UI Status (2026-09-29)
 
-  The project is **Qt-only** (Qt 6.8.3 + QML). The Dear ImGui + GLFW UI was removed in v3.7.0; the supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
+  The project is **Qt-only** (Qt 6.11.1 + QML). The Dear ImGui + GLFW UI was removed in v3.7.0; the supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
 
   **Current status:**
   - Qt6/QML UI (`quantumverse_qml`) is the supported build

@@ -114,7 +114,8 @@ CurvatureRenderer::CurvatureRenderer(
      lightConeBuffersInitialized(false),
      fallbackVao(0), fallbackVbo(0),
      cellsPerDimension(4),
-     m_planeMode(true), m_planeResolution(100)
+     m_planeMode(true), m_planeResolution(100),
+     m_deformationScale(1.0f)
 {
      // Only initialize non-OpenGL data in constructor
      // OpenGL resources (VBOs, VAOs, shaders) are initialized lazily in initializeGL()
@@ -225,11 +226,16 @@ void CurvatureRenderer::initializeGL()
 
         void main() {
             vec3 displacedPos = aPos;
-            if (curvatureMode == 0 || curvatureMode == 3) {
-                float displacement = aCurvature * curvatureScale * 0.05;
-                displacedPos += aNormal * displacement;
+            if (curvatureMode == 0) {
+                gl_Position = projectionMatrix * viewMatrix * vec4(aPos, 1.0);
+            } else if (curvatureMode == 3) {
+                float r = length(aPos.xy);
+                float depression = 15.0 / (1.0 + r * 0.03);
+                displacedPos.z -= depression;
+                gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
+            } else {
+                gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
             }
-            gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
             fragColor = aColor;
             curvatureValue = aCurvature;
             timeDilation = aTimeDilation;
@@ -250,8 +256,6 @@ void CurvatureRenderer::initializeGL()
 
             switch (curvatureMode) {
                 case 0: {
-                    // Color based on curvature magnitude using logarithmic scale
-                    // Deep blue (low) -> Cyan -> Green -> Yellow -> Red (high)
                     float K = abs(curvatureValue);
                     float logK = log2(max(K, 1e-10)) * 0.5;
                     float hue = clamp(logK * 0.1 + 0.5, 0.0, 1.0);
@@ -278,13 +282,13 @@ void CurvatureRenderer::initializeGL()
                         baseColor = mix(vec3(0,1,0), vec3(1,1,0), (hue - 0.5) * 4.0);
                     else
                         baseColor = mix(vec3(1,1,0), vec3(1,0,0), (hue - 0.75) * 4.0);
-                    alpha = 0.7;  // Increased from 0.2 for visibility
+                    alpha = 0.7;
                     break;
                 }
                 case 2: {
                     float intensity = clamp(log2(max(curvatureValue, 1.0)) * 0.05, 0.0, 1.0);
                     baseColor = mix(vec3(0.15, 0.35, 1.0), vec3(1.0, 0.1, 0.1), intensity);
-                    alpha = 0.7;  // Increased from 0.2 for visibility
+                    alpha = 0.7;
                     break;
                 }
                 case 3: {
@@ -580,17 +584,22 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(mode));
 
+    if (currentMetric) {
+        deformGrid();
+        updateGLBuffers();
+    }
+
     glBindVertexArray(vao);
-    // Enable depth testing for proper grid rendering
+    glDisable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
-    // Disable blending for grid to prevent overlapping transparent lines
-    // from accumulating and appearing white when camera is inside the grid
-    glDisable(GL_BLEND);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES,
                    static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
-    glEnable(GL_BLEND); // Re-enable blending for subsequent renders
     glDisable(GL_DEPTH_TEST);
     glBindVertexArray(0);
+    if (wireframe)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // Restore polygon mode to FILL so subsequent renders (celestial bodies, etc.)
     // are not drawn as wireframe
@@ -988,40 +997,55 @@ void CurvatureRenderer::initializeGrid()
 
 void CurvatureRenderer::deformGrid()
 {
-    if (!m_initialized) return;
+    if (vertices.empty()) return;
     
-    // Use CurvatureCalculator to compute curvature at each vertex
-    CurvatureCalculator calculator(currentMetric);
+    const float A = 1.46f;
+    const float R = 50.0f;
+    const float R2 = R * R;
+    
+    float rawZMin = -A;
+    float rawZMax = 0.0f;
+    bool first = true;
     
     for (size_t i = 0; i < vertices.size(); i++) {
         auto& vertex = vertices[i];
         
-        // Create event at this vertex position
-        Event4D event(time, vertex.position[0], vertex.position[1], vertex.position[2]);
+        float x = vertex.position[0];
+        float y = vertex.position[1];
+        float r2 = x * x + y * y;
+        float depth = A / (1.0f + r2 / R2);
+        float rawDisplacement = -depth;
         
-        // Compute curvature using the calculator
-        calculator.computeKretschmann(event);
-        double curvature = calculator.getKretschmann();
-        vertex.curvature = static_cast<float>(curvature);
+        vertex.position[2] = rawDisplacement * m_deformationScale;
         
-        // Apply deformation based on curvature.
-        // Clamp the displacement to avoid the 1/r^6 Kretschmann blow-up
-        // near the singularity producing an enormous spike.
-        float rawDisplacement = static_cast<float>(curvature * 0.1);
-        float displacement = rawDisplacement > 8.0f ? 8.0f
-                          : (rawDisplacement < -8.0f ? -8.0f : rawDisplacement);
-        // Apply displacement relative to the undeformed base Z so repeated
-        // calls (e.g. every animation frame via updateTime) do not accumulate
-        // and drift the grid unboundedly.
-        vertex.position[2] = m_baseZ[i] + displacement;
+        if (first) {
+            rawZMin = rawZMax = rawDisplacement;
+            first = false;
+        } else {
+            rawZMin = std::min(rawZMin, rawDisplacement);
+            rawZMax = std::max(rawZMax, rawDisplacement);
+        }
         
-        // Update time dilation
-        calculator.computeRicciScalar(event);
-        vertex.time_dilation = static_cast<float>(calculator.getRicciScalar());
+        vertex.curvature = 0.0f;
+        vertex.time_dilation = 1.0f;
         
-        // Update color
         updateVertexColor(vertex);
     }
+    std::cout << "[GRID] rawZ=" << rawZMin << ".." << rawZMax
+              << " scaledZ=" << (rawZMin * m_deformationScale) << ".." << (rawZMax * m_deformationScale)
+              << " unitRange=" << gridSize << std::endl;
+}
+
+std::pair<float, float> CurvatureRenderer::gridZRange() const
+{
+    if (vertices.empty()) return {0.0f, 0.0f};
+    float zMin = vertices[0].position[2];
+    float zMax = vertices[0].position[2];
+    for (const auto& vertex : vertices) {
+        zMin = std::min(zMin, vertex.position[2]);
+        zMax = std::max(zMax, vertex.position[2]);
+    }
+    return {zMin, zMax};
 }
 
 void CurvatureRenderer::updateVertexColor(CurvatureVertex& vertex)
