@@ -535,10 +535,10 @@ void UI4D::endBodyPropertyEditing() {
     solarSystem.scaleFactor = 1.0;
 
     // Load config from file or use defaults
-    auto& config = ConfigLoader::instance();
-    if (!config.isLoaded()) {
+    auto& localConfig = ConfigLoader::instance();
+    if (!localConfig.isLoaded()) {
         QDir rootDir(QString::fromStdString(quantumverse::utils::repoRoot()));
-        config.loadFromFile(rootDir.filePath("config/simulator.json").toStdString());
+        localConfig.loadFromFile(rootDir.filePath("config/simulator.json").toStdString());
     }
 
     const double AU = 149597870700.0;
@@ -546,7 +546,7 @@ void UI4D::endBodyPropertyEditing() {
 
     // Central body (Sun) from config
     {
-        const auto& cfg = config.config().central_body;
+        const auto& cfg = localConfig.config().central_body;
         SolarSystemBody body;
         body.name = cfg.name.empty() ? "Sun" : cfg.name;
         body.mass = cfg.mass_kg;
@@ -563,7 +563,7 @@ void UI4D::endBodyPropertyEditing() {
     }
 
     // Planets from config
-    for (const auto& cfg : config.config().bodies) {
+    for (const auto& cfg : localConfig.config().bodies) {
         SolarSystemBody body;
         body.name = cfg.name;
         body.mass = cfg.mass_kg;
@@ -573,7 +573,7 @@ void UI4D::endBodyPropertyEditing() {
 
         double orbitalVelocity = 0.0;
         if (body.semiMajorAxis > 0.0) {
-            double centralMass = config.config().central_body.mass_kg;
+            double centralMass = localConfig.config().central_body.mass_kg;
             orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
         }
         body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
@@ -1638,30 +1638,30 @@ void UI4D::injectAsteroidFromEvent(const ScenarioEvent& event) {
     injectAsteroid(x, y, z, vx, vy, vz, mass);
 }
 
-void UI4D::addBodyFromConfig(const ScenarioBodyConfig& config) {
+void UI4D::addBodyFromConfig(const ScenarioBodyConfig& localConfig) {
     const double AU = 149597870700.0;
     const double DAY = 24.0 * 3600.0;
 
     SolarSystemBody body;
-    body.name = config.name;
-    body.mass = config.mass_kg;
-    body.radius = config.radius_m;
-    body.semiMajorAxis = config.semi_major_axis_au * AU;
-    body.orbitalPeriod = config.orbital_period_days * DAY;
-    body.isCentralBody = config.is_central_body;
-    body.isStar = config.is_star;
-    body.showOrbit = !config.is_central_body;
-    body.textureId = config.name + "_texture";
+    body.name = localConfig.name;
+    body.mass = localConfig.mass_kg;
+    body.radius = localConfig.radius_m;
+    body.semiMajorAxis = localConfig.semi_major_axis_au * AU;
+    body.orbitalPeriod = localConfig.orbital_period_days * DAY;
+    body.isCentralBody = localConfig.is_central_body;
+    body.isStar = localConfig.is_star;
+    body.showOrbit = !localConfig.is_central_body;
+    body.textureId = localConfig.name + "_texture";
 
-    if (body.semiMajorAxis > 0.0 && !config.is_central_body) {
+    if (body.semiMajorAxis > 0.0 && !localConfig.is_central_body) {
         double centralMass = scenarioState.current_scenario ?
             scenarioState.current_scenario->central_body.mass_kg : 1.989e30;
         double orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
         body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
         body.velocity = Event4D(0.0, 0.0, 0.0, -orbitalVelocity);
     } else {
-        body.position = Event4D(0.0, config.position[0], config.position[1], config.position[2]);
-        body.velocity = Event4D(0.0, config.velocity[0], config.velocity[1], config.velocity[2]);
+        body.position = Event4D(0.0, localConfig.position[0], localConfig.position[1], localConfig.position[2]);
+        body.velocity = Event4D(0.0, localConfig.velocity[0], localConfig.velocity[1], localConfig.velocity[2]);
     }
 
     solarSystem.bodies[body.name] = body;

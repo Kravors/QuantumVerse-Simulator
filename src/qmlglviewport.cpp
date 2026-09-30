@@ -2038,10 +2038,10 @@ void QmlGlRenderer::renderHUD()
     float panelW = 140.0f;
     float panelH = 150.0f;
 
-    auto uploadQuad = [&](GLuint vao, GLuint vbo, const GLfloat* data) {
+    auto uploadQuad = [&](GLuint vao, GLuint vbo, const GLfloat* bufferData) {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * 6 * sizeof(GLfloat), data);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * 6 * sizeof(GLfloat), bufferData);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         glBindVertexArray(0);
     };
@@ -2376,12 +2376,12 @@ void QmlGlViewport::probeAt(double x, double y, double z)
     // Guard against pathological values near the singularity where the
     // Schwarzschild approximation breaks down.
     if (gtt < 0.0 && std::isfinite(gtt) && -gtt > 1e-6) {
-        double z = 1.0 / std::sqrt(-gtt) - 1.0;
-        m_redshift = QString::number(z, 'e', 3);
+        double zLocal = 1.0 / std::sqrt(-gtt) - 1.0;
+        m_redshift = QString::number(zLocal, 'e', 3);
     } else if (gtt > 0.0 && std::isfinite(gtt) && gtt > 1e-6) {
         // Handle (+,,-,-) signature or unusual metrics
-        double z = 1.0 / std::sqrt(gtt) - 1.0;
-        m_redshift = QString::number(z, 'e', 3);
+        double zLocal = 1.0 / std::sqrt(gtt) - 1.0;
+        m_redshift = QString::number(zLocal, 'e', 3);
     } else {
         m_redshift = QString("n/a");
     }
