@@ -594,7 +594,7 @@ void UI4D::endBodyPropertyEditing() {
               << " bodies from config" << std::endl;
 }
 
-void UI4D::updateSolarSystemPositions(double currentTime) {
+void UI4D::updateSolarSystemPositions([[maybe_unused]] double currentTime) {
     // N-Body Leapfrog Integration (kept for backward compatibility)
     double dt = 1.0;
     stepSimulation(dt, 100);

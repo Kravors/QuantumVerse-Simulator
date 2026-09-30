@@ -6,7 +6,7 @@
 
 #include "perf_gate.h"
 
-int main(int argc, char* argv[]) {
+int main([[maybe_unused]] int argc, char* argv[]) {
     const double avgThreshold = perf_gate::thresholdFromEnv(
         "QUANTUMVERSE_PERF_AVG_THRESHOLD_MS", PERF_AVG_THRESHOLD_DEFAULT);
     const double maxThreshold = perf_gate::thresholdFromEnv(
