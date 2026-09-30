@@ -16,6 +16,9 @@ else()
     add_compile_options(-Wall -Wextra)
 endif()
 
+# Suppress C4996 in third-party stb headers
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
 # Coverage instrumentation
 if(QUANTUMVERSE_USE_COVERAGE)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage -O0 -g")
