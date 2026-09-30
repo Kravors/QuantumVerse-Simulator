@@ -1288,12 +1288,6 @@ static void setUniform(GLuint program, const char* name, const QMatrix4x4& value
 static void setUniform(GLuint program, const char* name, float value) {
     ::glUniform1f(::glGetUniformLocation(program, name), value);
 }
-static void setUniform(GLuint program, const char* name, int value) {
-    ::glUniform1i(::glGetUniformLocation(program, name), value);
-}
-static void setUniform(GLuint program, const char* name, const QVector3D& value) {
-    ::glUniform3f(::glGetUniformLocation(program, name), value.x(), value.y(), value.z());
-}
 
 void QmlGlRenderer::setupShaders()
 {
@@ -2044,8 +2038,6 @@ void QmlGlRenderer::renderHUD()
     float panelW = 140.0f;
     float panelH = 150.0f;
 
-    const GLuint stride = 6 * sizeof(GLfloat);
-
     auto uploadQuad = [&](GLuint vao, GLuint vbo, const GLfloat* data) {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -2511,7 +2503,6 @@ void QmlGlViewport::reloadConfig()
     auto& config = quantumverse::ConfigLoader::instance();
     config.reload();
     if (m_curvatureRenderer) {
-        const auto& cfg = config.config();
         m_curvatureRenderer->setPlaneMode(m_curvatureRenderer->isPlaneMode());
     }
     update();

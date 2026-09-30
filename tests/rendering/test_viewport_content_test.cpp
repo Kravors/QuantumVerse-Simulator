@@ -94,13 +94,6 @@ static void rotateX(float* m, float angleRad)
     m[15] = 1.0f;
 }
 
-static float mulFloat(const float* a, const float* b)
-{
-    // Simple matrix multiply accumulator for building view matrix.
-    // Returns the (0,3) translation element (x) — used for camera placement.
-    (void)a; (void)b; return 0.0f;
-}
-
 static int runMockGLMode();
 
 int main(int argc, char* argv[])

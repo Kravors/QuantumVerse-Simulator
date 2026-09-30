@@ -1439,9 +1439,6 @@ bool UI4D::loadScenario(const Scenario& scenario) {
                   << " c=" << scenario.physics.c << " h=" << scenario.physics.h << std::endl;
     }
 
-    const double AU = 149597870700.0;
-    const double DAY = 24.0 * 3600.0;
-
     solarSystem.bodies.clear();
 
     {
