@@ -187,6 +187,7 @@ Both indicate the same Qt init failure (`QGuiApplicationPrivate::init` /
 - Validation tests: GR benchmarks (Mercury precession, light deflection, redshift, frame dragging, Nordtvedt)
 - Discovery tests: `tests/discovery/test_*.cpp` with 6+ TDD checks per instrument
 - ML tests: anomaly detector, monitor, training data collector
+- VR tests: `tests/unit/test_shared_session.cpp`, `test_signaling_client.cpp`, `test_multi_user_server.cpp` — headless, no OpenXR runtime required
 
 ### Physics Invariants Monitored
 1. MetricTensor symmetry: `g[μ][ν] = g[ν][μ]`
