@@ -1,5 +1,5 @@
 ﻿{
-  "version": 3,
+  "version": 6,
   "configurePresets": [
     {
       "name": "windows-base",
@@ -53,6 +53,19 @@
       "description": "Target Windows (32-bit) with the Visual Studio development environment. (RelWithDebInfo)",
       "inherits": "x86-debug",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "release",
+      "displayName": "QuantumVerse Release",
+      "description": "Pinned MSVC + Qt 6.11.1 release preset for reproducible source builds.",
+      "inherits": "windows-base",
+      "binaryDir": "${sourceDir}/build_release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "QUANTUMVERSE_USE_QT": "ON",
+        "QUANTUMVERSE_BUILD_TESTS": "ON",
+        "CMAKE_PREFIX_PATH": "F:/qt/6.11.1/msvc2022_64"
+      }
     }
   ]
 }
