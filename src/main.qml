@@ -925,8 +925,8 @@ ApplicationWindow {
         // --- RIGHT PANEL: Discovery & Info ---
         Pane {
             id: discoveryPanel
-            SplitView.preferredWidth: 320
-            SplitView.minimumWidth: 300
+            SplitView.preferredWidth: 360
+            SplitView.minimumWidth: 340
             SplitView.maximumWidth: 450
             visible: true
             z: 1
@@ -1198,23 +1198,47 @@ ApplicationWindow {
                                         Label { text: "Probe Readout"; font.bold: true; font.pixelSize: 12 }
 
                                         RowLayout {
-                                            Label { text: "Kretschmann:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem && viewportItem.kretschmann ? viewportItem.kretschmann : "—"; color: "#4af"; font.family: "monospace" }
+                                            Label { text: "Kretschmann:"; color: "#888" }
+                                            Label {
+                                                text: viewportItem && viewportItem.kretschmann ? viewportItem.kretschmann : "—"
+                                                color: "#4af"
+                                                font.family: "monospace"
+                                                Layout.fillWidth: true
+                                                horizontalAlignment: Text.AlignRight
+                                            }
                                         }
 
                                         RowLayout {
-                                            Label { text: "Ricci Scalar:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem && viewportItem.ricciScalar ? viewportItem.ricciScalar : "—"; color: "#4af"; font.family: "monospace" }
+                                            Label { text: "Ricci Scalar:"; color: "#888" }
+                                            Label {
+                                                text: viewportItem && viewportItem.ricciScalar ? viewportItem.ricciScalar : "—"
+                                                color: "#4af"
+                                                font.family: "monospace"
+                                                Layout.fillWidth: true
+                                                horizontalAlignment: Text.AlignRight
+                                            }
                                         }
 
                                         RowLayout {
-                                            Label { text: "Weyl Scalar:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem && viewportItem.weylSquared ? viewportItem.weylSquared : "—"; color: "#4af"; font.family: "monospace" }
+                                            Label { text: "Weyl Scalar:"; color: "#888" }
+                                            Label {
+                                                text: viewportItem && viewportItem.weylSquared ? viewportItem.weylSquared : "—"
+                                                color: "#4af"
+                                                font.family: "monospace"
+                                                Layout.fillWidth: true
+                                                horizontalAlignment: Text.AlignRight
+                                            }
                                         }
 
                                         RowLayout {
-                                            Label { text: "Redshift:"; color: "#888"; Layout.fillWidth: true }
-                                            Label { text: viewportItem && viewportItem.redshift ? viewportItem.redshift : "—"; color: "#4af"; font.family: "monospace" }
+                                            Label { text: "Redshift:"; color: "#888" }
+                                            Label {
+                                                text: viewportItem && viewportItem.redshift ? viewportItem.redshift : "—"
+                                                color: "#4af"
+                                                font.family: "monospace"
+                                                Layout.fillWidth: true
+                                                horizontalAlignment: Text.AlignRight
+                                            }
                                         }
 
                                         Connections {
@@ -1249,14 +1273,14 @@ ApplicationWindow {
 
                             ComboBox {
                                 id: severityFilter
-                                Layout.preferredWidth: 92
+                                Layout.preferredWidth: 70
                                 model: ["All", "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
                                 onCurrentTextChanged: findingsModel.filterSeverity =
                                     (currentText === "All" ? "" : currentText)
                             }
                             ComboBox {
                                 id: instrumentFilter
-                                Layout.preferredWidth: 210
+                                Layout.preferredWidth: 160
                                 property var names: {
                                     var base = ["All"];
                                     var extra = ["LIGO", "IceCube"];
@@ -1285,7 +1309,7 @@ ApplicationWindow {
                             }
                             ComboBox {
                                 id: sortCombo
-                                Layout.preferredWidth: 104
+                                Layout.preferredWidth: 80
                                 model: ["Newest", "Severity", "Confidence"]
                                 onCurrentTextChanged: {
                                     if (currentText === "Newest") {
@@ -1597,7 +1621,7 @@ ApplicationWindow {
                         Label { text: "Parameter Sweep"; font.bold: true; font.pixelSize: 12 }
 
                         RowLayout {
-                            Label { text: "Parameter:"; color: "#888"; Layout.fillWidth: true }
+                            Label { text: "Parameter:"; color: "#888" }
                             ComboBox {
                                 id: sweepParamCombo
                                 model: ["Mass", "Spin", "Charge", "Distance"]
@@ -1607,7 +1631,7 @@ ApplicationWindow {
                         }
 
                         RowLayout {
-                            Label { text: "Range:"; color: "#888"; Layout.fillWidth: true }
+                            Label { text: "Range:"; color: "#888" }
                             TextField { id: sweepFromField; text: "0.1"; Layout.fillWidth: true; font.pixelSize: 11 }
                             Label { text: "to"; color: "#888" }
                             TextField { id: sweepToField; text: "10.0"; Layout.fillWidth: true; font.pixelSize: 11 }
