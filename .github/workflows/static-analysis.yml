@@ -66,7 +66,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt_clang_tidy
         with:
-          version: '6.11.1'
+          version: '6.8.3'
           host: 'linux'
           target: 'desktop'
           arch: 'linux_gcc_64'
@@ -159,7 +159,7 @@ jobs:
             --suppress=functionStatic \
             --suppress=duplicateBranch \
             --suppress=shadowFunction \
-            --suppress=shadowVariable \
+            --suppress=shadow \
             --suppress=constParameterPointer \
             --suppress=constVariable \
             --suppress=constVariablePointer \
