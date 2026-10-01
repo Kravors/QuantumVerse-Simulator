@@ -496,3 +496,6 @@ run_logs/
 debug-jobs.json
 runs.tsv
 docs/Phase 31 is locked in*.md
+
+# Runtime artifacts
+graphics_api.txt

@@ -945,14 +945,9 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
 
     const double eps = 1e-6;
 
-    auto param_map = param_space_.parameterVectorToMap(params);
-    std::string theory_name = param_space_.getTheoryName();
-
     // NOTE: Brans-Dicke's computeChristoffelAD returns an empty array, so the
     // adjoint path would produce zero parameter gradients. Skip the integrator
     // overhead and go straight to central finite differences.
-    double base_chi2 = evaluateTheory(params, false).observational_chi2;
-    (void)base_chi2;
     for (int i = 0; i < dim; ++i) {
         double lo = param_list[i].min;
         double hi = param_list[i].max;

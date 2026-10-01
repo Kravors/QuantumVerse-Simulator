@@ -434,7 +434,7 @@ if(QUANTUMVERSE_USE_QT)
             COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
             COMMAND cmd /c
-                "${_vc_install_cmd}set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
+                "${_vc_install_cmd}set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --no-compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
             # windeployqt --compiler-runtime ships the VC++ redist INSTALLER, not the raw
             # DLLs. Copy the CRT DLLs directly so the app runs on a clean Windows install.
             COMMAND ${CMAKE_COMMAND} -E echo "Copying MSVC runtime DLLs..."
