@@ -159,7 +159,6 @@ jobs:
             --suppress=functionStatic \
             --suppress=duplicateBranch \
             --suppress=shadowFunction \
-            --suppress=shadow \
             --suppress=constParameterPointer \
             --suppress=constVariable \
             --suppress=constVariablePointer \
