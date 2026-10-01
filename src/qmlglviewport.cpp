@@ -2272,8 +2272,8 @@ void QmlGlViewport::resetView()
     setCameraAngleY(0.785f);  // 45 degrees azimuth
     if (m_camera4DAdapter) {
         m_camera4DAdapter->setDistance(150.0);
-        m_camera4DAdapter->setAzimuth(0.7854);
-        m_camera4DAdapter->setElevation(0.5236);
+        m_camera4DAdapter->setAzimuth(0.7854f);
+        m_camera4DAdapter->setElevation(0.5236f);
     }
 }
 

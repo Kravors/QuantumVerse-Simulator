@@ -15,12 +15,6 @@
 #endif
 
 namespace quantumverse {
-namespace physics {
-class AdjointGeodesicIntegrator;
-}
-}
-
-namespace quantumverse {
 namespace discovery {
 
 /**
@@ -458,6 +452,14 @@ public:
     static bool dominates(const ParetoPoint& a, const ParetoPoint& b);
 
     /**
+     * @brief Batch Pareto archive updates to avoid O(N²) reallocation
+     *        during optimization loops. Call beginParetoBatch() before a
+     *        batch of evaluateTheory() calls and flushParetoBatch() after.
+     */
+    void beginParetoBatch() const { m_paretoBatchMode_ = true; }
+    void flushParetoBatch() const;
+
+    /**
      * @brief Update Pareto archive with a new candidate point.
      * Removes any existing points dominated by the new point,
      * and discards the new point if it is dominated.
@@ -499,6 +501,10 @@ private:
     mutable std::vector<ParetoPoint> pareto_archive_;
     mutable std::vector<DiscoveryResult> pareto_results_;
     mutable std::vector<double> model_weights_;
+
+    // Pareto batch-update state
+    mutable bool m_paretoBatchMode_ = false;
+    mutable std::vector<std::pair<ParetoPoint, DiscoveryResult>> m_paretoBatchQueue_;
 
     // Full ensemble of evaluated theories. BMA averages over *every* candidate
     // model, not just the non-dominated Pareto front, so we keep all evaluated
