@@ -54,6 +54,11 @@ src/
 - Qt 6.11.1 (msvc2022_64)
 - Optional: ONNX Runtime 1.27.0, CUDA 12.x, Python 3.10+ (ML training only)
 
+### CI vs. local Qt version
+CI uses Qt 6.8.3 (mirror availability). Local dev uses 6.11.1.
+QML behavior may differ; verify any QML change against both if it
+touches layout, popup behavior, or parser-level features.
+
 ### Build
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
