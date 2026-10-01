@@ -38,10 +38,10 @@ print(f"{len(targets)} test targets")
 # for a unit test and worth reducing once the nine non-passing canaries are
 # settled.
 TIMEOUTS = {
-    "test_theory_discovery_agent": 600,
-    "test_gradient_optimizer": 600,
-    "test_adjoint_gradient_optimizer": 900,
-    "default": 180,
+    "test_theory_discovery_agent": 180,
+    "test_gradient_optimizer": 180,
+    "test_adjoint_gradient_optimizer": 180,
+    "default": 60,
 }
 
 

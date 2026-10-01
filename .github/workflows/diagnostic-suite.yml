@@ -33,7 +33,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -95,7 +95,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -161,7 +161,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -203,7 +203,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -248,7 +248,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'
@@ -312,7 +312,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         id: setup_qt
         with:
-          version: '6.11.1'
+          version: '6.8.3'
           target: 'desktop'
           host: 'linux'
           arch: 'linux_gcc_64'

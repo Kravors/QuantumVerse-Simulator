@@ -54,6 +54,11 @@ src/
 - Qt 6.11.1 (msvc2022_64)
 - Optional: ONNX Runtime 1.27.0, CUDA 12.x, Python 3.10+ (ML training only)
 
+### CI vs. local Qt version
+CI uses Qt 6.8.3 (mirror availability). Local dev uses 6.11.1.
+QML behavior may differ; verify any QML change against both if it
+touches layout, popup behavior, or parser-level features.
+
 ### Build
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
@@ -187,6 +192,7 @@ Both indicate the same Qt init failure (`QGuiApplicationPrivate::init` /
 - Validation tests: GR benchmarks (Mercury precession, light deflection, redshift, frame dragging, Nordtvedt)
 - Discovery tests: `tests/discovery/test_*.cpp` with 6+ TDD checks per instrument
 - ML tests: anomaly detector, monitor, training data collector
+- VR tests: `tests/unit/test_shared_session.cpp`, `test_signaling_client.cpp`, `test_multi_user_server.cpp` — headless, no OpenXR runtime required
 
 ### Physics Invariants Monitored
 1. MetricTensor symmetry: `g[μ][ν] = g[ν][μ]`

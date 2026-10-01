@@ -206,5 +206,3 @@ void KafkaAlertListener::stop()
 }
 
 } // namespace quantumverse
-
-#include "KafkaAlertListener.moc"

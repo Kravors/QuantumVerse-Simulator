@@ -195,7 +195,7 @@ std::array<std::array<std::array<double, 4>, 4>, 4> KerrMetric::computeFullChris
 ) const {
     // Compute Christoffel symbols numerically via finite differences
     // using the analytic metric evaluation
-    auto g = [&](double x, double y, double z) -> std::array<std::array<double, 4>, 4> {
+    auto gLocal = [&](double x, double y, double z) -> std::array<std::array<double, 4>, 4> {
         Event4D e(0.0, x, y, z);
         return evaluate(e);
     };
@@ -204,7 +204,7 @@ std::array<std::array<std::array<double, 4>, 4>, 4> KerrMetric::computeFullChris
     double h = 1e-5;
 
     // Compute inverse metric at event
-    auto g0 = g(x, y, z);
+    auto g0 = gLocal(x, y, z);
     MetricTensor m;
     m.g = g0;
     auto g_inv = m.inverse().g;
@@ -215,8 +215,8 @@ std::array<std::array<std::array<double, 4>, 4>, 4> KerrMetric::computeFullChris
         double gm[3] = {x, y, z};
         gp[sigma] += h;
         gm[sigma] -= h;
-        auto g_plus = g(gp[0], gp[1], gp[2]);
-        auto g_minus = g(gm[0], gm[1], gm[2]);
+        auto g_plus = gLocal(gp[0], gp[1], gp[2]);
+        auto g_minus = gLocal(gm[0], gm[1], gm[2]);
         return (g_plus[mu][nu] - g_minus[mu][nu]) / (2.0 * h);
     };
 

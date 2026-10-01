@@ -1029,7 +1029,7 @@ private:
       void applyScenarioAudio();
       void setCameraFromState(const ScenarioCameraState& state);
       void injectAsteroidFromEvent(const ScenarioEvent& event);
-      void addBodyFromConfig(const ScenarioBodyConfig& config);
+      void addBodyFromConfig(const ScenarioBodyConfig& localConfig);
 
      // Physics telemetry
      PhysicsTelemetry getTelemetry() const;

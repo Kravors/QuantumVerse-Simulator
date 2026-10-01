@@ -68,7 +68,7 @@ NeutrinoBurstAnalyzer::computeCoincidence(
     double gwTriggerTime,
     double diskMassMsun,
     double distanceMpc,
-    double timeWindowSec,
+    [[maybe_unused]] double timeWindowSec,
     [[maybe_unused]] double energyThreshold)
 {
     CoincidenceResult result;

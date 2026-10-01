@@ -1288,12 +1288,6 @@ static void setUniform(GLuint program, const char* name, const QMatrix4x4& value
 static void setUniform(GLuint program, const char* name, float value) {
     ::glUniform1f(::glGetUniformLocation(program, name), value);
 }
-static void setUniform(GLuint program, const char* name, int value) {
-    ::glUniform1i(::glGetUniformLocation(program, name), value);
-}
-static void setUniform(GLuint program, const char* name, const QVector3D& value) {
-    ::glUniform3f(::glGetUniformLocation(program, name), value.x(), value.y(), value.z());
-}
 
 void QmlGlRenderer::setupShaders()
 {
@@ -2044,12 +2038,10 @@ void QmlGlRenderer::renderHUD()
     float panelW = 140.0f;
     float panelH = 150.0f;
 
-    const GLuint stride = 6 * sizeof(GLfloat);
-
-    auto uploadQuad = [&](GLuint vao, GLuint vbo, const GLfloat* data) {
+    auto uploadQuad = [&](GLuint vao, GLuint vbo, const GLfloat* bufferData) {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * 6 * sizeof(GLfloat), data);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 4 * 6 * sizeof(GLfloat), bufferData);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         glBindVertexArray(0);
     };
@@ -2280,8 +2272,8 @@ void QmlGlViewport::resetView()
     setCameraAngleY(0.785f);  // 45 degrees azimuth
     if (m_camera4DAdapter) {
         m_camera4DAdapter->setDistance(150.0);
-        m_camera4DAdapter->setAzimuth(0.7854);
-        m_camera4DAdapter->setElevation(0.5236);
+        m_camera4DAdapter->setAzimuth(0.7854f);
+        m_camera4DAdapter->setElevation(0.5236f);
     }
 }
 
@@ -2384,12 +2376,12 @@ void QmlGlViewport::probeAt(double x, double y, double z)
     // Guard against pathological values near the singularity where the
     // Schwarzschild approximation breaks down.
     if (gtt < 0.0 && std::isfinite(gtt) && -gtt > 1e-6) {
-        double z = 1.0 / std::sqrt(-gtt) - 1.0;
-        m_redshift = QString::number(z, 'e', 3);
+        double zLocal = 1.0 / std::sqrt(-gtt) - 1.0;
+        m_redshift = QString::number(zLocal, 'e', 3);
     } else if (gtt > 0.0 && std::isfinite(gtt) && gtt > 1e-6) {
         // Handle (+,,-,-) signature or unusual metrics
-        double z = 1.0 / std::sqrt(gtt) - 1.0;
-        m_redshift = QString::number(z, 'e', 3);
+        double zLocal = 1.0 / std::sqrt(gtt) - 1.0;
+        m_redshift = QString::number(zLocal, 'e', 3);
     } else {
         m_redshift = QString("n/a");
     }
@@ -2511,7 +2503,6 @@ void QmlGlViewport::reloadConfig()
     auto& config = quantumverse::ConfigLoader::instance();
     config.reload();
     if (m_curvatureRenderer) {
-        const auto& cfg = config.config();
         m_curvatureRenderer->setPlaneMode(m_curvatureRenderer->isPlaneMode());
     }
     update();

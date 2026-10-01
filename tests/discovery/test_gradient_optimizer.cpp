@@ -19,7 +19,6 @@ constexpr double kEps = 1e-9;
 void test_gradient_optimization_reduces_chi2() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
 
-    // Start from a non-GR parameter set
     std::vector<double> params = {500.0, 0.9};
     auto init_result = agent.evaluateTheory(params);
     double init_chi2 = init_result.observational_chi2;
@@ -34,14 +33,12 @@ void test_gradient_optimization_reduces_chi2() {
 
     std::cout << "  Final chi2   = " << opt_result.observational_chi2 << "\n";
 
-    // Chi2 should not increase after optimization
     QV_CHECK(opt_result.observational_chi2 <= init_chi2 + 1e-6);
 }
 
 void test_gradient_optimization_from_best() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
 
-    // Run a few RL steps to get a starting point
     agent.discoverBestTheory(5);
     double best_before = agent.getBestResult().total_reward;
 
@@ -75,12 +72,10 @@ void test_gradient_optimization_updates_pareto() {
 void test_gradient_optimization_clamps_params() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::BRANS_DICKE);
 
-    // Start with params at boundary
     auto params = agent.denormalizeParams({1.0, 1.0});
     auto result = agent.optimizeWithGradient(5, 10.0, 1e-6);
     (void)result;
 
-    // Should not crash with large learning rate
     QV_CHECK(std::isfinite(result.total_reward));
     std::cout << "  Boundary param optimization survived.\n";
 }
