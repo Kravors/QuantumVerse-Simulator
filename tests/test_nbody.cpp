@@ -63,9 +63,9 @@ int main() {
 
     // Test asteroid injection
     std::cout << "\n--- Asteroid Injection Test ---" << std::endl;
-    int initialCount = ui4d.getSolarSystem().bodies.size();
+    auto initialCount = ui4d.getSolarSystem().bodies.size();
     ui4d.injectAsteroid(1.5e11, 0, 0, 0, 0, 30000, 1e15);
-    int afterCount = ui4d.getSolarSystem().bodies.size();
+    auto afterCount = ui4d.getSolarSystem().bodies.size();
     if (afterCount != initialCount + 1) {
         std::cerr << "Asteroid injection FAILED: body count mismatch" << std::endl;
         return 1;
@@ -80,7 +80,7 @@ int main() {
 
     // Clear asteroids
     ui4d.clearAsteroids();
-    int finalCount = ui4d.getSolarSystem().bodies.size();
+    auto finalCount = ui4d.getSolarSystem().bodies.size();
     if (finalCount != initialCount) {
         std::cerr << "Clear asteroids FAILED: body count mismatch" << std::endl;
         return 1;

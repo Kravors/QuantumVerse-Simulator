@@ -44,7 +44,7 @@ param(
     [switch]$SkipQtDeploy,
     [string]$QtPath,
     [string]$BuildDir = "build",
-    [string]$LogDir = "build_logs",
+    [string]$LogDir = [System.IO.Path]::Combine($PSScriptRoot, "build_logs"),
     [int]$ParallelJobs = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 )
 
@@ -159,8 +159,19 @@ function Initialize-MSVCEnvironment {
     Write-Host "[OK] vcvars64.bat: $vcVarsCmd" -ForegroundColor Green
     Write-Host "[INFO] Setting up compiler environment..." -ForegroundColor Gray
 
-    # Call vcvars64.bat and capture its environment changes
-    $envOutput = cmd /c "`"$vcVarsCmd`" >nul && set" 2>$null
+    # Use a temp batch file to avoid cmd.exe 8191-char command-line
+    # limits when calling vcvars64.bat and capturing `set` output.
+    $tempBat = [System.IO.Path]::GetTempFileName() + ".cmd"
+    $batContent = "call `"$vcVarsCmd`" >nul 2>&1`r`nset"
+    Set-Content -LiteralPath $tempBat -Value $batContent -Encoding ASCII
+
+    try {
+        $envOutput = cmd /c $tempBat 2>$null
+    }
+    finally {
+        Remove-Item -LiteralPath $tempBat -Force -ErrorAction SilentlyContinue
+    }
+
     if (-not $envOutput) {
         Write-Host "[WARNING] vcvars64.bat produced no environment output" -ForegroundColor Yellow
     }
@@ -203,47 +214,47 @@ function Initialize-QtEnvironment {
     Write-Host "--- Initializing Qt Environment ---" -ForegroundColor Cyan
 
     if ([string]::IsNullOrEmpty($QtPath)) {
-        $qtPath = $null
+        $script:qtPath = $null
         $searchRoots = @("F:\qt", "C:\Qt")
         foreach ($root in $searchRoots) {
             if (-not (Test-Path -LiteralPath $root)) { continue }
             $preferred = Join-Path $root "6.11.1"
             if ((Test-Path -LiteralPath $preferred) -and (Test-Path -LiteralPath (Join-Path $preferred "msvc2022_64"))) {
-                $qtPath = $preferred
+                $script:qtPath = $preferred
                 break
             }
             $candidates = Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+' }
             foreach ($c in ($candidates | Sort-Object Name -Descending)) {
                 $msvcDir = Join-Path $c.FullName "msvc2022_64"
                 if (Test-Path -LiteralPath $msvcDir) {
-                    $qtPath = $c.FullName
+                    $script:qtPath = $c.FullName
                     break
                 }
             }
-            if ($qtPath) { break }
+            if ($script:qtPath) { break }
         }
-        if ([string]::IsNullOrEmpty($qtPath)) {
+        if ([string]::IsNullOrEmpty($script:qtPath)) {
             Write-Host "[ERROR] Qt with msvc2022_64 not found in F:\qt or C:\Qt" -ForegroundColor Red
             Write-Host "  Specify Qt path with -QtPath parameter" -ForegroundColor Yellow
             throw "Qt not found"
         }
-        Write-Host "[INFO] Auto-detected Qt: $qtPath" -ForegroundColor Yellow
+        Write-Host "[INFO] Auto-detected Qt: $script:qtPath" -ForegroundColor Yellow
     }
     else {
-        $qtPath = $QtPath
+        $script:qtPath = $QtPath
     }
 
-    $qtMsvc = Join-Path $qtPath "msvc2022_64"
+    $qtMsvc = Join-Path $script:qtPath "msvc2022_64"
     if (-not (Test-Path -LiteralPath $qtMsvc)) {
         Write-Host "[ERROR] Qt msvc2022_64 toolchain not found: $qtMsvc" -ForegroundColor Red
         Write-Host "  This build requires Qt built for MSVC 2022 (x64)" -ForegroundColor Yellow
         throw "Qt msvc2022_64 not found"
     }
 
-    $qtPath = $qtMsvc
-    Write-Host "[OK] Qt path: $qtPath" -ForegroundColor Green
+    $script:qtPath = $qtMsvc
+    Write-Host "[OK] Qt path: $script:qtPath" -ForegroundColor Green
 
-    $qtBin = Join-Path $qtPath "bin"
+    $qtBin = Join-Path $script:qtPath "bin"
     if (-not (Test-Path -LiteralPath $qtBin)) {
         Write-Host "[WARNING] Qt bin directory not found: $qtBin" -ForegroundColor Yellow
     }

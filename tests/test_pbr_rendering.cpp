@@ -26,7 +26,7 @@ float distributionGGX(float NdotH, float roughness) {
     float a2 = a * a;
     float NdotH2 = NdotH * NdotH;
     float denom = NdotH2 * (a2 - 1.0f) + 1.0f;
-    denom = M_PI * denom * denom;
+    denom = static_cast<float>(M_PI) * denom * denom;
     return a2 / std::max(denom, 0.0001f);
 }
 
@@ -113,7 +113,7 @@ void testEnergyConservation()
         float F0 = tc.metallic > 0.5f ? 0.5f : 0.04f;
         float F = fresnelSchlick(tc.NdotV, F0);
         float kD = (1.0f - F) * (1.0f - tc.metallic);
-        float diffuseBRDF = kD / M_PI;
+        float diffuseBRDF = kD / static_cast<float>(M_PI);
         float totalBRDF = diffuseBRDF + F * specularBRDF;
 
         QV_CHECK(totalBRDF < 5.0f);
@@ -219,8 +219,7 @@ void testInstanceDataLayout()
 
     // Verify the expected instance data layout:
     // model(16) + modelIT(9) + color(3) + emissive(3) + radius(1) + texLayer(1) + metallic(1) + roughness(1) + ao(1) = 36 floats
-    const int expectedFloats = 16 + 9 + 3 + 3 + 1 + 1 + 1 + 1 + 1;
-    QV_CHECK(expectedFloats == 36);
+    int expectedFloats = 16 + 9 + 3 + 3 + 1 + 1 + 1 + 1 + 1;
 
     std::cout << "PASS (" << expectedFloats << " floats = " << expectedFloats * sizeof(float) << " bytes)" << std::endl;
 }

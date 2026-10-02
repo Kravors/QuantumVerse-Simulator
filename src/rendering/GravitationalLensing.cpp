@@ -749,7 +749,7 @@ void GravitationalLensing::createStarFieldTexture() {
 
     for (int face = 0; face < 6; ++face) {
         // Clear face
-        std::fill(faceData.begin(), faceData.end(), 0);
+        std::fill(faceData.begin(), faceData.end(), static_cast<uint8_t>(0));
 
         // For each pixel on this face, compute direction and check for stars
         for (int py = 0; py < faceSize; ++py) {

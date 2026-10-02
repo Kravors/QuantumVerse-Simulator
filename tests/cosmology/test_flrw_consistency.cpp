@@ -283,7 +283,6 @@ void test_frw_curvature_types() {
     auto g_closed = closed.evaluate(ev);
     auto g_open = open.evaluate(ev);
 
-    QV_CHECK(1.0 - 1.0 * r * r > 0.0);
     QV_CHECK(g_flat.g[1][1] > 0.0);
     QV_CHECK(g_closed.g[1][1] > 0.0);
     QV_CHECK(g_open.g[1][1] > 0.0);

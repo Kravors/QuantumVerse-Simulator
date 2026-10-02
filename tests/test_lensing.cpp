@@ -55,8 +55,8 @@ int main() {
 
         // Set Schwarzschild params
         GravitationalLensing::LensingParams params;
-        params.mass = 1.0;
-        params.spin = 0.0;
+        params.mass = 1.0f;
+        params.spin = 0.0f;
         lensing->setParams(params);
 
         double isco = lensing->computeISCO();
@@ -75,8 +75,8 @@ int main() {
 
         // Spin = 0.5
         GravitationalLensing::LensingParams params;
-        params.mass = 1.0;
-        params.spin = 0.5;
+        params.mass = 1.0f;
+        params.spin = 0.5f;
         lensing->setParams(params);
 
         double iscoPrograde = lensing->computeISCO();
@@ -95,8 +95,8 @@ int main() {
             std::make_shared<KerrMetric>(1.989e30, 0.999));
 
         GravitationalLensing::LensingParams params;
-        params.mass = 1.0;
-        params.spin = 0.999;
+        params.mass = 1.0f;
+        params.spin = 0.999f;
         lensing->setParams(params);
 
         double isco = lensing->computeISCO();
@@ -230,8 +230,8 @@ int main() {
             std::make_shared<KerrMetric>(1.989e30, 0.9));
 
         GravitationalLensing::LensingParams params;
-        params.mass = 1.0;
-        params.spin = 0.9;
+        params.mass = 1.0f;
+        params.spin = 0.9f;
         params.enableAccretionDisk = true;
         lensing->setParams(params);
 
@@ -464,8 +464,8 @@ int main() {
             std::make_shared<SchwarzschildMetric>(1.989e30));
 
         GravitationalLensing::LensingParams params;
-        params.mass = 1.0;
-        params.spin = 0.0;
+        params.mass = 1.0f;
+        params.spin = 0.0f;
         lensing->setParams(params);
 
         // Schwarzschild ISCO is exactly 6M
@@ -483,8 +483,8 @@ int main() {
             std::make_shared<KerrMetric>(1.989e30, 0.5));
 
         GravitationalLensing::LensingParams params;
-        params.mass = 1.0;
-        params.spin = 0.5;
+        params.mass = 1.0f;
+        params.spin = 0.5f;
         lensing->setParams(params);
 
         double iscoPrograde = lensing->computeISCO();
@@ -506,8 +506,8 @@ int main() {
             std::make_shared<KerrMetric>(1.989e30, 0.998));
 
         GravitationalLensing::LensingParams params;
-        params.mass = 1.0;
-        params.spin = 0.998;
+        params.mass = 1.0f;
+        params.spin = 0.998f;
         lensing->setParams(params);
 
         double isco = lensing->computeISCO();

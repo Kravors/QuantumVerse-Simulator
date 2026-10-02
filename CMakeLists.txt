@@ -2426,7 +2426,7 @@ if(QUANTUMVERSE_USE_QT)
       execute_process(
         COMMAND \"${QT_HOST_PATH}/bin/windeployqt.exe\"
           --dir \"\${CMAKE_INSTALL_PREFIX}/bin\"
-          --release --no-translations --compiler-runtime
+          --release --no-translations --no-compiler-runtime
           --qmldir \"${CMAKE_SOURCE_DIR}/src\"
           \"\${CMAKE_INSTALL_PREFIX}/bin/quantumverse_qml.exe\"
         RESULT_VARIABLE _rc

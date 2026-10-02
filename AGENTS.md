@@ -184,6 +184,13 @@ Both indicate the same Qt init failure (`QGuiApplicationPrivate::init` /
 - Two `RowLayout`s directly inside a `ColumnLayout` inside a `Popup` may
   fail to parse — wrap each `RowLayout` in an `Item` container.
 
+### DiscoveryPanelManager moc note
+
+`Q_OBJECT` is inside `#ifdef QUANTUMVERSE_USE_QML` in
+`DiscoveryPanelManager.h`. Builds without that define produce a benign
+AutoMoc note: `No relevant classes found. No output generated.` This is
+a build configuration artifact, not a defect. Do not chase.
+
 ## Testing & Verification
 
 ### Test Categories
