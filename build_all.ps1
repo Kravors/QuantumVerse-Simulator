@@ -600,9 +600,15 @@ try {
         $testArgs = @("-C", $BuildType, "--output-on-failure")
 
         if ($BuildType -eq "Release") {
-            $exclusions = "GridDeformationTest|SoftwareTourHeadlessTest|UI4DTest|PerformanceGateTest|QMLPerformanceBaseline|ViewportStateTest|ViewportContentTest|VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceRegressionTest"
-            $testArgs += "-E", $exclusions
-            Write-Host "Excluding canary tests: $exclusions" -ForegroundColor Yellow
+            $exclusionsPath = Join-Path $PSScriptRoot ".github\workflows\_canary-exclusions.txt"
+            if (Test-Path -LiteralPath $exclusionsPath) {
+                $exclusions = Get-Content -LiteralPath $exclusionsPath -Raw
+                $testArgs += "-E", $exclusions
+                Write-Host "Excluding canary tests: $exclusions" -ForegroundColor Yellow
+            }
+            else {
+                Write-Host "[WARNING] Canary exclusions file not found: $exclusionsPath" -ForegroundColor Yellow
+            }
         }
 
         $results += Invoke-Step -Name "Run Tests" -LogFile $testLog -Command {
