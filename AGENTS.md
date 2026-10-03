@@ -324,3 +324,19 @@ Do not re-run it. Any future conversion must be manual or use a
 literal-aware parser with tests.
 
 The 12-file repair landed in `c7dd514`.
+
+### Simulation appears frozen (bodies don't move)
+
+If the simulation is advancing but bodies are not moving, check these four
+layers in order. Each maps to a distinct root cause fixed in a separate commit:
+
+| Layer | Check | Commit |
+|-------|-------|--------|
+| Config load | `[DataPaths]` resolves to source tree, not `build/` | `81da060` |
+| Physics loop | `QmlGlViewport::updateSimulation()` calls `m_ui4d->stepSimulation()` | `c2fb9f4` |
+| Initial conditions | `initializeSolarSystem()` writes velocity into `.y`, not `.z` | `98e80ea` |
+| Renderer read | Renderer uses `body.position`, not `body.orbitPoints.back()` | `00e113c` |
+
+The [REALITY] diagnostic dump (emitted every 60 sim frames) shows `bodies=9`,
+`gridZRange`, and `simTime`. If bodies=9 but positions are static, the break
+is in layer 2, 3, or 4. If bodies<9, the break is in layer 1.
