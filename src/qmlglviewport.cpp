@@ -462,31 +462,6 @@ void QmlGlRenderer::render()
                    << " m_curvatureRenderer=" << (m_curvatureRenderer ? "set" : "null");
     }
 
-    // Periodic reality dump: log actual runtime state every 60 frames
-    static int s_realityFrame = 0;
-    if (++s_realityFrame % 60 == 0) {
-        int bodyCount = 0;
-        if (m_ui4d) {
-            bodyCount = static_cast<int>(m_ui4d->getSolarSystem().bodies.size());
-        }
-        bool texValid = false;
-        unsigned int texId = 0;
-        if (m_celestialBodyRenderer) {
-            texValid = m_celestialBodyRenderer->isTextureArrayInitialized();
-            texId = m_celestialBodyRenderer->textureArrayId();
-        }
-        QString gridRange = "0..0";
-        if (m_curvatureRenderer) {
-            auto range = m_curvatureRenderer->gridZRange();
-            gridRange = QString("%1..%2").arg(range.first, 0, 'g', 3).arg(range.second, 0, 'g', 3);
-        }
-        qWarning() << "[REALITY]"
-                   << "bodies=" << bodyCount
-                   << "gridZRange=" << gridRange
-                   << "lensing=" << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
-                   << "texBound=" << texId;
-    }
-
     // Render gravitational lensing background (before other objects)
     if (m_lensing && m_lensing->isEnabled()) {
         PERF_SCOPE("renderLensing");
@@ -2441,6 +2416,31 @@ void QmlGlViewport::updateSimulation(double deltaTime)
         // Map frequency to audible range (20-2000 Hz)
         double audibleFreq = 20.0 + std::min(1980.0, freq * 1e6);
         m_gwAudio->setFrequency(audibleFreq);
+    }
+
+    // Periodic reality dump: log actual runtime state every 60 frames
+    static int s_realityFrame = 0;
+    if (++s_realityFrame % 60 == 0) {
+        int bodyCount = 0;
+        if (m_ui4d) {
+            bodyCount = static_cast<int>(m_ui4d->getSolarSystem().bodies.size());
+        }
+        bool texValid = false;
+        unsigned int texId = 0;
+        if (m_celestialBodyRenderer) {
+            texValid = m_celestialBodyRenderer->isTextureArrayInitialized();
+            texId = m_celestialBodyRenderer->textureArrayId();
+        }
+        QString gridRange = "0..0";
+        if (m_curvatureRenderer) {
+            auto range = m_curvatureRenderer->gridZRange();
+            gridRange = QString("%1..%2").arg(range.first, 0, 'g', 3).arg(range.second, 0, 'g', 3);
+        }
+        qWarning() << "[REALITY]"
+                   << "bodies=" << bodyCount
+                   << "gridZRange=" << gridRange
+                   << "lensing=" << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
+                   << "texBound=" << texId;
     }
 
     // Update recording state
