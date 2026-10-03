@@ -540,6 +540,7 @@ private:
     mutable DLLookupTable m_dlCache;
     void buildDLLookupTable(double H0, double omegaM, double omegaLambda) const;
     double interpolatedDL(double z, double H0, double omegaM, double omegaLambda) const;
+    double luminosityDistanceMpc(double z, double H0, double omegaM, double omegaLambda) const;
 };
 
 } // namespace discovery
