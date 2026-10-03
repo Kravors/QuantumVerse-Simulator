@@ -62,11 +62,11 @@ inline std::string repoRoot() {
 inline std::string dataRoot() {
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList candidates = {
-        appDir + "/data",
-        appDir + "/../data",
-        appDir + "/../../data",
-        appDir + "/../../../data",
         appDir + "/../../../../data",
+        appDir + "/../../../data",
+        appDir + "/../../data",
+        appDir + "/../data",
+        appDir + "/data",
     };
     for (const auto& c : candidates) {
         const QString normalized = QDir::cleanPath(c);
