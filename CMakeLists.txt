@@ -1069,6 +1069,17 @@ if(QUANTUMVERSE_BUILD_TESTS)
     target_link_libraries(test_gravitational_redshift PRIVATE dilaton)
     add_test(NAME GravitationalRedshiftTest COMMAND test_gravitational_redshift)
 
+    # Runtime smoke test: launches quantumverse_qml headless and asserts on [REALITY] dumps
+    add_executable(test_runtime tests/smoke/test_runtime.cpp)
+    target_link_libraries(test_runtime PRIVATE Qt6::Core Qt6::Test)
+    set_target_properties(test_runtime PROPERTIES AUTOMOC ON)
+    add_test(NAME RuntimeSmokeTest COMMAND test_runtime)
+    set_tests_properties(RuntimeSmokeTest PROPERTIES
+        WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
+        TIMEOUT 300
+    )
+
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_config_loader.cpp)
     add_executable(test_config_loader tests/test_config_loader.cpp)
     target_link_libraries(test_config_loader PRIVATE dilaton nlohmann_json)
@@ -2383,6 +2394,7 @@ endif()
     # Phase 21: Symbolic verification companion binary
     add_executable(test_symbolic_verify tests/validation/test_symbolic_verify.cpp)
     target_link_libraries(test_symbolic_verify PRIVATE dilaton)
+    add_test(NAME SymbolicVerifyTest COMMAND test_symbolic_verify ${CMAKE_SOURCE_DIR}/tests/validation/test_symbolic_verify_input.json)
 
     # Multi-user collaboration tests
     # Guarded by QUANTUMVERSE_USE_QT: they link quantumverse_multi_user, a Qt
