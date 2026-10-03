@@ -577,7 +577,7 @@ void UI4D::endBodyPropertyEditing() {
             orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
         }
         body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
-        body.velocity = Event4D(0.0, 0.0, 0.0, -orbitalVelocity);
+        body.velocity = Event4D(0.0, 0.0, -orbitalVelocity, 0.0);
         body.isCentralBody = false;
         body.isStar = false;
         body.showOrbit = true;
@@ -1658,7 +1658,7 @@ void UI4D::addBodyFromConfig(const ScenarioBodyConfig& localConfig) {
             scenarioState.current_scenario->central_body.mass_kg : 1.989e30;
         double orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
         body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
-        body.velocity = Event4D(0.0, 0.0, 0.0, -orbitalVelocity);
+        body.velocity = Event4D(0.0, 0.0, -orbitalVelocity, 0.0);
     } else {
         body.position = Event4D(0.0, localConfig.position[0], localConfig.position[1], localConfig.position[2]);
         body.velocity = Event4D(0.0, localConfig.velocity[0], localConfig.velocity[1], localConfig.velocity[2]);
