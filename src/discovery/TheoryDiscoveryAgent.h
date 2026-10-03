@@ -522,6 +522,24 @@ private:
     // Live observational data
     std::vector<LiveObservation> m_liveObservations;
     mutable BayesianComparisonResult m_lastBayesResult_;
+
+    // Precomputed luminosity-distance lookup table (z → d_L in Mpc).
+    // Invalidated automatically when cosmology (H0, omegaM, omegaLambda) changes.
+    // Inert during gradient optimization (cosmology params vary per eval) but
+    // useful for fixed-cosmology workloads and repeated evaluations of a
+    // single theory. See AGENTS.md "Test-suite speed bounded by curvature
+    // computation" for the profiling context that motivated this.
+    struct DLLookupTable {
+        std::vector<double> zGrid;
+        std::vector<double> dLValues;
+        double cacheH0 = 0.0;
+        double cacheOmegaM = 0.0;
+        double cacheOmegaLambda = 0.0;
+        bool valid = false;
+    };
+    mutable DLLookupTable m_dlCache;
+    void buildDLLookupTable(double H0, double omegaM, double omegaLambda) const;
+    double interpolatedDL(double z, double H0, double omegaM, double omegaLambda) const;
 };
 
 } // namespace discovery

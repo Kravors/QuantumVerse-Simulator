@@ -28,10 +28,12 @@
 #include <map>
 #include <cmath>
 #include <string>
+#include <atomic>
 #include "DiscoveryInstrument.h"
 #include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
 #include "discovery/DiscoveryEngine.h"
+#include "../utils/ThreadPool.h"
 #ifdef QUANTUMVERSE_USE_QML
 #include "data/MultiMessengerCorrelator.h"
 #endif
@@ -181,6 +183,11 @@ private:
     DiscoveryEngine m_engine;
     bool m_anomalyDetectionEnabled = true;
     std::unique_ptr<MultiMessengerCorrelator> m_correlator;
+    quantumverse::utils::ThreadPool m_pool;
+    std::atomic<int> m_scanRemaining{0};
+    std::vector<Event4D> m_scanTrajectory;
+    std::atomic<bool> m_scanCancelled{false};
+    std::vector<CorrelationEvent> m_correlationEvents;
 };
 
 #else // QUANTUMVERSE_USE_QML not defined - plain C++ stub

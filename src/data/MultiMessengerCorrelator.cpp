@@ -105,6 +105,70 @@ void MultiMessengerCorrelator::clear()
     emit correlationCountChanged();
 }
 
+std::vector<CorrelationEvent> MultiMessengerCorrelator::correlateFindings(
+    const std::vector<InstrumentFinding>& findings,
+    double spatialThresholdMeters,
+    double timeWindowSec) const
+{
+    std::vector<CorrelationEvent> events;
+    if (findings.size() < 2) return events;
+
+    const size_t n = findings.size();
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = i + 1; j < n; ++j) {
+            const auto& a = findings[i];
+            const auto& b = findings[j];
+
+            const double spatialDist = a.location.spatialDistance(b.location);
+            if (spatialDist > spatialThresholdMeters) continue;
+
+            const double dt = std::fabs(a.timestamp - b.timestamp);
+            if (dt > timeWindowSec) continue;
+
+            const double tScore = 1.0 - std::min(1.0, dt / timeWindowSec);
+            const double sScore = 1.0 - std::min(1.0, spatialDist / spatialThresholdMeters);
+            const double jointScore = 0.5 * (tScore + sScore);
+
+            const double combinedConf = std::min(1.0,
+                a.confidence * b.confidence + 0.25 * jointScore);
+
+            AlertSeverity sev = AlertSeverity::INFO;
+            if (combinedConf >= 0.99)      sev = AlertSeverity::CRITICAL;
+            else if (combinedConf >= 0.95) sev = AlertSeverity::HIGH;
+            else if (combinedConf >= 0.80) sev = AlertSeverity::MEDIUM;
+            else if (combinedConf >= 0.50) sev = AlertSeverity::LOW;
+
+            CorrelationEvent ev;
+            ev.id = QStringLiteral("CORR_%1_%2")
+                        .arg(QString::fromStdString(a.id))
+                        .arg(QString::fromStdString(b.id));
+            ev.messengers = {
+                QString::fromStdString(a.instrumentName),
+                QString::fromStdString(b.instrumentName)
+            };
+            ev.timestamp = qMin(a.timestamp, b.timestamp);
+            ev.combinedConfidence = combinedConf;
+            ev.spatialScore = sScore;
+            ev.description = QStringLiteral(
+                "Sim-frame correlation: %1 + %2 | spatial=%3 m, dt=%4 s, joint=%5%")
+                        .arg(QString::fromStdString(a.instrumentName))
+                        .arg(QString::fromStdString(b.instrumentName))
+                        .arg(spatialDist, 0, 'f', 1)
+                        .arg(dt, 0, 'f', 3)
+                        .arg(combinedConf * 100.0, 0, 'f', 1);
+            ev.severity = sev;
+            ev.alertIds = {
+                QString::fromStdString(a.id),
+                QString::fromStdString(b.id)
+            };
+
+            events.push_back(std::move(ev));
+        }
+    }
+
+    return events;
+}
+
 double MultiMessengerCorrelator::angularSeparationDeg(double ra1, double dec1, double ra2, double dec2)
 {
     const double toRad = M_PI / 180.0;

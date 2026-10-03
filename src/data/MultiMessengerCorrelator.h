@@ -28,11 +28,13 @@ namespace quantumverse {
 struct CorrelationEvent {
     QString id;
     QStringList messengers;          // e.g. ["LIGO", "IceCube"]
-    double ra = 0.0;                 // degrees
-    double dec = 0.0;                // degrees
+    double ra = 0.0;                 // degrees (sky-frame only; 0 for sim-frame)
+    double dec = 0.0;                // degrees (sky-frame only; 0 for sim-frame)
     double timestamp = 0.0;          // Unix seconds
     double combinedConfidence = 0.0;  // joint confidence
     double spatialScore = 0.0;       // 0..1 proximity score
+    double spatialDistance = 0.0;    // meters (sim-frame correlation)
+    double timeSeparation = 0.0;     // seconds (sim-frame correlation)
     QString description;
     AlertSeverity severity = AlertSeverity::INFO;
     QVector<QString> alertIds;       // source finding IDs
@@ -57,6 +59,17 @@ public:
 
     /** @brief Remove all stored alerts and correlations. */
     Q_INVOKABLE void clear();
+
+    /** @brief Correlate a batch of findings in simulation frame and return events.
+     *
+     *  Pure function: no state mutation, no signals emitted.
+     *  Two findings correlate when their spatial distance is below @p spatialThresholdMeters
+     *  and their time separation is below @p timeWindowSec.
+     */
+    std::vector<CorrelationEvent> correlateFindings(
+        const std::vector<InstrumentFinding>& findings,
+        double spatialThresholdMeters,
+        double timeWindowSec) const;
 
     /** @brief Current spatial coincidence threshold in degrees. */
     double spatialThresholdDeg() const { return m_spatialThresholdDeg; }

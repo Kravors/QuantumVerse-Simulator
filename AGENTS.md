@@ -166,6 +166,18 @@ comparison becomes meaningful.
 > Underlying performance issue: the production `optimizeWithGradient()`
 > loop has the same cost profile. Worth a follow-up issue if users hit
 > iteration counts > 20. Not a test-fix blocker.
+>
+> ### Test-suite speed bounded by curvature computation (profiled 2026-10-03)
+>
+> Profiling `TheoryDiscoveryAgent::evaluateTheory()` showed ~350ms/call,
+> of which ~335ms is `CurvatureCalculator::computeAll()` (Christoffel →
+> Riemann → Ricci → Kretschmann). `luminosityDistanceMpc` is ~4% and
+> Pareto archive updates are microseconds. Fixing test-suite speed
+> requires either intra-call metric memoization in `computeAll()` or
+> replacing central-FD gradients with SPSA (2 eval calls per step
+> regardless of parameter count, vs 2N). Pareto optimization and
+> dL caching are not the bottleneck. Current test times are 44–74s
+> per theory-discovery test — acceptable, not pathological.
 
 ### qFatal exit codes on Windows
 Qt's qFatal / `__fastfail` produces different exit codes depending on build type:

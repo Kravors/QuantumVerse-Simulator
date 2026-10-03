@@ -21,6 +21,7 @@
 #include <fstream>
 #include <QDateTime>
 #include <QJsonObject>
+#include <algorithm>
 #include "data/GCNNoticeParser.h"
 
 namespace quantumverse {
@@ -30,6 +31,7 @@ DiscoveryPanelManager::DiscoveryPanelManager(QObject* parent)
     , m_activeInstrumentIndex(0)
     , m_scanRunning(false)
     , m_scanProgress(0.0)
+    , m_pool(std::max<size_t>(1, std::thread::hardware_concurrency()))
 {
 #ifdef QUANTUMVERSE_USE_QML
     m_correlator = std::make_unique<MultiMessengerCorrelator>(this);
@@ -65,43 +67,72 @@ const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const
 }
 
 void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location,
-                                 const std::vector<Event4D>& trajectory)
+                                   const std::vector<Event4D>& trajectory)
 {
-    if (m_instruments.empty()) return;
+    if (m_instruments.empty() || m_scanRunning) return;
 
     m_scanRunning = true;
-    emit scanRunningChanged();
-
+    m_scanCancelled.store(false);
+    m_scanRemaining.store(0);
     m_allFindings.clear();
+    m_scanTrajectory = trajectory;
 
-    for (size_t i = 0; i < m_instruments.size(); ++i) {
-        if (!m_instruments[i]->isEnabled()) continue;
+    emit scanRunningChanged();
+    emit findingsListChanged();
 
-        auto findings = m_instruments[i]->analyze(metric, location, trajectory);
-        qWarning() << "DIAG runScan instrument[" << i << "]"
-                   << QString::fromStdString(m_instruments[i]->getName()).constData()
-                   << "enabled=" << m_instruments[i]->isEnabled()
-                   << "findings=" << findings.size();
-        for (auto& f : findings) {
-            m_allFindings.push_back(f);
-            emit newFindingDiscovered(
-                QString::fromStdString(f.instrumentName),
-                QString::fromStdString(f.description),
-                f.confidence
-            );
-        }
-
-        m_scanProgress = static_cast<double>(i + 1) / m_instruments.size();
-        emit scanProgressChanged();
+    int enabledCount = 0;
+    for (const auto& inst : m_instruments) {
+        if (inst->isEnabled()) ++enabledCount;
     }
 
-    m_scanRunning = false;
-    m_scanProgress = 0.0;
-    emit scanRunningChanged();
-    emit scanProgressChanged();
-    emit findingsListChanged();
-    emit findingsChanged();
-    emit scanComplete();
+    if (enabledCount == 0) {
+        m_scanRunning = false;
+        emit scanRunningChanged();
+        emit scanComplete();
+        return;
+    }
+
+    m_scanRemaining.store(enabledCount);
+
+    for (const auto& inst : m_instruments) {
+        if (!inst->isEnabled()) continue;
+        DiscoveryInstrument* ptr = inst.get();
+        m_pool.enqueue([this, ptr, &metric, location, enabledCount]() {
+            auto findings = ptr->analyze(metric, location, m_scanTrajectory);
+            QMetaObject::invokeMethod(this, [this, findings = std::move(findings), enabledCount]() mutable {
+                if (m_scanCancelled.load()) return;
+
+                for (auto& f : findings) {
+                    m_allFindings.push_back(std::move(f));
+                    emit newFindingDiscovered(
+                        QString::fromStdString(f.instrumentName),
+                        QString::fromStdString(f.description),
+                        f.confidence
+                    );
+                }
+                emit findingsListChanged();
+                emit findingsChanged();
+
+                int remaining = --m_scanRemaining;
+                m_scanProgress = 1.0 - (remaining / static_cast<double>(enabledCount));
+                emit scanProgressChanged();
+
+                if (remaining == 0) {
+                    m_correlationEvents = m_correlator
+                        ? m_correlator->correlateFindings(m_allFindings, 1.0e6, 1.0)
+                        : std::vector<CorrelationEvent>{};
+
+                    m_scanRunning = false;
+                    m_scanProgress = 1.0;
+                    emit scanProgressChanged();
+                    emit scanRunningChanged();
+                    emit correlationCountChanged();
+                    emit correlationsListChanged();
+                    emit scanComplete();
+                }
+            }, Qt::QueuedConnection);
+        });
+    }
 }
 
 void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric, const Event4D& location,
@@ -132,8 +163,11 @@ void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric,
 void DiscoveryPanelManager::clearFindings()
 {
     m_allFindings.clear();
+    m_correlationEvents.clear();
     emit findingsListChanged();
     emit findingsChanged();
+    emit correlationCountChanged();
+    emit correlationsListChanged();
 }
 
 QString DiscoveryPanelManager::exportFindings() const
@@ -160,11 +194,7 @@ void DiscoveryPanelManager::setActiveInstrumentIndex(int index)
 
 int DiscoveryPanelManager::correlationCount() const
 {
-#ifdef QUANTUMVERSE_USE_QML
-    return m_correlator ? m_correlator->correlationCount() : 0;
-#else
-    return 0;
-#endif
+    return static_cast<int>(m_correlationEvents.size());
 }
 
 void DiscoveryPanelManager::onCorrelationDetected(const CorrelationEvent& correlation)
@@ -198,10 +228,8 @@ QString DiscoveryPanelManager::severityToString(AlertSeverity sev) const
 
 QVariantList DiscoveryPanelManager::correlationsList() const
 {
-#ifdef QUANTUMVERSE_USE_QML
     QVariantList list;
-    if (!m_correlator) return list;
-    for (const CorrelationEvent& ev : m_correlator->correlations()) {
+    for (const CorrelationEvent& ev : m_correlationEvents) {
         QVariantMap item;
         item["id"] = ev.id;
         item["messengers"] = ev.messengers;
@@ -210,15 +238,14 @@ QVariantList DiscoveryPanelManager::correlationsList() const
         item["timestamp"] = ev.timestamp;
         item["combinedConfidence"] = ev.combinedConfidence;
         item["spatialScore"] = ev.spatialScore;
+        item["spatialDistance"] = ev.spatialDistance;
+        item["timeSeparation"] = ev.timeSeparation;
         item["description"] = ev.description;
         item["severity"] = severityToString(ev.severity);
         item["alertIds"] = ev.alertIds;
         list.append(item);
     }
     return list;
-#else
-    return {};
-#endif
 }
 
 QStringList DiscoveryPanelManager::instrumentNames() const
@@ -423,6 +450,7 @@ std::vector<Event4D> DiscoveryPanelManager::generateScanTrajectory() const
 
 void DiscoveryPanelManager::stopScan()
 {
+    m_scanCancelled.store(true);
     m_scanRunning = false;
     emit scanRunningChanged();
     emit scanProgressChanged();

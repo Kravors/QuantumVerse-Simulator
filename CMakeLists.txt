@@ -433,8 +433,11 @@ if(QUANTUMVERSE_USE_QT)
         add_custom_target(deploy_qt_runtime
             COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtime to ${QT_RUNTIME_DEST}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${QT_RUNTIME_DEST}"
-            COMMAND cmd /c
-                "${_vc_install_cmd}set PATH=${QT_HOST_PATH}/bin;%PATH% && \"${QT_HOST_PATH}/bin/windeployqt.exe\" $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release> --qmldir \"${CMAKE_SOURCE_DIR}/src\" --no-compiler-runtime --no-translations \"${QT_RUNTIME_DEST}/quantumverse_qml.exe\""
+            COMMAND ${QT_HOST_PATH}/bin/windeployqt.exe
+                $<$<CONFIG:Debug>:--debug>$<$<NOT:$<CONFIG:Debug>>:--release>
+                --qmldir "${CMAKE_SOURCE_DIR}/src"
+                --no-compiler-runtime --no-translations
+                "${QT_RUNTIME_DEST}/quantumverse_qml.exe"
             # windeployqt --compiler-runtime ships the VC++ redist INSTALLER, not the raw
             # DLLs. Copy the CRT DLLs directly so the app runs on a clean Windows install.
             COMMAND ${CMAKE_COMMAND} -E echo "Copying MSVC runtime DLLs..."
@@ -2229,6 +2232,18 @@ endif()
     )
     target_link_libraries(test_discovery_robustness PRIVATE dilaton)
     add_test(NAME DiscoveryRobustnessTest COMMAND test_discovery_robustness)
+
+    # Phase 2: Sim-frame correlation test
+    add_executable(test_correlation
+        tests/discovery/test_correlation.cpp
+        src/data/MultiMessengerCorrelator.cpp
+    )
+    target_link_libraries(test_correlation PRIVATE dilaton Qt6::Core)
+    set_target_properties(test_correlation PROPERTIES AUTOMOC ON)
+    add_test(NAME SimFrameCorrelationTest COMMAND test_correlation)
+    set_tests_properties(SimFrameCorrelationTest PROPERTIES
+        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+    )
 
     # 6.6 CMB lensing anomaly scanner
     add_executable(test_cmb_lensing_scanner

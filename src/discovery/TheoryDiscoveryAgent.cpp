@@ -10,7 +10,6 @@
 #include <sstream>
 #include <map>
 #include <random>
-#include <chrono>
 #include <array>
 #include <tuple>
 #include <numeric>
@@ -111,12 +110,58 @@ static double comovingDistanceLCDM(double z, double H0,
 }
 
 // ============================================================================
+// ============================================================================
 // Helper: luminosity distance d_L(z) = (1+z) * chi(z) in Mpc
 // ============================================================================
-static double luminosityDistanceMpc(double z, double H0,
-                                    double omegaM, double omegaLambda) {
-    double chi = comovingDistanceLCDM(z, H0, omegaM, omegaLambda);
-    return (1.0 + z) * chi;
+
+void TheoryDiscoveryAgent::buildDLLookupTable(double H0, double omegaM,
+                                               double omegaLambda) const
+{
+    constexpr int kSteps = 256;
+    constexpr double kZMax = 2.0;
+
+    m_dlCache.zGrid.resize(kSteps + 1);
+    m_dlCache.dLValues.resize(kSteps + 1);
+    for (int i = 0; i <= kSteps; ++i) {
+        double z = (i / static_cast<double>(kSteps)) * kZMax;
+        m_dlCache.zGrid[i] = z;
+        double chi = comovingDistanceLCDM(z, H0, omegaM, omegaLambda);
+        m_dlCache.dLValues[i] = (1.0 + z) * chi;
+    }
+    m_dlCache.cacheH0 = H0;
+    m_dlCache.cacheOmegaM = omegaM;
+    m_dlCache.cacheOmegaLambda = omegaLambda;
+    m_dlCache.valid = true;
+}
+
+double TheoryDiscoveryAgent::interpolatedDL(double z, double H0, double omegaM,
+                                             double omegaLambda) const
+{
+    if (!m_dlCache.valid || m_dlCache.cacheH0 != H0 ||
+        m_dlCache.cacheOmegaM != omegaM ||
+        m_dlCache.cacheOmegaLambda != omegaLambda) {
+        buildDLLookupTable(H0, omegaM, omegaLambda);
+    }
+
+    const auto& grid = m_dlCache.zGrid;
+    const auto& vals = m_dlCache.dLValues;
+    constexpr int kSteps = 256;
+    constexpr double kZMax = 2.0;
+    const double idx = (z / kZMax) * kSteps;
+
+    if (z <= 0.0) return 0.0;
+    if (z >= kZMax) return vals.back();
+
+    const int i0 = static_cast<int>(idx);
+    const int i1 = std::min(i0 + 1, kSteps);
+    const double frac = idx - i0;
+    return vals[i0] * (1.0 - frac) + vals[i1] * frac;
+}
+
+double TheoryDiscoveryAgent::luminosityDistanceMpc(double z, double H0,
+                                                    double omegaM, double omegaLambda) const
+{
+    return interpolatedDL(z, H0, omegaM, omegaLambda);
 }
 
 // ============================================================================
@@ -948,6 +993,9 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
     // NOTE: Brans-Dicke's computeChristoffelAD returns an empty array, so the
     // adjoint path would produce zero parameter gradients. Skip the integrator
     // overhead and go straight to central finite differences.
+    // TODO(perf): central FD costs 2N evaluateTheory calls per step.
+    // For N > 3, SPSA (2 calls/step, stochastic) would be 3–5× faster.
+    // See AGENTS.md "Test-suite speed bounded by curvature computation".
     for (int i = 0; i < dim; ++i) {
         double lo = param_list[i].min;
         double hi = param_list[i].max;
