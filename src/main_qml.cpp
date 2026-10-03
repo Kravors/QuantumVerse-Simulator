@@ -1294,6 +1294,9 @@ int main(int argc, char* argv[])
                         viewport->setSimulationTime(static_cast<float>(fixedSimTime));
                     }
                     viewport->update();
+                    if (fixedSimTime < 0.0) {
+                        viewport->updateSimulation(0.016);
+                    }
                 }
                 QCoreApplication::processEvents();
                 if (fixedSimTime < 0.0) {

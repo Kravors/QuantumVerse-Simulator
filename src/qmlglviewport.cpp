@@ -2426,6 +2426,11 @@ void QmlGlViewport::updateSimulation(double deltaTime)
         m_renderer->updateTime(static_cast<float>(deltaTime));
     }
 
+    // Step the solar-system N-body physics every frame so bodies move
+    if (m_ui4d) {
+        m_ui4d->stepSimulation(deltaTime);
+    }
+
     // Update gravitational wave audio
     if (m_gwAudio && m_audioEnabled && m_ui4d) {
         double strain = m_ui4d->telemetry().gravitationalWaveStrain;
