@@ -651,9 +651,9 @@ void QmlGlRenderer::render()
             visRadius = std::max(visRadius, 0.04f);
             visRadius = std::min(visRadius, 2.5f);
             cbi.radius = visRadius;
-            cbi.position[0] = static_cast<float>(body.orbitPoints.back().x * solarData.scaleFactor);
-            cbi.position[1] = static_cast<float>(body.orbitPoints.back().y * solarData.scaleFactor);
-            cbi.position[2] = static_cast<float>(body.orbitPoints.back().z * solarData.scaleFactor);
+            cbi.position[0] = static_cast<float>(body.position.x * solarData.scaleFactor);
+            cbi.position[1] = static_cast<float>(body.position.y * solarData.scaleFactor);
+            cbi.position[2] = static_cast<float>(body.position.z * solarData.scaleFactor);
             cbi.isStar = body.isStar;
             cbi.hasAtmosphere = !body.isStar;
             cbi.atmosphereRadius = 1.15f;
@@ -688,7 +688,7 @@ void QmlGlRenderer::render()
                 const auto& sample = solarData.bodies.begin()->second;
                 qWarning() << "[DIAG-CelestialBodies] sample:" << sample.name.c_str()
                            << "radius(m)=" << sample.radius
-                           << "pos(unscaled)=" << sample.orbitPoints.back().x;
+                            << "pos(unscaled)=" << sample.position.x;
             }
             // Debug: print all bodies
             for (const auto& bp : solarData.bodies) {
@@ -696,9 +696,9 @@ void QmlGlRenderer::render()
                 float visR = static_cast<float>(b.radius * solarData.scaleFactor * 2000.0);
                 visR = std::max(visR, 0.04f);
                 visR = std::min(visR, 2.5f);
-                float px = static_cast<float>(b.orbitPoints.back().x * solarData.scaleFactor);
-                float py = static_cast<float>(b.orbitPoints.back().y * solarData.scaleFactor);
-                float pz = static_cast<float>(b.orbitPoints.back().z * solarData.scaleFactor);
+                float px = static_cast<float>(b.position.x * solarData.scaleFactor);
+                float py = static_cast<float>(b.position.y * solarData.scaleFactor);
+                float pz = static_cast<float>(b.position.z * solarData.scaleFactor);
                 qWarning() << "[DIAG-Body]" << b.name.c_str()
                            << "isStar=" << b.isStar
                            << "isCentral=" << b.isCentralBody
