@@ -2312,7 +2312,7 @@ void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
 {
     m_probeMetric = std::move(metric);
     if (m_probeMetric) {
-        probeAt(0.0, 0.0, 0.0);
+        probeAt(0.0, 0.0, 100000.0);
     }
 }
 
