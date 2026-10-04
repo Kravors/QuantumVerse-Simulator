@@ -214,6 +214,44 @@ private slots:
                                   .arg(sunWarmPixels)));
     }
 
+    void testToolbarOverflowAssertion() {
+        const QString screenshotPath = QStringLiteral("smoke_render.png");
+        QProcess proc;
+        proc.setProgram(m_binary);
+        proc.setArguments({
+            QStringLiteral("--headless"),
+            QStringLiteral("--frames"),
+            QStringLiteral("3"),
+            QStringLiteral("--screenshot"),
+            screenshotPath,
+        });
+        proc.setProcessChannelMode(QProcess::MergedChannels);
+        proc.start();
+        const bool started = proc.waitForFinished(120000);
+        QVERIFY2(started, "quantumverse_qml toolbar screenshot did not finish within timeout");
+        QCOMPARE(proc.exitCode(), 0);
+
+        const QImage img(screenshotPath);
+        QVERIFY2(!img.isNull(), "Toolbar screenshot image is null");
+        QVERIFY2(img.width() > 0 && img.height() > 0, "Screenshot has zero size");
+
+        int clippedTextPixels = 0;
+        const int toolbarHeight = 40;
+        const int rightEdgeWidth = 5;
+        for (int y = 0; y < std::min(toolbarHeight, img.height()); ++y) {
+            const QRgb* scanline = reinterpret_cast<const QRgb*>(img.scanLine(y));
+            for (int x = std::max(0, img.width() - rightEdgeWidth); x < img.width(); ++x) {
+                const QRgb p = scanline[x];
+                const int gray = (qRed(p) + qGreen(p) + qBlue(p)) / 3;
+                if (gray < 100) ++clippedTextPixels;
+            }
+        }
+        qWarning() << "Toolbar clipped text pixels:" << clippedTextPixels;
+        QVERIFY2(clippedTextPixels < 10,
+                  qPrintable(QStringLiteral("Toolbar appears clipped: %1 dark pixels at right edge")
+                                  .arg(clippedTextPixels)));
+    }
+
 private:
     QString m_binary;
     QString m_output;
