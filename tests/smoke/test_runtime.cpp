@@ -192,6 +192,26 @@ private slots:
         QVERIFY2(geodesicPixels > 300,
                   qPrintable(QStringLiteral("Expected > 300 geodesic pixels, got %1")
                                   .arg(geodesicPixels)));
+
+        const int cx = img.width() / 2;
+        const int cy = img.height() / 2;
+        int sunWarmPixels = 0;
+        for (int y = qMax(0, cy - 50); y < qMin(img.height(), cy + 50); ++y) {
+            const QRgb* scanline = reinterpret_cast<const QRgb*>(img.scanLine(y));
+            for (int x = qMax(0, cx - 50); x < qMin(img.width(), cx + 50); ++x) {
+                const QRgb p = scanline[x];
+                const int r = qRed(p);
+                const int g = qGreen(p);
+                const int b = qBlue(p);
+                if (r > 180 && r > b + 30) {
+                    ++sunWarmPixels;
+                }
+            }
+        }
+        qWarning() << "Sun warm pixel count:" << sunWarmPixels;
+        QVERIFY2(sunWarmPixels > 100,
+                  qPrintable(QStringLiteral("Expected > 100 warm Sun pixels, got %1")
+                                  .arg(sunWarmPixels)));
     }
 
 private:
