@@ -95,6 +95,26 @@ build\Debug\quantumverse_qml.exe --software-rendering --frames 1 --metric schwar
 ```
 The flag implicitly sets `--frames 1` if no `--frames` is specified.
 
+### Smoke test pixel assertions
+
+`tests/smoke/test_runtime.cpp` is the authoritative visual regression surface.
+Each visual fix should include a pixel assertion in the same commit. The
+assertion vocabulary matches the feature type:
+
+| Feature type | Assertion style |
+|--------------|-----------------|
+| Colored line/wireframe | Color threshold, count > N |
+| Colored body | Region average in expected hue range |
+| Text | Compare region against a baseline screenshot (hash or SSIM) |
+| Gradient | Region has variance > threshold (not flat) |
+| Layout | Region is empty (no overflow pixels), or log flag is 0 |
+
+**Prefer log-level assertions when the screenshot captures only a subregion.**
+The headless `--screenshot` path writes the viewport FBO, not the full window.
+Pixel checks against that image cannot see the QML toolbar. For layout
+overflow, assert on the QML-computed `toolbar_overflow` flag in `[REALITY]`
+dumps instead.
+
 ### CI Exclusions
 Some rendering and performance tests are non-blocking canaries in CI:
 - `PerformanceGateTest`
