@@ -2311,6 +2311,9 @@ void QmlGlViewport::setCelestialBodyRendererDirect(std::shared_ptr<CelestialBody
 void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
 {
     m_probeMetric = std::move(metric);
+    if (m_probeMetric) {
+        probeAt(0.0, 0.0, 0.0);
+    }
 }
 
 void QmlGlViewport::probeAt(double x, double y, double z)

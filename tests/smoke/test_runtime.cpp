@@ -113,10 +113,16 @@ private slots:
         for (const auto& line : realityLines) {
             const auto match = gridRe.match(line);
             QVERIFY2(match.hasMatch(),
-                     qPrintable(QStringLiteral("No gridZRange in: %1").arg(line)));
+                      qPrintable(QStringLiteral("No gridZRange in: %1").arg(line)));
             const QString range = match.captured(1);
             QVERIFY2(range != QLatin1String("0..0"),
-                     qPrintable(QStringLiteral("gridZRange is zero in: %1").arg(line)));
+                      qPrintable(QStringLiteral("gridZRange is zero in: %1").arg(line)));
+        }
+
+        // 4b. probeValid=1 in every dump (probe must be sampling)
+        for (const auto& line : realityLines) {
+            QVERIFY2(line.contains(QLatin1String("probeValid= 1")),
+                      qPrintable(QStringLiteral("probeValid != 1 in: %1").arg(line)));
         }
 
         // 5. Zero [ERROR] lines
