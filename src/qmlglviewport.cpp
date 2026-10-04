@@ -627,12 +627,12 @@ void QmlGlRenderer::render()
             cbi.isStar = body.isStar;
             cbi.hasAtmosphere = !body.isStar;
             cbi.atmosphereRadius = 1.15f;
-            cbi.textureLayer = assignTextureLayer(body.name, body.isStar);
+            cbi.textureLayer = body.isStar ? -1 : assignTextureLayer(body.name, body.isStar);
 
             // Color based on body type
             if (body.isStar) {
                 cbi.color[0] = 1.0f; cbi.color[1] = 0.95f; cbi.color[2] = 0.8f;
-                cbi.emissive[0] = 1.0f; cbi.emissive[1] = 0.9f; cbi.emissive[2] = 0.7f;
+                cbi.emissive[0] = 1.8f; cbi.emissive[1] = 1.4f; cbi.emissive[2] = 0.7f;
             } else if (body.name.find("Earth") != std::string::npos) {
                 cbi.color[0] = 0.2f; cbi.color[1] = 0.5f; cbi.color[2] = 0.9f;
                 cbi.emissive[0] = 0.0f; cbi.emissive[1] = 0.0f; cbi.emissive[2] = 0.0f;

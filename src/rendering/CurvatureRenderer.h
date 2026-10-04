@@ -130,7 +130,12 @@ private:
     // Fallback geometry for null renderer guard
     unsigned int fallbackVao;
     unsigned int fallbackVbo;
-    
+
+    // Geodesic line rendering buffers
+    unsigned int geodesicVao;
+    unsigned int geodesicVbo;
+    bool geodesicBuffersInitialized;
+
     // Spatial partitioning for optimization
     struct GridCell {
         int startIndex;

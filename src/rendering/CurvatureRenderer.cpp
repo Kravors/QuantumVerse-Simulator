@@ -359,6 +359,11 @@ void CurvatureRenderer::initializeGL()
     // Initialize light cone buffers (also requires GL context)
     initializeLightConeBuffers();
 
+    // Initialize geodesic line buffers
+    glGenVertexArrays(1, &geodesicVao);
+    glGenBuffers(1, &geodesicVbo);
+    geodesicBuffersInitialized = true;
+
     m_initialized = true;
 }
 
@@ -621,17 +626,47 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
 void CurvatureRenderer::renderGeodesics(const std::vector<std::vector<Event4D>>& geodesics,
                                         const float* viewMatrix, const float* projectionMatrix)
 {
-    if (!m_initialized) return;
+    if (!m_initialized || !geodesicBuffersInitialized) return;
 
     geodesicShader.use();
     geodesicShader.setUniform("viewMatrix", viewMatrix);
     geodesicShader.setUniform("projectionMatrix", projectionMatrix);
 
+    glBindVertexArray(geodesicVao);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     for (const auto& geodesic : geodesics) {
         if (geodesic.size() < 2) continue;
-        // Dynamic geodesic rendering would use a separate VBO
+
+        std::vector<float> vertexData;
+        vertexData.reserve(geodesic.size() * 7);
+        for (const auto& pt : geodesic) {
+            vertexData.push_back(static_cast<float>(pt.x));
+            vertexData.push_back(static_cast<float>(pt.y));
+            vertexData.push_back(static_cast<float>(pt.z));
+            vertexData.push_back(0.0f);
+            vertexData.push_back(1.0f);
+            vertexData.push_back(0.0f);
+            vertexData.push_back(1.0f);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, geodesicVbo);
+        glBufferData(GL_ARRAY_BUFFER,
+                     vertexData.size() * sizeof(float),
+                     vertexData.data(),
+                     GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(geodesic.size()));
     }
 
+    glDisable(GL_BLEND);
+    glBindVertexArray(0);
     geodesicShader.release();
 }
 
