@@ -113,7 +113,9 @@ assertion vocabulary matches the feature type:
 The headless `--screenshot` path writes the viewport FBO, not the full window.
 Pixel checks against that image cannot see the QML toolbar. For layout
 overflow, assert on the QML-computed `toolbar_overflow` flag in `[REALITY]`
-dumps instead.
+dumps instead. `QQuickWindow::grabWindow()` is unavailable in the offscreen
+platform used by `--headless`, so full-window screenshots require a real
+display and cannot be used for CI.
 
 ### CI Exclusions
 Some rendering and performance tests are non-blocking canaries in CI:
