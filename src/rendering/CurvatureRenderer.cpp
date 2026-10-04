@@ -645,10 +645,10 @@ void CurvatureRenderer::renderGeodesics(const std::vector<std::vector<Event4D>>&
             vertexData.push_back(static_cast<float>(pt.x));
             vertexData.push_back(static_cast<float>(pt.y));
             vertexData.push_back(static_cast<float>(pt.z));
-            vertexData.push_back(0.0f);
-            vertexData.push_back(1.0f);
-            vertexData.push_back(0.0f);
-            vertexData.push_back(1.0f);
+            vertexData.push_back(0.0f);   // R
+            vertexData.push_back(0.9f);   // G
+            vertexData.push_back(0.2f);   // B
+            vertexData.push_back(1.0f);   // A
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, geodesicVbo);

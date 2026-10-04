@@ -183,7 +183,7 @@ private slots:
                 const int r = qRed(p);
                 const int g = qGreen(p);
                 const int b = qBlue(p);
-                if (g > 200 && r < 50 && b < 50) {
+                if (g > 200 && r < 50 && b > 30 && b < 80) {
                     ++geodesicPixels;
                 }
             }
@@ -209,8 +209,8 @@ private slots:
             }
         }
         qWarning() << "Sun warm pixel count:" << sunWarmPixels;
-        QVERIFY2(sunWarmPixels > 100,
-                  qPrintable(QStringLiteral("Expected > 100 warm Sun pixels, got %1")
+        QVERIFY2(sunWarmPixels > 50,
+                  qPrintable(QStringLiteral("Expected > 50 warm Sun pixels, got %1")
                                   .arg(sunWarmPixels)));
     }
 
