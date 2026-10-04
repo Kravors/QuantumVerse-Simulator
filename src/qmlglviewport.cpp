@@ -2437,7 +2437,21 @@ void QmlGlViewport::updateSimulation(double deltaTime)
             gridRange = QString("%1..%2").arg(range.first, 0, 'g', 3).arg(range.second, 0, 'g', 3);
         }
         qWarning() << "[REALITY]"
+                   << "simTime=" << m_simulationTime
                    << "bodies=" << bodyCount
+                   << "probeValid=" << (m_probeValid ? 1 : 0)
+                   << "kretch=" << m_kretschmann
+                   << "ricci=" << m_ricciScalar
+                   << "weyl=" << m_weylSquared
+                   << "redshift=" << m_redshift
+                   << "showGeodesics=" << (m_showGeodesics ? 1 : 0)
+                   << "geodCount=" << (m_renderer ? m_renderer->geodesicCount() : 0)
+                   << "showQG=" << (m_showQuantumGeometry ? 1 : 0)
+                   << "qgCount=" << (m_quantumRenderer ? static_cast<int>(m_quantumRenderer->getGeometryInfo().vertexCount) : 0)
+                   << "cam_az=" << m_cameraAngleX
+                   << "cam_el=" << m_cameraAngleY
+                   << "cam_d=" << m_cameraDistance
+                   << "toolbar_overflow=" << (m_toolbarOverflow ? 1 : 0)
                    << "gridZRange=" << gridRange
                    << "lensing=" << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
                    << "texBound=" << texId;
@@ -3101,6 +3115,13 @@ void QmlGlViewport::setExposure(float exposure)
         m_postProcess->setExposure(exposure);
     }
     emit exposureChanged();
+    update();
+}
+
+void QmlGlViewport::setToolbarOverflow(bool overflow)
+{
+    if (m_toolbarOverflow == overflow) return;
+    m_toolbarOverflow = overflow;
     update();
 }
 

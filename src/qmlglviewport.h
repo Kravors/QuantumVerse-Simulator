@@ -250,6 +250,7 @@ private:
      * @param ui4d Shared pointer to the UI4D instance
      */
     void setUI4D(std::shared_ptr<UI4D> ui4d);
+    size_t geodesicCount() const { return m_cachedGeodesics.size(); }
 
     // Camera control
     void setViewMatrix(const QMatrix4x4& view);
@@ -761,6 +762,7 @@ public:
     Q_INVOKABLE void setToneMappingMode(int mode);
     Q_INVOKABLE float exposure() const;
     Q_INVOKABLE void setExposure(float exposure);
+    Q_INVOKABLE void setToolbarOverflow(bool overflow);
 
     // Camera4D adapter access for QML toolbar
     Q_PROPERTY(QObject* camera4DAdapter READ camera4DAdapterObj WRITE setCamera4DAdapterObj NOTIFY camera4DAdapterChanged)
@@ -912,6 +914,7 @@ private:
     bool m_showGeodesics;
     bool m_showQuantumGeometry;
     bool m_showHUD;
+    bool m_toolbarOverflow = false;
     int m_curvatureMode;
     float m_cameraDistance;
     float m_cameraAngleX;

@@ -30,6 +30,11 @@ ApplicationWindow {
     property bool noViewport: Qt.application.arguments.indexOf("--noviewport") !== -1 ||
                               Qt.application.arguments.indexOf("--software-rendering") !== -1
     property Item viewportItem: noViewport ? null : viewportLoader.item
+    property bool toolbarOverflow: toolbarLayout.implicitWidth > mainToolbar.width
+
+    onToolbarOverflowChanged: {
+        if (viewportItem) viewportItem.setToolbarOverflow(toolbarOverflow)
+    }
 
     Connections {
         target: camera4DAdapter
@@ -230,7 +235,9 @@ ApplicationWindow {
     // TOOLBAR (Top)
     // =========================================================================
     header: ToolBar {
+        id: mainToolbar
         RowLayout {
+            id: toolbarLayout
             anchors.fill: parent
             spacing: 4
 
