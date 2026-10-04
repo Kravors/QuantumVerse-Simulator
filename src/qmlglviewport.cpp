@@ -287,11 +287,6 @@ void QmlGlRenderer::render()
     }
     s_rCalls++;
 
-    // Force off debug overlays to prevent visual clutter
-    m_showGeodesics = false;
-    m_showLightCones = false;
-    m_showQuantumGeometry = false;
-
     static int64_t lastTime = 0;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
     if (lastTime > 0) {
