@@ -11,6 +11,7 @@
 #include <QStringList>
 #include <QRegularExpression>
 #include <QFileInfo>
+#include <QImage>
 #include <QtTest/QtTest>
 
 class RuntimeSmokeTest : public QObject {
@@ -150,6 +151,47 @@ private slots:
         const bool started = proc.waitForFinished(120000);
         QVERIFY2(started, "quantumverse_qml --frames 3 did not finish within 120s");
         QCOMPARE(proc.exitCode(), 0);
+    }
+
+    void testGeodesicPixelAssertion() {
+        const QString screenshotPath = QStringLiteral("smoke_render.png");
+        QProcess proc;
+        proc.setProgram(m_binary);
+        proc.setArguments({
+            QStringLiteral("--headless"),
+            QStringLiteral("--frames"),
+            QStringLiteral("300"),
+            QStringLiteral("--enable-geodesics"),
+            QStringLiteral("--screenshot"),
+            screenshotPath,
+        });
+        proc.setProcessChannelMode(QProcess::MergedChannels);
+        proc.start();
+        const bool started = proc.waitForFinished(300000);
+        QVERIFY2(started, "quantumverse_qml screenshot did not finish within timeout");
+        QCOMPARE(proc.exitCode(), 0);
+
+        const QImage img(screenshotPath);
+        QVERIFY2(!img.isNull(), "Screenshot image is null — headless render may not have produced output");
+        QVERIFY2(img.width() > 0 && img.height() > 0, "Screenshot has zero size");
+
+        int geodesicPixels = 0;
+        for (int y = 0; y < img.height(); ++y) {
+            const QRgb* scanline = reinterpret_cast<const QRgb*>(img.scanLine(y));
+            for (int x = 0; x < img.width(); ++x) {
+                const QRgb p = scanline[x];
+                const int r = qRed(p);
+                const int g = qGreen(p);
+                const int b = qBlue(p);
+                if (g > 200 && r < 50 && b < 50) {
+                    ++geodesicPixels;
+                }
+            }
+        }
+        qWarning() << "Geodesic pixel count:" << geodesicPixels;
+        QVERIFY2(geodesicPixels > 300,
+                  qPrintable(QStringLiteral("Expected > 300 geodesic pixels, got %1")
+                                  .arg(geodesicPixels)));
     }
 
 private:

@@ -1071,7 +1071,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
 
     # Runtime smoke test: launches quantumverse_qml headless and asserts on [REALITY] dumps
     add_executable(test_runtime tests/smoke/test_runtime.cpp)
-    target_link_libraries(test_runtime PRIVATE Qt6::Core Qt6::Test)
+    target_link_libraries(test_runtime PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
     set_target_properties(test_runtime PROPERTIES AUTOMOC ON)
     add_test(NAME RuntimeSmokeTest COMMAND test_runtime)
     set_tests_properties(RuntimeSmokeTest PROPERTIES
