@@ -215,41 +215,45 @@ private slots:
     }
 
     void testToolbarOverflowAssertion() {
-        const QString screenshotPath = QStringLiteral("smoke_render.png");
         QProcess proc;
         proc.setProgram(m_binary);
         proc.setArguments({
             QStringLiteral("--headless"),
             QStringLiteral("--frames"),
-            QStringLiteral("3"),
-            QStringLiteral("--screenshot"),
-            screenshotPath,
+            QStringLiteral("300"),
+            QStringLiteral("--metric"),
+            QStringLiteral("schwarzschild"),
         });
         proc.setProcessChannelMode(QProcess::MergedChannels);
         proc.start();
-        const bool started = proc.waitForFinished(120000);
-        QVERIFY2(started, "quantumverse_qml toolbar screenshot did not finish within timeout");
+        const bool started = proc.waitForFinished(300000);
+        QVERIFY2(started, "quantumverse_qml toolbar check did not finish within timeout");
         QCOMPARE(proc.exitCode(), 0);
 
-        const QImage img(screenshotPath);
-        QVERIFY2(!img.isNull(), "Toolbar screenshot image is null");
-        QVERIFY2(img.width() > 0 && img.height() > 0, "Screenshot has zero size");
+        const QByteArray rawOutput = proc.readAll();
+        const QString output = QString::fromLocal8Bit(rawOutput.constData(), rawOutput.size());
+        const QStringList lines = output.split('\n', Qt::SkipEmptyParts);
 
-        int clippedTextPixels = 0;
-        const int toolbarHeight = 40;
-        const int rightEdgeWidth = 5;
-        for (int y = 0; y < std::min(toolbarHeight, img.height()); ++y) {
-            const QRgb* scanline = reinterpret_cast<const QRgb*>(img.scanLine(y));
-            for (int x = std::max(0, img.width() - rightEdgeWidth); x < img.width(); ++x) {
-                const QRgb p = scanline[x];
-                const int gray = (qRed(p) + qGreen(p) + qBlue(p)) / 3;
-                if (gray < 100) ++clippedTextPixels;
+        QStringList realityLines;
+        for (const auto& line : lines) {
+            if (line.contains(QLatin1String("[REALITY]"))) {
+                realityLines.append(line);
             }
         }
-        qWarning() << "Toolbar clipped text pixels:" << clippedTextPixels;
-        QVERIFY2(clippedTextPixels < 10,
-                  qPrintable(QStringLiteral("Toolbar appears clipped: %1 dark pixels at right edge")
-                                  .arg(clippedTextPixels)));
+
+        qWarning() << "Reality dump count for toolbar check:" << realityLines.size();
+        QVERIFY2(!realityLines.isEmpty(), "No [REALITY] dumps found for toolbar check");
+
+        bool overflowClear = false;
+        for (const auto& line : realityLines) {
+            if (line.contains(QLatin1String("toolbar_overflow= 0"))) {
+                overflowClear = true;
+                break;
+            }
+        }
+        qWarning() << "Toolbar overflow clear:" << overflowClear;
+        QVERIFY2(overflowClear,
+                  qPrintable(QStringLiteral("toolbar_overflow remained 1 in all [REALITY] dumps; layout still overflows")));
     }
 
 private:

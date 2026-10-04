@@ -177,7 +177,7 @@ ApplicationWindow {
                 }
             }
             MenuItem {
-                text: "Plane &Mode (Rubber Sheet)"
+                text: "Plane &Mode"
                 checkable: true; checked: false
                 onToggled: {
                     console.log("Toggling Plane Mode to: " + checked)
@@ -185,7 +185,7 @@ ApplicationWindow {
                 }
             }
             MenuItem {
-                text: "Texture Source: &Procedural"
+                text: "Procedural Textures"
                 checkable: true; checked: true
                 onToggled: {
                     if (viewportItem) viewportItem.textureSource = checked ? 0 : 1
@@ -207,7 +207,7 @@ ApplicationWindow {
             }
             MenuSeparator {}
             MenuItem {
-                text: "Boost &Brightness (Exposure+Low Bloom)"
+                text: "Brightness Boost"
                 checkable: true; checked: true
                 onToggled: {
                     if (viewportItem) {
@@ -218,7 +218,7 @@ ApplicationWindow {
                 }
             }
             MenuItem {
-                text: "Enable &Gravitational Lensing"
+                text: "Gravitational Lensing"
                 checkable: true; checked: false
                 onToggled: {
                     if (viewportItem) viewportItem.lensingEnabled = checked
@@ -236,347 +236,360 @@ ApplicationWindow {
     // =========================================================================
     header: ToolBar {
         id: mainToolbar
-        RowLayout {
+        ColumnLayout {
             id: toolbarLayout
             anchors.fill: parent
-            spacing: 4
+            spacing: 2
 
-            ToolButton {
-                icon.source: "qrc:/icons/open.svg"
-                ToolTip.text: "Open Spacetime Configuration"
-                // Commented out for Qt 6.5.3: QtQuick.Dialogs 1.3 module not available
-                // onClicked: fileDialog.open()
-            }
+            // Row 1: navigation, view controls, rotation planes, playback
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
 
-            ToolSeparator {}
-
-            ToolButton {
-                text: "Reset View"
-                onClicked: {
-                    if (viewportItem) viewportItem.resetView()
+                ToolButton {
+                    icon.source: "qrc:/icons/open.svg"
+                    ToolTip.text: "Open Spacetime Configuration"
                 }
-                ToolTip.text: "Reset camera to default view"
-            }
 
-            ToolButton {
-                text: "Focus Sun"
-                onClicked: camController.reset()
-                ToolTip.text: "Focus on central body"
-            }
+                ToolSeparator {}
 
-            ToolSeparator {}
+                ToolButton {
+                    text: "Reset View"
+                    onClicked: {
+                        if (viewportItem) viewportItem.resetView()
+                    }
+                    ToolTip.text: "Reset camera to default view"
+                }
 
-            // Rotation Plane Selection
-            ToolButton {
-                text: "XY"
-                checkable: true
-                checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 0 : false
-                onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 0
-                ToolTip.text: "Rotate in XY plane (azimuth/elevation)"
-            }
-            ToolButton {
-                text: "XZ"
-                checkable: true
-                checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 1 : false
-                onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 1
-                ToolTip.text: "Rotate in XZ plane"
-            }
-            ToolButton {
-                text: "YZ"
-                checkable: true
-                checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 2 : false
-                onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 2
-                ToolTip.text: "Rotate in YZ plane"
-            }
-            ToolButton {
-                text: "TX"
-                checkable: true
-                checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 3 : false
-                onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 3
-                ToolTip.text: "Rotate in time-X plane (boost)"
-            }
-            ToolButton {
-                text: "TY"
-                checkable: true
-                checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 4 : false
-                onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 4
-                ToolTip.text: "Rotate in time-Y plane (boost)"
-            }
-            ToolButton {
-                text: "TZ"
-                checkable: true
-                checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 5 : false
-                onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 5
-                ToolTip.text: "Rotate in time-Z plane (boost)"
-            }
+                ToolButton {
+                    text: "Focus Sun"
+                    onClicked: camController.reset()
+                    ToolTip.text: "Focus on central body"
+                }
 
-            ToolSeparator {}
+                ToolSeparator {}
 
-            ToolButton {
-                text: simulationPaused ? "▶ Play" : "⏸ Pause"
-                checkable: true
-                checked: !simulationPaused
-                onClicked: simulationPaused = !checked
-                ToolTip.text: "Play/Pause simulation"
-            }
+                // Rotation Plane Selection
+                ToolButton {
+                    text: "XY"
+                    checkable: true
+                    checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 0 : false
+                    onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 0
+                    ToolTip.text: "Rotate in XY plane (azimuth/elevation)"
+                }
+                ToolButton {
+                    text: "XZ"
+                    checkable: true
+                    checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 1 : false
+                    onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 1
+                    ToolTip.text: "Rotate in XZ plane"
+                }
+                ToolButton {
+                    text: "YZ"
+                    checkable: true
+                    checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 2 : false
+                    onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 2
+                    ToolTip.text: "Rotate in YZ plane"
+                }
+                ToolButton {
+                    text: "TX"
+                    checkable: true
+                    checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 3 : false
+                    onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 3
+                    ToolTip.text: "Rotate in time-X plane (boost)"
+                }
+                ToolButton {
+                    text: "TY"
+                    checkable: true
+                    checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 4 : false
+                    onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 4
+                    ToolTip.text: "Rotate in time-Y plane (boost)"
+                }
+                ToolButton {
+                    text: "TZ"
+                    checkable: true
+                    checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 5 : false
+                    onClicked: if (viewportItem && viewportItem.camera4DAdapter) viewportItem.camera4DAdapter.activePlane = 5
+                    ToolTip.text: "Rotate in time-Z plane (boost)"
+                }
 
-            Slider {
-                id: timeScaleSlider
-                from: 0; to: 6; stepSize: 0.1; value: 1
-                onValueChanged: timeScale = Math.pow(10, value - 1)
-                ToolTip.text: "Time scale: " + timeScale.toFixed(1) + "x"
-                Layout.preferredWidth: 100
-            }
+                ToolSeparator {}
 
-            Label {
-                text: timeScale.toFixed(1) + "x"
-                font.pixelSize: 11
-                color: "#aaa"
-            }
+                ToolButton {
+                    text: simulationPaused ? "▶ Play" : "⏸ Pause"
+                    checkable: true
+                    checked: !simulationPaused
+                    onClicked: simulationPaused = !checked
+                    ToolTip.text: "Play/Pause simulation"
+                }
 
-            ToolSeparator {}
+                Slider {
+                    id: timeScaleSlider
+                    from: 0; to: 6; stepSize: 0.1; value: 1
+                    onValueChanged: timeScale = Math.pow(10, value - 1)
+                    ToolTip.text: "Time scale: " + timeScale.toFixed(1) + "x"
+                    Layout.preferredWidth: 100
+                }
 
-            ComboBox {
-                id: curvatureModeCombo
-                model: ["Grid Deformation", "Riemann Color", "Curvature Scalar", "Time Dilation", "Geodesic Flow"]
-                currentIndex: 0
-                onCurrentIndexChanged: if (viewportItem) viewportItem.curvatureMode = currentIndex
-                Layout.preferredWidth: 178
-                ToolTip.text: "Curvature visualization mode"
-                contentItem: Text {
-                    text: curvatureModeCombo.currentText
-                    font: curvatureModeCombo.font
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: curvatureModeCombo.leftPadding
-                    rightPadding: curvatureModeCombo.rightPadding
+                Label {
+                    text: timeScale.toFixed(1) + "x"
+                    font.pixelSize: 11
+                    color: "#aaa"
                 }
             }
 
-            ToolSeparator {}
+            // Row 2: physics constants, zoom, injection, discovery
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
 
-            Label {
-                text: "Plane Res:"
-                font.pixelSize: 11
-                color: "#aaa"
-                visible: viewportItem && viewportItem.planeMode
-            }
-            Slider {
-                id: planeResSlider
-                from: 20; to: 200; stepSize: 10
-                value: 100
-                Layout.preferredWidth: 100
-                visible: viewportItem && viewportItem.planeMode
-                onValueChanged: if (viewportItem) viewportItem.planeResolution = value
-                ToolTip.text: "Plane grid resolution (higher = smoother)"
-            }
+                ComboBox {
+                    id: curvatureModeCombo
+                    model: ["Grid Deformation", "Riemann Color", "Curvature Scalar", "Time Dilation", "Geodesic Flow"]
+                    currentIndex: 0
+                    onCurrentIndexChanged: if (viewportItem) viewportItem.curvatureMode = currentIndex
+                    Layout.preferredWidth: 178
+                    ToolTip.text: "Curvature visualization mode"
+                    contentItem: Text {
+                        text: curvatureModeCombo.currentText
+                        font: curvatureModeCombo.font
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: curvatureModeCombo.leftPadding
+                        rightPadding: curvatureModeCombo.rightPadding
+                    }
+                }
 
-            ToolSeparator {}
+                ToolSeparator {}
 
-            Label {
-                text: "BH Mass:"
-                font.pixelSize: 11
-                color: "#aaa"
-            }
-            Slider {
-                id: bhMassSlider
-                from: 1.0; to: 1000.0; stepSize: 1.0
-                value: 10.0
-                Layout.preferredWidth: 120
-                onValueChanged: if (viewportItem) viewportItem.blackHoleMass = value
-                ToolTip.text: "Black hole mass in solar masses"
-            }
-            Label {
-                text: bhMassSlider.value.toFixed(0) + " M☉"
-                font.pixelSize: 11
-                color: "#aaa"
-                Layout.preferredWidth: 55
-            }
+                Label {
+                    text: "Plane Res:"
+                    font.pixelSize: 11
+                    color: "#aaa"
+                    visible: viewportItem && viewportItem.planeMode
+                }
+                Slider {
+                    id: planeResSlider
+                    from: 20; to: 200; stepSize: 10
+                    value: 100
+                    Layout.preferredWidth: 100
+                    visible: viewportItem && viewportItem.planeMode
+                    onValueChanged: if (viewportItem) viewportItem.planeResolution = value
+                    ToolTip.text: "Plane grid resolution (higher = smoother)"
+                }
 
-            ToolSeparator {}
+                ToolSeparator {}
 
-            Label {
-                text: "Zoom:"
-                font.pixelSize: 11
-                color: "#aaa"
-            }
-            Slider {
-                id: zoomSlider
-                from: Math.log(1.0)
-                to: Math.log(5000.0)
-                value: Math.log(viewportItem ? viewportItem.cameraDistance : 150.0)
-                Layout.preferredWidth: 100
-                onValueChanged: {
-                    if (viewportItem) {
-                        viewportItem.cameraDistance = Math.exp(value)
-                        if (camController) {
-                            camController.distance = Math.exp(value)
+                Label {
+                    text: "BH Mass:"
+                    font.pixelSize: 11
+                    color: "#aaa"
+                }
+                Slider {
+                    id: bhMassSlider
+                    from: 1.0; to: 1000.0; stepSize: 1.0
+                    value: 10.0
+                    Layout.preferredWidth: 120
+                    onValueChanged: if (viewportItem) viewportItem.blackHoleMass = value
+                    ToolTip.text: "Black hole mass in solar masses"
+                }
+                Label {
+                    text: bhMassSlider.value.toFixed(0) + " M☉"
+                    font.pixelSize: 11
+                    color: "#aaa"
+                    Layout.preferredWidth: 55
+                }
+
+                ToolSeparator {}
+
+                Label {
+                    text: "Zoom:"
+                    font.pixelSize: 11
+                    color: "#aaa"
+                }
+                Slider {
+                    id: zoomSlider
+                    from: Math.log(1.0)
+                    to: Math.log(5000.0)
+                    value: Math.log(viewportItem ? viewportItem.cameraDistance : 150.0)
+                    Layout.preferredWidth: 100
+                    onValueChanged: {
+                        if (viewportItem) {
+                            viewportItem.cameraDistance = Math.exp(value)
+                            if (camController) {
+                                camController.distance = Math.exp(value)
+                            }
                         }
                     }
+                    ToolTip.text: "Camera zoom (logarithmic)"
                 }
-                ToolTip.text: "Camera zoom (logarithmic)"
-            }
-            Label {
-                text: (viewportItem ? (500.0 / viewportItem.cameraDistance * 100).toFixed(0) : "100") + "%"
-                font.pixelSize: 11
-                color: "#aaa"
-                Layout.preferredWidth: 40
-            }
-
-            ComboBox {
-                id: bhTypeCombo
-                model: ["Schwarzschild", "Kerr"]
-                currentIndex: 0
-                Layout.preferredWidth: 110
-                onCurrentIndexChanged: if (viewportItem) viewportItem.setBlackHoleType(model[currentIndex])
-                ToolTip.text: "Black hole metric type"
-            }
-
-            ToolSeparator {}
-
-            Label {
-                text: "G:"
-                font.pixelSize: 11
-                color: "#aaa"
-            }
-            Slider {
-                id: gSlider
-                from: -13; to: -8; stepSize: 0.1
-                value: -11.18
-                Layout.preferredWidth: 100
-                onValueChanged: if (viewportItem) viewportItem.physicsGLog = value
-                ToolTip.text: "Gravitational constant (log10)"
-            }
-            Label {
-                text: "10^" + gSlider.value.toFixed(1)
-                font.pixelSize: 10
-                color: "#aaa"
-                Layout.preferredWidth: 45
-            }
-
-            // Gravitational wave display
-            Label {
-                text: "GW: " + (viewportItem ? viewportItem.gravitationalWaveStrain.toExponential(1) : "—")
-                font.pixelSize: 10
-                color: "#f0f"
-            }
-            Label {
-                text: (viewportItem ? (viewportItem.gravitationalWaveFreq * 1000).toFixed(2) + " mHz" : "—")
-                font.pixelSize: 10
-                color: "#f0f"
-                Layout.preferredWidth: 60
-            }
-
-            ToolButton {
-                text: "🔊 GW"
-                checkable: true
-                checked: false
-                onToggled: if (viewportItem) viewportItem.audioEnabled = checked
-                ToolTip.text: "Toggle gravitational wave audio"
-            }
-
-            ToolSeparator {}
-
-            // Asteroid injection controls
-            ToolButton {
-                text: "☄️ Inject"
-                onClicked: {
-                    if (viewportItem) {
-                        // Inject asteroid at random position near Earth's orbit
-                        var angle = Math.random() * 2 * Math.PI;
-                        var dist = 1.5e11; // ~1 AU
-                        var x = Math.cos(angle) * dist;
-                        var z = Math.sin(angle) * dist;
-                        var v = 30000; // 30 km/s
-                        var vx = -Math.sin(angle) * v * 0.8;
-                        var vz = Math.cos(angle) * v * 0.8;
-                        viewportItem.injectAsteroid(x, 0, z, vx, 0, vz, 1e15);
-                    }
+                Label {
+                    text: (viewportItem ? (500.0 / viewportItem.cameraDistance * 100).toFixed(0) : "100") + "%"
+                    font.pixelSize: 11
+                    color: "#aaa"
+                    Layout.preferredWidth: 40
                 }
-                ToolTip.text: "Inject random asteroid"
-            }
-            ToolButton {
-                text: "Clear"
-                onClicked: if (viewportItem) viewportItem.clearAsteroids()
-                ToolTip.text: "Clear all asteroids"
-            }
-            Label {
-                text: "☄️" + (viewportItem ? viewportItem.asteroidCount : "0")
-                font.pixelSize: 10
-                color: "#fa0"
-                Layout.preferredWidth: 25
+
+                ComboBox {
+                    id: bhTypeCombo
+                    model: ["Schwarzschild", "Kerr"]
+                    currentIndex: 0
+                    Layout.preferredWidth: 110
+                    onCurrentIndexChanged: if (viewportItem) viewportItem.setBlackHoleType(model[currentIndex])
+                    ToolTip.text: "Black hole metric type"
+                }
+
+                ToolSeparator {}
+
+                Label {
+                    text: "G:"
+                    font.pixelSize: 11
+                    color: "#aaa"
+                }
+                Slider {
+                    id: gSlider
+                    from: -13; to: -8; stepSize: 0.1
+                    value: -11.18
+                    Layout.preferredWidth: 100
+                    onValueChanged: if (viewportItem) viewportItem.physicsGLog = value
+                    ToolTip.text: "Gravitational constant (log10)"
+                }
+                Label {
+                    text: "10^" + gSlider.value.toFixed(1)
+                    font.pixelSize: 10
+                    color: "#aaa"
+                    Layout.preferredWidth: 45
+                }
             }
 
-            ToolSeparator {}
+            // Row 3: GW, injection, discovery, tours, VR, telemetry
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
 
-            ToolButton {
-                text: qsTr("Discover")
-                checkable: true
-                checked: discoveryPanel.visible
-                onClicked: discoveryPanel.visible = checked
-                ToolTip.text: qsTr("Toggle Discovery Console")
-            }
+                // Gravitational wave display
+                Label {
+                    text: "GW: " + (viewportItem ? viewportItem.gravitationalWaveStrain.toExponential(1) : "—")
+                    font.pixelSize: 10
+                    color: "#f0f"
+                }
+                Label {
+                    text: (viewportItem ? (viewportItem.gravitationalWaveFreq * 1000).toFixed(2) + " mHz" : "—")
+                    font.pixelSize: 10
+                    color: "#f0f"
+                    Layout.preferredWidth: 60
+                }
 
-            ToolButton {
-                text: qsTr("Tour")
-                checkable: true
-                checked: tourController && tourController.state !== TourController.Stopped
-                enabled: tourManager && tourManager.tourCount() > 0
-                onClicked: {
-                    if (!tourManager || !tourController) return
-                    if (tourController.state === TourController.Stopped) {
-                        var ids = tourManager.listTourIds()
-                        if (ids.length === 0) return
-                        if (tourController.loadTourFromFile(
-                                tourManager.tourFilePath(ids[0]))) {
-                            tourController.start()
+                ToolButton {
+                    text: "🔊 GW"
+                    checkable: true
+                    checked: false
+                    onToggled: if (viewportItem) viewportItem.audioEnabled = checked
+                    ToolTip.text: "Toggle gravitational wave audio"
+                }
+
+                ToolSeparator {}
+
+                // Asteroid injection controls
+                ToolButton {
+                    text: "☄️ Inject"
+                    onClicked: {
+                        if (viewportItem) {
+                            var angle = Math.random() * 2 * Math.PI;
+                            var dist = 1.5e11; // ~1 AU
+                            var x = Math.cos(angle) * dist;
+                            var z = Math.sin(angle) * dist;
+                            var v = 30000; // 30 km/s
+                            var vx = -Math.sin(angle) * v * 0.8;
+                            var vz = Math.cos(angle) * v * 0.8;
+                            viewportItem.injectAsteroid(x, 0, z, vx, 0, vz, 1e15);
                         }
-                    } else {
-                        tourController.stop()
                     }
+                    ToolTip.text: "Inject random asteroid"
                 }
-                ToolTip.text: qsTr("Start / stop educational tour")
-            }
+                ToolButton {
+                    text: "Clear"
+                    onClicked: if (viewportItem) viewportItem.clearAsteroids()
+                    ToolTip.text: "Clear all asteroids"
+                }
+                Label {
+                    text: "☄️" + (viewportItem ? viewportItem.asteroidCount : "0")
+                    font.pixelSize: 10
+                    color: "#fa0"
+                    Layout.preferredWidth: 25
+                }
 
-            ToolButton {
-                text: "VR"
-                checkable: true
-                enabled: true
-                onClicked: {
-                    if (signalingClient != null && signalingClient.isConnected) {
-                        if (viewportItem) viewportItem.toggleVR()
-                    } else {
-                        console.warn("VR: signaling server not connected")
+                ToolSeparator {}
+
+                ToolButton {
+                    text: qsTr("Discover")
+                    checkable: true
+                    checked: discoveryPanel.visible
+                    onClicked: discoveryPanel.visible = checked
+                    ToolTip.text: qsTr("Toggle Discovery Console")
+                }
+
+                ToolButton {
+                    text: qsTr("Tour")
+                    checkable: true
+                    checked: tourController && tourController.state !== TourController.Stopped
+                    enabled: tourManager && tourManager.tourCount() > 0
+                    onClicked: {
+                        if (!tourManager || !tourController) return
+                        if (tourController.state === TourController.Stopped) {
+                            var ids = tourManager.listTourIds()
+                            if (ids.length === 0) return
+                            if (tourController.loadTourFromFile(
+                                    tourManager.tourFilePath(ids[0]))) {
+                                tourController.start()
+                            }
+                        } else {
+                            tourController.stop()
+                        }
                     }
+                    ToolTip.text: qsTr("Start / stop educational tour")
                 }
-                ToolTip.text: "VR mode (requires OpenXR runtime)"
-            }
 
-            Item { Layout.fillWidth: true }
+                ToolButton {
+                    text: "VR"
+                    checkable: true
+                    enabled: true
+                    onClicked: {
+                        if (signalingClient != null && signalingClient.isConnected) {
+                            if (viewportItem) viewportItem.toggleVR()
+                        } else {
+                            console.warn("VR: signaling server not connected")
+                        }
+                    }
+                    ToolTip.text: "VR mode (requires OpenXR runtime)"
+                }
 
-            // Live physics telemetry
-            Label {
-                text: "KE: " + (viewportItem ? (viewportItem.liveKineticEnergy / 1e33).toFixed(2) + "e33 J" : "—")
-                font.pixelSize: 10
-                color: "#6af"
-            }
-            Label {
-                text: "PE: " + (viewportItem ? (viewportItem.livePotentialEnergy / 1e33).toFixed(2) + "e33 J" : "—")
-                font.pixelSize: 10
-                color: "#f6a"
-            }
-            Label {
-                text: "Earth v: " + (viewportItem ? (viewportItem.liveEarthSpeed / 1000).toFixed(1) + " km/s" : "—")
-                font.pixelSize: 10
-                color: "#6f6"
-            }
+                Item { Layout.fillWidth: true }
 
-            Label {
-                text: "FPS: " + (viewportItem && viewportItem.frameRate > 0 ? viewportItem.frameRate.toFixed(1) : "—")
-                color: viewportItem && viewportItem.frameRate >= 45 ? "#4f4" : "#f44"
-                font.pixelSize: 14
-                font.bold: true
-                Layout.rightMargin: 8
+                // Live physics telemetry
+                Label {
+                    text: "KE: " + (viewportItem ? (viewportItem.liveKineticEnergy / 1e33).toFixed(2) + "e33 J" : "—")
+                    font.pixelSize: 10
+                    color: "#6af"
+                }
+                Label {
+                    text: "PE: " + (viewportItem ? (viewportItem.livePotentialEnergy / 1e33).toFixed(2) + "e33 J" : "—")
+                    font.pixelSize: 10
+                    color: "#f6a"
+                }
+                Label {
+                    text: "Earth v: " + (viewportItem ? (viewportItem.liveEarthSpeed / 1000).toFixed(1) + " km/s" : "—")
+                    font.pixelSize: 10
+                    color: "#6f6"
+                }
+
+                Label {
+                    text: "FPS: " + (viewportItem && viewportItem.frameRate > 0 ? viewportItem.frameRate.toFixed(1) : "—")
+                    color: viewportItem && viewportItem.frameRate >= 45 ? "#4f4" : "#f44"
+                    font.pixelSize: 14
+                    font.bold: true
+                    Layout.rightMargin: 8
+                }
             }
         }
     }
