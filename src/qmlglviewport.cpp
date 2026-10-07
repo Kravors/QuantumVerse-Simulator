@@ -2310,6 +2310,9 @@ void QmlGlViewport::setCelestialBodyRendererDirect(std::shared_ptr<CelestialBody
 
 void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
 {
+    qWarning() << "[PROBE] metric swap"
+               << "old=" << (void*)m_probeMetric.get()
+               << "new=" << (void*)metric.get();
     m_probeMetric = std::move(metric);
     if (m_probeMetric) {
         probeAt(0.0, 0.0, 100000.0);
@@ -2344,6 +2347,11 @@ void QmlGlViewport::probeAt(double x, double y, double z)
     }
 
     double gtt = metric->evaluate(event)[0][0];
+    qWarning() << "[REDSHIFT-DEBUG]"
+               << "x=" << x << "y=" << y << "z=" << z
+               << "gtt=" << gtt
+               << "branch=" << (scalars.valid ? 1 : 0)
+               << "metric=" << (void*)metric.get();
     // Gravitational redshift: z = 1/sqrt(-g00) - 1 for timelike coordinates
     // In (-,+,+,+) signature, g00 is negative for valid metrics.
     // Guard against pathological values near the singularity where the
@@ -2557,7 +2565,12 @@ void QmlGlViewport::setBlackHoleMass(double mass)
     if (m_curvatureRenderer) {
         double oldMass = m_blackHoleMass;
         double newMass = mass;
-        
+
+        qWarning() << "[MASS] old=" << oldMass
+                   << "new=" << newMass
+                   << "probeMetric=" << (void*)(m_probeMetric.get())
+                   << "rendererMetric=" << (void*)(m_curvatureRenderer->metric().get());
+
         // Push undo command
         pushCommand(QString("Set BH Mass to %1 M☉").arg(newMass, 0, 'f', 1),
             [this, oldMass]() { setBlackHoleMassDirect(oldMass); },
@@ -2566,6 +2579,7 @@ void QmlGlViewport::setBlackHoleMass(double mass)
         double mass_kg = mass * 1.989e30;
         auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
         m_curvatureRenderer->setMetric(metric);
+        setProbeMetric(metric);
         m_blackHoleMass = mass;
         emit blackHoleMassChanged();
         update();
@@ -2578,6 +2592,7 @@ void QmlGlViewport::setBlackHoleMassDirect(double mass)
     double mass_kg = mass * 1.989e30;
     auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
     m_curvatureRenderer->setMetric(metric);
+    setProbeMetric(metric);
     m_blackHoleMass = mass;
     emit blackHoleMassChanged();
     update();
@@ -2768,6 +2783,7 @@ void QmlGlViewport::setBlackHoleType(const QString& type)
             metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
         }
         m_curvatureRenderer->setMetric(metric);
+        setProbeMetric(metric);
         update();
     }
 }

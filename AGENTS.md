@@ -205,8 +205,37 @@ comparison becomes meaningful.
 Qt's qFatal / `__fastfail` produces different exit codes depending on build type:
 - Release: `0xC0000409` (`STATUS_STACK_BUFFER_OVERRUN` via `__fastfail`)
 - Debug:   `0x80000003` (`STATUS_BREAKPOINT` via `__debugbreak`)
-Both indicate the same Qt init failure (`QGuiApplicationPrivate::init` /
-`QtPrivate::sizedFree`). Do not treat `0x80000003` as a distinct bug.
+
+**These codes are not specific to Qt init failure.** `0xC0000409` is the generic
+`STATUS_STACK_BUFFER_OVERRUN` — the `/GS` cookie firing. In a Qt-linked test it is
+*often* `QGuiApplicationPrivate::init` / `QtPrivate::sizedFree`, but that is an
+observation about a subset of failures, not a definition. Do not treat `0xC0000409`
+as proof of a Qt init problem:
+
+- A test that does **not** link Qt (e.g. `test_full_exact_solutions`,
+  `test_extreme_regimes`) cannot be failing in Qt init. Those crash after the test
+  body prints its final `[PASS]`, which points at static destructors, `atexit`
+  hooks, CRT exit, or a `/GS` / runtime mismatch between the test exe and the
+  libraries it links (`dilaton` is `INTERFACE`, so it inherits the consumer's
+  flags — verify with `dumpbin /headers ... | findstr GS` on the exe and the
+  object files that feed it).
+- Diagnosis recipe: append `std::cout.flush(); std::_exit(0);` to `main()`.
+  Crash gone  → static destructor / atexit. Still crashes → CRT exit or link
+  mismatch.
+
+Do not treat `0x80000003` as a distinct bug.
+
+### SchwarzschildMetric::evaluate() r = 0 contract
+`MetricTensor::evaluate()` and `curvatureScalars()` agree that the coordinate
+origin is a curvature pole, but they return different things by design:
+- `curvatureScalars()` returns `valid = false` — the probe is reported invalid.
+- `evaluate()` returns the zero-initialized flat-space array — a NaN-free,
+  Inf-free placeholder so downstream numerics do not propagate NaN/Inf.
+
+**Do not reinterpret this as "r = 0 is Minkowski".** The zero array is a
+sentinel, not a physical metric; it exists only to satisfy fuzz contracts that
+reject NaN/Inf output. If a caller needs a real metric at the singularity it
+must check `curvatureScalars().valid` first.
 
 ### Qt 6.11 QML parser quirks
 
@@ -314,6 +343,37 @@ Windows App Execution Alias stubs (e.g. `%LOCALAPPDATA%\Microsoft\WindowsApps\py
 - Some rendering/performance tests are non-blocking canaries because they depend on GPU/driver state in CI.
 - The inspiral analyzer’s `fitTaylorF2()` uses a fixed frequency model; extremely low-frequency or very short tracks may yield low-confidence detections.
 - ONNX Runtime and CUDA acceleration are optional; runtime inference falls back to CPU if unavailable.
+- **Probe cache assumes a static metric.** `QmlGlViewport::m_probeCache`
+  (`qmlglviewport.h:973`, `qmlglviewport.cpp:2358`) keys on
+  `(metric.get() pointer, position)`. This is safe only because
+  `m_probeMetric` is a static analytic Kerr/Schwarzschild metric with no
+  mutators (`KerrMetric.h:35-36` exposes `mass()`/`spin()` getters only);
+  constructed once at `main_qml.cpp:513/518`, handed to the viewport at
+  `:1086`. If a time-dependent N-body metric is ever wired into
+  `m_probeMetric`, the pointer stays stable while body positions evolve and the
+  cache returns **stale curvature scalars**. Fix in that case: add a
+  `uint64_t m_metricEpoch` to the metric owner, bump it whenever underlying
+  state changes, and include the epoch in the cache key. Do not wire a live
+  N-body metric into `m_probeMetric` without this. Cache is invalidated in
+  `setProbeMetric()` and `clearProbe()`.
+
+- **Quantum geometry FOV mismatch.** `QmlGlRenderer::renderQuantumGeometry()`
+  (`qmlglviewport.cpp:1770`) built a `Camera4D` with
+  `fov = 2.0 * std::atan(1.0 / m_camera4DAdapter->distance())`. At the headless
+  default `cam_d=150` that FOV is **0.76°** — visible width ~2 units. The CDT
+  geometry lives in `[0,100]³`, ~86 units from the camera, so almost no points
+  fell inside the frustum (4 magenta pixels out of 1000). The rest of the scene
+  (CurvatureRenderer, CelestialBodyRenderer) uses a fixed 45° FOV
+  (`qmlglviewport.cpp:222,434,835,3032`). Fix: use `M_PI / 4.0` in the QG path
+  to match. Verified: 4 → 1297 magenta pixels, `RuntimeSmokeTest` 7/7 green.
+  Do not reintroduce the distance-derived FOV here — it only made sense for a
+  probe microscope, not the main viewport.
+
+- **Redshift `n/a` at simTime ≈ 51.76 (2026-10-07) — not reproducible.** One
+  historical log showed `gtt=+43.26` at a fixed probe position, implying an
+  ~1500 M⊙ mass mutation after asteroid injection. 5000-frame headless orbits
+  with injection show `gtt=-0.7046 branch=1` throughout. Instrumentation
+  (`[MASS]`, `[REDSHIFT-DEBUG]`, `[PROBE]`) is in place to catch a recurrence.
 
 ## Configuration Options
 
