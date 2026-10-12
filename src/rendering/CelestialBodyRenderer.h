@@ -270,6 +270,10 @@ private:
     void generateSphereMesh();
     void generateSphereVAO();
 
+    // Annulus (black hole accretion disk) debug geometry
+    void generateAnnulusMesh(float innerR, float outerR);
+    void generateAnnulusVAO();
+
     // Rendering helpers
     void setupShaders();
     void updateBodyBuffers();
@@ -292,6 +296,23 @@ private:
     unsigned int m_indexCount;
     int m_stackCount;
     int m_sliceCount;
+
+    // Annulus geometry (accretion disk), centered on m_bhCenterWorld.
+    // Inner/outer radii are expressed in viewport radius units so the
+    // annulus can be positioned relative to the black hole's visual radius.
+    std::vector<SphereVertex> m_annulusVertices;
+    std::vector<unsigned int> m_annulusIndices;
+    unsigned int m_annulusVAO = 0;
+    unsigned int m_annulusVBO = 0;
+    unsigned int m_annulusEBO = 0;
+    unsigned int m_annulusIndexCount = 0;
+    unsigned int m_annulusInstanceBase = 0;
+    float m_annInnerR = 0.72f;
+    float m_annOuterR = 1.80f;
+    float m_bhCenterWorld[3] = {0.0f, 0.0f, 0.0f};
+
+    // Cached uniform location for the annulus magenta debug overlay
+    int m_debugAnnulusLoc = -1;
 
     // Body data
     struct BodyData {

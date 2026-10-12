@@ -78,6 +78,9 @@ CelestialBodyRenderer::~CelestialBodyRenderer()
     if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
     if (m_pbrShaderProgram) glDeleteProgram(m_pbrShaderProgram);
     if (m_atmosphereShaderProgram) glDeleteProgram(m_atmosphereShaderProgram);
+    if (m_annulusVAO) glDeleteVertexArrays(1, &m_annulusVAO);
+    if (m_annulusVBO) glDeleteBuffers(1, &m_annulusVBO);
+    if (m_annulusEBO) glDeleteBuffers(1, &m_annulusEBO);
 }
 
 void CelestialBodyRenderer::setQuality(QualityLevel quality)
@@ -266,6 +269,159 @@ void CelestialBodyRenderer::generateSphereVAO()
     glBindVertexArray(0);
 }
 
+void CelestialBodyRenderer::generateAnnulusMesh(float innerR, float outerR)
+{
+    m_annulusVertices.clear();
+    m_annulusIndices.clear();
+
+    const int radialSegments = 8;
+    const int angularSegments = 32;
+
+    // Vertices lie in the XZ plane (the disk's equatorial plane).
+    for (int i = 0; i <= radialSegments; ++i) {
+        const float r = innerR + (outerR - innerR) * static_cast<float>(i) /
+                        static_cast<float>(radialSegments);
+        for (int j = 0; j <= angularSegments; ++j) {
+            const float theta = 2.0f * static_cast<float>(M_PI) *
+                                static_cast<float>(j) /
+                                static_cast<float>(angularSegments);
+
+            SphereVertex v;
+            v.position[0] = r * std::cos(theta);
+            v.position[1] = 0.0f;
+            v.position[2] = r * std::sin(theta);
+            // Normal points up (+Y): the disk is lit from above.
+            v.normal[0] = 0.0f;
+            v.normal[1] = 1.0f;
+            v.normal[2] = 0.0f;
+            // u wraps around the disk, v runs from inner to outer radius.
+            v.texCoord[0] = static_cast<float>(j) / angularSegments;
+            v.texCoord[1] = (r - innerR) / (outerR - innerR);
+            // Tangent follows increasing theta.
+            v.tangent[0] = -std::sin(theta);
+            v.tangent[1] = 0.0f;
+            v.tangent[2] = std::cos(theta);
+
+            m_annulusVertices.push_back(v);
+        }
+    }
+
+    // Two triangles per quad of the (radialSegments x angularSegments) grid.
+    const int ring = angularSegments + 1;
+    for (int i = 0; i < radialSegments; ++i) {
+        for (int j = 0; j < angularSegments; ++j) {
+            const int first = i * ring + j;
+            const int second = first + ring;
+
+            m_annulusIndices.push_back(first);
+            m_annulusIndices.push_back(second);
+            m_annulusIndices.push_back(first + 1);
+
+            m_annulusIndices.push_back(second);
+            m_annulusIndices.push_back(second + 1);
+            m_annulusIndices.push_back(first + 1);
+        }
+    }
+
+    m_annulusIndexCount = static_cast<unsigned int>(m_annulusIndices.size());
+}
+
+void CelestialBodyRenderer::generateAnnulusVAO()
+{
+    // Clean up old resources
+    if (m_annulusVAO) glDeleteVertexArrays(1, &m_annulusVAO);
+    if (m_annulusVBO) glDeleteBuffers(1, &m_annulusVBO);
+    if (m_annulusEBO) glDeleteBuffers(1, &m_annulusEBO);
+
+    glGenVertexArrays(1, &m_annulusVAO);
+    glGenBuffers(1, &m_annulusVBO);
+    glGenBuffers(1, &m_annulusEBO);
+
+    glBindVertexArray(m_annulusVAO);
+
+    // Upload vertex data
+    glBindBuffer(GL_ARRAY_BUFFER, m_annulusVBO);
+    glBufferData(GL_ARRAY_BUFFER,
+                 m_annulusVertices.size() * sizeof(SphereVertex),
+                 m_annulusVertices.data(),
+                 GL_STATIC_DRAW);
+
+    // Upload index data
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_annulusEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 m_annulusIndices.size() * sizeof(unsigned int),
+                 m_annulusIndices.data(),
+                 GL_STATIC_DRAW);
+
+    // Per-vertex attributes (identical layout to the sphere VAO)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, position));
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, normal));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, texCoord));
+    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, tangent));
+    glEnableVertexAttribArray(3);
+
+    // Instance attributes share the sphere's instance VBO layout (36 floats).
+    const GLsizeiptr kInstanceStride = 36 * sizeof(float);
+    glBindBuffer(GL_ARRAY_BUFFER, m_instanceVBO);
+
+    // modelMatrix columns (locations 4-7), one vec4 per column
+    for (int col = 0; col < 4; ++col) {
+        glEnableVertexAttribArray(4 + col);
+        glVertexAttribPointer(4 + col, 4, GL_FLOAT, GL_FALSE,
+                              kInstanceStride,
+                              reinterpret_cast<void*>(
+                                  static_cast<uintptr_t>(col * 4 * sizeof(float))));
+        glVertexAttribDivisor(4 + col, 1);
+    }
+
+    // modelMatrixIT columns (locations 8-10), one vec3 per column
+    for (int col = 0; col < 3; ++col) {
+        glEnableVertexAttribArray(8 + col);
+        glVertexAttribPointer(8 + col, 3, GL_FLOAT, GL_FALSE,
+                              kInstanceStride,
+                              reinterpret_cast<void*>(
+                                  static_cast<uintptr_t>(16 * sizeof(float) +
+                                                         col * 3 * sizeof(float))));
+        glVertexAttribDivisor(8 + col, 1);
+    }
+
+    // Color (location 11)
+    glEnableVertexAttribArray(11);
+    glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE,
+                          kInstanceStride,
+                          reinterpret_cast<void*>(
+                              static_cast<uintptr_t>(25 * sizeof(float))));
+    glVertexAttribDivisor(11, 1);
+
+    // EmissiveAO (location 12): xyz = emissive, w = ao
+    glEnableVertexAttribArray(12);
+    glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE,
+                          kInstanceStride,
+                          reinterpret_cast<void*>(
+                              static_cast<uintptr_t>(28 * sizeof(float))));
+    glVertexAttribDivisor(12, 1);
+
+    // Packed radius/metallic/roughness/texLayer (location 13)
+    glEnableVertexAttribArray(13);
+    glVertexAttribPointer(13, 4, GL_FLOAT, GL_FALSE,
+                          kInstanceStride,
+                          reinterpret_cast<void*>(
+                              static_cast<uintptr_t>(32 * sizeof(float))));
+    glVertexAttribDivisor(13, 1);
+
+    glBindVertexArray(0);
+}
+
 // ---------------------------------------------------------------------------
 // Shader compilation
 // ---------------------------------------------------------------------------
@@ -347,10 +503,15 @@ uniform float time;
 uniform int textureArrayEnabled;
 uniform sampler2DArray textureArray;
 uniform int debugMode;
+// Set to 1 only while drawing the black hole annulus: makes the disk render
+// as flat magenta so its on-screen extent can be verified by pixel count.
+uniform int debugAnnulus;
 
 out vec4 outColor;
 
 void main() {
+    if (debugAnnulus == 1) { outColor = vec4(1.0, 0.0, 1.0, 1.0); return; }
+
     vec3 N = normalize(vNormal);
     vec3 L = normalize(lightPosition - vWorldPos);
     vec3 V = normalize(vViewDir);
@@ -630,6 +791,15 @@ void CelestialBodyRenderer::initializeGL()
 {
     generateSphereVAO();
 
+    // Generate the black hole annulus (accretion disk) debug geometry
+    if (!m_annulusVAO) {
+        generateAnnulusMesh(m_annInnerR, m_annOuterR);
+        generateAnnulusVAO();
+        qDebug() << "[ANNULUS] generated: inner=" << m_annInnerR
+                 << "outer=" << m_annOuterR
+                 << "indices=" << m_annulusIndexCount;
+    }
+
     // Compile shaders
     if (!compileShader(m_shaderProgram, celestialVertSrc, celestialFragSrc)) {
         std::cerr << "CelestialBodyRenderer: Failed to compile legacy shader" << std::endl;
@@ -649,6 +819,9 @@ void CelestialBodyRenderer::initializeGL()
         std::cerr << "CelestialBodyRenderer: Failed to compile atmosphere shader" << std::endl;
         return;
     }
+
+    // Cache uniform locations queried once at init time
+    m_debugAnnulusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulus");
 
     m_initialized = true;
     m_buffersDirty = true;
@@ -1095,11 +1268,11 @@ void CelestialBodyRenderer::setEnvironmentColor(const float color[3])
 
 void CelestialBodyRenderer::updateBodyBuffers()
 {
-    if (!m_buffersDirty || m_bodies.empty()) return;
+    if (!m_buffersDirty || (m_bodies.empty() && !m_annulusVAO)) return;
 
     // Build instance data: model(16) + modelIT(9) + color(3) + emissiveAO(4) + packedRadiusMR(4) = 36 floats
     std::vector<float> instanceData;
-    instanceData.reserve(m_bodies.size() * 36);
+    instanceData.reserve((m_bodies.size() + 1) * 36);
 
     for (const auto& body : m_bodies) {
         // Model matrix (16 floats)
@@ -1128,6 +1301,36 @@ void CelestialBodyRenderer::updateBodyBuffers()
         instanceData.push_back(static_cast<float>(body.instance.textureLayer));
     }
 
+    // Annulus instance: one extra instance appended after the bodies, so it
+    // can be drawn with glDrawElementsInstancedBaseInstance. The model matrix
+    // is translation-only to the black hole center; texLayer = -1 keeps the
+    // texture array from sampling a layer for the disk.
+    if (m_annulusVAO) {
+        const float modelMatrix[16] = {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            m_bhCenterWorld[0], m_bhCenterWorld[1], m_bhCenterWorld[2], 1.0f
+        };
+        // Translation-only model -> inverse transpose is identity.
+        const float modelMatrixIT[9] = {
+            1.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 1.0f
+        };
+        const float color[3] = {1.0f, 1.0f, 1.0f};
+        const float emissiveAO[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+        const float packedRadiusMR[4] = {1.0f, 0.0f, 0.5f, -1.0f};
+
+        for (int i = 0; i < 16; ++i) instanceData.push_back(modelMatrix[i]);
+        for (int i = 0; i < 9; ++i) instanceData.push_back(modelMatrixIT[i]);
+        for (int i = 0; i < 3; ++i) instanceData.push_back(color[i]);
+        for (int i = 0; i < 4; ++i) instanceData.push_back(emissiveAO[i]);
+        for (int i = 0; i < 4; ++i) instanceData.push_back(packedRadiusMR[i]);
+
+        m_annulusInstanceBase = static_cast<unsigned int>(m_bodies.size());
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, m_instanceVBO);
     glBufferData(GL_ARRAY_BUFFER,
                  instanceData.size() * sizeof(float),
@@ -1144,7 +1347,7 @@ void CelestialBodyRenderer::updateBodyBuffers()
 
 void CelestialBodyRenderer::render(const float* viewMatrix, const float* projectionMatrix)
 {
-    if (!m_initialized || m_bodies.empty()) return;
+    if (!m_initialized || (m_bodies.empty() && !m_annulusVAO)) return;
 
     updateBodyBuffers();
 
@@ -1202,9 +1405,29 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     glBindVertexArray(m_sphereVAO);
     glDisable(GL_BLEND);
 
+    // Bodies must never be tinted by the annulus debug overlay.
+    glUniform1i(m_debugAnnulusLoc, 0);
     glDrawElementsInstanced(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0,
                             static_cast<GLsizei>(m_bodies.size()));
     glBindVertexArray(0);
+
+    // Draw the annulus (accretion disk) as a single instanced draw using the
+    // base instance offset assigned in updateBodyBuffers(). While it is
+    // drawn, debugAnnulus = 1 makes the fragment shader emit flat magenta so
+    // the disk's on-screen extent can be verified by pixel count.
+    if (m_annulusVAO) {
+        glUniform1i(m_debugAnnulusLoc, 1);
+        glBindVertexArray(m_annulusVAO);
+        glDrawElementsInstancedBaseInstance(GL_TRIANGLES,
+                                            static_cast<GLsizei>(m_annulusIndexCount),
+                                            GL_UNSIGNED_INT,
+                                            0,
+                                            1,
+                                            m_annulusInstanceBase);
+        glBindVertexArray(0);
+        glUniform1i(m_debugAnnulusLoc, 0);
+    }
+
     glUseProgram(0);
 }
 
