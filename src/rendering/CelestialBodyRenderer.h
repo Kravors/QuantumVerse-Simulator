@@ -274,9 +274,9 @@ public:
      * ratio is gain-independent. The shipped default is 1.0. The 0.3 value
      * used by the smoke suite (tests/smoke/testAnnulusDopplerBeamingRatio)
      * keeps the beamed approaching limb inside [0,1] instead of clipping:
-     * the un-gained base already encodes to ~205-230/255 and base * D^4
-     * evaluates to ~660-744. This is a measurement enabler, not a
-     * correction for an over-bright disk base.
+     * the un-gained base encodes to a 246.5/255 median across the ring and
+     * base * D^4 evaluates to ~810 at the inner fragment. This is a
+     * measurement enabler, not a correction for an over-bright disk base.
      *
      * @param gain Non-negative scale applied to the beamed disk colour
      */

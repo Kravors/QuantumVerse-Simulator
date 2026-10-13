@@ -524,10 +524,13 @@ private slots:
         const QImage pos = captureAnnulus(m_binary, QStringLiteral("position"), 90,
                                           QStringLiteral("smoke_annulus_beam_pos.png"), error);
         QVERIFY2(!pos.isNull(), qPrintable(error));
-        // Measurement capture at gain 0.3: the shipped default of 1.0 evaluates
-        // base * D^4 to ~660-744 and clips the approaching limb to pure white,
+        // Measurement capture at gain 0.3: the shipped default of 1.0
+        // evaluates base * D^4 to ~810 (base 246.5 median, D^4 = 3.28 at the
+        // inner fragment) and clips the whole approaching side to pure white,
         // which is why the CLI override exists and why the position capture
         // above runs at the default (its encode is unaffected by the gain).
+        // Red is the assertion channel: at gain 0.3 red stays unclipped across
+        // the whole ring (max 243) while blue clips at the innermost fragment.
         const QImage beam = captureAnnulus(m_binary, QStringLiteral("normal"), 90,
                                            QStringLiteral("smoke_annulus_beam.png"), error,
                                            0.3);

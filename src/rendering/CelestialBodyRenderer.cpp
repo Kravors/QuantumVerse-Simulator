@@ -577,12 +577,16 @@ const float M_VISUAL = 0.12;
 // and needs its own verification with its own expected values; the linear
 // path below is what the smoke ratio test measures.
 //
-// The shipped base does NOT clip on its own (~205-230/255 per channel,
-// measured at gain 0.3, see testAnnulusDopplerBeamingRatio); it is base *
-// D^4 that evaluates to ~660-744 at the r = 1.326 fragments. The 0.3
-// measurement value keeps the beamed approaching limb inside [0,1] and is
-// set via --beaming-gain, i.e. it is a measurement enabler, not a
-// correction for an over-bright disk.
+// The shipped base does NOT clip on its own: a 52-pixel profile of the whole
+// ring at gain 0.3 (all four debug views at az=90/el=30/dist=150) fits one
+// shared base of 246.5/255 median with a 239-253 spread (the per-fragment
+// shading variation) - see the profile check in this commit's history. It is
+// base * D^4 that evaluates to ~810 (247 * 3.28 at the r = 0.770 inner
+// fragment) and clips the approaching side. The 0.3 measurement value keeps
+// red unclipped everywhere on the ring (max 243); blue does clip at the
+// innermost fragment, which is why the smoke test samples red, not blue.
+// Set via --beaming-gain: a measurement enabler, not a correction for an
+// over-bright disk.
 uniform float beamingDisplayGain;
 
 // Line-of-sight term los = dot(v_dir, view_dir) for a disk fragment.
