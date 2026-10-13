@@ -251,12 +251,14 @@ public:
     enum class AnnulusDebugMode {
         MAGENTA,  ///< Flat magenta overlay (presence/scale guard)
         RADIUS,   ///< Red channel encodes length(worldPos.xz - bhCenter.xz) / 4.0
-        POSITION  ///< RGB encodes lerp -2..2 / 4 world position relative to the black hole
+        POSITION, ///< RGB encodes lerp -2..2 / 4 world position relative to the black hole
+        DOPPLER   ///< Red/blue encodes the sign of dot(v_dir, view_dir) at the fragment
     };
 
     /**
      * @brief Select the annulus debug visualization
-     * @param mode MAGENTA (default, keeps the smoke-test path) or RADIUS
+     * @param mode MAGENTA (default, keeps the smoke-test path), RADIUS,
+     *        POSITION, or DOPPLER
      */
     void setAnnulusDebugMode(AnnulusDebugMode mode) { m_annulusDebugMode = mode; }
 
@@ -373,7 +375,9 @@ private:
     int m_debugAnnulusLoc = -1;
     int m_debugAnnulusRadiusLoc = -1;
     int m_debugAnnulusPositionLoc = -1;
+    int m_debugAnnulusDopplerLoc = -1;
     int m_bhCenterWorldLoc = -1;
+    int m_cameraPosWorldLoc = -1;
     AnnulusDebugMode m_annulusDebugMode = AnnulusDebugMode::MAGENTA;
 
     // Body data

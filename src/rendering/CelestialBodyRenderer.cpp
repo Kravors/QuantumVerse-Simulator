@@ -537,6 +537,20 @@ uniform int debugAnnulusPosition;
 // translation (m_bhCenterWorld), not the world origin, so a non-zero config
 // position still decodes relative to the black hole.
 uniform vec3 bhCenterWorld;
+// Fourth annulus debug view: encodes the sign of the line-of-sight term
+// los = dot(v_dir, view_dir) at each disk fragment. v_dir is the disk rotation
+// direction, view_dir points from the fragment to the camera, so the sign is
+// purely a function of the camera's world position - which is why
+// cameraPosWorld must be the live camera eye, not a fixed axis. Red channel
+// carries max(los, 0) (approaching limb), blue carries max(-los, 0)
+// (receding limb), green is 0, alpha exactly 1.0 so nothing blends with the
+// skybox. Los magnitude is deliberately NOT encoded: this view answers only
+// the sign question that gates the step-4 beaming ratio.
+uniform int debugAnnulusDoppler;
+// Camera eye in world space (extracted from the view matrix per frame). The
+// view_dir below must point at the actual camera; using a fixed axis mirrors
+// the beaming between az=0 and az=180 and hides the sign flip.
+uniform vec3 cameraPosWorld;
 
 out vec4 outColor;
 
@@ -555,6 +569,25 @@ void main() {
         vec3 rel = vWorldPos - bhCenterWorld;
         vec3 enc = (rel + vec3(2.0, 2.0, 2.0)) / vec3(4.0, 4.0, 4.0);
         outColor = vec4(enc, 1.0);
+        return;
+    }
+    if (debugAnnulusDoppler == 1) {
+        // Disk is planar in XZ: the radial vector lies in that plane, and the
+        // rotation direction is its 90-degree rotation, cross(OMEGA_AXIS, radial).
+        vec3 radial = vec3(vWorldPos.x - bhCenterWorld.x, 0.0,
+                           vWorldPos.z - bhCenterWorld.z);
+        vec3 v_dir = cross(OMEGA_AXIS, radial);
+        if (dot(v_dir, v_dir) < 1e-12) {
+            // Degenerate at the exact center: no rotation direction exists;
+            // paint neutral so the pixel is identifiable, not silently +1.
+            outColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+        v_dir = normalize(v_dir);
+        vec3 view_dir = normalize(cameraPosWorld - vWorldPos);
+        float los = dot(v_dir, view_dir);
+        // Alpha exactly 1.0, matching every other annulus debug view.
+        outColor = vec4(max(los, 0.0), 0.0, max(-los, 0.0), 1.0);
         return;
     }
 
@@ -879,7 +912,9 @@ void CelestialBodyRenderer::initializeGL()
     m_debugAnnulusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulus");
     m_debugAnnulusRadiusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusRadius");
     m_debugAnnulusPositionLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusPosition");
+    m_debugAnnulusDopplerLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusDoppler");
     m_bhCenterWorldLoc = glGetUniformLocation(m_shaderProgram, "bhCenterWorld");
+    m_cameraPosWorldLoc = glGetUniformLocation(m_shaderProgram, "cameraPosWorld");
 
     m_initialized = true;
     m_buffersDirty = true;
@@ -1463,17 +1498,31 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     glBindVertexArray(m_sphereVAO);
     glDisable(GL_BLEND);
 
-    // Bodies must never be tinted by the annulus debug overlay. The two debug
+    // Bodies must never be tinted by the annulus debug overlay. The debug
     // modes are mutually exclusive by construction: exactly one of them is 1
     // for the frame, so the shader can never be asked to render both and the
     // early-return ordering is unambiguous.
     const int annulusMagenta = (m_annulusDebugMode == AnnulusDebugMode::MAGENTA) ? 1 : 0;
     const int annulusRadius = (m_annulusDebugMode == AnnulusDebugMode::RADIUS) ? 1 : 0;
     const int annulusPosition = (m_annulusDebugMode == AnnulusDebugMode::POSITION) ? 1 : 0;
+    const int annulusDoppler = (m_annulusDebugMode == AnnulusDebugMode::DOPPLER) ? 1 : 0;
     glUniform1i(m_debugAnnulusLoc, 0);
     glUniform1i(m_debugAnnulusRadiusLoc, 0);
     glUniform1i(m_debugAnnulusPositionLoc, 0);
+    glUniform1i(m_debugAnnulusDopplerLoc, 0);
+    // Camera eye in world space, recovered from the column-major view matrix
+    // (eye = -R^T * t). Camera4DAdapter::viewMatrix() is a lookAt matrix, so
+    // its 3x3 part is a pure rotation and this inversion is exact.
+    const float cameraPosWorld[3] = {
+        -(viewMatrix[0] * viewMatrix[12] + viewMatrix[1] * viewMatrix[13] +
+          viewMatrix[2] * viewMatrix[14]),
+        -(viewMatrix[4] * viewMatrix[12] + viewMatrix[5] * viewMatrix[13] +
+          viewMatrix[6] * viewMatrix[14]),
+        -(viewMatrix[8] * viewMatrix[12] + viewMatrix[9] * viewMatrix[13] +
+          viewMatrix[10] * viewMatrix[14])
+    };
     glUniform3fv(m_bhCenterWorldLoc, 1, m_bhCenterWorld);
+    glUniform3fv(m_cameraPosWorldLoc, 1, cameraPosWorld);
     glDrawElementsInstanced(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0,
                             static_cast<GLsizei>(m_bodies.size()));
     glBindVertexArray(0);
@@ -1487,10 +1536,14 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     // RADIUS mode: red channel = length(worldPos.xz - bhCenterWorld.xz) / 4.0,
     // so the same pixels can be sampled to confirm the geometry is at the
     // design radius range [0.72, 1.80].
+    // DOPPLER mode: red/blue encode the sign of dot(v_dir, view_dir), so the
+    // approaching limb can be told from the receding limb before any beaming
+    // ratio is measured.
     if (m_annulusVAO) {
         glUniform1i(m_debugAnnulusLoc, annulusMagenta);
         glUniform1i(m_debugAnnulusRadiusLoc, annulusRadius);
         glUniform1i(m_debugAnnulusPositionLoc, annulusPosition);
+        glUniform1i(m_debugAnnulusDopplerLoc, annulusDoppler);
         glBindVertexArray(m_annulusVAO);
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES,
                                             static_cast<GLsizei>(m_annulusIndexCount),
@@ -1502,6 +1555,7 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
         glUniform1i(m_debugAnnulusLoc, 0);
         glUniform1i(m_debugAnnulusRadiusLoc, 0);
         glUniform1i(m_debugAnnulusPositionLoc, 0);
+        glUniform1i(m_debugAnnulusDopplerLoc, 0);
     }
 
     glUseProgram(0);

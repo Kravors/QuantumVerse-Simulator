@@ -349,8 +349,10 @@ int main(int argc, char* argv[])
     QVector3D cliCamTarget(0.0f, 0.0f, 0.0f);
 
     // Annulus debug visualization: "magenta" (default, the path
-    // tests/smoke/test_runtime.cpp asserts on) or "radius" (red channel encodes
-    // length(worldPos.xz - bhCenter.xz) / 4.0). Mutually exclusive.
+    // tests/smoke/test_runtime.cpp asserts on), "radius" (red channel encodes
+    // length(worldPos.xz - bhCenter.xz) / 4.0), "position" (RGB encodes the
+    // world position relative to the black hole), or "doppler" (red/blue
+    // encode the sign of dot(v_dir, view_dir)). Mutually exclusive.
     quantumverse::CelestialBodyRenderer::AnnulusDebugMode cliAnnulusDebug =
         quantumverse::CelestialBodyRenderer::AnnulusDebugMode::MAGENTA;
     for (int i = 1; i < argc; ++i) {
@@ -422,8 +424,11 @@ int main(int argc, char* argv[])
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::RADIUS;
             } else if (mode == QLatin1String("position")) {
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION;
+            } else if (mode == QLatin1String("doppler")) {
+                cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::DOPPLER;
             } else {
-                std::cerr << "QuantumVerse: --annulus-debug takes 'magenta' or 'radius', got '"
+                std::cerr << "QuantumVerse: --annulus-debug takes 'magenta', 'radius', "
+                             "'position', or 'doppler', got '"
                           << mode.toStdString() << "' - keeping magenta" << std::endl;
                 std::cerr.flush();
             }
@@ -1200,6 +1205,8 @@ int main(int argc, char* argv[])
                                  ? QStringLiteral("radius")
                              : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION
                                  ? QStringLiteral("position")
+                             : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::DOPPLER
+                                 ? QStringLiteral("doppler")
                                  : QStringLiteral("magenta"));
 
                 // Light from the camera side so visible planet faces are illuminated

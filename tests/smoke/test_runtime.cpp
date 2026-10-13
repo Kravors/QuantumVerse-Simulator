@@ -12,7 +12,97 @@
 #include <QRegularExpression>
 #include <QFileInfo>
 #include <QImage>
+#include <QVector3D>
+#include <cmath>
 #include <QtTest/QtTest>
+
+namespace {
+
+// Run one headless annulus capture at the Doppler verification pose
+// (el=30, dist=150, config black_hole.position (0,0,0), single frame) and
+// load the resulting screenshot.
+QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth,
+                      const QString& path, QString& error)
+{
+    QProcess proc;
+    proc.setProgram(binary);
+    proc.setArguments({
+        QStringLiteral("--frames"), QStringLiteral("1"),
+        QStringLiteral("--cam-az"), QString::number(azimuth),
+        QStringLiteral("--cam-el"), QStringLiteral("30"),
+        QStringLiteral("--cam-dist"), QStringLiteral("150"),
+        QStringLiteral("--annulus-debug"), mode,
+        QStringLiteral("--screenshot"), path,
+    });
+    proc.setProcessChannelMode(QProcess::MergedChannels);
+    proc.start();
+    if (!proc.waitForFinished(120000)) {
+        error = QStringLiteral("annulus capture (mode=%1 az=%2) timed out: %3")
+                    .arg(mode).arg(azimuth).arg(proc.errorString());
+        return QImage();
+    }
+    if (proc.exitCode() != 0) {
+        error = QStringLiteral("annulus capture (mode=%1 az=%2) exited with code %3")
+                    .arg(mode).arg(azimuth).arg(proc.exitCode());
+        return QImage();
+    }
+    const QImage img(path);
+    if (img.isNull()) {
+        error = QStringLiteral("annulus capture (mode=%1 az=%2) produced a null image")
+                    .arg(mode).arg(azimuth);
+    }
+    return img;
+}
+
+// POSITION encoding: RGB = (rel + 2) / 4, with rel relative to bhCenterWorld.
+QVector3D decodeAnnulusPosition(QRgb p)
+{
+    return QVector3D(qRed(p) / 255.0f * 4.0f - 2.0f,
+                     qGreen(p) / 255.0f * 4.0f - 2.0f,
+                     qBlue(p) / 255.0f * 4.0f - 2.0f);
+}
+
+// Locate the annulus fragment nearest `target` (disk-relative world units)
+// inside a small window around the image center. The window is load-bearing:
+// scene pixels outside the annulus (lensing ring, volumetric disk glow) can
+// decode into the annulus radial band and would otherwise win the nearest
+// search. Measured at 724x432: every band-passing pixel inside the central
+// 60x60 box is a genuine annulus fragment, and the annulus itself bboxes to
+// (356,213)-(367,218) there.
+bool findNearestAnnulusPixel(const QImage& positionCapture, const QVector3D& target,
+                             QPoint& outPixel, QVector3D& outWorld)
+{
+    const int cx = positionCapture.width() / 2;
+    const int cy = positionCapture.height() / 2;
+    const int half = 30;
+    bool found = false;
+    float bestDist = 0.0f;
+    for (int y = qMax(0, cy - half); y < qMin(positionCapture.height(), cy + half); ++y) {
+        const QRgb* scanline = reinterpret_cast<const QRgb*>(positionCapture.scanLine(y));
+        for (int x = qMax(0, cx - half); x < qMin(positionCapture.width(), cx + half); ++x) {
+            const QVector3D rel = decodeAnnulusPosition(scanline[x]);
+            const float radius = std::sqrt(rel.x() * rel.x() + rel.z() * rel.z());
+            if (std::abs(rel.y()) > 0.15f || radius < 0.60f || radius > 1.95f) {
+                continue;
+            }
+            const float d = (rel - target).length();
+            if (!found || d < bestDist) {
+                found = true;
+                bestDist = d;
+                outPixel = QPoint(x, y);
+                outWorld = rel;
+            }
+        }
+    }
+    return found;
+}
+
+QRgb pixelAt(const QImage& img, const QPoint& p)
+{
+    return reinterpret_cast<const QRgb*>(img.scanLine(p.y()))[p.x()];
+}
+
+} // namespace
 
 class RuntimeSmokeTest : public QObject {
     Q_OBJECT
@@ -286,6 +376,117 @@ private slots:
                                            "guard of 120 - the annulus is no longer at the "
                                            "design scale (0.72-1.80 world units)")
                                 .arg(magentaPixels)));
+    }
+
+    void testAnnulusDopplerSign() {
+        // Regression surface for the DOPPLER annulus debug mode
+        // (debugAnnulusDoppler in celestialFragSrc). The mode encodes the sign
+        // of los = dot(v_dir, view_dir): red-dominant fragments sit on the
+        // disk's approaching limb, blue-dominant on the receding limb.
+        //
+        // The decision point is the flip of the SAME world point when the
+        // camera crosses to the opposite side. A fixed screen pixel cannot
+        // show it: the mirror between az=90 and az=270 moves the world point
+        // to the opposite screen side but keeps its colour, so the test tracks
+        // world (0, 0, +1.294) through the POSITION encoding in both
+        // azimuths, then samples the DOPPLER captures at the located pixels -
+        // four spawns of the same el=30 dist=150 pose pair.
+        //
+        // Measured 2026-10-13 at 724x432, config (0,0,0): the fragment
+        // nearest (0,0,+1.294) lands at (357,215) in the az=90 position
+        // capture and (366,215) in the az=270 capture, both decoding
+        // z = +1.294 (r = 1.326). The DOPPLER captures read (215,0,0) and
+        // (0,0,215) there, i.e. |los| ~ 0.84 against the geometric prediction
+        // 0.844 - the sign check the beaming-ratio measurement depends on.
+        QString error;
+        const QImage pos90 = captureAnnulus(m_binary, QStringLiteral("position"), 90,
+                                            QStringLiteral("smoke_annulus_pos90.png"), error);
+        QVERIFY2(!pos90.isNull(), qPrintable(error));
+        const QImage pos270 = captureAnnulus(m_binary, QStringLiteral("position"), 270,
+                                             QStringLiteral("smoke_annulus_pos270.png"), error);
+        QVERIFY2(!pos270.isNull(), qPrintable(error));
+        const QImage dop90 = captureAnnulus(m_binary, QStringLiteral("doppler"), 90,
+                                            QStringLiteral("smoke_annulus_dop90.png"), error);
+        QVERIFY2(!dop90.isNull(), qPrintable(error));
+        const QImage dop270 = captureAnnulus(m_binary, QStringLiteral("doppler"), 270,
+                                             QStringLiteral("smoke_annulus_dop270.png"), error);
+        QVERIFY2(!dop270.isNull(), qPrintable(error));
+
+        const QVector3D target(0.0f, 0.0f, 1.294f);
+        QPoint px90, px270;
+        QVector3D w90, w270;
+        QVERIFY2(findNearestAnnulusPixel(pos90, target, px90, w90),
+                 "No annulus fragment found near (0,0,+1.294) in the az=90 position capture");
+        QVERIFY2(findNearestAnnulusPixel(pos270, target, px270, w270),
+                 "No annulus fragment found near (0,0,+1.294) in the az=270 position capture");
+
+        // Both picks must be fragments of the same (+Z) side of the disk,
+        // otherwise the flip below would compare two different world points.
+        QVERIFY2(w90.z() > 0.5f, qPrintable(QStringLiteral(
+                     "az=90 pick decoded to z=%1 - expected the +Z side").arg(w90.z())));
+        QVERIFY2(w270.z() > 0.5f, qPrintable(QStringLiteral(
+                     "az=270 pick decoded to z=%1 - expected the +Z side").arg(w270.z())));
+        QVERIFY2((w90 - w270).length() < 0.7f, qPrintable(QStringLiteral(
+                     "az=90 and az=270 picks are different world points: "
+                     "(%1,%2,%3) vs (%4,%5,%6)")
+                     .arg(w90.x()).arg(w90.y()).arg(w90.z())
+                     .arg(w270.x()).arg(w270.y()).arg(w270.z())));
+
+        const QRgb s90 = pixelAt(dop90, px90);
+        const QRgb s270 = pixelAt(dop270, px270);
+        qWarning() << "Doppler az=90 px" << px90 << "RGB" << qRed(s90) << qGreen(s90) << qBlue(s90)
+                   << "| az=270 px" << px270 << "RGB" << qRed(s270) << qGreen(s270) << qBlue(s270);
+
+        // Decision point: the same world point reads approaching (red) with
+        // the eye on +X and receding (blue) with the eye on -X.
+        QVERIFY2(qRed(s90) > qBlue(s90) + 100, qPrintable(QStringLiteral(
+                     "az=90 sample %1 is not red-dominant: RGB(%2,%3,%4) - "
+                     "los sign did not point at the +X camera")
+                     .arg(QStringLiteral("(%1,%2)").arg(px90.x()).arg(px90.y()))
+                     .arg(qRed(s90)).arg(qGreen(s90)).arg(qBlue(s90))));
+        QVERIFY2(qBlue(s270) > qRed(s270) + 100, qPrintable(QStringLiteral(
+                     "az=270 sample %1 is not blue-dominant: RGB(%2,%3,%4) - "
+                     "the los sign did not flip with the camera")
+                     .arg(QStringLiteral("(%1,%2)").arg(px270.x()).arg(px270.y()))
+                     .arg(qRed(s270)).arg(qGreen(s270)).arg(qBlue(s270))));
+        // The encoding writes exactly one of (los,0,0) / (0,0,-los) with
+        // alpha 1.0; green staying 0 and alpha staying 255 keep the decode
+        // unambiguous against skybox blending.
+        QVERIFY2(qGreen(s90) < 60 && qGreen(s270) < 60,
+                 "Doppler samples carry green - the encoding is not (r,0,b,1)");
+        QVERIFY2(qAlpha(s90) == 255 && qAlpha(s270) == 255,
+                 "Doppler samples are semi-transparent - they blended with the skybox");
+
+        // Presence guard: both limbs exist in each capture. Counts use the
+        // shader's own strict signature and stay loose on purpose - warm
+        // scene glow nearby also passes it, so the thresholds sit far below
+        // the measured values (red 75/49, blue 12/12).
+        const int cx = dop90.width() / 2;
+        const int cy = dop90.height() / 2;
+        for (int pass = 0; pass < 2; ++pass) {
+            const QImage& img = (pass == 0) ? dop90 : dop270;
+            const int az = (pass == 0) ? 90 : 270;
+            int red = 0, blue = 0;
+            for (int y = qMax(0, cy - 30); y < qMin(img.height(), cy + 30); ++y) {
+                const QRgb* scanline = reinterpret_cast<const QRgb*>(img.scanLine(y));
+                for (int x = qMax(0, cx - 30); x < qMin(img.width(), cx + 30); ++x) {
+                    const QRgb p = scanline[x];
+                    if (qRed(p) > 150 && qGreen(p) < 60 && qBlue(p) < 60) {
+                        ++red;
+                    } else if (qBlue(p) > 150 && qRed(p) < 60 && qGreen(p) < 60) {
+                        ++blue;
+                    }
+                }
+            }
+            qWarning() << "Doppler limb pixel counts az=" << az << "red:" << red
+                       << "blue:" << blue;
+            QVERIFY2(red >= 20, qPrintable(QStringLiteral(
+                         "az=%1 capture has %2 red-dominant pixels, expected >= 20 - "
+                         "the approaching limb is missing").arg(az).arg(red)));
+            QVERIFY2(blue >= 5, qPrintable(QStringLiteral(
+                         "az=%1 capture has %2 blue-dominant pixels, expected >= 5 - "
+                         "the receding limb is missing").arg(az).arg(blue)));
+        }
     }
 
     void testToolbarOverflowAssertion() {
