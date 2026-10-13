@@ -252,15 +252,36 @@ public:
         MAGENTA,  ///< Flat magenta overlay (presence/scale guard)
         RADIUS,   ///< Red channel encodes length(worldPos.xz - bhCenter.xz) / 4.0
         POSITION, ///< RGB encodes lerp -2..2 / 4 world position relative to the black hole
-        DOPPLER   ///< Red/blue encodes the sign of dot(v_dir, view_dir) at the fragment
+        DOPPLER,  ///< Red/blue encodes the sign of dot(v_dir, view_dir) at the fragment
+        NORMAL    ///< No debug override: shaded disk path with Doppler beaming applied
     };
 
     /**
      * @brief Select the annulus debug visualization
      * @param mode MAGENTA (default, keeps the smoke-test path), RADIUS,
-     *        POSITION, or DOPPLER
+     *        POSITION, DOPPLER, or NORMAL (shaded disk with Doppler beaming)
      */
     void setAnnulusDebugMode(AnnulusDebugMode mode) { m_annulusDebugMode = mode; }
+
+    /**
+     * @brief Set the display gain applied with the Doppler beaming term
+     *
+     * A pure scale multiplying both disk limbs equally, so the measured limb
+     * ratio is gain-independent. The shipped default is 1.0. The 0.3 value
+     * used by the smoke suite (tests/smoke/testAnnulusDopplerBeamingRatio)
+     * keeps the beamed approaching limb inside [0,1] instead of clipping:
+     * the un-gained base already encodes to ~205-230/255 and base * D^4
+     * evaluates to ~660-744. This is a measurement enabler, not a
+     * correction for an over-bright disk base.
+     *
+     * @param gain Non-negative scale applied to the beamed disk colour
+     */
+    void setBeamingDisplayGain(float gain) { m_beamingDisplayGain = gain; }
+
+    /**
+     * @brief Get the current beaming display gain
+     */
+    float beamingDisplayGain() const { return m_beamingDisplayGain; }
 
     /**
      * @brief Get the current annulus debug visualization
@@ -376,9 +397,13 @@ private:
     int m_debugAnnulusRadiusLoc = -1;
     int m_debugAnnulusPositionLoc = -1;
     int m_debugAnnulusDopplerLoc = -1;
+    int m_dopplerBeamingLoc = -1;
+    int m_beamingDisplayGainLoc = -1;
     int m_bhCenterWorldLoc = -1;
     int m_cameraPosWorldLoc = -1;
     AnnulusDebugMode m_annulusDebugMode = AnnulusDebugMode::MAGENTA;
+    // Shipped gain for the Doppler beaming term (see setBeamingDisplayGain).
+    float m_beamingDisplayGain = 1.0f;
 
     // Body data
     struct BodyData {

@@ -22,18 +22,20 @@ namespace {
 // (el=30, dist=150, config black_hole.position (0,0,0), single frame) and
 // load the resulting screenshot.
 QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth,
-                      const QString& path, QString& error)
+                      const QString& path, QString& error, double beamingGain = 1.0)
 {
     QProcess proc;
     proc.setProgram(binary);
-    proc.setArguments({
+    QStringList args = {
         QStringLiteral("--frames"), QStringLiteral("1"),
         QStringLiteral("--cam-az"), QString::number(azimuth),
         QStringLiteral("--cam-el"), QStringLiteral("30"),
         QStringLiteral("--cam-dist"), QStringLiteral("150"),
         QStringLiteral("--annulus-debug"), mode,
+        QStringLiteral("--beaming-gain"), QString::number(beamingGain, 'f', 2),
         QStringLiteral("--screenshot"), path,
-    });
+    };
+    proc.setArguments(args);
     proc.setProcessChannelMode(QProcess::MergedChannels);
     proc.start();
     if (!proc.waitForFinished(120000)) {
@@ -486,6 +488,94 @@ private slots:
             QVERIFY2(blue >= 5, qPrintable(QStringLiteral(
                          "az=%1 capture has %2 blue-dominant pixels, expected >= 5 - "
                          "the receding limb is missing").arg(az).arg(blue)));
+        }
+    }
+
+    void testAnnulusDopplerBeamingRatio() {
+        // Regression surface for the Doppler beaming term on the accretion
+        // disk (dopplerBeaming in celestialFragSrc, reached via NORMAL debug
+        // mode). The term multiplies the disk's display-encoded colour by
+        // D^4 with D = 1 / (gamma * (1 - beta * los)), beta =
+        // sqrt(M_VISUAL / r), M_VISUAL = 0.12 - the bolometric
+        // Stefan-Boltzmann convention (T_obs = T * delta), the same one the
+        // volumetric disk uses.
+        //
+        // Prediction at the identified sample points (r = 1.326,
+        // los = -+0.844, beta = 0.301): D_app = 1.341, D_rec = 0.797,
+        // ratio_base = 1.681, and ratio_base^4 = 7.99. D^3 would read 4.75
+        // and an un-beamed disk 1.0, so one clean measurement identifies the
+        // exponent.
+        //
+        // Measured 2026-10-13 at el=30 dist=150 config (0,0,0) 724x432 with
+        // --beaming-gain 0.3: approaching (357,216) = (199,205,223), receding
+        // (366,216) = (25,25,28); per-channel ratios 7.96 / 8.20 / 7.96,
+        // pixel-identical across repeat captures. At the shipped gain of 1.0 the
+        // approaching sample reads (255,255,255) - clipped - which is exactly
+        // the condition the gain override exists to avoid.
+        QString error;
+        const QImage pos = captureAnnulus(m_binary, QStringLiteral("position"), 90,
+                                          QStringLiteral("smoke_annulus_beam_pos.png"), error);
+        QVERIFY2(!pos.isNull(), qPrintable(error));
+        // Measurement capture at gain 0.3: the shipped default of 1.0 evaluates
+        // base * D^4 to ~660-744 and clips the approaching limb to pure white,
+        // which is why the CLI override exists and why the position capture
+        // above runs at the default (its encode is unaffected by the gain).
+        const QImage beam = captureAnnulus(m_binary, QStringLiteral("normal"), 90,
+                                           QStringLiteral("smoke_annulus_beam.png"), error,
+                                           0.3);
+        QVERIFY2(!beam.isNull(), qPrintable(error));
+
+        const QVector3D near(0.0f, 0.0f, 1.294f);
+        const QVector3D far(0.0f, 0.0f, -1.294f);
+        QPoint pxNear, pxFar;
+        QVector3D wNear, wFar;
+        QVERIFY2(findNearestAnnulusPixel(pos, near, pxNear, wNear),
+                 "No annulus fragment found near (0,0,+1.294) in the position capture");
+        QVERIFY2(findNearestAnnulusPixel(pos, far, pxFar, wFar),
+                 "No annulus fragment found near (0,0,-1.294) in the position capture");
+
+        const QRgb sNear = pixelAt(beam, pxNear);
+        const QRgb sFar = pixelAt(beam, pxFar);
+        qWarning() << "Beaming az=90 near px" << pxNear << "RGB" << qRed(sNear)
+                   << qGreen(sNear) << qBlue(sNear) << "| far px" << pxFar << "RGB"
+                   << qRed(sFar) << qGreen(sFar) << qBlue(sFar);
+
+        // Sampling channel: red. Blue approaches the clip boundary closest
+        // (223 at gain 0.3), so it has the least headroom for a slight
+        // miscalibration; all three channels are still reported so a future
+        // failure names which one clipped.
+        const int nearR = qRed(sNear);
+        const int farR = qRed(sFar);
+
+        // Both bounds on the approaching sample: below 255 means not clipped
+        // (a clipped sample flattens the ratio to ~2-3x), above 50 means the
+        // sample is not degenerate (a dark or mislocated sample would make
+        // any ratio meaningless).
+        QVERIFY2(nearR < 255, qPrintable(QStringLiteral(
+                     "Approaching limb sample is clipped (R=%1) - the display gain no "
+                     "longer keeps base * D^4 inside [0,1] and the ratio is not "
+                     "measurable").arg(nearR)));
+        QVERIFY2(nearR > 50, qPrintable(QStringLiteral(
+                     "Approaching limb sample is degenerate (R=%1) - outside the "
+                     "beamed disk region").arg(nearR)));
+        QVERIFY2(farR > 5, qPrintable(QStringLiteral(
+                     "Receding limb sample is black (R=%1) - the beaming term "
+                     "attenuated it below the measurable range").arg(farR)));
+
+        // The D^4 band. The ratio is gain-agnostic by construction - a ratio
+        // within one channel cancels the display gain - so this assertion holds
+        // at any gain. Measured 7.96 / 8.20 / 7.96, prediction 7.99; D^3 would
+        // read 4.75 and clipping collapses the ratio to ~2-3x, so [6.0, 10.5]
+        // identifies the exponent uniquely.
+        const int nearCh[3] = {qRed(sNear), qGreen(sNear), qBlue(sNear)};
+        const int farCh[3] = {qRed(sFar), qGreen(sFar), qBlue(sFar)};
+        for (int c = 0; c < 3; ++c) {
+            const double ratio = static_cast<double>(nearCh[c]) / farCh[c];
+            qWarning() << "Beaming ratio channel" << c << ":" << ratio;
+            QVERIFY2(ratio >= 6.0 && ratio <= 10.5, qPrintable(QStringLiteral(
+                         "Channel %1 limb ratio %2 outside the D^4 band [6.0, 10.5] "
+                         "(near=%3 far=%4) - the beaming term is not the bolometric "
+                         "D^4 convention").arg(c).arg(ratio).arg(nearCh[c]).arg(farCh[c])));
         }
     }
 

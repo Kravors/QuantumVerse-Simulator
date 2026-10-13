@@ -351,10 +351,17 @@ int main(int argc, char* argv[])
     // Annulus debug visualization: "magenta" (default, the path
     // tests/smoke/test_runtime.cpp asserts on), "radius" (red channel encodes
     // length(worldPos.xz - bhCenter.xz) / 4.0), "position" (RGB encodes the
-    // world position relative to the black hole), or "doppler" (red/blue
-    // encode the sign of dot(v_dir, view_dir)). Mutually exclusive.
+    // world position relative to the black hole), "doppler" (red/blue
+    // encode the sign of dot(v_dir, view_dir)), or "normal" (no override:
+    // the shaded disk with Doppler beaming applied). Mutually exclusive.
+    // --beaming-gain <float> additionally scales that beaming term (see
+    // below); it only reaches the annulus in "normal" mode.
     quantumverse::CelestialBodyRenderer::AnnulusDebugMode cliAnnulusDebug =
         quantumverse::CelestialBodyRenderer::AnnulusDebugMode::MAGENTA;
+    // Display gain for the Doppler beaming term. Shipped default is 1.0; the
+    // smoke suite lowers it so base * D^4 stays inside [0,1] and the measured
+    // approaching limb is not clipped (see CelestialBodyRenderer.h).
+    float beamingDisplayGain = 1.0f;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
@@ -426,10 +433,24 @@ int main(int argc, char* argv[])
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION;
             } else if (mode == QLatin1String("doppler")) {
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::DOPPLER;
+            } else if (mode == QLatin1String("normal")) {
+                cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::NORMAL;
             } else {
                 std::cerr << "QuantumVerse: --annulus-debug takes 'magenta', 'radius', "
-                             "'position', or 'doppler', got '"
+                             "'position', 'doppler', or 'normal', got '"
                           << mode.toStdString() << "' - keeping magenta" << std::endl;
+                std::cerr.flush();
+            }
+        } else if (strcmp(argv[i], "--beaming-gain") == 0 && i + 1 < argc) {
+            const float gain = static_cast<float>(atof(argv[++i]));
+            if (gain <= 0.0f || gain > 4.0f) {
+                std::cerr << "QuantumVerse: --beaming-gain takes a value in (0, 4], got "
+                          << gain << " - keeping 1.0" << std::endl;
+                std::cerr.flush();
+            } else {
+                beamingDisplayGain = gain;
+                std::cerr << "QuantumVerse: Beaming display gain set to " << gain
+                          << std::endl;
                 std::cerr.flush();
             }
         }
@@ -1196,6 +1217,7 @@ int main(int argc, char* argv[])
                     static_cast<float>(config.black_hole.position[1]),
                     static_cast<float>(config.black_hole.position[2]));
                 celestialBodyRenderer->setAnnulusDebugMode(cliAnnulusDebug);
+                celestialBodyRenderer->setBeamingDisplayGain(beamingDisplayGain);
                 qDebug() << "[ANNULUS] wired from config black_hole.position ="
                          << config.black_hole.position[0]
                          << config.black_hole.position[1]
@@ -1207,6 +1229,8 @@ int main(int argc, char* argv[])
                                  ? QStringLiteral("position")
                              : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::DOPPLER
                                  ? QStringLiteral("doppler")
+                             : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::NORMAL
+                                 ? QStringLiteral("normal")
                                  : QStringLiteral("magenta"));
 
                 // Light from the camera side so visible planet faces are illuminated
