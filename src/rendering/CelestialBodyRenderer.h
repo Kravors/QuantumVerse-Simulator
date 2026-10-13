@@ -250,7 +250,8 @@ public:
      */
     enum class AnnulusDebugMode {
         MAGENTA,  ///< Flat magenta overlay (presence/scale guard)
-        RADIUS    ///< Red channel encodes length(worldPos.xz - bhCenter.xz) / 4.0
+        RADIUS,   ///< Red channel encodes length(worldPos.xz - bhCenter.xz) / 4.0
+        POSITION  ///< RGB encodes lerp -2..2 / 4 world position relative to the black hole
     };
 
     /**
@@ -371,6 +372,7 @@ private:
     // Cached uniform locations for the annulus debug overlays
     int m_debugAnnulusLoc = -1;
     int m_debugAnnulusRadiusLoc = -1;
+    int m_debugAnnulusPositionLoc = -1;
     int m_bhCenterWorldLoc = -1;
     AnnulusDebugMode m_annulusDebugMode = AnnulusDebugMode::MAGENTA;
 

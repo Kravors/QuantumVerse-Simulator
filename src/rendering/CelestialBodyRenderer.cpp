@@ -511,6 +511,13 @@ uniform float time;
 uniform int textureArrayEnabled;
 uniform sampler2DArray textureArray;
 uniform int debugMode;
+// Disk rotation axis, pinned at file scope so the fragment stage has a single
+// point of definition for the Doppler sign convention. The accretion disk lies
+// in the XZ plane (normal +Y); los = dot(v_dir, view_dir) is defined relative
+// to this axis, so which limb is "approaching" is only meaningful once this is
+// fixed. v_dir at a fragment is normalize(cross(OMEGA_AXIS, radial)).
+const vec3 OMEGA_AXIS = vec3(0.0, 1.0, 0.0);
+
 // Set to 1 only while drawing the black hole annulus: makes the disk render
 // as flat magenta so its on-screen extent can be verified by pixel count.
 uniform int debugAnnulus;
@@ -520,9 +527,15 @@ uniform int debugAnnulus;
 // what the geometry check needs. Values up to r=4 stay unsaturated so an
 // out-of-range reading is visible instead of clamping to 255.
 uniform int debugAnnulusRadius;
-// Radial origin for the encoding. Must match the annulus instance translation
-// (m_bhCenterWorld), not the world origin, so a non-zero config position still
-// decodes to the distance from the black hole.
+// Third annulus debug view: encodes the fragment's world position relative to
+// the black hole in RGB. Scale is (+-2)/4 world units per channel, i.e. 0.016
+// units per count, which resolves a 0.05-unit separation - fine enough to
+// identify a specific (r, phi) disk fragment across two captures. Alpha is
+// exactly 1.0 so nothing blends with the skybox behind the disk.
+uniform int debugAnnulusPosition;
+// Radial/positional origin for the encodings. Must match the annulus instance
+// translation (m_bhCenterWorld), not the world origin, so a non-zero config
+// position still decodes relative to the black hole.
 uniform vec3 bhCenterWorld;
 
 out vec4 outColor;
@@ -536,6 +549,12 @@ void main() {
         // Alpha exactly 1.0: any partial alpha would blend this with the
         // skybox behind the disk and make the decode ambiguous.
         outColor = vec4(r / 4.0, 0.0, 0.0, 1.0);
+        return;
+    }
+    if (debugAnnulusPosition == 1) {
+        vec3 rel = vWorldPos - bhCenterWorld;
+        vec3 enc = (rel + vec3(2.0, 2.0, 2.0)) / vec3(4.0, 4.0, 4.0);
+        outColor = vec4(enc, 1.0);
         return;
     }
 
@@ -859,6 +878,7 @@ void CelestialBodyRenderer::initializeGL()
     // Cache uniform locations queried once at init time
     m_debugAnnulusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulus");
     m_debugAnnulusRadiusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusRadius");
+    m_debugAnnulusPositionLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusPosition");
     m_bhCenterWorldLoc = glGetUniformLocation(m_shaderProgram, "bhCenterWorld");
 
     m_initialized = true;
@@ -1449,8 +1469,10 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     // early-return ordering is unambiguous.
     const int annulusMagenta = (m_annulusDebugMode == AnnulusDebugMode::MAGENTA) ? 1 : 0;
     const int annulusRadius = (m_annulusDebugMode == AnnulusDebugMode::RADIUS) ? 1 : 0;
+    const int annulusPosition = (m_annulusDebugMode == AnnulusDebugMode::POSITION) ? 1 : 0;
     glUniform1i(m_debugAnnulusLoc, 0);
     glUniform1i(m_debugAnnulusRadiusLoc, 0);
+    glUniform1i(m_debugAnnulusPositionLoc, 0);
     glUniform3fv(m_bhCenterWorldLoc, 1, m_bhCenterWorld);
     glDrawElementsInstanced(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0,
                             static_cast<GLsizei>(m_bodies.size()));
@@ -1468,6 +1490,7 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     if (m_annulusVAO) {
         glUniform1i(m_debugAnnulusLoc, annulusMagenta);
         glUniform1i(m_debugAnnulusRadiusLoc, annulusRadius);
+        glUniform1i(m_debugAnnulusPositionLoc, annulusPosition);
         glBindVertexArray(m_annulusVAO);
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES,
                                             static_cast<GLsizei>(m_annulusIndexCount),
@@ -1478,6 +1501,7 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
         glBindVertexArray(0);
         glUniform1i(m_debugAnnulusLoc, 0);
         glUniform1i(m_debugAnnulusRadiusLoc, 0);
+        glUniform1i(m_debugAnnulusPositionLoc, 0);
     }
 
     glUseProgram(0);

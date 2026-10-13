@@ -420,6 +420,8 @@ int main(int argc, char* argv[])
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::MAGENTA;
             } else if (mode == QLatin1String("radius")) {
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::RADIUS;
+            } else if (mode == QLatin1String("position")) {
+                cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION;
             } else {
                 std::cerr << "QuantumVerse: --annulus-debug takes 'magenta' or 'radius', got '"
                           << mode.toStdString() << "' - keeping magenta" << std::endl;
@@ -1195,7 +1197,10 @@ int main(int argc, char* argv[])
                          << config.black_hole.position[2]
                          << "debug="
                          << (cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::RADIUS
-                                 ? QStringLiteral("radius") : QStringLiteral("magenta"));
+                                 ? QStringLiteral("radius")
+                             : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION
+                                 ? QStringLiteral("position")
+                                 : QStringLiteral("magenta"));
 
                 // Light from the camera side so visible planet faces are illuminated
                 float lightPos[3] = {0.0f, 0.0f, 50.0f};
