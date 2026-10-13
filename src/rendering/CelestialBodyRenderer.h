@@ -208,6 +208,39 @@ public:
     double coordinateScale() const { return m_coordinateScale; }
 
     /**
+     * @brief Set the world position the black hole (and its annulus) is drawn at
+     *
+     * The annulus instance matrix translates to this point. Without this call
+     * the disk stays at the header default (0,0,0), which silently diverges
+     * from the physics black hole if its configured position is non-zero - and
+     * a magenta pixel count cannot detect that, because it never inspects
+     * world coordinates.
+     * @note Units are viewport world units, NOT meters. The config value in
+     *       simulator.json's black_hole.position is currently (0,0,0) and is
+     *       passed through unconverted; confirm the unit convention before
+     *       setting a non-zero config position.
+     * @param x World X
+     * @param y World Y
+     * @param z World Z
+     */
+    void setBlackHoleCenter(float x, float y, float z)
+    {
+        m_bhCenterWorld[0] = x;
+        m_bhCenterWorld[1] = y;
+        m_bhCenterWorld[2] = z;
+    }
+
+    /**
+     * @brief Get the world position the black hole annulus is drawn at
+     */
+    void blackHoleCenter(float& x, float& y, float& z) const
+    {
+        x = m_bhCenterWorld[0];
+        y = m_bhCenterWorld[1];
+        z = m_bhCenterWorld[2];
+    }
+
+    /**
      * @brief Texture array management
      */
     bool loadTextureArray(const std::vector<std::string>& texturePaths,

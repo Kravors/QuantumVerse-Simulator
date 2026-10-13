@@ -1161,6 +1161,21 @@ int main(int argc, char* argv[])
                 // This maps the solar system (AU scale) into the viewport grid
                 celestialBodyRenderer->setCoordinateScale(1.496e10); // 1.496e11 m / 10 units
 
+                // Draw the annulus around the configured black hole position so
+                // the disk cannot silently diverge from the physics BH. The
+                // config value is in viewport world units (see
+                // CelestialBodyRenderer::setBlackHoleCenter); simulator.json
+                // currently declares (0,0,0), so this is a no-op today and the
+                // magenta verification count is unchanged.
+                celestialBodyRenderer->setBlackHoleCenter(
+                    static_cast<float>(config.black_hole.position[0]),
+                    static_cast<float>(config.black_hole.position[1]),
+                    static_cast<float>(config.black_hole.position[2]));
+                qDebug() << "[ANNULUS] wired from config black_hole.position ="
+                         << config.black_hole.position[0]
+                         << config.black_hole.position[1]
+                         << config.black_hole.position[2];
+
                 // Light from the camera side so visible planet faces are illuminated
                 float lightPos[3] = {0.0f, 0.0f, 50.0f};
                 celestialBodyRenderer->setLightPosition(lightPos);
