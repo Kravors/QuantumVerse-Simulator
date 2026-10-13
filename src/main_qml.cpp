@@ -347,6 +347,12 @@ int main(int argc, char* argv[])
     double cliCamDistance = 0.0;
     bool cliCamTargetSet = false;
     QVector3D cliCamTarget(0.0f, 0.0f, 0.0f);
+
+    // Annulus debug visualization: "magenta" (default, the path
+    // tests/smoke/test_runtime.cpp asserts on) or "radius" (red channel encodes
+    // length(worldPos.xz - bhCenter.xz) / 4.0). Mutually exclusive.
+    quantumverse::CelestialBodyRenderer::AnnulusDebugMode cliAnnulusDebug =
+        quantumverse::CelestialBodyRenderer::AnnulusDebugMode::MAGENTA;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
@@ -408,6 +414,17 @@ int main(int argc, char* argv[])
             cliCamTarget.setZ(static_cast<float>(atof(argv[++i])));
             cliCamTargetSet = true;
             cliCameraSet = true;
+        } else if (strcmp(argv[i], "--annulus-debug") == 0 && i + 1 < argc) {
+            const QString mode = QString::fromLocal8Bit(argv[++i]);
+            if (mode == QLatin1String("magenta")) {
+                cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::MAGENTA;
+            } else if (mode == QLatin1String("radius")) {
+                cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::RADIUS;
+            } else {
+                std::cerr << "QuantumVerse: --annulus-debug takes 'magenta' or 'radius', got '"
+                          << mode.toStdString() << "' - keeping magenta" << std::endl;
+                std::cerr.flush();
+            }
         }
     }
     if (fixedSimTime >= 0.0) {
@@ -1171,10 +1188,14 @@ int main(int argc, char* argv[])
                     static_cast<float>(config.black_hole.position[0]),
                     static_cast<float>(config.black_hole.position[1]),
                     static_cast<float>(config.black_hole.position[2]));
+                celestialBodyRenderer->setAnnulusDebugMode(cliAnnulusDebug);
                 qDebug() << "[ANNULUS] wired from config black_hole.position ="
                          << config.black_hole.position[0]
                          << config.black_hole.position[1]
-                         << config.black_hole.position[2];
+                         << config.black_hole.position[2]
+                         << "debug="
+                         << (cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::RADIUS
+                                 ? QStringLiteral("radius") : QStringLiteral("magenta"));
 
                 // Light from the camera side so visible planet faces are illuminated
                 float lightPos[3] = {0.0f, 0.0f, 50.0f};

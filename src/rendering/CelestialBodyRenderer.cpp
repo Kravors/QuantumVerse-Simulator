@@ -514,11 +514,30 @@ uniform int debugMode;
 // Set to 1 only while drawing the black hole annulus: makes the disk render
 // as flat magenta so its on-screen extent can be verified by pixel count.
 uniform int debugAnnulus;
+// Second annulus debug view: encodes the fragment's radial distance from the
+// black hole as r/4.0 in the red channel. Design radius range [0.72, 1.80]
+// therefore maps to [46, 115] in 8 bit, ~70 counts across the disk, which is
+// what the geometry check needs. Values up to r=4 stay unsaturated so an
+// out-of-range reading is visible instead of clamping to 255.
+uniform int debugAnnulusRadius;
+// Radial origin for the encoding. Must match the annulus instance translation
+// (m_bhCenterWorld), not the world origin, so a non-zero config position still
+// decodes to the distance from the black hole.
+uniform vec3 bhCenterWorld;
 
 out vec4 outColor;
 
 void main() {
     if (debugAnnulus == 1) { outColor = vec4(1.0, 0.0, 1.0, 1.0); return; }
+    if (debugAnnulusRadius == 1) {
+        // The disk is planar in XZ, so the XZ length is the radius; a 3D
+        // length would agree for every annulus fragment today.
+        float r = length(vWorldPos.xz - bhCenterWorld.xz);
+        // Alpha exactly 1.0: any partial alpha would blend this with the
+        // skybox behind the disk and make the decode ambiguous.
+        outColor = vec4(r / 4.0, 0.0, 0.0, 1.0);
+        return;
+    }
 
     vec3 N = normalize(vNormal);
     vec3 L = normalize(lightPosition - vWorldPos);
@@ -839,6 +858,8 @@ void CelestialBodyRenderer::initializeGL()
 
     // Cache uniform locations queried once at init time
     m_debugAnnulusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulus");
+    m_debugAnnulusRadiusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusRadius");
+    m_bhCenterWorldLoc = glGetUniformLocation(m_shaderProgram, "bhCenterWorld");
 
     m_initialized = true;
     m_buffersDirty = true;
@@ -1422,18 +1443,31 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     glBindVertexArray(m_sphereVAO);
     glDisable(GL_BLEND);
 
-    // Bodies must never be tinted by the annulus debug overlay.
+    // Bodies must never be tinted by the annulus debug overlay. The two debug
+    // modes are mutually exclusive by construction: exactly one of them is 1
+    // for the frame, so the shader can never be asked to render both and the
+    // early-return ordering is unambiguous.
+    const int annulusMagenta = (m_annulusDebugMode == AnnulusDebugMode::MAGENTA) ? 1 : 0;
+    const int annulusRadius = (m_annulusDebugMode == AnnulusDebugMode::RADIUS) ? 1 : 0;
     glUniform1i(m_debugAnnulusLoc, 0);
+    glUniform1i(m_debugAnnulusRadiusLoc, 0);
+    glUniform3fv(m_bhCenterWorldLoc, 1, m_bhCenterWorld);
     glDrawElementsInstanced(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0,
                             static_cast<GLsizei>(m_bodies.size()));
     glBindVertexArray(0);
 
     // Draw the annulus (accretion disk) as a single instanced draw using the
-    // base instance offset assigned in updateBodyBuffers(). While it is
-    // drawn, debugAnnulus = 1 makes the fragment shader emit flat magenta so
-    // the disk's on-screen extent can be verified by pixel count.
+    // base instance offset assigned in updateBodyBuffers().
+    //
+    // MAGENTA mode (the default, and the path tests/smoke/test_runtime.cpp
+    // asserts on): flat magenta so the disk's on-screen extent can be verified
+    // by pixel count.
+    // RADIUS mode: red channel = length(worldPos.xz - bhCenterWorld.xz) / 4.0,
+    // so the same pixels can be sampled to confirm the geometry is at the
+    // design radius range [0.72, 1.80].
     if (m_annulusVAO) {
-        glUniform1i(m_debugAnnulusLoc, 1);
+        glUniform1i(m_debugAnnulusLoc, annulusMagenta);
+        glUniform1i(m_debugAnnulusRadiusLoc, annulusRadius);
         glBindVertexArray(m_annulusVAO);
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES,
                                             static_cast<GLsizei>(m_annulusIndexCount),
@@ -1443,6 +1477,7 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
                                             m_annulusInstanceBase);
         glBindVertexArray(0);
         glUniform1i(m_debugAnnulusLoc, 0);
+        glUniform1i(m_debugAnnulusRadiusLoc, 0);
     }
 
     glUseProgram(0);

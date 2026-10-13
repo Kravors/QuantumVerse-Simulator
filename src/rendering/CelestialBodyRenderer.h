@@ -241,6 +241,30 @@ public:
     }
 
     /**
+     * @brief Which debug visualization the annulus is drawn with
+     *
+     * Mutually exclusive by construction: the two modes write different
+     * early returns in the fragment shader, so only one can ever be active in
+     * a frame. MAGENTA is the default because it is the verified regression
+     * path (tests/smoke/test_runtime.cpp counts magenta pixels).
+     */
+    enum class AnnulusDebugMode {
+        MAGENTA,  ///< Flat magenta overlay (presence/scale guard)
+        RADIUS    ///< Red channel encodes length(worldPos.xz - bhCenter.xz) / 4.0
+    };
+
+    /**
+     * @brief Select the annulus debug visualization
+     * @param mode MAGENTA (default, keeps the smoke-test path) or RADIUS
+     */
+    void setAnnulusDebugMode(AnnulusDebugMode mode) { m_annulusDebugMode = mode; }
+
+    /**
+     * @brief Get the current annulus debug visualization
+     */
+    AnnulusDebugMode annulusDebugMode() const { return m_annulusDebugMode; }
+
+    /**
      * @brief Texture array management
      */
     bool loadTextureArray(const std::vector<std::string>& texturePaths,
@@ -344,8 +368,11 @@ private:
     float m_annOuterR = 1.80f;
     float m_bhCenterWorld[3] = {0.0f, 0.0f, 0.0f};
 
-    // Cached uniform location for the annulus magenta debug overlay
+    // Cached uniform locations for the annulus debug overlays
     int m_debugAnnulusLoc = -1;
+    int m_debugAnnulusRadiusLoc = -1;
+    int m_bhCenterWorldLoc = -1;
+    AnnulusDebugMode m_annulusDebugMode = AnnulusDebugMode::MAGENTA;
 
     // Body data
     struct BodyData {
