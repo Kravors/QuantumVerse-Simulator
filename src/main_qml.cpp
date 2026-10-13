@@ -336,6 +336,17 @@ int main(int argc, char* argv[])
     double lensingTheta = -1.0;  // <0 = not set; >=0 overrides QML default
     bool disableCelestial = false;
     bool noStarfield = false;
+
+    // Camera CLI overrides. Angles are in DEGREES (converted to radians below),
+    // distances/targets are world units. Any --cam-* flag sets cliCameraSet,
+    // which gates the QML startup camera defaults in main.qml
+    // (Component.onCompleted and the one-shot 100 ms Timer).
+    bool cliCameraSet = false;
+    double cliCamAzimuthDeg = 0.0;
+    double cliCamElevationDeg = 0.0;
+    double cliCamDistance = 0.0;
+    bool cliCamTargetSet = false;
+    QVector3D cliCamTarget(0.0f, 0.0f, 0.0f);
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
@@ -376,6 +387,27 @@ int main(int argc, char* argv[])
             sessionId = argv[++i];
         } else if (strcmp(argv[i], "--start-tour") == 0 && i + 1 < argc) {
             startTourId = argv[++i];
+        } else if (strcmp(argv[i], "--cam-az") == 0 && i + 1 < argc) {
+            cliCamAzimuthDeg = atof(argv[++i]);
+            cliCameraSet = true;
+        } else if (strcmp(argv[i], "--cam-el") == 0 && i + 1 < argc) {
+            cliCamElevationDeg = atof(argv[++i]);
+            cliCameraSet = true;
+        } else if (strcmp(argv[i], "--cam-dist") == 0 && i + 1 < argc) {
+            cliCamDistance = atof(argv[++i]);
+            cliCameraSet = true;
+        } else if (strcmp(argv[i], "--cam-tx") == 0 && i + 1 < argc) {
+            cliCamTarget.setX(static_cast<float>(atof(argv[++i])));
+            cliCamTargetSet = true;
+            cliCameraSet = true;
+        } else if (strcmp(argv[i], "--cam-ty") == 0 && i + 1 < argc) {
+            cliCamTarget.setY(static_cast<float>(atof(argv[++i])));
+            cliCamTargetSet = true;
+            cliCameraSet = true;
+        } else if (strcmp(argv[i], "--cam-tz") == 0 && i + 1 < argc) {
+            cliCamTarget.setZ(static_cast<float>(atof(argv[++i])));
+            cliCamTargetSet = true;
+            cliCameraSet = true;
         }
     }
     if (fixedSimTime >= 0.0) {
@@ -612,6 +644,39 @@ int main(int argc, char* argv[])
         std::cerr.flush();
         auto camera4DAdapter = std::make_shared<quantumverse::Camera4DAdapter>();
         camera4DAdapter->setAnimationSpeed(1.0);
+
+        // Apply --cam-az/--cam-el/--cam-dist/--cam-tx/--cam-ty/--cam-tz here,
+        // BEFORE engine.load(). The adapter values must already be correct when
+        // QML first reads them, and the cliCameraSet context property (set in
+        // the context-property block below) must exist before
+        // Component.onCompleted fires, otherwise QML's startup defaults
+        // overwrite the CLI camera a few frames in. Do not reorder these calls
+        // for cosmetic reasons: setting the adapter values after load() leaves
+        // a window where QML reads defaults.
+        if (cliCameraSet) {
+            // CameraState keeps radians; the CLI takes degrees so that
+            // "--cam-az 180" reads as the opposite side of the orbit.
+            const double azRad = cliCamAzimuthDeg * M_PI / 180.0;
+            const double elRad = cliCamElevationDeg * M_PI / 180.0;
+            camera4DAdapter->setAzimuth(static_cast<float>(azRad));
+            camera4DAdapter->setElevation(static_cast<float>(elRad));
+            if (cliCamDistance > 0.0) {
+                camera4DAdapter->setDistance(static_cast<float>(cliCamDistance));
+            }
+            if (cliCamTargetSet) {
+                // setTarget() (not focusOn()) so no 300 ms focus animation
+                // interpolates the target away from the requested value.
+                camera4DAdapter->setTarget(cliCamTarget);
+            }
+            std::cerr << "QuantumVerse: CLI camera: az=" << cliCamAzimuthDeg
+                      << "deg el=" << cliCamElevationDeg
+                      << "deg dist=" << camera4DAdapter->distance()
+                      << " target=(" << cliCamTarget.x() << ", "
+                      << cliCamTarget.y() << ", " << cliCamTarget.z() << ")"
+                      << std::endl;
+            std::cerr.flush();
+        }
+
         std::cerr << "QuantumVerse: Camera4DAdapter created" << std::endl;
         std::cerr.flush();
 
@@ -705,8 +770,22 @@ int main(int argc, char* argv[])
         // Create QML camera controller for basic 3D navigation
         auto camController = new quantumverse::QmlCamController(&engine);
 
+        // Keep the on-screen camController (status bar, keyboard orbit) in sync
+        // with the CLI camera so they describe the same view.
+        if (cliCameraSet) {
+            camController->setAzimuth(static_cast<float>(cliCamAzimuthDeg * M_PI / 180.0));
+            camController->setElevation(static_cast<float>(cliCamElevationDeg * M_PI / 180.0));
+            if (cliCamDistance > 0.0) {
+                camController->setDistance(static_cast<float>(cliCamDistance));
+            }
+            if (cliCamTargetSet) {
+                camController->setTarget(cliCamTarget);
+            }
+        }
+
         // Expose C++ objects to QML
         QQmlContext* rootContext = engine.rootContext();
+        rootContext->setContextProperty("cliCameraSet", cliCameraSet);
         rootContext->setContextProperty("curvatureRenderer",
             QVariant::fromValue(curvatureRenderer.get()));
         rootContext->setContextProperty("quantumRenderer",
@@ -1053,6 +1132,18 @@ int main(int argc, char* argv[])
         QObject* rootObject = engine.rootObjects().value(0, nullptr);
         quantumverse::QmlGlViewport* viewport = nullptr;
         if (rootObject) {
+            // When the camera came from --cam-* flags, stop the QML 4D-camera
+            // animation tick. Its onFrame() interpolates any pending transition
+            // (e.g. a focusOn triggered during startup) toward that transition's
+            // own target, which drifts the camera off the CLI values over ~1s.
+            // main.qml also gates the timer's `running` on !cliCameraSet; this
+            // is the belt-and-braces stop for a timer that already started.
+            if (cliCameraSet) {
+                if (QObject* animTimer = rootObject->findChild<QObject*>("cameraAnimTimer")) {
+                    QMetaObject::invokeMethod(animTimer, "stop");
+                    qDebug() << "QuantumVerse: stopped cameraAnimTimer (CLI camera active)";
+                }
+            }
             // Find the viewport by object name set in QML
             viewport = rootObject->findChild<quantumverse::QmlGlViewport*>();
             if (viewport) {

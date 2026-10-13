@@ -120,6 +120,7 @@ class Camera4DAdapter : public QObject
     Q_PROPERTY(bool isAnimating READ isAnimating NOTIFY isAnimatingChanged)
     Q_PROPERTY(double animationSpeed READ animationSpeed WRITE setAnimationSpeed NOTIFY animationSpeedChanged)
     Q_PROPERTY(float fieldOfView READ fieldOfView WRITE setFieldOfView NOTIFY fieldOfViewChanged)
+    Q_PROPERTY(QVector3D target READ target WRITE setTarget NOTIFY targetChanged)
 
 public:
     explicit Camera4DAdapter(QObject* parent = nullptr);
@@ -134,6 +135,16 @@ public:
     double animationSpeed() const { return m_animationSpeed; }
     float fieldOfView() const { return m_fieldOfView; }
 
+    /**
+     * @brief Current orbit target (look-at point) in world coordinates
+     */
+    QVector3D target() const
+    {
+        return QVector3D(static_cast<float>(m_state.tx),
+                         static_cast<float>(m_state.ty),
+                         static_cast<float>(m_state.tz));
+    }
+
     // Get computed view matrix for the QML viewport
     QMatrix4x4 viewMatrix() const;
 
@@ -146,6 +157,17 @@ public:
 
     // Focus on a 4D position
     Q_INVOKABLE void focusOn(const QVector3D& position);
+
+    /**
+     * @brief Set the orbit target directly, cancelling any pending transition
+     *
+     * Unlike focusOn(), which starts a 300 ms animation that interpolates the
+     * target (and would drift away from a value set by CLI flags), this
+     * assigns the target immediately and clears the transition state so no
+     * subsequent onFrame() tick moves the camera off it.
+     * @param position New look-at point in world coordinates
+     */
+    Q_INVOKABLE void setTarget(const QVector3D& position);
 
     // Smooth transition to a new camera state
     Q_INVOKABLE void transitionTo(const CameraState& target, double durationMs = 500.0);
@@ -164,6 +186,7 @@ signals:
      void isAnimatingChanged();
      void animationSpeedChanged();
      void fieldOfViewChanged();
+     void targetChanged();
      void viewChanged();
 
 public slots:

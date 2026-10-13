@@ -116,6 +116,31 @@ void Camera4DAdapter::focusOn(const QVector3D& position)
     transitionTo(target, 300.0);
 }
 
+void Camera4DAdapter::setTarget(const QVector3D& position)
+{
+    if (std::abs(m_state.tx - position.x()) > 0.001 ||
+        std::abs(m_state.ty - position.y()) > 0.001 ||
+        std::abs(m_state.tz - position.z()) > 0.001) {
+        m_state.tx = position.x();
+        m_state.ty = position.y();
+        m_state.tz = position.z();
+        emit targetChanged();
+        emit viewChanged();
+    }
+
+    // Cancel any pending transition unconditionally: a focus/reset animation
+    // still in flight interpolates tx/ty/tz (and azimuth/elevation/distance)
+    // toward its own target, which would drift the camera away from the value
+    // just assigned. onFrame() is a no-op once m_isAnimating is false.
+    if (m_isAnimating || m_transitionTime > 0.0) {
+        m_isAnimating = false;
+        m_transitionTime = 0.0;
+        m_targetState = m_state;
+        emit isAnimatingChanged();
+    }
+    applyState();
+}
+
 void Camera4DAdapter::transitionTo(const CameraState& target, double durationMs)
 {
     m_targetState = target;

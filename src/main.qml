@@ -55,15 +55,23 @@ ApplicationWindow {
         // Runtime: camController defaults to d=500 (C++ constructor). Override at
         // startup so the status bar and orbit navigation use a usable distance;
         // the 10-unit solar system would otherwise be an invisible speck.
-        camController.setDistance(150.0)
-        camController.setAzimuth(0.7854)  // 45 degrees
-        camController.setElevation(0.5236)  // 30 degrees
-        // Sync viewportItem.cameraDistance with camera4DAdapter if available
-        if (viewportItem && camera4DAdapter) {
-            viewportItem.cameraDistance = camera4DAdapter.distance
-            camera4DAdapter.setDistance(150.0)
-            camera4DAdapter.setAzimuth(0.7854)
-            camera4DAdapter.setElevation(0.5236)
+        //
+        // GATE: skip when the camera came from --cam-* CLI flags (cliCameraSet).
+        // Without this gate, the defaults below overwrite the CLI values a few
+        // frames after startup and the flags appear to work then silently
+        // revert. main_qml.cpp sets this context property (and the adapter
+        // values) BEFORE engine.load().
+        if (!cliCameraSet) {
+            camController.setDistance(150.0)
+            camController.setAzimuth(0.7854)  // 45 degrees
+            camController.setElevation(0.5236)  // 30 degrees
+            // Sync viewportItem.cameraDistance with camera4DAdapter if available
+            if (viewportItem && camera4DAdapter) {
+                viewportItem.cameraDistance = camera4DAdapter.distance
+                camera4DAdapter.setDistance(150.0)
+                camera4DAdapter.setAzimuth(0.7854)
+                camera4DAdapter.setElevation(0.5236)
+            }
         }
         // Force off debug overlays
         if (viewportItem) {
@@ -800,11 +808,17 @@ ApplicationWindow {
                     Component.onCompleted: console.log("Viewport created, size:", width, "x", height)
 
                         Timer {
+                            // GATE: one-shot startup overwrite of the camera defaults
+                            // (distance 150, azimuth 45, elevation 30) at t+100ms.
+                            // Fires AFTER the first frames have rendered, so an
+                            // ungated --cam-* CLI camera works briefly and then
+                            // silently reverts. Skipped entirely when the camera
+                            // came from the CLI (cliCameraSet).
+                            running: !cliCameraSet
                             interval: 100
-                            running: true
                             repeat: false
                             onTriggered: {
-                                if (viewport.camera4DAdapter) {
+                                if (!cliCameraSet && viewport.camera4DAdapter) {
                                     viewport.camera4DAdapter.setDistance(150.0)
                                     viewport.camera4DAdapter.setAzimuth(0.7854)  // 45 degrees
                                     viewport.camera4DAdapter.setElevation(0.5236)  // 30 degrees
@@ -1837,8 +1851,13 @@ ApplicationWindow {
     // Camera4D animation tick (drives smooth transitions and inertia)
     Timer {
         id: cameraAnimTimer
+        objectName: "cameraAnimTimer"
+        // GATE: do not run the 4D camera animation tick when the camera came
+        // from --cam-* CLI flags. A pending focus transition would otherwise
+        // interpolate the camera toward its own target and drift off the CLI
+        // values over ~1s.
+        running: !cliCameraSet
         interval: 16  // ~60 FPS
-        running: true
         repeat: true
         onTriggered: {
             if (viewportItem && viewportItem.camera4DAdapter) {
