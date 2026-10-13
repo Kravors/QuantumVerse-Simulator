@@ -798,6 +798,14 @@ void CelestialBodyRenderer::initializeGL()
         qDebug() << "[ANNULUS] generated: inner=" << m_annInnerR
                  << "outer=" << m_annOuterR
                  << "indices=" << m_annulusIndexCount;
+        // The annulus instance matrix translates to m_bhCenterWorld, so this is
+        // the world position the disk is actually drawn at. Nothing assigns it
+        // yet (no setter exists), so it stays at the header default (0,0,0);
+        // the magenta pixel count cannot detect a mismatch with the physics BH
+        // position because it never looks at world coordinates.
+        qDebug() << "[ANNULUS] bhCenterWorld =" << m_bhCenterWorld[0]
+                 << m_bhCenterWorld[1] << m_bhCenterWorld[2]
+                 << "(no setter wired; header default)";
     }
 
     // Compile shaders
