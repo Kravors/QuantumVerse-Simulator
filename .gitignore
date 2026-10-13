@@ -499,3 +499,7 @@ docs/Phase 31 is locked in*.md
 
 # Runtime artifacts
 graphics_api.txt
+
+# Headless verification screenshots (transient capture artifacts)
+verify_*.png
+annulus_debug.png
