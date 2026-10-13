@@ -307,6 +307,14 @@ void CelestialBodyRenderer::generateAnnulusMesh(float innerR, float outerR)
     }
 
     // Two triangles per quad of the (radialSegments x angularSegments) grid.
+    //
+    // Winding is chosen so the geometric normal (right-hand rule on the
+    // emitted index order) is +Y, matching the declared vertex normal. The
+    // original order (first, second, first+1) produced a -Y geometric
+    // normal against a +Y vertex normal. With face culling disabled that
+    // mismatch is invisible - the disc renders from both sides - but any
+    // glEnable(GL_CULL_FACE) would then cull the disc when viewed from
+    // above, which is exactly the Doppler capture pose (el=+30).
     const int ring = angularSegments + 1;
     for (int i = 0; i < radialSegments; ++i) {
         for (int j = 0; j < angularSegments; ++j) {
@@ -314,12 +322,12 @@ void CelestialBodyRenderer::generateAnnulusMesh(float innerR, float outerR)
             const int second = first + ring;
 
             m_annulusIndices.push_back(first);
-            m_annulusIndices.push_back(second);
             m_annulusIndices.push_back(first + 1);
+            m_annulusIndices.push_back(second);
 
             m_annulusIndices.push_back(second);
-            m_annulusIndices.push_back(second + 1);
             m_annulusIndices.push_back(first + 1);
+            m_annulusIndices.push_back(second + 1);
         }
     }
 
