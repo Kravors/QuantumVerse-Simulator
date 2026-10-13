@@ -207,7 +207,6 @@ private slots:
             for (int x = qMax(0, cx - 50); x < qMin(img.width(), cx + 50); ++x) {
                 const QRgb p = scanline[x];
                 const int r = qRed(p);
-                const int g = qGreen(p);
                 const int b = qBlue(p);
                 if (r > 180 && r > b + 30) {
                     ++sunWarmPixels;
@@ -218,6 +217,75 @@ private slots:
         QVERIFY2(sunWarmPixels > 50,
                   qPrintable(QStringLiteral("Expected > 50 warm Sun pixels, got %1")
                                   .arg(sunWarmPixels)));
+    }
+
+    void testAnnulusMagentaPixelAssertion() {
+        // Regression surface for the black hole annulus debug path (debugAnnulus
+        // in celestialFragSrc). Two properties are worth asserting, and they are
+        // different instruments:
+        //
+        //  (a) PRESENCE: magenta pixels appear at all. The annulus is drawn with
+        //      glDrawElementsInstancedBaseInstance and a flat magenta fragment,
+        //      so a count of 0 means the mesh, the instance offset or the
+        //      uniform wiring is broken.
+        //  (b) SCALE: the count stays in the tens. Measured 52 px at az=0 and
+        //      az=180. Moving the disk 25 world units (config black_hole.position
+        //      = [25,0,0]) changed it to 51 px - one pixel, inside the 20 px
+        //      same-azimuth noise floor. So this count is deliberately NOT a
+        //      geometry check; it is a scale guard. A count in the hundreds means
+        //      something changed the annulus's world scale, which is what the
+        //      upper bound catches.
+        //
+        // The camera flags are part of what is under test: they must be parsed
+        // and must survive the QML startup-overwrite gates (see main.qml
+        // cliCameraSet), otherwise this capture is taken from whatever pose QML
+        // chose and the count is not reproducible.
+        const QString screenshotPath = QStringLiteral("smoke_annulus.png");
+        QProcess proc;
+        proc.setProgram(m_binary);
+        proc.setArguments({
+            QStringLiteral("--frames"),
+            QStringLiteral("1"),
+            QStringLiteral("--cam-az"),
+            QStringLiteral("0"),
+            QStringLiteral("--cam-el"),
+            QStringLiteral("30"),
+            QStringLiteral("--cam-dist"),
+            QStringLiteral("150"),
+            QStringLiteral("--screenshot"),
+            screenshotPath,
+        });
+        proc.setProcessChannelMode(QProcess::MergedChannels);
+        proc.start();
+        const bool started = proc.waitForFinished(120000);
+        QVERIFY2(started, "quantumverse_qml annulus screenshot did not finish within timeout");
+        QCOMPARE(proc.exitCode(), 0);
+
+        const QImage img(screenshotPath);
+        QVERIFY2(!img.isNull(), "Screenshot image is null — headless render may not have produced output");
+        QVERIFY2(img.width() > 0 && img.height() > 0, "Screenshot has zero size");
+
+        int magentaPixels = 0;
+        for (int y = 0; y < img.height(); ++y) {
+            const QRgb* scanline = reinterpret_cast<const QRgb*>(img.scanLine(y));
+            for (int x = 0; x < img.width(); ++x) {
+                const QRgb p = scanline[x];
+                if (qRed(p) > 200 && qGreen(p) < 60 && qBlue(p) > 200) {
+                    ++magentaPixels;
+                }
+            }
+        }
+        qWarning() << "Annulus magenta pixel count:" << magentaPixels;
+        QVERIFY2(magentaPixels >= 20,
+                 qPrintable(QStringLiteral("Expected >= 20 annulus magenta pixels, got %1")
+                                .arg(magentaPixels)));
+        // Upper bound is the scale guard: measured 52, noise floor 20, so 120
+        // is ~6x the measured value and ~2x the largest plausible noise drift.
+        QVERIFY2(magentaPixels <= 120,
+                 qPrintable(QStringLiteral("Annulus magenta pixel count %1 exceeds the scale "
+                                           "guard of 120 - the annulus is no longer at the "
+                                           "design scale (0.72-1.80 world units)")
+                                .arg(magentaPixels)));
     }
 
     void testToolbarOverflowAssertion() {
