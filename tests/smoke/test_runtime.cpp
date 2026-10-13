@@ -328,6 +328,12 @@ private slots:
         //      something changed the annulus's world scale, which is what the
         //      upper bound catches.
         //
+        // The shipped default is NORMAL (the shaded disk with Doppler
+        // beaming), so this debug path is requested explicitly. Relying on a
+        // default here would silently measure the shipped disk instead of the
+        // magenta overlay, and the count would stay 0 through any future
+        // default change.
+        //
         // The camera flags are part of what is under test: they must be parsed
         // and must survive the QML startup-overwrite gates (see main.qml
         // cliCameraSet), otherwise this capture is taken from whatever pose QML
@@ -344,6 +350,8 @@ private slots:
             QStringLiteral("30"),
             QStringLiteral("--cam-dist"),
             QStringLiteral("150"),
+            QStringLiteral("--annulus-debug"),
+            QStringLiteral("magenta"),
             QStringLiteral("--screenshot"),
             screenshotPath,
         });
@@ -567,6 +575,14 @@ private slots:
         // at any gain. Measured 7.96 / 8.20 / 7.96, prediction 7.99; D^3 would
         // read 4.75 and clipping collapses the ratio to ~2-3x, so [6.0, 10.5]
         // identifies the exponent uniquely.
+        //
+        // Channel spread note: the shader multiplies all three channels by
+        // the same D^4, so the ratios should agree up to 8-bit rounding, and
+        // rounding alone at these magnitudes (approaching ~199, receding ~25)
+        // is at most ~+-0.2. G reads 8.20, 2.6% above R and B - a sub-pixel
+        // blend straddling two fragments with slightly different D values.
+        // Do not tighten the band toward 1% around 7.99; the spread is
+        // structural, not a measurement error.
         const int nearCh[3] = {qRed(sNear), qGreen(sNear), qBlue(sNear)};
         const int farCh[3] = {qRed(sFar), qGreen(sFar), qBlue(sFar)};
         for (int c = 0; c < 3; ++c) {

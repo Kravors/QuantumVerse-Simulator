@@ -348,16 +348,16 @@ int main(int argc, char* argv[])
     bool cliCamTargetSet = false;
     QVector3D cliCamTarget(0.0f, 0.0f, 0.0f);
 
-    // Annulus debug visualization: "magenta" (default, the path
-    // tests/smoke/test_runtime.cpp asserts on), "radius" (red channel encodes
+    // Annulus debug visualization: "normal" (default, the shipped disk with
+    // Doppler beaming), "radius" (red channel encodes
     // length(worldPos.xz - bhCenter.xz) / 4.0), "position" (RGB encodes the
     // world position relative to the black hole), "doppler" (red/blue
-    // encode the sign of dot(v_dir, view_dir)), or "normal" (no override:
-    // the shaded disk with Doppler beaming applied). Mutually exclusive.
-    // --beaming-gain <float> additionally scales that beaming term (see
-    // below); it only reaches the annulus in "normal" mode.
+    // encode the sign of dot(v_dir, view_dir)), or "magenta" (flat-overlay
+    // debug guard, requested explicitly by tests/smoke/test_runtime.cpp).
+    // Mutually exclusive. --beaming-gain <float> additionally scales the
+    // beaming term (see below); it only reaches the annulus in "normal" mode.
     quantumverse::CelestialBodyRenderer::AnnulusDebugMode cliAnnulusDebug =
-        quantumverse::CelestialBodyRenderer::AnnulusDebugMode::MAGENTA;
+        quantumverse::CelestialBodyRenderer::AnnulusDebugMode::NORMAL;
     // Display gain for the Doppler beaming term. Shipped default is 1.0; the
     // smoke suite lowers it so base * D^4 stays inside [0,1] and the measured
     // approaching limb is not clipped (see CelestialBodyRenderer.h).
@@ -438,7 +438,7 @@ int main(int argc, char* argv[])
             } else {
                 std::cerr << "QuantumVerse: --annulus-debug takes 'magenta', 'radius', "
                              "'position', 'doppler', or 'normal', got '"
-                          << mode.toStdString() << "' - keeping magenta" << std::endl;
+                          << mode.toStdString() << "' - keeping normal" << std::endl;
                 std::cerr.flush();
             }
         } else if (strcmp(argv[i], "--beaming-gain") == 0 && i + 1 < argc) {

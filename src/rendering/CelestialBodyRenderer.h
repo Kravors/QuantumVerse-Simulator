@@ -245,21 +245,25 @@ public:
      *
      * Mutually exclusive by construction: the two modes write different
      * early returns in the fragment shader, so only one can ever be active in
-     * a frame. MAGENTA is the default because it is the verified regression
-     * path (tests/smoke/test_runtime.cpp counts magenta pixels).
+     * a frame. NORMAL is the default because it is the shipped look - the
+     * shaded accretion disk with Doppler beaming. MAGENTA remains a debug
+     * overlay and is requested explicitly by the smoke suite
+     * (tests/smoke/test_runtime.cpp counts magenta pixels), never by default,
+     * so no test depends on the shipped default.
      */
     enum class AnnulusDebugMode {
-        MAGENTA,  ///< Flat magenta overlay (presence/scale guard)
+        MAGENTA,  ///< Flat magenta overlay (presence/scale guard, debug only)
         RADIUS,   ///< Red channel encodes length(worldPos.xz - bhCenter.xz) / 4.0
         POSITION, ///< RGB encodes lerp -2..2 / 4 world position relative to the black hole
         DOPPLER,  ///< Red/blue encodes the sign of dot(v_dir, view_dir) at the fragment
-        NORMAL    ///< No debug override: shaded disk path with Doppler beaming applied
+        NORMAL    ///< Default: shaded disk path with Doppler beaming applied
     };
 
     /**
      * @brief Select the annulus debug visualization
-     * @param mode MAGENTA (default, keeps the smoke-test path), RADIUS,
-     *        POSITION, DOPPLER, or NORMAL (shaded disk with Doppler beaming)
+     * @param mode NORMAL (default, the shipped disk with Doppler beaming),
+     *        RADIUS, POSITION, DOPPLER (debug encodings), or MAGENTA
+     *        (flat-overlay guard)
      */
     void setAnnulusDebugMode(AnnulusDebugMode mode) { m_annulusDebugMode = mode; }
 
@@ -401,7 +405,9 @@ private:
     int m_beamingDisplayGainLoc = -1;
     int m_bhCenterWorldLoc = -1;
     int m_cameraPosWorldLoc = -1;
-    AnnulusDebugMode m_annulusDebugMode = AnnulusDebugMode::MAGENTA;
+    // Shipped annulus visualization (see AnnulusDebugMode): the shaded disk
+    // with Doppler beaming, not a debug overlay.
+    AnnulusDebugMode m_annulusDebugMode = AnnulusDebugMode::NORMAL;
     // Shipped gain for the Doppler beaming term (see setBeamingDisplayGain).
     float m_beamingDisplayGain = 1.0f;
 
