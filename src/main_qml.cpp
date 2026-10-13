@@ -349,13 +349,13 @@ int main(int argc, char* argv[])
     QVector3D cliCamTarget(0.0f, 0.0f, 0.0f);
 
     // Annulus debug visualization: "normal" (default, the shipped disk with
-    // Doppler beaming), "radius" (red channel encodes
-    // length(worldPos.xz - bhCenter.xz) / 4.0), "position" (RGB encodes the
-    // world position relative to the black hole), "doppler" (red/blue
-    // encode the sign of dot(v_dir, view_dir)), or "magenta" (flat-overlay
-    // debug guard, requested explicitly by tests/smoke/test_runtime.cpp).
-    // Mutually exclusive. --beaming-gain <float> additionally scales the
-    // beaming term (see below); it only reaches the annulus in "normal" mode.
+    // Doppler beaming), "position" (RGB encodes the world position relative to
+    // the black hole; its radius, length(rel.xz), verifies the annulus
+    // geometry), "doppler" (red/blue encode the sign of dot(v_dir, view_dir)),
+    // or "magenta" (flat-overlay debug guard, requested explicitly by
+    // tests/smoke/test_runtime.cpp). Mutually exclusive. --beaming-gain
+    // <float> additionally scales the beaming term (see below); it only
+    // reaches the annulus in "normal" mode.
     quantumverse::CelestialBodyRenderer::AnnulusDebugMode cliAnnulusDebug =
         quantumverse::CelestialBodyRenderer::AnnulusDebugMode::NORMAL;
     // Display gain for the Doppler beaming term. Shipped default is 1.0; the
@@ -427,8 +427,6 @@ int main(int argc, char* argv[])
             const QString mode = QString::fromLocal8Bit(argv[++i]);
             if (mode == QLatin1String("magenta")) {
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::MAGENTA;
-            } else if (mode == QLatin1String("radius")) {
-                cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::RADIUS;
             } else if (mode == QLatin1String("position")) {
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION;
             } else if (mode == QLatin1String("doppler")) {
@@ -436,8 +434,8 @@ int main(int argc, char* argv[])
             } else if (mode == QLatin1String("normal")) {
                 cliAnnulusDebug = quantumverse::CelestialBodyRenderer::AnnulusDebugMode::NORMAL;
             } else {
-                std::cerr << "QuantumVerse: --annulus-debug takes 'magenta', 'radius', "
-                             "'position', 'doppler', or 'normal', got '"
+                std::cerr << "QuantumVerse: --annulus-debug takes 'magenta', 'position', "
+                             "'doppler', or 'normal', got '"
                           << mode.toStdString() << "' - keeping normal" << std::endl;
                 std::cerr.flush();
             }
@@ -1223,9 +1221,7 @@ int main(int argc, char* argv[])
                          << config.black_hole.position[1]
                          << config.black_hole.position[2]
                          << "debug="
-                         << (cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::RADIUS
-                                 ? QStringLiteral("radius")
-                             : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION
+                         << (cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION
                                  ? QStringLiteral("position")
                              : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::DOPPLER
                                  ? QStringLiteral("doppler")

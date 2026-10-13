@@ -521,16 +521,14 @@ const vec3 OMEGA_AXIS = vec3(0.0, 1.0, 0.0);
 // Set to 1 only while drawing the black hole annulus: makes the disk render
 // as flat magenta so its on-screen extent can be verified by pixel count.
 uniform int debugAnnulus;
-// Second annulus debug view: encodes the fragment's radial distance from the
-// black hole as r/4.0 in the red channel. Design radius range [0.72, 1.80]
-// therefore maps to [46, 115] in 8 bit, ~70 counts across the disk, which is
-// what the geometry check needs. Values up to r=4 stay unsaturated so an
-// out-of-range reading is visible instead of clamping to 255.
-uniform int debugAnnulusRadius;
-// Third annulus debug view: encodes the fragment's world position relative to
+// Second annulus debug view: encodes the fragment's world position relative to
 // the black hole in RGB. Scale is (+-2)/4 world units per channel, i.e. 0.016
 // units per count, which resolves a 0.05-unit separation - fine enough to
-// identify a specific (r, phi) disk fragment across two captures. Alpha is
+// identify a specific (r, phi) disk fragment across two captures. The radius
+// encoding that preceded it (r/4.0 in red, the [0.72, 1.80] geometry probe)
+// was removed because this view carries the same information: length(rel.xz)
+// recovers the radius exactly, so a separate radius mode had no remaining
+// caller after the one-time geometry check at commit 15ce33f. Alpha is
 // exactly 1.0 so nothing blends with the skybox behind the disk.
 uniform int debugAnnulusPosition;
 // Radial/positional origin for the encodings. Must match the annulus instance
@@ -564,18 +562,27 @@ const float M_VISUAL = 0.12;
 
 // Display gain applied with the beaming term below. A pure scale multiplying
 // both limbs equally, so the measured limb ratio is gain-independent.
-// The shipped default is 1.0: the un-gained base already encodes to
-// ~205-230/255 per channel (measured at gain 0.3, see testAnnulusDoppler-
-// BeamingRatio), i.e. the disk base does NOT clip on its own, but
-// base * D^4 evaluates to ~660-744 and clips the approaching limb to 255 -
-// which flattens the measured ratio below the bolometric prediction
-// (measured 6.9-7.7x clipped against the 7.99x prediction). The 0.3
-// measurement value therefore keeps the beamed approaching limb inside
-// [0,1] and is set via --beaming-gain, i.e. it is a measurement enabler,
-// not a correction for an over-bright disk. Do not lower the shipped
-// default to silence limb clipping: that is a display-range question for a
-// tone-mapping curve, and a linear remap would silently change the shipped
-// limb ratio's headroom.
+//
+// Shipped default is 1.0, i.e. no compensation: the beamed approaching limb
+// saturates to (255,255,255) wherever base * D^4 exceeds the display range.
+// That saturation is the intended shipped look, decided and recorded here so
+// it does not read as an accident. A Doppler-boosted limb has an emission
+// peak wider than the display range, and clipping it is standard practice
+// for relativistic disk renders (cf. M87*/Sgr A* images, whose bright limbs
+// saturate the detector). If the shipped disk ever needs to communicate the
+// beaming gradient across the whole limb instead of saturating, the fix is a
+// tone-mapping curve on the beamed colour - NOT a smaller linear gain, which
+// would scale the already-dark receding limb too and silently shrink the
+// shipped headroom. A tone map is nonlinear, so it changes the limb ratios
+// and needs its own verification with its own expected values; the linear
+// path below is what the smoke ratio test measures.
+//
+// The shipped base does NOT clip on its own (~205-230/255 per channel,
+// measured at gain 0.3, see testAnnulusDopplerBeamingRatio); it is base *
+// D^4 that evaluates to ~660-744 at the r = 1.326 fragments. The 0.3
+// measurement value keeps the beamed approaching limb inside [0,1] and is
+// set via --beaming-gain, i.e. it is a measurement enabler, not a
+// correction for an over-bright disk.
 uniform float beamingDisplayGain;
 
 // Line-of-sight term los = dot(v_dir, view_dir) for a disk fragment.
@@ -601,15 +608,6 @@ out vec4 outColor;
 
 void main() {
     if (debugAnnulus == 1) { outColor = vec4(1.0, 0.0, 1.0, 1.0); return; }
-    if (debugAnnulusRadius == 1) {
-        // The disk is planar in XZ, so the XZ length is the radius; a 3D
-        // length would agree for every annulus fragment today.
-        float r = length(vWorldPos.xz - bhCenterWorld.xz);
-        // Alpha exactly 1.0: any partial alpha would blend this with the
-        // skybox behind the disk and make the decode ambiguous.
-        outColor = vec4(r / 4.0, 0.0, 0.0, 1.0);
-        return;
-    }
     if (debugAnnulusPosition == 1) {
         vec3 rel = vWorldPos - bhCenterWorld;
         vec3 enc = (rel + vec3(2.0, 2.0, 2.0)) / vec3(4.0, 4.0, 4.0);
@@ -965,7 +963,6 @@ void CelestialBodyRenderer::initializeGL()
 
     // Cache uniform locations queried once at init time
     m_debugAnnulusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulus");
-    m_debugAnnulusRadiusLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusRadius");
     m_debugAnnulusPositionLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusPosition");
     m_debugAnnulusDopplerLoc = glGetUniformLocation(m_shaderProgram, "debugAnnulusDoppler");
     m_dopplerBeamingLoc = glGetUniformLocation(m_shaderProgram, "dopplerBeaming");
@@ -1560,17 +1557,19 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     // for the frame, so the shader can never be asked to render both and the
     // early-return ordering is unambiguous.
     const int annulusMagenta = (m_annulusDebugMode == AnnulusDebugMode::MAGENTA) ? 1 : 0;
-    const int annulusRadius = (m_annulusDebugMode == AnnulusDebugMode::RADIUS) ? 1 : 0;
     const int annulusPosition = (m_annulusDebugMode == AnnulusDebugMode::POSITION) ? 1 : 0;
     const int annulusDoppler = (m_annulusDebugMode == AnnulusDebugMode::DOPPLER) ? 1 : 0;
     // The beaming term only reaches the shaded disk path, which only NORMAL
-    // mode falls through to; the four debug modes early-return before it.
+    // mode falls through to; the three debug modes early-return before it.
     const int annulusBeaming = (m_annulusDebugMode == AnnulusDebugMode::NORMAL) ? 1 : 0;
     glUniform1i(m_debugAnnulusLoc, 0);
-    glUniform1i(m_debugAnnulusRadiusLoc, 0);
     glUniform1i(m_debugAnnulusPositionLoc, 0);
     glUniform1i(m_debugAnnulusDopplerLoc, 0);
     glUniform1i(m_dopplerBeamingLoc, 0);
+    // Beaming gain uploaded once per frame, before any body draw: the CLI
+    // --beaming-gain override is a measurement enabler for the annulus ratio
+    // test and must not leak into the rest of the scene.
+    glUniform1f(m_beamingDisplayGainLoc, m_beamingDisplayGain);
     // Camera eye in world space, recovered from the column-major view matrix
     // (eye = -R^T * t). Camera4DAdapter::viewMatrix() is a lookAt matrix, so
     // its 3x3 part is a pure rotation and this inversion is exact.
@@ -1591,19 +1590,19 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     // Draw the annulus (accretion disk) as a single instanced draw using the
     // base instance offset assigned in updateBodyBuffers().
     //
-    // MAGENTA mode (the default, and the path tests/smoke/test_runtime.cpp
-    // asserts on): flat magenta so the disk's on-screen extent can be verified
-    // by pixel count.
-    // RADIUS mode: red channel = length(worldPos.xz - bhCenterWorld.xz) / 4.0,
-    // so the same pixels can be sampled to confirm the geometry is at the
-    // design radius range [0.72, 1.80].
+    // MAGENTA mode (debug guard, requested explicitly by the smoke suite):
+    // flat magenta so the disk's on-screen extent can be verified by pixel
+    // count.
+    // POSITION mode: RGB encode the world position relative to the black
+    // hole, so the same pixels can be sampled to confirm the geometry is at
+    // the design radius range [0.72, 1.80] (length(rel.xz) recovers the
+    // radius exactly; this replaced the removed r/4.0-in-red encoding).
     // DOPPLER mode: red/blue encode the sign of dot(v_dir, view_dir), so the
     // approaching limb can be told from the receding limb before any beaming
     // ratio is measured. NORMAL mode: the shaded disk renders with the
     // Doppler beaming term applied.
     if (m_annulusVAO) {
         glUniform1i(m_debugAnnulusLoc, annulusMagenta);
-        glUniform1i(m_debugAnnulusRadiusLoc, annulusRadius);
         glUniform1i(m_debugAnnulusPositionLoc, annulusPosition);
         glUniform1i(m_debugAnnulusDopplerLoc, annulusDoppler);
         glUniform1i(m_dopplerBeamingLoc, annulusBeaming);
@@ -1618,14 +1617,9 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
                                             m_annulusInstanceBase);
         glBindVertexArray(0);
         glUniform1i(m_debugAnnulusLoc, 0);
-        glUniform1i(m_debugAnnulusRadiusLoc, 0);
         glUniform1i(m_debugAnnulusPositionLoc, 0);
         glUniform1i(m_debugAnnulusDopplerLoc, 0);
-    glUniform1i(m_dopplerBeamingLoc, 0);
-    // Reset to the shipped gain for every body draw: the CLI --beaming-gain
-    // override exists only to keep the measured annulus ratio out of the
-    // clipped range and must not leak into the rest of the scene.
-    glUniform1f(m_beamingDisplayGainLoc, m_beamingDisplayGain);
+        glUniform1i(m_dopplerBeamingLoc, 0);
     }
 
     glUseProgram(0);
