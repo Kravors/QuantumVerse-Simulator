@@ -458,3 +458,18 @@ Both conventions are load-bearing and verified: the N-body orbits match
 analytic two-body to 0.00-0.07% (in XY), and the annulus Doppler work is
 verified in XZ. Unifying them is a broad, deferred refactor — do it before,
 not during, the next feature that depends on the axis.
+
+### Open: metric rebuilt on every mass change (not blocking)
+
+The mass sweep rebuilds the metric object and swaps the pointer on every
+sample (`[MASS] old= ... new= ... probeMetric= ...` /
+`[PROBE] metric swap old= ... new= ...`, ~15 swaps per sweep batch).
+Correctness is unaffected — the probe cache is invalidated on each swap
+(`setProbeMetric()`), and the N-body system never sees the BH — but each
+rebuild allocates and invalidates the curvature renderer's cached state, and
+`CurvatureRenderer::gridZRange` is only recomputed at startup, so the grid's
+Z deformation does not follow the mass. Refactor scheduled: update the mass
+in place (with the cache invalidated) instead of rebuilding, and recompute
+the grid on metric change. Fix together if they are the same defect — a grid
+that reads a stale metric pointer and a sweep that reallocates one per
+sample are two views of the same lifetime problem.
