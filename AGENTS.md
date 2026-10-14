@@ -422,3 +422,39 @@ layers in order. Each maps to a distinct root cause fixed in a separate commit:
 The [REALITY] diagnostic dump (emitted every 60 sim frames) shows `bodies=9`,
 `gridZRange`, and `simTime`. If bodies=9 but positions are static, the break
 is in layer 2, 3, or 4. If bodies<9, the break is in layer 1.
+
+Update 2026-10-14: the frozen-body symptom that motivated this table was
+actually the physics clock, fixed in `d3962e0` (single clock on every path,
+physics dt = interval x timeScale). The layers above remain valid checks, but
+check the clock first: `[N-BODY]` instrumentation in
+`UI4D::stepSimulationCPU` logs substep state per call.
+
+### Two different "up" axes: N-body orbits in XY, annulus disk in XZ
+
+The codebase contains two incompatible plane conventions, and they are
+silently in conflict with each other:
+
+| System | Orbital plane | Up axis | Angular momentum |
+|--------|--------------|---------|------------------|
+| N-body planets (`UI4D::initializeSolarSystem`) | physical XY | physical Z | +Z (`angularMomentumZ` = m(x·vy − y·vx) is correct for this plane) |
+| Annulus/disk (`CelestialBodyRenderer` `celestialFragSrc`) | world XZ | world +Y (`OMEGA_AXIS`) | +Y |
+
+The N-body convention comes from `Event4D(t, x, y, z)`:
+`initializeSolarSystem()` sets `body.position = Event4D(0, r, 0, 0)` (position
+on +X) and `body.velocity = Event4D(0, 0, -v, 0)` — the third constructor
+argument lands in `.y`, so the planets orbit in XY with angular momentum along
++Z. The annulus deliberately lives in world XZ: `radial = vWorldPos.xz -
+bhCenterWorld.xz`, `v_dir = normalize(cross(OMEGA_AXIS, radial))`, verified
+radius range [0.72, 1.80].
+
+Consequences to respect before any feature that depends on "which way is up":
+- Comparing planet orientation to disk orientation compares different planes.
+- The disk's angular momentum (+Y) and the planets' (+Z) point along different
+  world axes; do not add them or feed one into the other's formula.
+- A future "show the orbital plane" / "show the disk normal" overlay must pick
+  the axis explicitly per system.
+
+Both conventions are load-bearing and verified: the N-body orbits match
+analytic two-body to 0.00-0.07% (in XY), and the annulus Doppler work is
+verified in XZ. Unifying them is a broad, deferred refactor — do it before,
+not during, the next feature that depends on the axis.
