@@ -31,6 +31,13 @@ QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth,
         QStringLiteral("--cam-az"), QString::number(azimuth),
         QStringLiteral("--cam-el"), QStringLiteral("30"),
         QStringLiteral("--cam-dist"), QStringLiteral("150"),
+        // The camera target is the BH position (config black_hole.position).
+        // The Doppler verification was defined in BH-relative terms, so the
+        // camera must frame the BH for the annulus to stay in the frustum and
+        // for the decoded rel positions to match the verified geometry.
+        QStringLiteral("--cam-tx"), QStringLiteral("100"),
+        QStringLiteral("--cam-ty"), QStringLiteral("0"),
+        QStringLiteral("--cam-tz"), QStringLiteral("0"),
         QStringLiteral("--annulus-debug"), mode,
         QStringLiteral("--beaming-gain"), QString::number(beamingGain, 'f', 2),
         QStringLiteral("--screenshot"), path,

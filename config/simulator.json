@@ -7,7 +7,7 @@
     },
     "black_hole": {
         "mass_solar_masses": 10.0,
-        "position": [0.0, 0.0, 0.0],
+        "position": [100.0, 0.0, 0.0],
         "type": "schwarzschild",
         "spin": 0.0,
         "charge": 0.0
