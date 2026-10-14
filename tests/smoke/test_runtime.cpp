@@ -19,8 +19,26 @@
 namespace {
 
 // Run one headless annulus capture at the Doppler verification pose
-// (el=30, dist=150, config black_hole.position (0,0,0), single frame) and
-// load the resulting screenshot.
+// (el=30, dist=150, camera target = config black_hole.position = (40,0,0))
+// and load the resulting screenshot.
+//
+// Capture semantics (since commit ea2d839): the screenshot reflects the
+// state AFTER --frames physics steps at dt = interval * timeScale, NOT the
+// startup frame - the request used to fire during the headless warmup and
+// captured zero integrated physics. Every visual assertion in this suite is
+// nevertheless unaffected, and deliberately so: they all assert on static
+// geometry (the annulus under a CLI camera, the geodesics from the analytic
+// metric, and the central body, which the integrator never moves). The body
+// motion a capture's physics step does induce is sub-pixel at the shipped
+// default scale of 1e4 - Earth moves 4.3e-5 world units per 166.7 s step
+// (~0.0003 px) and 0.076 px across the 300-frame tests' 5e4 s - which is why
+// the counts, the bbox and the ratios below kept their pre-fix values.
+//
+// RULE for any future test that frames a moving object: captures are
+// time-scale-dependent by construction (captured state = frames * interval *
+// timeScale seconds of integration). Either fix --time-scale in the capture
+// args, or derive the expected position analytically from that formula.
+// Do not hardcode a pixel the way this file hardcodes the annulus bbox.
 QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth,
                       const QString& path, QString& error, double beamingGain = 1.0)
 {
