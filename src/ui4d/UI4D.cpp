@@ -954,6 +954,32 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
         bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
     }
+
+    // [N-BODY] diagnostic for the integrator-freeze investigation. Logs the
+    // post-substep state of the central body and Earth for the first calls
+    // (a --frames 10 run) and every 600th call thereafter. vel==0 means the
+    // initialization is the bug; vel!=0 with pos never changing means the
+    // drift is the bug; both changing means the renderer reads a stale copy.
+    {
+        static long long nbodyCall = 0;
+        ++nbodyCall;
+        if (nbodyCall <= 12 || nbodyCall % 600 == 0) {
+            for (int i = 0; i < n; ++i) {
+                const SolarSystemBody* bi = bodyPtrs[i];
+                if (bi->isCentralBody || bi->name == "Earth") {
+                    std::cout << "[N-BODY] call=" << nbodyCall
+                              << " sub_dt=" << sub_dt << " n=" << n
+                              << " name=" << bi->name
+                              << " pos=(" << bi->position.x << "," << bi->position.y
+                              << "," << bi->position.z << ")"
+                              << " vel=(" << bi->velocity.x << "," << bi->velocity.y
+                              << "," << bi->velocity.z << ")"
+                              << " acc=(" << bi->acc[0] << "," << bi->acc[1]
+                              << "," << bi->acc[2] << ")" << std::endl;
+                }
+            }
+        }
+    }
 }
 
 void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyPtrs, int n) {
@@ -1674,9 +1700,13 @@ void UI4D::renderSolarSystem() {
         stepScenario(0.016);
     }
 
-    // N-Body physics step (called from render at ~60fps)
-    stepSimulation(0.016, 10); // 10 substeps of 1.6ms each
-    
+    // N-body physics is deliberately NOT stepped here. The single clock is
+    // QmlGlViewport::updateSimulation (dt = interval * timeScale); stepping
+    // in the render path as well double-stepped every frame in which both
+    // were live and tied the physics to a render call instead of the clock.
+    // The startup-only stepping this function used to do is what left ~3
+    // steps of 0.016 s on the bodies in --simTime captures.
+
     for (const auto& bodyPair : solarSystem.bodies) {
         const SolarSystemBody& body = bodyPair.second;
         

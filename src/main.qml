@@ -1837,7 +1837,11 @@ ApplicationWindow {
     Timer {
         id: simTimer
         interval: 16  // ~60 FPS
-        running: !simulationPaused
+        // Interactive clock. In headless mode the C++ frame loop steps the
+        // physics itself (dt = interval * timeScale), so this timer stands
+        // down to keep one clock per run - otherwise each frame would take
+        // two differently scaled steps.
+        running: !simulationPaused && !headlessPhysics
         repeat: true
         onTriggered: {
             console.log("simTimer tick, paused=" + simulationPaused)

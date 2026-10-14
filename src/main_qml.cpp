@@ -333,6 +333,18 @@ int main(int argc, char* argv[])
     QString sessionId;
     QString startTourId;
     double fixedSimTime = -1.0;
+    // Nominal 60 Hz frame interval, matching the simTimer interval in
+    // main.qml (16 ms -> 0.0167 s). The physics dt is this times the time
+    // scale on every path, so headless captures and the interactive UI
+    // integrate with exactly the same rule.
+    constexpr double kHeadlessFrameInterval = 1.0 / 60.0;
+    // Physics time scale: every physics step is interval * timeScale, on
+    // every path (headless captures and the QML simTimer alike). The headless
+    // default advances the N-body system by ~167 s of simulated time per
+    // frame, which is enough for the [N-BODY] diagnostic to measure motion
+    // without destabilising the leapfrog (the adaptive substep count in
+    // stepSimulation handles larger scales). Override with --time-scale.
+    double simTimeScale = 1.0e4;
     double lensingTheta = -1.0;  // <0 = not set; >=0 overrides QML default
     bool disableCelestial = false;
     bool noStarfield = false;
@@ -373,6 +385,19 @@ int main(int argc, char* argv[])
             noStarfield = true;
         } else if (strcmp(argv[i], "--simTime") == 0 && i + 1 < argc) {
             fixedSimTime = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--time-scale") == 0 && i + 1 < argc) {
+            const double scale = atof(argv[++i]);
+            if (!(scale > 0.0)) {
+                std::cerr << "QuantumVerse: --time-scale takes a positive value, got "
+                          << scale << " - keeping " << simTimeScale << std::endl;
+                std::cerr.flush();
+            } else {
+                simTimeScale = scale;
+                std::cerr << "QuantumVerse: Physics time scale set to " << scale
+                          << " (dt = " << (1.0 / 60.0) * scale << " s/frame)"
+                          << std::endl;
+                std::cerr.flush();
+            }
         } else if (strcmp(argv[i], "--screenshot") == 0 && i + 1 < argc) {
             screenshotPath = argv[++i];
         } else if (strcmp(argv[i], "--dump-frame-times") == 0 && i + 1 < argc) {
@@ -829,6 +854,11 @@ int main(int argc, char* argv[])
         // Expose C++ objects to QML
         QQmlContext* rootContext = engine.rootContext();
         rootContext->setContextProperty("cliCameraSet", cliCameraSet);
+        // In headless/deterministic-capture mode the C++ frame loop is the
+        // only physics clock (dt = interval * timeScale). The QML simTimer
+        // must not also tick, or every frame gets a second, differently
+        // scaled step - see main.qml's simTimer running binding.
+        rootContext->setContextProperty("headlessPhysics", headlessFrames > 0);
         rootContext->setContextProperty("curvatureRenderer",
             QVariant::fromValue(curvatureRenderer.get()));
         rootContext->setContextProperty("quantumRenderer",
@@ -1449,13 +1479,17 @@ int main(int argc, char* argv[])
 #endif
 
                 if (viewport) {
+                    // One clock, every path: the physics dt is always
+                    // interval * timeScale, including the deterministic
+                    // --simTime captures (which previously skipped the step
+                    // entirely and froze the bodies while the display read
+                    // the pinned time). The display pin is applied AFTER the
+                    // step so it holds exactly while the bodies advance.
+                    viewport->updateSimulation(kHeadlessFrameInterval * simTimeScale);
                     if (fixedSimTime >= 0.0) {
                         viewport->setSimulationTime(static_cast<float>(fixedSimTime));
                     }
                     viewport->update();
-                    if (fixedSimTime < 0.0) {
-                        viewport->updateSimulation(0.016);
-                    }
                 }
                 QCoreApplication::processEvents();
                 if (fixedSimTime < 0.0) {
