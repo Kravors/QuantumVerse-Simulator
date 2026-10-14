@@ -956,17 +956,20 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
     }
 
     // [N-BODY] diagnostic for the integrator-freeze investigation. Logs the
-    // post-substep state of the central body and Earth for the first calls
-    // (a --frames 10 run) and every 600th call thereafter. vel==0 means the
-    // initialization is the bug; vel!=0 with pos never changing means the
-    // drift is the bug; both changing means the renderer reads a stale copy.
+    // post-substep state of the central body plus the inner (Mercury), middle
+    // (Earth) and outer (Neptune) planets for the first calls, every 25th
+    // call (the end state of a --frames 100 run), and every 600th thereafter.
+    // vel==0 means the initialization is the bug; vel!=0 with pos never
+    // changing means the drift is the bug; both changing means the renderer
+    // reads a stale copy.
     {
         static long long nbodyCall = 0;
         ++nbodyCall;
-        if (nbodyCall <= 12 || nbodyCall % 600 == 0) {
+        if (nbodyCall <= 12 || nbodyCall % 25 == 0 || nbodyCall % 600 == 0) {
             for (int i = 0; i < n; ++i) {
                 const SolarSystemBody* bi = bodyPtrs[i];
-                if (bi->isCentralBody || bi->name == "Earth") {
+                if (bi->isCentralBody || bi->name == "Earth" || bi->name == "Mercury"
+                    || bi->name == "Neptune") {
                     std::cout << "[N-BODY] call=" << nbodyCall
                               << " sub_dt=" << sub_dt << " n=" << n
                               << " name=" << bi->name

@@ -649,11 +649,23 @@ void QmlGlRenderer::render()
         
         // [DIAG-CelestialBodies] Confirm how many bodies were queued and
         // at what scale, so it is clear whether the population loop ran.
+        // Every 25th render is logged in addition to the first five so the
+        // render-side body state can be compared with the [N-BODY] physics
+        // log at the end of a long capture.
         static int s_bodyDiag = 0;
-        if (s_bodyDiag++ < 5) {
-            qWarning() << "[DIAG-CelestialBodies] added"
+        ++s_bodyDiag;
+        if (s_bodyDiag <= 5 || s_bodyDiag % 25 == 0) {
+            qWarning() << "[DIAG-CelestialBodies] render#" << s_bodyDiag << "added"
                        << m_celestialBodyRenderer->bodyCount() << "bodies; scaleFactor="
                        << solarData.scaleFactor;
+            const auto earthIt = solarData.bodies.find("Earth");
+            if (earthIt != solarData.bodies.end()) {
+                qWarning() << "[DIAG-RenderBody] render#" << s_bodyDiag
+                           << "Earth world pos="
+                           << earthIt->second.position.x * solarData.scaleFactor
+                           << earthIt->second.position.y * solarData.scaleFactor
+                           << earthIt->second.position.z * solarData.scaleFactor;
+            }
             if (!solarData.bodies.empty()) {
                 const auto& sample = solarData.bodies.begin()->second;
                 qWarning() << "[DIAG-CelestialBodies] sample:" << sample.name.c_str()

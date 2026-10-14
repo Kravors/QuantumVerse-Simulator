@@ -1308,8 +1308,11 @@ int main(int argc, char* argv[])
                 // The render thread begins rendering immediately when QML loads,
                 // so calling requestScreenshot() here races with synchronize().
                 // A single-shot timer ensures the request is set before the next
-                // synchronize() call.
-                if (!screenshotPath.isEmpty()) {
+                // synchronize() call. Headless runs must NOT use this path: the
+                // timer fires during the warmup and captures the scene before
+                // the first physics step. They request the screenshot after the
+                // benchmark loop instead (see below).
+                if (!screenshotPath.isEmpty() && headlessFrames <= 0) {
                     qDebug() << "[DEBUG] Scheduling screenshot request:" << screenshotPath;
                     QTimer::singleShot(500, [viewport, screenshotPath]() {
                         qDebug() << "[DEBUG] Requesting screenshot (deferred):" << screenshotPath;
@@ -1531,7 +1534,24 @@ int main(int argc, char* argv[])
                 }
             }
 
-            QTimer::singleShot(50, &app, &QApplication::quit);
+            // The screenshot must capture the fully integrated state, so the
+            // request goes out only after every benchmark frame has run. The
+            // startup timer above fires during the warmup and captures the
+            // scene before the first physics step: every headless screenshot
+            // this suite has ever taken was the startup frame, which is why
+            // pixel assertions on static geometry passed while nothing about
+            // an evolved scene could be observed. The save itself runs in the
+            // render callback and calls quit(), which ends the event loop
+            // below; the timer is only a safety net for a save that never
+            // lands. (Do not busy-pump update()+processEvents() here: pumping
+            // after the save has already asked the app to quit deadlocks the
+            // shutdown.)
+            if (viewport && !screenshotPath.isEmpty()) {
+                QFile::remove(screenshotPath);
+                viewport->requestScreenshot(screenshotPath);
+                viewport->update();
+            }
+            QTimer::singleShot(5000, &app, &QApplication::quit);
         }
 
         // Run the application
