@@ -1572,7 +1572,14 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     glUniform1i(m_dopplerBeamingLoc, 0);
     // Beaming gain uploaded once per frame, before any body draw: the CLI
     // --beaming-gain override is a measurement enabler for the annulus ratio
-    // test and must not leak into the rest of the scene.
+    // test and must not leak into the rest of the scene. Recorded for the
+    // record: this ordering is defense-in-depth, not the fix for a real leak.
+    // beamingDisplayGain has a single read site, inside the if
+    // (dopplerBeaming == 1) block, and dopplerBeaming is 0 for every body
+    // draw - so bodies never read the gain and the original placement (after
+    // the annulus draw) had no functional effect. The upload was moved here
+    // so any future uniform in this scope is correct by default; glUniform*
+    // state is per-program, not per-draw.
     glUniform1f(m_beamingDisplayGainLoc, m_beamingDisplayGain);
     // Camera eye in world space, recovered from the column-major view matrix
     // (eye = -R^T * t). Camera4DAdapter::viewMatrix() is a lookAt matrix, so
