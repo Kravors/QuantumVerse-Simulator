@@ -117,7 +117,16 @@ private:
     // Undeformed Z for each grid vertex, so deformation is applied
     // relative to the base position rather than accumulating each frame.
     std::vector<float> m_baseZ;
-    
+
+    // World position the BH well centers on. Defaults to the origin; the
+    // viewport sets it from the same config source the annulus reads, so the
+    // grid well and the accretion disk track the same physics BH.
+    float m_blackHoleCenter[3] = {0.0f, 0.0f, 0.0f};
+
+    // BH mass in solar masses, used to scale the well's radius. Defaults to
+    // the config value; the viewport updates it on every metric rebuild.
+    double m_blackHoleMassSolar = 10.0;
+
     // Scale factor for grid deformation (maps physical curvature to grid units)
     float m_deformationScale;
     
@@ -291,6 +300,29 @@ public:
 
     // Get deformation scale multiplier
     float deformationScale() const { return m_deformationScale; }
+
+    // World position the BH well centers on (viewport world units)
+    void setBlackHoleCenter(float x, float y, float z)
+    {
+        m_blackHoleCenter[0] = x;
+        m_blackHoleCenter[1] = y;
+        m_blackHoleCenter[2] = z;
+        // Re-deform now: the vertices would otherwise keep the old center
+        // until the next deformGrid() call (updateTime / setMetric), leaving
+        // a one-frame stale funnel after every position change.
+        deformGrid();
+    }
+    void blackHoleCenter(float& x, float& y, float& z) const
+    {
+        x = m_blackHoleCenter[0];
+        y = m_blackHoleCenter[1];
+        z = m_blackHoleCenter[2];
+    }
+
+    // BH mass in solar masses, scales the well's radius (log-scaled so the
+    // slider's full range stays legible)
+    void setBlackHoleMassSolar(double mass) { m_blackHoleMassSolar = mass; }
+    double blackHoleMassSolar() const { return m_blackHoleMassSolar; }
 
     // Compile shader from source strings (implementation in .cpp)
     bool compileShader(unsigned int& program,

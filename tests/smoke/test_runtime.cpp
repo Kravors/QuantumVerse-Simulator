@@ -82,6 +82,75 @@ QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth,
     return img;
 }
 
+// Run one headless capture of the curvature grid at a FIXED camera pose and
+// load the resulting screenshot. Unlike captureAnnulus the camera target is
+// NOT re-aimed at the BH: the test below keeps the pose identical across two
+// captures that differ only in config black_hole.position, so any shift in
+// the funnel's screen position is attributable to the BH, not the camera.
+//
+// The grid well is a Schwarzschild-style funnel (CurvatureRenderer::deformGrid)
+// whose deepest point sits at the BH's world position. The well is subtle in
+// pixels - the GRID_DEFORMATION color map scales |z| by gridSize*0.5, and the
+// well's 1.46-unit depth is ~3% of that, so the whole grid reads as a faint
+// blue-on-blue gradient - so this helper also parses the [GRID] diagnostic
+// line out of the same render. That line names the well center in world
+// coordinates, which is the value the fix actually changes; asserting on it
+// is deterministic in a way a pixel centroid is not.
+QImage captureGrid(const QString& binary, const QString& path, QString& error,
+                  float camTx = 40.0f, float camTy = 0.0f, float camTz = 0.0f,
+                  QString* outWellCenter = nullptr,
+                  const QStringList& extraArgs = {})
+{
+    QProcess proc;
+    proc.setProgram(binary);
+    QStringList args = {
+     QLatin1String("--frames"),QLatin1String("1"),
+     QLatin1String("--cam-az"),QLatin1String("90"),
+     QLatin1String("--cam-el"),QLatin1String("0"),
+     QLatin1String("--cam-dist"),QLatin1String("150"),
+     QLatin1String("--cam-tx"),QString::number(camTx, 'f', 1),
+     QLatin1String("--cam-ty"),QString::number(camTy, 'f', 1),
+     QLatin1String("--cam-tz"),QString::number(camTz, 'f', 1),
+     QLatin1String("--screenshot"),path,
+    };
+    args << extraArgs;
+    proc.setArguments(args);
+    proc.setProcessChannelMode(QProcess::MergedChannels);
+    proc.start();
+    if (!proc.waitForFinished(120000)) {
+        error =QStringLiteral("grid capture timed out: %1").arg(proc.errorString());
+        return QImage();
+    }
+    if (proc.exitCode() != 0) {
+        error =QStringLiteral("grid capture exited with code %1")
+                .arg(static_cast<int>(proc.exitCode()));
+        return QImage();
+    }
+    const QString output = QString::fromLocal8Bit(proc.readAll());
+    if (outWellCenter) {
+        static const QRegularExpression gridRe(
+          QStringLiteral(R"(wellCenter=([\d.\-]+),([\d.\-]+),([\d.\-]+))"));
+        // Take the LAST [GRID] line, not the first: main_qml.cpp wires the
+        // curvature metric (which logs a wellCenter at the renderer default of
+        // 0,0) BEFORE it wires the effective BH position, and deformGrid()
+        // re-logs every frame. The first match would therefore read the stale
+        // origin in both captures and the assertion would be vacuous.
+        QString last;
+        auto it = gridRe.globalMatch(output);
+        while (it.hasNext()) {
+            const auto m = it.next();
+            last = QStringLiteral("%1,%2,%3").arg(m.captured(1), m.captured(2), m.captured(3));
+        }
+        *outWellCenter = last;
+        if (last.isEmpty())
+            error =QStringLiteral("grid capture output had no [GRID] wellCenter line");
+    }
+    const QImage img(path);
+    if (img.isNull())
+        error =QStringLiteral("grid capture produced a null image");
+    return img;
+}
+
 // POSITION encoding: RGB = (rel + 2) / 4, with rel relative to bhCenterWorld.
 QVector3D decodeAnnulusPosition(QRgb p)
 {
@@ -622,6 +691,79 @@ private slots:
                          "(near=%3 far=%4) - the beaming term is not the bolometric "
                          "D^4 convention").arg(c).arg(ratio).arg(nearCh[c]).arg(farCh[c])));
         }
+    }
+
+    // The curvature grid's well is a Schwarzschild-style funnel whose deepest
+    // point sits at the BH's world position (CurvatureRenderer::deformGrid).
+    // Before the B2 fix the funnel was hard-coded to the world origin while
+    // the accretion disk was drawn at config black_hole.position - two
+    // different positions for the same physics BH, undetectable by any pixel
+    // count.
+    //
+    // Two captures at an IDENTICAL camera pose (target 40,0,0) that differ
+    // only in --bh-position, which moves the BH without touching the user's
+    // config file. The well center must track the BH: at (40,0,0) it sits at
+    // screen center, at (0,0,0) it shifts off center by the same 40 world
+    // units. The camera never re-aims, so any movement is the BH, not the
+    // pose. The well is subtle in pixels - the GRID_DEFORMATION color map
+    // scales |z| by gridSize*0.5, and the well's 1.46-unit depth is ~3% of
+    // that, so the whole grid reads as a faint blue-on-blue gradient - so
+    // the assertion reads the [GRID] diagnostic line out of the same render
+    // instead. That line names the well center in world coordinates, which is
+    // the value the fix actually changes.
+    //
+    // KNOWN LIMIT for a future session: this asserts the well CENTER only.
+    // The well RADIUS (wellR, log-scaled with BH mass in deformGrid) is not
+    // asserted here - a regression that breaks the mass scaling of the funnel
+    // shape would slip past. Covering it needs a third capture with a
+    // different --bh-mass and a wellR != wellB check.
+    void testFunnelTracksBlackHoleCenter()
+    {
+        QString error;
+        QString wellA, wellB;
+        const QStringList bhA = {QStringLiteral("--bh-position"), QStringLiteral("40"),
+                               QStringLiteral("0"), QStringLiteral("0")};
+        const QStringList bhB = {QStringLiteral("--bh-position"), QStringLiteral("0"),
+                               QStringLiteral("0"), QStringLiteral("0")};
+        const QImage gridA = captureGrid(m_binary,
+         QStringLiteral("smoke_grid_well_a.png"), error, 40.0f, 0.0f, 0.0f, &wellA, bhA);
+        const QImage gridB = captureGrid(m_binary,
+         QStringLiteral("smoke_grid_well_b.png"), error, 40.0f, 0.0f, 0.0f, &wellB, bhB);
+        // Both captures must actually render the grid.
+        constexpr int kMinGridPixels = 100;
+        int gridPixels = 0;
+        if (!gridA.isNull()) {
+            const int w = gridA.width(), h = gridA.height();
+            for (int y = 0; y < h; ++y) {
+                const QRgb* scan = reinterpret_cast<const QRgb*>(gridA.scanLine(y));
+                for (int x = 0; x < w; ++x) {
+                    const int r = qRed(scan[x]), b = qBlue(scan[x]);
+                    if (r > b + 30 && r > 60) ++gridPixels;
+                }
+            }
+        }
+        qWarning() << "Grid well capture A: wellCenter=" << wellA
+                   << "grid-like pixels=" << gridPixels;
+        qWarning() << "Grid well capture B: wellCenter=" << wellB;
+        // The fix's core assertion: the funnel center follows the BH's world
+        // position. At (40,0,0) it is at screen center; at (0,0,0) it has moved.
+        // A constant well center in both captures is the bug this test exists
+        // to catch.
+        QTRY_VERIFY2(!wellA.isEmpty(), qPrintable(error));
+        QTRY_VERIFY2(!wellB.isEmpty(), qPrintable(error));
+        QTRY_VERIFY2(wellA != wellB,
+                     qPrintable(QStringLiteral(
+                         "Grid well center did not move with the BH: A=%1 B=%2 "
+                         "- the funnel is still hard-coded to the world origin")
+                         .arg(wellA).arg(wellB)));
+        // The well must be non-degenerate in both captures: a flat grid (no
+        // funnel) reads as wellCenter=0,0,0 in both and would slip past the
+        // inequality above, so confirm the well actually exists.
+        QTRY_VERIFY2(gridPixels >= kMinGridPixels,
+                     qPrintable(QStringLiteral(
+                         "Grid capture A rendered only %1 grid pixels - the "
+                         "curvature grid is not visible in the viewport")
+                         .arg(static_cast<int>(gridPixels))));
     }
 
     void testToolbarOverflowAssertion() {

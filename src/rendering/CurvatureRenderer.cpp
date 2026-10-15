@@ -1033,26 +1033,39 @@ void CurvatureRenderer::initializeGrid()
 void CurvatureRenderer::deformGrid()
 {
     if (vertices.empty()) return;
-    
+
+    // The well is a Schwarzschild-style funnel: depth A at the BH, falling to
+    // zero at radius R. Its center is the BH's world position and its radius
+    // scales with log(M) so the slider's full range stays legible - linear
+    // scaling would widen the well 100x from 10 to 1000 M☉ and show only the
+    // inner tip on a 100-unit grid. Depth is visual-constant: a fixed A while
+    // the well widens reads "wide shallow bowl at high mass, narrow deep
+    // funnel at low mass," which is physically inverted.
     const float A = 1.46f;
-    const float R = 50.0f;
+    const float R0 = 50.0f;                 // radius at the reference mass
+    const float M0 = 10.0;                  // reference mass (solar masses)
+    float R = R0 * static_cast<float>(std::log(m_blackHoleMassSolar) / std::log(M0));
+    if (R < 1.0f) R = 1.0f;                 // guard against M < e
     const float R2 = R * R;
-    
+
+    float cx = m_blackHoleCenter[0];
+    float cy = m_blackHoleCenter[1];
+
     float rawZMin = -A;
     float rawZMax = 0.0f;
     bool first = true;
-    
+
     for (size_t i = 0; i < vertices.size(); i++) {
         auto& vertex = vertices[i];
-        
-        float x = vertex.position[0];
-        float y = vertex.position[1];
-        float r2 = x * x + y * y;
+
+        float dx = vertex.position[0] - cx;
+        float dy = vertex.position[1] - cy;
+        float r2 = dx * dx + dy * dy;
         float depth = A / (1.0f + r2 / R2);
         float rawDisplacement = -depth;
-        
+
         vertex.position[2] = rawDisplacement * m_deformationScale;
-        
+
         if (first) {
             rawZMin = rawZMax = rawDisplacement;
             first = false;
@@ -1060,15 +1073,22 @@ void CurvatureRenderer::deformGrid()
             rawZMin = std::min(rawZMin, rawDisplacement);
             rawZMax = std::max(rawZMax, rawDisplacement);
         }
-        
+
         vertex.curvature = 0.0f;
         vertex.time_dilation = 1.0f;
-        
+
         updateVertexColor(vertex);
     }
     std::cout << "[GRID] rawZ=" << rawZMin << ".." << rawZMax
               << " scaledZ=" << (rawZMin * m_deformationScale) << ".." << (rawZMax * m_deformationScale)
-              << " unitRange=" << gridSize << std::endl;
+              << " unitRange=" << gridSize
+              // The test's regex (tests/smoke/test_runtime.cpp) requires all
+              // three components, so name the full world position, not just
+              // the grid-plane x,y the funnel is built from.
+              << " wellCenter=" << m_blackHoleCenter[0] << "," << m_blackHoleCenter[1]
+              << "," << m_blackHoleCenter[2]
+              << " wellR=" << R << " (M=" << m_blackHoleMassSolar << " M☉)"
+              << std::endl;
 }
 
 std::pair<float, float> CurvatureRenderer::gridZRange() const
