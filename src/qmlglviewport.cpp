@@ -2587,11 +2587,20 @@ void QmlGlViewport::setBlackHoleMass(double mass)
         pushCommand(QString("Set BH Mass to %1 M☉").arg(newMass, 0, 'f', 1),
             [this, oldMass]() { setBlackHoleMassDirect(oldMass); },
             [this, newMass]() { setBlackHoleMassDirect(newMass); });
-        
+
         double mass_kg = mass * 1.989e30;
         auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
         m_curvatureRenderer->setMetric(metric);
         setProbeMetric(metric);
+        // The lensing ring has never responded to any mass parameter: setLensingMass
+        // had no caller at all. Wire it here, on the same code path that rebuilds the
+        // metric, so metric, probe, and lensing all subscribe to one source of truth
+        // for "the mass changed." This is also the natural seam for the in-place
+        // metric-update refactor (Problem 3) later.
+        setLensingMass(static_cast<float>(mass));
+        // The grid well follows the same mass on the same path - log-scaled so the
+        // slider's full range stays legible (see CurvatureRenderer::deformGrid).
+        m_curvatureRenderer->setBlackHoleMassSolar(mass);
         m_blackHoleMass = mass;
         emit blackHoleMassChanged();
         update();
@@ -2605,9 +2614,33 @@ void QmlGlViewport::setBlackHoleMassDirect(double mass)
     auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
     m_curvatureRenderer->setMetric(metric);
     setProbeMetric(metric);
+    // Mirror the lensing wiring from setBlackHoleMass so undo/redo keeps the
+    // lensing ring in step with the metric on the direct path too.
+    setLensingMass(static_cast<float>(mass));
+    // Mirror the grid-well wiring as well: undo/redo must keep the well in step
+    // with the metric on the direct path too.
+    m_curvatureRenderer->setBlackHoleMassSolar(mass);
     m_blackHoleMass = mass;
     emit blackHoleMassChanged();
     update();
+}
+
+void QmlGlViewport::setGridBlackHoleCenter(float x, float y, float z)
+{
+    m_gridBlackHoleCenter[0] = x;
+    m_gridBlackHoleCenter[1] = y;
+    m_gridBlackHoleCenter[2] = z;
+    if (m_curvatureRenderer) {
+        m_curvatureRenderer->setBlackHoleCenter(x, y, z);
+    }
+    update();
+}
+
+void QmlGlViewport::gridBlackHoleCenter(float& x, float& y, float& z) const
+{
+    x = m_gridBlackHoleCenter[0];
+    y = m_gridBlackHoleCenter[1];
+    z = m_gridBlackHoleCenter[2];
 }
 
 double QmlGlViewport::blackHoleMass() const

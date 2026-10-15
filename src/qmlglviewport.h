@@ -648,6 +648,11 @@ public:
     Q_INVOKABLE double blackHoleMass() const;
     Q_INVOKABLE void setBlackHoleType(const QString& type);
     void setBlackHoleMassDirect(double mass); // For undo/redo (no command push)
+    // World position the curvature grid's well centers on. Defaults to the
+    // config black_hole.position; wired from main_qml.cpp alongside the annulus
+    // so the grid well and the accretion disk track the same physics BH.
+    Q_INVOKABLE void setGridBlackHoleCenter(float x, float y, float z);
+    void gridBlackHoleCenter(float& x, float& y, float& z) const;
     Q_INVOKABLE double liveKineticEnergy() const;
     Q_INVOKABLE double livePotentialEnergy() const;
     Q_INVOKABLE double liveTotalEnergy() const;
@@ -922,6 +927,7 @@ private:
     float m_simulationTime;
     float m_frameRate;
     double m_blackHoleMass = 10.0;
+    float m_gridBlackHoleCenter[3] = {0.0f, 0.0f, 0.0f};
     int m_frameCount;
     int m_headlessTargetFrames = 0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode
     qint64 m_lastFrameTime;

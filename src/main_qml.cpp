@@ -360,6 +360,15 @@ int main(int argc, char* argv[])
     bool cliCamTargetSet = false;
     QVector3D cliCamTarget(0.0f, 0.0f, 0.0f);
 
+    // Optional CLI override for the BH's world position. Defaults to unset,
+    // in which case config black_hole.position is used. When set it feeds
+    // BOTH the annulus (CelestialBodyRenderer::setBlackHoleCenter) and the
+    // curvature grid well (QmlGlViewport::setGridBlackHoleCenter) from one
+    // seam, so a test can move the BH between captures without editing the
+    // user's config file.
+    bool cliBHPositionSet = false;
+    float cliBHPosition[3] = {0.0f, 0.0f, 0.0f};
+
     // Annulus debug visualization: "normal" (default, the shipped disk with
     // Doppler beaming), "position" (RGB encodes the world position relative to
     // the black hole; its radius, length(rel.xz), verifies the annulus
@@ -448,6 +457,13 @@ int main(int argc, char* argv[])
             cliCamTarget.setZ(static_cast<float>(atof(argv[++i])));
             cliCamTargetSet = true;
             cliCameraSet = true;
+        } else if (strcmp(argv[i], "--bh-position") == 0 && i + 3 < argc) {
+            // Move the BH (annulus + grid well) without editing config. Used by
+            // tests/smoke/test_runtime.cpp::testFunnelTracksBlackHoleCenter.
+            cliBHPosition[0] = static_cast<float>(atof(argv[++i]));
+            cliBHPosition[1] = static_cast<float>(atof(argv[++i]));
+            cliBHPosition[2] = static_cast<float>(atof(argv[++i]));
+            cliBHPositionSet = true;
         } else if (strcmp(argv[i], "--annulus-debug") == 0 && i + 1 < argc) {
             const QString mode = QString::fromLocal8Bit(argv[++i]);
             if (mode == QLatin1String("magenta")) {
@@ -1237,19 +1253,37 @@ int main(int argc, char* argv[])
                 // Draw the annulus around the configured black hole position so
                 // the disk cannot silently diverge from the physics BH. The
                 // config value is in viewport world units (see
-                // CelestialBodyRenderer::setBlackHoleCenter); simulator.json
-                // currently declares (0,0,0), so this is a no-op today and the
-                // magenta verification count is unchanged.
-                celestialBodyRenderer->setBlackHoleCenter(
+                // CelestialBodyRenderer::setBlackHoleCenter).
+                // Effective BH world position: the CLI override wins over config so a test
+                // can move the BH between captures without touching the user's
+                // config file. One value feeds both the annulus and the grid
+                // well, so they can never silently diverge again.
+                float bhPos[3] = {
                     static_cast<float>(config.black_hole.position[0]),
                     static_cast<float>(config.black_hole.position[1]),
-                    static_cast<float>(config.black_hole.position[2]));
+                    static_cast<float>(config.black_hole.position[2]),
+                };
+                if (cliBHPositionSet) {
+                    bhPos[0] = cliBHPosition[0];
+                    bhPos[1] = cliBHPosition[1];
+                    bhPos[2] = cliBHPosition[2];
+                }
+                celestialBodyRenderer->setBlackHoleCenter(bhPos[0], bhPos[1], bhPos[2]);
+                // The curvature grid's well centers on the same BH the annulus does.
+                // Without this the funnel stayed at the world origin while the disk
+                // sat at (40,0,0): two different positions for the same physics BH.
+                viewport->setGridBlackHoleCenter(bhPos[0], bhPos[1], bhPos[2]);
                 celestialBodyRenderer->setAnnulusDebugMode(cliAnnulusDebug);
                 celestialBodyRenderer->setBeamingDisplayGain(beamingDisplayGain);
-                qDebug() << "[ANNULUS] wired from config black_hole.position ="
-                         << config.black_hole.position[0]
-                         << config.black_hole.position[1]
-                         << config.black_hole.position[2]
+                // Name the EFFECTIVE position, not the config value: when
+                // --bh-position is parsed this line must say so, otherwise the
+                // acceptance capture logs claim a config value that was
+                // overridden. One value feeds the annulus and the grid well.
+                qDebug() << "[ANNULUS] wired BH world position ="
+                         << bhPos[0] << bhPos[1] << bhPos[2]
+                         << (cliBHPositionSet
+                                 ? QStringLiteral("(--bh-position override)")
+                                 : QStringLiteral("(from config black_hole.position)"))
                          << "debug="
                          << (cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION
                                  ? QStringLiteral("position")

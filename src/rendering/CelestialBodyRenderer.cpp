@@ -942,14 +942,15 @@ void CelestialBodyRenderer::initializeGL()
                  << "outer=" << m_annOuterR
                  << "indices=" << m_annulusIndexCount;
         // The annulus instance matrix translates to m_bhCenterWorld, so this is
-        // the world position the disk is actually drawn at. It matches the
-        // configured black hole only because main_qml.cpp feeds it
-        // config black_hole.position via setBlackHoleCenter(); if they ever
-        // diverge, the disk is displaced while the magenta pixel count stays
-        // unchanged (the count never inspects world coordinates).
+        // the world position the disk is actually drawn at. It is whatever
+        // setBlackHoleCenter() was last given - config black_hole.position or
+        // the --bh-position override - and it is also the value the curvature
+        // grid well centers on. If it ever disagrees with the physics BH the
+        // disk is displaced while the magenta pixel count stays unchanged (the
+        // count never inspects world coordinates).
         qDebug() << "[ANNULUS] bhCenterWorld =" << m_bhCenterWorld[0]
                  << m_bhCenterWorld[1] << m_bhCenterWorld[2]
-                 << "(from config black_hole.position)";
+                 << "(from setBlackHoleCenter)";
     }
 
     // Compile shaders
