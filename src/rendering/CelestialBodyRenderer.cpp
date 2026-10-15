@@ -553,11 +553,18 @@ uniform vec3 cameraPosWorld;
 // gates the Doppler beaming term so bodies keep their unshifted shading.
 uniform int dopplerBeaming;
 
-// Visual mass of the black hole in annulus radius units. The annulus spans
-// [0.72, 1.80] world units, and 0.72 = 3 * r_s (ISCO) fixes r_s = 0.24, so
-// M = r_s / 2 = 0.12. Keplerian speed beta = sqrt(M / r) then evaluates to
-// sqrt(1/6) at ISCO and to 0.301 at the r = 1.326 fragments the Doppler
-// verification samples.
+// Deliberately does NOT track the metric mass.
+// If it did, beta = sqrt(M / max(r, 4M)) would saturate at 0.5 across most
+// of the disk: at r < 4M the denominator floors at 4M, so beta caps at
+// sqrt(M / 4M) = 0.5 and the Doppler gradient goes flat. The slider would
+// then move the disk from a physical gradient to a flat saturated plate -
+// not "less visually legible," but "the disk no longer shows physics."
+//
+// M_VISUAL is a world-unit constant derived from the annulus extent, not the
+// BH mass: the annulus spans [0.72, 1.80] world units, 0.72 = 3 * r_s (ISCO)
+// fixes r_s = 0.24, so M = r_s / 2 = 0.12. Keplerian beta = sqrt(M / r) then
+// evaluates to sqrt(1/6) at ISCO and to 0.301 at the r = 1.326 fragments the
+// Doppler verification samples.
 const float M_VISUAL = 0.12;
 
 // Display gain applied with the beaming term below. A pure scale multiplying
