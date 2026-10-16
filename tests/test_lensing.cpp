@@ -17,6 +17,7 @@
 #include "spacetime/KerrMetric.h"
 #include "spacetime/Event4D.h"
 #include "physics/PhysicsConstants.h"
+#include "physics/GeodesicIntegrator.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -204,22 +205,23 @@ int main() {
         std::cout << "[PASS] Metric switching works correctly" << std::endl;
     }
 
-    // Test 10: Lens distortion pattern validation
-    // Verifies that the deflection function produces expected qualitative behavior
+    // Test 10: Weak-field deflection scales as 1/b
+    // Verifies that deflection follows Δθ = 4M/b (weak-field Schwarzschild).
+    // A 10× change in b produces a 10× change in Δθ, not 100×. The previous
+    // 1/b² scaling (2/b²) gave deflection(10M)=0.02, deflection(100M)=0.0002
+    // — a 100× ratio for a 10× change in b — which is not the leading-order
+    // Schwarzschild deflection.
     {
-        // Deflection should be stronger for smaller radii (closer to BH)
-        // For a ray passing at 10M: deflection ~ rs/r = 2M/10M = 0.2
-        // For a ray passing at 100M: deflection ~ rs/r = 2M/100M = 0.02
-
-        double r1 = 10.0;
-        double r2 = 100.0;
-        double deflection1 = 2.0 / (r1 * r1);  // ~0.02
-        double deflection2 = 2.0 / (r2 * r2);  // ~0.0002
+        double M = 1.0;
+        double r1 = 10.0 * M;
+        double r2 = 100.0 * M;
+        double deflection1 = 4.0 * M / r1;  // 4M/b: 0.4 at 10M
+        double deflection2 = 4.0 * M / r2;  // 4M/b: 0.04 at 100M
 
         QV_CHECK(deflection1 > deflection2);
-        QV_CHECK_NEAR(deflection1 / deflection2 - r2 * r2 / (r1 * r1), 0.0, 0.01);
+        QV_CHECK_NEAR(deflection1 / deflection2 - r2 / r1, 0.0, 0.01);
 
-        std::cout << "[PASS] Lens distortion pattern scales correctly with distance" << std::endl;
+        std::cout << "[PASS] Weak-field deflection scales as 1/b" << std::endl;
         std::cout << "       deflection(10M) = " << deflection1 << std::endl;
         std::cout << "       deflection(100M) = " << deflection2 << std::endl;
     }
@@ -776,6 +778,93 @@ int main() {
         std::cout << "[PASS] ISCO inner-edge fade smooths the hard cut-off" << std::endl;
         std::cout << "       fade=0   : emissivity(5.9M)=sum=" << sum(eInside) << " emissivity(6.0M)=sum=" << sum(eAtInner) << std::endl;
         std::cout << "       fade=1.0 : emissivity(5.9M)=sum=" << sum(eInsideFade) << " emissivity(6.0M)=sum=" << sum(eAtInnerFade) << " emissivity(6.5M)=sum=" << sum(eFadeMid) << " emissivity(7.1M)=sum=" << sum(eFadeFull) << std::endl;
+    }
+
+    // Test 27: Critical impact parameter b_crit = 3√3 M ≈ 5.196 M.
+    //
+    // The critical impact parameter separates captured rays (b < b_crit, fall
+    // into the hole) from deflected rays (b > b_crit, escape to infinity).
+    // At b = b_crit the ray asymptotically approaches the photon sphere at
+    // r = 3M. This is a pure analytic check — no integration required.
+    {
+        double M = 1.0;
+        double bCrit = 3.0 * std::sqrt(3.0) * M;  // ≈ 5.196152423 M
+
+        QV_CHECK_NEAR(bCrit, 5.196152423, 1e-6);
+        QV_CHECK(bCrit > 3.0 * M);   // outside photon sphere (r_photon = 3M)
+        QV_CHECK(bCrit < 6.0 * M);   // inside ISCO (r_ISCO = 6M)
+
+        std::cout << "[PASS] Critical impact parameter b_crit = 3√3 M" << std::endl;
+        std::cout << "       b_crit = " << bCrit << " M" << std::endl;
+    }
+
+    // Test 28: Strong-field deflection at b=6M exceeds weak-field 4M/b.
+    //
+    // At b=6M (just outside b_crit ≈ 5.196M), strong-field corrections make
+    // the deflection larger than the weak-field prediction 4M/b ≈ 0.667 rad.
+    // A weak-field shader gives exactly 4M/b at every impact parameter; the
+    // correct RK4 geodesic integrator gives more as b -> b_crit. This single
+    // inequality distinguishes the correct implementation from the weak-field
+    // approximation, which no test at b=10M or b=100M can do.
+    //
+    // We integrate a null geodesic in Schwarzschild (M=1 geometric unit) from
+    // r=30M with impact parameter b=6M and measure the excess azimuthal sweep
+    // over the straight-line value for the same finite range. Subtracting the
+    // straight-line sweep (2*atan(rStart/b)) removes the finite-range artifact
+    // so the residual is purely the gravitational deflection.
+    {
+        // Mass in kg giving M = 1 in geometric units: M_geom = G*M_kg/c^2 = 1
+        double massKg = PHYS_C() * PHYS_C() / PHYS_G();
+        auto metric = std::make_shared<SchwarzschildMetric>(massKg);
+        GeodesicIntegrator integrator;
+        integrator.setMetric(metric);
+
+        double M = 1.0;
+        double b = 6.0 * M;
+        double rStart = 30.0 * M;
+
+        // Start at (x=b, y=-rStart, z=0), moving primarily in +y direction.
+        // Null four-velocity: u^x=0, u^y=1, u^z=0, solve g_mu_nu u^mu u^nu = 0 for u^t.
+        Event4D start(0.0, b, -rStart, 0.0);
+        auto gStart = metric->evaluate(start);
+
+        double ux = 0.0, uy = 1.0, uz = 0.0;
+        double spatial = gStart[1][1] * ux * ux + gStart[2][2] * uy * uy + gStart[3][3] * uz * uz
+                       + 2.0 * (gStart[1][2] * ux * uy + gStart[1][3] * ux * uz + gStart[2][3] * uy * uz);
+        double ut = std::sqrt(-spatial / gStart[0][0]);
+
+        std::array<double, 4> velocity = {ut, ux, uy, uz};
+
+        // Fixed-step integration: 3000 steps x 0.1 = 300M of affine parameter,
+        // enough to go from r=30, swing by periapsis (~4.4M for b=6M), return to r=30.
+        auto trajectory = integrator.integrateSimple(start, velocity, 3000, 0.1);
+        QV_CHECK(!trajectory.empty());
+
+        // Measure total change in phi = atan2(y, x), unwrapped across branch cuts.
+        auto phi = [](const Event4D& e) { return std::atan2(e.y, e.x); };
+        double phiTotal = 0.0;
+        double phiPrev = phi(trajectory.front());
+        for (size_t i = 1; i < trajectory.size(); i++) {
+            double phiCurr = phi(trajectory[i]);
+            double dPhi = phiCurr - phiPrev;
+            while (dPhi > M_PI) dPhi -= 2.0 * M_PI;
+            while (dPhi < -M_PI) dPhi += 2.0 * M_PI;
+            phiTotal += dPhi;
+            phiPrev = phiCurr;
+        }
+
+        // Straight-line azimuthal sweep for the same finite range:
+        // phi goes from atan2(-rStart, b) to atan2(rStart, b), total = 2*atan(rStart/b).
+        double straightLineSweep = 2.0 * std::atan(rStart / b);
+
+        // Gravitational deflection = actual sweep - straight-line sweep.
+        double deflection = phiTotal - straightLineSweep;
+        double weakField = 4.0 * M / b;  // 4/6 ≈ 0.667 rad
+
+        QV_CHECK(deflection > weakField);
+
+        std::cout << "[PASS] Strong-field deflection at b=6M exceeds weak-field 4M/b" << std::endl;
+        std::cout << "       deflection = " << deflection << " rad, weak-field 4M/b = " << weakField << " rad" << std::endl;
     }
 
     std::cout << "=== ALL GRAVITATIONAL LENSING TESTS PASSED ===" << std::endl;
