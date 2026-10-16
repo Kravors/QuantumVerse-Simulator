@@ -1874,6 +1874,8 @@ endif()
             src/rendering/ProceduralTextures.cpp
             src/rendering/Texture.cpp
             src/physics/CurvatureCalculator.cpp
+            src/rendering/GravitationalLensing.cpp
+            src/spacetime/KerrMetric.cpp
             third_party/glad/glad.cpp
         )
         target_link_libraries(test_rendering_diagnostic PRIVATE

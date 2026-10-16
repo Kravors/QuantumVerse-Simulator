@@ -232,6 +232,77 @@ void GravitationalLensing::render(const float* /*viewMatrix*/, const float* /*pr
     glBindVertexArray(prevVao);
 }
 
+std::vector<uint8_t> GravitationalLensing::renderOffscreen(int width, int height) {
+    if (!m_initialized || !m_lensingProgram) {
+        initialize(width, height);
+        if (!m_lensingProgram) {
+            return std::vector<uint8_t>(width * height * 3, 0);
+        }
+    }
+    resize(width, height);
+    m_width = width;
+    m_height = height;
+
+    GLuint fbo = 0;
+    GLuint colorTex = 0;
+    GLuint depthRbo = 0;
+
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    glGenTextures(1, &colorTex);
+    glBindTexture(GL_TEXTURE_2D, colorTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTex, 0);
+
+    glGenRenderbuffers(1, &depthRbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthRbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        if (colorTex) glDeleteTextures(1, &colorTex);
+        if (depthRbo) glDeleteRenderbuffers(1, &depthRbo);
+        if (fbo) glDeleteFramebuffers(1, &fbo);
+        return std::vector<uint8_t>(width * height * 3, 0);
+    }
+
+    GLint prevProgram, prevVao, prevViewport[4];
+    glGetIntegerv(GL_CURRENT_PROGRAM, &prevProgram);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVao);
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+    glViewport(0, 0, width, height);
+    glUseProgram(m_lensingProgram);
+    updateUniforms();
+
+    if (m_starFieldCubemap) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_starFieldCubemap);
+        glUniform1i(glGetUniformLocation(m_lensingProgram, "u_starField"), 0);
+    }
+
+    glBindVertexArray(m_quadVao);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+
+    std::vector<uint8_t> pixels(width * height * 3);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+    glUseProgram(prevProgram);
+    glBindVertexArray(prevVao);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    if (colorTex) glDeleteTextures(1, &colorTex);
+    if (depthRbo) glDeleteRenderbuffers(1, &depthRbo);
+    if (fbo) glDeleteFramebuffers(1, &fbo);
+
+    return pixels;
+}
+
 void GravitationalLensing::setParams(const LensingParams& params) {
     m_params = params;
 }

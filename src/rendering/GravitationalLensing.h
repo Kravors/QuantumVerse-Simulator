@@ -113,6 +113,18 @@ public:
     void render(const float* viewMatrix, const float* projectionMatrix);
 
     /**
+     * @brief Render the lensing effect to an offscreen image.
+     *
+     * Renders a small square image using the lensing shader with the current
+     * parameters. Must be called with a valid OpenGL context initialized.
+     *
+     * @param width Image width in pixels
+     * @param height Image height in pixels
+     * @return Image data as 8-bit RGB (width * height * 3 bytes) in row-major order
+     */
+    std::vector<uint8_t> renderOffscreen(int width, int height);
+
+    /**
      * @brief Set the lensing parameters.
      * @param params New lensing parameters
      */
