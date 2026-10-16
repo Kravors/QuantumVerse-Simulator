@@ -233,6 +233,23 @@ public:
         return 1.0;
     }
 
+    /// @brief In-place mass update.
+    ///
+    /// Subscripts that cache derived state (probe readouts, grid geometry,
+    /// lensing constants) should observe epoch() and invalidate when it changes.
+    /// Default does nothing; SchwarzschildMetric overrides.
+    ///
+    /// @param massKg New black hole mass in kilograms.
+    virtual void setMass(double /*massKg*/) noexcept {}
+
+    /// @brief Monotonic counter incremented on every mass change.
+    ///
+    /// Consumers include this in cache keys so in-place mass updates don't
+    /// return stale curvature scalars or grid geometry.
+    ///
+    /// @return Current epoch value.
+    virtual uint64_t epoch() const noexcept { return 0; }
+
     // Virtual destructor for proper polymorphic cleanup
     virtual ~MetricTensor() = default;
 
@@ -451,6 +468,23 @@ public:
     /// @brief Black hole mass in kilograms.
     double mass() const { return m_mass; }
 
+    /// @brief In-place mass update with epoch bump for cache invalidation.
+    ///
+    /// Updates m_mass without reallocating the metric object. Consumers that
+    /// cache curvature scalars or grid geometry keyed on this metric should
+    /// observe epoch() and invalidate when it changes.
+    ///
+    /// @param massKg New black hole mass in kilograms.
+    void setMass(double massKg) noexcept {
+        if (std::abs(massKg - m_mass) > 1e-12 * std::max(1.0, std::abs(massKg))) {
+            m_mass = massKg;
+            ++m_epoch;
+        }
+    }
+
+    /// @brief Monotonic counter incremented on every mass change.
+    uint64_t epoch() const noexcept { return m_epoch; }
+
     std::array<std::array<double, 4>, 4> evaluate(const Event4D& event) const override {
         if (!std::isfinite(event.x) || !std::isfinite(event.y) || !std::isfinite(event.z)) {
             return MetricTensor().g;
@@ -633,6 +667,7 @@ public:
 
 private:
     double m_mass;
+    uint64_t m_epoch = 0;
 };
 
 // Stress-energy tensor (source of spacetime curvature)

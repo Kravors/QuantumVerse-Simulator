@@ -3764,10 +3764,16 @@ void QmlGlViewport::setVolumetricDiskInnerEdgeFade(float fade) {
          if (!m_lensingMetric) {
              m_lensingMetric = std::make_shared<KerrMetric>(1.989e30, m_lensingSpin);
          }
-         m_lensing = std::make_shared<GravitationalLensing>(m_lensingMetric);
-     }
+     m_lensing = std::make_shared<GravitationalLensing>(m_lensingMetric);
+    }
 
-     // Update all parameters
+    // Sync the metric object's mass in place (no reallocation).  epoch()
+    // bumps on change so probe/grid/cache consumers invalidate.
+    if (m_lensingMetric) {
+        m_lensingMetric->setMass(m_lensingMass);
+    }
+
+    // Update all parameters
 GravitationalLensing::LensingParams params;
       params.mass = m_lensingMass;
       params.spin = m_lensingSpin;
