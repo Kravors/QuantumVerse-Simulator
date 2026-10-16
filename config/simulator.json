@@ -5,6 +5,10 @@
         "h": 6.62607015e-34,
         "description": "G=gravitational constant, c=speed of light, h=Planck constant"
     },
+    "physics": {
+        "gr_corrections": true,
+        "description": "Enable 1PN Schwarzschild corrections to the N-body integrator"
+    },
     "black_hole": {
         "mass_solar_masses": 10.0,
         "position": [40.0, 0.0, 0.0],

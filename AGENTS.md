@@ -438,6 +438,10 @@ check the clock first: `[N-BODY]` instrumentation in
 `updateSimulation()` is the single intended funnel. Before routing any new code through
 `stepSimulation` directly, confirm none of these three paths double-step the same frame.
 
+> NOTE: the viewport call at `qmlglviewport.cpp:2424` runs every frame alongside the QML `simTimer`
+> in interactive mode. Confirm it doesn't double-step with the timer before adding any feature that
+> depends on absolute sim-time per frame — that's exactly the class of bug `d3962e0` eliminated.
+
 ### Two different "up" axes: N-body orbits in XY, annulus disk in XZ
 
 The codebase contains two incompatible plane conventions, and they are

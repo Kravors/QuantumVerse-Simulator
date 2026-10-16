@@ -706,6 +706,7 @@ int main(int argc, char* argv[])
         ui4d->setCurvatureRenderer(curvatureRenderer);
         ui4d->setQuantumRenderer(quantumRenderer);
         ui4d->setKerrSpin(blackHoleSpin);
+        ui4d->setGrCorrections(config.gr_corrections);
 
         // Visualization scale: object positions are stored in raw meters
         // (Sun at origin, Neptune at ~30 AU). The viewport grid spans only

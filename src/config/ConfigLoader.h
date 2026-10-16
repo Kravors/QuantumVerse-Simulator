@@ -71,6 +71,7 @@ struct SimulatorConfig {
     GridConfig grid;
     CameraConfig camera;
     PhysicsConstantsConfig constants;
+    bool gr_corrections = true;
 };
 
 class ConfigLoader {
@@ -190,6 +191,11 @@ private:
             config_.constants.G = pc.value("G", 6.67430e-11);
             config_.constants.c = pc.value("c", 299792458.0);
             config_.constants.h = pc.value("h", 6.62607015e-34);
+        }
+
+        if (j.contains("physics")) {
+            auto& p = j["physics"];
+            config_.gr_corrections = p.value("gr_corrections", true);
         }
     }
 
