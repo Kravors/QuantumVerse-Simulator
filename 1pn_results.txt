@@ -1,0 +1,35 @@
+********* Start testing of TestMercury1PN *********
+Config: Using QtTest library 6.11.1, Qt 6.11.1 (x86_64-little_endian-llp64 shared (dynamic) debug build; by MSVC 2022), windows 11
+INFO   : TestMercury1PN::initTestCase() entering
+PASS   : TestMercury1PN::initTestCase()
+INFO   : TestMercury1PN::testAnalyticAdvance() entering
+INFO   : TestMercury1PN::testAnalyticAdvance() QVERIFY(std::abs(per_orbit_rad - 5.02e-7) < 1e-9)
+F:\syyyy\tests\physics\test_mercury_1pn.cpp(107) : message location
+PASS   : TestMercury1PN::testAnalyticAdvance()
+INFO   : TestMercury1PN::testPerihelionAdvance() entering
+QINFO  : TestMercury1PN::testPerihelionAdvance() [1PN] total rotation = 1.19228e-05  rad
+QINFO  : TestMercury1PN::testPerihelionAdvance() [1PN] precession (turns) = 1.89758e-06
+QINFO  : TestMercury1PN::testPerihelionAdvance() [1PN] residual advance =  2.45926  arcsec (expected ~2.49")
+INFO   : TestMercury1PN::testPerihelionAdvance() QVERIFY(std::abs(residual_rad - kExpectedAdvance_rad) < kTolerance_rad)
+F:\syyyy\tests\physics\test_mercury_1pn.cpp(164) : message location
+PASS   : TestMercury1PN::testPerihelionAdvance()
+INFO   : TestMercury1PN::testPerihelionNewtonian() entering
+QINFO  : TestMercury1PN::testPerihelionNewtonian() [Newtonian] total rotation = -1.54229e-08  rad
+QINFO  : TestMercury1PN::testPerihelionNewtonian() [Newtonian] residual advance =  -0.0031812  arcsec
+INFO   : TestMercury1PN::testPerihelionNewtonian() QVERIFY(std::abs(total_rotation) < 1e-6)
+F:\syyyy\tests\physics\test_mercury_1pn.cpp(197) : message location
+PASS   : TestMercury1PN::testPerihelionNewtonian()
+INFO   : TestMercury1PN::testEnergyDrift() entering
+QINFO  : TestMercury1PN::testEnergyDrift() [1PN] energy drift over 10 orbits =  1.5245e-10
+INFO   : TestMercury1PN::testEnergyDrift() QVERIFY(drift < 1e-6)
+F:\syyyy\tests\physics\test_mercury_1pn.cpp(223) : message location
+PASS   : TestMercury1PN::testEnergyDrift()
+INFO   : TestMercury1PN::testEarthUnaffected() entering
+QINFO  : TestMercury1PN::testEarthUnaffected() [1PN] |a_1PN/a_N| at Earth = 2.96203e-08
+INFO   : TestMercury1PN::testEarthUnaffected() QVERIFY(ratio < 1e-7)
+F:\syyyy\tests\physics\test_mercury_1pn.cpp(237) : message location
+PASS   : TestMercury1PN::testEarthUnaffected()
+INFO   : TestMercury1PN::cleanupTestCase() entering
+PASS   : TestMercury1PN::cleanupTestCase()
+Totals: 7 passed, 0 failed, 0 skipped, 0 blacklisted, 395909ms
+********* Finished testing of TestMercury1PN *********

@@ -429,6 +429,15 @@ physics dt = interval x timeScale). The layers above remain valid checks, but
 check the clock first: `[N-BODY]` instrumentation in
 `UI4D::stepSimulationCPU` logs substep state per call.
 
+### Stepping paths (post-`d3962e0`)
+
+`stepSimulation` has two direct callers outside `updateSimulation`:
+- `UI4D::updateSolarSystemPositions()` (`src/ui4d/UI4D.cpp:600`) — called for backward compatibility
+- `QmlGlViewport::render()` (`src/qmlglviewport.cpp:2424`) — steps every frame
+
+`updateSimulation()` is the single intended funnel. Before routing any new code through
+`stepSimulation` directly, confirm none of these three paths double-step the same frame.
+
 ### Two different "up" axes: N-body orbits in XY, annulus disk in XZ
 
 The codebase contains two incompatible plane conventions, and they are
