@@ -862,6 +862,9 @@ private:
     // Kerr metric parameters
     double m_kerrSpin = 0.0; // Dimensionless spin parameter [0, 0.999]
 
+    // GR corrections toggle: 1PN Schwarzschild correction to the N-body integrator
+    bool m_grCorrections = true;
+
     void initGPUAcceleration();
     void shutdownGPUAcceleration();
     void stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyPtrs, int n);
@@ -872,6 +875,19 @@ private:
     // Kerr metric parameters
     void setKerrSpin(double spin) { m_kerrSpin = std::clamp(spin, 0.0, 0.999); }
     double kerrSpin() const { return m_kerrSpin; }
+
+    void setGrCorrections(bool enabled) { m_grCorrections = enabled; }
+    bool grCorrections() const { return m_grCorrections; }
+
+    // Raw CPU integrator step for testing: no adaptive substepping, no diagnostics.
+    void stepSimulationCPURaw(double sub_dt) {
+        std::vector<SolarSystemBody*> bodyPtrs;
+        bodyPtrs.reserve(solarSystem.bodies.size());
+        for (auto& pair : solarSystem.bodies) {
+            bodyPtrs.push_back(&pair.second);
+        }
+        stepSimulationCPU(sub_dt, bodyPtrs, static_cast<int>(bodyPtrs.size()));
+    }
 
     // --- Scenario system ---
     bool loadScenario(const Scenario& scenario);
@@ -1015,6 +1031,7 @@ private:
 
      // Accessor for testing
      const SolarSystemData& getSolarSystem() const { return solarSystem; }
+     SolarSystemData& getSolarSystem() { return solarSystem; }
 
       // Interactive asteroid injection
       void injectAsteroid(double x, double y, double z, double vx, double vy, double vz, double mass = 1e15);

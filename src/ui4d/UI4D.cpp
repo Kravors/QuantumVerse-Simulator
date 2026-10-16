@@ -865,7 +865,38 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
             bi->acc[0] += a_mag * (dx / r_soft);
             bi->acc[1] += a_mag * (dy / r_soft);
             bi->acc[2] += a_mag * (dz / r_soft);
-            
+
+            // 1PN Schwarzschild correction to the central body's field
+            // a_1PN = (GM/(c^2 r^2)) * [ (4GM/r - v^2) r_hat + 4(v·r_hat) v ]
+            // Produces Mercury's ~43 arcsec/century perihelion advance.
+            if (m_grCorrections && bj->isCentralBody) {
+                double G = PHYS_G();
+                double c2 = PHYS_C2();
+                double M = bj->mass;
+                double r = std::sqrt(r2);
+                if (r > softening) {
+                    double r_inv = 1.0 / r;
+                    // r_hat points from central body (bj) to orbiting body (bi) -- outward,
+                    // matching the standard 1PN formula convention.
+                    double r_hat_x = -dx * r_inv;
+                    double r_hat_y = -dy * r_inv;
+                    double r_hat_z = -dz * r_inv;
+
+                    double vx = bi->velocity.x;
+                    double vy = bi->velocity.y;
+                    double vz = bi->velocity.z;
+                    double v2 = vx * vx + vy * vy + vz * vz;
+                    double vdotr = vx * r_hat_x + vy * r_hat_y + vz * r_hat_z;
+
+                    double coef = G * M / (c2 * r * r);
+                    double radial_term = (4.0 * G * M / r - v2);
+
+                    bi->acc[0] += coef * (radial_term * r_hat_x + 4.0 * vdotr * vx);
+                    bi->acc[1] += coef * (radial_term * r_hat_y + 4.0 * vdotr * vy);
+                    bi->acc[2] += coef * (radial_term * r_hat_z + 4.0 * vdotr * vz);
+                }
+            }
+
             // Lense-Thirring precession (frame-dragging) from rotating central body
             // Only apply when the other body is the central (massive) body
             if (bj->isCentralBody && m_kerrSpin > 1e-10) {
@@ -945,6 +976,35 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
             bi->acc[0] += a_mag * (dx / r_soft);
             bi->acc[1] += a_mag * (dy / r_soft);
             bi->acc[2] += a_mag * (dz / r_soft);
+
+            // 1PN Schwarzschild correction to the central body's field
+            if (m_grCorrections && bj->isCentralBody) {
+                double G = PHYS_G();
+                double c2 = PHYS_C2();
+                double M = bj->mass;
+                double r = std::sqrt(r2);
+                if (r > softening) {
+                    double r_inv = 1.0 / r;
+                    // r_hat points from central body (bj) to orbiting body (bi) -- outward,
+                    // matching the standard 1PN formula convention.
+                    double r_hat_x = -dx * r_inv;
+                    double r_hat_y = -dy * r_inv;
+                    double r_hat_z = -dz * r_inv;
+
+                    double vx = bi->velocity.x;
+                    double vy = bi->velocity.y;
+                    double vz = bi->velocity.z;
+                    double v2 = vx * vx + vy * vy + vz * vz;
+                    double vdotr = vx * r_hat_x + vy * r_hat_y + vz * r_hat_z;
+
+                    double coef = G * M / (c2 * r * r);
+                    double radial_term = (4.0 * G * M / r - v2);
+
+                    bi->acc[0] += coef * (radial_term * r_hat_x + 4.0 * vdotr * vx);
+                    bi->acc[1] += coef * (radial_term * r_hat_y + 4.0 * vdotr * vy);
+                    bi->acc[2] += coef * (radial_term * r_hat_z + 4.0 * vdotr * vz);
+                }
+            }
         }
     }
 
@@ -953,35 +1013,6 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
         bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
-    }
-
-    // [N-BODY] diagnostic for the integrator-freeze investigation. Logs the
-    // post-substep state of the central body plus the inner (Mercury), middle
-    // (Earth) and outer (Neptune) planets for the first calls, every 25th
-    // call (the end state of a --frames 100 run), and every 600th thereafter.
-    // vel==0 means the initialization is the bug; vel!=0 with pos never
-    // changing means the drift is the bug; both changing means the renderer
-    // reads a stale copy.
-    {
-        static long long nbodyCall = 0;
-        ++nbodyCall;
-        if (nbodyCall <= 12 || nbodyCall % 25 == 0 || nbodyCall % 600 == 0) {
-            for (int i = 0; i < n; ++i) {
-                const SolarSystemBody* bi = bodyPtrs[i];
-                if (bi->isCentralBody || bi->name == "Earth" || bi->name == "Mercury"
-                    || bi->name == "Neptune") {
-                    std::cout << "[N-BODY] call=" << nbodyCall
-                              << " sub_dt=" << sub_dt << " n=" << n
-                              << " name=" << bi->name
-                              << " pos=(" << bi->position.x << "," << bi->position.y
-                              << "," << bi->position.z << ")"
-                              << " vel=(" << bi->velocity.x << "," << bi->velocity.y
-                              << "," << bi->velocity.z << ")"
-                              << " acc=(" << bi->acc[0] << "," << bi->acc[1]
-                              << "," << bi->acc[2] << ")" << std::endl;
-                }
-            }
-        }
     }
 }
 

@@ -1060,6 +1060,39 @@ if(QUANTUMVERSE_BUILD_TESTS)
     add_executable(test_mercury_precession tests/test_mercury_precession.cpp)
     target_link_libraries(test_mercury_precession PRIVATE dilaton)
     add_test(NAME MercuryPrecessionTest COMMAND test_mercury_precession)
+
+    # Integrator-level test: 1PN Schwarzschild correction, Mercury perihelion advance
+    # (QtTest version: tests/physics/test_mercury_1pn.cpp)
+    add_executable(test_mercury_1pn_physics
+        tests/physics/test_mercury_1pn.cpp
+        src/ui4d/UI4D.cpp
+        src/rendering/ComputeShader.cpp
+        src/rendering/CurvatureRenderer.cpp
+        src/rendering/QuantumGeometryRenderer.cpp
+        src/physics/CurvatureCalculator.cpp
+        third_party/glad/glad.cpp
+    )
+    target_include_directories(test_mercury_1pn_physics PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+    )
+    target_link_libraries(test_mercury_1pn_physics PRIVATE Qt6::Core Qt6::Gui Qt6::Test dilaton)
+    if(WIN32)
+        target_link_libraries(test_mercury_1pn_physics PRIVATE opengl32 dbghelp)
+    endif()
+    set_target_properties(test_mercury_1pn_physics PROPERTIES AUTOMOC ON)
+    add_test(NAME Mercury1PNTest COMMAND test_mercury_1pn_physics)
+    set_tests_properties(Mercury1PNTest PROPERTIES
+        LABELS "physics;unit"
+    )
+
+    # Integrator-level test: 1PN Schwarzschild correction, Mercury perihelion advance
+    add_executable(test_mercury_1pn tests/test_mercury_1pn.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp src/physics/CurvatureCalculator.cpp third_party/glad/glad.cpp)
+    target_include_directories(test_mercury_1pn PRIVATE src third_party/glad/include third_party/glad/include/glad)
+    target_link_libraries(test_mercury_1pn PRIVATE Qt6::Core Qt6::Gui dilaton)
+    add_test(NAME Mercury1PNAdanceTest COMMAND test_mercury_1pn)
     
     add_executable(test_light_deflection tests/test_light_deflection.cpp)
     target_link_libraries(test_light_deflection PRIVATE dilaton)
