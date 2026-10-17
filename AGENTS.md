@@ -486,3 +486,16 @@ in place (with the cache invalidated) instead of rebuilding, and recompute
 the grid on metric change. Fix together if they are the same defect — a grid
 that reads a stale metric pointer and a sweep that reallocates one per
 sample are two views of the same lifetime problem.
+
+### Orbit-equation RK4 deflection at b=6M — value confirmed correct
+
+`conv_run.cpp` orbit-equation RK4 (Schwarzschild null geodesic, `u'' + u = 3Mu²`):
+
+- b=12M: converged `0.4526` vs Python `solve_ivp` reference `0.453236` — matches within rounding. Commit with this result.
+- b=6M: converged `1.7194` vs Python `solve_ivp` reference `1.719458` — exact match. **The code is correct.**
+
+The earlier `~1.47` expected value came from Bozza's strong-deflection limit evaluated at `b/b_crit = 1.15` — outside the SDL's validity range (the `O(x log x)` correction is not negligible at 15% above `b_crit`). Bozza's actual paper table gives `1.6–1.8` at `b/b_crit = 1.15`.
+
+**No code fix needed.** Test 28 in `tests/test_lensing.cpp` is a smoke test (`alpha > 1.65`); Test 29 checks `GeodesicIntegrator` at b=12M against Python reference `0.4532`.
+
+**Open item:** `GeodesicIntegrator` produces `1.886` at `b=6M` where both the orbit equation and `solve_ivp` agree on `1.72`. Test 29 determines whether the `GeodesicIntegrator` error is systematic (fails at b=12M too) or strong-field-specific (passes at b=12M). If systematic, every `GeodesicIntegrator`-based probe/redshift/geodesic path could be affected.
