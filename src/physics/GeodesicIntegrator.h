@@ -527,6 +527,13 @@ public:
      * @param steps Number of integration steps.
      * @param deltaTau Proper time per step.
      * @return Vector of events along the geodesic.
+     *
+     * @note This runs exactly `steps` RK4 iterations and does NOT terminate on
+     * escape (r > rMax). Callers measuring asymptotic quantities (deflection,
+     * redshift, etc.) must use the trajectory's actual endpoints — r_start and
+     * r_end read from the first and last events — rather than assuming a
+     * symmetric in-and-out path to r_start. See AGENTS.md for the b=6M/b=12M
+     * flat-sweep formula correction that resulted from this assumption.
      */
     std::vector<Event4D> integrateSimple(
         const Event4D& start,
