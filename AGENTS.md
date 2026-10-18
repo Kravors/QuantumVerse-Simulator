@@ -496,6 +496,6 @@ sample are two views of the same lifetime problem.
 
 The earlier `~1.47` expected value came from Bozza's strong-deflection limit evaluated at `b/b_crit = 1.15` — outside the SDL's validity range (the `O(x log x)` correction is not negligible at 15% above `b_crit`). Bozza's actual paper table gives `1.6–1.8` at `b/b_crit = 1.15`.
 
-**No code fix needed.** Test 28 in `tests/test_lensing.cpp` is a smoke test (`alpha > 1.65`); Test 29 checks `GeodesicIntegrator` at b=12M against Python reference `0.4532`.
+**No code fix needed.** Test 28 in `tests/test_lensing.cpp` was a smoke test (`alpha > 1.65`) that masked the same caller-side formula bug as Test 29; both now use `acos(b/r_start) + acos(b/r_end)` with actual trajectory endpoints. Test 28 passes at b=6M (deflection `~1.71` vs Python `1.719458`), Test 29 passes at b=12M (deflection `0.4485` vs Python `0.4532`). The earlier `1.886` (b=6M) and `0.784` (b=12M) values were produced by subtracting `2*atan(r0/b)`, which assumes `r_end = r_start` but `integrateSimple` runs exactly `steps` RK4 iterations without terminating on escape — `r_end` is whatever the step budget reaches.
 
-**Open item:** `GeodesicIntegrator` produces `1.886` at `b=6M` where both the orbit equation and `solve_ivp` agree on `1.72`. Test 29 determines whether the `GeodesicIntegrator` error is systematic (fails at b=12M too) or strong-field-specific (passes at b=12M). If systematic, every `GeodesicIntegrator`-based probe/redshift/geodesic path could be affected.
+**Resolved:** `GeodesicIntegrator` produces correct deflection at b=6M (~1.71 vs 1.719) and b=12M (0.4485 vs 0.4532). The integrator is correct at both impact parameters; neither discrepancy was integrator-side.
