@@ -2633,6 +2633,9 @@ void QmlGlViewport::setGridBlackHoleCenter(float x, float y, float z)
     if (m_curvatureRenderer) {
         m_curvatureRenderer->setBlackHoleCenter(x, y, z);
     }
+    if (m_lensing) {
+        m_lensing->setBlackHolePosition({x, y, z});
+    }
     update();
 }
 
@@ -3491,7 +3494,7 @@ void QmlGlRenderer::renderLensing() {
  }
 
 void QmlGlViewport::setLensingEnabled(bool enabled) {
-    if (m_lensingEnabled != enabled) {
+    if (m_lensingEnabled != enabled || !m_lensing) {
         m_lensingEnabled = enabled;
         if (!m_lensing) syncLensingParams();  // Lazily build the renderer on first enable
         if (m_lensing) {
@@ -3785,6 +3788,11 @@ params.enableAccretionDisk = m_accretionDiskEnabled;
     params.enablePhotonRing = m_photonRingEnabled;
     params.accretionDiskIntensity = m_accretionDiskIntensity;
     m_lensing->setParams(params);
+
+    // Black hole position in world space — shader subtracts it from ray origin
+    m_lensing->setBlackHolePosition({m_gridBlackHoleCenter[0],
+                                     m_gridBlackHoleCenter[1],
+                                     m_gridBlackHoleCenter[2]});
 
     GravitationalLensing::VolumetricDiskParams vol;
     vol.enableVolumetricDisk = m_volumetricDiskEnabled;

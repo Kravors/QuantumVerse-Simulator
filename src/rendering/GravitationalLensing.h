@@ -185,6 +185,18 @@ public:
     void setStarFieldEnabled(bool enabled) { m_params.enableStarField = enabled; }
 
     /**
+     * @brief Set the black hole position in world space.
+     * @param pos Black hole position {x, y, z}
+     */
+    void setBlackHolePosition(const std::array<float,3>& pos) { m_bhPos = pos; }
+
+    /**
+     * @brief Get the current black hole position.
+     * @return Black hole position {x, y, z}
+     */
+    const std::array<float,3>& blackHolePosition() const { return m_bhPos; }
+
+    /**
      * @brief Check if lensing is enabled.
      * @return true if enabled
      */
@@ -395,6 +407,9 @@ private:
     GLuint m_starFieldCubemap = 0;
     GLuint m_quadVao = 0;
     GLuint m_quadVbo = 0;
+
+    // Black hole position in world space (default origin)
+    std::array<float,3> m_bhPos = {0.0f, 0.0f, 0.0f};
 
     // Star field generation state
     std::vector<std::array<uint8_t, 3>> m_starData;

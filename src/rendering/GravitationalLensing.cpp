@@ -41,10 +41,11 @@ static const char* lensingVertexSource = R"(
 // (MSVC cannot compile one giant embedded raw string literal).
 static std::string loadLensingFragmentSource() {
     namespace fs = std::filesystem;
-    auto path = fs::current_path() / "src" / "rendering" / "lensing_fragment.glsl";
+    auto srcDir = fs::path(__FILE__).parent_path();
+    auto path = srcDir / "lensing_fragment.glsl";
     std::ifstream file(path);
     if (!file) {
-        std::cerr << "[GravitationalLensing] failed to open lensing_fragment.glsl" << std::endl;
+        std::cerr << "[GravitationalLensing] failed to open lensing_fragment.glsl at " << path << std::endl;
         return {};
     }
     std::stringstream ss;
@@ -124,7 +125,7 @@ GravitationalLensing::GravitationalLensing(std::shared_ptr<MetricTensor> metric)
     m_params.cameraDistance = 10.0f;
     m_params.cameraTheta = 1.5708f;  // equatorial
     m_params.cameraPhi = 0.0f;
-    m_params.raySteps = 256;
+    m_params.raySteps = 1024;
     m_params.maxDistance = 50.0f;
     m_params.shadowIntensity = 1.0f;
     m_params.starFieldIntensity = 1.0f;
@@ -397,7 +398,6 @@ void GravitationalLensing::compileLensingShader() {
     std::string fragSource = loadLensingFragmentSource();
     if (fragSource.empty()) return;
     GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, fragSource.c_str());
-
     if (vertShader && fragShader) {
         m_lensingProgram = linkProgram(vertShader, fragShader);
     }
@@ -593,6 +593,9 @@ void GravitationalLensing::updateUniforms() {
     float camZ = m_params.cameraDistance * sin(m_params.cameraTheta) * sin(m_params.cameraPhi);
 
     setUniformVec3("u_cameraPos", camX, camY, camZ);
+
+    // Black hole position (world space) — subtracted from ray origin in shader
+    setUniformVec3("u_bhPos", m_bhPos[0], m_bhPos[1], m_bhPos[2]);
 
     // Camera direction (looking at origin)
     float dirLen = sqrt(camX * camX + camY * camY + camZ * camZ);

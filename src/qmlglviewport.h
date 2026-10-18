@@ -1030,8 +1030,8 @@ private:
     void truncateRedoStack();
 
     // Gravitational lensing state
-     bool m_lensingEnabled = false;
-     int m_lensingSteps = 256;
+     bool m_lensingEnabled = true;
+     int m_lensingSteps = 1024;
      float m_shadowIntensity = 1.0f;
      float m_lensingMass = 1.0f;
 float m_lensingSpin = 0.6f;

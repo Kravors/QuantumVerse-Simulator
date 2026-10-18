@@ -31,6 +31,7 @@ uniform float u_volumetricDiskInnerEdgeFade;
 
 // Camera parameters
 uniform vec3 u_cameraPos;
+uniform vec3 u_bhPos;
 uniform vec3 u_cameraDir;
 uniform vec3 u_cameraUp;
 uniform float u_fov;
@@ -205,13 +206,16 @@ vec3 rayMarch(vec3 rayOrigin, vec3 rayDir) {
     float rs = 2.0 * M;
     float horizon = rs;
 
+    // Ray origin relative to black hole position
+    vec3 ro = rayOrigin - u_bhPos;
+
     // Orbital plane basis: plane containing the BH, camera, and ray direction
-    vec3 e_r = normalize(rayOrigin);                        // BH -> camera
-    vec3 n = normalize(cross(rayOrigin, rayDir));           // normal to orbital plane
-    vec3 e_phi = cross(n, e_r);                             // tangent in orbital plane
+    vec3 e_r = normalize(ro);                        // BH -> camera
+    vec3 n = normalize(cross(ro, rayDir));           // normal to orbital plane
+    vec3 e_phi = cross(n, e_r);                      // tangent in orbital plane
 
     // Initial conditions
-    float r0 = length(rayOrigin);
+    float r0 = length(ro);
     float u0 = 1.0 / r0;
 
     // Decompose initial direction into radial and tangential components
@@ -231,7 +235,7 @@ vec3 rayMarch(vec3 rayOrigin, vec3 rayDir) {
     float du2 = 1.0 / (b * b) - u0 * u0 * (1.0 - 2.0 * M * u0);
     float dup0 = 0.0;
     if (du2 > 0.0) {
-        dup0 = dirRadial < 0.0 ? -sqrt(du2) : sqrt(du2);
+        dup0 = dirRadial < 0.0 ? sqrt(du2) : -sqrt(du2);
     } else {
         // No valid orbit with this impact parameter -> captured
         return vec3(0.0);
@@ -258,7 +262,7 @@ vec3 rayMarch(vec3 rayOrigin, vec3 rayDir) {
             // Reconstruct look direction at escape from orbit state
             vec3 e_r_esc = cos(phi) * e_r + sin(phi) * e_phi;
             vec3 e_phi_esc = -sin(phi) * e_r + cos(phi) * e_phi;
-            float alpha_esc = atan2(-u * dup, 1.0);
+            float alpha_esc = atan(-u * dup, 1.0);
             int sign = dup >= 0.0 ? 1 : -1;
             vec3 lookDir = normalize(cos(alpha_esc) * e_r_esc + float(sign) * sin(alpha_esc) * e_phi_esc);
             return sampleStarField(lookDir);
@@ -353,7 +357,7 @@ vec3 volumetricDiskEmission(vec3 rayOrigin, vec3 rayDir, float rs, float isco,
         // blackbody at T_obs = T * delta, not a delta^4 intensity boost
         // applied to the emitted temperature.  The delta^4 factor moves into
         // j below; beaming carries only the user gain.
-        float T_eff = T * delta;
+        float T_eff = T;
         // Kirchhoff's law: j = κ·ρ·B(T_eff) ∝ κ·ρ·T_eff⁴.
         float j = opacity * rho * T_eff * T_eff * T_eff * T_eff;
         vec3 bbColor = blackbodyColor(T_eff);
@@ -450,7 +454,7 @@ void main() {
     color = color * transmission + diskEmission;
 
     // Add photon ring glow
-    float r = length(u_cameraPos);
+    float r = length(u_cameraPos - u_bhPos);
     vec2 ndcPos = vTexCoord * 2.0 - 1.0;
     float distFromCenter = length(ndcPos) * r * 0.3;
     vec3 ringGlow = renderPhotonRing(distFromCenter);
