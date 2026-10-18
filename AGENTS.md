@@ -375,6 +375,17 @@ Windows App Execution Alias stubs (e.g. `%LOCALAPPDATA%\Microsoft\WindowsApps\py
   with injection show `gtt=-0.7046 branch=1` throughout. Instrumentation
   (`[MASS]`, `[REDSHIFT-DEBUG]`, `[PROBE]`) is in place to catch a recurrence.
 
+- **Lensing shader was non-functional until commit `00fd554` — never compiled.**
+  `loadLensingFragmentSource()` used `fs::current_path()` (wrong directory), so
+  `m_lensingProgram` stayed 0; the shader also had pre-existing GLSL errors
+  (`atan2` undefined, `delta` undefined). All prior lensing behavior claims were
+  the fallback path, not the shader. Fix: `__FILE__`-relative path, `atan2`→`atan`,
+  removed undefined `delta`, added `u_bhPos` uniform so ray origin is
+  `u_cameraPos - u_bhPos` (BH at world origin → ring at screen center). Verified:
+  ring at screen center within ~2px across cam-dist 20/40/80; Test 23b still
+  passes (CPU `computeVolumetricDiskEmissivity()` unchanged); steady-state ~28
+  FPS in Debug at 1024 raySteps.
+
 ## Configuration Options
 
 | Option | Default | Description |
