@@ -384,7 +384,7 @@ Windows App Execution Alias stubs (e.g. `%LOCALAPPDATA%\Microsoft\WindowsApps\py
   `u_cameraPos - u_bhPos` (BH at world origin → ring at screen center). Verified:
   ring at screen center within ~2px across cam-dist 20/40/80; Test 23b still
   passes (CPU `computeVolumetricDiskEmissivity()` unchanged); steady-state ~28
-  FPS in Debug at 1024 raySteps.
+  FPS in Debug / ~34 FPS in Release at 1024 raySteps (GPU-bound).
 
 ## Configuration Options
 
