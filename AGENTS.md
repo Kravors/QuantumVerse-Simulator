@@ -117,6 +117,14 @@ dumps instead. `QQuickWindow::grabWindow()` is unavailable in the offscreen
 platform used by `--headless`, so full-window screenshots require a real
 display and cannot be used for CI.
 
+Toolbar overflow (`toolbar_overflow`) was verified at 1200px (the
+`minimumWidth` floor) during Session 2 — `toolbar_overflow= 0` in [REALITY]
+dumps at width 1200. Default width remains 1280. `test_runtime.cpp`'s
+`testToolbarOverflowAssertion` covers the default width; the 1200px floor is
+covered by the `minimumWidth: 1200` declaration in `main.qml:25`. Add a
+regression test that runs at `--window-width 1200` if that CLI flag is ever
+added.
+
 ### CI Exclusions
 Some rendering and performance tests are non-blocking canaries in CI:
 - `PerformanceGateTest`
