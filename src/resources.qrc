@@ -13,10 +13,17 @@
     </qresource>
     <qresource prefix="/">
         <file>icons/open.svg</file>
-        <file>icons/step_back.svg</file>
-        <file>icons/play.svg</file>
         <file>icons/pause.svg</file>
+        <file>icons/play.svg</file>
+        <file>icons/step_back.svg</file>
         <file>icons/step_forward.svg</file>
         <file>icons/stop.svg</file>
+        <file>icons/sun.svg</file>
+        <file>icons/syringe.svg</file>
+        <file>icons/trash-2.svg</file>
+        <file>icons/search.svg</file>
+        <file>icons/compass.svg</file>
+        <file>icons/glasses.svg</file>
+        <file>icons/crosshair.svg</file>
     </qresource>
 </RCC>

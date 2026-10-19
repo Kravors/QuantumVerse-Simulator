@@ -54,13 +54,13 @@ ColumnLayout {
         ToolSeparator {}
 
         ToolButton {
-            text: "Reset View"
+            icon.source: "qrc:/icons/crosshair.svg"
             onClicked: toolbarLayout.resetViewClicked()
             ToolTip.text: "Reset camera to default view"
         }
 
         ToolButton {
-            text: "Focus Sun"
+            icon.source: "qrc:/icons/sun.svg"
             onClicked: toolbarLayout.focusSunClicked()
             ToolTip.text: "Focus on central body"
         }
@@ -143,11 +143,11 @@ ColumnLayout {
         ToolSeparator {}
 
         ToolButton {
-            text: simulationPaused ? "▶ Play" : "⏸ Pause"
+            icon.source: simulationPaused ? "qrc:/icons/play.svg" : "qrc:/icons/pause.svg"
             checkable: true
             checked: !simulationPaused
             onClicked: toolbarLayout.pauseToggled(!checked)
-            ToolTip.text: "Play/Pause simulation"
+            ToolTip.text: simulationPaused ? "Play simulation" : "Pause simulation"
         }
 
         Slider {

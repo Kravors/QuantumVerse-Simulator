@@ -34,19 +34,19 @@ ColumnLayout {
     property bool vrAvailable: typeof signalingClient !== 'undefined' && signalingClient !== null
 
     ToolButton {
-        text: "☄️"
+        icon.source: "qrc:/icons/syringe.svg"
         ToolTip.text: "Inject random asteroid"
         onClicked: actionRail.injectAsteroid()
     }
 
     ToolButton {
-        text: "🗑️"
+        icon.source: "qrc:/icons/trash-2.svg"
         ToolTip.text: "Clear all asteroids"
         onClicked: actionRail.clearAsteroids()
     }
 
     ToolButton {
-        text: "🔍"
+        icon.source: "qrc:/icons/search.svg"
         checkable: true
         checked: discoveryPanel.visible
         ToolTip.text: "Toggle Discovery Console"
@@ -54,7 +54,7 @@ ColumnLayout {
     }
 
     ToolButton {
-        text: "🎬"
+        icon.source: "qrc:/icons/compass.svg"
         checkable: true
         enabled: tourAvailable
         checked: tourAvailable && tourController.state !== TourController.Stopped
@@ -63,7 +63,7 @@ ColumnLayout {
     }
 
     ToolButton {
-        text: "🥽"
+        icon.source: "qrc:/icons/glasses.svg"
         checkable: true
         enabled: vrAvailable
         ToolTip.text: vrAvailable ? "VR mode (requires OpenXR runtime)" : "VR unavailable (no signaling server)"
