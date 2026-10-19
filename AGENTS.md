@@ -453,16 +453,28 @@ check the clock first: `[N-BODY]` instrumentation in
 
 ### Stepping paths (post-`d3962e0`)
 
-`stepSimulation` has two direct callers outside `updateSimulation`:
-- `UI4D::updateSolarSystemPositions()` (`src/ui4d/UI4D.cpp:600`) — called for backward compatibility
-- `QmlGlViewport::render()` (`src/qmlglviewport.cpp:2424`) — steps every frame
+Verified empirically (interactive mode, 5-second run): `simTimer` and
+`updateSimulation` → `stepSimulation` fire at identical counts (~1315 each),
+`updateSolarSystemPositions` fires 0 times. **No double-step bug exists.**
 
-`updateSimulation()` is the single intended funnel. Before routing any new code through
-`stepSimulation` directly, confirm none of these three paths double-step the same frame.
+`stepSimulation` has exactly one active caller path:
+- `QmlGlViewport::updateSimulation()` (`src/qmlglviewport.cpp:2411`) — called
+  from QML `simTimer` in interactive mode (`main.qml:1569`) and from C++ headless
+  loop (`main_qml.cpp:1526`). Inside `updateSimulation`, `stepSimulation(deltaTime)`
+  is called at line 2424. One clock per path: interactive uses QML timer,
+  headless uses C++ loop, never both.
 
-> NOTE: the viewport call at `qmlglviewport.cpp:2424` runs every frame alongside the QML `simTimer`
-> in interactive mode. Confirm it doesn't double-step with the timer before adding any feature that
-> depends on absolute sim-time per frame — that's exactly the class of bug `d3962e0` eliminated.
+`UI4D::updateSolarSystemPositions()` (`src/ui4d/UI4D.cpp:597`) is **dead code** —
+declared in header but never called from C++ or QML (not Q_INVOKABLE, zero
+callers). It calls `stepSimulation(dt, 100)` but is unreachable.
+
+`updateSimulation()` is the single intended funnel. Before routing any new code
+through `stepSimulation` directly, confirm none of these three paths double-step
+the same frame.
+
+> NOTE: the viewport call at `qmlglviewport.cpp:2424` runs inside
+> `updateSimulation()`, not inside `render()`. It is called exclusively from
+> QML `simTimer` in interactive mode. No double-step with the timer.
 
 ### Two different "up" axes: N-body orbits in XY, annulus disk in XZ
 
