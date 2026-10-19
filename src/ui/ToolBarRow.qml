@@ -17,8 +17,8 @@ ColumnLayout {
     spacing: 2
 
     // === External dependencies (injected from main.qml) ===
-    property Item viewportItem
-    property Item camController
+    property Item targetViewport
+    property Item targetCamController
     property bool simulationPaused: false
     property Item discoveryPanel
     property var tourController
@@ -62,13 +62,13 @@ ColumnLayout {
 
         ToolButton {
             text: "Reset View"
-            onClicked: root.resetViewClicked()
+            onClicked: toolbarLayout.resetViewClicked()
             ToolTip.text: "Reset camera to default view"
         }
 
         ToolButton {
             text: "Focus Sun"
-            onClicked: root.focusSunClicked()
+            onClicked: toolbarLayout.focusSunClicked()
             ToolTip.text: "Focus on central body"
         }
 
@@ -77,11 +77,11 @@ ColumnLayout {
         ToolButton {
             text: "XY"
             checkable: true
-            checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 0 : false
+            checked: targetViewport && targetViewport.camera4DAdapter ? targetViewport.camera4DAdapter.activePlane === 0 : false
             onClicked: {
-                if (viewportItem && viewportItem.camera4DAdapter) {
-                    viewportItem.camera4DAdapter.activePlane = 0
-                    root.planeAxisChanged(0)
+                if (targetViewport && targetViewport.camera4DAdapter) {
+                    targetViewport.camera4DAdapter.activePlane = 0
+                    toolbarLayout.planeAxisChanged(0)
                 }
             }
             ToolTip.text: "Rotate in XY plane (azimuth/elevation)"
@@ -89,11 +89,11 @@ ColumnLayout {
         ToolButton {
             text: "XZ"
             checkable: true
-            checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 1 : false
+            checked: targetViewport && targetViewport.camera4DAdapter ? targetViewport.camera4DAdapter.activePlane === 1 : false
             onClicked: {
-                if (viewportItem && viewportItem.camera4DAdapter) {
-                    viewportItem.camera4DAdapter.activePlane = 1
-                    root.planeAxisChanged(1)
+                if (targetViewport && targetViewport.camera4DAdapter) {
+                    targetViewport.camera4DAdapter.activePlane = 1
+                    toolbarLayout.planeAxisChanged(1)
                 }
             }
             ToolTip.text: "Rotate in XZ plane"
@@ -101,11 +101,11 @@ ColumnLayout {
         ToolButton {
             text: "YZ"
             checkable: true
-            checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 2 : false
+            checked: targetViewport && targetViewport.camera4DAdapter ? targetViewport.camera4DAdapter.activePlane === 2 : false
             onClicked: {
-                if (viewportItem && viewportItem.camera4DAdapter) {
-                    viewportItem.camera4DAdapter.activePlane = 2
-                    root.planeAxisChanged(2)
+                if (targetViewport && targetViewport.camera4DAdapter) {
+                    targetViewport.camera4DAdapter.activePlane = 2
+                    toolbarLayout.planeAxisChanged(2)
                 }
             }
             ToolTip.text: "Rotate in YZ plane"
@@ -113,11 +113,11 @@ ColumnLayout {
         ToolButton {
             text: "TX"
             checkable: true
-            checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 3 : false
+            checked: targetViewport && targetViewport.camera4DAdapter ? targetViewport.camera4DAdapter.activePlane === 3 : false
             onClicked: {
-                if (viewportItem && viewportItem.camera4DAdapter) {
-                    viewportItem.camera4DAdapter.activePlane = 3
-                    root.planeAxisChanged(3)
+                if (targetViewport && targetViewport.camera4DAdapter) {
+                    targetViewport.camera4DAdapter.activePlane = 3
+                    toolbarLayout.planeAxisChanged(3)
                 }
             }
             ToolTip.text: "Rotate in time-X plane (boost)"
@@ -125,11 +125,11 @@ ColumnLayout {
         ToolButton {
             text: "TY"
             checkable: true
-            checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 4 : false
+            checked: targetViewport && targetViewport.camera4DAdapter ? targetViewport.camera4DAdapter.activePlane === 4 : false
             onClicked: {
-                if (viewportItem && viewportItem.camera4DAdapter) {
-                    viewportItem.camera4DAdapter.activePlane = 4
-                    root.planeAxisChanged(4)
+                if (targetViewport && targetViewport.camera4DAdapter) {
+                    targetViewport.camera4DAdapter.activePlane = 4
+                    toolbarLayout.planeAxisChanged(4)
                 }
             }
             ToolTip.text: "Rotate in time-Y plane (boost)"
@@ -137,11 +137,11 @@ ColumnLayout {
         ToolButton {
             text: "TZ"
             checkable: true
-            checked: viewportItem && viewportItem.camera4DAdapter ? viewportItem.camera4DAdapter.activePlane === 5 : false
+            checked: targetViewport && targetViewport.camera4DAdapter ? targetViewport.camera4DAdapter.activePlane === 5 : false
             onClicked: {
-                if (viewportItem && viewportItem.camera4DAdapter) {
-                    viewportItem.camera4DAdapter.activePlane = 5
-                    root.planeAxisChanged(5)
+                if (targetViewport && targetViewport.camera4DAdapter) {
+                    targetViewport.camera4DAdapter.activePlane = 5
+                    toolbarLayout.planeAxisChanged(5)
                 }
             }
             ToolTip.text: "Rotate in time-Z plane (boost)"
@@ -153,7 +153,7 @@ ColumnLayout {
             text: simulationPaused ? "▶ Play" : "⏸ Pause"
             checkable: true
             checked: !simulationPaused
-            onClicked: root.pauseToggled(!checked)
+            onClicked: toolbarLayout.pauseToggled(!checked)
             ToolTip.text: "Play/Pause simulation"
         }
 
@@ -183,7 +183,7 @@ ColumnLayout {
             id: curvatureModeCombo
             model: ["Grid Deformation", "Riemann Color", "Curvature Scalar", "Time Dilation", "Geodesic Flow"]
             currentIndex: 0
-            onCurrentIndexChanged: root.curvatureModeChanged(currentIndex)
+            onCurrentIndexChanged: toolbarLayout.curvatureModeChanged(currentIndex)
             Layout.preferredWidth: 178
             ToolTip.text: "Curvature visualization mode"
             contentItem: Text {
@@ -202,17 +202,17 @@ ColumnLayout {
             text: "Plane Res:"
             font.pixelSize: 11
             color: "#aaa"
-            visible: viewportItem && viewportItem.planeMode
+            visible: targetViewport && targetViewport.planeMode
         }
         Slider {
             id: planeResSlider
             from: 20; to: 200; stepSize: 10
             value: 100
             Layout.preferredWidth: 100
-            visible: viewportItem && viewportItem.planeMode
+            visible: targetViewport && targetViewport.planeMode
             onValueChanged: {
-                if (viewportItem) viewportItem.planeResolution = value
-                root.planeResolutionChanged(value)
+                if (targetViewport) targetViewport.planeResolution = value
+                toolbarLayout.planeResolutionChanged(value)
             }
             ToolTip.text: "Plane grid resolution (higher = smoother)"
         }
@@ -230,8 +230,8 @@ ColumnLayout {
             value: 10.0
             Layout.preferredWidth: 120
             onValueChanged: {
-                if (viewportItem) viewportItem.blackHoleMass = value
-                root.blackHoleMassChanged(value)
+                if (targetViewport) targetViewport.blackHoleMass = value
+                toolbarLayout.blackHoleMassChanged(value)
             }
             ToolTip.text: "Black hole mass in solar masses"
         }
@@ -242,73 +242,48 @@ ColumnLayout {
             Layout.preferredWidth: 55
         }
 
-        ToolSeparator {}
+                ToolSeparator {}
 
-        Label {
-            text: "Zoom:"
-            font.pixelSize: 11
-            color: "#aaa"
-        }
-        Slider {
-            id: zoomSlider
-            from: Math.log(1.0)
-            to: Math.log(5000.0)
-            value: Math.log(viewportItem ? viewportItem.cameraDistance : 150.0)
-            Layout.preferredWidth: 100
-            onValueChanged: {
-                if (viewportItem) {
-                    viewportItem.cameraDistance = Math.exp(value)
-                    if (camController) {
-                        camController.distance = Math.exp(value)
-                    }
+                Label {
+                    text: "Zoom:"
+                    font.pixelSize: 11
+                    color: "#aaa"
                 }
-                root.zoomChanged(Math.exp(value))
-            }
-            ToolTip.text: "Camera zoom (logarithmic)"
-        }
-        Label {
-            text: (viewportItem ? (500.0 / viewportItem.cameraDistance * 100).toFixed(0) : "100") + "%"
-            font.pixelSize: 11
-            color: "#aaa"
-            Layout.preferredWidth: 40
-        }
+                Slider {
+                    id: zoomSlider
+                    from: Math.log(1.0)
+                    to: Math.log(5000.0)
+                    value: Math.log(targetViewport ? targetViewport.cameraDistance : 150.0)
+                    Layout.preferredWidth: 100
+                    onValueChanged: {
+                        if (targetViewport) {
+                            targetViewport.cameraDistance = Math.exp(value)
+                            if (targetCamController) {
+                                targetCamController.distance = Math.exp(value)
+                            }
+                        }
+                        toolbarLayout.zoomChanged(Math.exp(value))
+                    }
+                    ToolTip.text: "Camera zoom (logarithmic)"
+                }
+                Label {
+                    text: (targetViewport ? (500.0 / targetViewport.cameraDistance * 100).toFixed(0) : "100") + "%"
+                    font.pixelSize: 11
+                    color: "#aaa"
+                    Layout.preferredWidth: 40
+                }
 
-        ComboBox {
-            id: bhTypeCombo
-            model: ["Schwarzschild", "Kerr"]
-            currentIndex: 0
-            Layout.preferredWidth: 110
-            onCurrentIndexChanged: {
-                if (viewportItem) viewportItem.setBlackHoleType(model[currentIndex])
-                root.blackHoleTypeChanged(model[currentIndex])
-            }
-            ToolTip.text: "Black hole metric type"
-        }
-
-        ToolSeparator {}
-
-        Label {
-            text: "G:"
-            font.pixelSize: 11
-            color: "#aaa"
-        }
-        Slider {
-            id: gSlider
-            from: -13; to: -8; stepSize: 0.1
-            value: -11.18
-            Layout.preferredWidth: 100
-            onValueChanged: {
-                if (viewportItem) viewportItem.physicsGLog = value
-                root.physicsGLogChanged(value)
-            }
-            ToolTip.text: "Gravitational constant (log10)"
-        }
-        Label {
-            text: "10^" + gSlider.value.toFixed(1)
-            font.pixelSize: 10
-            color: "#aaa"
-            Layout.preferredWidth: 45
-        }
+                ComboBox {
+                    id: bhTypeCombo
+                    model: ["Schwarzschild", "Kerr"]
+                    currentIndex: 0
+                    Layout.preferredWidth: 110
+                    onCurrentIndexChanged: {
+                        if (targetViewport) targetViewport.setBlackHoleType(model[currentIndex])
+                        toolbarLayout.blackHoleTypeChanged(model[currentIndex])
+                    }
+                    ToolTip.text: "Black hole metric type"
+                }
     }
 
     // Row 3: GW, injection, discovery, tours, VR, telemetry
@@ -317,12 +292,12 @@ ColumnLayout {
         spacing: 4
 
         Label {
-            text: "GW: " + (viewportItem ? viewportItem.gravitationalWaveStrain.toExponential(1) : "—")
+            text: "GW: " + (targetViewport ? targetViewport.gravitationalWaveStrain.toExponential(1) : "—")
             font.pixelSize: 10
             color: "#f0f"
         }
         Label {
-            text: (viewportItem ? (viewportItem.gravitationalWaveFreq * 1000).toFixed(2) + " mHz" : "—")
+            text: (targetViewport ? (targetViewport.gravitationalWaveFreq * 1000).toFixed(2) + " mHz" : "—")
             font.pixelSize: 10
             color: "#f0f"
             Layout.preferredWidth: 60
@@ -333,8 +308,8 @@ ColumnLayout {
             checkable: true
             checked: false
             onToggled: {
-                if (viewportItem) viewportItem.audioEnabled = checked
-                root.gravitationalWaveAudioToggled(checked)
+                if (targetViewport) targetViewport.audioEnabled = checked
+                toolbarLayout.gravitationalWaveAudioToggled(checked)
             }
             ToolTip.text: "Toggle gravitational wave audio"
         }
@@ -344,19 +319,19 @@ ColumnLayout {
         ToolButton {
             text: "☄️ Inject"
             onClicked: {
-                root.injectAsteroid()
+                toolbarLayout.injectAsteroid()
             }
             ToolTip.text: "Inject random asteroid"
         }
         ToolButton {
             text: "Clear"
             onClicked: {
-                root.clearAsteroids()
+                toolbarLayout.clearAsteroids()
             }
             ToolTip.text: "Clear all asteroids"
         }
         Label {
-            text: "☄️" + (viewportItem ? viewportItem.asteroidCount : "0")
+            text: "☄️" + (targetViewport ? targetViewport.asteroidCount : "0")
             font.pixelSize: 10
             color: "#fa0"
             Layout.preferredWidth: 25
@@ -369,7 +344,7 @@ ColumnLayout {
             checkable: true
             checked: discoveryPanel.visible
             onClicked: {
-                root.discoveryToggled(!checked)
+                toolbarLayout.discoveryToggled(!checked)
             }
             ToolTip.text: qsTr("Toggle Discovery Console")
         }
@@ -380,7 +355,7 @@ ColumnLayout {
             checked: tourController && tourController.state !== TourController.Stopped
             enabled: tourManager && tourManager.tourCount() > 0
             onClicked: {
-                root.tourToggled(!checked)
+                toolbarLayout.tourToggled(!checked)
             }
             ToolTip.text: qsTr("Start / stop educational tour")
         }
@@ -390,7 +365,7 @@ ColumnLayout {
             checkable: true
             enabled: true
             onClicked: {
-                root.vrToggled(!checked)
+                toolbarLayout.vrToggled(!checked)
             }
             ToolTip.text: "VR mode (requires OpenXR runtime)"
         }
@@ -398,24 +373,42 @@ ColumnLayout {
         Item { Layout.fillWidth: true }
 
         Label {
-            text: "KE: " + (viewportItem ? (viewportItem.liveKineticEnergy / 1e33).toFixed(2) + "e33 J" : "—")
+            text: "KE: " + (targetViewport ? (targetViewport.liveKineticEnergy / 1e33).toFixed(2) + "e33 J" : "—")
             font.pixelSize: 10
             color: "#6af"
         }
         Label {
-            text: "PE: " + (viewportItem ? (viewportItem.livePotentialEnergy / 1e33).toFixed(2) + "e33 J" : "—")
+            text: "PE: " + (targetViewport ? (targetViewport.livePotentialEnergy / 1e33).toFixed(2) + "e33 J" : "—")
             font.pixelSize: 10
             color: "#f6a"
         }
         Label {
-            text: "Earth v: " + (viewportItem ? (viewportItem.liveEarthSpeed / 1000).toFixed(1) + " km/s" : "—")
+            text: "Earth v: " + (targetViewport ? (targetViewport.liveEarthSpeed / 1000).toFixed(1) + " km/s" : "—")
             font.pixelSize: 10
             color: "#6f6"
         }
 
+        Slider {
+            id: gSlider
+            from: -13; to: -8; stepSize: 0.1
+            value: -11.18
+            Layout.preferredWidth: 100
+            onValueChanged: {
+                if (targetViewport) targetViewport.physicsGLog = value
+                toolbarLayout.physicsGLogChanged(value)
+            }
+            ToolTip.text: "Gravitational constant (log10)"
+        }
         Label {
-            text: "FPS: " + (viewportItem && viewportItem.frameRate > 0 ? viewportItem.frameRate.toFixed(1) : "—")
-            color: viewportItem && viewportItem.frameRate >= 45 ? "#4f4" : "#f44"
+            text: "10^" + gSlider.value.toFixed(1)
+            font.pixelSize: 10
+            color: "#aaa"
+            Layout.preferredWidth: 45
+        }
+
+        Label {
+            text: "FPS: " + (targetViewport && targetViewport.frameRate > 0 ? targetViewport.frameRate.toFixed(1) : "—")
+            color: targetViewport && targetViewport.frameRate >= 45 ? "#4f4" : "#f44"
             font.pixelSize: 14
             font.bold: true
             Layout.rightMargin: 8

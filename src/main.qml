@@ -249,8 +249,8 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.preferredHeight: 56
 
-            viewportItem: viewportItem
-            camController: camController
+            targetViewport: viewportItem
+            targetCamController: camController
             simulationPaused: simulationPaused
             discoveryPanel: discoveryPanel
             tourController: tourController
