@@ -25,5 +25,6 @@
         <file>icons/compass.svg</file>
         <file>icons/glasses.svg</file>
         <file>icons/crosshair.svg</file>
+        <file>icons/speaker.svg</file>
     </qresource>
 </RCC>

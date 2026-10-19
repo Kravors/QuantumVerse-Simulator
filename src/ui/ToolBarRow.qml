@@ -359,7 +359,7 @@ ColumnLayout {
         }
 
         ToolButton {
-            icon.source: "qrc:/icons/sun.svg"
+            icon.source: "qrc:/icons/speaker.svg"
             checkable: true
             checked: false
             onToggled: {
