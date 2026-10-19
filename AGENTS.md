@@ -385,6 +385,9 @@ Windows App Execution Alias stubs (e.g. `%LOCALAPPDATA%\Microsoft\WindowsApps\py
   ring at screen center within ~2px across cam-dist 20/40/80; Test 23b still
   passes (CPU `computeVolumetricDiskEmissivity()` unchanged); steady-state ~28
   FPS in Debug / ~34 FPS in Release at 1024 raySteps (GPU-bound).
+  The 256→1024 step increase costs ~43% of frame budget (~26 fps vs no lensing);
+  it is linear in ray steps, so halving to 512 steps recovers to ~50 FPS with
+  negligible visual difference except for rays with |b − b_crit| < 3M.
 
 ## Configuration Options
 
