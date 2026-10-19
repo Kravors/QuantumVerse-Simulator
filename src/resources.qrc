@@ -8,6 +8,7 @@
         <file>DiscoveryDashboard.qml</file>
         <file>education/EducationalTourOverlay.qml</file>
         <file>ui/ToolBarRow.qml</file>
+        <file>ui/ActionRail.qml</file>
     </qresource>
     <qresource prefix="/">
         <file>icons/open.svg</file>

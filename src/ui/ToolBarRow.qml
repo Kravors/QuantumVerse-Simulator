@@ -20,10 +20,6 @@ ColumnLayout {
     property Item targetViewport
     property Item targetCamController
     property bool simulationPaused: false
-    property Item discoveryPanel
-    property var tourController
-    property var tourManager
-    property var signalingClient
 
     // === Aliases for child ids referenced externally ===
     property alias rootLayout: toolbarLayout
@@ -42,11 +38,6 @@ ColumnLayout {
     signal blackHoleTypeChanged(string type)
     signal physicsGLogChanged(real logG)
     signal gravitationalWaveAudioToggled(bool enabled)
-    signal injectAsteroid()
-    signal clearAsteroids()
-    signal discoveryToggled(bool visible)
-    signal tourToggled(bool active)
-    signal vrToggled(bool active)
 
     // Row 1: navigation, view controls, rotation planes, playback
     RowLayout {
@@ -314,60 +305,11 @@ ColumnLayout {
             ToolTip.text: "Toggle gravitational wave audio"
         }
 
-        ToolSeparator {}
-
-        ToolButton {
-            text: "☄️ Inject"
-            onClicked: {
-                toolbarLayout.injectAsteroid()
-            }
-            ToolTip.text: "Inject random asteroid"
-        }
-        ToolButton {
-            text: "Clear"
-            onClicked: {
-                toolbarLayout.clearAsteroids()
-            }
-            ToolTip.text: "Clear all asteroids"
-        }
         Label {
             text: "☄️" + (targetViewport ? targetViewport.asteroidCount : "0")
             font.pixelSize: 10
             color: "#fa0"
             Layout.preferredWidth: 25
-        }
-
-        ToolSeparator {}
-
-        ToolButton {
-            text: qsTr("Discover")
-            checkable: true
-            checked: discoveryPanel.visible
-            onClicked: {
-                toolbarLayout.discoveryToggled(!checked)
-            }
-            ToolTip.text: qsTr("Toggle Discovery Console")
-        }
-
-        ToolButton {
-            text: qsTr("Tour")
-            checkable: true
-            checked: tourController && tourController.state !== TourController.Stopped
-            enabled: tourManager && tourManager.tourCount() > 0
-            onClicked: {
-                toolbarLayout.tourToggled(!checked)
-            }
-            ToolTip.text: qsTr("Start / stop educational tour")
-        }
-
-        ToolButton {
-            text: "VR"
-            checkable: true
-            enabled: true
-            onClicked: {
-                toolbarLayout.vrToggled(!checked)
-            }
-            ToolTip.text: "VR mode (requires OpenXR runtime)"
         }
 
         Item { Layout.fillWidth: true }

@@ -252,10 +252,6 @@ ApplicationWindow {
             targetViewport: viewportItem
             targetCamController: camController
             simulationPaused: simulationPaused
-            discoveryPanel: discoveryPanel
-            tourController: tourController
-            tourManager: tourManager
-            signalingClient: signalingClient
 
             onResetViewClicked: if (viewportItem) viewportItem.resetView()
             onFocusSunClicked: camController.reset()
@@ -274,6 +270,29 @@ ApplicationWindow {
             onBlackHoleTypeChanged: if (viewportItem) viewportItem.setBlackHoleType(type)
             onPhysicsGLogChanged: if (viewportItem) viewportItem.physicsGLog = logG
             onGravitationalWaveAudioToggled: if (viewportItem) viewportItem.audioEnabled = enabled
+        }
+    }
+
+    // =========================================================================
+    // MAIN CONTENT AREA
+    // =========================================================================
+    SplitView {
+        id: mainContent
+        anchors.fill: parent
+        orientation: Qt.Horizontal
+
+        ActionRail {
+            id: actionRail
+            SplitView.preferredWidth: 56
+            SplitView.minimumWidth: 56
+            SplitView.maximumWidth: 56
+
+            targetViewport: viewportItem
+            tourController: tourController
+            tourManager: tourManager
+            signalingClient: signalingClient
+            discoveryPanel: discoveryPanel
+
             onInjectAsteroid: {
                 if (viewportItem) {
                     var angle = Math.random() * 2 * Math.PI;
@@ -309,15 +328,6 @@ ApplicationWindow {
                 }
             }
         }
-    }
-
-    // =========================================================================
-    // MAIN CONTENT AREA
-    // =========================================================================
-    SplitView {
-        id: mainContent
-        anchors.fill: parent
-        orientation: Qt.Horizontal
 
         Component.onCompleted: {
             console.log("SplitView contentWidth:", contentWidth, "height:", height)
