@@ -1192,6 +1192,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_lensing.cpp)
     add_executable(test_lensing
         tests/test_lensing.cpp
         src/spacetime/KerrMetric.cpp
+        src/physics/KerrGeodesic.cpp
         src/rendering/GravitationalLensing.cpp
         third_party/glad/glad.cpp)
     target_include_directories(test_lensing PRIVATE
