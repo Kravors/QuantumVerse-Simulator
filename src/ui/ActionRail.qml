@@ -10,10 +10,11 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls 6.0
+import QuantumVerse 1.0
 
 ColumnLayout {
     id: actionRail
-    spacing: 8
+    spacing: Theme.spaceSm
     Layout.preferredWidth: 56
     Layout.fillHeight: true
 
