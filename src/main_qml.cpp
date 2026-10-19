@@ -1313,7 +1313,7 @@ int main(int argc, char* argv[])
                 viewport->setLensingEnabled(true);
                 viewport->syncLensingParams();
                 viewport->setVolumetricDiskEnabled(true);
-                viewport->setLensingSpin(0.5f);
+                viewport->setLensingSpin(0.0f);  // Default: Schwarzschild. Override with setLensingSpin() for Kerr.
                 if (!noStarfield) {
                     viewport->setLensingStarFieldEnabled(false);
                 }

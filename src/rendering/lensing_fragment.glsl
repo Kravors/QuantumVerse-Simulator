@@ -181,30 +181,70 @@ vec3 computeDeflection(vec3 pos, vec3 rayDir, float mass, float spin) {
     return deflection;
 }
 
-// Orbit equation RHS: d²u/dφ² + u = 3 M u², u = 1/r
-// State: [u, du/dφ], derivative: [du/dφ, 3*M*u² - u]
-vec2 orbitRhs(vec2 state, float M) {
+// Orbit equation RHS: Kerr equatorial null geodesic in u = 1/r form.
+// State: [u, du/dφ], derivative: [du/dφ, d²u/dφ² = F'(u)/2]
+// where F(u) = (du/dφ)² from the Kerr orbit equation:
+//
+//   (du/dφ)² = (1 - 2Mu + a²u²)² · [1 - (b² - a²)u² + 2M(b-a)²u³]
+//             / [b + 2M(a-b)u]²
+//
+// Matches KerrGeodesic.cpp exactly. At a=0 reduces to Schwarzschild:
+//   (du/dφ)² = 1/b² - u² + 2Mu³  →  d²u/dφ² = 3Mu² - u
+float orbitEquation(float u, float M, float a, float b) {
+    float u2 = u * u;
+    float u3 = u2 * u;
+
+    // A(u) = (1 - 2Mu + a²u²)²
+    float A_inner = 1.0 - 2.0 * M * u + a * a * u2;
+    float A = A_inner * A_inner;
+
+    // B(u) = 1 - (b² - a²)u² + 2M(b-a)²u³
+    float b2ma2 = b * b - a * a;
+    float bma = b - a;
+    float bma2 = bma * bma;
+    float B = 1.0 - b2ma2 * u2 + 2.0 * M * bma2 * u3;
+
+    // C(u) = b + 2M(a-b)u
+    float C = b + 2.0 * M * (a - b) * u;
+
+    if (abs(C) < 1e-300) return 0.0;
+
+    return A * B / (C * C);
+}
+
+float orbitEquationDerivative(float u, float M, float a, float b) {
+    // Central difference of F(u) = (du/dφ)²
+    float h = 1e-4 * max(1.0, abs(u));
+    float fPlus = orbitEquation(u + h, M, a, b);
+    float fMinus = orbitEquation(u - h, M, a, b);
+    return (fPlus - fMinus) / (2.0 * h);
+}
+
+vec2 orbitRhs(vec2 state, float M, float a, float b) {
     float u = state.x;
     float up = state.y;
-    return vec2(up, 3.0 * M * u * u - u);
+    // d²u/dφ² = F'(u) / 2  (from differentiating (du/dφ)² = F(u))
+    float dup2 = orbitEquationDerivative(u, M, a, b) / 2.0;
+    return vec2(up, dup2);
 }
 
 // Single RK4 step on the orbit equation
-vec2 orbitRK4Step(vec2 state, float dPhi, float M) {
-    vec2 k1 = orbitRhs(state, M);
-    vec2 k2 = orbitRhs(state + 0.5 * dPhi * k1, M);
-    vec2 k3 = orbitRhs(state + 0.5 * dPhi * k2, M);
-    vec2 k4 = orbitRhs(state + dPhi * k3, M);
+vec2 orbitRK4Step(vec2 state, float dPhi, float M, float a, float b) {
+    vec2 k1 = orbitRhs(state, M, a, b);
+    vec2 k2 = orbitRhs(state + 0.5 * dPhi * k1, M, a, b);
+    vec2 k3 = orbitRhs(state + 0.5 * dPhi * k2, M, a, b);
+    vec2 k4 = orbitRhs(state + dPhi * k3, M, a, b);
     return state + (dPhi / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
 }
 
-// Ray march through curved spacetime using Schwarzschild geodesic integration
-// (orbit equation).  Replaces the weak-field deflection march so that rays
-// skimming the photon sphere are bent strongly enough to form an Einstein ring.
+// Ray march through curved spacetime using Kerr equatorial geodesic integration
+// (orbit equation).  At u_spin=0 this reduces exactly to Schwarzschild,
+// so existing renders are pixel-identical.
 vec3 rayMarch(vec3 rayOrigin, vec3 rayDir) {
     float M = u_mass;
     float rs = 2.0 * M;
-    float horizon = rs;
+    float a = u_spin * M;           // specific angular momentum (meters)
+    float horizon = kerrHorizon(M, u_spin);
 
     // Ray origin relative to black hole position
     vec3 ro = rayOrigin - u_bhPos;
@@ -226,13 +266,13 @@ vec3 rayMarch(vec3 rayOrigin, vec3 rayDir) {
     float b = r0 * abs(dirTangential);
 
     // Ray aimed almost straight at the BH -> captured
-    if (b < 0.001 * rs) {
+    if (b < 0.001 * horizon) {
         return vec3(0.0);
     }
 
-    // Initial du/dφ from energy conservation:
-    // (du/dφ)² = 1/b² - u²(1 - 2Mu)
-    float du2 = 1.0 / (b * b) - u0 * u0 * (1.0 - 2.0 * M * u0);
+    // Initial du/dφ from Kerr orbit equation:
+    // (du/dφ)² = F(u, M, a, b)
+    float du2 = orbitEquation(u0, M, a, b);
     float dup0 = 0.0;
     if (du2 > 0.0) {
         dup0 = dirRadial < 0.0 ? sqrt(du2) : -sqrt(du2);
@@ -275,7 +315,7 @@ vec3 rayMarch(vec3 rayOrigin, vec3 rayDir) {
 
         // RK4 step on orbit equation
         vec2 state = vec2(u, dup);
-        state = orbitRK4Step(state, dPhi, M);
+        state = orbitRK4Step(state, dPhi, M, a, b);
         u = state.x;
         dup = state.y;
         phi += dPhi;
