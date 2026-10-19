@@ -37,12 +37,24 @@ ColumnLayout {
         icon.source: "qrc:/icons/syringe.svg"
         ToolTip.text: "Inject random asteroid"
         onClicked: actionRail.injectAsteroid()
+        background: Rectangle {
+            color: parent.hovered ? Theme.surfaceHover : "transparent"
+            radius: Theme.radiusSm
+            implicitWidth: Theme.railBtn
+            implicitHeight: Theme.railBtn
+        }
     }
 
     ToolButton {
         icon.source: "qrc:/icons/trash-2.svg"
         ToolTip.text: "Clear all asteroids"
         onClicked: actionRail.clearAsteroids()
+        background: Rectangle {
+            color: parent.hovered ? Theme.surfaceHover : "transparent"
+            radius: Theme.radiusSm
+            implicitWidth: Theme.railBtn
+            implicitHeight: Theme.railBtn
+        }
     }
 
     ToolButton {
@@ -51,6 +63,12 @@ ColumnLayout {
         checked: discoveryPanel.visible
         ToolTip.text: "Toggle Discovery Console"
         onClicked: actionRail.discoveryToggled(!checked)
+        background: Rectangle {
+            color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+            radius: Theme.radiusSm
+            implicitWidth: Theme.railBtn
+            implicitHeight: Theme.railBtn
+        }
     }
 
     ToolButton {
@@ -60,6 +78,12 @@ ColumnLayout {
         checked: tourAvailable && tourController.state !== TourController.Stopped
         ToolTip.text: "Start / stop educational tour"
         onClicked: if (tourAvailable) actionRail.tourToggled(!checked)
+        background: Rectangle {
+            color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+            radius: Theme.radiusSm
+            implicitWidth: Theme.railBtn
+            implicitHeight: Theme.railBtn
+        }
     }
 
     ToolButton {
@@ -68,5 +92,11 @@ ColumnLayout {
         enabled: vrAvailable
         ToolTip.text: vrAvailable ? "VR mode (requires OpenXR runtime)" : "VR unavailable (no signaling server)"
         onClicked: if (vrAvailable) actionRail.vrToggled(!checked)
+        background: Rectangle {
+            color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+            radius: Theme.radiusSm
+            implicitWidth: Theme.railBtn
+            implicitHeight: Theme.railBtn
+        }
     }
 }

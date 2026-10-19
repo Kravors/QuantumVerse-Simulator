@@ -49,6 +49,12 @@ ColumnLayout {
         ToolButton {
             icon.source: "qrc:/icons/open.svg"
             ToolTip.text: "Open Spacetime Configuration"
+            background: Rectangle {
+                color: parent.hovered ? Theme.surfaceHover : "transparent"
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
 
         ToolSeparator {}
@@ -57,12 +63,24 @@ ColumnLayout {
             icon.source: "qrc:/icons/crosshair.svg"
             onClicked: toolbarLayout.resetViewClicked()
             ToolTip.text: "Reset camera to default view"
+            background: Rectangle {
+                color: parent.hovered ? Theme.surfaceHover : "transparent"
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
 
         ToolButton {
             icon.source: "qrc:/icons/sun.svg"
             onClicked: toolbarLayout.focusSunClicked()
             ToolTip.text: "Focus on central body"
+            background: Rectangle {
+                color: parent.hovered ? Theme.surfaceHover : "transparent"
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
 
         ToolSeparator {}
@@ -78,6 +96,12 @@ ColumnLayout {
                 }
             }
             ToolTip.text: "Rotate in XY plane (azimuth/elevation)"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
         ToolButton {
             text: "XZ"
@@ -90,6 +114,12 @@ ColumnLayout {
                 }
             }
             ToolTip.text: "Rotate in XZ plane"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
         ToolButton {
             text: "YZ"
@@ -102,6 +132,12 @@ ColumnLayout {
                 }
             }
             ToolTip.text: "Rotate in YZ plane"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
         ToolButton {
             text: "TX"
@@ -114,6 +150,12 @@ ColumnLayout {
                 }
             }
             ToolTip.text: "Rotate in time-X plane (boost)"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
         ToolButton {
             text: "TY"
@@ -126,6 +168,12 @@ ColumnLayout {
                 }
             }
             ToolTip.text: "Rotate in time-Y plane (boost)"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
         ToolButton {
             text: "TZ"
@@ -138,6 +186,12 @@ ColumnLayout {
                 }
             }
             ToolTip.text: "Rotate in time-Z plane (boost)"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
 
         ToolSeparator {}
@@ -148,6 +202,12 @@ ColumnLayout {
             checked: !simulationPaused
             onClicked: toolbarLayout.pauseToggled(!checked)
             ToolTip.text: simulationPaused ? "Play simulation" : "Pause simulation"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
 
         Slider {
@@ -299,7 +359,7 @@ ColumnLayout {
         }
 
         ToolButton {
-            text: "🔊 GW"
+            icon.source: "qrc:/icons/sun.svg"
             checkable: true
             checked: false
             onToggled: {
@@ -307,6 +367,12 @@ ColumnLayout {
                 toolbarLayout.gravitationalWaveAudioToggled(checked)
             }
             ToolTip.text: "Toggle gravitational wave audio"
+            background: Rectangle {
+                color: parent.checked ? Theme.surfaceActive : (parent.hovered ? Theme.surfaceHover : "transparent")
+                radius: Theme.radiusSm
+                implicitWidth: Theme.btnH
+                implicitHeight: Theme.btnH
+            }
         }
 
         Label {
