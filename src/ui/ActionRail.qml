@@ -28,6 +28,9 @@ ColumnLayout {
     signal discoveryToggled(bool visible)
     signal tourToggled(bool active)
     signal vrToggled(bool active)
+    property bool tourAvailable: typeof tourController !== 'undefined' && tourController !== null
+        && tourManager !== null && tourManager.tourCount() > 0
+    property bool vrAvailable: typeof signalingClient !== 'undefined' && signalingClient !== null
 
     ToolButton {
         text: "☄️"
@@ -52,17 +55,17 @@ ColumnLayout {
     ToolButton {
         text: "🎬"
         checkable: true
-        checked: tourController && tourController.state !== TourController.Stopped
-        enabled: tourManager && tourManager.tourCount() > 0
+        enabled: tourAvailable
+        checked: tourAvailable && tourController.state !== TourController.Stopped
         ToolTip.text: "Start / stop educational tour"
-        onClicked: actionRail.tourToggled(!checked)
+        onClicked: if (tourAvailable) actionRail.tourToggled(!checked)
     }
 
     ToolButton {
         text: "🥽"
         checkable: true
-        enabled: true
-        ToolTip.text: "VR mode (requires OpenXR runtime)"
-        onClicked: actionRail.vrToggled(!checked)
+        enabled: vrAvailable
+        ToolTip.text: vrAvailable ? "VR mode (requires OpenXR runtime)" : "VR unavailable (no signaling server)"
+        onClicked: if (vrAvailable) actionRail.vrToggled(!checked)
     }
 }
