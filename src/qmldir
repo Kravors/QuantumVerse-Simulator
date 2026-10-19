@@ -1,3 +1,4 @@
 module QuantumVerse
 version 1.0
 EducationalTourOverlay 1.0 education/EducationalTourOverlay.qml
+ToolBarRow 1.0 ui/ToolBarRow.qml
