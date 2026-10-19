@@ -1,5 +1,6 @@
 module QuantumVerse
 version 1.0
+singleton Theme 1.0 ui/Theme.qml
 EducationalTourOverlay 1.0 education/EducationalTourOverlay.qml
 ToolBarRow 1.0 ui/ToolBarRow.qml
 ActionRail 1.0 ui/ActionRail.qml
