@@ -11,10 +11,11 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls 6.0
+import QuantumVerse 1.0
 
 ColumnLayout {
     id: toolbarLayout
-    spacing: 2
+    spacing: Theme.spaceXs
 
     // === External dependencies (injected from main.qml) ===
     property Item targetViewport
@@ -42,7 +43,8 @@ ColumnLayout {
     // Row 1: navigation, view controls, rotation planes, playback
     RowLayout {
         Layout.fillWidth: true
-        spacing: 4
+        Layout.preferredHeight: Theme.rowH
+        spacing: Theme.spaceXs
 
         ToolButton {
             icon.source: "qrc:/icons/open.svg"
@@ -160,15 +162,16 @@ ColumnLayout {
 
         Label {
             text: timeScaleSliderValue.toFixed(1) + "x"
-            font.pixelSize: 11
-            color: "#aaa"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
         }
     }
 
     // Row 2: physics constants, zoom, injection, discovery
     RowLayout {
         Layout.fillWidth: true
-        spacing: 4
+        Layout.preferredHeight: Theme.rowH
+        spacing: Theme.spaceXs
 
         ComboBox {
             id: curvatureModeCombo
@@ -191,8 +194,8 @@ ColumnLayout {
 
         Label {
             text: "Plane Res:"
-            font.pixelSize: 11
-            color: "#aaa"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
             visible: targetViewport && targetViewport.planeMode
         }
         Slider {
@@ -212,8 +215,8 @@ ColumnLayout {
 
         Label {
             text: "BH Mass:"
-            font.pixelSize: 11
-            color: "#aaa"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
         }
         Slider {
             id: bhMassSlider
@@ -228,8 +231,8 @@ ColumnLayout {
         }
         Label {
             text: bhMassSlider.value.toFixed(0) + " M☉"
-            font.pixelSize: 11
-            color: "#aaa"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
             Layout.preferredWidth: 55
         }
 
@@ -237,8 +240,8 @@ ColumnLayout {
 
                 Label {
                     text: "Zoom:"
-                    font.pixelSize: 11
-                    color: "#aaa"
+                    font.pixelSize: Theme.fontXs
+                    color: Theme.textSecondary
                 }
                 Slider {
                     id: zoomSlider
@@ -259,8 +262,8 @@ ColumnLayout {
                 }
                 Label {
                     text: (targetViewport ? (500.0 / targetViewport.cameraDistance * 100).toFixed(0) : "100") + "%"
-                    font.pixelSize: 11
-                    color: "#aaa"
+                    font.pixelSize: Theme.fontXs
+                    color: Theme.textSecondary
                     Layout.preferredWidth: 40
                 }
 
@@ -280,17 +283,18 @@ ColumnLayout {
     // Row 3: GW, injection, discovery, tours, VR, telemetry
     RowLayout {
         Layout.fillWidth: true
-        spacing: 4
+        Layout.preferredHeight: Theme.rowH
+        spacing: Theme.spaceXs
 
         Label {
             text: "GW: " + (targetViewport ? targetViewport.gravitationalWaveStrain.toExponential(1) : "—")
-            font.pixelSize: 10
-            color: "#f0f"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
         }
         Label {
             text: (targetViewport ? (targetViewport.gravitationalWaveFreq * 1000).toFixed(2) + " mHz" : "—")
-            font.pixelSize: 10
-            color: "#f0f"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
             Layout.preferredWidth: 60
         }
 
@@ -307,8 +311,8 @@ ColumnLayout {
 
         Label {
             text: "☄️" + (targetViewport ? targetViewport.asteroidCount : "0")
-            font.pixelSize: 10
-            color: "#fa0"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
             Layout.preferredWidth: 25
         }
 
@@ -316,18 +320,18 @@ ColumnLayout {
 
         Label {
             text: "KE: " + (targetViewport ? (targetViewport.liveKineticEnergy / 1e33).toFixed(2) + "e33 J" : "—")
-            font.pixelSize: 10
-            color: "#6af"
+            font.pixelSize: Theme.fontXs
+            color: Theme.accent
         }
         Label {
             text: "PE: " + (targetViewport ? (targetViewport.livePotentialEnergy / 1e33).toFixed(2) + "e33 J" : "—")
-            font.pixelSize: 10
-            color: "#f6a"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
         }
         Label {
             text: "Earth v: " + (targetViewport ? (targetViewport.liveEarthSpeed / 1000).toFixed(1) + " km/s" : "—")
-            font.pixelSize: 10
-            color: "#6f6"
+            font.pixelSize: Theme.fontXs
+            color: Theme.statusOk
         }
 
         Slider {
@@ -343,15 +347,15 @@ ColumnLayout {
         }
         Label {
             text: "10^" + gSlider.value.toFixed(1)
-            font.pixelSize: 10
-            color: "#aaa"
+            font.pixelSize: Theme.fontXs
+            color: Theme.textSecondary
             Layout.preferredWidth: 45
         }
 
         Label {
             text: "FPS: " + (targetViewport && targetViewport.frameRate > 0 ? targetViewport.frameRate.toFixed(1) : "—")
-            color: targetViewport && targetViewport.frameRate >= 45 ? "#4f4" : "#f44"
-            font.pixelSize: 14
+            color: targetViewport && targetViewport.frameRate >= 45 ? Theme.statusOk : Theme.statusCrit
+            font.pixelSize: Theme.fontLg
             font.bold: true
             Layout.rightMargin: 8
         }
