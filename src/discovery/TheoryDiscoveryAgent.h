@@ -310,7 +310,19 @@ public:
      * @param params Current theory parameters.
      * @return Gradient vector w.r.t. each parameter.
      */
-    std::vector<double> computeAdjointGradient(const std::vector<double>& params) const;
+    std::vector<double> computeGradientFD(const std::vector<double>& params) const;
+
+    /**
+     * @brief Central finite-difference gradient of observational chi-squared
+     *        w.r.t. theory parameters, using evaluateTheory() directly.
+     *
+     * Extracted from computeAdjointGradient() during Phase 33 so the adjoint
+     * path and the FD path are nameable, separately testable functions.
+     *
+     * @param params Current theory parameters.
+     * @return Gradient vector w.r.t. each parameter.
+     */
+    std::vector<double> computeFDGradient(const std::vector<double>& params) const;
 
     /**
      * @brief Multi-objective Pareto point.

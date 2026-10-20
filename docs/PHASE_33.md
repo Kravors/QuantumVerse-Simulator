@@ -1,4 +1,6 @@
-# docs/PHASE_33.md — Phase 33: Adjoint Wiring into TheoryDiscoveryAgent
+# docs/PHASE_33.md — Phase 33: Closed (not feasible as scoped)
+
+Status: **CLOSED — not feasible as scoped**. See "Scope decision invalidated" and "Criterion retired" below.
 
 ## Provenance
 
@@ -9,7 +11,10 @@ The acceptance criterion below originated in a `project.md` memory record (not a
 
 This file is now the authoritative source. Do not re-derive from memory records.
 
-## Acceptance criterion (commitments, not targets)
+## Acceptance criterion (RETIRED — unfulfillable by existing architecture)
+
+The criterion below was the original memory-record acceptance criterion. It is **retired** — findings 4 and 5 prove it cannot be satisfied by wiring `AdjointGeodesicIntegrator` into `evaluateTheory()`. The criterion remains here only as a historical record of what was attempted and why it fails.
+
 
 At the fixed point `{mass_param=500.0, coupling=0.9}`, `TheoryType::BRANS_DICKE`, LR=0.1:
 
@@ -79,4 +84,44 @@ The integrator (`src/physics/AdjointGeodesicIntegrator.h`) computes:
 **Implication**: Neither chi2 function consumes the metric tensor, geodesic state, or curvature — the quantities the integrator differentiates. The chain `metric → geodesic → curvature → chi2` **does not exist** in `evaluateTheory()`. Even with full AD through `computeMetric` and `AdjointGeodesicIntegrator`, the AD output feeds into nothing in the chi2 computation. The premise that "adjoint geodesic integrator → chi2 gradient" is architecturally broken at both levels: the integrator computes the wrong quantity (Finding 4), and chi2 doesn't consume its output at all (Finding 5).
 
 **Root architectural fact**: `evaluateTheory()` calls `plugin->computeMetric(test_location_, param_map)` (line 312) then passes `metric` to chi2 functions that ignore it (`(void)metric` at 738 and 872). The metric is computed but never used for chi2. chi2 is a function of scalar cosmological + theory params only.
+
+## Scope decision invalidated (Correction 3)
+
+The memory-record scope decision (`phase33_scope`) stated:
+
+> "Phase 33 wires AdjointGeodesicIntegrator into TheoryDiscoveryAgent::evaluateTheory() for χ²-based parameter optimization"
+
+This scope decision is **invalidated** by findings 4–5:
+
+- **Finding 4**: `AdjointGeodesicIntegrator` computes `d(state)/d(params)` and `d(Kretschmann)/d(params)`, not `d(chi2)/d(params)`. The integrator's output is not the quantity the criterion needs.
+- **Finding 5**: Neither chi2 function consumes its `metric` argument (`(void)metric` at TheoryDiscoveryAgent.cpp:738 and :872). The chi2 computation is a function of scalar cosmological + theory params only — it never touches the metric, geodesic state, or curvature that the integrator differentiates.
+
+The premise that "adjoint geodesic integrator → chi2 gradient" is architecturally broken. `AdjointGeodesicIntegrator` cannot be wired into `evaluateTheory()` for chi2-based optimization because nothing on the chi2 path consumes it. Any future phase that needs chi2 adjoints must start from scratch with AD-differentiable chi2 functions (option D=E below), not from the integrator.
+
+## Criterion retired
+
+The criterion `rel_err(adjoint, FD) < 1e-4 on chi2 gradient at {500,0.9}` plus `chi2_final < chi2_initial` over 20 steps is **retired**. It cannot be satisfied by the existing `AdjointGeodesicIntegrator`. It is satisfiable only by option D=E (multi-week chi2 AD rewrite), which is deferred as a future phase.
+
+## Re-scope proposal (deferred)
+
+If chi2-based adjoint parameter optimization becomes a near-term requirement, the work is:
+
+> **Make the chi2 chain AD-differentiable and expose reverse-mode gradient through `evaluateTheory()`.**
+
+This requires making AD-aware: `luminosityDistanceMpc`, `comovingDistanceLCDM`, `distanceModulus`, `extractCosmologicalParams`, `computeBAOChi2`, `computeCMBShiftChi2`, `computeBBNChi2`, `computeGW170817Chi2`, and their call chain. Sized at **weeks**, not days — a multi-week project, not a one-line wiring change.
+
+This becomes Phase-NEW when product confirms it's needed downstream. Phase 33 does not start this work.
+
+## Orthogonal capability retained
+
+`AdjointGeodesicIntegrator` is unaffected and remains available for its actual capabilities:
+- `d(final_state)/d(params)` via `integrate()` / `computeStateGradient()` (lines 235-410)
+- `d(Kretschmann)/d(params)` via `computeCurvatureGradient()` (lines 354-390)
+
+`test_adjoint.cpp` Tests 4–6 verify these at unit level. The capability is orthogonal to chi2 optimization and remains available for future curvature- or state-gradient work. Nothing in this close removes or degrades it.
+
+## Non-goals (scope confirmed clean)
+
+Does **not** touch lensing, camera, RK4, or `rs = 2GM/c²`. No collision with the six settled fixes from the lensing session.
+
 

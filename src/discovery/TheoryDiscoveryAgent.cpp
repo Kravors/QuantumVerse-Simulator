@@ -980,7 +980,7 @@ double TheoryDiscoveryAgent::computeGRBaselineChi2() const {
     return chi2;
 }
 
-std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
+std::vector<double> TheoryDiscoveryAgent::computeFDGradient(
     const std::vector<double>& params
 ) const {
     std::vector<double> grad;
@@ -990,10 +990,7 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
 
     const double eps = 1e-6;
 
-    // NOTE: Brans-Dicke's computeChristoffelAD returns an empty array, so the
-    // adjoint path would produce zero parameter gradients. Skip the integrator
-    // overhead and go straight to central finite differences.
-    // TODO(perf): central FD costs 2N evaluateTheory calls per step.
+    // NOTE: central FD costs 2N evaluateTheory calls per step.
     // For N > 3, SPSA (2 calls/step, stochastic) would be 3–5× faster.
     // See AGENTS.md "Test-suite speed bounded by curvature computation".
     for (int i = 0; i < dim; ++i) {
@@ -1012,6 +1009,17 @@ std::vector<double> TheoryDiscoveryAgent::computeAdjointGradient(
     }
 
     return grad;
+}
+
+std::vector<double> TheoryDiscoveryAgent::computeGradientFD(
+    const std::vector<double>& params
+) const {
+    // NOTE: Brans-Dicke's computeChristoffelAD returns an empty array, so the
+    // adjoint path would produce zero parameter gradients. Skip the integrator
+    // overhead and go straight to central finite differences.
+    // Phase 33: replace this FD fallback with AdjointGeodesicIntegrator for
+    // Brans-Dicke only; keep FD for other theory types.
+    return computeFDGradient(params);
 }
 
 TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient(
@@ -1043,7 +1051,7 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient
     }
 
     for (size_t iter = 0; iter < maxIterations; ++iter) {
-        std::vector<double> grad = computeAdjointGradient(params);
+        std::vector<double> grad = computeGradientFD(params);
 
         for (int i = 0; i < dim; ++i) {
             if (i >= static_cast<int>(param_list.size())) break;
