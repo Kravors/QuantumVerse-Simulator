@@ -191,8 +191,14 @@ signals:
 
 public slots:
      void setDistance(float dist);
-     void setAzimuth(float az);
-     void setElevation(float el);
+    void setAzimuth(float az);
+    void setElevation(float el);
+    void setTx(double tx);
+    void setTy(double ty);
+    void setTz(double tz);
+    double tx() const;
+    double ty() const;
+    double tz() const;
      void setActivePlane(int planeIndex);
      void setAnimationSpeed(double speed);
      void setFieldOfView(float fov);
@@ -290,6 +296,12 @@ public:
     void setDistance(float dist) { m_state.distance = std::max(0.1, std::min(static_cast<double>(dist), 10000.0)); }
     void setAzimuth(float az) { m_state.azimuth = az; }
     void setElevation(float el) { m_state.elevation = el; clampElevation(); }
+    void setTx(double tx) { m_state.tx = tx; }
+    void setTy(double ty) { m_state.ty = ty; }
+    void setTz(double tz) { m_state.tz = tz; }
+    double tx() const { return m_state.tx; }
+    double ty() const { return m_state.ty; }
+    double tz() const { return m_state.tz; }
     void setActivePlane(int planeIndex) {
         if (planeIndex >= 0 && planeIndex <= 5)
             m_activePlane = static_cast<RotationPlane>(planeIndex);

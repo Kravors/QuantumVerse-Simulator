@@ -38,9 +38,11 @@ namespace quantumverse {
 struct LensingParams {
     float mass = 1.0f;              ///< Black hole mass in geometric units (M)
     float spin = 0.0f;              ///< Dimensionless spin a* = a/M in [0, 1)
-    float cameraDistance = 10.0f;   ///< Camera distance in units of M
-    float cameraTheta = 1.5708f;    ///< Camera polar angle (pi/2 = equatorial)
-    float cameraPhi = 0.0f;         ///< Camera azimuthal angle
+    float cameraDistance = 10.0f;   ///< Camera distance in units of M (ignored if hasCameraPos)
+    float cameraTheta = 1.5708f;    ///< Camera polar angle (pi/2 = equatorial, ignored if hasCameraPos)
+    float cameraPhi = 0.0f;         ///< Camera azimuthal angle (ignored if hasCameraPos)
+    std::array<float,3> cameraPos = {0.0f, 0.0f, 0.0f}; ///< Camera world position (overrides spherical reconstruction when hasCameraPos)
+    bool hasCameraPos = false;      ///< If true, use cameraPos directly instead of spherical cameraDistance/Theta/Phi
     int raySteps = 256;             ///< Number of ray-marching steps
     float maxDistance = 50.0f;      ///< Maximum ray distance in units of M
     float shadowIntensity = 1.0f;   ///< Shadow darkness (0.0 = gray, 1.0 = black)
@@ -189,6 +191,30 @@ public:
      * @param pos Black hole position {x, y, z}
      */
     void setBlackHolePosition(const std::array<float,3>& pos) { m_bhPos = pos; }
+
+    /**
+     * @brief Set the camera world position override.
+     * @param pos Camera position in world space
+     * @param useIfSet if true, cameraPos is used directly instead of spherical reconstruction
+     */
+    void setLensingCameraPos(const std::array<float,3>& pos, bool useIfSet = true) { 
+        m_cameraPos = pos; 
+        m_hasCameraPos = useIfSet;
+        m_params.cameraPos = pos;
+        m_params.hasCameraPos = useIfSet;
+    }
+
+    /**
+     * @brief Get the current camera world position override.
+     * @return Camera position {x, y, z}
+     */
+    const std::array<float,3>& lensingCameraPos() const { return m_cameraPos; }
+
+    /**
+     * @brief Check if camera world position override is active.
+     * @return true if cameraPos overrides spherical reconstruction
+     */
+    bool hasLensingCameraPos() const { return m_hasCameraPos; }
 
     /**
      * @brief Get the current black hole position.
@@ -410,6 +436,10 @@ private:
 
     // Black hole position in world space (default origin)
     std::array<float,3> m_bhPos = {0.0f, 0.0f, 0.0f};
+
+    // Camera world position override (if set, bypasses spherical reconstruction)
+    std::array<float,3> m_cameraPos = {0.0f, 0.0f, 0.0f};
+    bool m_hasCameraPos = false;
 
     // Star field generation state
     std::vector<std::array<uint8_t, 3>> m_starData;

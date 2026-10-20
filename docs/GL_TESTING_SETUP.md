@@ -68,6 +68,32 @@ When GL is available, the test generates:
 - `diagnostic_curvature_riemann.png` — Riemann tensor color mapping
 - `diagnostic_curvature_scalar.png` — Kretschmann scalar visualization
 
+## Lensing Camera Verification (GPU Machine)
+
+The half-frame split in Kerr black hole shadow rendering was fixed by matching
+the lensing shader's camera to the QML viewport camera. On a machine with a
+display, verify via:
+
+```powershell
+build\Debug\quantumverse_qml.exe --cam-az 90 --cam-el 0 --cam-dist 40 --cam-tx 40 --screenshot a0_baseline.png --frames 1
+```
+
+Check the CPU-side `[LENS]` debug log for:
+- `u_cameraPos` matches QML camera world position (`camera4DAdapter->cameraPosition4D()`)
+- `u_bhPos` matches config black hole position (e.g. `(40, 0, 0)`)
+- `theta ≈ 1.5708` (π/2 equatorial, not pole)
+- `u_cameraDir` points from camera toward BH (`normalize(bhPos - cameraPos)`)
+- `hasCameraPos = true`
+
+Watch the screenshot for:
+- **Green pixels** → step budget insufficient (increase `raySteps`), not camera
+- **Off-center shadow** → residual position/aim mismatch
+- **Persistent half-split** → driver-side uniform upload or stale shader program
+
+If `[LENS]` logs are correct but the render is wrong, re-check that the
+`.glsl` shader recompiled after edits and that `u_cameraDir`/`u_cameraUp` are
+bound to the active program at `lensing_fragment.glsl:465–468`.
+
 ## GL-1281 Investigation
 
 The original GL-1281 error (GL_INVALID_VALUE) was the motivation for the diagnostic test. With the enhanced test:

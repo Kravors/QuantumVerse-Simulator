@@ -1384,10 +1384,10 @@ ApplicationWindow {
                         }
 
                         RowLayout {
-                            Label { text: "Range:"; color: "#888" }
-                            TextField { id: sweepFromField; text: "0.1"; Layout.fillWidth: true; font.pixelSize: 11 }
-                            Label { text: "to"; color: "#888" }
-                            TextField { id: sweepToField; text: "10.0"; Layout.fillWidth: true; font.pixelSize: 11 }
+                            Label { text: "Range:"; color: "#888"; Layout.preferredWidth: 40 }
+                            TextField { id: sweepFromField; text: "0.1"; Layout.preferredWidth: 50; Layout.maximumWidth: 80; font.pixelSize: 11 }
+                            Label { text: "to"; color: "#888"; Layout.preferredWidth: 15 }
+                            TextField { id: sweepToField; text: "10.0"; Layout.preferredWidth: 50; Layout.maximumWidth: 80; font.pixelSize: 11 }
                         }
 
                         RowLayout {

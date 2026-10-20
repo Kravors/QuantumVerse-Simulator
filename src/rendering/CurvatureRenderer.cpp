@@ -13,6 +13,7 @@
 
 #include "CurvatureRenderer.h"
 #include "../physics/CurvatureCalculator.h"
+#include <cstdlib>
 #include <QVector4D>
 #include <QDebug>
 #include <cmath>
@@ -1079,16 +1080,18 @@ void CurvatureRenderer::deformGrid()
 
         updateVertexColor(vertex);
     }
-    std::cout << "[GRID] rawZ=" << rawZMin << ".." << rawZMax
-              << " scaledZ=" << (rawZMin * m_deformationScale) << ".." << (rawZMax * m_deformationScale)
-              << " unitRange=" << gridSize
-              // The test's regex (tests/smoke/test_runtime.cpp) requires all
-              // three components, so name the full world position, not just
-              // the grid-plane x,y the funnel is built from.
-              << " wellCenter=" << m_blackHoleCenter[0] << "," << m_blackHoleCenter[1]
-              << "," << m_blackHoleCenter[2]
-              << " wellR=" << R << " (M=" << m_blackHoleMassSolar << " M☉)"
-              << std::endl;
+    if (std::getenv("GRID_DEBUG")) {
+        std::cout << "[GRID] rawZ=" << rawZMin << ".." << rawZMax
+                  << " scaledZ=" << (rawZMin * m_deformationScale) << ".." << (rawZMax * m_deformationScale)
+                  << " unitRange=" << gridSize
+                  // The test's regex (tests/smoke/test_runtime.cpp) requires all
+                  // three components, so name the full world position, not just
+                  // the grid-plane x,y the funnel is built from.
+                  << " wellCenter=" << m_blackHoleCenter[0] << "," << m_blackHoleCenter[1]
+                  << "," << m_blackHoleCenter[2]
+                  << " wellR=" << R << " (M=" << m_blackHoleMassSolar << " M☉)"
+                  << std::endl;
+    }
 }
 
 std::pair<float, float> CurvatureRenderer::gridZRange() const

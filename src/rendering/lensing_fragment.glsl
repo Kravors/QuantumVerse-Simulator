@@ -330,8 +330,8 @@ vec3 rayMarch(vec3 rayOrigin, vec3 rayDir) {
         }
     }
 
-    // Step budget exhausted
-    return sampleStarField(rayDir) * 0.5;
+    // Step budget exhausted — green = diagnostic (rays that never reached periapsis or escape)
+    return vec3(0.0, 1.0, 0.0);
 }
 
 // Volumetric accretion disk: ray-march the disk volume instead of testing a

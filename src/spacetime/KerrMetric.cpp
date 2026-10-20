@@ -176,6 +176,22 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     const double minR = 1e-9;
     if (r < minR) r = minR;
 
+    // Inside horizon (r <= rs), the geometric view is degenerate:
+    // g_tt > 0, radial/time roles swap, and K → ∞ as r → 0. Report invalid.
+    if (r <= m_rs) {
+        CurvatureScalars s;
+        s.kretschmann = 0.0;
+        s.ricciScalar = 0.0;
+        s.weylSquared = 0.0;
+        s.valid = false;
+        return s;
+    }
+
+    // Clamp r to a floor just outside the horizon so K stays finite even when
+    // the probe lands very close to the horizon.
+    const double r_eps = 0.01 * m_rs;
+    if (r < r_eps) r = r_eps;
+
     // Vacuum solution: Ricci = 0, Weyl = Riemann
     // Approximate Kretschmann: K ≈ 48 G²M² / (c⁴ r⁶) (Schwarzschild limit)
     double c4 = PHYS_C() * PHYS_C() * PHYS_C() * PHYS_C();

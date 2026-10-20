@@ -5,7 +5,7 @@
 ![OpenGL 4.5](https://img.shields.io/badge/OpenGL-4.5-green)
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple)
 ![Build](https://img.shields.io/badge/Build-CMake-green)
-![Tests](https://img.shields.io/badge/Tests-125%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-125%20Registered-brightgreen)
 
 ## Overview
 
@@ -357,7 +357,7 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
   
   | Check | Status |
   |-------|--------|
-  | Tests | 125/125 passing (100%) |
+  | Tests | 125 registered (ctest -N) |
   | Static Analysis | Clang-Tidy + Cppcheck in CI |
   | Sanitizer Tests | ASan/UBSan in CI |
   | Performance Baseline | Regression guard with 5% threshold |

@@ -2351,11 +2351,12 @@ void QmlGlViewport::probeAt(double x, double y, double z)
         m_ricciScalar = QString::number(scalars.ricciScalar, 'e', 3);
         m_weylSquared = QString::number(scalars.weylSquared, 'e', 3);
     } else {
-        CurvatureCalculator calculator(metric);
-        CurvatureResult result = calculator.computeAll(event);
-        m_kretschmann = QString::number(result.kretschmann, 'e', 3);
-        m_ricciScalar = QString::number(result.ricciScalar, 'e', 3);
-        m_weylSquared = QString::number(result.weylSquared, 'e', 3);
+        // Probe is inside the horizon or otherwise invalid — do NOT fall
+        // through to numerical differentiation (which blows up inside the
+        // horizon). Report invalid instead.
+        m_kretschmann = "—";
+        m_ricciScalar = "—";
+        m_weylSquared = "—";
     }
 
     double gtt = metric->evaluate(event)[0][0];
@@ -2379,7 +2380,7 @@ void QmlGlViewport::probeAt(double x, double y, double z)
         m_redshift = QString("n/a");
     }
 
-    m_probeValid = true;
+    m_probeValid = scalars.valid;
     emit probeChanged();
 }
 
@@ -2574,6 +2575,13 @@ int QmlGlViewport::textureSource() const
 void QmlGlViewport::setBlackHoleMass(double mass)
 {
     if (mass <= 0.0) return;
+    // Clamp to the UI sweep range [0.1, 10.0] M☉.  Values outside this range
+    // (e.g. from a stale tour script or a sweep that hasn't been cleared)
+    // would produce numerical blow-up in curvature invariants near r = 0.
+    const double minMass = 0.1;
+    const double maxMass = 10.0;
+    if (mass < minMass) mass = minMass;
+    if (mass > maxMass) mass = maxMass;
     if (m_curvatureRenderer) {
         double oldMass = m_blackHoleMass;
         double newMass = mass;
@@ -3597,7 +3605,22 @@ void QmlGlViewport::setLensingDistance(float distance) {
       }
   }
 
- void QmlGlViewport::setAccretionDiskEnabled(bool enabled) {
+  void QmlGlViewport::setLensingPhi(float phi) {
+      float clamped = std::fmod(phi, 6.28318530718f);
+      if (clamped < 0.0f) clamped += 6.28318530718f;
+      if (std::abs(m_lensingPhi - clamped) > 0.001f) {
+          m_lensingPhi = clamped;
+          if (m_lensing) {
+              auto params = m_lensing->params();
+              params.cameraPhi = clamped;
+              m_lensing->setParams(params);
+          }
+      emit lensingPhiChanged();
+      update();
+      }
+  }
+
+  void QmlGlViewport::setAccretionDiskEnabled(bool enabled) {
      if (m_accretionDiskEnabled != enabled) {
          m_accretionDiskEnabled = enabled;
          if (m_lensing) {
@@ -3776,14 +3799,25 @@ void QmlGlViewport::setVolumetricDiskInnerEdgeFade(float fade) {
         m_lensingMetric->setMass(m_lensingMass);
     }
 
+    // Preserve camera position override if previously set via setLensingCameraPos().
+    // syncLensingParams() creates a fresh LensingParams (hasCameraPos defaults to false),
+    // so we must carry over any existing override to avoid resetting it.
+    bool hasCamPos = m_lensing ? m_lensing->hasLensingCameraPos() : false;
+    std::array<float,3> camPos = m_lensing ? m_lensing->lensingCameraPos() : std::array<float,3>{0.0f, 0.0f, 0.0f};
+
     // Update all parameters
-GravitationalLensing::LensingParams params;
+    GravitationalLensing::LensingParams params;
       params.mass = m_lensingMass;
       params.spin = m_lensingSpin;
       params.cameraDistance = m_lensingDistance;
       params.cameraTheta = m_lensingTheta;
+      params.cameraPhi = m_lensingPhi;
       params.raySteps = m_lensingSteps;
-     params.shadowIntensity = m_shadowIntensity;
+      params.hasCameraPos = hasCamPos;
+      if (hasCamPos) {
+          params.cameraPos = camPos;
+      }
+      params.shadowIntensity = m_shadowIntensity;
 params.enableAccretionDisk = m_accretionDiskEnabled;
     params.enablePhotonRing = m_photonRingEnabled;
     params.accretionDiskIntensity = m_accretionDiskIntensity;

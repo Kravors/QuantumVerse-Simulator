@@ -531,8 +531,28 @@ public:
         const double minR = 1e-9;
         if (r < minR) r = minR;
 
-        const double c4 = PHYS_C() * PHYS_C() * PHYS_C() * PHYS_C();
+        const double c2 = PHYS_C() * PHYS_C();
+        const double c4 = c2 * c2;
         double G = PHYS_G();
+        double rs = 2.0 * PHYS_G() * m_mass / c2;
+
+        // Inside the horizon (r <= rs), the geometric view is degenerate:
+        // g_tt > 0, radial/time roles swap. Report invalid.
+        if (r <= rs) {
+            CurvatureScalars s;
+            s.kretschmann = 0.0;
+            s.ricciScalar = 0.0;
+            s.weylSquared = 0.0;
+            s.valid = false;
+            return s;
+        }
+
+        // Clamp r to a floor just outside the horizon so K = 48 G² M² / (c⁴ r⁶)
+        // stays finite even when the probe lands very close to the horizon.
+        // Cells just outside rs still report their genuine (large but finite) K.
+        const double r_eps = 0.01 * rs;
+        if (r < r_eps) r = r_eps;
+
         double K = 48.0 * G * G * m_mass * m_mass / (c4 * std::pow(r, 6));
 
         CurvatureScalars s;

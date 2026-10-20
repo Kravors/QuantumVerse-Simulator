@@ -383,19 +383,74 @@ Windows App Execution Alias stubs (e.g. `%LOCALAPPDATA%\Microsoft\WindowsApps\py
   with injection show `gtt=-0.7046 branch=1` throughout. Instrumentation
   (`[MASS]`, `[REDSHIFT-DEBUG]`, `[PROBE]`) is in place to catch a recurrence.
 
-- **Lensing shader was non-functional until commit `00fd554` — never compiled.**
-  `loadLensingFragmentSource()` used `fs::current_path()` (wrong directory), so
-  `m_lensingProgram` stayed 0; the shader also had pre-existing GLSL errors
-  (`atan2` undefined, `delta` undefined). All prior lensing behavior claims were
-  the fallback path, not the shader. Fix: `__FILE__`-relative path, `atan2`→`atan`,
-  removed undefined `delta`, added `u_bhPos` uniform so ray origin is
-  `u_cameraPos - u_bhPos` (BH at world origin → ring at screen center). Verified:
-  ring at screen center within ~2px across cam-dist 20/40/80; Test 23b still
-  passes (CPU `computeVolumetricDiskEmissivity()` unchanged); steady-state ~28
-  FPS in Debug / ~34 FPS in Release at 1024 raySteps (GPU-bound).
-  The 256→1024 step increase costs ~43% of frame budget (~26 fps vs no lensing);
-  it is linear in ray steps, so halving to 512 steps recovers to ~50 FPS with
-  negligible visual difference except for rays with |b − b_crit| < 3M.
+- **Lensing shader camera convention fix (2026-10-19):** The half-frame split
+  in Kerr black hole shadow rendering was caused by a camera/basis mismatch
+  between the lensing shader and the QML viewport camera, not by `u_bhPos`
+  (which was correctly wired: `setGridBlackHoleCenter` → `setBlackHolePosition`
+  → `setUniformVec3("u_bhPos", ...)`) nor by RK4 (which is a valid integrator
+  for the Kerr orbit equation). Three issues were found and fixed:
+
+  1. **Theta convention:** `--cam-el 0` means "on the equator", which is θ=π/2
+     in the shader's spherical coordinate system (θ measured from +Y pole).
+     Was passing `cliCamElevationDeg * π/180` directly (0 → pole). Fixed to
+     `(90.0 - cliCamElevationDeg) * π/180` so el=0 → θ=π/2 (equator).
+
+  2. **Camera world position:** The lensing shader previously reconstructed
+     `u_cameraPos` from spherical coordinates around the world origin
+     (`d·(sinθcosφ, cosθ, sinθsinφ)`), while the QML viewport camera orbits
+     around the target (`target + d·offset`). When `target != origin`, this
+     caused an off-center shadow. Fixed by feeding the QML camera's actual
+     world position via `setLensingCameraPos()` (computed as
+     `target + (d·cos(el)·sin(az), d·sin(el), d·cos(el)·cos(az))`,
+     matching `Camera4DAdapter::cameraPosition4D()`), and using
+     `hasCameraPos=true` to bypass spherical reconstruction.
+
+  3. **Camera direction/basis:** `u_cameraDir` was previously
+     `-normalize(cameraPos)` (looking at world origin), which degenerated to
+     `(0,0,-1)` when camera is at origin and pointed the wrong way at other
+     positions. Fixed to `normalize(bhPos - cameraPos)` (looking at the BH),
+     with `u_cameraUp` built from an orthonormal basis (`right = cross(forward,
+     worldUp)`, `up = cross(right, forward)`). The GLSL ray basis
+     (`lensing_fragment.glsl:465-468`) consumes `u_cameraDir`/`u_cameraUp`
+     directly — no `theta`/`phi` in the basis block.
+
+  Debug logs added:
+  - `[LENS]` in `GravitationalLensing.cpp:updateUniforms()` prints
+    `u_cameraPos`, `u_bhPos`, `distance`, `theta`, `phi`, `hasCameraPos`,
+    `u_cameraDir` — verifies uniform values on this machine without GL.
+  - `[LENS-VERIFY]` in `main_qml.cpp` compares `camera4DAdapter->cameraPosition4D()`
+    (real QML controller state) against the lensing camera position —
+    bit-for-bit match confirms no circular recompute.
+
+  GPU capture gate (machine with display): run
+  `--cam-az 90 --cam-el 0 --cam-dist 40 --cam-tx 40 --screenshot` and watch
+  for green pixels (step budget), off-center shadow (position/aim), or
+  persistent half-split (basis/stale shader). `[LENS]` logs are CPU-side
+  uniform values; driver-side uniform upload or stale shader program remain
+  the only unclosed gap.
+
+- **Schwarzschild curvatureScalars() rs bug (2026-10-19):** `curvatureScalars()`
+  computed the Schwarzschild radius as `rs = 2GM/c⁴` instead of `2GM/c²`, making
+  `rs ≈ 1e-14 m` for 1 M☉ instead of `≈ 2952 m`. The `r ≤ rs → invalid` check
+  never fired, and the `r_eps = 0.01·rs` floor clamp was effectively zero, so
+  neither safety net protected against `K → ∞` at `r → 0`. Fixed `rs` to use
+  `c²` (not `c⁴`), keeping both the `r ≤ rs → invalid` check and the `r_eps`
+  floor clamp active. Restored `r ≤ rs → valid=false` inside the horizon and
+  added `r_eps = 0.01·rs` floor clamp just outside it.
+
+- **Mass sweep clamping (2026-10-19):** `setBlackHoleMass()` now clamps to
+  `[0.1, 10.0] M☉` matching the UI sweep range. Values outside this range
+  (e.g. from a stale tour script or uninitialized sweep state) are clamped
+  before reaching the metric, preventing `K → ∞` from extreme mass values.
+
+- **TX/TY/TZ camera basis fix (2026-10-19):** `Camera4DAdapter::rotateInPlane()`
+  for boost planes (TX/TY/TZ) previously used `coshR * offset[axis]` with
+  `sinhR` computed but unused (`(void)sinhR`), and only scaled one component.
+  With `tx=ty=tz=0`, this produced a zero offset — dragging did nothing.
+  Replaced with a call to the existing `rotateInPlane()` implementation which
+  correctly applies the Lorentz boost mixing time and space components, and
+  updates `azimuth`/`elevation` when `spatialLen > 0`. Verified that
+  `viewMatrix()` remains affine (no NaN/Inf) after rotation.
 
 ## Configuration Options
 

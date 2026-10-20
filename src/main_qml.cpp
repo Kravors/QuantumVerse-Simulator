@@ -57,6 +57,7 @@
 #include "spacetime/KerrMetric.h"
 #include "rendering/CurvatureRenderer.h"
 #include "rendering/QuantumGeometryRenderer.h"
+#include "rendering/GravitationalLensing.h"
 #include "rendering/CelestialBodyRenderer.h"
 #include "rendering/GLDebug.h"
 #include "physics/SingularityHandler.h"
@@ -1310,8 +1311,66 @@ int main(int argc, char* argv[])
                     viewport->setLensingTheta(static_cast<float>(lensingTheta));
                 }
 
+                // Wire CLI camera to lensing shader so u_cameraPos matches the QML viewport camera.
+                // Without this the lensing shader traces from default (distance=10, theta=pi/2, phi=0)
+                // while the QML camera is at the CLI position, producing a half-frame split.
+                if (cliCamDistance > 0.0) {
+                    viewport->setLensingDistance(static_cast<float>(cliCamDistance));
+                }
+                if (lensingTheta < 0.0) {
+                    // Elevation is measured from the equator; theta is polar from +Y axis.
+                    // theta = pi/2 - elevation.  el=0 -> equator (theta=pi/2); el=90 -> pole (theta=0).
+                    viewport->setLensingTheta(static_cast<float>((90.0 - cliCamElevationDeg) * M_PI / 180.0));
+                }
+                if (cliCamAzimuthDeg != 0.0) {
+                    viewport->setLensingPhi(static_cast<float>(cliCamAzimuthDeg * M_PI / 180.0));
+                }
+
+                // Feed the QML camera's actual world position to the lensing shader so
+                // u_cameraPos matches the viewport camera exactly.  The QML camera orbits
+                // around the target (cliCamTarget), not the world origin:
+                //   camera = target + (-d*cos(el)*sin(az), d*sin(el), d*cos(el)*cos(az))
+                // Without this the shader spheres the camera around world origin while the
+                // QML camera spheres around the target, producing an off-center shadow
+                // whenever target != origin.
                 viewport->setLensingEnabled(true);
                 viewport->syncLensingParams();
+
+                // Feed the QML camera's actual world position to the lensing shader so
+                // u_cameraPos matches the viewport camera exactly.  The QML camera orbits
+                // around the target (cliCamTarget), not the world origin:
+                //   camera = target + (-d*cos(el)*sin(az), d*sin(el), d*cos(el)*cos(az))
+                // Without this the shader spheres the camera around world origin while the
+                // QML camera spheres around the target, producing an off-center shadow
+                // whenever target != origin.
+                if (cliCamDistance > 0.0 && cliCamTargetSet) {
+                    const double azRad = cliCamAzimuthDeg * M_PI / 180.0;
+                    const double elRad = cliCamElevationDeg * M_PI / 180.0;
+                    const double cosEl = std::cos(elRad);
+                    // Match Camera4DAdapter::cameraPosition4D()/viewMatrix():
+                    //   eye = (tx + d*ce*sa, ty + d*se, tz + d*ce*ca)
+                    const double camOffsetX = cliCamDistance * cosEl * std::sin(azRad);
+                    const double camOffsetY = cliCamDistance * std::sin(elRad);
+                    const double camOffsetZ = cliCamDistance * cosEl * std::cos(azRad);
+                    std::array<float,3> camPos = {
+                        static_cast<float>(cliCamTarget.x() + camOffsetX),
+                        static_cast<float>(cliCamTarget.y() + camOffsetY),
+                        static_cast<float>(cliCamTarget.z() + camOffsetZ)
+                    };
+
+                    // Verify against the QML viewport camera's actual world position
+                    quantumverse::Event4D qmlCamPos = camera4DAdapter->cameraPosition4D();
+                    std::cerr << "[LENS-VERIFY] qmlCam=(" << qmlCamPos.x << ", " << qmlCamPos.y << ", " << qmlCamPos.z
+                              << ") lensingCam=(" << camPos[0] << ", " << camPos[1] << ", " << camPos[2] << ")"
+                              << " az=" << cliCamAzimuthDeg << " el=" << cliCamElevationDeg << " dist=" << cliCamDistance
+                              << " target=(" << cliCamTarget.x() << ", " << cliCamTarget.y() << ", " << cliCamTarget.z() << ")"
+                              << std::endl;
+                    std::cerr.flush();
+                    if (auto lensing = viewport->lensingRenderer()) {
+                        lensing->setLensingCameraPos(camPos, true);
+                    }
+                }
+
                 viewport->setVolumetricDiskEnabled(true);
                 viewport->setLensingSpin(0.0f);  // Default: Schwarzschild. Override with setLensingSpin() for Kerr.
                 if (!noStarfield) {

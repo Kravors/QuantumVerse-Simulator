@@ -1687,6 +1687,21 @@ endif()
     target_link_libraries(test_autodiff_validation PRIVATE dilaton)
     add_test(NAME AutoDiffValidationTest COMMAND test_autodiff_validation)
 
+    # 3.5 Reverse-mode adjoint AD (tape-based)
+    add_executable(test_adjoint tests/test_adjoint.cpp)
+    target_link_libraries(test_adjoint PRIVATE dilaton)
+    add_test(NAME AdjointTest COMMAND test_adjoint)
+
+    # Physics & spacetime absolute correctness — curvature unit consistency
+    add_executable(test_curvature_units
+        tests/test_curvature_units.cpp
+        src/spacetime/KerrMetric.cpp
+        src/ui4d/Camera4DAdapter.cpp
+    )
+    target_link_libraries(test_curvature_units PRIVATE dilaton Qt6::Gui Qt6::Widgets)
+    set_target_properties(test_curvature_units PROPERTIES AUTOMOC ON)
+    target_compile_definitions(test_curvature_units PRIVATE QUANTUMVERSE_USE_QML)
+    add_test(NAME CurvatureUnitsTest COMMAND test_curvature_units)
     # Phase 18: Physics & Spacetime Absolute Correctness
     # 18.1 Exhaustive exact solution validation (60 test functions)
     add_executable(test_full_exact_solutions

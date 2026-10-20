@@ -5,8 +5,10 @@
 
 #include "GravitationalLensing.h"
 
+#include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 #include <array>
@@ -587,31 +589,92 @@ void GravitationalLensing::updateUniforms() {
     setUniformFloat("u_volumetricDiskDopplerBoost", m_volumetricDisk.diskDopplerBoost);
     setUniformFloat("u_volumetricDiskInnerEdgeFade", m_volumetricDisk.diskInnerEdgeFade);
 
-    // Camera position from spherical coordinates
-    float camX = m_params.cameraDistance * sin(m_params.cameraTheta) * cos(m_params.cameraPhi);
-    float camY = m_params.cameraDistance * cos(m_params.cameraTheta);
-    float camZ = m_params.cameraDistance * sin(m_params.cameraTheta) * sin(m_params.cameraPhi);
+    // Camera position from spherical coordinates, or world-position override
+    float camX, camY, camZ;
+    if (m_params.hasCameraPos) {
+        camX = m_params.cameraPos[0];
+        camY = m_params.cameraPos[1];
+        camZ = m_params.cameraPos[2];
+    } else {
+        camX = m_params.cameraDistance * sin(m_params.cameraTheta) * cos(m_params.cameraPhi);
+        camY = m_params.cameraDistance * cos(m_params.cameraTheta);
+        camZ = m_params.cameraDistance * sin(m_params.cameraTheta) * sin(m_params.cameraPhi);
+    }
 
     setUniformVec3("u_cameraPos", camX, camY, camZ);
 
     // Black hole position (world space) — subtracted from ray origin in shader
     setUniformVec3("u_bhPos", m_bhPos[0], m_bhPos[1], m_bhPos[2]);
 
-    // Camera direction (looking at origin)
-    float dirLen = sqrt(camX * camX + camY * camY + camZ * camZ);
-    if (dirLen > 0.001f) {
-        setUniformVec3("u_cameraDir", -camX / dirLen, -camY / dirLen, -camZ / dirLen);
+    // Camera direction — points from camera toward black hole (target).
+    // Derived from world positions, not spherical origin-relative coords,
+    // so it matches the QML viewport camera exactly.
+    float fwdX = m_bhPos[0] - camX;
+    float fwdY = m_bhPos[1] - camY;
+    float fwdZ = m_bhPos[2] - camZ;
+    float forwardLen = sqrt(fwdX * fwdX + fwdY * fwdY + fwdZ * fwdZ);
+    if (forwardLen > 0.001f) {
+        fwdX /= forwardLen; fwdY /= forwardLen; fwdZ /= forwardLen;
+        setUniformVec3("u_cameraDir", fwdX, fwdY, fwdZ);
     } else {
-        setUniformVec3("u_cameraDir", 0.0f, 0.0f, -1.0f);
+        fwdX = 0.0f; fwdY = 0.0f; fwdZ = -1.0f;
+        setUniformVec3("u_cameraDir", fwdX, fwdY, fwdZ);
     }
 
-    // Camera up vector
-    float upX = 0.0f, upY = 1.0f, upZ = 0.0f;
-    // Adjust up vector if camera is near poles
-    if (abs(camY / dirLen) > 0.99f) {
-        upX = 0.0f; upY = 0.0f; upZ = 1.0f;
+    // Camera up vector — build orthonormal basis from forward, matching
+    // the QML camera's right/up construction.
+    float worldUpX = 0.0f, worldUpY = 1.0f, worldUpZ = 0.0f;
+    float rightX = fwdY * worldUpZ - fwdZ * worldUpY;
+    float rightY = fwdZ * worldUpX - fwdX * worldUpZ;
+    float rightZ = fwdX * worldUpY - fwdY * worldUpX;
+    float rightLen = sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
+    if (rightLen > 0.001f) {
+        rightX /= rightLen; rightY /= rightLen; rightZ /= rightLen;
+        float upX = rightY * fwdZ - rightZ * fwdY;
+        float upY = rightZ * fwdX - rightX * fwdZ;
+        float upZ = rightX * fwdY - rightY * fwdX;
+        setUniformVec3("u_cameraUp", upX, upY, upZ);
+    } else {
+        setUniformVec3("u_cameraUp", 0.0f, 1.0f, 0.0f);
     }
-    setUniformVec3("u_cameraUp", upX, upY, upZ);
+
+    // [LENS] debug log — gated behind LENSING_DEBUG env var.  Only prints when
+    // values change, so it doesn't spam every frame in normal operation.
+    if (std::getenv("LENSING_DEBUG")) {
+        static float lastCamX = 0.0f, lastCamY = 0.0f, lastCamZ = 0.0f;
+        static float lastBhX = 0.0f, lastBhY = 0.0f, lastBhZ = 0.0f;
+        static float lastDist = 0.0f, lastTheta = 0.0f, lastPhi = 0.0f;
+        static bool lastHasCamPos = false;
+        static float lastDirX = 0.0f, lastDirY = 0.0f, lastDirZ = 0.0f;
+
+        bool changed = (std::abs(camX - lastCamX) > 1e-6f ||
+                        std::abs(camY - lastCamY) > 1e-6f ||
+                        std::abs(camZ - lastCamZ) > 1e-6f ||
+                        std::abs(m_bhPos[0] - lastBhX) > 1e-6f ||
+                        std::abs(m_bhPos[1] - lastBhY) > 1e-6f ||
+                        std::abs(m_bhPos[2] - lastBhZ) > 1e-6f ||
+                        std::abs(m_params.cameraDistance - lastDist) > 1e-6f ||
+                        std::abs(m_params.cameraTheta - lastTheta) > 1e-6f ||
+                        std::abs(m_params.cameraPhi - lastPhi) > 1e-6f ||
+                        m_params.hasCameraPos != lastHasCamPos ||
+                        std::abs(fwdX - lastDirX) > 1e-6f ||
+                        std::abs(fwdY - lastDirY) > 1e-6f ||
+                        std::abs(fwdZ - lastDirZ) > 1e-6f);
+
+        if (changed) {
+            std::cerr << "[LENS] u_cameraPos =(" << camX << " " << camY << " " << camZ
+                      << ") u_bhPos =(" << m_bhPos[0] << " " << m_bhPos[1] << " " << m_bhPos[2]
+                      << ") distance=" << m_params.cameraDistance << " theta=" << m_params.cameraTheta
+                      << " phi=" << m_params.cameraPhi << " hasCameraPos=" << m_params.hasCameraPos
+                      << " u_cameraDir =(" << fwdX << " " << fwdY << " " << fwdZ << ")"
+                      << std::endl;
+            lastCamX = camX; lastCamY = camY; lastCamZ = camZ;
+            lastBhX = m_bhPos[0]; lastBhY = m_bhPos[1]; lastBhZ = m_bhPos[2];
+            lastDist = m_params.cameraDistance; lastTheta = m_params.cameraTheta; lastPhi = m_params.cameraPhi;
+            lastHasCamPos = m_params.hasCameraPos;
+            lastDirX = fwdX; lastDirY = fwdY; lastDirZ = fwdZ;
+        }
+    }
 
     // FOV
     setUniformFloat("u_fov", 45.0f * 3.14159265f / 180.0f);
