@@ -983,6 +983,10 @@ double TheoryDiscoveryAgent::computeGRBaselineChi2() const {
 std::vector<double> TheoryDiscoveryAgent::computeFDGradient(
     const std::vector<double>& params
 ) const {
+    // Gradient of observational chi-squared w.r.t. theory parameters via
+    // central finite differences on evaluateTheory(). Used by
+    // optimizeWithGradient(). No adjoint variant exists (see docs/PHASE_33.md
+    // — the integrator does not feed the chi2 path).
     std::vector<double> grad;
     auto param_list = param_space_.getParameters();
     int dim = static_cast<int>(params.size());
@@ -1009,17 +1013,6 @@ std::vector<double> TheoryDiscoveryAgent::computeFDGradient(
     }
 
     return grad;
-}
-
-std::vector<double> TheoryDiscoveryAgent::computeGradientFD(
-    const std::vector<double>& params
-) const {
-    // NOTE: Brans-Dicke's computeChristoffelAD returns an empty array, so the
-    // adjoint path would produce zero parameter gradients. Skip the integrator
-    // overhead and go straight to central finite differences.
-    // Phase 33: replace this FD fallback with AdjointGeodesicIntegrator for
-    // Brans-Dicke only; keep FD for other theory types.
-    return computeFDGradient(params);
 }
 
 TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient(
@@ -1051,7 +1044,7 @@ TheoryDiscoveryAgent::DiscoveryResult TheoryDiscoveryAgent::optimizeWithGradient
     }
 
     for (size_t iter = 0; iter < maxIterations; ++iter) {
-        std::vector<double> grad = computeGradientFD(params);
+        std::vector<double> grad = computeFDGradient(params);
 
         for (int i = 0; i < dim; ++i) {
             if (i >= static_cast<int>(param_list.size())) break;

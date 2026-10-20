@@ -300,24 +300,11 @@ public:
     );
 
     /**
-     * @brief Compute parameter gradients using reverse-mode adjoint where
-     *        available, falling back to central finite differences otherwise.
-     *
-     * For Schwarzschild-like mass parameters, the adjoint geodesic integrator
-     * provides exact d(curvature)/d(param). For all other parameters, central
-     * finite differences on evaluateTheory are used.
-     *
-     * @param params Current theory parameters.
-     * @return Gradient vector w.r.t. each parameter.
-     */
-    std::vector<double> computeGradientFD(const std::vector<double>& params) const;
-
-    /**
      * @brief Central finite-difference gradient of observational chi-squared
      *        w.r.t. theory parameters, using evaluateTheory() directly.
      *
-     * Extracted from computeAdjointGradient() during Phase 33 so the adjoint
-     * path and the FD path are nameable, separately testable functions.
+     * Used by optimizeWithGradient(). No adjoint variant exists — see
+     * docs/PHASE_33.md (the integrator does not feed the chi2 path).
      *
      * @param params Current theory parameters.
      * @return Gradient vector w.r.t. each parameter.
