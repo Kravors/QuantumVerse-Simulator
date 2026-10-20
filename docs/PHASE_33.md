@@ -46,3 +46,37 @@ Register in `CMakeLists.txt` near the other Phase 33 entries (`test_adjoint_grad
 ## Non-goals (scope confirmed clean)
 
 Does **not** touch lensing, camera, RK4, or `rs = 2GM/c²`. No collision with the six settled fixes from the lensing session.
+
+## Findings (step 2 pre-flight)
+
+### Finding 1 — BD has no AD overrides (DiscoveryEngine.cpp:459-463)
+`BransDickePlugin::computeChristoffel` returns all zeros; `computeMetric` ignores `omega` (`(void)parameters` at DiscoveryEngine.cpp:446). BD as implemented is not a viable AD target.
+
+### Finding 2 — `omega` is alive but not in the metric (TheoryDiscoveryAgent.cpp:880-884)
+`omega` enters `c_gw` only via `computeGW170817Chi2`, at TheoryDiscoveryAgent.cpp:883 (`ratio = (1 + omega/phi0) / (1 + 2*omega/phi0)`). `phi0` enters both `computeMetric` (`g[0][0] = -factor * phi0`, DiscoveryEngine.cpp:452) and `computeGW170817Chi2`.
+
+### Finding 3 — FD gradient at `{500.0, 0.9}` is effectively 1-component (diagnostic 2)
+`grad[omega] = 0.00127`, `grad[phi0] = -51.96`. Gradient-match criterion at rel_err < 1e-4 is dominated by the phi0 component; omega contributes negligibly.
+
+### Finding 4 — `AdjointGeodesicIntegrator` does not compute `d(chi2)/d(params)` (decisive)
+The integrator (`src/physics/AdjointGeodesicIntegrator.h`) computes:
+- `d(final_state)/d(params)` via `integrate()` / `computeStateGradient()` (lines 235-410)
+- `d(Kretschmann)/d(params)` via `computeCurvatureGradient()` (lines 354-390)
+
+`computeAdjointGradient()` needs `d(chi2)/d(params)` through `evaluateTheory()` → `computeObservationalChi2()` + `computeGW170817Chi2()` (TheoryDiscoveryAgent.cpp:345-347). These chi2 functions sum residuals over observational data (Pantheon, BAO, CMB, GW170817) — **not** geodesic state or curvature. There is **no composition layer** mapping the integrator's output to `d(chi2)/d(params)`.
+
+**Implication**: Wiring `AdjointGeodesicIntegrator` directly into `computeAdjointGradient()` produces gradients that do not match FD chi2 gradients, even for a metric with full AD support (only KerrMetric has it — KerrMetric.h:87-92). Finding 4 changes Phase 33's shape; the criterion as written cannot be satisfied by the integrator alone.
+
+### Finding 5 — Neither chi2 function consumes its `metric` argument (most decisive)
+`computeObservationalChi2(const MetricTensor& metric, ...)` at TheoryDiscoveryAgent.cpp:734: **`(void)metric` at line 738** — the metric argument is entirely unused. Chi2 is computed from:
+- Pantheon+ SNe Ia: `luminosityDistanceMpc(z, H0, omegaM, omegaLambda)` — standard ΛCDM, not the metric
+- BAO: `computeBAOChi2(params)` → `baoEffectiveDistanceMpc(z, H0, omegaM, omegaLambda)` — ΛCDM
+- CMB: `computeCMBShiftChi2(params)` → `comovingDistanceLCDM(Z_REC, H0, omegaM, omegaLambda)` — ΛCDM
+- BBN: `computeBBNChi2(params)` → scalar functions of omegaB only
+
+`computeGW170817Chi2(const MetricTensor& metric, ...)` at TheoryDiscoveryAgent.cpp:868: **`(void)metric` at line 872** — also entirely unused. Chi2 is `pow(expected_delay - observed_delay, 2) / sigma²` where `expected_delay = observed_delay * (C_LIGHT / c_gw)` and `c_gw` is a scalar algebraic function of theory params (line 883 for BD).
+
+**Implication**: Neither chi2 function consumes the metric tensor, geodesic state, or curvature — the quantities the integrator differentiates. The chain `metric → geodesic → curvature → chi2` **does not exist** in `evaluateTheory()`. Even with full AD through `computeMetric` and `AdjointGeodesicIntegrator`, the AD output feeds into nothing in the chi2 computation. The premise that "adjoint geodesic integrator → chi2 gradient" is architecturally broken at both levels: the integrator computes the wrong quantity (Finding 4), and chi2 doesn't consume its output at all (Finding 5).
+
+**Root architectural fact**: `evaluateTheory()` calls `plugin->computeMetric(test_location_, param_map)` (line 312) then passes `metric` to chi2 functions that ignore it (`(void)metric` at 738 and 872). The metric is computed but never used for chi2. chi2 is a function of scalar cosmological + theory params only.
+
