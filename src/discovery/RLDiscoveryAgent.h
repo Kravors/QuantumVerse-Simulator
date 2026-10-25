@@ -7,6 +7,7 @@
 #include <string>
 #include <cmath>
 #include <map>
+#include <array>
 
 namespace quantumverse {
 namespace discovery {
@@ -56,6 +57,7 @@ private:
     std::vector<double> forward(const std::vector<double>& state) const;
     
 public:
+    PolicyNetwork() : PolicyNetwork(8, 3) {}
     PolicyNetwork(int state_dim, int action_dim);
     PolicyNetwork(const PolicyNetwork& other) = default;
     
@@ -76,6 +78,20 @@ private:
     int episode_count = 0;
     mutable std::mt19937 rng;
     
+#ifndef HAVE_ONNX
+#define HAVE_ONNX 1
+#endif
+
+#ifdef HAVE_ONNX
+    void* ort_env_ptr_ = nullptr;   // Opaque pointer to Ort::Env
+    void* ort_session_ptr_ = nullptr;  // Opaque pointer to Ort::Session
+    std::vector<std::string> ort_input_names_;
+    std::vector<std::string> ort_output_names_;
+    std::vector<int64_t> ort_input_dims_;
+    std::vector<int64_t> ort_output_dims_;
+    bool ort_loaded_ = false;
+#endif
+    
 protected:
     std::vector<double> normalizeParams(const std::vector<double>& params) const;
     std::vector<double> denormalizeParams(const std::vector<double>& normalized) const;
@@ -84,6 +100,7 @@ protected:
     
 public:
     RLDiscoveryAgent(int param_dim, const std::vector<std::pair<double, double>>& ranges);
+    ~RLDiscoveryAgent();
     
     double trainEpisode();
     std::vector<double> discoverTheory(int max_steps = 100);
@@ -93,6 +110,13 @@ public:
     double getAverageReward(int window_size = 100) const;
     void savePolicy(const std::string& path) const;
     void loadPolicy(const std::string& path);
+    
+    // ONNX Runtime inference (PPO actor policy)
+#if HAVE_ONNX
+    bool loadONNXModel(const std::string& onnx_path);
+    [[nodiscard]] bool isONNXLoaded() const noexcept;
+    std::array<float, 3> predictONNAction(const std::array<float, 4>& state);
+#endif
 };
 
 class RLTrainer {

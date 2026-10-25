@@ -52,7 +52,6 @@ cmake .. ^
     -DCMAKE_BUILD_TYPE=Debug ^
     -DCMAKE_CXX_FLAGS_DEBUG="/Zi /Ob0 /Od /RTC1" ^
     -DQUANTUMVERSE_USE_QML=OFF ^
-    -DQUANTUMVERSE_USE_IMGUI=ON ^
     -DQUANTUMVERSE_USE_ONNX=OFF
 
 if errorlevel 1 (
@@ -118,9 +117,6 @@ if not exist "%BUILD_DIR%" (
     call :build
 )
 cd /d "%BUILD_DIR%"
-
-echo Running QuantumVerse ImGui version...
-Debug\quantumverse_imgui.exe
 
 if errorlevel 1 (
     echo.

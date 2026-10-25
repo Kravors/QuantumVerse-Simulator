@@ -200,9 +200,17 @@ public:
     QuantumGeometryType getCurrentType() const { return currentType; }
     void setCurrentType(QuantumGeometryType type) { currentType = type; }
 
+    // Global alpha for fade transitions (Planck Microscope)
+    void setGlobalAlpha(float alpha);
+    float globalAlpha() const { return m_globalAlpha; }
+
     // Animation
     void stepAnimation();         // Advance one frame
     void resetAnimation();
+
+private:
+    // Global alpha for fade transitions (Planck Microscope)
+    float m_globalAlpha = 1.0f;
 
 private:
     // Helper: project 4D point to 3D screen coordinates

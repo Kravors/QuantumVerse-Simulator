@@ -70,7 +70,8 @@ def generate_schwarzschild_sample(rng: np.random.Generator, M: float) -> Dict:
     # Integrate using fast C++ backend
     # _geodesic_cpp.integrate_schwarzschild returns final state as numpy array
     final_state = _geodesic_cpp.integrate_schwarzschild(
-        initial_event, initial_velocity, M, tau, num_steps=1000
+        initial_event, initial_velocity, M,
+        tau_max=tau, num_steps=1000
     )
     final_event = final_state[0:4]  # Extract position (first 4 components)
     

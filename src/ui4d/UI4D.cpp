@@ -577,7 +577,7 @@ void UI4D::endBodyPropertyEditing() {
             orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
         }
         body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
-        body.velocity = Event4D(0.0, 0.0, -orbitalVelocity, 0.0);
+        body.velocity = Event4D(0.0, 0.0, orbitalVelocity, 0.0);
         body.isCentralBody = false;
         body.isStar = false;
         body.showOrbit = true;

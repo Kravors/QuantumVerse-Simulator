@@ -35,6 +35,7 @@
 #include "spacetime/MetricTensor.h"
 #include "spacetime/KerrMetric.h"
 #include "physics/CurvatureCalculator.h"
+#include "physics/PhysicsValidator.h"
 #include "utils/ThreadPool.h"
 #include "scenario/ScenarioManager.h"
 
@@ -632,7 +633,7 @@ void QmlGlRenderer::render()
             // Color based on body type
             if (body.isStar) {
                 cbi.color[0] = 1.0f; cbi.color[1] = 0.95f; cbi.color[2] = 0.8f;
-                cbi.emissive[0] = 1.8f; cbi.emissive[1] = 1.4f; cbi.emissive[2] = 0.7f;
+                cbi.emissive[0] = 0.8f; cbi.emissive[1] = 0.6f; cbi.emissive[2] = 0.3f;
             } else if (body.name.find("Earth") != std::string::npos) {
                 cbi.color[0] = 0.2f; cbi.color[1] = 0.5f; cbi.color[2] = 0.9f;
                 cbi.emissive[0] = 0.0f; cbi.emissive[1] = 0.0f; cbi.emissive[2] = 0.0f;
@@ -2091,6 +2092,9 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     setAcceptedMouseButtons(Qt::AllButtons);
     setFlag(QQuickItem::ItemHasContents, true);
 
+    // Physics Validator - reality monitor for metric/geodesic invariants
+    m_physicsValidator = std::make_unique<quantumverse::PhysicsValidator>(m_probeMetric);
+
     int w = width() > 0 ? static_cast<int>(width()) : 1280;
     int h = height() > 0 ? static_cast<int>(height()) : 720;
     m_renderer = new QmlGlRenderer(w, h);
@@ -2141,6 +2145,43 @@ void QmlGlViewport::updateFrameRate(float fps)
     if (fps < 0.0f) fps = 0.0f;
     m_frameRate = fps;
     emit frameRateChanged();
+}
+
+void QmlGlViewport::setPlanckScale(float logScale)
+{
+    if (m_planckLogScale == logScale) return;
+    m_planckLogScale = logScale;
+
+    float scaleMeters = std::pow(10.0f, logScale);
+
+    // Below 1e-15 m, quantum gravity effects dominate
+    if (scaleMeters < 1e-15f) {
+        // Fade out classical GR grid
+        if (m_curvatureRenderer) m_curvatureRenderer->setGlobalAlpha(0.0f);
+
+        // Fade in quantum geometry
+        if (m_quantumRenderer) {
+            m_quantumRenderer->setGlobalAlpha(1.0f);
+            update();
+        }
+    } else {
+        // Classical regime
+        if (m_curvatureRenderer) m_curvatureRenderer->setGlobalAlpha(1.0f);
+        if (m_quantumRenderer) m_quantumRenderer->setGlobalAlpha(0.0f);
+    }
+
+    emit spectralDimensionChanged();
+    update();
+}
+
+float QmlGlViewport::spectralDimension() const
+{
+    if (m_planckLogScale < -15.0f && m_quantumRenderer) {
+        // Spectral dimension drops from 4 (classical) to ~2 (quantum)
+        // CDT prediction: D_s ~ 2 at Planck scale
+        return 2.0f + 2.0f * (m_planckLogScale + 15.0f) / 20.0f; // Linear interpolate: 4.0 at -15, 2.0 at -35
+    }
+    return 4.0f; // Classical spacetime is 4D
 }
 
 void QmlGlViewport::setShowGrid(bool show)
@@ -2281,6 +2322,9 @@ void QmlGlViewport::setCurvatureRendererDirect(std::shared_ptr<CurvatureRenderer
     if (m_renderer) {
         m_renderer->setCurvatureRenderer(m_curvatureRenderer);
     }
+    if (m_physicsValidator) {
+        m_physicsValidator->setCurvatureRenderer(m_curvatureRenderer.get());
+    }
     emit curvatureRendererChanged();
     update();
 }
@@ -2326,6 +2370,7 @@ void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
                << "old=" << (void*)m_probeMetric.get()
                << "new=" << (void*)metric.get();
     m_probeMetric = std::move(metric);
+    if (m_physicsValidator) m_physicsValidator->setMetric(m_probeMetric);
     if (m_probeMetric) {
         probeAt(0.0, 0.0, 100000.0);
     }
@@ -2470,10 +2515,31 @@ void QmlGlViewport::updateSimulation(double deltaTime)
                    << "cam_az=" << m_cameraAngleX
                    << "cam_el=" << m_cameraAngleY
                    << "cam_d=" << m_cameraDistance
-                   << "toolbar_overflow=" << (m_toolbarOverflow ? 1 : 0)
-                   << "gridZRange=" << gridRange
-                   << "lensing=" << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
-                   << "texBound=" << texId;
+                    << "toolbar_overflow=" << (m_toolbarOverflow ? 1 : 0)
+                    << "gridZRange=" << gridRange
+                    << "lensing=" << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
+                    << "texBound=" << texId;
+    }
+
+    // Physics Validator - check metric/geodesic invariants every 60 frames
+    if (m_physicsValidator && m_probeMetric) {
+        auto report = m_physicsValidator->validate(Event4D(0.0, 0.0, 0.0, 0.0));
+        bool warning = report.failedChecks > 0;
+        if (m_physicsWarning != warning) {
+            m_physicsWarning = warning;
+            emit physicsWarningChanged();
+        }
+        if (report.failedChecks > 0) {
+            qWarning() << "[VALIDATOR]" << report.failedChecks << "of"
+                       << report.totalChecks << "checks failed:";
+            for (const auto& f : report.failures) {
+                qWarning() << "[VALIDATOR]  " << QString::fromStdString(f.name)
+                           << "value=" << f.value << "expected=" << f.expected
+                           << "- " << QString::fromStdString(f.message);
+            }
+        } else if (report.totalChecks > 0) {
+            qWarning() << "[VALIDATOR] all" << report.totalChecks << "checks passed";
+        }
     }
 
     // Update recording state
@@ -2597,19 +2663,27 @@ void QmlGlViewport::setBlackHoleMass(double mass)
             [this, newMass]() { setBlackHoleMassDirect(newMass); });
 
         double mass_kg = mass * 1.989e30;
-        auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
-        m_curvatureRenderer->setMetric(metric);
-        setProbeMetric(metric);
+        // In-place metric update: mutate the existing SchwarzschildMetric
+        // instead of allocating a new one and swapping pointers. This keeps
+        // the CurvatureRenderer's cached state valid and avoids metric
+        // thrashing during parameter sweeps.
+        if (!m_probeMetric) {
+            m_probeMetric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
+        }
+        m_probeMetric->setMass(mass_kg);
+        m_curvatureRenderer->setMetric(m_probeMetric);
+        probeAt(0.0, 0.0, 100000.0);
         // The lensing ring has never responded to any mass parameter: setLensingMass
-        // had no caller at all. Wire it here, on the same code path that rebuilds the
-        // metric, so metric, probe, and lensing all subscribe to one source of truth
-        // for "the mass changed." This is also the natural seam for the in-place
-        // metric-update refactor (Problem 3) later.
+        // had no caller at all. Wire it here, on the same code path that updates
+        // the metric, so metric, probe, and lensing all subscribe to one source of
+        // truth for "the mass changed."
         setLensingMass(static_cast<float>(mass));
         // The grid well follows the same mass on the same path - log-scaled so the
         // slider's full range stays legible (see CurvatureRenderer::deformGrid).
         m_curvatureRenderer->setBlackHoleMassSolar(mass);
         m_blackHoleMass = mass;
+        // Forward mass to ergosphere renderer
+        m_curvatureRenderer->setErgosphereMass(mass);
         emit blackHoleMassChanged();
         update();
     }
@@ -2619,9 +2693,14 @@ void QmlGlViewport::setBlackHoleMassDirect(double mass)
 {
     if (mass <= 0.0 || !m_curvatureRenderer) return;
     double mass_kg = mass * 1.989e30;
-    auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
-    m_curvatureRenderer->setMetric(metric);
-    setProbeMetric(metric);
+    // In-place metric update: mutate the existing SchwarzschildMetric
+    // instead of allocating a new one and swapping pointers.
+    if (!m_probeMetric) {
+        m_probeMetric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
+    }
+    m_probeMetric->setMass(mass_kg);
+    m_curvatureRenderer->setMetric(m_probeMetric);
+    probeAt(0.0, 0.0, 100000.0);
     // Mirror the lensing wiring from setBlackHoleMass so undo/redo keeps the
     // lensing ring in step with the metric on the direct path too.
     setLensingMass(static_cast<float>(mass));
@@ -2631,6 +2710,55 @@ void QmlGlViewport::setBlackHoleMassDirect(double mass)
     m_blackHoleMass = mass;
     emit blackHoleMassChanged();
     update();
+}
+
+double QmlGlViewport::blackHoleSpin() const
+{
+    return m_blackHoleSpin;
+}
+
+void QmlGlViewport::setBlackHoleSpin(double spin)
+{
+    if (!m_curvatureRenderer) return;
+    // Clamp spin to [0, 0.999] - same range as Kerr metric spin parameter
+    if (spin < 0.0) spin = 0.0;
+    if (spin > 0.999) spin = 0.999;
+    m_blackHoleSpin = spin;
+    // Forward to ergosphere renderer (Kerr frame-dragging boundary)
+    m_curvatureRenderer->setErgosphereSpin(spin);
+    emit blackHoleSpinChanged();
+    update();
+}
+
+double QmlGlViewport::blackHoleCharge() const
+{
+    return m_blackHoleCharge;
+}
+
+void QmlGlViewport::setBlackHoleCharge(double charge)
+{
+    if (!m_curvatureRenderer) return;
+    // Clamp charge to [0, 1.5] - same range as RL agent
+    if (charge < 0.0) charge = 0.0;
+    if (charge > 1.5) charge = 1.5;
+    m_blackHoleCharge = charge;
+    // Forward to ergosphere renderer
+    m_curvatureRenderer->setErgosphereCharge(charge);
+    emit blackHoleChargeChanged();
+    update();
+}
+
+void QmlGlViewport::setNeuralGeodesicsEnabled(bool enabled)
+{
+    if (!m_curvatureRenderer) return;
+    m_curvatureRenderer->setShowNeuralGeodesics(enabled);
+    update();
+}
+
+bool QmlGlViewport::neuralGeodesicsEnabled() const
+{
+    if (!m_curvatureRenderer) return false;
+    return m_curvatureRenderer->showNeuralGeodesics();
 }
 
 void QmlGlViewport::setGridBlackHoleCenter(float x, float y, float z)
@@ -2829,17 +2957,17 @@ int QmlGlViewport::asteroidCount() const
 
 void QmlGlViewport::setBlackHoleType(const QString& type)
 {
+    (void)type;  // Metric type selection not yet implemented; always Schwarzschild
     if (m_curvatureRenderer) {
         double mass_kg = m_blackHoleMass * 1.989e30;
-        std::shared_ptr<quantumverse::MetricTensor> metric;
-        if (type == "Kerr") {
-            // Kerr metric not yet in MetricTensor hierarchy, use Schwarzschild
-            metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
-        } else {
-            metric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
+        // In-place metric update: mutate the existing SchwarzschildMetric
+        // instead of allocating a new one and swapping pointers.
+        if (!m_probeMetric) {
+            m_probeMetric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
         }
-        m_curvatureRenderer->setMetric(metric);
-        setProbeMetric(metric);
+        m_probeMetric->setMass(mass_kg);
+        m_curvatureRenderer->setMetric(m_probeMetric);
+        probeAt(0.0, 0.0, 100000.0);
         update();
     }
 }

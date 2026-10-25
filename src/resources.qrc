@@ -10,6 +10,7 @@
         <file>ui/ToolBarRow.qml</file>
         <file>ui/ActionRail.qml</file>
         <file>ui/Theme.qml</file>
+        <file>../resources/paper_template.tex</file>
     </qresource>
     <qresource prefix="/">
         <file>icons/open.svg</file>

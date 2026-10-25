@@ -89,7 +89,6 @@ echo [INFO] Configuring build...
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 cd "%BUILD_DIR%"
 set CMAKE_OPTS=-DCMAKE_BUILD_TYPE=Release
-set CMAKE_OPTS=%CMAKE_OPTS% -DQUANTUMVERSE_USE_IMGUI=ON
 set CMAKE_OPTS=%CMAKE_OPTS% -DQUANTUMVERSE_USE_QML=OFF
 cmake %CMAKE_OPTS% ..
 if errorlevel 1 (

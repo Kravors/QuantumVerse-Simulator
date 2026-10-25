@@ -1,0 +1,60 @@
+=== Gravitational Lensing Tests ===
+[PASS] Photon sphere radius correct for Schwarzschild
+       r_photon = 3 M (geometric)
+       expected = 4431.19 m
+[PASS] ISCO correct for Schwarzschild (6M)
+       r_isco = 6 M
+[PASS] ISCO reduced for Kerr spin=0.5
+       r_isco = 4.233 M (< 6M)
+[PASS] Extremal Kerr ISCO near M
+       r_isco = 1.18176 M (expected ~1)
+[PASS] Ray marching step validation correct
+[PASS] Shadow intensity bounds correct
+[PASS] Parameter structure validation correct
+[PASS] Enable/disable lensing works correctly
+[PASS] Metric switching works correctly
+[PASS] Lens distortion pattern scales correctly with distance
+       deflection(10M) = 0.02
+       deflection(100M) = 0.0002
+[PASS] Kerr shadow asymmetry (photon sphere < 3M)
+       r_photon = 1.55785 M (spin=0.9)
+[PASS] Star field generation parameters validated
+[PASS] Volumetric disk emissivity non-negative and radially decreasing
+       emissivity(8M)  = (0.140189, 0.0999017, 0.0339251)
+       emissivity(12M) = (0.021672, 0.0124257, 0.00305298)
+[PASS] Disk luminosity scales correctly with density and temperature
+       L(density=1)  = 218.921
+       L(density=2)  = 437.842
+       L(temp=2)     = 3502.74
+[PASS] Volumetric disk parameter validation correct
+[PASS] Optically thick saturation test passed
+       Thin (tau=0.01)   I = 0.00995017 (expected ~0.01)
+       Thick (tau=100)   I = 1 (expected ~1.0)
+       Extra-thick       I = 1 (still ~1.0)
+       Thin/Thick ratio  100.501 (must be << 100,000)
+[PASS] Two-layer self-shadowing test passed
+       Total emission = 1.10034 (shadowed, not ~16.8)
+[PASS] ISCO exact for Schwarzschild (6M)
+       r_isco = 6 M
+[PASS] Kerr ISCO shrinks for prograde, expands for retrograde
+       r_isco(a=+0.5) = 4.233 M
+       r_isco(a=-0.5) = 7.55458 M
+[PASS] Extremal Kerr ISCO approaches Thorne limit (1.237M)
+       r_isco(a=0.998) = 1.23697 M
+[PASS] CPU ISCO reference matches GLSL mirror across spins
+[PASS] Doppler beaming is signed (approaching side brighter)
+       emissivity(approaching -8M) = (0.607252, 0.579377, 0.38245)
+       emissivity(receding    +8M) = (0.0475993, 0.0273158, 0.00671945)
+[PASS] Doppler intensity scales as delta^4
+       delta=1.54692 expected_ratio=5.72624 actual_ratio=5.72624
+[PASS] Spin reaches luminosity through the ISCO inner edge
+       L(fixed rInner, spin=0)   = 218.921
+       L(fixed rInner, spin=0.9) = 218.921
+       L(ISCO, spin=0)           = 218.921
+       L(ISCO, spin=0.9)         = 33.3516
+[PASS] Emissivity scales linearly with opacity (kappa)
+       emissivity(kappa=1) = (0.140189, 0.0999017, 0.0339251)
+       emissivity(kappa=2) = (0.280378, 0.199803, 0.0678502)
+[PASS] ISCO inner-edge fade smooths the hard cut-off
+       fade=0   : emissivity(5.9M)=sum=0 emissivity(6.0M)=sum=1
+       fade=1.0 : emissivity(5.9M)=sum=0 emissivity(6.0M)=sum=0 emissivity(6.5M)=sum=0.348771 emissivity(7.1M)=sum=0.468833

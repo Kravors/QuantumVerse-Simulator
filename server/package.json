@@ -1,0 +1,9 @@
+{
+  "name": "quantumverse-relay",
+  "version": "1.0.0",
+  "description": "Shared Spacetime Relay Server",
+  "main": "server.js",
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

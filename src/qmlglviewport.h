@@ -38,6 +38,7 @@
 #include <atomic>
 
 #include "ml/SurrogateIntegration.h"
+#include "physics/PhysicsValidator.h"
 #ifdef QUANTUMVERSE_USE_VR
 #include "vr/OpenXRBackend.h"
 #endif
@@ -54,6 +55,7 @@ class CelestialBodyRenderer;
 class MetricTensor;
 class PostProcess;
 class GravitationalLensing;
+class PhysicsValidator;
 }
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
@@ -577,10 +579,13 @@ public:
     Q_PROPERTY(QString weylSquared READ weylSquared NOTIFY probeChanged)
     Q_PROPERTY(QString redshift READ redshift NOTIFY probeChanged)
      Q_PROPERTY(bool probeValid READ probeValid NOTIFY probeChanged)
+     Q_PROPERTY(bool physicsWarning READ physicsWarning NOTIFY physicsWarningChanged)
     Q_PROPERTY(bool planeMode READ isPlaneMode WRITE togglePlaneMode NOTIFY planeModeChanged)
     Q_PROPERTY(int planeResolution READ getPlaneResolution WRITE setPlaneResolution NOTIFY planeResolutionChanged)
     Q_PROPERTY(int textureSource READ textureSource WRITE setTextureSource NOTIFY textureSourceChanged)
     Q_PROPERTY(double blackHoleMass READ blackHoleMass WRITE setBlackHoleMass NOTIFY blackHoleMassChanged)
+    Q_PROPERTY(double blackHoleSpin READ blackHoleSpin WRITE setBlackHoleSpin NOTIFY blackHoleSpinChanged)
+    Q_PROPERTY(double blackHoleCharge READ blackHoleCharge WRITE setBlackHoleCharge NOTIFY blackHoleChargeChanged)
     Q_PROPERTY(double liveKineticEnergy READ liveKineticEnergy NOTIFY telemetryUpdated)
     Q_PROPERTY(double livePotentialEnergy READ livePotentialEnergy NOTIFY telemetryUpdated)
     Q_PROPERTY(double liveTotalEnergy READ liveTotalEnergy NOTIFY telemetryUpdated)
@@ -629,6 +634,8 @@ public:
     QString weylSquared() const { return m_weylSquared; }
     QString redshift() const { return m_redshift; }
     bool probeValid() const { return m_probeValid; }
+    bool physicsWarning() const { return m_physicsWarning; }
+    PhysicsValidator* physicsValidator() const { return m_physicsValidator.get(); }
 
     // Exposed methods for QML
     Q_INVOKABLE void zoomIn();
@@ -647,6 +654,12 @@ public:
     Q_INVOKABLE int textureSource() const;
     Q_INVOKABLE void setBlackHoleMass(double mass);
     Q_INVOKABLE double blackHoleMass() const;
+    Q_INVOKABLE void setBlackHoleSpin(double spin);
+    Q_INVOKABLE double blackHoleSpin() const;
+    Q_INVOKABLE void setBlackHoleCharge(double charge);
+    Q_INVOKABLE double blackHoleCharge() const;
+    Q_INVOKABLE void setNeuralGeodesicsEnabled(bool enabled);
+    Q_INVOKABLE bool neuralGeodesicsEnabled() const;
     Q_INVOKABLE void setBlackHoleType(const QString& type);
     void setBlackHoleMassDirect(double mass); // For undo/redo (no command push)
     // World position the curvature grid's well centers on. Defaults to the
@@ -810,20 +823,40 @@ public:
         m_headlessTargetFrames = frames;
         if (m_renderer) m_renderer->setHeadlessFrameTarget(frames);
     }
+
+    // Planck Microscope - logarithmic zoom scale for quantum gravity transition
+    Q_PROPERTY(float spectralDimension READ spectralDimension NOTIFY spectralDimensionChanged)
+
+    Q_INVOKABLE void setPlanckScale(float logScale);
+    Q_INVOKABLE float planckScale() const { return m_planckLogScale; }
+    Q_INVOKABLE float spectralDimension() const;
+
+signals:
+    void spectralDimensionChanged();
+
+public:
+    // Screenshot / frame-times helpers (called from QML / main_qml.cpp)
     void setFrameTimesPath(const QString &path) {
         if (m_renderer) m_renderer->setFrameTimesPath(path);
     }
-    bool headlessTargetReached() const { return m_renderer ? m_renderer->headlessTargetReached() : false; }
 
-    void requestScreenshot(const QString &path) {
+    Q_INVOKABLE void requestScreenshot(const QString &path) {
         m_pendingScreenshotRequested = true;
         m_pendingScreenshotPath = path;
         qDebug() << "[DEBUG] requestScreenshot() called, path=" << path << "flag=" << m_pendingScreenshotRequested.load();
     }
+
+    bool headlessTargetReached() const { return m_renderer ? m_renderer->headlessTargetReached() : false; }
+
     bool screenshotRequested() const { return m_renderer ? m_renderer->screenshotRequested() : false; }
 
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);
+
+private:
+    float m_planckLogScale = 0.0f;  // 0 = 10^0 m, -35 = 10^-35 m
+    std::unique_ptr<quantumverse::PhysicsValidator> m_physicsValidator;
+
 #ifdef QUANTUMVERSE_USE_VR
       Q_INVOKABLE void toggleVR();
       Q_INVOKABLE void updateVRControllerInput();
@@ -848,6 +881,7 @@ signals:
     void quantumRendererChanged();
     void camera4DAdapterChanged();
     void probeChanged();
+    void physicsWarningChanged();
 #ifdef QUANTUMVERSE_USE_VR
      void vrEnabledChanged();
      void vrActiveChanged();
@@ -858,6 +892,8 @@ signals:
     void planeResolutionChanged();
     void textureSourceChanged();
     void blackHoleMassChanged();
+    void blackHoleSpinChanged();
+    void blackHoleChargeChanged();
     void telemetryUpdated();
     void physicsConstantsChanged();
       void bloomEnabledChanged();
@@ -931,6 +967,8 @@ private:
     float m_simulationTime;
     float m_frameRate;
     double m_blackHoleMass = 10.0;
+    double m_blackHoleSpin = 0.0;
+    double m_blackHoleCharge = 0.0;
     float m_gridBlackHoleCenter[3] = {0.0f, 0.0f, 0.0f};
     int m_frameCount;
     int m_headlessTargetFrames = 0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode
@@ -975,6 +1013,7 @@ private:
     QString m_weylSquared = "—";
     QString m_redshift = "—";
     bool m_probeValid = false;
+    bool m_physicsWarning = false;
 
 #ifdef QUANTUMVERSE_USE_VR
      // VR state

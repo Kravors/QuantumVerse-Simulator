@@ -135,12 +135,12 @@ jobs:
         continue-on-error: true
         run: |
           if [ "${{ runner.os }}" == "Linux" ]; then
-             xvfb-run -a ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
+             xvfb-run -a ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|QMLPerformanceBaseline|PerformanceRegressionTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
           elif [ "${{ runner.os }}" == "Windows" ]; then
             export QT_QPA_PLATFORM=offscreen
-            ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
+            ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|QMLPerformanceBaseline|PerformanceRegressionTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
           else
-            ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
+            ctest -C ${{ matrix.build_type }} -R "VisualRegressionTest|AnimationTimingTest|GLStrictAuditTest|PerformanceGateTest|QMLPerformanceBaseline|PerformanceRegressionTest|GridDeformationTest|ViewportStateTest|ViewportContentTest" --timeout 600 --output-on-failure -j 4
           fi
 
       - name: Ensure reports directory exists

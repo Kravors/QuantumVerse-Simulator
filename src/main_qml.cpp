@@ -53,6 +53,8 @@
 #include "ui4d/UI4D.h"
 #include "ui4d/PlanckMicroscope.h"
 #include "ui4d/Camera4DAdapter.h"
+#include "ui4d/QmlRLDiscoveryAgent.h"
+#include "discovery/LLMCoPilot.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/KerrMetric.h"
 #include "rendering/CurvatureRenderer.h"
@@ -626,6 +628,7 @@ int main(int argc, char* argv[])
         auto curvatureRenderer = std::make_shared<quantumverse::CurvatureRenderer>(
             config.grid.resolution, config.grid.size, quantumverse::CurvatureMode::GRID_DEFORMATION);
         curvatureRenderer->setMetric(metric);
+        curvatureRenderer->setBlackHoleMassSolar(blackHoleMass);
 
         // Create black hole singularity (position at origin)
         std::array<double, 3> bhPos = {0.0, 0.0, 0.0};
@@ -691,6 +694,19 @@ int main(int argc, char* argv[])
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PBHMicrolensingScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::EMBrightGWCounterpartDetector>());
         qDebug() << "QuantumVerse: Registered" << discoveryPanelManager->instrumentCount() << "discovery instruments";
+
+        // Create the RL Discovery Agent and load the ONNX PPO actor policy
+        auto rlDiscoveryAgent = std::make_shared<quantumverse::QmlRLDiscoveryAgent>();
+        QString onnxModelPath = QDir::currentPath() + "/rl_discovery_agent.onnx";
+        if (rlDiscoveryAgent->loadONNXModel(onnxModelPath)) {
+            qDebug() << "QuantumVerse: RL Discovery Agent ONNX model loaded from:" << onnxModelPath;
+        } else {
+            qDebug() << "QuantumVerse: RL Discovery Agent ONNX model NOT found at:" << onnxModelPath;
+        }
+
+        // Create the LLM Co-Pilot (Ollama bridge) for plain-English anomaly explanations
+        auto llmCoPilot = new quantumverse::LLMCoPilot();
+        qDebug() << "QuantumVerse: LLM Co-Pilot created (Ollama bridge on localhost:11434)";
 
         // Provide metric and location to the discovery panel manager
         discoveryPanelManager->setMetric(metric);
@@ -920,6 +936,10 @@ int main(int argc, char* argv[])
             QVariant::fromValue(&quantumverse::TourManager::instance()));
         rootContext->setContextProperty("discoveryPanelManager",
             QVariant::fromValue(discoveryPanelManager.get()));
+        rootContext->setContextProperty("rlDiscoveryAgent",
+            QVariant::fromValue(rlDiscoveryAgent.get()));
+        rootContext->setContextProperty("llmCoPilot",
+            QVariant::fromValue(llmCoPilot));
 #ifdef QUANTUMVERSE_USE_VR
         rootContext->setContextProperty("vrBackend",
             QVariant::fromValue(vrBackend.get()));
@@ -1245,6 +1265,18 @@ int main(int argc, char* argv[])
 
                 viewport->setCamera4DAdapterDirect(camera4DAdapter);
 
+                // Wire the PhysicsValidator from the viewport to the RL
+                // discovery agent so AI actions can be vetoed on invalid spacetimes.
+                rlDiscoveryAgent->setPhysicsValidator(viewport->physicsValidator());
+                rlDiscoveryAgent->setLLMCoPilot(llmCoPilot);
+
+                // Connect LLM Co-Pilot analysisReady signal to QML updateCoPilotText
+                QObject::connect(llmCoPilot, &quantumverse::LLMCoPilot::analysisReady,
+                    [rootObject](const QString& text) {
+                        QMetaObject::invokeMethod(rootObject, "updateCoPilotText",
+                            Q_ARG(QVariant, text));
+                    });
+
                 auto celestialBodyRenderer = std::make_shared<quantumverse::CelestialBodyRenderer>(
                     quantumverse::CelestialBodyRenderer::QualityLevel::MEDIUM, 64);
 
@@ -1260,21 +1292,21 @@ int main(int argc, char* argv[])
                 // can move the BH between captures without touching the user's
                 // config file. One value feeds both the annulus and the grid
                 // well, so they can never silently diverge again.
-                float bhPos[3] = {
+                float bhPosLocal[3] = {
                     static_cast<float>(config.black_hole.position[0]),
                     static_cast<float>(config.black_hole.position[1]),
                     static_cast<float>(config.black_hole.position[2]),
                 };
                 if (cliBHPositionSet) {
-                    bhPos[0] = cliBHPosition[0];
-                    bhPos[1] = cliBHPosition[1];
-                    bhPos[2] = cliBHPosition[2];
+                    bhPosLocal[0] = cliBHPosition[0];
+                    bhPosLocal[1] = cliBHPosition[1];
+                    bhPosLocal[2] = cliBHPosition[2];
                 }
-                celestialBodyRenderer->setBlackHoleCenter(bhPos[0], bhPos[1], bhPos[2]);
+                celestialBodyRenderer->setBlackHoleCenter(bhPosLocal[0], bhPosLocal[1], bhPosLocal[2]);
                 // The curvature grid's well centers on the same BH the annulus does.
                 // Without this the funnel stayed at the world origin while the disk
                 // sat at (40,0,0): two different positions for the same physics BH.
-                viewport->setGridBlackHoleCenter(bhPos[0], bhPos[1], bhPos[2]);
+                viewport->setGridBlackHoleCenter(bhPosLocal[0], bhPosLocal[1], bhPosLocal[2]);
                 celestialBodyRenderer->setAnnulusDebugMode(cliAnnulusDebug);
                 celestialBodyRenderer->setBeamingDisplayGain(beamingDisplayGain);
                 // Name the EFFECTIVE position, not the config value: when
@@ -1282,7 +1314,7 @@ int main(int argc, char* argv[])
                 // acceptance capture logs claim a config value that was
                 // overridden. One value feeds the annulus and the grid well.
                 qDebug() << "[ANNULUS] wired BH world position ="
-                         << bhPos[0] << bhPos[1] << bhPos[2]
+                         << bhPosLocal[0] << bhPosLocal[1] << bhPosLocal[2]
                          << (cliBHPositionSet
                                  ? QStringLiteral("(--bh-position override)")
                                  : QStringLiteral("(from config black_hole.position)"))

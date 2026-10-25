@@ -7,6 +7,25 @@
 #include <random>
 #include <filesystem>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef QUANTUMVERSE_BUILD_WASM
+#include <windows.h>
+#endif
+#endif
+
+#if HAVE_ONNX
+#ifndef ORT_API_VERSION
+#define ORT_API_VERSION 22
+#endif
+#include <onnxruntime/core/session/onnxruntime_c_api.h>
+#undef ORT_API_VERSION
+#define ORT_API_VERSION 22
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#endif
+
 namespace quantumverse {
 namespace discovery {
 
@@ -161,6 +180,15 @@ RLDiscoveryAgent::RLDiscoveryAgent(int param_dim_, const std::vector<std::pair<d
     rng.seed(rd());
 }
 
+RLDiscoveryAgent::~RLDiscoveryAgent() {
+#if HAVE_ONNX
+    delete static_cast<Ort::Env*>(ort_env_ptr_);
+    ort_env_ptr_ = nullptr;
+    delete static_cast<Ort::Session*>(ort_session_ptr_);
+    ort_session_ptr_ = nullptr;
+#endif
+}
+
 std::vector<double> RLDiscoveryAgent::normalizeParams(const std::vector<double>& params) const {
     std::vector<double> normalized;
     normalized.reserve(param_dim);
@@ -283,6 +311,118 @@ void RLDiscoveryAgent::loadPolicy(const std::string& path) {
     file.close();
     policy->setParameters(params);
 }
+
+#if HAVE_ONNX
+bool RLDiscoveryAgent::loadONNXModel(const std::string& onnx_path) {
+    try {
+        ort_env_ptr_ = new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "RLDiscoveryAgent");
+        Ort::SessionOptions opts;
+        opts.SetIntraOpNumThreads(1);
+        opts.SetInterOpNumThreads(1);
+        opts.DisableCpuMemArena();
+
+        // Convert path to wide string on Windows
+#ifdef _WIN32
+        int needed = MultiByteToWideChar(CP_UTF8, 0, onnx_path.c_str(), -1, nullptr, 0);
+        if (needed <= 0) return false;
+        std::wstring wpath(needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, onnx_path.c_str(), -1, &wpath[0], needed);
+        wpath.resize(needed - 1);
+
+        ort_session_ptr_ = new Ort::Session(*static_cast<Ort::Env*>(ort_env_ptr_), wpath.c_str(), opts);
+#else
+        ort_session_ptr_ = new Ort::Session(*static_cast<Ort::Env*>(ort_env_ptr_), onnx_path.c_str(), opts);
+#endif
+
+        size_t num_inputs = static_cast<Ort::Session*>(ort_session_ptr_)->GetInputCount();
+        size_t num_outputs = static_cast<Ort::Session*>(ort_session_ptr_)->GetOutputCount();
+
+        ort_input_names_ = static_cast<Ort::Session*>(ort_session_ptr_)->GetInputNames();
+        ort_output_names_ = static_cast<Ort::Session*>(ort_session_ptr_)->GetOutputNames();
+
+        for (size_t i = 0; i < num_inputs; ++i) {
+            auto type_info = static_cast<Ort::Session*>(ort_session_ptr_)->GetInputTypeInfo(i);
+            auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
+            auto dims = tensor_info.GetShape();
+            for (auto& d : dims) {
+                if (d < 0) d = 1;
+            }
+            ort_input_dims_ = dims;
+        }
+
+        for (size_t i = 0; i < num_outputs; ++i) {
+            auto type_info = static_cast<Ort::Session*>(ort_session_ptr_)->GetOutputTypeInfo(i);
+            auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
+            auto dims = tensor_info.GetShape();
+            for (auto& d : dims) {
+                if (d < 0) d = 1;
+            }
+            ort_output_dims_ = dims;
+        }
+
+        ort_loaded_ = true;
+        std::cout << "[RLDiscoveryAgent] ONNX model loaded: " << onnx_path << std::endl;
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "[RLDiscoveryAgent] ONNX load failed: " << e.what() << "\n";
+        ort_loaded_ = false;
+        return false;
+    }
+}
+
+[[nodiscard]] bool RLDiscoveryAgent::isONNXLoaded() const noexcept {
+    return ort_loaded_;
+}
+
+std::array<float, 3> RLDiscoveryAgent::predictONNAction(const std::array<float, 4>& state) {
+    if (!ort_loaded_ || !ort_session_ptr_) {
+        return {0.0f, 0.0f, 0.0f};
+    }
+
+    try {
+        std::vector<float> input_data(state.begin(), state.end());
+
+        Ort::MemoryInfo mem_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
+            mem_info,
+            input_data.data(),
+            input_data.size(),
+            ort_input_dims_.data(),
+            ort_input_dims_.size()
+        );
+
+        std::vector<const char*> input_names_ptrs;
+        input_names_ptrs.reserve(ort_input_names_.size());
+        for (const auto& name : ort_input_names_) {
+            input_names_ptrs.push_back(name.c_str());
+        }
+
+        std::vector<const char*> output_names_ptrs;
+        output_names_ptrs.reserve(ort_output_names_.size());
+        for (const auto& name : ort_output_names_) {
+            output_names_ptrs.push_back(name.c_str());
+        }
+
+        std::vector<Ort::Value> outputs = static_cast<Ort::Session*>(ort_session_ptr_)->Run(
+            Ort::RunOptions{},
+            input_names_ptrs.data(),
+            &input_tensor,
+            1,
+            output_names_ptrs.data(),
+            output_names_ptrs.size()
+        );
+
+        if (!outputs.empty()) {
+            auto* out_ptr = outputs[0].GetTensorMutableData<float>();
+            return {out_ptr[0], out_ptr[1], out_ptr[2]};
+        }
+    } catch (const Ort::Exception& e) {
+        std::cerr << "[RLDiscoveryAgent] ONNX inference failed: " << e.what() << "\n";
+    }
+
+    return {0.0f, 0.0f, 0.0f};
+}
+#endif
 
 // RLTrainer implementation
 RLTrainer::RLTrainer(int param_dim, const std::vector<std::pair<double, double>>& ranges,

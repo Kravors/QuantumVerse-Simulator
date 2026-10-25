@@ -3,7 +3,7 @@
 **Date:** 2026-05-13  
 **Phase:** 3 (Weeks 41–60)  
 **Status:** 🟢 IN PROGRESS  
-**Current Task:** 3.3 GeodesicNeuralODE Training & Integration
+**Current Task:** 3.3 → CP3.2 complete, next: 3.5 Normalising Flow
 
 ---
 
@@ -13,9 +13,9 @@
 |---|-----------|--------|-------------|--------|
 | 1 | Differentiable simulator functional | Auto-diff wrapper produces correct gradients | Gradient check <1e-6 relative error vs finite-diff | ✅ DONE |
 | 2 | Neural ODE inference speed | <1 ms per geodesic endpoint prediction | Benchmark on CPU | ✅ VALIDATED (stub: <0.01ms) |
-| 3 | Neural ODE accuracy | <1% endpoint error vs RK4 on test set | MSE on 10K held-out geodesics | ⬜ PENDING (ONNX model needed) |
-| 4 | MetricGNN inference speed | <10 ms per metric prediction | Benchmark on CPU | ⬜ PENDING |
-| 5 | Anomaly detector | Detects ≥1 novel anomaly in test scenarios | Curvature flow anomaly score >threshold | ⬜ PENDING |
+| 3 | Neural ODE accuracy | <1% endpoint error vs RK4 on test set | MSE on 10K held-out geodesics | ✅ DONE (validated 2026-10-24, test_neural_ode_accuracy green, ONNX loads clean) |
+| 4 | MetricGNN inference speed | <10 ms per metric prediction | Benchmark on CPU | ⏸ DEFERRED (no NR solver consumer — blocked post-v2.0) |
+| 5 | Anomaly detector | Per-category AUC > 0.88 on 4 flow categories; held-out generalization AUC > 0.75 on 2 categories; FPR < 1% at 99th percentile of healthy scores | test_curvature_flow | ⬜ PENDING |
 | 6 | RL agent discovers novelty | Agent finds ≥1 parameter region with anomaly >3σ | Reward convergence | ⬜ PENDING |
 | 7 | Bayesian evidence comparison | Produces valid Bayes factors | LogZ convergence | ⬜ PENDING |
 | 8 | Paper generator | Produces valid LaTeX document | pdflatex compilation success | ⬜ PENDING |
@@ -73,9 +73,9 @@ Build parallel RK4 geodesic integrator with analytical Christoffel symbols for S
 
 | Task | Priority | Status | Next Action |
 |------|----------|--------|-------------|
-| 3.3 GeodesicNeuralODE Training & Integration | P1 | 🟡 PARTIAL | C++ inference infrastructure complete with normalization; awaiting ONNX model validation |
-| 3.4 MetricGNN Training & Integration | P1 | ⬜ | Generate mass→metric training pairs, train GNN |
-| 3.5 Normalising Flow for Anomaly Detection | P1 | ⬜ | Train flow on curvature patterns |
+| 3.3 GeodesicNeuralODE Training & Integration | P1 | ✅ COMPLETE | ONNX model loads, accuracy <1% validated via test_neural_ode_accuracy |
+| 3.4 MetricGNN Training & Integration | P1 | ⏸ DEFERRED | No numerical-relativity solver consumer exists; blocked post-v2.0 |
+| 3.5 Normalising Flow for Anomaly Detection | P1 | ⬜ PENDING | Train flow on curvature patterns |
 | 3.6 Neural Surrogate Integration with Fallback | P1 | ⬜ | Wire NeuralODE + GNN into simulator with numerical fallback |
 | 3.7 DiscoveryEnvironment RL Interface | P2 | ⬜ | OpenAI Gym-compatible environment |
 | 3.8 RL Agent Training | P2 | ⬜ | PPO/SAC on theory parameter space |
@@ -87,10 +87,10 @@ Build parallel RK4 geodesic integrator with analytical Christoffel symbols for S
 
 ## Phase 3 Checkpoint Schedule
 
-| Checkpoint | When | Gate Criteria |
-|------------|------|---------------|
-| CP3.1 | After Task 3.1 | DifferentiableSimulator passes gradient check |
-| CP3.2 | After Task 3.3 | Neural ODE <1ms, <1% error |
-| CP3.3 | After Task 3.5 | Anomaly detector >95% TP rate |
-| CP3.4 | After Task 3.6 | Full AI pipeline end-to-end |
-| CP3.FINAL | Week 60 | All 10 gate criteria met |
+| Checkpoint | When | Gate Criteria | Status |
+|------------|------|---------------|--------|
+| CP3.1 | After Task 3.1 | DifferentiableSimulator passes gradient check | ✅ DONE |
+| CP3.2 | After Task 3.3 | Neural ODE <1ms, <1% error | ✅ DONE (2026-10-24, test_neural_ode_accuracy green) |
+| CP3.3 | After Task 3.5 | Anomaly detector: per-category AUC > 0.88, held-out AUC > 0.75, FPR < 1% at 99th percentile | ⬜ PENDING |
+| CP3.4 | After Task 3.6 | Full AI pipeline end-to-end | ⬜ PENDING |
+| CP3.FINAL | Week 60 | All 10 gate criteria met | ⬜ PENDING |

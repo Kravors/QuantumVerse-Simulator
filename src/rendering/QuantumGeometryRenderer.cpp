@@ -21,9 +21,10 @@ QuantumGeometryRenderer::QuantumGeometryRenderer()
        showVolumes(false),
        showLabels(false),
        animateEvolution(false),
-       animationTime(0.0),
-       currentFrame(0),
-       targetLOD(3)
+        animationTime(0.0),
+        currentFrame(0),
+        targetLOD(3),
+        m_globalAlpha(1.0f)
 {
     lodLevels = {
         {1000,  2.0f, 1.0f, false},
@@ -120,6 +121,7 @@ void QuantumGeometryRenderer::renderCDTGeometry(const std::array<double, 16>& vi
     shader->setUniform("time", static_cast<float>(animationTime));
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::GRID_DEFORMATION));
+    shader->setUniform("u_global_alpha", m_globalAlpha);
     
     // Render vertices as points for CDT
     if (auto it = geometryCache.find(QuantumGeometryType::CDT); it != geometryCache.end()) {
@@ -150,6 +152,7 @@ void QuantumGeometryRenderer::renderSpinFoamGeometry(const std::array<double, 16
     shader->setUniform("time", static_cast<float>(animationTime));
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::RIEMANN_COLOR));
+    shader->setUniform("u_global_alpha", m_globalAlpha);
     
     // Render vertices
     if (auto it = geometryCache.find(QuantumGeometryType::SPIN_FOAM); it != geometryCache.end()) {
@@ -180,6 +183,7 @@ void QuantumGeometryRenderer::renderGFTGeometry(const std::array<double, 16>& vi
     shader->setUniform("time", static_cast<float>(animationTime));
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::CURVATURE_SCALAR));
+    shader->setUniform("u_global_alpha", m_globalAlpha);
     
     if (auto it = geometryCache.find(QuantumGeometryType::GFT); it != geometryCache.end()) {
         const GeometryBuffers& buffers = it->second;
@@ -209,6 +213,7 @@ void QuantumGeometryRenderer::renderCausalSetGeometry(const std::array<double, 1
     shader->setUniform("time", static_cast<float>(animationTime));
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::TIME_DILATION));
+    shader->setUniform("u_global_alpha", m_globalAlpha);
     
     if (auto it = geometryCache.find(QuantumGeometryType::CAUSAL_SET); it != geometryCache.end()) {
         const GeometryBuffers& buffers = it->second;
@@ -283,6 +288,11 @@ void QuantumGeometryRenderer::resetAnimation()
 {
     currentFrame = 0;
     animationTime = 0.0;
+}
+
+void QuantumGeometryRenderer::setGlobalAlpha(float alpha)
+{
+    m_globalAlpha = std::clamp(alpha, 0.0f, 1.0f);
 }
 
 void QuantumGeometryRenderer::updateColorScheme()

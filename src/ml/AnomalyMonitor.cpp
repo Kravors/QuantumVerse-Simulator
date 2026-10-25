@@ -144,7 +144,7 @@ void AnomalyMonitor::processSample()
             anomaly["timestamp"] = QDateTime::currentMSecsSinceEpoch() / 1000.0;
             anomaly["score"] = score;
             anomaly["threshold"] = threshold;
-            anomaly["description"] = QStringLiteral("ML anomaly detected (score=%.4f, threshold=%.4f)").arg(score).arg(threshold);
+            anomaly["description"] = QStringLiteral("ML anomaly detected (score=%1, threshold=%2)").arg(score).arg(threshold);
             emit anomalyDetected(anomaly);
         }
     } catch (const std::exception& e) {

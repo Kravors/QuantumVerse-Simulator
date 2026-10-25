@@ -9,9 +9,14 @@
 #include <string>
 
 // ONNX Runtime 1.22.1 supports API versions 1 and 17, but headers define version 22.
-// Use the wrapper header to ensure API version 17 compatibility.
+// Use the direct ORT include with API version override (same pattern as GeodesicNeuralODE).
 #ifdef HAVE_ONNX
-#include "onnx_wrapper.h"
+#ifndef ORT_API_VERSION
+#define ORT_API_VERSION 22
+#endif
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#undef ORT_API_VERSION
+#define ORT_API_VERSION 22
 #define ENABLE_ONNX 1
 #else
 #define ENABLE_ONNX 0

@@ -47,6 +47,7 @@ option(QUANTUMVERSE_USE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(QUANTUMVERSE_USE_ASAN "Build with AddressSanitizer" OFF)
 option(QUANTUMVERSE_USE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
 option(QUANTUMVERSE_USE_TSAN "Build with ThreadSanitizer" OFF)
+option(QUANTUMVERSE_BUILD_WASM "Build WASM Portal (Emscripten)" OFF)
 
 # Sanitizer configuration
 if(QUANTUMVERSE_USE_ASAN)
@@ -94,14 +95,19 @@ include(FetchContent)
 
 # nlohmann/json for JSON parsing (header-only)
 include(FetchContent)
-FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-    GIT_SHALLOW TRUE
-)
-set(JSON_BuildTests OFF CACHE INTERNAL "")
-FetchContent_MakeAvailable(nlohmann_json)
+if(NOT QUANTUMVERSE_BUILD_WASM)
+    FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+        GIT_SHALLOW TRUE
+    )
+    set(JSON_BuildTests OFF CACHE INTERNAL "")
+    FetchContent_MakeAvailable(nlohmann_json)
+else()
+    # WASM: nlohmann_json not needed (no tests, WASM sources don't include it)
+    add_library(nlohmann_json INTERFACE)
+endif()
 
 # cURL for HTTP requests
 find_package(CURL QUIET)
@@ -150,8 +156,48 @@ if(NOT CURL_FOUND)
     message(STATUS "CURL not found - building adapters without HTTP support")
 endif()
 
+if(QUANTUMVERSE_USE_ONNX)
+    set(ONNXRUNTIME_ROOT "${CMAKE_SOURCE_DIR}/third_party/onnxruntime")
+    set(ONNXRUNTIME_PREBUILT "${ONNXRUNTIME_ROOT}/onnxruntime-win-x64-1.22.1/onnxruntime-win-x64-1.22.1")
+    set(ONNXRUNTIME_INCLUDE "${CMAKE_SOURCE_DIR}/third_party/onnxruntime_src/include")
+    set(ONNXRUNTIME_LIB "${ONNXRUNTIME_PREBUILT}/lib")
+
+    set(ONNX_INCLUDE_DIR "${ONNXRUNTIME_INCLUDE}")
+    set(ONNX_LIBRARY "${ONNXRUNTIME_LIB}/onnxruntime.lib")
+
+    if(EXISTS "${ONNX_LIBRARY}" AND EXISTS "${ONNX_INCLUDE_DIR}/onnxruntime/core/session/onnxruntime_cxx_api.h")
+        message(STATUS "Found ONNX Runtime: ${ONNX_LIBRARY}")
+        add_library(onnxruntime::onnxruntime INTERFACE IMPORTED)
+        set_target_properties(onnxruntime::onnxruntime PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${ONNX_INCLUDE_DIR}"
+            INTERFACE_LINK_LIBRARIES "${ONNX_LIBRARY}"
+        )
+        target_link_libraries(dilaton INTERFACE onnxruntime::onnxruntime)
+        add_compile_definitions(HAVE_ONNX=1)
+
+        # Copy DLL next to executable at build time
+        macro(quantumverse_copy_onnx_dll target)
+            if(TARGET ${target})
+                add_custom_command(TARGET ${target} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${ONNXRUNTIME_LIB}/onnxruntime.dll"
+                    $<TARGET_FILE_DIR:${target}>
+                )
+            endif()
+        endmacro()
+
+        quantumverse_copy_onnx_dll(quantumverse_qml)
+        quantumverse_copy_onnx_dll(test_neural_ode_accuracy)
+        quantumverse_copy_onnx_dll(test_metric_gnn)
+        quantumverse_copy_onnx_dll(test_surrogate_integration)
+        quantumverse_copy_onnx_dll(test_rl_agent)
+    else()
+        message(FATAL_ERROR "ONNX Runtime not found. Include: ${ONNX_INCLUDE_DIR}, Lib: ${ONNX_LIBRARY}")
+    endif()
+endif()
+
 # Qt/QML configuration
-if(QUANTUMVERSE_USE_QT)
+if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     find_package(Qt6 QUIET COMPONENTS Multimedia)
     if(Qt6Multimedia_FOUND)
         set(QT6_MULTIMEDIA_COMPONENTS Multimedia)
@@ -201,6 +247,7 @@ if(QUANTUMVERSE_USE_QT)
         src/qmlcamcontroller.cpp
         src/scenegraphmodel.cpp
         src/ui4d/UI4D.cpp
+        src/ui4d/QmlRLDiscoveryAgent.cpp
         third_party/glad/glad.cpp
         src/ui4d/Camera4DAdapter.cpp
         src/ui4d/SceneGraphManager.cpp
@@ -222,10 +269,12 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/DiscoveryEngine.cpp
         src/discovery/TheoryManager.cpp
         src/rendering/CurvatureRenderer.cpp
+        src/ml/GeodesicNeuralODE.cpp
         src/rendering/PostProcess.cpp
         src/rendering/ComputeShader.cpp
         src/rendering/GravitationalLensing.cpp
         src/physics/CurvatureCalculator.cpp
+        src/physics/PhysicsValidator.cpp
         src/rendering/QuantumGeometryRenderer.cpp
         src/rendering/CelestialBodyRenderer.cpp
         src/rendering/ProceduralTextures.cpp
@@ -268,8 +317,10 @@ if(QUANTUMVERSE_USE_QT)
         src/discovery/SGWBBackgroundAnalyzer.cpp
         src/discovery/DarkMatterAnnihilationAnalyzer.cpp
         src/discovery/PBHMicrolensingScanner.cpp
-        src/discovery/EMBrightGWCounterpartDetector.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
+src/discovery/EMBrightGWCounterpartDetector.cpp
+src/discovery/LLMCoPilot.cpp
+        src/discovery/PaperGenerator.cpp
+src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
         src/ml/AnomalyDetector.cpp
         src/ml/TrainingDataCollector.cpp
@@ -617,6 +668,8 @@ if(QUANTUMVERSE_USE_QT)
             src/rendering/GravitationalLensing.cpp
             src/ui4d/Camera4DAdapter.cpp
             src/physics/CurvatureCalculator.cpp
+            src/physics/PhysicsValidator.cpp
+            src/ml/GeodesicNeuralODE.cpp
             src/ui4d/UI4D.cpp
             src/rendering/Texture.cpp
             src/rendering/ProceduralTextures.cpp
@@ -670,6 +723,8 @@ if(QUANTUMVERSE_USE_QT)
             src/rendering/GravitationalLensing.cpp
             src/ui4d/Camera4DAdapter.cpp
             src/physics/CurvatureCalculator.cpp
+            src/physics/PhysicsValidator.cpp
+            src/ml/GeodesicNeuralODE.cpp
             src/ui4d/UI4D.cpp
             src/rendering/Texture.cpp
             src/rendering/ProceduralTextures.cpp
@@ -724,6 +779,8 @@ if(QUANTUMVERSE_USE_QT)
             src/rendering/GravitationalLensing.cpp
             src/ui4d/Camera4DAdapter.cpp
             src/physics/CurvatureCalculator.cpp
+            src/physics/PhysicsValidator.cpp
+            src/ml/GeodesicNeuralODE.cpp
             src/ui4d/UI4D.cpp
             src/rendering/Texture.cpp
             src/rendering/ProceduralTextures.cpp
@@ -832,6 +889,8 @@ if(QUANTUMVERSE_USE_QT)
                 src/rendering/GravitationalLensing.cpp
                 src/ui4d/Camera4DAdapter.cpp
                 src/physics/CurvatureCalculator.cpp
+                src/physics/PhysicsValidator.cpp
+                src/ml/GeodesicNeuralODE.cpp
                 src/ui4d/UI4D.cpp
                 src/rendering/Texture.cpp
                 src/rendering/ProceduralTextures.cpp
@@ -840,7 +899,7 @@ if(QUANTUMVERSE_USE_QT)
                 src/scenario/Scenario.cpp
                 src/scenario/ScenarioManager.cpp
             )
-            target_link_libraries(test_hud_toggle PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Quick Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS})
+            target_link_libraries(test_hud_toggle PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Quick Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS} dilaton)
             set_target_properties(test_hud_toggle PROPERTIES AUTOMOC ON)
             target_compile_definitions(test_hud_toggle PRIVATE QUANTUMVERSE_USE_QML)
             target_include_directories(test_hud_toggle PRIVATE
@@ -860,12 +919,30 @@ if(QUANTUMVERSE_USE_QT)
             if(TARGET deploy_qt_runtime)
                 add_dependencies(test_hud_toggle deploy_qt_runtime)
             endif()
+
+            # PaperGenerator test (Phase 3.11) — LaTeX escaping + PDF output
+            add_executable(test_paper_generator tests/test_paper_generator.cpp)
+            target_link_libraries(test_paper_generator PRIVATE Qt6::Core dilaton)
+            set_target_properties(test_paper_generator PROPERTIES AUTOMOC ON)
+            target_include_directories(test_paper_generator PRIVATE
+                ${CMAKE_SOURCE_DIR}/tests
+                ${CMAKE_SOURCE_DIR}/src
+                ${CMAKE_SOURCE_DIR}/third_party
+                ${CMAKE_SOURCE_DIR}/third_party/glad/include
+                ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+            )
+            add_test(NAME PaperGeneratorTest COMMAND test_paper_generator)
+            set_tests_properties(PaperGeneratorTest PROPERTIES
+                WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+                TIMEOUT 30
+            )
         endif()
     endif()
 endif()
 
 # Test executables
-if(QUANTUMVERSE_BUILD_TESTS)
+if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     # Core math tests
     add_executable(test_vector4d tests/test_vector4d.cpp)
     target_link_libraries(test_vector4d PRIVATE dilaton)
@@ -895,6 +972,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
             src/rendering/QuantumGeometryRenderer.cpp
             src/rendering/ComputeShader.cpp
             src/physics/CurvatureCalculator.cpp
+            src/ml/GeodesicNeuralODE.cpp
             third_party/glad/glad.cpp
         )
         target_include_directories(test_ui4d PRIVATE
@@ -1063,6 +1141,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
 
     # Integrator-level test: 1PN Schwarzschild correction, Mercury perihelion advance
     # (QtTest version: tests/physics/test_mercury_1pn.cpp)
+    if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_mercury_1pn_physics
         tests/physics/test_mercury_1pn.cpp
         src/ui4d/UI4D.cpp
@@ -1070,6 +1149,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         src/rendering/CurvatureRenderer.cpp
         src/rendering/QuantumGeometryRenderer.cpp
         src/physics/CurvatureCalculator.cpp
+        src/ml/GeodesicNeuralODE.cpp
         third_party/glad/glad.cpp
     )
     target_include_directories(test_mercury_1pn_physics PRIVATE
@@ -1087,12 +1167,15 @@ if(QUANTUMVERSE_BUILD_TESTS)
     set_tests_properties(Mercury1PNTest PROPERTIES
         LABELS "physics;unit"
     )
+    endif()
 
     # Integrator-level test: 1PN Schwarzschild correction, Mercury perihelion advance
-    add_executable(test_mercury_1pn tests/test_mercury_1pn.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp src/physics/CurvatureCalculator.cpp third_party/glad/glad.cpp)
+    if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
+    add_executable(test_mercury_1pn tests/test_mercury_1pn.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp src/physics/CurvatureCalculator.cpp src/ml/GeodesicNeuralODE.cpp third_party/glad/glad.cpp)
     target_include_directories(test_mercury_1pn PRIVATE src third_party/glad/include third_party/glad/include/glad)
     target_link_libraries(test_mercury_1pn PRIVATE Qt6::Core Qt6::Gui dilaton)
     add_test(NAME Mercury1PNAdanceTest COMMAND test_mercury_1pn)
+    endif()
     
     add_executable(test_light_deflection tests/test_light_deflection.cpp)
     target_link_libraries(test_light_deflection PRIVATE dilaton)
@@ -1103,6 +1186,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
     add_test(NAME GravitationalRedshiftTest COMMAND test_gravitational_redshift)
 
     # Runtime smoke test: launches quantumverse_qml headless and asserts on [REALITY] dumps
+    if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_runtime tests/smoke/test_runtime.cpp)
     target_link_libraries(test_runtime PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
     set_target_properties(test_runtime PROPERTIES AUTOMOC ON)
@@ -1112,6 +1196,7 @@ if(QUANTUMVERSE_BUILD_TESTS)
         ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH};QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/platforms"
         TIMEOUT 300
     )
+    endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_config_loader.cpp)
     add_executable(test_config_loader tests/test_config_loader.cpp)
@@ -1177,6 +1262,46 @@ endif()
     add_executable(test_spacetime tests/test_spacetime.cpp)
     target_link_libraries(test_spacetime PRIVATE dilaton)
     add_test(NAME SpacetimeTest COMMAND test_spacetime)
+
+    # Metric epoch test (Phase 1.1)
+    add_executable(test_metric_epoch tests/test_metric_epoch.cpp)
+    target_link_libraries(test_metric_epoch PRIVATE dilaton)
+    add_test(NAME MetricEpochTest COMMAND test_metric_epoch)
+
+    # Skeleton tests (Phase 0.3-now) — real assertions land with their modules in Phase 3
+    add_executable(test_neural_ode tests/test_neural_ode.cpp)
+    target_link_libraries(test_neural_ode PRIVATE dilaton)
+    add_test(NAME NeuralOdeTest COMMAND test_neural_ode)
+
+    add_executable(test_neural_ode_onnx tests/test_neural_ode_onnx.cpp)
+    target_link_libraries(test_neural_ode_onnx PRIVATE dilaton)
+    add_test(NAME NeuralOdeOnnxTest COMMAND test_neural_ode_onnx)
+
+    add_executable(test_curvature_flow tests/test_curvature_flow.cpp)
+    target_link_libraries(test_curvature_flow PRIVATE dilaton)
+    add_test(NAME CurvatureFlowTest COMMAND test_curvature_flow)
+
+    # Reverse AD test (Phase 1.2)
+    add_executable(test_reverse_ad tests/test_reverse_ad.cpp)
+    target_link_libraries(test_reverse_ad PRIVATE dilaton)
+    add_test(NAME ReverseADTest COMMAND test_reverse_ad)
+
+    # Differentiable benchmark (Phase 1.2)
+    add_executable(test_differentiable_benchmark tests/test_differentiable_benchmark.cpp)
+    target_link_libraries(test_differentiable_benchmark PRIVATE dilaton)
+    add_test(NAME DifferentiableBenchmarkTest COMMAND test_differentiable_benchmark)
+
+    add_executable(test_rl_discovery tests/test_rl_discovery.cpp)
+    target_link_libraries(test_rl_discovery PRIVATE dilaton)
+    add_test(NAME RlDiscoveryTest COMMAND test_rl_discovery)
+
+    add_executable(test_anomaly_detection tests/test_anomaly_detection.cpp)
+    target_link_libraries(test_anomaly_detection PRIVATE dilaton)
+    add_test(NAME AnomalyDetectionTest COMMAND test_anomaly_detection)
+
+    add_executable(test_solar_system tests/test_solar_system.cpp)
+    target_link_libraries(test_solar_system PRIVATE dilaton)
+    add_test(NAME SolarSystemTest COMMAND test_solar_system)
 
     # Kerr metric test
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_kerr_metric.cpp)
@@ -1397,7 +1522,7 @@ endif()
             src/ml/GeodesicNeuralODE.cpp
         )
         target_link_libraries(test_neural_ode_accuracy PRIVATE dilaton)
-        add_test(NAME NeuralODEAccuracyTest COMMAND test_neural_ode_accuracy)
+        add_test(NAME NeuralODEAccuracyTest COMMAND test_neural_ode_accuracy WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     endif()
 
     # MetricGNN accuracy test
@@ -1693,6 +1818,7 @@ endif()
     add_test(NAME AdjointTest COMMAND test_adjoint)
 
     # Physics & spacetime absolute correctness — curvature unit consistency
+    if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_curvature_units
         tests/test_curvature_units.cpp
         src/spacetime/KerrMetric.cpp
@@ -1702,6 +1828,7 @@ endif()
     set_target_properties(test_curvature_units PROPERTIES AUTOMOC ON)
     target_compile_definitions(test_curvature_units PRIVATE QUANTUMVERSE_USE_QML)
     add_test(NAME CurvatureUnitsTest COMMAND test_curvature_units)
+    endif()
     # Phase 18: Physics & Spacetime Absolute Correctness
     # 18.1 Exhaustive exact solution validation (60 test functions)
     add_executable(test_full_exact_solutions
@@ -1741,14 +1868,31 @@ endif()
     add_test(NAME ConservationLawsTest COMMAND test_conservation_laws)
 
     # 18.4 Singularity & extreme regime robustness
+    if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_extreme_regimes
         tests/physics/test_extreme_regimes.cpp
         src/physics/PhysicsValidator.cpp
         src/physics/CurvatureCalculator.cpp
         src/spacetime/DilatonMetric.cpp
+        src/rendering/CurvatureRenderer.cpp
+        src/ml/GeodesicNeuralODE.cpp
+        third_party/glad/glad.cpp
     )
-    target_link_libraries(test_extreme_regimes PRIVATE dilaton)
+    target_link_libraries(test_extreme_regimes PRIVATE dilaton Qt6::Gui)
+    target_include_directories(test_extreme_regimes PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+        ${CMAKE_SOURCE_DIR}/third_party/stb
+    )
+    if(WIN32)
+        target_link_libraries(test_extreme_regimes PRIVATE opengl32 dbghelp)
+    endif()
+    set_target_properties(test_extreme_regimes PROPERTIES AUTOMOC ON)
+    target_compile_definitions(test_extreme_regimes PRIVATE QUANTUMVERSE_USE_QML)
     add_test(NAME ExtremeRegimesTest COMMAND test_extreme_regimes)
+    endif()
 
     # Phase 19: Cosmological Consistency & Observational Data
     # 19.1 FRW cosmological consistency (30 test functions)
@@ -1890,6 +2034,7 @@ endif()
             src/rendering/ProceduralTextures.cpp
             src/rendering/Texture.cpp
             src/physics/CurvatureCalculator.cpp
+            src/ml/GeodesicNeuralODE.cpp
             src/rendering/GravitationalLensing.cpp
             src/spacetime/KerrMetric.cpp
             third_party/glad/glad.cpp
@@ -1920,6 +2065,7 @@ endif()
             src/rendering/ProceduralTextures.cpp
             src/rendering/Texture.cpp
             src/physics/CurvatureCalculator.cpp
+            src/ml/GeodesicNeuralODE.cpp
             third_party/glad/glad.cpp
         )
         target_link_libraries(test_viewport_state_test PRIVATE
@@ -1951,6 +2097,7 @@ endif()
             src/rendering/ProceduralTextures.cpp
             src/rendering/Texture.cpp
             src/physics/CurvatureCalculator.cpp
+            src/ml/GeodesicNeuralODE.cpp
             third_party/glad/glad.cpp
         )
         target_link_libraries(test_viewport_content_test PRIVATE
@@ -1975,7 +2122,7 @@ endif()
 endif()
 
     # Phase 6: AI/Discovery Module Validation
-    if(QUANTUMVERSE_BUILD_TESTS)
+    if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
         message(STATUS "Registering Phase 6 AI/Discovery tests")
         message(STATUS "Creating test_instrument_audit target")
 
@@ -2070,7 +2217,7 @@ endif()
         src/discovery/RLDiscoveryAgent.cpp
     )
     target_link_libraries(test_rl_agent PRIVATE dilaton)
-    add_test(NAME RLAgentConvergenceTest COMMAND test_rl_agent)
+    add_test(NAME RLAgentConvergenceTest COMMAND test_rl_agent WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
     # 6.4 Discovery pipeline integration
     add_executable(test_discovery_pipeline
@@ -2296,6 +2443,7 @@ endif()
     add_test(NAME DiscoveryRobustnessTest COMMAND test_discovery_robustness)
 
     # Phase 2: Sim-frame correlation test
+    if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_correlation
         tests/discovery/test_correlation.cpp
         src/data/MultiMessengerCorrelator.cpp
@@ -2306,6 +2454,7 @@ endif()
     set_tests_properties(SimFrameCorrelationTest PROPERTIES
         ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
     )
+    endif()
 
     # 6.6 CMB lensing anomaly scanner
     add_executable(test_cmb_lensing_scanner
@@ -2606,30 +2755,79 @@ if(WIN32 AND QUANTUMVERSE_USE_QT)
     )
 endif()
 
-# CPack configuration for packaging
-set(CPACK_GENERATOR "ZIP;NSIS")
-set(CPACK_BINARY_NSIS ON)
-set(CPACK_BINARY_ZIP ON)
-set(CPACK_PACKAGE_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "3.9.0")
-set(CPACK_PACKAGE_VENDOR "QuantumVerse Project")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "4D Spacetime Cognition Lab")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "QuantumVerse")
-set(CPACK_NSIS_DISPLAY_NAME "QuantumVerse Simulator")
-set(CPACK_NSIS_PACKAGE_NAME "QuantumVerse Simulator")
-set(CPACK_NSIS_CONTACT "support@quantumverse.dev")
-set(CPACK_NSIS_MODIFY_PATH ON)
-set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-set(CPACK_NSIS_MENU_LINKS
-    "bin/quantumverse_qml.exe" "QuantumVerse Simulator")
-set(CPACK_PACKAGE_EXECUTABLES "quantumverse_qml" "QuantumVerse Simulator")
+# Copy shaders next to the executable so the compute shader
+# (curvature_compute.comp) is found at runtime from any working directory.
+if(WIN32 AND QUANTUMVERSE_USE_QT AND EXISTS "${CMAKE_SOURCE_DIR}/shaders")
+    add_custom_command(TARGET quantumverse_qml POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/shaders"
+            "$<TARGET_FILE_DIR:quantumverse_qml>/shaders"
+        COMMENT "Copying shaders to build directory"
+    )
+endif()
 
-# Force the Start Menu shortcut to use $INSTDIR\bin as working directory
-# so data/tours/ resolves correctly after install.
-set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-  CreateShortCut \\\"$SMPROGRAMS\\\\QuantumVerse\\\\QuantumVerse Simulator.lnk\\\" \\\"$INSTDIR\\\\bin\\\\quantumverse_qml.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\bin\\\\quantumverse_qml.exe\\\" 0
-")
+# ---------------------------------------------------------------------------
+# Phase 3: Pybind11 geodesic module for Python dataset generation
+# Builds _geodesic_cpp from src/physics/geodesic_pybind.cpp so that
+# python/datagen.py can import it for fast geodesic integration.
+# Skipped for WASM builds (no Python embedding needed).
+# ---------------------------------------------------------------------------
+if(NOT QUANTUMVERSE_BUILD_WASM)
+    include(FetchContent)
+    FetchContent_Declare(
+      pybind11
+      GIT_REPOSITORY https://github.com/pybind/pybind11.git
+      GIT_TAG        v2.13.6
+    )
+    FetchContent_MakeAvailable(pybind11)
 
-set(CPACK_CREATE_DESKTOP_LINKS "quantumverse_qml")
+    pybind11_add_module(_geodesic_cpp MODULE
+      src/physics/geodesic_pybind.cpp
+      src/physics/CurvatureCalculator.cpp
+      src/spacetime/KerrMetric.cpp
+    )
+    target_link_libraries(_geodesic_cpp PRIVATE dilaton)
+    set_target_properties(_geodesic_cpp PROPERTIES
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/python"
+      PREFIX ""
+      SUFFIX ".pyd"
+    )
+    target_include_directories(_geodesic_cpp PRIVATE
+      ${Python3_INCLUDE_DIRS}
+    )
+endif()
+
+# CPack configuration for packaging (desktop builds only)
+if(NOT QUANTUMVERSE_BUILD_WASM)
+    set(CPACK_GENERATOR "ZIP;NSIS")
+    set(CPACK_BINARY_NSIS ON)
+    set(CPACK_BINARY_ZIP ON)
+    set(CPACK_PACKAGE_NAME "QuantumVerse")
+    set(CPACK_PACKAGE_VERSION "3.9.0")
+    set(CPACK_PACKAGE_VENDOR "QuantumVerse Project")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "4D Spacetime Cognition Lab")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "QuantumVerse")
+    set(CPACK_NSIS_DISPLAY_NAME "QuantumVerse Simulator")
+    set(CPACK_NSIS_PACKAGE_NAME "QuantumVerse Simulator")
+    set(CPACK_NSIS_CONTACT "support@quantumverse.dev")
+    set(CPACK_NSIS_MODIFY_PATH ON)
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_MENU_LINKS
+        "bin/quantumverse_qml.exe" "QuantumVerse Simulator")
+    set(CPACK_PACKAGE_EXECUTABLES "quantumverse_qml" "QuantumVerse Simulator")
+
+    # Force the Start Menu shortcut to use $INSTDIR\bin as working directory
+    # so data/tours/ resolves correctly after install.
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+      CreateShortCut \\\"$SMPROGRAMS\\\\QuantumVerse\\\\QuantumVerse Simulator.lnk\\\" \\\"$INSTDIR\\\\bin\\\\quantumverse_qml.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\bin\\\\quantumverse_qml.exe\\\" 0
+    ")
+
+    set(CPACK_CREATE_DESKTOP_LINKS "quantumverse_qml")
+endif()
+
+# WASM Portal build (Emscripten) — mutually exclusive with Qt UI
+if(QUANTUMVERSE_BUILD_WASM)
+    add_subdirectory(src/wasm)
+endif()
 
 include(CPack)

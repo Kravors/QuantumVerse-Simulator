@@ -499,12 +499,16 @@ public:
         // curvature of ~4 even for flat space.)
         double x = event.x, y = event.y, z = event.z;
         double r = std::sqrt(x * x + y * y + z * z);
-        const double minR = 1e-9;
-        if (r < minR) r = minR;
 
         const double c2 = PHYS_C() * PHYS_C();
         double rs = 2.0 * PHYS_G() * m_mass / c2;
-        double factor = 1.0 - rs / r;                 // g_tt = -factor
+
+        // Clamp r to just outside the horizon to avoid the singularity at r=0
+        // and ensure g_tt stays negative (Lorentzian signature preserved).
+        const double minR = rs * 1.01;
+        if (r < minR) r = minR;
+
+        double factor = 1.0 - rs / r;                 // g_tt = -factor (negative outside horizon)
 
         // Spatial correction coefficient; clamp inside the horizon to avoid
         // the singular blow-up (geometric view is degenerate there anyway).
@@ -528,13 +532,15 @@ public:
         // Using the closed form avoids finite-difference round-off, which
         // otherwise zeroes the curvature at astronomical probe distances.
         double r = std::sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-        const double minR = 1e-9;
-        if (r < minR) r = minR;
 
         const double c2 = PHYS_C() * PHYS_C();
         const double c4 = c2 * c2;
         double G = PHYS_G();
         double rs = 2.0 * PHYS_G() * m_mass / c2;
+
+        // Clamp r to just outside the horizon to avoid singularity at r=0
+        const double minR = rs * 1.01;
+        if (r < minR) r = minR;
 
         // Inside the horizon (r <= rs), the geometric view is degenerate:
         // g_tt > 0, radial/time roles swap. Report invalid.
@@ -643,11 +649,14 @@ public:
     ) const override {
         double x = event.x, y = event.y, z = event.z;
         double r = std::sqrt(x * x + y * y + z * z);
-        const double minR = 1e-9;
-        if (r < minR) r = minR;
 
         const double c2 = PHYS_C() * PHYS_C();
         double rs = 2.0 * PHYS_G() * m_mass / c2;
+
+        // Clamp r to just outside the horizon
+        const double minR = rs * 1.01;
+        if (r < minR) r = minR;
+
         double r_minus_rs = r - rs;
         double r_inv = 1.0 / r;
         double r2 = r * r;

@@ -1,138 +1,99 @@
-/**
- * @file PhysicsValidator.h
- * @brief QuantumVerse Simulator - Physics Differential Validation
- *
- * Provides dual-engine validation for physics computations:
- * - Geodesic integration comparison (adaptive RK4 vs symplectic)
- * - Christoffel symbol comparison (analytic vs numeric)
- * - Ricci scalar self-consistency (trace of Ricci vs direct contraction)
- * - Causal set consistency (transitivity, Poisson distribution)
- *
- * Based on: QuantumVerse_Verification_Report.md
- */
+// QuantumVerse Physics Validator - Reality Monitor
+//
+// Validates mathematical and physical invariants of the simulation in real-time:
+//   * Lorentzian signature: (-,+,+,+)
+//   * Determinant: det(g) < 0
+//   * Asymptotic flatness at large r
+//   * Energy/angular momentum conservation along geodesics
+//   * 4-velocity norm: u·u = -1 (massive) or 0 (photon)
+//   * Kretschmann scaling: K ~ 1/r^6
+//
+// Runs every N frames inside QmlGlViewport::updateSimulation() alongside the
+// existing [REALITY] diagnostic dump.
 
 #pragma once
 
-#include "../spacetime/Event4D.h"
-#include "../spacetime/MetricTensor.h"
-#include "GeodesicIntegrator.h"
-#include "CurvatureCalculator.h"
 #include <array>
 #include <cmath>
-#include <functional>
-#include <stdexcept>
-#include <iostream>
+#include <cstddef>
+#include <string>
+#include <vector>
+
+#include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
-/**
- * @brief Results of differential physics validation
- */
-struct ValidationResult {
-    bool passed = false;                    ///< Overall pass/fail status
-    double geodesicDeviation = 0.0;       ///< Max deviation between integrators
-    double christoffelError = 0.0;        ///< Max error in Christoffel symbols
-    double ricciConsistency = 0.0;        ///< Ricci scalar consistency error
-    std::string message;                   ///< Human-readable result message
+class CurvatureRenderer;
+
+// Result of a single validation check
+struct PhysicsCheck {
+    std::string name;
+    bool passed;
+    double value;      // measured value (for logging)
+    double expected;   // expected value (for logging)
+    double tolerance;  // allowed deviation
+    std::string message; // human-readable detail
 };
 
-/**
- * @brief Physics validation engine for differential testing
- *
- * Compares multiple numerical methods against each other and against
- * analytical solutions to detect bugs in physics computations.
- */
+// Summary of one validation sweep over the current state
+struct PhysicsReport {
+    int totalChecks = 0;
+    int passedChecks = 0;
+    int failedChecks = 0;
+    std::vector<PhysicsCheck> failures;
+};
+
+// Validates metric tensor and geodesic invariants at the current probe
+// position. Call once per N frames (aligned with the [REALITY] log).
 class PhysicsValidator {
 public:
-    /**
-     * @brief Construct a physics validator
-     */
-    PhysicsValidator();
+    explicit PhysicsValidator(std::shared_ptr<MetricTensor> metric);
 
-    /**
-     * @brief Set the metric for validation
-     */
-    void setMetric(std::shared_ptr<MetricTensor> metric);
+    // Set the metric (called when the probe metric changes)
+    void setMetric(std::shared_ptr<MetricTensor> metric) { m_metric = std::move(metric); }
 
-    /**
-     * @brief Validate geodesic integration using dual-engine comparison
-     *
-     * Compares adaptive RK4 integrator against a 4th-order symplectic integrator.
-     * Large deviations indicate bugs in either integrator or Christoffel calculation.
-     *
-     * @param start Starting event
-     * @param velocity Initial 4-velocity
-     * @param tau Total proper time to integrate
-     * @param tolerance Maximum allowed deviation (default 1e-6)
-     * @return ValidationResult with deviation metrics
-     */
-    ValidationResult validateGeodesics(
-        const Event4D& start,
-        const Event4D& velocity,
-        double tau,
-        double tolerance = 1e-6
-    );
+    // Run a full validation sweep at the given probe position.
+    // Returns a report with pass/fail status for every check.
+    PhysicsReport validate(const Event4D& probePos);
 
-    /**
-     * @brief Validate Christoffel symbols against numerical finite differences
-     *
-     * For a set of random events, computes Christoffel symbols numerically
-     * (finite difference on metric) and compares with analytic ones.
-     *
-     * @param numTests Number of random test points
-     * @param tolerance Maximum allowed error (default 1e-8)
-     * @return ValidationResult with error metrics
-     */
-    ValidationResult validateChristoffel(
-        int numTests = 100,
-        double tolerance = 1e-8
-    );
+    // Quick boolean: is everything currently valid?
+    bool isValid() const { return m_lastReport.failedChecks == 0; }
 
-    /**
-     * @brief Validate Ricci scalar self-consistency
-     *
-     * Computes Ricci scalar via trace of Ricci tensor and also via
-     * direct contraction of Riemann. They must match exactly.
-     *
-     * @param position Event to validate at
-     * @param tolerance Maximum allowed difference (default 1e-10)
-     * @return ValidationResult with consistency error
-     */
-    ValidationResult validateRicciConsistency(
-        const Event4D& position,
-        double tolerance = 1e-10
-    );
+    // Get the most recent report.
+    const PhysicsReport& lastReport() const { return m_lastReport; }
 
-    /**
-     * @brief Run all validation tests
-     *
-     * @return Combined ValidationResult
-     */
-    ValidationResult runAllValidations();
+    // Set the curvature renderer (non-owning) for grid-state cross-checks.
+    void setCurvatureRenderer(CurvatureRenderer* renderer) { m_renderer = renderer; }
+
+    // Set the expected black hole mass (for Kretschmann scaling check)
+    void setMass(double massKg) { m_massKg = massKg; }
+
+    // Set the Schwarzschild radius (for asymptotic flatness check)
+    void setSchwarzschildRadius(double rs) { m_rs = rs; }
 
 private:
-    std::shared_ptr<MetricTensor> currentMetric_;
-    std::unique_ptr<GeodesicIntegrator> rk4Integrator_;
-    std::unique_ptr<GeodesicIntegrator> symplecticIntegrator_;
-    std::unique_ptr<CurvatureCalculator> curvatureCalc_;
+    std::shared_ptr<MetricTensor> m_metric;
+    double m_massKg = 1.0;
+    double m_rs = 2.95325008e3; // ~2.95 km for 1 solar mass (geometric units)
+    PhysicsReport m_lastReport;
 
-    /**
-     * @brief Symplectic integrator for comparison (4th order)
-     */
-    void symplecticStep(
-        std::array<double, 4>& position,
-        std::array<double, 4>& momentum,
-        double h,
-        int numSteps
-    );
+    // Non-owning pointer to the curvature renderer for grid-state validation.
+    CurvatureRenderer* m_renderer = nullptr;
 
-    /**
-     * @brief Compute Christoffel symbols numerically via finite differences
-     */
-    std::array<std::array<std::array<double, 4>, 4>, 4> computeChristoffelNumeric(
-        const Event4D& position,
-        double h = 1e-6
-    );
+    // Helper: check eigenvalue signature of a symmetric matrix
+    bool checkLorentzianSignature(const std::array<std::array<double, 4>, 4>& g,
+                                  PhysicsCheck& out) const;
+
+    // Helper: check Kretschmann scaling K ~ 1/r^6
+    bool checkKretschmannScaling(double r, double kretch, PhysicsCheck& out) const;
+
+    // Helper: check asymptotic flatness at large r
+    bool checkAsymptoticFlatness(double r, const std::array<std::array<double, 4>, 4>& g,
+                                 PhysicsCheck& out) const;
+
+    // Helper: check renderer grid state matches the metric mass
+    bool validateRenderer(PhysicsCheck& out) const;
 };
 
 } // namespace quantumverse

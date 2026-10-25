@@ -165,7 +165,7 @@ Differentiable curvature tensors using automatic differentiation.
 | Kretschmann AD | ✅ | `computeKretschmannAD<N>()` |
 | Riemann tensor AD | ✅ | `computeRiemannTensorAD<N>()` |
 | Gradient computation | ✅ | `computeRicciGradient()`, `computeKretschmannGradient()` |
-| Parameter gradients | ⚠️ | Finite differences on parameter space; full AD via adjoint deferred |
+| Parameter gradients | ✅ | Reverse-mode AD via `ReverseTape<N>`/`ReverseAD<N>`; `integrateWithGradientsAdjoint<N>()` in `DifferentiableGeodesicIntegrator` |
 
 ### CurvatureCalculator
 **File**: `src/physics/CurvatureCalculator.h`  
@@ -841,9 +841,10 @@ Minimal OpenXR/VR backend stub. Full VR requires OpenXR SDK.
 - `start()` is a no-op in current adapters.
 
 ### Differentiable Physics
-- Full parameter gradients through curvature require adjoint-mode AD (deferred).
-- Current implementation uses finite differences on parameter space.
-- Riemann tensor AD computes position derivatives but not full parameter gradients.
+- Reverse-mode AD via `ReverseTape<N>`/`ReverseAD<N>` in `src/math/AutoDiff.h`
+- `integrateWithGradientsAdjoint<N>()` in `DifferentiableGeodesicIntegrator` computes parameter gradients via single backward pass
+- Benchmark: ≥3.5× speedup vs central FD at N=4 (measured 5.33×)
+- Riemann tensor AD computes position derivatives
 
 ### Quantum Geometry Rendering
 - Spin Foam and GFT visualization are structural but require live engine data.

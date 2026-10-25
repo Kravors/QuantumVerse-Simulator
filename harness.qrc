@@ -1,0 +1,6 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource>
+    <file alias="paper_template.tex">resources/paper_template.tex</file>
+</qresource>
+</RCC>

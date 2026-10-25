@@ -19,8 +19,17 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include <memory>
+#include <unordered_map>
+
+#include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "../spacetime/KerrMetric.h"
+#include "../physics/CurvatureCalculator.h"
+#include "../physics/PhysicsConstants.h"
 
 namespace py = pybind11;
+using namespace quantumverse;
 
 // ---------------------------------------------------------------------------
 // Schwarzschild Christoffel symbols (analytical, equatorial theta=pi/2)
@@ -536,6 +545,67 @@ static py::array_t<double> compute_conserved_quantities(
 }
 
 // ---------------------------------------------------------------------------
+// Curvature feature computation for flow anomaly detection
+// Reuses CurvatureCalculator via the metric objects — never re-implements
+// curvature formulas in Python, eliminating formula-vs-simulator drift.
+// ---------------------------------------------------------------------------
+static py::dict compute_curvature_features(
+    const std::string& metric_type,
+    double M, double a, double Q,
+    const py::array_t<double>& probe_pos)
+{
+    py::buffer_info pos_buf = probe_pos.request();
+    if (pos_buf.size != 4) {
+        throw std::runtime_error("probe_pos must be length 4 [t, x, y, z]");
+    }
+    double* pos_ptr = static_cast<double*>(pos_buf.ptr);
+    Event4D event(pos_ptr[0], pos_ptr[1], pos_ptr[2], pos_ptr[3]);
+
+    // M is in geometric units (meters, G=c=1); convert to kg for metric objects
+    const double c2 = PhysicsConstants::instance().get_c2();
+    const double G = PhysicsConstants::instance().get_G();
+    double massKg = M * c2 / G;
+
+    std::shared_ptr<MetricTensor> metric;
+    if (metric_type == "schwarzschild") {
+        metric = std::make_shared<SchwarzschildMetric>(massKg);
+    } else if (metric_type == "kerr") {
+        metric = std::make_shared<KerrMetric>(massKg, a);
+    } else if (metric_type == "reissner-nordstrom") {
+        throw std::runtime_error(
+            "reissner-nordstrom not yet supported in compute_curvature_features "
+            "(no ReissnerNordstromMetric class exists)");
+    } else {
+        throw std::invalid_argument("Unknown metric_type: " + metric_type +
+            ". Must be 'schwarzschild', 'kerr', or 'reissner-nordstrom'");
+    }
+
+    CurvatureCalculator calc(metric);
+    CurvatureResult result = calc.computeAll(event);
+
+    // g_tt from metric at the probe position (signature flip check)
+    auto g = metric->evaluate(event);
+    double g_tt = g[0][0];
+
+    // Radial coordinate for analytic expected values
+    double r = std::sqrt(pos_ptr[1] * pos_ptr[1] + pos_ptr[2] * pos_ptr[2] + pos_ptr[3] * pos_ptr[3]);
+
+    // Analytic Schwarzschild Kretschmann: K = 48 M^2 / r^6 (geometric units)
+    // Returned so training scripts can use residuals: log K - log K_expected
+    double K_expected = (r > 0.0) ? 48.0 * M * M / (r * r * r * r * r * r) : 0.0;
+
+    py::dict result_dict;
+    result_dict["K"] = result.kretschmann;
+    result_dict["R"] = result.ricciScalar;
+    result_dict["W2"] = result.weylSquared;
+    result_dict["g_tt"] = g_tt;
+    result_dict["K_expected"] = K_expected;
+    result_dict["r"] = r;
+    result_dict["valid"] = !result.nearSingularity;
+    return result_dict;
+}
+
+// ---------------------------------------------------------------------------
 // PYBIND11 MODULE DEFINITION
 // ---------------------------------------------------------------------------
 PYBIND11_MODULE(_geodesic_cpp, m) {
@@ -571,4 +641,14 @@ PYBIND11_MODULE(_geodesic_cpp, m) {
           py::arg("metric_type") = "schwarzschild",
           "Compute conserved energy E, angular momentum Lz, and Carter constant Q. "
           "Returns 3-vector [E, Lz, Q_carter].");
+
+    m.def("compute_curvature_features", &compute_curvature_features,
+          py::arg("metric_type"), py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
+          py::arg("probe_pos"),
+          "Compute curvature invariants at a probe position via CurvatureCalculator. "
+          "Returns dict with keys K (Kretschmann), R (Ricci scalar), W2 (Weyl squared), "
+          "g_tt (time-time metric component), K_expected (analytic Schwarzschild K=48M^2/r^6), "
+          "r (radial coordinate), valid (bool). "
+          "Metric_type: 'schwarzschild', 'kerr', or 'reissner-nordstrom'. "
+          "For Schwarzschild, train on residuals: log K - log K_expected.");
 }

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumVerse WASM Portal</title>
+    {{SCRIPT}}
+</head>
+<body>
+    <div id="status">Loading QuantumVerse WASM...</div>
+    <script>
+        // The WASM module JS is injected by emcc at {{SCRIPT}}
+        // After module initialization, call initWASM()
+        if (typeof Module !== 'undefined' && Module.onRuntimeInitialized) {
+            const origOnInit = Module.onRuntimeInitialized;
+            Module.onRuntimeInitialized = function() {
+                origOnInit.call(Module);
+                if (typeof window.initWASM === 'function') {
+                    window.initWASM();
+                }
+            };
+        }
+    </script>
+</body>
+</html>

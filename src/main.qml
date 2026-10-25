@@ -36,6 +36,11 @@ ApplicationWindow {
         if (viewportItem) viewportItem.setToolbarOverflow(toolbarOverflow)
     }
 
+    // v4.0: Called by LLMCoPilot when a plain-English explanation is ready
+    function updateCoPilotText(newText) {
+        if (coPilotText) coPilotText.text = newText
+    }
+
     Connections {
         target: camera4DAdapter
         onDistanceChanged: {
@@ -115,6 +120,14 @@ ApplicationWindow {
     // Parameter sweep state
     property real sweepProgress: 0.0
     property bool sweepRunning: false
+
+    // RL Discovery Scan state
+    property bool rlScanRunning: false
+
+    // Black hole parameter slider references (set by ParameterSlider components)
+    property real bhMassValue: 10.0
+    property real bhSpinValue: 0.0
+    property real bhChargeValue: 0.0
 
     // Font
     font.family: "Segoe UI"
@@ -673,6 +686,29 @@ ApplicationWindow {
 
                 padding: 4
             }
+
+            // v3.0: Reality Alert UI — red banner shown when PhysicsValidator detects invalid spacetime
+            Rectangle {
+                id: realityAlertBanner
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width * 0.8
+                height: 50
+                color: "#aa0000"
+                radius: 8
+                visible: viewportItem ? viewportItem.physicsWarning : false
+                border.color: "red"
+                border.width: 2
+                z: 100
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "🚨 SPACETIME INTEGRITY COMPROMISED — VALIDATOR FAILED"
+                    color: "white"
+                    font.bold: true
+                    font.pixelSize: 14
+                }
+            }
         }
 
         // --- RIGHT PANEL: Discovery & Info ---
@@ -777,6 +813,264 @@ ApplicationWindow {
                     }
                 }
 
+                // RL Discovery Scan controls
+                Pane {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 110
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 6
+
+                        RowLayout {
+                            spacing: 6
+
+                            Button {
+                                id: rlScanButton
+                                text: rlScanRunning ? "⏹ Stop AI" : "🤖 Run Discovery Scan"
+                                Layout.fillWidth: true
+                                onClicked: {
+                                    console.log("RL Discovery Scan button clicked!")
+                                    if (rlDiscoveryAgent && rlDiscoveryAgent.isONNXLoaded()) {
+                                        rlScanRunning = !rlScanRunning
+                                        if (rlScanRunning) {
+                                            rlScanTimer.start()
+                                        } else {
+                                            rlScanTimer.stop()
+                                        }
+                                    } else {
+                                        console.log("RL agent not loaded or ONNX model missing")
+                                    }
+                                }
+                            }
+
+                            Button {
+                                text: "Reset"
+                                Layout.preferredWidth: 70
+                                onClicked: {
+                                    console.log("RL reset clicked!")
+                                    rlScanRunning = false
+                                    rlScanTimer.stop()
+                                    bhMassSlider.value = 10.0
+                                    bhSpinSlider.value = 0.0
+                                    bhChargeSlider.value = 0.0
+                                    if (viewportItem) {
+                                        viewportItem.setBlackHoleMass(10.0)
+                                        viewportItem.setBlackHoleSpin(0.0)
+                                        viewportItem.setBlackHoleCharge(0.0)
+                                    }
+                                }
+                            }
+
+                            CheckBox {
+                                text: "Neural Geodesics"
+                                checked: false
+                                onCheckedChanged: {
+                                    if (viewportItem) viewportItem.setNeuralGeodesicsEnabled(checked)
+                                }
+                            }
+                        }
+
+                        // Parameter sliders
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Label { text: "Mass:"; font.pixelSize: 10; color: "#888"; Layout.preferredWidth: 40 }
+                            Slider {
+                                id: bhMassSlider
+                                from: 0.1
+                                to: 100.0
+                                stepSize: 0.1
+                                value: 10.0
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    bhMassValue = value
+                                    if (viewportItem && !rlScanRunning) viewportItem.setBlackHoleMass(value)
+                                }
+                            }
+                            Label { text: bhMassSlider.value.toFixed(1) + " M☉"; font.pixelSize: 10; color: "#aaa"; Layout.preferredWidth: 45 }
+
+                            Label { text: "Spin:"; font.pixelSize: 10; color: "#888"; Layout.preferredWidth: 40 }
+                            Slider {
+                                id: bhSpinSlider
+                                from: 0.0
+                                to: 1.5
+                                stepSize: 0.01
+                                value: 0.0
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    bhSpinValue = value
+                                    if (viewportItem && !rlScanRunning) viewportItem.setBlackHoleSpin(value)
+                                }
+                            }
+                            Label { text: bhSpinSlider.value.toFixed(2); font.pixelSize: 10; color: "#aaa"; Layout.preferredWidth: 35 }
+
+                            Label { text: "Charge:"; font.pixelSize: 10; color: "#888"; Layout.preferredWidth: 45 }
+                            Slider {
+                                id: bhChargeSlider
+                                from: 0.0
+                                to: 1.5
+                                stepSize: 0.01
+                                value: 0.0
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    bhChargeValue = value
+                                    if (viewportItem && !rlScanRunning) viewportItem.setBlackHoleCharge(value)
+                                }
+                            }
+                            Label { text: bhChargeSlider.value.toFixed(2); font.pixelSize: 10; color: "#aaa"; Layout.preferredWidth: 35 }
+                        }
+                    }
+                }
+
+                // RL Scan timer - drives the autonomous discovery loop at 10Hz
+                Timer {
+                    id: rlScanTimer
+                    interval: 100
+                    repeat: true
+                    running: false
+                    onTriggered: {
+                        if (!rlDiscoveryAgent || !rlDiscoveryAgent.isONNXLoaded()) {
+                            rlScanRunning = false
+                            rlScanTimer.stop()
+                            return
+                        }
+
+                        // Read current state from sliders
+                        var mass = bhMassSlider.value
+                        var spin = bhSpinSlider.value
+                        var charge = bhChargeSlider.value
+
+                        // Call the RL agent for action deltas
+                        var action = rlDiscoveryAgent.runDiscoveryStep(mass, spin, charge)
+                        var dm = action[0]
+                        var da = action[1]
+                        var dQ = action[2]
+
+                        // Apply deltas with appropriate scaling
+                        var newMass = Math.max(0.1, Math.min(100.0, mass + dm * 5.0))
+                        var newSpin = Math.max(0.0, Math.min(1.5, spin + da * 2.0))
+                        var newCharge = Math.max(0.0, Math.min(1.5, charge + dQ * 2.0))
+
+                        // Update sliders
+                        bhMassSlider.value = newMass
+                        bhSpinSlider.value = newSpin
+                        bhChargeSlider.value = newCharge
+
+                        // Apply to the viewport (C++ side)
+                        if (viewportItem) {
+                            viewportItem.setBlackHoleMass(newMass)
+                            viewportItem.setBlackHoleSpin(newSpin)
+                            viewportItem.setBlackHoleCharge(newCharge)
+                        }
+
+                        // Log extremality detection
+                        var extremality = (newSpin * newSpin + newCharge * newCharge) / (newMass * newMass)
+                        if (extremality > 0.99) {
+                            console.log("🚨 DISCOVERY ALERT: Extremal black hole! M=" + newMass.toFixed(2) +
+                                        ", a=" + newSpin.toFixed(3) + ", Q=" + newCharge.toFixed(3) +
+                                        ", extremality=" + extremality.toFixed(4))
+                        }
+                    }
+                }
+
+                // Discovery Console - scrolling AI log
+                Pane {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 180
+                    background: Rectangle {
+                        color: "#0d0d15"
+                        radius: 6
+                        border.color: "#3a3a5a"
+                        border.width: 1
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 4
+
+                        Label {
+                            text: "🔍 Discovery Console"
+                            font.bold: true
+                            font.pixelSize: 12
+                            color: "#ccc"
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            color: "#0a0a0f"
+                            radius: 4
+
+                                ListView {
+                                id: discoveryConsole
+                                anchors.fill: parent
+                                anchors.margins: 4
+                                model: rlDiscoveryAgent.discoveryLog
+                                delegate: Text {
+                                    text: modelData
+                                    color: modelData.includes("ALERT") ? "#ff4444" :
+                                           modelData.includes("VIOLATION") ? "#ffaa00" : "#44ff44"
+                                    font.family: "Consolas"
+                                    font.pixelSize: 10
+                                    wrapMode: Text.WordWrap
+                                }
+                                highlightFollowsCurrentItem: true
+                                currentIndex: model.count - 1
+                            }
+                        }
+                    }
+                }
+
+                // v4.0: AI Co-Pilot Panel — plain-English explanations from local LLM (Ollama)
+                Pane {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 140
+                    background: Rectangle {
+                        color: "#0d0d15"
+                        radius: 6
+                        border.color: "#3a3a5a"
+                        border.width: 1
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 4
+
+                        Label {
+                            text: "🤖 AI Co-Pilot (Astrophysicist)"
+                            font.bold: true
+                            font.pixelSize: 12
+                            color: "#00ffff"
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            color: "#0a0a0f"
+                            radius: 4
+
+                            TextArea {
+                                id: coPilotText
+                                anchors.fill: parent
+                                anchors.margins: 4
+                                readOnly: true
+                                wrapMode: Text.WordWrap
+                                color: "#e0e0e0"
+                                text: "Waiting for anomaly..."
+                                font.family: "Consolas"
+                                font.pixelSize: 10
+                            }
+                        }
+                    }
+                }
+
                 // Progress bar
                 ProgressBar {
                     Layout.fillWidth: true
@@ -867,6 +1161,79 @@ ApplicationWindow {
                     DiscoveryDashboard {
                         manager: discoveryPanelManager
                         onParametersChanged: console.log("Discovery parameters updated")
+                    }
+                }
+
+                // Planck Microscope panel
+                Pane {
+                    id: planckContainer
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 130
+                    visible: false
+                    background: Rectangle {
+                        color: "#0a0a1a"
+                        radius: 6
+                        border.color: "#2a2a5a"
+                        border.width: 1
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 6
+
+                        Label {
+                            text: "🔭 Planck Microscope"
+                            font.bold: true
+                            font.pixelSize: 12
+                            color: "#ccc"
+                            Layout.fillWidth: true
+                        }
+
+                        RowLayout {
+                            spacing: 8
+
+                            Label { text: "Scale:"; font.pixelSize: 10; color: "#888"; Layout.preferredWidth: 45 }
+
+                            Slider {
+                                id: planckSlider
+                                from: 0.0
+                                to: -35.0
+                                stepSize: 1.0
+                                value: 0.0
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    if (viewportItem) viewportItem.setPlanckScale(value)
+                                }
+                            }
+
+                            Label {
+                                text: planckSlider.value < -15 ? ("10^" + planckSlider.value.toFixed(0) + " m") : ""
+                                font.pixelSize: 9
+                                color: "#888"
+                                Layout.preferredWidth: 50
+                            }
+                        }
+
+                        Label {
+                            id: spectralDimensionLabel
+                            text: "Spectral Dimension: 4.00"
+                            font.pixelSize: 10
+                            color: planckSlider.value < -15 ? "#44ff44" : "#888"
+                            visible: planckSlider.value < -10
+                        }
+
+                        Timer {
+                            interval: 100
+                            repeat: true
+                            running: planckSlider.value < -10
+                            onTriggered: {
+                                if (viewportItem) {
+                                    spectralDimensionLabel.text = "Spectral Dimension: " + viewportItem.spectralDimension().toFixed(2)
+                                    spectralDimensionLabel.color = viewportItem.spectralDimension() < 3.0 ? "#44ff44" : "#ffaa00"
+                                }
+                            }
+                        }
                     }
                 }
 

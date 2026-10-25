@@ -1,0 +1,2 @@
+Test project F:/syyyy/build
+    Start 34: GravitationalLensingTest

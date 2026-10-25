@@ -68,7 +68,7 @@ struct CameraState {
     double elevation;  // radians
     double tx, ty, tz; // 4D translation offsets
 
-    CameraState() : distance(50.0), azimuth(0.0), elevation(0.3),
+    CameraState() : distance(50.0), azimuth(0.0), elevation(M_PI / 2.0),
                     tx(0.0), ty(0.0), tz(0.0) {}
 
     static CameraState lerp(const CameraState& a, const CameraState& b, double t) {

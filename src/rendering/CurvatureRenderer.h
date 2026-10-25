@@ -16,12 +16,16 @@
 #include <array>
 #include <memory>
 #include <cmath>
+#include <cstdint>
+#include <string>
 // NOTE: glad.h is NOT included here to avoid conflicts with Qt's OpenGL
 // headers. Include glad.h BEFORE this header in .cpp files only.
 #include "../spacetime/Event4D.h"
 #include "../spacetime/MetricTensor.h"
 #include "../spacetime/LightCone.h"
 #include "../physics/SingularityHandler.h"
+#include "../ml/GeodesicNeuralODE.h"
+#include "../utils/ThreadPool.h"
 
 class QVector4D;
 
@@ -92,7 +96,16 @@ private:
     ShaderProgram curvatureShader; ///< Curvature visualization shader
     ShaderProgram geodesicShader; ///< Geodesic line shader
     ShaderProgram overlayShader;  ///< HUD overlay shader
-    
+    ShaderProgram ergoShader;     ///< Ergosphere shader
+    ShaderProgram computeShader;  ///< Compute shader for grid deformation
+
+    // Compute shader SSBO
+    unsigned int gridSSBO;        ///< Shader Storage Buffer Object for grid positions
+    int gridWidth;                ///< Grid width (vertices per row)
+    int gridHeight;               ///< Grid height (vertices per column)
+    bool computeBuffersInitialized;
+    bool m_computeDirty;          ///< True when compute shader has updated SSBO
+
     // Current metric
      std::shared_ptr<MetricTensor> currentMetric;
     
@@ -145,6 +158,41 @@ private:
     unsigned int geodesicVbo;
     bool geodesicBuffersInitialized;
 
+    // Neural ODE geodesic rendering (Einstein Ring lensing)
+    std::unique_ptr<quantumverse::ml::GeodesicNeuralODE> neuralODE;
+    std::unique_ptr<utils::ThreadPool> neuralPool;
+    unsigned int neuralGeoVao;
+    unsigned int neuralGeoVbo;
+    unsigned int neuralGeoVertexCount;
+    bool neuralGeoBuffersInitialized;
+    bool m_showNeuralGeodesics;
+
+    // Ergosphere rendering buffers (Kerr ergosphere: r_E(θ) = M + √(M² - a²cos²θ))
+    unsigned int ergoVao;
+    unsigned int ergoVbo;
+    unsigned int ergoEbo;
+    unsigned int ergoVertexCount;
+    bool ergoBuffersInitialized;
+
+    // Ergosphere parameters (updated by QML UI via viewport)
+    double m_ergoMass = 10.0;     ///< BH mass in solar masses
+    double m_ergoSpin = 0.0;      ///< BH spin parameter a (0 to 0.999)
+    double m_ergoCharge = 0.0;    ///< BH charge Q
+    double m_lastErgoSpin = -1.0; ///< Last rendered spin (for dirty check)
+    double m_lastErgoMass = -1.0; ///< Last rendered mass (for dirty check)
+    bool m_showErgosphere = true; ///< Toggle ergosphere visibility
+
+    // Global alpha for fade transitions (Planck Microscope)
+    float m_globalAlpha = 1.0f;
+
+    // Cached grid Z range from last compute shader dispatch (for diagnostics)
+    float m_gridZMin = 0.0f;
+    float m_gridZMax = 0.0f;
+
+    // Last observed metric epoch, used to detect mass changes that require
+    // grid re-deformation. Kept in sync with metric->epoch().
+    uint64_t m_lastEpoch = 0;
+
     // Spatial partitioning for optimization
     struct GridCell {
         int startIndex;
@@ -170,6 +218,9 @@ private:
     // Initialize spatial partitioning for LOD
     void initializeSpatialPartitioning();
     
+    // Generate ergosphere mesh (Kerr frame-dragging boundary)
+    void generateErgosphereMesh();
+    
     // Compute Riemann curvature tensor component
     double computeRiemannComponent(int rho, int sigma, int mu, int nu, const Event4D& event) const;
     
@@ -182,6 +233,9 @@ private:
     // Deform grid based on spacetime curvature
     void deformGrid();
     
+    // Deform grid using compute shader (GPU-accelerated)
+    void deformGridGPU();
+
     // Update vertex color based on visualization mode
     void updateVertexColor(CurvatureVertex& vertex);
     
@@ -218,6 +272,11 @@ public:
 
     // Grid deformation range for diagnostics
     std::pair<float, float> gridZRange() const;
+
+    /// @brief Force re-deformation of the grid Z displacement from the current
+    /// metric. Called when metric->epoch() changes (e.g. mass sweep).
+    /// Reads back the displacement SSBO to keep m_gridZMin/m_gridZMax current.
+    void recomputeGridZRange();
 
     // Set visualization mode
     void setMode(CurvatureMode newMode);
@@ -273,6 +332,21 @@ public:
     // Render curvature visualization
     void render(const float* viewMatrix, const float* projectionMatrix);
 
+    // Render ergosphere (Kerr frame-dragging boundary)
+    void renderErgosphere(const float* viewMatrix, const float* projectionMatrix);
+
+    // Render Neural ODE geodesics (Einstein Ring lensing)
+    void renderNeuralGeodesics(const float* viewMatrix, const float* projectionMatrix);
+
+    // Toggle Neural ODE geodesics visibility
+    void setShowNeuralGeodesics(bool show);
+
+    // Get Neural ODE geodesics visibility
+    bool showNeuralGeodesics() const { return m_showNeuralGeodesics; }
+
+    // Load the ONNX model for Neural ODE geodesic tracing
+    bool loadNeuralODEModel(const std::string& onnxPath);
+
     // Render geodesic lines
     void renderGeodesics(const std::vector<std::vector<Event4D>>& geodesics,
                         const float* viewMatrix, const float* projectionMatrix);
@@ -282,6 +356,25 @@ public:
 
     // Update all vertex colors
     void updateAllColors();
+
+    // Set ergosphere spin parameter (a, clamped [0, 0.999])
+    void setErgosphereSpin(double spin);
+
+    // Set ergosphere mass (solar masses)
+    void setErgosphereMass(double mass);
+
+    // Set ergosphere charge
+    void setErgosphereCharge(double charge);
+
+    // Toggle ergosphere visibility
+    void setShowErgosphere(bool show);
+
+    // Get ergosphere visibility
+    bool showErgosphere() const { return m_showErgosphere; }
+
+    // Set global alpha multiplier for fade transitions (used by Planck Microscope)
+    void setGlobalAlpha(float alpha);
+    float globalAlpha() const { return m_globalAlpha; }
 
     // Set plane mode (2D rubber sheet vs 3D cube)
     void setPlaneMode(bool enable);
@@ -307,10 +400,8 @@ public:
         m_blackHoleCenter[0] = x;
         m_blackHoleCenter[1] = y;
         m_blackHoleCenter[2] = z;
-        // Re-deform now: the vertices would otherwise keep the old center
-        // until the next deformGrid() call (updateTime / setMetric), leaving
-        // a one-frame stale funnel after every position change.
-        deformGrid();
+        // Flag for re-deformation on next render pass.
+        m_metricDirty = true;
     }
     void blackHoleCenter(float& x, float& y, float& z) const
     {
@@ -323,6 +414,15 @@ public:
     // slider's full range stays legible)
     void setBlackHoleMassSolar(double mass) { m_blackHoleMassSolar = mass; }
     double blackHoleMassSolar() const { return m_blackHoleMassSolar; }
+
+    // BH spin parameter for compute shader (clamped [0, 0.999])
+    void setBlackHoleSpin(double spin) { m_ergoSpin = std::clamp(spin, 0.0, 0.999); }
+    double blackHoleSpin() const { return m_ergoSpin; }
+
+    /// @brief Dirty flag: when true, deformGrid() must be recomputed before
+    /// the next render. Set by setMetric()/setBlackHoleCenter()/updateTime().
+    /// Cleared by deformGrid() itself after updating vertex data.
+    bool m_metricDirty = true;
 
     // Compile shader from source strings (implementation in .cpp)
     bool compileShader(unsigned int& program,

@@ -2,6 +2,7 @@
 // Validates RLDiscoveryAgent and RLTrainer produce finite rewards,
 // converge over episodes, and survive edge cases without crashing.
 
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -151,6 +152,49 @@ int main() {
         (void)r;
         std::cout << "  Zero-epsilon agent survived." << std::endl;
     }
+
+    // --- 11. ONNX Runtime inference (PPO actor policy) ---------------------------
+#ifdef HAVE_ONNX
+    {
+        RLDiscoveryAgent agent(3, makeDefaultRanges(3));
+        QV_CHECK(!agent.isONNXLoaded());
+
+        // Use relative path from source dir (ctest WORKING_DIRECTORY set)
+        bool loaded = agent.loadONNXModel("rl_discovery_agent.onnx");
+        QV_CHECK(loaded);
+        QV_CHECK(agent.isONNXLoaded());
+        std::cout << "  ONNX model loaded successfully" << std::endl;
+
+        // Test predictONNAction with Schwarzschild start state [M=10, a=0, Q=0, score=0]
+        std::array<float, 4> state_schwarzschild = {10.0f, 0.0f, 0.0f, 0.0f};
+        auto action1 = agent.predictONNAction(state_schwarzschild);
+        QV_CHECK(std::isfinite(action1[0]));
+        QV_CHECK(std::isfinite(action1[1]));
+        QV_CHECK(std::isfinite(action1[2]));
+        std::cout << "  Schwarzschild action: ["
+                  << action1[0] << ", " << action1[1] << ", " << action1[2] << "]" << std::endl;
+
+        // Test with near-extremal state [M=10, a=0.9, Q=0.3, score=0.8]
+        std::array<float, 4> state_extremal = {10.0f, 0.9f, 0.3f, 0.8f};
+        auto action2 = agent.predictONNAction(state_extremal);
+        QV_CHECK(std::isfinite(action2[0]));
+        QV_CHECK(std::isfinite(action2[1]));
+        QV_CHECK(std::isfinite(action2[2]));
+        std::cout << "  Near-extremal action: ["
+                  << action2[0] << ", " << action2[1] << ", " << action2[2] << "]" << std::endl;
+
+        // Test determinism: same input -> same output
+        auto action3 = agent.predictONNAction(state_schwarzschild);
+        QV_CHECK(action1[0] == action3[0]);
+        QV_CHECK(action1[1] == action3[1]);
+        QV_CHECK(action1[2] == action3[2]);
+        std::cout << "  ONNX inference is deterministic" << std::endl;
+
+        std::cout << "  ONNX Runtime inference test passed" << std::endl;
+    }
+#else
+    std::cout << "  ONNX Runtime inference test skipped (HAVE_ONNX not defined)" << std::endl;
+#endif
 
     std::cout << "All RLAgentConvergenceTest checks passed." << std::endl;
     return 0;

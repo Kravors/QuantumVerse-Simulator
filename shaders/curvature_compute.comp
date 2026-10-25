@@ -1,0 +1,31 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std430, binding = 0) buffer GridBuffer {
+    vec4 positions[];   // x, y, z, w=displacement
+};
+
+uniform float u_mass;       // BH mass in solar masses
+uniform float u_rs;         // Schwarzschild radius = 2*G*M/c^2 (natural units)
+uniform int u_width;        // Grid width
+uniform int u_height;       // Grid height
+
+void main() {
+    uint gid = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * uint(u_width);
+    if (gid >= uint(u_width * u_height)) return;
+    
+    vec4 pos = positions[gid];
+    float r = length(pos.xyz);
+    
+    // Avoid singularity at r=0
+    if (r < u_rs * 1.01) {
+        pos.w = -1.0; // Max deformation (inside horizon)
+    } else {
+        // Schwarzschild metric: g_tt = -(1 - rs/r)
+        float gtt = -(1.0 - u_rs / r);
+        float timeDilation = sqrt(max(0.0, -gtt));
+        pos.w = -(1.0 - timeDilation) * 50.0; // Scale for visual impact
+    }
+    
+    positions[gid] = pos;
+}

@@ -14,6 +14,9 @@
 #ifndef ORT_API_VERSION
 #define ORT_API_VERSION 22
 #endif
+#include <onnxruntime/core/session/onnxruntime_c_api.h>
+#undef ORT_API_VERSION
+#define ORT_API_VERSION 22
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 #endif
 
@@ -147,14 +150,23 @@ struct GeodesicNeuralODE::Impl {
                 auto type_info = session_->GetInputTypeInfo(i);
                 auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
                 input_types_.push_back(tensor_info.GetElementType());
-                input_dims_ = tensor_info.GetShape();
+                auto dims = tensor_info.GetShape();
+                // Replace dynamic dimensions (-1) with 1 for single-sample inference
+                for (auto& d : dims) {
+                    if (d < 0) d = 1;
+                }
+                input_dims_ = dims;
             }
 
             for (size_t i = 0; i < num_outputs; ++i) {
                 auto type_info = session_->GetOutputTypeInfo(i);
                 auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
                 output_types_.push_back(tensor_info.GetElementType());
-                output_dims_ = tensor_info.GetShape();
+                auto dims = tensor_info.GetShape();
+                for (auto& d : dims) {
+                    if (d < 0) d = 1;
+                }
+                output_dims_ = dims;
             }
 
             use_onnx_ = true;
@@ -222,7 +234,7 @@ std::vector<Event4D> GeodesicNeuralODE::predict(
     if (base.use_onnx_ && base.session_) {
         try {
             std::vector<float> input_data;
-            input_data.reserve(8 + metric_params.size());
+            input_data.reserve(9 + metric_params.size());
             input_data.push_back(static_cast<float>(initial_event.t));
             input_data.push_back(static_cast<float>(initial_event.x));
             input_data.push_back(static_cast<float>(initial_event.y));
@@ -231,10 +243,12 @@ std::vector<Event4D> GeodesicNeuralODE::predict(
             input_data.push_back(static_cast<float>(initial_velocity[1]));
             input_data.push_back(static_cast<float>(initial_velocity[2]));
             input_data.push_back(static_cast<float>(initial_velocity[3]));
+            input_data.push_back(static_cast<float>(tau));
             for (double p : metric_params) {
                 input_data.push_back(static_cast<float>(p));
             }
 
+            // Note: model was trained on normalized data, so normalize input and denormalize output
             auto normed = NormalizeInput(input_data, base.norm_);
 
             Ort::MemoryInfo mem_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -270,22 +284,19 @@ std::vector<Event4D> GeodesicNeuralODE::predict(
             if (!outputs.empty()) {
                 auto* out_ptr = outputs[0].GetTensorMutableData<float>();
                 size_t out_size = outputs[0].GetTensorTypeAndShapeInfo().GetElementCount();
+                (void)out_size;
 
                 auto denormed = DenormalizeOutput(
                     std::vector<float>(out_ptr, out_ptr + out_size),
                     base.norm_
                 );
 
-                double dt = static_cast<double>(denormed[0]);
-                double dx = static_cast<double>(denormed[1]);
-                double dy = static_cast<double>(denormed[2]);
-                double dz = static_cast<double>(denormed[3]);
-
+                // Model outputs absolute final_event coordinates (t, x, y, z)
                 return {Event4D(
-                    initial_event.t + dt,
-                    initial_event.x + dx,
-                    initial_event.y + dy,
-                    initial_event.z + dz
+                    static_cast<double>(denormed[0]),
+                    static_cast<double>(denormed[1]),
+                    static_cast<double>(denormed[2]),
+                    static_cast<double>(denormed[3])
                 )};
             }
         } catch (const Ort::Exception& e) {

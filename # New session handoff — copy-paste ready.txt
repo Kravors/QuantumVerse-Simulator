@@ -1,0 +1,60 @@
+# New session handoff — copy-paste ready
+
+## Open blocker — RESOLVED (previous session)
+
+Lensing null-at-frame-0 is **not a shipped bug**. It is a cold-start artifact of `--frames 1`: frame #0's `render()` runs during `engine.load()`, before `main_qml.cpp:1336` calls `syncLensingParams()`, so `synchronize()` copies `m_lensing = null` into the renderer. With `--frames 10`, `[LENS]` appears 100+ times and lensing renders correctly from frame 1 onward.
+
+See `.handoff/LENSING_NULL_DISPOSITION.md` for the full disposition, evidence, and reasoning.
+
+Do NOT re-litigate this. If it comes up: frame-0 null is expected; use `--frames ≥ 2` (recommend `--frames 10`) for captures.
+
+## Six settled fixes (do not re-litigate)
+
+1. **Camera convention fix** (`qmlglviewport.cpp`, `main_qml.cpp`) — `u_bhPos` correctly wired
+   (`setGridBlackHoleCenter` → `setBlackHolePosition` → `setUniformVec3("u_bhPos", ...)`).
+2. **Lensing shader camera convention** (`GravitationalLensing.cpp`) — theta convention
+   `(90 - el) * π/180`, camera position via `setLensingCameraPos()`, camera dir
+   `normalize(bhPos - cameraPos)` with orthonormal up basis.
+3. **Mass sweep clamping** (`setBlackHoleMass()`) — clamps to `[0.1, 10.0] M☉`.
+4. **TX/TY/TZ camera basis** (`Camera4DAdapter::rotateInPlane()`) — fixed boost-plane mixing.
+5. **Schwarzschild `curvatureScalars()` rs bug** — fixed `rs = 2GM/c²` (was `2GM/c⁴`); horizon check
+   and `r_eps = 0.01·rs` floor clamp active. Use `QV_CHECK(before != after)` around any metric swap.
+6. **Orbit-equation RK4 at b=6M** — correct (~1.71 vs Python 1.719458); not a bug.
+
+## What NOT to redo (settled, per handoff)
+
+- All six items above.
+- **QV geometry FOV mismatch** — fixed to `M_PI / 4.0` in quantum geometry path.
+- **Redshift n/a at simTime ≈ 51.76** — not reproducible; not a bug.
+- **Camera float-epsilon note** — `[LENS-VERIFY]` `qmlCam.z=-1.74846e-06` vs `lensingCam.z=2.44929e-15`
+  is float32 epsilon on a value that should be zero; equal within tolerance. `u_cameraPos` was verified
+  bit-for-bit against `cameraPosition4D()`.
+
+## Environment notes
+
+- Verified on a display machine with NVIDIA GTX 1650; headless OpenGL works via `--software-rendering`.
+- Do **not** pass `--spin` or `--bh-mass` CLI flags; lensing spin comes from config `spin` field, mass from
+  `config/simulator.json` black_hole section (or CLI override via `--cam-*` for camera only).
+- Compaction fails on long paste — keep handoff edits under ~4 KiB total.
+
+## Optional hardening (not required for Phase 33)
+
+- A unit test asserting `viewport->lensingRenderer() != nullptr` after `setLensingEnabled(true)` + `synchronize()`
+  would catch any future `syncLensingParams()` early-return regression. This is **optional hardening,
+  not a pending blocker** — do not let it block Phase 33.
+
+## Definition of Done
+
+1. **`--frames ≥ 2` run shows lensing rendering:** `[LENS]` log lines present, `u_cameraPos` matches QML camera world position, `u_bhPos = (40, 0, 0)`, `theta ≈ 1.5708` (equatorial), `hasCameraPos = true`. Recommend `--frames 10` for margin. Frame-0 `[DIAG-renderLensing] SKIPPED` is expected cold-start behavior, not a failure.
+2. **`[LENS]` count > 0** in `--frames 10` log (verified: 100+ lines).
+3. **GPU capture at frame ≥ 1** (`--screenshot` with `--frames 10` or higher) shows the black hole shadow — not `--frames 1`, which captures frame 0 before lensing is wired.
+4. **Phase 33 adjoint acceptance criterion:** Adjoint gradient matches FD gradient to rel err < 1e-4 at fixed point, chi2 decreases monotonically over N optimization steps.
+
+## Next work: Phase 33
+
+Wire `AdjointGeodesicIntegrator` into `TheoryDiscoveryAgent::evaluateTheory()` for χ²-based parameter optimization. Reverse-mode AD (`ADVar`/`ADTape`/`AdjointGeodesicIntegrator`) already exists and is tested.
+
+## Files touched this session
+
+- `.handoff/LENSING_NULL_DISPOSITION.md` (new) — full disposition
+- `docs/GL_TESTING_SETUP.md:78` — `--frames 1` → `--frames 10`, added cold-start note

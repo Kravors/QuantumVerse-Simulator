@@ -60,6 +60,10 @@ private:
     double safetyFactor;        ///< Safety factor for step adjustment
     int maxIterations;          ///< Maximum integration steps
 
+    // Event horizon termination
+    double m_horizonRadius;     ///< Schwarzschild radius rs = 2GM/c^2 (0 = disabled)
+    double m_escapeRadius;      ///< Escape radius (1000 * rs by default)
+
     // Current metric (can be updated for dynamic spacetime)
     std::shared_ptr<MetricTensor> currentMetric;
 
@@ -103,6 +107,7 @@ public:
         int maxIter = 1000000
     ) : tolerance(tol), minStepSize(minStep), maxStepSize(maxStep),
         safetyFactor(safety), maxIterations(maxIter),
+        m_horizonRadius(0.0), m_escapeRadius(0.0),
         cacheValid(false) {
         currentMetric = std::make_shared<MetricTensor>();
         // Default metric field resolves the metric at the requested event so
@@ -122,6 +127,17 @@ public:
     void setMetric(std::shared_ptr<MetricTensor> metric) {
         currentMetric = metric;
         cacheValid = false;
+
+        // Auto-detect Schwarzschild radius for event horizon termination.
+        if (auto bh = std::dynamic_pointer_cast<SchwarzschildMetric>(metric)) {
+            double G = PHYS_G();
+            double c2 = PHYS_C() * PHYS_C();
+            double rs = 2.0 * G * bh->mass() / c2;
+            setHorizonRadius(rs);
+        } else {
+            m_horizonRadius = 0.0;
+            m_escapeRadius = 0.0;
+        }
     }
 
     /**
@@ -143,6 +159,20 @@ public:
         metricField = field;
         cacheValid = false;
     }
+
+    /**
+     * @brief Set the Schwarzschild radius for event horizon termination.
+     * @param rs Horizon radius in meters. If 0, horizon termination is disabled.
+     */
+    void setHorizonRadius(double rs) {
+        m_horizonRadius = rs;
+        m_escapeRadius = rs > 0.0 ? 1000.0 * rs : 0.0;
+    }
+
+    /**
+     * @brief Get the current horizon radius.
+     */
+    double horizonRadius() const { return m_horizonRadius; }
 
     /**
      * @brief Compute Christoffel symbols Γ^λ_μν at a given position.
@@ -561,13 +591,24 @@ public:
 
 private:
     /**
-     * @brief Check if event is near a gravitational singularity.
-     * Uses coordinate distance from origin as a proxy; override for specific spacetimes.
+     * @brief Check if event is near a gravitational singularity or has escaped.
+     * Uses the configured horizon radius (rs = 2GM/c^2) for termination.
+     * @return true if integration should terminate (captured by BH or escaped).
      */
     bool isNearSingularity(const Event4D& event) const {
         double r = std::sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-        double rs = 1e-6;  // Example Schwarzschild radius scale
-        return r < 10.0 * rs;
+
+        // Terminate if the ray falls into the black hole (r <= rs * 1.01)
+        if (m_horizonRadius > 0.0 && r <= m_horizonRadius * 1.01) {
+            return true;
+        }
+
+        // Terminate if the ray escapes to infinity (r > 1000 * rs)
+        if (m_escapeRadius > 0.0 && r > m_escapeRadius) {
+            return true;
+        }
+
+        return false;
     }
 };
 

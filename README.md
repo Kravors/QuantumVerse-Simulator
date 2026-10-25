@@ -75,7 +75,7 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
   | **Python** | Optional (for ML training) | Python 3.10+ |
   | **CUDA** | Optional (future GPU acceleration) | CUDA 11+ |
   
-  **Note**: The Qt6/QML build (`quantumverse_qml`) is the supported build. The Dear ImGui + GLFW UI was removed in v3.7.0; the project is now Qt-only.
+  **Note**: The Qt6/QML build (`quantumverse_qml`) is the supported build. The project is Qt-only.
   
   ### Directory Structure
   
@@ -179,12 +179,7 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
   │   │   ├── MultiUserServer.cpp   # VR collaboration server
   │   │   ├── VRCommon.h            # VR utilities
   │   │   └── VRCommon.cpp
-  │   ├── ui_imgui/                 # Dear ImGui 4D UI
-  │   │   ├── UI4D_ImGui.h
-  │   │   ├── UI4D_ImGui.cpp
-  │   │   └── VRIntegration.cpp     # OpenXR VR (NEW)
   │   ├── QuantumVerseApp.cpp       # Main application
-  │   ├── main_glfw.cpp              # GLFW entry point
   │   ├── main_qml.cpp               # Qt/QML entry point
   │   └── main_console.cpp           # Console entry point
   ├── tests/                        # Test suite (51 tests)
@@ -286,8 +281,7 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
   ├── doc/                          # QDoc documentation
   ├── third_party/                  # Third-party libraries
   │   ├── stb_image.h               # Image loading
-  │   ├── glad/                     # OpenGL loader
-  │   └── imgui/                    # Dear ImGui
+  │   └── glad/                     # OpenGL loader
   ├── cmake/                        # CMake configuration
   │   ├── FindONNXRuntime.cmake     # ONNX Runtime finder
   │   └── QtNamespaceConfig.h.in    # Qt namespace config
@@ -437,7 +431,7 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
 
   ### Build & UI Status (2026-09-29)
 
-  The project is **Qt-only** (Qt 6.11.1 + QML). The Dear ImGui + GLFW UI was removed in v3.7.0; the supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
+  The project is **Qt-only** (Qt 6.11.1 + QML). The supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
 
   **Current status:**
   - Qt6/QML UI (`quantumverse_qml`) is the supported build

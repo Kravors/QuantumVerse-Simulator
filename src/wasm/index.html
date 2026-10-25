@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumVerse WASM Portal — 4D Spacetime Simulator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="three.min.js"></script>
+    <script type="module">
+        import initModule from './quantumverse_wasm_app.js';
+        let Module;
+        initModule().then(mod => { Module = mod; window.Module = mod; });
+    </script>
+</head>
+<body>
+    <div id="app">
+        <!-- v4.0/v5.0: Reality Alert Banner -->
+        <div id="realityBanner" class="banner hidden">
+            <div class="banner-content">
+                <span class="banner-icon">🚨</span>
+                <span class="banner-text" id="bannerText">SPACETIME INTEGRITY COMPROMISED — VALIDATOR FAILED</span>
+            </div>
+        </div>
+
+        <div class="container">
+            <header>
+                <h1>QuantumVerse WASM Portal</h1>
+                <p class="subtitle">4D Spacetime Simulator with RL Discovery & AI Co-Pilot</p>
+            </header>
+
+            <div class="main-grid">
+                <!-- Canvas: Spacetime Visualization -->
+                <div class="panel viz-panel">
+                    <div class="panel-header">
+                        <h3>🌌 Spacetime View</h3>
+                    </div>
+                    <canvas id="spacetimeCanvas" width="600" height="450"></canvas>
+                    <div class="canvas-info">
+                        <div>Mass: <span id="dispMass">1.0</span> M☉</div>
+                        <div>Spin: <span id="dispSpin">0.0</span></div>
+                        <div>Charge: <span id="dispCharge">0.0</span></div>
+                        <div>Extremality: <span id="dispExtremality">0.0000</span></div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="panel controls-panel">
+                    <div class="panel-header">
+                        <h3>���� Black Hole Parameters</h3>
+                    </div>
+                    <div class="control-group">
+                        <label>Mass (M☉): <span id="valMass">1.0</span></label>
+                        <input type="range" id="sliderMass" min="0.1" max="100.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="control-group">
+                        <label>Spin (a*): <span id="valSpin">0.0</span></label>
+                        <input type="range" id="sliderSpin" min="0.0" max="1.5" step="0.01" value="0.0">
+                    </div>
+                    <div class="control-group">
+                        <label>Charge (Q*): <span id="valCharge">0.0</span></label>
+                        <input type="range" id="sliderCharge" min="0.0" max="1.5" step="0.01" value="0.0">
+                    </div>
+                    <div class="button-group">
+                        <button id="btnValidate" class="btn primary">Validate Spacetime</button>
+                        <button id="btnDiscovery" class="btn accent">Run Discovery Scan</button>
+                        <button id="btnStop" class="btn danger" disabled>Stop Scan</button>
+                    </div>
+                    <div class="status">
+                        <div id="statusValid" class="status-ok">✓ Spacetime Valid</div>
+                        <div id="statusInvalid" class="status-bad hidden">✗ Physics Violation</div>
+                    </div>
+                </div>
+
+                <!-- Discovery Console -->
+                <div class="panel console-panel">
+                    <div class="panel-header">
+                        <h3>🔍 Discovery Console</h3>
+                    </div>
+                    <div id="discoveryConsole" class="console"></div>
+                </div>
+
+                <!-- AI Co-Pilot Panel -->
+                <div class="panel copilot-panel">
+                    <div class="panel-header">
+                        <h3>🤖 AI Co-Pilot (Astrophysicist)</h3>
+                    </div>
+                    <div id="coPilotText" class="copilot-text">Waiting for anomaly...</div>
+                </div>
+            </div>
+        </div>
+
+        <script src="app.js"></script>
+    </div>
+</body>
+</html>

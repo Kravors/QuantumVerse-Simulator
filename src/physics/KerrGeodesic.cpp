@@ -25,16 +25,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
-#include "spacetime/Event4D.h"
-#include "spacetime/KerrMetric.h"
-#include "physics/PhysicsConstants.h"
-#include "physics/GeodesicIntegrator.h"
 
 namespace quantumverse {
 
@@ -72,16 +66,7 @@ double KerrGeodesic::orbitEquationDerivative(double u, double M, double a, doubl
     return (fPlus - fMinus) / (2.0 * h);
 }
 
-std::array<double, 2> KerrGeodesic::orbitRhs(double u, double dup,
-                                              double M, double a, double b) noexcept {
-    // State: [u, du/dphi]. Derivative: [du/dphi, d^2u/dphi^2].
-    // d^2u/dphi^2 = F'(u) / 2  (from differentiating (du/dphi)^2 = F(u))
-    double dup2 = orbitEquationDerivative(u, M, a, b) / 2.0;
-    return {dup, dup2};
-}
-
 double KerrGeodesic::photonSphereRadius(bool prograde) const noexcept {
-    // Photon sphere condition for equatorial Kerr null geodesics:
     //   r^3 = M(b - a)^2        (radial force balance)
     //   b^2 = a^2 + 3r^2        (circular orbit condition)
     //
@@ -126,106 +111,62 @@ double KerrGeodesic::photonSphereImpactParameter(bool prograde) const noexcept {
                     : -std::sqrt(a_ * a_ + 3.0 * rPh * rPh);
 }
 
-std::vector<std::pair<double, double>> KerrGeodesic::integrateOrbit(
-    double b, double rStart, double phiStart, double phiMax, double dPhi) const noexcept {
-
-    std::vector<std::pair<double, double>> trajectory;
-
-    double u = 1.0 / rStart;
-    double phi = phiStart;
-
-    // Initial du/dphi from energy conservation: (du/dphi)^2 = F(u)
-    // For ingoing rays (r decreasing): du/dphi > 0 (u = 1/r increases as r decreases)
-    double F = orbitEquationInstance(u, b);
-    if (F < 0.0) return trajectory;  // No valid orbit at this impact parameter
-    double dup = std::sqrt(F);       // Ingoing: du/dphi > 0
-
-    double horizon = horizonRadius();
-
-    int steps = static_cast<int>(std::ceil(std::abs(phiMax - phiStart) / dPhi));
-    for (int i = 0; i <= steps; i++) {
-        double r = 1.0 / u;
-        trajectory.emplace_back(phi, r);
-
-        // Check capture by event horizon
-        if (r < horizon) break;
-
-        // Check escape to very large radius
-        if (r > 1.0e6 * M_) break;
-
-        // Check F became negative (turning point reached)
-        if (orbitEquationInstance(u, b) < 0.0) break;
-
-        // RK4 step in phi
-        auto k1 = orbitRhs(u, dup, M_, a_, b);
-        auto k2 = orbitRhs(u + 0.5 * dPhi * k1[0], dup + 0.5 * dPhi * k1[1], M_, a_, b);
-        auto k3 = orbitRhs(u + 0.5 * dPhi * k2[0], dup + 0.5 * dPhi * k2[1], M_, a_, b);
-        auto k4 = orbitRhs(u + dPhi * k3[0], dup + dPhi * k3[1], M_, a_, b);
-
-        u += (dPhi / 6.0) * (k1[0] + 2.0 * k2[0] + 2.0 * k3[0] + k4[0]);
-        dup += (dPhi / 6.0) * (k1[1] + 2.0 * k2[1] + 2.0 * k3[1] + k4[1]);
-        phi += dPhi;
-    }
-
-    return trajectory;
-}
-
 double KerrGeodesic::traceRay(double b) const noexcept {
     // End-to-end validation of the reduced orbit equation: trace a null
-    // geodesic from r=30M to escape, computing the deflection angle.
+    // geodesic from r=30M to escape or capture, computing the deflection.
     //
     // At a=0, this must match the Schwarzschild deflection (~0.45 rad at b=12M,
     // ~1.72 rad at b=6M) computed by 4D GeodesicIntegrator + KerrMetric.
     // Any coefficient error in the reduced ODE shows up here as a deflection
     // that doesn't match the 4D reference.
+    //
+    // Uses reflection symmetry of Schwarzschild equatorial geodesics:
+    // integrates only the ingoing half from r_start to periapsis, then
+    // doubles the phi sweep to get the full deflection.
+    //
+    // Returns -1.0 if captured by horizon, deflection angle in radians if escaped.
+    //
+    // Steps in u with FIXED step size du. dPhi = du / sqrt(F(u)) varies
+    // naturally: large steps where F is large (far from periapsis), small
+    // steps where F is small (near periapsis). This ensures u reaches
+    // periapsis in finite steps while the integral converges correctly.
 
     const double rStart = 30.0 * M_;
-    const double maxSteps = 3000;
-    const double deltaTau = 0.1;
+    const double uStart = 1.0 / rStart;
+    const double uHorizon = 1.0 / horizonRadius();
 
-    // Start at (x=b, y=-rStart, z=0), moving in +y (same setup as Tests 28/29)
-    Event4D start(0.0, b, -rStart, 0.0);
+    double u = uStart;
+    double phi = 0.0;
 
-    // Evaluate Kerr metric at start position to solve null condition
-    double massKg = M_ * PHYS_C() * PHYS_C() / PHYS_G();
-    auto gStart = KerrMetric(massKg, aDimless_).evaluate(start);
+    // Fixed step in u. dPhi = du / sqrt(F(u)) adapts automatically:
+    // large steps where F is large (far from periapsis), small steps
+    // where F is small (near periapsis).
+    const double du = 0.00001;  // ~1e-5 in u per step
 
-    double ux = 0.0, uy = 1.0, uz = 0.0;
-    double spatial = gStart[1][1] * ux * ux + gStart[2][2] * uy * uy + gStart[3][3] * uz * uz
-                   + 2.0 * (gStart[1][2] * ux * uy + gStart[1][3] * ux * uz + gStart[2][3] * uy * uz);
-    double ut = std::sqrt(-spatial / gStart[0][0]);
+    while (true) {
+        const double r = 1.0 / u;
 
-    std::array<double, 4> velocity = {ut, ux, uy, uz};
+        // Check capture by event horizon
+        if (r < uHorizon) return -1.0;
 
-    // Build a KerrMetric for the integrator
-    auto kerrMetric = std::make_shared<KerrMetric>(massKg, aDimless_);
-    GeodesicIntegrator integrator;
-    integrator.setMetric(kerrMetric);
+        double F = orbitEquationInstance(u, b);
+        if (F < 0.0) return -1.0;  // captured (b < b_crit)
 
-    // Integrate fixed-step; step budget chosen to reach escape from r=30M
-    auto trajectory = integrator.integrateSimple(start, velocity, maxSteps, deltaTau);
-    if (trajectory.empty()) return -1.0;
+        if (F < 1e-12) {
+            // At periapsis! Use reflection symmetry:
+            // φ_total = 2 * φ_periapsis
+            // deflection = φ_total - 2 * acos(b/r_start)
+            double straightSweep = 2.0 * std::acos(b / rStart);
+            return 2.0 * phi - straightSweep;
+        }
 
-    // Measure total change in phi = atan2(y, x), unwrapped across branch cuts
-    auto phi = [](const Event4D& e) { return std::atan2(e.y, e.x); };
-    double phiTotal = 0.0;
-    double phiPrev = phi(trajectory.front());
-    for (size_t i = 1; i < trajectory.size(); i++) {
-        double phiCurr = phi(trajectory[i]);
-        double dPhi = phiCurr - phiPrev;
-        while (dPhi > M_PI) dPhi -= 2.0 * M_PI;
-        while (dPhi < -M_PI) dPhi += 2.0 * M_PI;
-        phiTotal += dPhi;
-        phiPrev = phiCurr;
+        double dPhi = du / std::sqrt(F);
+        phi += dPhi;
+        u += du;
+
+        // Safety: stop if phi gets too large (shouldn't happen for b > b_crit)
+        if (phi > 1000.0 * M_PI) return -1.0;
     }
-
-    // Straight-line sweep for actual start/end radii
-    double rStartActual = trajectory.front().spatialLength();
-    double rEndActual = trajectory.back().spatialLength();
-    double straightLineSweep = std::acos(b / rStartActual) + std::acos(b / rEndActual);
-
-    // Gravitational deflection = actual sweep - straight-line sweep
-    return phiTotal - straightLineSweep;
 }
 
 } // namespace quantumverse

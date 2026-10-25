@@ -8,6 +8,8 @@
 #include <type_traits>
 #include <cassert>
 #include <memory>
+#include <cstdint>
+#include <stdexcept>
 
 namespace quantumverse {
 namespace math {
@@ -750,6 +752,453 @@ inline ADVar* acosh(ADVar* x) {
     ADTape::push(result);
     return result;
 }
+
+// ============================================================================
+// Reverse-Mode Automatic Differentiation (Tape-Based, N-Parameter)
+// ============================================================================
+
+template<size_t N>
+class ReverseTape {
+public:
+    struct Node {
+        double value = 0.0;
+        uint32_t p0 = UINT32_MAX, p1 = UINT32_MAX;
+        double w0 = 0.0, w1 = 0.0;
+    };
+
+    std::vector<Node> nodes;
+    std::array<uint32_t, N> paramNodes;
+    std::array<bool, N> paramSet;
+    std::vector<double> adjoints;
+
+    ReverseTape() {
+        paramNodes.fill(UINT32_MAX);
+        paramSet.fill(false);
+    }
+
+    void reserve(size_t n) {
+        nodes.reserve(n);
+        adjoints.resize(n);
+    }
+
+    uint32_t push(double v) {
+        nodes.push_back({v, UINT32_MAX, UINT32_MAX, 0.0, 0.0});
+        return static_cast<uint32_t>(nodes.size() - 1);
+    }
+
+    uint32_t makeParam(double v, size_t idx) {
+        if (idx >= N) throw std::out_of_range("ReverseTape::makeParam: index out of range");
+        auto id = push(v);
+        paramNodes[idx] = id;
+        paramSet[idx] = true;
+        return id;
+    }
+
+    /// Backprop from `root`, return d(root)/d(theta_i) for all tagged params.
+    /// Allocation order == topological order, so reverse iteration is a valid
+    /// reverse-topological pass.
+    std::array<double, N> backward(uint32_t root) {
+        if (root == UINT32_MAX || nodes.empty()) {
+            // No tape recorded — return zero gradient
+            return {};
+        }
+        adjoints.assign(nodes.size(), 0.0);
+        adjoints[root] = 1.0;
+
+        for (int i = static_cast<int>(nodes.size()) - 1; i >= 0; --i) {
+            const auto& n = nodes[i];
+            double a = adjoints[i];
+            if (a == 0.0) continue;
+            if (n.p0 != UINT32_MAX) adjoints[n.p0] += a * n.w0;
+            if (n.p1 != UINT32_MAX) adjoints[n.p1] += a * n.w1;
+        }
+
+        std::array<double, N> g{};
+        for (size_t i = 0; i < N; ++i)
+            if (paramSet[i]) g[i] = adjoints[paramNodes[i]];
+        return g;
+    }
+
+    void clear() {
+        nodes.clear();
+        paramNodes.fill(UINT32_MAX);
+        paramSet.fill(false);
+        adjoints.clear();
+    }
+};
+
+template<size_t N>
+struct ReverseAD {
+    ReverseTape<N>* tape = nullptr;
+    uint32_t node = UINT32_MAX;
+    double value = 0.0;
+
+    ReverseAD() = default;
+
+    static ReverseAD param(ReverseTape<N>& t, double v, size_t idx) {
+        return { &t, t.makeParam(v, idx), v };
+    }
+
+    static ReverseAD constant(double v) {
+        return { nullptr, UINT32_MAX, v };
+    }
+
+    // ---------- binary ops ----------
+    friend ReverseAD operator+(const ReverseAD& a, const ReverseAD& b) {
+        ReverseAD r;
+        r.value = a.value + b.value;
+        if (a.tape && b.tape && a.tape == b.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = 1.0;
+            r.tape->nodes[id].w1 = 1.0;
+        } else if (a.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 1.0;
+            r.tape->nodes[id].w1 = 0.0;
+        } else if (b.tape) {
+            r.tape = b.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = UINT32_MAX;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = 0.0;
+            r.tape->nodes[id].w1 = 1.0;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator-(const ReverseAD& a, const ReverseAD& b) {
+        ReverseAD r;
+        r.value = a.value - b.value;
+        if (a.tape && b.tape && a.tape == b.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = 1.0;
+            r.tape->nodes[id].w1 = -1.0;
+        } else if (a.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 1.0;
+            r.tape->nodes[id].w1 = 0.0;
+        } else if (b.tape) {
+            r.tape = b.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = UINT32_MAX;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = 0.0;
+            r.tape->nodes[id].w1 = -1.0;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator*(const ReverseAD& a, const ReverseAD& b) {
+        ReverseAD r;
+        r.value = a.value * b.value;
+        if (a.tape && b.tape && a.tape == b.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = b.value;
+            r.tape->nodes[id].w1 = a.value;
+        } else if (a.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = b.value;
+            r.tape->nodes[id].w1 = 0.0;
+        } else if (b.tape) {
+            r.tape = b.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = UINT32_MAX;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = 0.0;
+            r.tape->nodes[id].w1 = a.value;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator/(const ReverseAD& a, const ReverseAD& b) {
+        ReverseAD r;
+        r.value = a.value / b.value;
+        if (a.tape && b.tape && a.tape == b.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = 1.0 / b.value;
+            r.tape->nodes[id].w1 = -a.value / (b.value * b.value);
+        } else if (a.tape) {
+            r.tape = a.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 1.0 / b.value;
+            r.tape->nodes[id].w1 = 0.0;
+        } else if (b.tape) {
+            r.tape = b.tape;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = UINT32_MAX;
+            r.tape->nodes[id].p1 = b.node;
+            r.tape->nodes[id].w0 = 0.0;
+            r.tape->nodes[id].w1 = -a.value / (b.value * b.value);
+        }
+        return r;
+    }
+
+    // ---------- scalar ops ----------
+    friend ReverseAD operator+(const ReverseAD& a, double s) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = a.value + s;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 1.0;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = a.value + s;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator+(double s, const ReverseAD& a) { return a + s; }
+
+    friend ReverseAD operator-(const ReverseAD& a, double s) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = a.value - s;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 1.0;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = a.value - s;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator-(double s, const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = s - a.value;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = -1.0;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = s - a.value;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator*(const ReverseAD& a, double s) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = a.value * s;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = s;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = a.value * s;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator*(double s, const ReverseAD& a) { return a * s; }
+
+    friend ReverseAD operator/(const ReverseAD& a, double s) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = a.value / s;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 1.0 / s;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = a.value / s;
+        }
+        return r;
+    }
+
+    friend ReverseAD operator/(double s, const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = s / a.value;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = -s / (a.value * a.value);
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = s / a.value;
+        }
+        return r;
+    }
+
+    // ---------- unary ----------
+    friend ReverseAD operator-(const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = -a.value;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = -1.0;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = -a.value;
+        }
+        return r;
+    }
+
+    // ---------- transcendental ----------
+    friend ReverseAD sin(const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            double cv = std::cos(a.value);
+            r.value = std::sin(a.value);
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = cv;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = std::sin(a.value);
+        }
+        return r;
+    }
+
+    friend ReverseAD cos(const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            double sv = std::sin(a.value);
+            r.value = std::cos(a.value);
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = -sv;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = std::cos(a.value);
+        }
+        return r;
+    }
+
+    friend ReverseAD exp(const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = std::exp(a.value);
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = r.value;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = std::exp(a.value);
+        }
+        return r;
+    }
+
+    friend ReverseAD log(const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = std::log(a.value);
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 1.0 / a.value;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = std::log(a.value);
+        }
+        return r;
+    }
+
+    friend ReverseAD sqrt(const ReverseAD& a) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            double rv = std::sqrt(a.value);
+            r.value = rv;
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = 0.5 / rv;
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = std::sqrt(a.value);
+        }
+        return r;
+    }
+
+    friend ReverseAD pow(const ReverseAD& a, double p) {
+        ReverseAD r;
+        if (a.tape) {
+            r.tape = a.tape;
+            r.value = std::pow(a.value, p);
+            auto id = r.tape->push(r.value);
+            r.node = id;
+            r.tape->nodes[id].p0 = a.node;
+            r.tape->nodes[id].p1 = UINT32_MAX;
+            r.tape->nodes[id].w0 = p * std::pow(a.value, p - 1.0);
+            r.tape->nodes[id].w1 = 0.0;
+        } else {
+            r.value = std::pow(a.value, p);
+        }
+        return r;
+    }
+};
 
 } // namespace math
 } // namespace quantumverse

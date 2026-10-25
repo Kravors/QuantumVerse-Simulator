@@ -30,7 +30,6 @@ echo [INFO] Running CMake configuration (Qt-free, with ONNX Runtime from third_p
 cmake -G "Visual Studio 18 2026" -A x64 ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DQUANTUMVERSE_USE_QML=OFF ^
-    -DQUANTUMVERSE_USE_IMGUI=ON ^
     -DQUANTUMVERSE_USE_ONNX=ON ^
     -DPython3_EXECUTABLE="C:/Users/raffa/AppData/Local/Programs/Python/Python310/python.exe" ^
     -DPython3_ROOT_DIR="C:/Users/raffa/AppData/Local/Programs/Python/Python310" ^

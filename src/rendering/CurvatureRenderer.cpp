@@ -21,6 +21,8 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #ifdef _WIN32
 #include <windows.h>  // Required for GetEnvironmentVariableA in isTruthyEnvironmentFlag
 #endif
@@ -29,6 +31,9 @@ namespace quantumverse {
 
 // Forward declaration for environment variable check
 static bool isTruthyEnvironmentFlag(const char* name);
+
+// Load shader source from file
+static std::string loadShaderFromFile(const std::string& path);
 
 // Simple vertex shader for fallback rendering
 static const char* fallbackVert = R"(
@@ -115,8 +120,15 @@ CurvatureRenderer::CurvatureRenderer(
      lightConeBuffersInitialized(false),
      fallbackVao(0), fallbackVbo(0),
      cellsPerDimension(4),
-     m_planeMode(true), m_planeResolution(100),
-     m_deformationScale(1.0f)
+     m_planeMode(true), m_planeResolution(500),
+     m_deformationScale(1.0f),
+     gridSSBO(0), gridWidth(500), gridHeight(500),
+     computeBuffersInitialized(false), m_computeDirty(false),
+     m_gridZMin(0.0f), m_gridZMax(0.0f),
+     m_lastEpoch(0),
+     neuralODE(nullptr), neuralPool(nullptr),
+     neuralGeoVao(0), neuralGeoVbo(0), neuralGeoVertexCount(0),
+     neuralGeoBuffersInitialized(false), m_showNeuralGeodesics(false)
 {
      // Only initialize non-OpenGL data in constructor
      // OpenGL resources (VBOs, VAOs, shaders) are initialized lazily in initializeGL()
@@ -209,7 +221,7 @@ void CurvatureRenderer::initializeGL()
     // Compile shaders
     const char* gridVert = R"(
         #version 450 core
-        layout(location = 0) in vec3 aPos;
+        layout(location = 0) in vec4 aPosSSBO;   // x, y, z, displacement (from compute shader SSBO)
         layout(location = 1) in vec3 aNormal;
         layout(location = 2) in vec4 aColor;
         layout(location = 3) in float aCurvature;
@@ -220,24 +232,42 @@ void CurvatureRenderer::initializeGL()
         uniform float time;
         uniform float curvatureScale;
         uniform int curvatureMode;
+        uniform int useSSBO;  // 1 = read position from SSBO (zero-copy path)
 
         out vec4 fragColor;
         out float curvatureValue;
         out float timeDilation;
 
         void main() {
-            vec3 displacedPos = aPos;
+            vec3 displacedPos;
+            if (useSSBO == 1) {
+                // Zero-copy path: position comes from compute shader SSBO
+                // w component holds the displacement value from compute shader
+                float dz = aPosSSBO.w * curvatureScale;
+                displacedPos = vec3(aPosSSBO.x, aPosSSBO.y, aPosSSBO.z + dz);
+            } else {
+                displacedPos = aPos;
+            }
+
             if (curvatureMode == 0) {
-                gl_Position = projectionMatrix * viewMatrix * vec4(aPos, 1.0);
+                gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
             } else if (curvatureMode == 3) {
-                float r = length(aPos.xy);
+                float r = length(displacedPos.xy);
                 float depression = 15.0 / (1.0 + r * 0.03);
                 displacedPos.z -= depression;
                 gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
             } else {
                 gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
             }
-            fragColor = aColor;
+
+            // Compute color from displacement magnitude for SSBO path
+            if (useSSBO == 1) {
+                float dispMag = abs(aPosSSBO.w);
+                float intensity = clamp(dispMag * 2.0, 0.0, 1.0);
+                fragColor = vec4(intensity, 0.2, 1.0 - intensity, 0.8);
+            } else {
+                fragColor = aColor;
+            }
             curvatureValue = aCurvature;
             timeDilation = aTimeDilation;
         }
@@ -249,11 +279,12 @@ void CurvatureRenderer::initializeGL()
         in float curvatureValue;
         in float timeDilation;
         uniform int curvatureMode;
+        uniform float u_global_alpha;
         out vec4 outColor;
 
         void main() {
             vec3 baseColor = fragColor.rgb;
-            float alpha = fragColor.a;
+            float alpha = fragColor.a * u_global_alpha;
 
             switch (curvatureMode) {
                 case 0: {
@@ -349,10 +380,65 @@ void CurvatureRenderer::initializeGL()
         void main() { outColor = fragColor; }
     )";
 
+    // Ergosphere shader: semi-transparent glowing oblate spheroid
+    const char* ergoVert = R"(
+        #version 450 core
+        layout(location = 0) in vec3 aPos;
+        layout(location = 1) in vec3 aNormal;
+
+        uniform mat4 viewMatrix;
+        uniform mat4 projectionMatrix;
+        uniform float ergoMass;
+        uniform float ergoSpin;
+        uniform float ergoCharge;
+
+        out vec3 vNormal;
+        out float vLatitude;
+
+        void main() {
+            vec3 n = normalize(aNormal);
+            float theta = acos(clamp(n.y, -1.0, 1.0)); // latitude from +Y pole
+            float cosTheta = cos(theta);
+
+            // Ergosphere radius: r_E(theta) = M + sqrt(M^2 - a^2 cos^2(theta))
+            float a2 = ergoSpin * ergoSpin;
+            float m2 = ergoMass * ergoMass;
+            float disc = m2 - a2 * cosTheta * cosTheta;
+            float rE = ergoMass + sqrt(max(0.0, disc));
+
+            // Scale the unit sphere position by rE / M
+            float scale = rE / ergoMass;
+            vec3 displacedPos = aPos * scale;
+
+            gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
+            vNormal = n;
+            vLatitude = theta;
+        }
+    )";
+
+    const char* ergoFrag = R"(
+        #version 450 core
+        in vec3 vNormal;
+        in float vLatitude;
+        uniform float ergoMass;
+        uniform float ergoSpin;
+        out vec4 outColor;
+
+        void main() {
+            // Glowing cyan/purple ergosphere
+            float lat = vLatitude / 3.141592653589793; // 0 to 1
+            vec3 baseColor = mix(vec3(0.2, 0.6, 1.0), vec3(0.6, 0.2, 1.0), lat);
+            float glow = 0.6 + 0.3 * sin(vLatitude * 3.0);
+            float alpha = 0.4 + 0.2 * abs(dot(vNormal, vec3(0.0, 1.0, 0.0)));
+            outColor = vec4(baseColor * glow, alpha);
+        }
+    )";
+
     compileShader(gridShader.id, gridVert, gridFrag);
     compileShader(curvatureShader.id, gridVert, gridFrag);
     compileShader(geodesicShader.id, geodesicVert, geodesicFrag);
     compileShader(overlayShader.id, overlayVert, overlayFrag);
+    compileShader(ergoShader.id, ergoVert, ergoFrag);
 
     // Compile fallback shader
     compileShader(fallbackShaderId, fallbackVert, fallbackFrag);
@@ -364,6 +450,61 @@ void CurvatureRenderer::initializeGL()
     glGenVertexArrays(1, &geodesicVao);
     glGenBuffers(1, &geodesicVbo);
     geodesicBuffersInitialized = true;
+
+    // Initialize ergosphere buffers
+    glGenVertexArrays(1, &ergoVao);
+    glGenBuffers(1, &ergoVbo);
+    glGenBuffers(1, &ergoEbo);
+    ergoBuffersInitialized = false;
+    ergoVertexCount = 0;
+
+    // Initialize compute shader for grid deformation
+    std::string computeSrc = loadShaderFromFile("shaders/curvature_compute.comp");
+    if (!computeSrc.empty()) {
+        const char* computeSource = computeSrc.c_str();
+        unsigned int computeShaderId = glCreateShader(GL_COMPUTE_SHADER);
+        glShaderSource(computeShaderId, 1, &computeSource, nullptr);
+        glCompileShader(computeShaderId);
+
+        int success;
+        glGetShaderiv(computeShaderId, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            char infoLog[512];
+            glGetShaderInfoLog(computeShaderId, 512, nullptr, infoLog);
+            std::cerr << "[CurvatureRenderer] Compute shader compilation failed:\n" << infoLog << std::endl;
+        } else {
+            computeShader.id = glCreateProgram();
+            glAttachShader(computeShader.id, computeShaderId);
+            glLinkProgram(computeShader.id);
+            glGetProgramiv(computeShader.id, GL_LINK_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetProgramInfoLog(computeShader.id, 512, nullptr, infoLog);
+                std::cerr << "[CurvatureRenderer] Compute program linking failed:\n" << infoLog << std::endl;
+            }
+            glDeleteShader(computeShaderId);
+            std::cout << "[CurvatureRenderer] Compute shader compiled successfully (id=" << computeShader.id << ")" << std::endl;
+        }
+    } else {
+        std::cerr << "[CurvatureRenderer] WARNING: Could not load curvature_compute.comp" << std::endl;
+    }
+
+    // Initialize grid SSBO for compute shader
+    glGenBuffers(1, &gridSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gridSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, vertices.size() * sizeof(float) * 4, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    computeBuffersInitialized = true;
+
+    // Initialize Neural ODE for geodesic tracing
+    neuralODE = std::make_unique<quantumverse::ml::GeodesicNeuralODE>(1);
+    neuralPool = std::make_unique<utils::ThreadPool>(4);
+    if (neuralODE->loadONNXModel("rl_discovery_agent.onnx")) {
+        std::cout << "[CurvatureRenderer] Neural ODE model loaded for geodesic tracing" << std::endl;
+    } else {
+        std::cerr << "[CurvatureRenderer] WARNING: Could not load Neural ODE model for geodesics" << std::endl;
+    }
 
     m_initialized = true;
 }
@@ -454,6 +595,19 @@ static bool isTruthyEnvironmentFlag(const char* name) {
             value[0] == 'y' || value[0] == 'Y');
 #endif
 }
+
+// Load shader source from file
+static std::string loadShaderFromFile(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "[CurvatureRenderer] Failed to open shader file: " << path << std::endl;
+        return "";
+    }
+    std::stringstream ss;
+    ss << file.rdbuf();
+    return ss.str();
+}
+
 
 void CurvatureRenderer::initializeLightConeBuffers()
 {
@@ -589,27 +743,83 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
     shader->setUniform("time", time);
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(mode));
+    shader->setUniform("useSSBO", 0);
+    shader->setUniform("u_global_alpha", m_globalAlpha);
 
     if (currentMetric) {
-        deformGrid();
+        // Re-deform grid when the metric's epoch changes (e.g. mass sweep).
+        // This keeps grid Z deformation in sync with in-place metric mutation
+        // without relying solely on m_metricDirty.
+        if (currentMetric->epoch() != m_lastEpoch) {
+            recomputeGridZRange();
+            m_lastEpoch = currentMetric->epoch();
+        }
+
+        if (computeShader.id != 0 && computeBuffersInitialized) {
+            deformGridGPU();
+        } else {
+            // Fall back to CPU deformation using the actual metric when the
+            // compute shader is unavailable (e.g. shader file not found).
+            deformGrid();
+        }
         updateGLBuffers();
     }
 
-    glBindVertexArray(vao);
-    glDisable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES,
-                   static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
-    glDisable(GL_DEPTH_TEST);
-    glBindVertexArray(0);
-    if (wireframe)
+    // Zero-copy rendering: bind SSBO directly as VBO when compute shader updated it
+    if (m_computeDirty && computeBuffersInitialized && computeShader.id != 0) {
+        // Bind VAO first (required for vertex attribute state)
+        glBindVertexArray(vao);
+        
+        // Bind SSBO as the vertex buffer source for position attribute
+        glBindBuffer(GL_ARRAY_BUFFER, gridSSBO);
+        
+        // Position attribute: read vec4(x, y, z, displacement) from SSBO
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        
+        // Disable other attributes (color computed in fragment shader from displacement)
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
+        glDisableVertexAttribArray(3);
+        glDisableVertexAttribArray(4);
+
+    shader->use();
+    shader->setUniform("viewMatrix", viewMatrix);
+    shader->setUniform("projectionMatrix", projectionMatrix);
+    shader->setUniform("time", time);
+    shader->setUniform("curvatureScale", m_deformationScale);
+    shader->setUniform("curvatureMode", static_cast<int>(mode));
+    shader->setUniform("useSSBO", 1);
+    shader->setUniform("u_global_alpha", m_globalAlpha);
+
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES,
+                       static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+        glDisable(GL_DEPTH_TEST);
+        
+        if (wireframe)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // Restore polygon mode to FILL so subsequent renders (celestial bodies, etc.)
-    // are not drawn as wireframe
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        shader->release();
+        m_computeDirty = false;
+    } else {
+        glBindVertexArray(vao);
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES,
+                       static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+        glDisable(GL_DEPTH_TEST);
+        glBindVertexArray(0);
+        if (wireframe)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 
     shader->release();
 
@@ -622,6 +832,273 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
 
     if (showLightCones)
         renderLightCones(viewMatrix, projectionMatrix);
+
+    if (m_showErgosphere)
+        renderErgosphere(viewMatrix, projectionMatrix);
+
+    if (m_showNeuralGeodesics)
+        renderNeuralGeodesics(viewMatrix, projectionMatrix);
+}
+
+void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* projectionMatrix)
+{
+    if (!m_initialized || !m_showErgosphere) return;
+
+    // (Re)generate ergosphere mesh if spin/mass changed
+    if (!ergoBuffersInitialized || m_ergoSpin != m_lastErgoSpin || m_ergoMass != m_lastErgoMass) {
+        generateErgosphereMesh();
+        m_lastErgoSpin = m_ergoSpin;
+        m_lastErgoMass = m_ergoMass;
+    }
+
+    if (ergoVertexCount == 0) return;
+
+    ergoShader.use();
+    ergoShader.setUniform("viewMatrix", viewMatrix);
+    ergoShader.setUniform("projectionMatrix", projectionMatrix);
+    ergoShader.setUniform("ergoMass", static_cast<float>(m_ergoMass));
+    ergoShader.setUniform("ergoSpin", static_cast<float>(m_ergoSpin));
+    ergoShader.setUniform("ergoCharge", static_cast<float>(m_ergoCharge));
+
+    glBindVertexArray(ergoVao);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE); // Don't write depth so horizon shows through
+
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ergoVertexCount), GL_UNSIGNED_INT, 0);
+
+    glDepthMask(GL_TRUE);
+    glBindVertexArray(0);
+    ergoShader.release();
+}
+
+void CurvatureRenderer::generateErgosphereMesh()
+{
+    // Clean up old buffers
+    if (ergoBuffersInitialized) {
+        glDeleteBuffers(1, &ergoVbo);
+        glDeleteBuffers(1, &ergoEbo);
+    }
+
+    const int latRes = 32;
+    const int lonRes = 64;
+    const double M = m_ergoMass;
+    const double a = m_ergoSpin;
+
+    std::vector<float> positions;
+    std::vector<float> normals;
+    std::vector<unsigned int> indices;
+
+    for (int i = 0; i <= latRes; ++i) {
+        double theta = 3.141592653589793 * i / latRes; // 0 to pi
+        double cosT = cos(theta);
+        double sinT = sin(theta);
+
+        // Ergosphere radius: r_E(theta) = M + sqrt(M^2 - a^2 cos^2(theta))
+        double disc = M * M - a * a * cosT * cosT;
+        double rE = M + sqrt((disc > 0.0) ? disc : 0.0);
+
+        for (int j = 0; j <= lonRes; ++j) {
+            double phi = 2.0 * 3.141592653589793 * j / lonRes; // 0 to 2pi
+
+            // Spherical coordinates: x = r sinθ cosφ, y = r cosθ, z = r sinθ sinφ
+            // Note: Y is up in our coordinate system
+            double x = rE * sinT * cos(phi);
+            double y = rE * cosT;
+            double z = rE * sinT * sin(phi);
+
+            positions.push_back(static_cast<float>(x));
+            positions.push_back(static_cast<float>(y));
+            positions.push_back(static_cast<float>(z));
+
+            // Normal is radial from origin (approximate for ergosphere)
+            double len = sqrt(x*x + y*y + z*z);
+            normals.push_back(static_cast<float>(x / len));
+            normals.push_back(static_cast<float>(y / len));
+            normals.push_back(static_cast<float>(z / len));
+        }
+    }
+
+    // Build triangle strip indices
+    for (int i = 0; i < latRes; ++i) {
+        for (int j = 0; j <= lonRes; ++j) {
+            indices.push_back(i * (lonRes + 1) + j);
+            indices.push_back((i + 1) * (lonRes + 1) + j);
+        }
+        // Degenerate triangle to restart strip
+        if (i < latRes - 1) {
+            indices.push_back((i + 1) * (lonRes + 1) + lonRes);
+            indices.push_back((i + 1) * (lonRes + 1));
+        }
+    }
+
+    ergoVertexCount = static_cast<unsigned int>(indices.size());
+
+    glGenVertexArrays(1, &ergoVao);
+    glBindVertexArray(ergoVao);
+
+    glGenBuffers(1, &ergoVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, ergoVbo);
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(float), positions.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glGenBuffers(1, &ergoEbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ergoEbo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    ergoBuffersInitialized = true;
+
+    std::cout << "[CurvatureRenderer] Ergosphere mesh generated: "
+              << ergoVertexCount << " indices, M=" << M << ", a=" << a << std::endl;
+}
+
+void CurvatureRenderer::setShowNeuralGeodesics(bool show)
+{
+    m_showNeuralGeodesics = show;
+}
+
+bool CurvatureRenderer::loadNeuralODEModel(const std::string& onnxPath)
+{
+    if (!neuralODE) return false;
+    return neuralODE->loadONNXModel(onnxPath);
+}
+
+void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const float* projectionMatrix)
+{
+    if (!m_initialized || !m_showNeuralGeodesics || !neuralODE || !neuralPool) return;
+
+    // Generate photon bundle: grid of starting positions far from black hole
+    const int gridSize = 16; // 16x16 = 256 rays
+    const float startZ = -60.0f;
+    const float span = 20.0f;
+
+    static std::vector<Event4D> initialEvents;
+    static std::vector<std::array<double,4>> initialVelocities;
+    static bool eventsGenerated = false;
+
+    if (!eventsGenerated) {
+        for (int i = 0; i < gridSize; i++) {
+            for (int j = 0; j < gridSize; j++) {
+                float x = -span/2.0f + (float)i * span / (gridSize - 1);
+                float y = -span/2.0f + (float)j * span / (gridSize - 1);
+                initialEvents.emplace_back(0.0, x, y, startZ);
+                // Null-like velocity pointing toward +Z (and slightly toward center)
+                initialVelocities.push_back({1.0, 0.0, 0.0, 1.0});
+            }
+        }
+        eventsGenerated = true;
+    }
+
+    // Trace trajectories by stepping the Neural ODE
+    const int numSteps = 8;
+    const double tau = 0.5;
+    const double rs = 2.95; // Schwarzschild radius for visualization scale
+    const double mMass = m_ergoMass;
+
+    // Current states (start from initial events)
+    static std::vector<Event4D> currentStates = initialEvents;
+    static bool firstStep = true;
+
+    if (firstStep) {
+        currentStates = initialEvents;
+        firstStep = false;
+    }
+
+    // Store all trajectory points for rendering
+    static std::vector<std::vector<Event4D>> trajectories(initialEvents.size());
+    if (firstStep) {
+        for (size_t i = 0; i < initialEvents.size(); i++) {
+            trajectories[i].clear();
+            trajectories[i].push_back(initialEvents[i]);
+        }
+        firstStep = false;
+    }
+
+    // Step through the Neural ODE
+    std::vector<double> metricParams = {mMass, 0.0}; // mass, spin
+    for (int step = 0; step < numSteps; step++) {
+        auto nextStates = neuralODE->predictBundle(currentStates, initialVelocities, metricParams, tau, *neuralPool);
+        
+        bool allEscaped = true;
+        for (size_t i = 0; i < nextStates.size(); i++) {
+            if (nextStates[i].empty()) continue;
+            const auto& finalEvent = nextStates[i].back();
+            
+            // Check if photon fell into black hole
+            double r = sqrt(finalEvent.x*finalEvent.x + finalEvent.y*finalEvent.y + finalEvent.z*finalEvent.z);
+            if (r > rs * 1.01 && r < 100.0) {
+                currentStates[i] = finalEvent;
+                trajectories[i].push_back(finalEvent);
+                allEscaped = false;
+            }
+            // If r <= rs*1.01, photon hit horizon - stop tracing it
+            // If r > 100, photon escaped to infinity - stop tracing it
+        }
+
+        if (allEscaped) break;
+    }
+
+    // Upload trajectories to GPU and render
+    // Build a single VBO with all line strips
+    std::vector<float> allVertexData;
+    std::vector<unsigned int> allIndices;
+    unsigned int currentOffset = 0;
+
+    for (const auto& traj : trajectories) {
+        if (traj.size() < 2) continue;
+
+        for (const auto& pt : traj) {
+            allVertexData.push_back(static_cast<float>(pt.x));
+            allVertexData.push_back(static_cast<float>(pt.y));
+            allVertexData.push_back(static_cast<float>(pt.z));
+            allVertexData.push_back(0.0f);   // R (cyan)
+            allVertexData.push_back(0.9f);   // G
+            allVertexData.push_back(1.0f);   // B
+            allVertexData.push_back(0.6f);   // A
+        }
+
+        // Indices for this line strip
+        for (size_t k = 0; k < traj.size(); k++) {
+            allIndices.push_back(currentOffset + k);
+        }
+        currentOffset += static_cast<unsigned int>(traj.size());
+    }
+
+    if (allVertexData.empty()) return;
+
+    // Initialize neural geodesic buffers if needed
+    if (!neuralGeoBuffersInitialized) {
+        glGenVertexArrays(1, &neuralGeoVao);
+        glGenBuffers(1, &neuralGeoVbo);
+        neuralGeoBuffersInitialized = true;
+    }
+
+    glBindVertexArray(neuralGeoVao);
+    glBindBuffer(GL_ARRAY_BUFFER, neuralGeoVbo);
+    glBufferData(GL_ARRAY_BUFFER, allVertexData.size() * sizeof(float),
+                 allVertexData.data(), GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    neuralGeoVertexCount = static_cast<unsigned int>(allIndices.size());
+
+    // Render with additive blending for glowing effect
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glDepthMask(GL_FALSE);
+
+    glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(allVertexData.size() / 7));
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glBindVertexArray(0);
 }
 
 void CurvatureRenderer::renderGeodesics(const std::vector<std::vector<Event4D>>& geodesics,
@@ -715,8 +1192,7 @@ void CurvatureRenderer::toggleLightCones(bool show) { showLightCones = show; }
 void CurvatureRenderer::setMetric(std::shared_ptr<MetricTensor> metric)
 {
      currentMetric = metric;
-     deformGrid();
-     updateGLBuffers();
+     m_metricDirty = true;
 }
 
 void CurvatureRenderer::setLightCone(std::shared_ptr<class LightCone> cone)
@@ -727,8 +1203,7 @@ void CurvatureRenderer::setLightCone(std::shared_ptr<class LightCone> cone)
 void CurvatureRenderer::addSingularity(std::shared_ptr<class SingularityHandler> singularity)
 {
     singularities.push_back(singularity);
-    deformGrid();
-    updateGLBuffers();
+    m_metricDirty = true;
 }
 
 void CurvatureRenderer::removeSingularity(std::shared_ptr<class SingularityHandler> singularity)
@@ -736,24 +1211,46 @@ void CurvatureRenderer::removeSingularity(std::shared_ptr<class SingularityHandl
     auto it = std::find(singularities.begin(), singularities.end(), singularity);
     if (it != singularities.end()) {
         singularities.erase(it);
-        deformGrid();
-        updateGLBuffers();
+        m_metricDirty = true;
     }
+}
+
+void CurvatureRenderer::setErgosphereSpin(double spin)
+{
+    m_ergoSpin = std::clamp(spin, 0.0, 0.999);
+}
+
+void CurvatureRenderer::setErgosphereMass(double mass)
+{
+    m_ergoMass = std::max(mass, 0.1);
+}
+
+void CurvatureRenderer::setErgosphereCharge(double charge)
+{
+    m_ergoCharge = std::max(charge, 0.0);
+}
+
+void CurvatureRenderer::setShowErgosphere(bool show)
+{
+    m_showErgosphere = show;
+}
+
+void CurvatureRenderer::setGlobalAlpha(float alpha)
+{
+    m_globalAlpha = std::clamp(alpha, 0.0f, 1.0f);
 }
 
 void CurvatureRenderer::updateTime(float deltaTime)
 {
      time += deltaTime * animationSpeed;
-     deformGrid();
-     updateGLBuffers();
+     // Time does not affect the static Schwarzschild spatial metric, so no
+     // re-deformation is needed here. The render() loop handles dirty flags.
 }
 
 void CurvatureRenderer::regenerateGrid()
 {
      initializeGrid();
-     if (currentMetric) {
-         deformGrid();
-     }
+     m_metricDirty = true;
      if (m_initialized) {
          updateGLBuffers();
      }
@@ -770,10 +1267,7 @@ void CurvatureRenderer::setPlaneMode(bool enable)
     if (m_planeMode == enable) return;
     m_planeMode = enable;
     initializeGrid();
-    if (currentMetric) {
-        deformGrid();
-        updateGLBuffers();
-    }
+    m_metricDirty = true;
     std::cout << "[CurvatureRenderer] setPlaneMode done, vertices=" << vertices.size() << ", indices=" << indices.size() << std::endl;
 }
 
@@ -783,12 +1277,11 @@ void CurvatureRenderer::setPlaneResolution(int resolution)
     if (resolution > 500) resolution = 500;
     if (m_planeResolution == resolution) return;
     m_planeResolution = resolution;
+    gridWidth = resolution;
+    gridHeight = resolution;
     if (m_planeMode) {
         initializeGrid();
-        if (currentMetric) {
-            deformGrid();
-            updateGLBuffers();
-        }
+        m_metricDirty = true;
     }
 }
 
@@ -1035,24 +1528,12 @@ void CurvatureRenderer::deformGrid()
 {
     if (vertices.empty()) return;
 
-    // The well is a Schwarzschild-style funnel: depth A at the BH, falling to
-    // zero at radius R. Its center is the BH's world position and its radius
-    // scales with log(M) so the slider's full range stays legible - linear
-    // scaling would widen the well 100x from 10 to 1000 M☉ and show only the
-    // inner tip on a 100-unit grid. Depth is visual-constant: a fixed A while
-    // the well widens reads "wide shallow bowl at high mass, narrow deep
-    // funnel at low mass," which is physically inverted.
-    const float A = 1.46f;
-    const float R0 = 50.0f;                 // radius at the reference mass
-    const float M0 = 10.0;                  // reference mass (solar masses)
-    float R = R0 * static_cast<float>(std::log(m_blackHoleMassSolar) / std::log(M0));
-    if (R < 1.0f) R = 1.0f;                 // guard against M < e
-    const float R2 = R * R;
-
     float cx = m_blackHoleCenter[0];
     float cy = m_blackHoleCenter[1];
 
-    float rawZMin = -A;
+    bool haveMetric = (currentMetric != nullptr);
+
+    float rawZMin = 0.0f;
     float rawZMax = 0.0f;
     bool first = true;
 
@@ -1061,9 +1542,36 @@ void CurvatureRenderer::deformGrid()
 
         float dx = vertex.position[0] - cx;
         float dy = vertex.position[1] - cy;
-        float r2 = dx * dx + dy * dy;
-        float depth = A / (1.0f + r2 / R2);
-        float rawDisplacement = -depth;
+        float r = std::sqrt(dx * dx + dy * dy);
+
+        float rawDisplacement = 0.0f;
+
+        if (haveMetric && r > 1e-6f) {
+            // Use the actual metric to compute gravitational time dilation.
+            // Schwarzschild g_tt = -(1 - rs/r); time dilation = sqrt(-g_tt).
+            // Well depth = 1 - timeDilation: 0 at infinity, approaches 1 at horizon.
+            Event4D event(0.0, dx, dy, 0.0);
+            auto g = currentMetric->evaluate(event);
+            double gtt = g[0][0];
+            double timeDilation = 1.0;
+            if (gtt < 0.0 && std::isfinite(gtt)) {
+                timeDilation = std::sqrt(std::max(0.0, -gtt));
+                rawDisplacement = static_cast<float>(-(1.0 - timeDilation));
+            } else {
+                rawDisplacement = -1.0f;
+            }
+
+            // Capture exact curvature scalars for vertex coloring.
+            auto scalars = currentMetric->curvatureScalars(event);
+            if (scalars.valid) {
+                vertex.curvature = static_cast<float>(scalars.kretschmann);
+                vertex.time_dilation = static_cast<float>(timeDilation);
+            }
+        } else {
+            // Fallback: Newtonian 1/r potential well when no metric is bound.
+            const float rs = 2.95f;
+            rawDisplacement = -rs / (r + 0.1f);
+        }
 
         vertex.position[2] = rawDisplacement * m_deformationScale;
 
@@ -1075,35 +1583,115 @@ void CurvatureRenderer::deformGrid()
             rawZMax = std::max(rawZMax, rawDisplacement);
         }
 
-        vertex.curvature = 0.0f;
-        vertex.time_dilation = 1.0f;
-
         updateVertexColor(vertex);
     }
     if (std::getenv("GRID_DEBUG")) {
         std::cout << "[GRID] rawZ=" << rawZMin << ".." << rawZMax
                   << " scaledZ=" << (rawZMin * m_deformationScale) << ".." << (rawZMax * m_deformationScale)
                   << " unitRange=" << gridSize
-                  // The test's regex (tests/smoke/test_runtime.cpp) requires all
-                  // three components, so name the full world position, not just
-                  // the grid-plane x,y the funnel is built from.
                   << " wellCenter=" << m_blackHoleCenter[0] << "," << m_blackHoleCenter[1]
                   << "," << m_blackHoleCenter[2]
-                  << " wellR=" << R << " (M=" << m_blackHoleMassSolar << " M☉)"
+                  << " haveMetric=" << (haveMetric ? 1 : 0)
                   << std::endl;
     }
+    m_gridZMin = rawZMin * m_deformationScale;
+    m_gridZMax = rawZMax * m_deformationScale;
+    m_metricDirty = false;
+}
+
+void CurvatureRenderer::deformGridGPU()
+{
+    if (!computeBuffersInitialized || computeShader.id == 0 || vertices.empty()) return;
+
+    // Upload current vertex positions to SSBO
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gridSSBO);
+    
+    // Build position array: vec4(x, y, z, displacement)
+    std::vector<float> posData;
+    posData.reserve(vertices.size() * 4);
+    for (const auto& v : vertices) {
+        posData.push_back(v.position[0]);
+        posData.push_back(v.position[1]);
+        posData.push_back(v.position[2]);
+        posData.push_back(0.0f); // displacement (will be overwritten by compute shader)
+    }
+    
+    glBufferData(GL_SHADER_STORAGE_BUFFER, posData.size() * sizeof(float),
+                 posData.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gridSSBO);
+
+    // Set uniforms
+    computeShader.use();
+
+    // Use the metric's mass when available so the GPU well matches the physics metric.
+    double massSolar = m_blackHoleMassSolar;
+    if (auto schw = std::dynamic_pointer_cast<quantumverse::SchwarzschildMetric>(currentMetric)) {
+        massSolar = schw->mass() / 1.98847e30;  // kg -> solar masses
+    }
+    computeShader.setUniform("u_mass", static_cast<float>(massSolar));
+
+    // Schwarzschild radius: rs = 2*G*M/c^2 (visual scaling for grid units)
+    float rs = static_cast<float>(2.0 * massSolar * 0.01f);
+    computeShader.setUniform("u_rs", rs);
+    computeShader.setUniform("u_width", gridWidth);
+    computeShader.setUniform("u_height", gridHeight);
+
+    // Dispatch compute shader
+    int groupsX = (gridWidth + 15) / 16;
+    int groupsY = (gridHeight + 15) / 16;
+    glDispatchCompute(groupsX, groupsY, 1);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+    computeShader.release();
+
+    // Read back displacement values from SSBO for gridZRange reporting
+    // and to keep CPU-side vertices in sync
+    float zMin = 0.0f, zMax = 0.0f;
+    bool first = true;
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gridSSBO);
+    float* mapped = static_cast<float*>(glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0,
+        posData.size() * sizeof(float), GL_MAP_READ_BIT));
+    
+    if (mapped) {
+        for (size_t i = 0; i < vertices.size(); i++) {
+            float displacement = mapped[i * 4 + 3]; // w component
+            vertices[i].position[2] = displacement * m_deformationScale;
+            if (first) {
+                zMin = zMax = vertices[i].position[2];
+                first = false;
+            } else {
+                zMin = std::min(zMin, vertices[i].position[2]);
+                zMax = std::max(zMax, vertices[i].position[2]);
+            }
+        }
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        
+        // Cache the range for gridZRange()
+        m_gridZMin = zMin;
+        m_gridZMax = zMax;
+    }
+    
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    m_metricDirty = false;
+    m_computeDirty = true; // Signal render() to use SSBO as VBO source
 }
 
 std::pair<float, float> CurvatureRenderer::gridZRange() const
 {
     if (vertices.empty()) return {0.0f, 0.0f};
-    float zMin = vertices[0].position[2];
-    float zMax = vertices[0].position[2];
-    for (const auto& vertex : vertices) {
-        zMin = std::min(zMin, vertex.position[2]);
-        zMax = std::max(zMax, vertex.position[2]);
+    return {m_gridZMin, m_gridZMax};
+}
+
+void CurvatureRenderer::recomputeGridZRange()
+{
+    if (vertices.empty()) return;
+
+    if (computeShader.id != 0 && computeBuffersInitialized) {
+        deformGridGPU();
+    } else {
+        deformGrid();
     }
-    return {zMin, zMax};
+
+    m_lastEpoch = currentMetric ? currentMetric->epoch() : 0;
 }
 
 void CurvatureRenderer::updateVertexColor(CurvatureVertex& vertex)

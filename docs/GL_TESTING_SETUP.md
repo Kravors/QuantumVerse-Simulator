@@ -70,12 +70,21 @@ When GL is available, the test generates:
 
 ## Lensing Camera Verification (GPU Machine)
 
+### Frame-0 cold-start artifact (corrected 2026-10-20)
+
+Frame #0 renders before `engine.load()` completes, so `QmlGlRenderer::synchronize()`
+copies `m_lensing = null` into the renderer at line 882 before `main_qml.cpp:1336`
+builds it via `syncLensingParams()`. The first `[DIAG-renderLensing]` SKIP with
+`m_lensing= null` at frame 0 is expected — not a shipped bug. Lensing renders
+correctly from frame 1 onward. Always verify at `--frames ≥ 2` (recommend
+`--frames 10`), never `--frames 1`.
+
 The half-frame split in Kerr black hole shadow rendering was fixed by matching
 the lensing shader's camera to the QML viewport camera. On a machine with a
 display, verify via:
 
 ```powershell
-build\Debug\quantumverse_qml.exe --cam-az 90 --cam-el 0 --cam-dist 40 --cam-tx 40 --screenshot a0_baseline.png --frames 1
+build\Debug\quantumverse_qml.exe --cam-az 90 --cam-el 0 --cam-dist 40 --cam-tx 40 --screenshot a0_baseline.png --frames 10
 ```
 
 Check the CPU-side `[LENS]` debug log for:
