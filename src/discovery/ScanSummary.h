@@ -15,8 +15,12 @@
 
 namespace quantumverse {
 
+/// Solar mass in kilograms (IAU 2015 nominal value).
+constexpr double M_SUN_KG = 1.98892e30;
+
 struct ScanSummary {
     // Physics values (populated from DiscoveryResult::parameters)
+    // mass is stored in solar masses (M_sun), NOT kilograms.
     double mass        = 0.0;
     double spin        = 0.0;
     double charge      = 0.0;

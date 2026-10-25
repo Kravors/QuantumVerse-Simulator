@@ -14,6 +14,7 @@
 #include "data/MultiMessengerCorrelator.h"
 #endif
 #include "../spacetime/MetricTensor.h"
+#include "../spacetime/KerrMetric.h"
 #include "../spacetime/Event4D.h"
 
 #ifdef QUANTUMVERSE_USE_QML
@@ -185,22 +186,34 @@ QVariantMap DiscoveryPanelManager::buildResultMap() const
         result["location_y"] = best->location.y;
         result["location_z"] = best->location.z;
 
-        // Pull standard physics keys from the finding's parameters map.
-        auto getParam = [&](const QString& key) -> double {
-            auto it = best->parameters.find(key.toStdString());
-            return (it != best->parameters.end()) ? it->second : 0.0;
-        };
-        result["mass"] = getParam("mass");
-        result["spin"] = getParam("spin");
-        result["charge"] = getParam("charge");
-        result["kretschmann"] = getParam("kretschmann");
-        result["redshift"] = getParam("redshift");
+        // Metric-based fallbacks (one consumer: this call site).
+        // dynamic_cast keeps metric-specific knowledge out of MetricTensor base.
+        double massKg = 0.0;
+        double spin = 0.0;
+        double redshift = 0.0;
+        if (m_metric) {
+            if (auto* kerr = dynamic_cast<KerrMetric*>(m_metric.get())) {
+                massKg = kerr->mass();     // kg
+                spin   = kerr->spin();     // dimensionless
+            }
+            // Redshift from g_tt at the probe location: z = 1/sqrt(-g_tt) - 1.
+            // Guard: g_tt >= 0 (inside horizon or flat) => undefined => 0.
+            auto g = m_metric->evaluate(m_location);
+            double g_tt = g[0][0];
+            if (g_tt < 0.0 && std::isfinite(g_tt)) {
+                redshift = 1.0 / std::sqrt(-g_tt) - 1.0;
+                if (!std::isfinite(redshift) || redshift < 0.0) redshift = 0.0;
+            }
 
-        // Fall back to metric curvature scalars for kretschmann if not in parameters.
-        if (result["kretschmann"].toDouble() == 0.0 && m_metric) {
+            // Kretschmann from metric curvature scalars (analytic where available).
             auto cs = m_metric->curvatureScalars(m_location);
             if (cs.valid) result["kretschmann"] = cs.kretschmann;
         }
+
+        result["mass"]    = massKg / M_SUN_KG;   // kg -> solar masses
+        result["spin"]    = spin;
+        result["charge"]  = 0.0;                 // Kerr is uncharged by construction
+        result["redshift"] = redshift;
     } else {
         result["id"] = QString();
         result["type"] = QString();

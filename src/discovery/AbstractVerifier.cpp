@@ -37,6 +37,11 @@ VerificationResult AbstractVerifier::verifyAbstract(const QString& abstract,
                 matched = true;
                 break;
             }
+            // Percentage form: LLM may write "150%" for a known value of 1.5.
+            if (k != 0.0 && std::abs(v - 100.0 * k) / std::abs(100.0 * k) < relativeTolerance) {
+                matched = true;
+                break;
+            }
         }
 
         if (!matched && !isStructuralNumber(v)) {
