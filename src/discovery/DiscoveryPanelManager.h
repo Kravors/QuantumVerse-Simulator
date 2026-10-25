@@ -153,6 +153,7 @@ signals:
     void scanComplete();
     void liveAlertProcessed(const QString& findingId);
     void anomalyDetected(const QJsonObject& anomaly);
+    void discoveryResultReady(const QVariantMap& result);
     void followUpTriggered(const CorrelationEvent& correlation);  // GW+EM coincidence
 
 private:
@@ -173,6 +174,9 @@ private:
 
     /** @brief Run anomaly detection on a finding and emit anomalyDetected if warranted. */
     bool runAnomalyDetection(const InstrumentFinding& finding);
+
+    /** @brief Build a QVariantMap discovery result from the latest scan findings. */
+    QVariantMap buildResultMap() const;
 
     QString severityToString(AlertSeverity sev) const;
 

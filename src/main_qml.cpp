@@ -55,6 +55,9 @@
 #include "ui4d/Camera4DAdapter.h"
 #include "ui4d/QmlRLDiscoveryAgent.h"
 #include "discovery/LLMCoPilot.h"
+#include "discovery/PaperGenerator.h"
+#include "discovery/ScanSummary.h"
+#include "discovery/AbstractVerifier.h"
 #include "spacetime/MetricTensor.h"
 #include "spacetime/KerrMetric.h"
 #include "rendering/CurvatureRenderer.h"
@@ -708,6 +711,10 @@ int main(int argc, char* argv[])
         auto llmCoPilot = new quantumverse::LLMCoPilot();
         qDebug() << "QuantumVerse: LLM Co-Pilot created (Ollama bridge on localhost:11434)";
 
+        // Create the PaperGenerator for automated discovery paper PDF output
+        auto paperGenerator = new quantumverse::PaperGenerator();
+        qDebug() << "QuantumVerse: PaperGenerator created";
+
         // Provide metric and location to the discovery panel manager
         discoveryPanelManager->setMetric(metric);
         quantumverse::Event4D origin;
@@ -1275,6 +1282,42 @@ int main(int argc, char* argv[])
                     [rootObject](const QString& text) {
                         QMetaObject::invokeMethod(rootObject, "updateCoPilotText",
                             Q_ARG(QVariant, text));
+                    });
+
+                // Wire: discovery scan result → LLM abstract → verify → PaperGenerator → PDF
+                QObject::connect(discoveryPanelManager.get(),
+                    &quantumverse::DiscoveryPanelManager::discoveryResultReady,
+                    [llmCoPilot, paperGenerator](const QVariantMap& result) {
+                        quantumverse::ScanSummary s;
+                        s.mass        = result["mass"].toDouble();
+                        s.spin        = result["spin"].toDouble();
+                        s.charge      = result["charge"].toDouble();
+                        s.kretschmann = result["kretschmann"].toDouble();
+                        s.redshift    = result["redshift"].toDouble();
+                        s.discoveryId = result["id"].toString();
+                        s.discoveryType = result["type"].toString();
+                        s.confidence  = result["confidence"].toDouble();
+
+                        auto conn = std::make_shared<QMetaObject::Connection>();
+                        *conn = QObject::connect(llmCoPilot,
+                            &quantumverse::LLMCoPilot::abstractReady,
+                            [paperGenerator, s, conn](const QString& abstract) {
+                                QObject::disconnect(*conn);
+                                auto v = quantumverse::AbstractVerifier::verifyAbstract(abstract, s);
+                                if (!v.passed) {
+                                    qWarning() << "[PaperGen] abstract rejected:" << v.mismatches;
+                                    return;
+                                }
+                                paperGenerator->generatePaper(s, abstract);
+                            });
+
+                        QObject::connect(llmCoPilot,
+                            &quantumverse::LLMCoPilot::abstractFailed,
+                            [](const QString& error) {
+                                qWarning() << "[PaperGen] LLM abstract failed:" << error;
+                            });
+
+                        llmCoPilot->generatePaperAbstract(s.toJson());
                     });
 
                 auto celestialBodyRenderer = std::make_shared<quantumverse::CelestialBodyRenderer>(

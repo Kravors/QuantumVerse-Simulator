@@ -107,4 +107,12 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
         });
 }
 
+void PaperGenerator::generatePaper(const ScanSummary& summary,
+                                   const QString& llmAbstract)
+{
+    generatePaper(summary.mass, summary.spin, summary.charge,
+                  summary.kretschmann, summary.redshift,
+                  llmAbstract);
+}
+
 } // namespace quantumverse

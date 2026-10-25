@@ -5,6 +5,7 @@
 
 #include "DiscoveryPanelManager.h"
 #include "DiscoveryEngine.h"
+#include <QVariantMap>
 #ifdef QUANTUMVERSE_USE_QML
 #include "DiscoveryResultJson.h"
 #endif
@@ -88,6 +89,7 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
     if (enabledCount == 0) {
         m_scanRunning = false;
         emit scanRunningChanged();
+        emit discoveryResultReady(buildResultMap());
         emit scanComplete();
         return;
     }
@@ -128,6 +130,7 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
                     emit scanRunningChanged();
                     emit correlationCountChanged();
                     emit correlationsListChanged();
+                    emit discoveryResultReady(buildResultMap());
                     emit scanComplete();
                 }
             }, Qt::QueuedConnection);
@@ -157,7 +160,60 @@ void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric,
     emit scanRunningChanged();
     emit findingsListChanged();
     emit findingsChanged();
+    emit discoveryResultReady(buildResultMap());
     emit scanComplete();
+}
+
+QVariantMap DiscoveryPanelManager::buildResultMap() const
+{
+    QVariantMap result;
+
+    // Use the highest-confidence finding as the primary result.
+    const InstrumentFinding* best = nullptr;
+    for (const auto& f : m_allFindings) {
+        if (!best || f.confidence > best->confidence) best = &f;
+    }
+
+    if (best) {
+        result["id"] = QString::fromStdString(best->id);
+        result["type"] = QString::fromStdString(best->instrumentName);
+        result["description"] = QString::fromStdString(best->description);
+        result["confidence"] = best->confidence;
+        result["timestamp"] = best->timestamp;
+        result["location_t"] = best->location.t;
+        result["location_x"] = best->location.x;
+        result["location_y"] = best->location.y;
+        result["location_z"] = best->location.z;
+
+        // Pull standard physics keys from the finding's parameters map.
+        auto getParam = [&](const QString& key) -> double {
+            auto it = best->parameters.find(key.toStdString());
+            return (it != best->parameters.end()) ? it->second : 0.0;
+        };
+        result["mass"] = getParam("mass");
+        result["spin"] = getParam("spin");
+        result["charge"] = getParam("charge");
+        result["kretschmann"] = getParam("kretschmann");
+        result["redshift"] = getParam("redshift");
+
+        // Fall back to metric curvature scalars for kretschmann if not in parameters.
+        if (result["kretschmann"].toDouble() == 0.0 && m_metric) {
+            auto cs = m_metric->curvatureScalars(m_location);
+            if (cs.valid) result["kretschmann"] = cs.kretschmann;
+        }
+    } else {
+        result["id"] = QString();
+        result["type"] = QString();
+        result["description"] = QString();
+        result["confidence"] = 0.0;
+        result["mass"] = 0.0;
+        result["spin"] = 0.0;
+        result["charge"] = 0.0;
+        result["kretschmann"] = 0.0;
+        result["redshift"] = 0.0;
+    }
+
+    return result;
 }
 
 void DiscoveryPanelManager::clearFindings()

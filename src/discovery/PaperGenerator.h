@@ -11,6 +11,8 @@
 #include <QObject>
 #include <QString>
 
+#include "discovery/ScanSummary.h"
+
 namespace quantumverse {
 
 /**
@@ -30,6 +32,10 @@ public:
     /// Generate a LaTeX paper and compile to PDF from validated discovery data.
     Q_INVOKABLE void generatePaper(double mass, double spin, double charge,
                                    double kretch, double redshift,
+                                   const QString& llmAbstract);
+
+    /// Generate a LaTeX paper and compile to PDF from a ScanSummary + LLM abstract.
+    Q_INVOKABLE void generatePaper(const ScanSummary& summary,
                                    const QString& llmAbstract);
 
 signals:

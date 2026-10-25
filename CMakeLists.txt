@@ -320,6 +320,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
 src/discovery/EMBrightGWCounterpartDetector.cpp
 src/discovery/LLMCoPilot.cpp
         src/discovery/PaperGenerator.cpp
+        src/discovery/AbstractVerifier.cpp
 src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
         src/ml/AnomalyDetector.cpp

@@ -12,6 +12,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QString>
+#include <QJsonObject>
 
 namespace quantumverse {
 
@@ -32,12 +33,25 @@ public:
     /// Send raw anomaly/veto data to the LLM for explanation.
     Q_INVOKABLE void analyzeAnomaly(const QString& anomalyData);
 
+    /// Send discovery scan data to the LLM for a paper abstract.
+    Q_INVOKABLE void generatePaperAbstract(const QJsonObject& scanData);
+
 signals:
     /// Emitted when the LLM returns an explanation string.
     void analysisReady(const QString& explanation);
 
+    /// Emitted when the LLM returns a paper abstract.
+    void abstractReady(const QString& abstractText);
+
+    /// Emitted when the abstract request fails.
+    void abstractFailed(const QString& error);
+
 private:
     QNetworkAccessManager* m_network = nullptr;
+
+    // Tracks which signal the in-flight request should emit on completion.
+    void (LLMCoPilot::*m_pendingSuccess)(const QString&) = nullptr;
+    void (LLMCoPilot::*m_pendingFailure)(const QString&) = nullptr;
 };
 
 } // namespace quantumverse

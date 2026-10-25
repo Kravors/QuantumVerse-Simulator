@@ -18,7 +18,7 @@
 | LaTeX escaping — C++ implementation | Verified | `escapeLatex()` compiled and run via headless harness; all special chars escaped correctly; PDF compiles cleanly |
 | Qt headless harness | Green | Built with Qt 6.8.3 + MinGW 13.1.0 (via aqtinstall `tools_mingw1310`); `paper_harness.exe` exits 0, generates `discovery_paper.pdf`, all `escapeLatex` patterns verified in `.tex` |
 | Qt headless harness | Green | Built with Qt 6.8.3 + MinGW 13.1.0 (via aqtinstall `tools_mingw1310`); `paper_harness.exe` exits 0, generates `discovery_paper.pdf`, all `escapeLatex` patterns verified in `.tex` |
-| GUI click-through | **Not wired** | The "Generate Discovery Paper" button does not call `PaperGenerator::generatePaper()`; `DiscoveryEngine::generateLaTeXPaper()` (DiscoveryEngine.cpp:342) is a stub returning `"% LaTeX paper for " + result.id`. The working paper pipeline (harness-verified) is unreachable from the GUI. Wiring `main_qml.cpp` → `PaperGenerator` is required **before** the display handoff matters — a display today just shows a button that does nothing. |
+| GUI click-through | **Wired (v7.1a)** | `main_qml.cpp` now connects `discoveryPanelManager->discoveryResultReady` → `ScanSummary` → `LLMCoPilot::generatePaperAbstract` → `AbstractVerifier::verifyAbstract` → `PaperGenerator::generatePaper`. Requires `llama3` running on `localhost:11434` (Ollama). `DiscoveryEngine::detectAnomaly()` now populates `result.parameters` with curvature scalars from `metric.curvatureScalars()`. PDF output path: `<CWD>/output/discovery_paper.pdf`. |
 
 ## Code changes made in this session
 
@@ -28,6 +28,31 @@
 ### `src/discovery/PaperGenerator.cpp`
 - Implemented `escapeLatex()` — single-pass character replacement escaping LaTeX special chars: `\ & % $ # _ { } ~ ^`
 - Line 41: `tex.replace("{{LLM_ABSTRACT}}", llmAbstract)` → `tex.replace("{{LLM_ABSTRACT}}", escapeLatex(llmAbstract))`
+
+### `src/discovery/ScanSummary.h` (new)
+- Plain C++ struct aggregating mass, spin, charge, kretschmann, redshift + provenance; `toJson()` for LLM prompt
+
+### `src/discovery/AbstractVerifier.h` / `.cpp` (new)
+- `verifyAbstract()` extracts decimal numbers from the abstract and checks each against known ScanSummary values within tolerance; rejects hallucinated numbers
+
+### `src/discovery/LLMCoPilot.h` / `.cpp`
+- Added `generatePaperAbstract(const QJsonObject& scanData)` Q_INVOKABLE with paper-specific LLM prompt
+- Added `abstractReady(QString)` and `abstractFailed(QString)` signals
+- Refactored network finished handler to use member function pointers for signal selection
+
+### `src/discovery/DiscoveryPanelManager.h` / `.cpp`
+- Added `discoveryResultReady(QVariantMap)` signal emitted at scan completion
+- Added `buildResultMap()` helper aggregating best finding's parameters + metric curvature scalars
+
+### `src/discovery/DiscoveryEngine.cpp`
+- `detectAnomaly()` now populates `result.parameters` with `kretschmann` from `metric.curvatureScalars(location)`
+
+### `src/main_qml.cpp`
+- Creates `PaperGenerator` instance alongside `LLMCoPilot`
+- Wires: `discoveryResultReady` → build `ScanSummary` → `generatePaperAbstract` → `verifyAbstract` → `generatePaper` → PDF
+
+### `CMakeLists.txt`
+- Added `src/discovery/AbstractVerifier.cpp` to build
 
 ### `src/wasm/app.js` (v6.0 fixes, previously applied)
 - Stable `myId` via `sessionStorage` (no more random `User_XXX` per broadcast)
@@ -141,6 +166,16 @@ If neither string appears, the served file is stale — copy and hard-reload (`C
 F:\syyyy\
   src/discovery/PaperGenerator.h      (escapeLatex declared)
   src/discovery/PaperGenerator.cpp    (escapeLatex implemented + applied)
+  src/discovery/ScanSummary.h         (new: ScanSummary struct + toJson())
+  src/discovery/AbstractVerifier.h    (new: abstract verification)
+  src/discovery/AbstractVerifier.cpp  (new: verifyAbstract implementation)
+  src/discovery/LLMCoPilot.h          (generatePaperAbstract added)
+  src/discovery/LLMCoPilot.cpp        (generatePaperAbstract implemented)
+  src/discovery/DiscoveryPanelManager.h  (discoveryResultReady signal)
+  src/discovery/DiscoveryPanelManager.cpp (discoveryResultReady emission + buildResultMap)
+  src/discovery/DiscoveryEngine.cpp   (detectAnomaly populates parameters)
+  src/main_qml.cpp                    (PaperGenerator + full wiring)
+  CMakeLists.txt                      (AbstractVerifier.cpp added to build)
   src/wasm/app.js                     (v6.0 WebSocket fixes)
   server/server.js                    (v6.0 client count logging)
   harness_main.cpp                    (headless test, ready to compile)
