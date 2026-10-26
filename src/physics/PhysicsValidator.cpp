@@ -253,7 +253,7 @@ bool PhysicsValidator::checkKretschmannScaling(double r, double kretch,
     const double c2 = 8.9875517873681764e16;  // c^2
     const double c4 = c2 * c2;                // c^4
     const double G = 6.67430e-11;             // gravitational constant
-    const double M = m_massKg * 1.98847e30;   // solar masses to kg
+    const double M = m_massKg;   // already in kg
     const double expectedK = 48.0 * G * G * M * M / (c4 * std::pow(r, 6));
 
     double relErr = std::fabs(kretch - expectedK) / expectedK;
@@ -321,9 +321,11 @@ bool PhysicsValidator::validateRenderer(PhysicsCheck& out) const {
 
     // If the metric has mass but the grid is flat, the render pipeline is
     // disconnected from the physics metric.
-    bool flat = (range.first == 0.0 && range.second == 0.0);
+    double zmin = range.first, zmax = range.second;
+    bool neverInitialized = (zmin == -1.0 && zmax == -1.0);
+    bool flat = (zmin == 0.0 && zmax == 0.0) || neverInitialized;
     out.name = "renderer_grid_deformation";
-    out.value = static_cast<double>(range.second - range.first);
+    out.value = static_cast<double>(zmax - zmin);
     out.expected = 0.0;  // any non-zero deformation
     out.tolerance = 0.0;
     out.passed = !(mass > 0.1 && flat);

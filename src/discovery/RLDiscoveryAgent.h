@@ -78,10 +78,6 @@ private:
     int episode_count = 0;
     mutable std::mt19937 rng;
     
-#ifndef HAVE_ONNX
-#define HAVE_ONNX 1
-#endif
-
 #ifdef HAVE_ONNX
     void* ort_env_ptr_ = nullptr;   // Opaque pointer to Ort::Env
     void* ort_session_ptr_ = nullptr;  // Opaque pointer to Ort::Session

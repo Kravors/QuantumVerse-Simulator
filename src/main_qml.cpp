@@ -631,7 +631,7 @@ int main(int argc, char* argv[])
         auto curvatureRenderer = std::make_shared<quantumverse::CurvatureRenderer>(
             config.grid.resolution, config.grid.size, quantumverse::CurvatureMode::GRID_DEFORMATION);
         curvatureRenderer->setMetric(metric);
-        curvatureRenderer->setBlackHoleMassSolar(blackHoleMass);
+        curvatureRenderer->setBlackHoleMassSolar(blackHoleMass / 1.989e30);
 
         // Create black hole singularity (position at origin)
         std::array<double, 3> bhPos = {0.0, 0.0, 0.0};
@@ -1269,6 +1269,10 @@ int main(int argc, char* argv[])
                 viewport->setProbeMetric(metric);
                 viewport->setQuantumRendererDirect(quantumRenderer);
                 viewport->setUI4D(ui4d);
+
+                // Initialize viewport spin/type from config so QML UI reflects actual metric
+                viewport->setBlackHoleSpin(blackHoleSpin);
+                viewport->setBlackHoleType(blackHoleSpin > 1e-10 ? "Kerr" : "Schwarzschild");
 
                 viewport->setCamera4DAdapterDirect(camera4DAdapter);
 

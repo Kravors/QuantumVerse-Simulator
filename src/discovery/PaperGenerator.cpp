@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QProcess>
 #include <QDebug>
+#include <QStandardPaths>
 #include <cmath>
 
 namespace quantumverse {
@@ -92,7 +93,7 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
     tex.replace("{{LLM_ABSTRACT}}", escapeLatex(llmAbstract));
 
     // Write .tex to output directory
-    QString outDir = QDir::currentPath() + "/output";
+    QString outDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/QuantumVerse/output";
     QDir().mkpath(outDir);
 
     QString texPath = outDir + "/discovery_paper.tex";

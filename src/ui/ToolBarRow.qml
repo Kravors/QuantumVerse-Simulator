@@ -330,7 +330,7 @@ ColumnLayout {
                 ComboBox {
                     id: bhTypeCombo
                     model: ["Schwarzschild", "Kerr"]
-                    currentIndex: 0
+                    currentIndex: targetViewport && targetViewport.blackHoleType === "Kerr" ? 1 : 0
                     Layout.preferredWidth: 110
                     onCurrentIndexChanged: {
                         if (targetViewport) targetViewport.setBlackHoleType(model[currentIndex])

@@ -246,7 +246,7 @@ void CurvatureRenderer::initializeGL()
                 float dz = aPosSSBO.w * curvatureScale;
                 displacedPos = vec3(aPosSSBO.x, aPosSSBO.y, aPosSSBO.z + dz);
             } else {
-                displacedPos = aPos;
+                displacedPos = aPosSSBO.xyz;
             }
 
             if (curvatureMode == 0) {
@@ -1640,7 +1640,7 @@ void CurvatureRenderer::deformGridGPU()
     int groupsX = (gridWidth + 15) / 16;
     int groupsY = (gridHeight + 15) / 16;
     glDispatchCompute(groupsX, groupsY, 1);
-    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     computeShader.release();
 
     // Read back displacement values from SSBO for gridZRange reporting
@@ -1668,6 +1668,8 @@ void CurvatureRenderer::deformGridGPU()
         // Cache the range for gridZRange()
         m_gridZMin = zMin;
         m_gridZMax = zMax;
+    } else {
+        glGetError();
     }
     
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

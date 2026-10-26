@@ -2094,6 +2094,12 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
 
     // Physics Validator - reality monitor for metric/geodesic invariants
     m_physicsValidator = std::make_unique<quantumverse::PhysicsValidator>(m_probeMetric);
+    {
+        double mass_kg = m_blackHoleMass * 1.989e30;
+        double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
+        m_physicsValidator->setMass(mass_kg);
+        m_physicsValidator->setSchwarzschildRadius(rs);
+    }
 
     int w = width() > 0 ? static_cast<int>(width()) : 1280;
     int h = height() > 0 ? static_cast<int>(height()) : 720;
@@ -2523,7 +2529,7 @@ void QmlGlViewport::updateSimulation(double deltaTime)
 
     // Physics Validator - check metric/geodesic invariants every 60 frames
     if (m_physicsValidator && m_probeMetric) {
-        auto report = m_physicsValidator->validate(Event4D(0.0, 0.0, 0.0, 0.0));
+        auto report = m_physicsValidator->validate(Event4D(0.0, 0.0, 100000.0, 0.0));
         bool warning = report.failedChecks > 0;
         if (m_physicsWarning != warning) {
             m_physicsWarning = warning;
@@ -2698,9 +2704,14 @@ void QmlGlViewport::setBlackHoleMassDirect(double mass)
     if (!m_probeMetric) {
         m_probeMetric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
     }
-    m_probeMetric->setMass(mass_kg);
-    m_curvatureRenderer->setMetric(m_probeMetric);
-    probeAt(0.0, 0.0, 100000.0);
+        m_probeMetric->setMass(mass_kg);
+        m_curvatureRenderer->setMetric(m_probeMetric);
+        if (m_physicsValidator) {
+            double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
+            m_physicsValidator->setMass(mass_kg);
+            m_physicsValidator->setSchwarzschildRadius(rs);
+        }
+        probeAt(0.0, 0.0, 100000.0);
     // Mirror the lensing wiring from setBlackHoleMass so undo/redo keeps the
     // lensing ring in step with the metric on the direct path too.
     setLensingMass(static_cast<float>(mass));
@@ -2957,19 +2968,29 @@ int QmlGlViewport::asteroidCount() const
 
 void QmlGlViewport::setBlackHoleType(const QString& type)
 {
-    (void)type;  // Metric type selection not yet implemented; always Schwarzschild
+    if (m_blackHoleType == type) return;
+    m_blackHoleType = type;
+    emit blackHoleTypeChanged();
     if (m_curvatureRenderer) {
         double mass_kg = m_blackHoleMass * 1.989e30;
-        // In-place metric update: mutate the existing SchwarzschildMetric
-        // instead of allocating a new one and swapping pointers.
         if (!m_probeMetric) {
             m_probeMetric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
+        if (m_physicsValidator) {
+            double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
+            m_physicsValidator->setMass(mass_kg);
+            m_physicsValidator->setSchwarzschildRadius(rs);
+        }
         probeAt(0.0, 0.0, 100000.0);
-        update();
     }
+    update();
+}
+
+QString QmlGlViewport::blackHoleType() const
+{
+    return m_blackHoleType;
 }
 
 void QmlGlViewport::handleMousePress(float x, float y, int button)

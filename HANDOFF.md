@@ -160,7 +160,43 @@ findstr /C:"Connected as" /C:"(me=" "F:\syyyy\build_wasm\src\wasm/app.js"
 
 If neither string appears, the served file is stale — copy and hard-reload (`Ctrl+Shift+R`).
 
-## Known-waived items (not defects)
+## Installer milestone — v7.2-shipped
+
+### Status summary
+| Milestone | Status | Evidence |
+|-----------|--------|----------|
+| Installer built | Green | `F:\syyyy\installer\QuantumVerse-7.2-Setup.exe` = 32.4 MB |
+| Non-admin install | Green | Installs to `%LOCALAPPDATA%\Programs\QuantumVerse\` (no elevation) |
+| Data loading from install dir | Green | config/, data/, tours/, ML model all resolve via `DataPaths` |
+| Grid deformation | Green | `gridZRange = -6.4..-0.0708` (was `-1..-1`) |
+| Kretschmann | Green | 6.973e-21 at r=1e5m, θ=0, Kerr a/M=0.9 — matches full Kerr to 3 sig figs |
+| Validator | Green | All 5 checks pass; red banner eliminated |
+| Paper output | Green | PDF at `Documents\QuantumVerse\output\discovery_paper.pdf` |
+| Uninstall | Green | Removes install dir + shortcuts; `Documents\QuantumVerse\output` survives |
+| Metric label honesty | Green | ComboBox shows actual type ("Kerr"), spin display shows actual spin (0.9) |
+
+### Code changes in this session (installer phase)
+
+| File | Change |
+|------|--------|
+| `src/discovery/PaperGenerator.cpp` | `outDir` → `QStandardPaths::DocumentsLocation + "/QuantumVerse/output"` |
+| `src/rendering/CurvatureRenderer.cpp` | `displacedPos = aPos` → `aPosSSBO.xyz`; removed per-frame qDebug() from `deformGridGPU()`; fixed memory barrier to `GL_SHADER_STORAGE_BARRIER_BIT` |
+| `src/qmlglviewport.cpp` | Validator probe r=0 → z=1e5; validator mass/rs from actual BH; `blackHoleType` Q_PROPERTY + getter/setter; emits `blackHoleTypeChanged()` |
+| `src/qmlglviewport.h` | Added `blackHoleType` Q_PROPERTY + `blackHoleType()` getter + `blackHoleTypeChanged()` signal |
+| `src/main_qml.cpp` | Fixed `setBlackHoleMassSolar(blackHoleMass / 1.989e30)` (was passing kg where solar masses expected); initializes spin/type from config at startup |
+| `src/main.qml` | Spin slider bound to `viewportItem.blackHoleSpin`; ComboBox bound to `viewportItem.blackHoleType` |
+| `src/ui/ToolBarRow.qml` | ComboBox `currentIndex` bound to `targetViewport.blackHoleType === "Kerr" ? 1 : 0` |
+| `src/physics/PhysicsValidator.cpp` | Kretschmann `M = m_massKg` (removed `× 1.98847e30` double-conversion); `validateRenderer()` rejects `-1..-1` uninitialized grid sentinel |
+| `src/build_v71/config\simulator.json` | Fixed stale `spin` from 0.0 → 0.9 to match source config |
+| `installer/quantumverse.iss` | Inno Setup script: `WorkingDir: {app}` on shortcuts, MiKTeX prerequisite check, `[UninstallDelete]` removed (redundant), Excludes: `*.h5;*.hdf5;*.pth;*.ckpt;*.onnx` |
+| `data/` | `.h5` training files (852 MB) moved to `training_data/` (gitignored); `data/` now 0.96 MB |
+
+### Shipping notes
+- **Installer is unsigned.** Windows SmartScreen will show "Windows protected your PC" on first launch. User workaround: click "More info" → "Run anyway". For public distribution, purchase a code-signing cert (~$100-300/yr).
+- **Do not re-add `[UninstallDelete]` to `quantumverse.iss`.** Inno Setup automatically deletes `{app}` on uninstall; the explicit directive caused incomplete removal (leftover `bin/`).
+- **`.h5`/`.hdf5`/`.pth`/`.ckpt`/`.onnx` are excluded from the installer.** Training artifacts were bloating the installer from 32 MB → 553 MB with no code referencing them. Do not stage them.
+- **Test on clean VM (Windows Sandbox) before public release.** Local non-admin install/uninstall verified; Sandbox test not run (feature not available in this environment).
+
 
 - **v6.0 self-echo verification** — server filters sender (`client !== ws` at `server.js:35`), so client-side self-echo is unobservable. Guard retained as defense-in-depth.
 - **Offscreen/headless Qt** — only `windows` platform plugin deployed; `QT_QPA_PLATFORM=offscreen` fails at plugin load. Not worth fixing before the human GUI run.

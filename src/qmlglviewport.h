@@ -586,6 +586,7 @@ public:
     Q_PROPERTY(double blackHoleMass READ blackHoleMass WRITE setBlackHoleMass NOTIFY blackHoleMassChanged)
     Q_PROPERTY(double blackHoleSpin READ blackHoleSpin WRITE setBlackHoleSpin NOTIFY blackHoleSpinChanged)
     Q_PROPERTY(double blackHoleCharge READ blackHoleCharge WRITE setBlackHoleCharge NOTIFY blackHoleChargeChanged)
+    Q_PROPERTY(QString blackHoleType READ blackHoleType WRITE setBlackHoleType NOTIFY blackHoleTypeChanged)
     Q_PROPERTY(double liveKineticEnergy READ liveKineticEnergy NOTIFY telemetryUpdated)
     Q_PROPERTY(double livePotentialEnergy READ livePotentialEnergy NOTIFY telemetryUpdated)
     Q_PROPERTY(double liveTotalEnergy READ liveTotalEnergy NOTIFY telemetryUpdated)
@@ -661,6 +662,7 @@ public:
     Q_INVOKABLE void setNeuralGeodesicsEnabled(bool enabled);
     Q_INVOKABLE bool neuralGeodesicsEnabled() const;
     Q_INVOKABLE void setBlackHoleType(const QString& type);
+    Q_INVOKABLE QString blackHoleType() const;
     void setBlackHoleMassDirect(double mass); // For undo/redo (no command push)
     // World position the curvature grid's well centers on. Defaults to the
     // config black_hole.position; wired from main_qml.cpp alongside the annulus
@@ -894,6 +896,7 @@ signals:
     void blackHoleMassChanged();
     void blackHoleSpinChanged();
     void blackHoleChargeChanged();
+    void blackHoleTypeChanged();
     void telemetryUpdated();
     void physicsConstantsChanged();
       void bloomEnabledChanged();
@@ -969,6 +972,7 @@ private:
     double m_blackHoleMass = 10.0;
     double m_blackHoleSpin = 0.0;
     double m_blackHoleCharge = 0.0;
+    QString m_blackHoleType = "Schwarzschild";
     float m_gridBlackHoleCenter[3] = {0.0f, 0.0f, 0.0f};
     int m_frameCount;
     int m_headlessTargetFrames = 0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode

@@ -898,7 +898,7 @@ ApplicationWindow {
                                 from: 0.0
                                 to: 1.5
                                 stepSize: 0.01
-                                value: 0.0
+                                value: viewportItem ? viewportItem.blackHoleSpin : 0.0
                                 Layout.fillWidth: true
                                 onValueChanged: {
                                     bhSpinValue = value
