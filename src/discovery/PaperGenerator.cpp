@@ -26,13 +26,28 @@ PaperGenerator::PaperGenerator(QObject* parent)
 
 QString PaperGenerator::loadTemplate()
 {
-    QFile file(":/paper_template.tex");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "[PaperGenerator] Could not open embedded template :/paper_template.tex";
-        return QString();
+    // QRC first — resource is compiled at :/resources/paper_template.tex
+    QFile file(QStringLiteral(":/resources/paper_template.tex"));
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        return in.readAll();
     }
-    QTextStream in(&file);
-    return in.readAll();
+
+    qWarning() << "[PaperGenerator] QRC template missing, trying filesystem fallback";
+    QStringList candidates;
+    candidates << QStringLiteral("resources/paper_template.tex")
+               << QStringLiteral("../resources/paper_template.tex");
+
+    for (const QString& path : candidates) {
+        QFile file(path);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&file);
+            return in.readAll();
+        }
+    }
+
+    qWarning() << "[PaperGenerator] Could not open template from any candidate path";
+    return QString();
 }
 
 QString PaperGenerator::escapeLatex(const QString& input)
@@ -59,7 +74,8 @@ QString PaperGenerator::escapeLatex(const QString& input)
 
 void PaperGenerator::generatePaper(double mass, double spin, double charge,
                                    double kretch, double redshift,
-                                   const QString& llmAbstract)
+                                   const QString& llmAbstract,
+                                   const QString& bhType)
 {
     QString tex = loadTemplate();
     if (tex.isEmpty()) {
@@ -72,6 +88,7 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
     tex.replace("{{CHARGE}}", QString::number(charge, 'f', 4));
     tex.replace("{{KRETSCHMANN}}", formatScientific(kretch));
     tex.replace("{{REDSHIFT}}", formatScientific(redshift));
+    tex.replace("{{BH_TYPE}}", bhType);
     tex.replace("{{LLM_ABSTRACT}}", escapeLatex(llmAbstract));
 
     // Write .tex to output directory
@@ -112,7 +129,7 @@ void PaperGenerator::generatePaper(const ScanSummary& summary,
 {
     generatePaper(summary.mass, summary.spin, summary.charge,
                   summary.kretschmann, summary.redshift,
-                  llmAbstract);
+                  llmAbstract, summary.bhType);
 }
 
 } // namespace quantumverse

@@ -1297,26 +1297,57 @@ int main(int argc, char* argv[])
                         s.discoveryId = result["id"].toString();
                         s.discoveryType = result["type"].toString();
                         s.confidence  = result["confidence"].toDouble();
+                        s.bhType      = result["bh_type"].toString();
+
+                        auto retryCount = std::make_shared<int>(0);
+                        auto watchdog = new QTimer();
+                        watchdog->setSingleShot(true);
+                        watchdog->setInterval(120000);
+
+                        QObject::connect(watchdog, &QTimer::timeout, [watchdog]() {
+                            qWarning() << "[PaperGen] chain watchdog expired (120s)";
+                            watchdog->deleteLater();
+                        });
 
                         auto conn = std::make_shared<QMetaObject::Connection>();
                         *conn = QObject::connect(llmCoPilot,
                             &quantumverse::LLMCoPilot::abstractReady,
-                            [paperGenerator, s, conn](const QString& abstract) {
+                            [paperGenerator, s, conn, retryCount, watchdog, llmCoPilot](const QString& abstract) mutable {
+                                watchdog->stop();
                                 QObject::disconnect(*conn);
                                 auto v = quantumverse::AbstractVerifier::verifyAbstract(abstract, s);
                                 if (!v.passed) {
-                                    qWarning() << "[PaperGen] abstract rejected:" << v.mismatches;
+                                    if (*retryCount == 0) {
+                                        *retryCount = 1;
+                                        qWarning() << "[PaperGen] abstract rejected, retrying once:" << v.mismatches;
+                                        watchdog->start(120000);
+                                        llmCoPilot->generatePaperAbstract(s.toJson());
+                                        return;
+                                    }
+                                    qWarning() << "[PaperGen] abstract rejected after retry:" << v.mismatches;
+                                    watchdog->deleteLater();
                                     return;
                                 }
+                                watchdog->deleteLater();
                                 paperGenerator->generatePaper(s, abstract);
                             });
 
                         QObject::connect(llmCoPilot,
                             &quantumverse::LLMCoPilot::abstractFailed,
-                            [](const QString& error) {
+                            [paperGenerator, s, watchdog](const QString& error) {
                                 qWarning() << "[PaperGen] LLM abstract failed:" << error;
+                                qWarning() << "[PaperGen] falling back to template abstract";
+                                const QString fallback = QStringLiteral(
+                                    "The QuantumVerse discovery engine identified a %1 black hole "
+                                    "candidate consistent with General Relativity. Automated abstract "
+                                    "generation was unavailable; this report uses the default narrative. "
+                                    "[LLM unavailable - fallback abstract]").arg(s.bhType);
+                                paperGenerator->generatePaper(s, fallback);
+                                watchdog->stop();
+                                watchdog->deleteLater();
                             });
 
+                        watchdog->start(120000);
                         llmCoPilot->generatePaperAbstract(s.toJson());
                     });
 

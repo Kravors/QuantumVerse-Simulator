@@ -13,7 +13,7 @@
         "mass_solar_masses": 10.0,
         "position": [40.0, 0.0, 0.0],
         "type": "schwarzschild",
-        "spin": 0.0,
+        "spin": 0.9,
         "charge": 0.0
     },
     "solar_system": {

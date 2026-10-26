@@ -5,7 +5,7 @@
 
 #include "DiscoveryPanelManager.h"
 #include "DiscoveryEngine.h"
-#include <QVariantMap>
+#include <QVariant>
 #ifdef QUANTUMVERSE_USE_QML
 #include "DiscoveryResultJson.h"
 #endif
@@ -16,6 +16,7 @@
 #include "../spacetime/MetricTensor.h"
 #include "../spacetime/KerrMetric.h"
 #include "../spacetime/Event4D.h"
+#include "../discovery/ScanSummary.h"
 
 #ifdef QUANTUMVERSE_USE_QML
 
@@ -24,6 +25,7 @@
 #include <QDateTime>
 #include <QJsonObject>
 #include <algorithm>
+#include <limits>
 #include "data/GCNNoticeParser.h"
 
 namespace quantumverse {
@@ -195,19 +197,48 @@ QVariantMap DiscoveryPanelManager::buildResultMap() const
             if (auto* kerr = dynamic_cast<KerrMetric*>(m_metric.get())) {
                 massKg = kerr->mass();     // kg
                 spin   = kerr->spin();     // dimensionless
+            } else if (auto* schw = dynamic_cast<SchwarzschildMetric*>(m_metric.get())) {
+                massKg = schw->mass();     // kg
+                spin   = 0.0;              // Schwarzschild is non-rotating by construction
+            }
+
+            // Instrument-reported spin takes precedence over metric-derived spin,
+            // since instruments may independently measure spin from ringdown data.
+            if (best && best->parameters.count("spin") > 0) {
+                spin = best->parameters.at("spin");
             }
             // Redshift from g_tt at the probe location: z = 1/sqrt(-g_tt) - 1.
-            // Guard: g_tt >= 0 (inside horizon or flat) => undefined => 0.
-            auto g = m_metric->evaluate(m_location);
+            // Guard: g_tt >= 0 (inside horizon or flat) => undefined => NaN
+            // (never lie with 0.0; NaN tells the reader the guard fired).
+            // Use a probe at r=10M, theta=pi/4 — well outside both horizon and
+            // ergosphere, so g_tt < 0 always and no NaN. Off-equator so Kerr
+            // curvature invariants differ from Schwarzschild.
+            const double M_geo = PHYS_G() * massKg / (PHYS_C() * PHYS_C());
+            const double r_probe = 10.0 * M_geo;
+            const double inv_sqrt2 = 1.0 / std::sqrt(2.0);
+            const Event4D probe(0.0, r_probe * inv_sqrt2, 0.0, r_probe * inv_sqrt2);
+
+            auto g = m_metric->evaluate(probe);
             double g_tt = g[0][0];
             if (g_tt < 0.0 && std::isfinite(g_tt)) {
                 redshift = 1.0 / std::sqrt(-g_tt) - 1.0;
-                if (!std::isfinite(redshift) || redshift < 0.0) redshift = 0.0;
+                if (!std::isfinite(redshift) || redshift < 0.0) redshift = std::numeric_limits<double>::quiet_NaN();
+            } else {
+                redshift = std::numeric_limits<double>::quiet_NaN();
             }
 
             // Kretschmann from metric curvature scalars (analytic where available).
-            auto cs = m_metric->curvatureScalars(m_location);
+            auto cs = m_metric->curvatureScalars(probe);
             if (cs.valid) result["kretschmann"] = cs.kretschmann;
+
+            // Tag the metric type so the paper narrative can match reality.
+            if (dynamic_cast<KerrMetric*>(m_metric.get())) {
+                result["bh_type"] = QStringLiteral("Kerr");
+            } else if (dynamic_cast<SchwarzschildMetric*>(m_metric.get())) {
+                result["bh_type"] = QStringLiteral("Schwarzschild");
+            } else {
+                result["bh_type"] = QStringLiteral("unknown");
+            }
         }
 
         result["mass"]    = massKg / M_SUN_KG;   // kg -> solar masses
@@ -224,6 +255,7 @@ QVariantMap DiscoveryPanelManager::buildResultMap() const
         result["charge"] = 0.0;
         result["kretschmann"] = 0.0;
         result["redshift"] = 0.0;
+        result["bh_type"] = QStringLiteral("unknown");
     }
 
     return result;

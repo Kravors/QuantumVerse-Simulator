@@ -21,7 +21,11 @@ QmlRLDiscoveryAgent::QmlRLDiscoveryAgent(QObject* parent)
 bool QmlRLDiscoveryAgent::loadONNXModel(const QString& onnxPath)
 {
     if (!m_agent) return false;
+#if HAVE_ONNX
     m_loaded = m_agent->loadONNXModel(onnxPath.toStdString());
+#else
+    m_loaded = false;
+#endif
     if (m_loaded) {
         appendLog("RL Discovery Agent: ONNX model loaded successfully");
     } else {
@@ -62,10 +66,16 @@ QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, dou
         0.0f  // anomaly score
     };
 
+#if HAVE_ONNX
     auto action = m_agent->predictONNAction(state);
     double deltaM = static_cast<double>(action[0]);
     double deltaA = static_cast<double>(action[1]);
     double deltaQ = static_cast<double>(action[2]);
+#else
+    double deltaM = 0.0;
+    double deltaA = 0.0;
+    double deltaQ = 0.0;
+#endif
 
     double newMass = mass + deltaM * 5.0;
     double newSpin = spin + deltaA * 2.0;

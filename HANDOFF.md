@@ -47,6 +47,8 @@
 ### `src/discovery/DiscoveryEngine.cpp`
 - `detectAnomaly()` now populates `result.parameters` with `kretschmann` from `metric.curvatureScalars(location)`
 
+**Dead-code note:** `DiscoveryPanelManager::buildResultMap()` reads `result["redshift"]`, `result["kretschmann"]`, etc. directly from the scan result map — it does NOT call `detectAnomaly()`. `detectAnomaly()` is only called by `DiscoveryEngine::runScan()` internally, and its `result.parameters` map is not consumed by the paper pipeline. If `detectAnomaly()` is ever removed, `buildResultMap()` still works because it computes curvature scalars itself via `dynamic_cast<KerrMetric*>`.
+
 ### `src/main_qml.cpp`
 - Creates `PaperGenerator` instance alongside `LLMCoPilot`
 - Wires: `discoveryResultReady` → build `ScanSummary` → `generatePaperAbstract` → `verifyAbstract` → `generatePaper` → PDF
@@ -158,9 +160,7 @@ If neither string appears, the served file is stale — copy and hard-reload (`C
 
 - **v6.0 self-echo verification** — server filters sender (`client !== ws` at `server.js:35`), so client-side self-echo is unobservable. Guard retained as defense-in-depth.
 - **Offscreen/headless Qt** — only `windows` platform plugin deployed; `QT_QPA_PLATFORM=offscreen` fails at plugin load. Not worth fixing before the human GUI run.
-- **`QProcess` environment inheritance** — `pdflatex` must be on PATH in the shell that launches the app. Open a fresh PowerShell after the Machine PATH change.
-
-## Files to hand off
+- **`QProcess` + `pdflatex`** — `pdflatex` works via QProcess from elevated shells when `-interaction=batchmode -halt-on-error` is used. The earlier "MiKTeX blocks pdflatex when elevated" was about interactive TTY prompts, not QProcess batchmode. `pdflatex` must still be on PATH in the shell that launches the app. Open a fresh PowerShell after the Machine PATH change.
 
 ```
 F:\syyyy\

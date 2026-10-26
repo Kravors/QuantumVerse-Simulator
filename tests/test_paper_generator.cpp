@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
     // generatePaper() — end-to-end .tex + PDF (Qt-dependent)
     // ========================================================================
     QTemporaryDir tmpDir;
-    QVERIFY(tmpDir.isValid());
+    if (!tmpDir.isValid()) return 1;
     QDir::setCurrent(tmpDir.path());
 
     PaperGenerator generator;

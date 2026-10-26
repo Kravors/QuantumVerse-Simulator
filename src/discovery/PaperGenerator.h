@@ -32,7 +32,8 @@ public:
     /// Generate a LaTeX paper and compile to PDF from validated discovery data.
     Q_INVOKABLE void generatePaper(double mass, double spin, double charge,
                                    double kretch, double redshift,
-                                   const QString& llmAbstract);
+                                   const QString& llmAbstract,
+                                   const QString& bhType = QStringLiteral("unknown"));
 
     /// Generate a LaTeX paper and compile to PDF from a ScanSummary + LLM abstract.
     Q_INVOKABLE void generatePaper(const ScanSummary& summary,

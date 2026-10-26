@@ -6,6 +6,7 @@
 #include "GWRingdownScanner.h"
 #include <cmath>
 #include <algorithm>
+#include "../spacetime/KerrMetric.h"
 
 namespace quantumverse {
 
@@ -27,7 +28,14 @@ std::vector<InstrumentFinding> GWRingdownScanner::analyze(
         return findings;
     }
 
-    double spin = getParameter("spin");
+    // Extract spin from the metric if it's a Kerr metric; otherwise fall back
+    // to the instrument's own parameter store (default 0.0).
+    double spin = 0.0;
+    if (const auto* kerr = dynamic_cast<const KerrMetric*>(&metric)) {
+        spin = kerr->spin();
+    } else {
+        spin = getParameter("spin");
+    }
     double massSolar = getParameter("mass_solar");
 
     double predictedReal = predictedFrequency(massSolar, spin);

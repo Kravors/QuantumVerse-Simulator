@@ -36,6 +36,7 @@ struct ScanSummary {
     QString discoveryId;
     QString discoveryType;
     double  confidence = 0.0;
+    QString bhType;        // "Kerr" or "Schwarzschild" — drives narrative
 
     QJsonObject toJson() const {
         QJsonObject o;
@@ -50,6 +51,7 @@ struct ScanSummary {
         o["discoveryId"]        = discoveryId;
         o["discoveryType"]      = discoveryType;
         o["confidence"]         = confidence;
+        o["bhType"]             = bhType;
         return o;
     }
 };

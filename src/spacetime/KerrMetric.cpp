@@ -173,7 +173,10 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     double x = event.x, y = event.y, z = event.z;
     double rho2 = x * x + y * y + z * z;
     double r = std::sqrt(rho2);
-    const double minR = 1e-9;
+    double theta = (r > 0.0) ? std::acos(std::max(-1.0, std::min(1.0, z / r))) : 0.0;
+
+    // Clamp r to just outside the horizon to avoid singularity at r=0
+    const double minR = m_rs * 1.01;
     if (r < minR) r = minR;
 
     // Inside horizon (r <= rs), the geometric view is degenerate:
@@ -193,16 +196,28 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     if (r < r_eps) r = r_eps;
 
     // Vacuum solution: Ricci = 0, Weyl = Riemann
-    // Approximate Kretschmann: K ≈ 48 G²M² / (c⁴ r⁶) (Schwarzschild limit)
-    double c4 = PHYS_C() * PHYS_C() * PHYS_C() * PHYS_C();
-    double G = PHYS_G();
-    double K = 48.0 * G * G * m_mass * m_mass / (c4 * std::pow(r, 6));
+    // Full Kerr Kretschmann scalar:
+    //   K = 48 M² (r⁶ - 15a²r⁴cos²θ + 15a⁴r²cos⁴θ - a⁶cos⁶θ) / (r² + a²cos²θ)⁶
+    // On the equator (cos θ = 0) this reduces to 48 M² / r⁶ (Schwarzschild limit).
+    // Off-equator, frame-dragging terms contribute.
+    double a2 = m_a * m_a;
+    double sigmaBL = r * r + a2 * std::cos(theta) * std::cos(theta);
+    double r2 = r * r;
+    double r4 = r2 * r2;
+    double r6 = r4 * r2;
+    double cos2 = std::cos(theta) * std::cos(theta);
+    double cos4 = cos2 * cos2;
+    double cos6 = cos4 * cos2;
+    double numerator = r6 - 15.0 * a2 * r4 * cos2 + 15.0 * a2 * a2 * r2 * cos4 - a2 * a2 * a2 * cos6;
+    double denominator = std::pow(sigmaBL, 6);
+    double K = 48.0 * m_M * m_M * numerator / denominator;
 
     CurvatureScalars s;
     s.kretschmann = K;
     s.ricciScalar = 0.0;
     s.weylSquared = K;
     s.valid = true;
+
     return s;
 }
 

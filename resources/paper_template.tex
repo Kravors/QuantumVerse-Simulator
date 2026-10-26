@@ -4,7 +4,7 @@
 
 \begin{document}
 
-\title{Automated Discovery of an Extremal Black Hole in a 4D Spacetime Simulation}
+\title{Automated Discovery of a {{BH_TYPE}} Black Hole in a 4D Spacetime Simulation}
 
 \author{QuantumVerse AI Agent}
 \affiliation{QuantumVerse Simulator, Autonomous Discovery Engine}
@@ -16,10 +16,10 @@
 \maketitle
 
 \section{Introduction}
-The QuantumVerse Simulator utilizes a PPO reinforcement learning agent to explore the parameter space of General Relativity. The agent navigates the black hole mass-spin-charge parameter space while respecting the cosmic censorship hypothesis, which forbids naked singularities. Each proposed state is validated by the PhysicsValidator module before acceptance.
+The QuantumVerse Simulator utilizes a PPO reinforcement learning agent to explore the parameter space of General Relativity. The agent navigates the black hole mass-spin-charge parameter space while respecting the cosmic censorship hypothesis, which forbids naked singularities. Each proposed state is validated by the PhysicsValidator module before acceptance. The discovered object is a {{BH_TYPE}} black hole.
 
 \section{Methodology}
-The RL agent explored the parameter space near the extremal limit ($a^2 + Q^2 \approx M^2$). The proposed metric was validated against cosmic censorship using the PhysicsValidator module. The final validated parameters were determined to be:
+The RL agent explored the parameter space near the {{BH_TYPE}} limit ($a^2 + Q^2 \approx M^2$ for Kerr; Schwarzschild by construction when spin = 0). The proposed metric was validated against cosmic censorship using the PhysicsValidator module. The final validated parameters were determined to be:
 \begin{itemize}
     \item Mass ($M$): {{MASS}} $M_\odot$
     \item Spin ($a$): {{SPIN}}
@@ -29,9 +29,9 @@ The RL agent explored the parameter space near the extremal limit ($a^2 + Q^2 \a
 The extremality parameter $(a^2 + Q^2)/M^2$ was computed to verify proximity to the extremal bound without exceeding it.
 
 \section{Results}
-The spacetime curvature was evaluated at the probe location using the Kerr metric curvature invariants. The Kretschmann scalar was found to be $K = {{KRETSCHMANN}}$. The gravitational redshift at the probe radius was calculated as $z = {{REDSHIFT}}$. All curvature invariants remained finite, confirming the absence of a naked singularity.
+The spacetime curvature was evaluated at the probe location using the {{BH_TYPE}} metric curvature invariants. The Kretschmann scalar was found to be $K = {{KRETSCHMANN}}$. The gravitational redshift at the probe radius is $z = {{REDSHIFT}}$. All curvature invariants remained finite, confirming the absence of a naked singularity.
 
 \section{Conclusion}
-The AI agent successfully navigated the parameter space to find a stable, near-extremal black hole without violating cosmic censorship. The discovered spacetime satisfies all General Relativity validity checks, with curvature invariants well-behaved outside the event horizon.
+The AI agent successfully navigated the parameter space to find a stable {{BH_TYPE}} black hole without violating cosmic censorship. The discovered spacetime satisfies all General Relativity validity checks, with curvature invariants well-behaved outside the event horizon.
 
 \end{document}

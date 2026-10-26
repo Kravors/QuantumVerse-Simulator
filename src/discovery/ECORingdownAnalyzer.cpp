@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
+#include "../spacetime/KerrMetric.h"
 
 namespace quantumverse {
 
@@ -274,7 +275,15 @@ std::vector<InstrumentFinding> ECORingdownAnalyzer::analyze(
     finding.parameters["echo_delay_time"] = static_cast<double>(bestDelay) * dt;
     finding.parameters["ringdown_period_samples"] = periodSamples;
     finding.parameters["damping_samples"] = dampingSamples;
-    finding.parameters["spin"] = getParameter("spin");
+    // Extract spin from the metric if it's a Kerr metric; otherwise fall back
+    // to the instrument's own parameter store (default 0.0).
+    double spin = 0.0;
+    if (const auto* kerr = dynamic_cast<const KerrMetric*>(&metric)) {
+        spin = kerr->spin();
+    } else {
+        spin = getParameter("spin");
+    }
+    finding.parameters["spin"] = spin;
     finding.parameters["mass_solar"] = getParameter("mass_solar");
     addFinding(finding);
     findings.push_back(finding);

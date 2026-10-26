@@ -19,6 +19,11 @@ endif()
 # Suppress C4996 in third-party stb headers
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
+# ONNX Runtime is optional. Declared as an option so a fresh clone configures
+# cleanly on machines without onnxruntime (default OFF). Use
+# -DQUANTUMVERSE_USE_ONNX=ON to enable RL agent ONNX inference.
+option(QUANTUMVERSE_USE_ONNX "Enable ONNX Runtime for RL agent inference" OFF)
+
 # Coverage instrumentation
 if(QUANTUMVERSE_USE_COVERAGE)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage -O0 -g")
@@ -341,6 +346,7 @@ src/ml/CurvatureNormalizingFlow.cpp
         src/scenario/ScenarioManager.cpp
         ${RESOURCES_QRC}
     )
+    set_target_properties(quantumverse_qml PROPERTIES AUTOMOC ON)
     target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_QML)
     target_link_libraries(quantumverse_qml PRIVATE quantumverse_multi_user)
     if(QUANTUMVERSE_USE_VR)
@@ -386,6 +392,9 @@ src/ml/CurvatureNormalizingFlow.cpp
         nlohmann_json
         ${LIBRDKAFKA_LIBRARIES}
     )
+    if(WIN32)
+        target_link_libraries(quantumverse_qml PRIVATE dbghelp)
+    endif()
     set_target_properties(quantumverse_qml PROPERTIES
         AUTOMOC ON
         AUTORCC ON
@@ -846,6 +855,9 @@ src/ml/CurvatureNormalizingFlow.cpp
                 src/utils/TraceLogger.cpp
             )
             target_link_libraries(crash_helper PRIVATE dilaton)
+            if(WIN32)
+                target_link_libraries(crash_helper PRIVATE dbghelp)
+            endif()
             if(TARGET deploy_qt_runtime)
                 add_dependencies(crash_helper deploy_qt_runtime)
             endif()
@@ -922,8 +934,8 @@ src/ml/CurvatureNormalizingFlow.cpp
             endif()
 
             # PaperGenerator test (Phase 3.11) — LaTeX escaping + PDF output
-            add_executable(test_paper_generator tests/test_paper_generator.cpp)
-            target_link_libraries(test_paper_generator PRIVATE Qt6::Core dilaton)
+            add_executable(test_paper_generator tests/test_paper_generator.cpp src/discovery/PaperGenerator.cpp src/discovery/AbstractVerifier.cpp)
+            target_link_libraries(test_paper_generator PRIVATE Qt6::Core Qt6::Test dilaton)
             set_target_properties(test_paper_generator PROPERTIES AUTOMOC ON)
             target_include_directories(test_paper_generator PRIVATE
                 ${CMAKE_SOURCE_DIR}/tests
@@ -1207,7 +1219,9 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_config_loader.cpp)
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_nbody.cpp AND QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
-    add_executable(test_nbody tests/test_nbody.cpp src/ui4d/UI4D.cpp src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp src/physics/CurvatureCalculator.cpp third_party/glad/glad.cpp)
+    add_executable(test_nbody tests/test_nbody.cpp src/ui4d/UI4D.cpp 
+    src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp 
+    src/physics/CurvatureCalculator.cpp src/ml/GeodesicNeuralODE.cpp third_party/glad/glad.cpp)
     target_link_libraries(test_nbody PRIVATE dilaton nlohmann_json Qt6::Core Qt6::Gui)
     target_include_directories(test_nbody PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/third_party/glad/include ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad)
     add_test(NAME NBodyTest COMMAND test_nbody)
@@ -2176,7 +2190,7 @@ endif()
         src/discovery/DarkMatterAnnihilationAnalyzer.cpp
     )
     message(STATUS "Linking test_instrument_audit")
-    target_link_libraries(test_instrument_audit PRIVATE dilaton)
+    target_link_libraries(test_instrument_audit PRIVATE dilaton Qt6::Core)
     message(STATUS "Adding InstrumentAuditTest")
     add_test(NAME InstrumentAuditTest COMMAND test_instrument_audit)
     message(STATUS "InstrumentAuditTest added")
@@ -2184,7 +2198,6 @@ endif()
     # 6.2 Symbolic regression sanity
     add_executable(test_symbolic_regression
         tests/discovery/test_symbolic_regression.cpp
-        src/discovery/DiscoveryPanelManager.cpp
         src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
         src/discovery/GalacticRotationCurveScanner.cpp
         src/discovery/FineStructureConstantDriftObservatory.cpp
@@ -2247,7 +2260,7 @@ endif()
         src/discovery/DiscoveryEngine.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_discovery_pipeline PRIVATE dilaton)
+    target_link_libraries(test_discovery_pipeline PRIVATE dilaton Qt6::Core)
     add_test(NAME DiscoveryPipelineIntegrationTest COMMAND test_discovery_pipeline)
 
     # 6.6 Theory discovery agent (Phase 22.1)
@@ -2440,7 +2453,7 @@ endif()
         src/ml/CurvatureNormalizingFlow.cpp
         src/ml/GeodesicNeuralODE.cpp
     )
-    target_link_libraries(test_discovery_robustness PRIVATE dilaton)
+    target_link_libraries(test_discovery_robustness PRIVATE dilaton Qt6::Core)
     add_test(NAME DiscoveryRobustnessTest COMMAND test_discovery_robustness)
 
     # Phase 2: Sim-frame correlation test
