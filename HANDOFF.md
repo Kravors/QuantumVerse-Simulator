@@ -19,6 +19,10 @@
 | Qt headless harness | Green | Built with Qt 6.8.3 + MinGW 13.1.0 (via aqtinstall `tools_mingw1310`); `paper_harness.exe` exits 0, generates `discovery_paper.pdf`, all `escapeLatex` patterns verified in `.tex` |
 | Qt headless harness | Green | Built with Qt 6.8.3 + MinGW 13.1.0 (via aqtinstall `tools_mingw1310`); `paper_harness.exe` exits 0, generates `discovery_paper.pdf`, all `escapeLatex` patterns verified in `.tex` |
 | GUI click-through | **Wired (v7.1a)** | `main_qml.cpp` now connects `discoveryPanelManager->discoveryResultReady` → `ScanSummary` → `LLMCoPilot::generatePaperAbstract` → `AbstractVerifier::verifyAbstract` → `PaperGenerator::generatePaper`. Requires `llama3` running on `localhost:11434` (Ollama). `DiscoveryEngine::detectAnomaly()` now populates `result.parameters` with curvature scalars from `metric.curvatureScalars()`. PDF output path: `<CWD>/output/discovery_paper.pdf`. |
+| v7.1a pipeline | **Green** | `--autoscan` → `startScan()` → `discoveryResultReady` → fallback abstract → `generatePaper` → PDF verified end-to-end. Physics values populated from metric (M=10.00 M☉, K=1.48e-17, z=9.05). LLM unavailable → fallback abstract works. No Ollama needed. |
+| v7.2 probe location + Kerr observables | **Green** | Probe moved from origin (r=0) to r=10M, θ=π/4. `KerrMetric::curvatureScalars()` uses full Kerr Kretschmann, not Schwarzschild approximation. Verified: K=9.2471e-22 (Schwarzschild 1.008e-21), z=0.1175 (Schwarzschild 0.1180) — both match full Kerr to 3+ sig figs. Tag `v7.2-kerr-observables`. |
+| v7.1b `AbstractVerifier` runtime | **Blocked** | Ollama not installed; port 11434 not listening. Acceptance case (LLM abstract passes `verifyAbstract`) and adversarial rejection case ("mass is 25 M☉" when scan found 10 → verifier rejects → retry or fallback) ready to run when Ollama is reachable. |
+| v7.3 agent spin exploration | **Not started** | Spin comes from `config/simulator.json` (0.9), not agent exploration. Reward-shaping framing TBD before writing reward function. Independent of pipeline. |
 
 ## Code changes made in this session
 
