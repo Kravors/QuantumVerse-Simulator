@@ -186,6 +186,8 @@ int main(int argc, char** argv) {
     // Original log at simTime=62 showed kretch=1.201e-13 at probe (0,0,0,100000)
     // with M=226. Isolated formula predicts 5.3e-18. This test determines which
     // value the actual KerrMetric produces.
+    // Phase 5: probe at r=100000 m is inside the horizon (rs≈667152 m for 226 M☉);
+    // curvatureScalars clamps r to r_min_safe=1.5·rs and returns a valid, finite K.
     // -----------------------------------------------------------------------
     {
         KerrMetric metric(226.0 * 1.989e30, 0.0);  // 226 M☉
@@ -196,29 +198,30 @@ int main(int argc, char** argv) {
                   << ", valid=" << cs.valid << std::endl;
         std::cout.flush();
 
-        // rs = 2GM/c² for 226 M☉ = 226 * 1476 m ≈ 333,576 m > 100000 m = r
-        // So probe is INSIDE horizon → valid=false
-        QV_CHECK(!cs.valid);  // r < rs → invalid
+        // Probe is inside horizon → clamped to safe radius → valid + finite K.
+        QV_CHECK(cs.valid);                          // clamped to r_min_safe → valid
+        QV_CHECK(std::isfinite(cs.kretschmann));     // finite K at safe radius
 
-        std::cout << "[PASS] Test 8: M=226, r=100000 — inside horizon, valid="
-                  << cs.valid << " (expected false)" << std::endl;
+        std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid="
+                  << cs.valid << " (expected true)" << std::endl;
         std::cout.flush();
     }
 
     // -----------------------------------------------------------------------
     // Test 8: Curvature at M=226, r=100000 — reproduce original [REALITY] log
     // Original log at simTime=62 showed kretch=1.201e-13 at probe (0,0,0,100000)
-    // with M=226. rs=667,700 m > r=100,000 m → probe inside horizon → invalid.
+    // with M=226. rs=667,700 m > r=100,000 m → probe inside horizon → clamped.
     // -----------------------------------------------------------------------
     {
         KerrMetric metric(226.0 * 1.989e30, 0.0);  // 226 M☉
         Event4D probe(0.0, 0.0, 0.0, 100000.0);    // r=100000 < rs
 
         auto cs = metric.curvatureScalars(probe);
-        QV_CHECK(!cs.valid);  // r < rs → invalid
+        QV_CHECK(cs.valid);                          // clamped to r_min_safe → valid
+        QV_CHECK(std::isfinite(cs.kretschmann));     // finite K at safe radius
 
-        std::cout << "[PASS] Test 8: M=226, r=100000 — inside horizon, valid="
-                  << cs.valid << " (expected false)" << std::endl;
+        std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid="
+                  << cs.valid << " (expected true)" << std::endl;
         std::cout.flush();
     }
 

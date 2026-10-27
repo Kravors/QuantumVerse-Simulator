@@ -1,7 +1,8 @@
 #include "KerrMetric.h"
 #include <algorithm>
-#include <cmath>
 #include <cassert>
+#include <cmath>
+#include <iostream>
 
 namespace quantumverse {
 
@@ -175,25 +176,17 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     double r = std::sqrt(rho2);
     double theta = (r > 0.0) ? std::acos(std::max(-1.0, std::min(1.0, z / r))) : 0.0;
 
-    // Clamp r to just outside the horizon to avoid singularity at r=0
-    const double minR = m_rs * 1.01;
-    if (r < minR) r = minR;
-
-    // Inside horizon (r <= rs), the geometric view is degenerate:
-    // g_tt > 0, radial/time roles swap, and K → ∞ as r → 0. Report invalid.
-    if (r <= m_rs) {
-        CurvatureScalars s;
-        s.kretschmann = 0.0;
-        s.ricciScalar = 0.0;
-        s.weylSquared = 0.0;
-        s.valid = false;
-        return s;
+    // Phase 5 guard: r < 1.5·r_s is at/inside the horizon — undefined physics.
+    // Clamp radially outward to a safe observer location outside the ergosphere,
+    // preserving theta so the angular location is not lost.
+    const double r_s = m_rs;                    // Schwarzschild radius = 2GM/c²
+    const double r_min_safe = 1.5 * r_s;        // safely outside the equatorial ergosphere (= r_s)
+    if (r < r_min_safe) {
+        std::cerr << "[KerrMetric] probe inside horizon: r=" << r
+                  << " r_s=" << r_s
+                  << " - clamping to r=" << r_min_safe << std::endl;
+        r = r_min_safe;
     }
-
-    // Clamp r to a floor just outside the horizon so K stays finite even when
-    // the probe lands very close to the horizon.
-    const double r_eps = 0.01 * m_rs;
-    if (r < r_eps) r = r_eps;
 
     // Vacuum solution: Ricci = 0, Weyl = Riemann
     // Full Kerr Kretschmann scalar:
