@@ -240,6 +240,39 @@ F:\syyyy\
   harness.pro                         (qmake project, ready to compile)
   HANDOFF.md                          (this file)
 
+## RL Discovery Agent — RL non-functional (docs entry)
+
+| Milestone | Status | Evidence |
+|-----------|--------|----------|
+| RL Discovery Agent ONNX load | Non-functional | Malformed `.onnx` at repo root (20,054 bytes), ORT aborts on opset 27 |
+| Checkpoint | Missing | No `.pth`/`.pt`/`.ckpt` committed, none in worktrees, `*.pth` in `.gitignore` |
+| QML wiring | Live | `discoveryConsole` id in `main.qml`, `appendLog()` in `QmlRLDiscoveryAgent` |
+| `export_best.py` | In worktree only | `.kilo/worktrees/amenable-myth/python/export_best.py`, not on `origin/main` |
+
+### Root cause (three layers)
+
+1. **Model malformed:** `rl_discovery_agent.onnx` declares opset 18 but contains opset-27 nodes. ORT 1.22.1 supports only up to opset 22. ORT aborts internally with "API version [27] not available."
+2. **No checkpoint:** `export_best.py` loads `models/geodesic_ode/best_model.pth` (relative path). That file doesn't exist anywhere accessible — not in main repo, not in worktrees, never git-committed (`*.pth` is in `.gitignore`).
+3. **No training data:** `data/geodesics_1M.h5` referenced by `export_best.py` doesn't exist outside worktrees.
+
+### Evidence preserved
+
+- Malformed model moved to: `diagnostics/malformed_models/rl_discovery_agent_opset27declared18.onnx`
+- README: `diagnostics/malformed_models/README.md`
+- NOT deleted — kept as auditable evidence of the broken state
+
+### Fix path (product decision, not code fix)
+
+Cannot be fixed by re-exporting alone — `export_best.py` requires a checkpoint that doesn't exist. Options:
+
+| Option | Effort | Description |
+|--------|--------|-------------|
+| Remove from product | 10 min | Document RL Discovery Agent as non-functional, close the thread |
+| Retrain from scratch | Days+ | Requires training data (`data/geodesics_1M.h5`) which doesn't exist, training script (`train.py`) only in worktrees |
+| Find checkpoint elsewhere | Unknown | If `best_model.pth` exists in another worktree or backup, re-export with opset ≤ 22 |
+
+**Session C does not exist as a code task.** The ONNX diagnostic (`tools/onnx_diagnostic.cpp`) confirms the blocker definitively. Any future work on the RL Discovery Agent is a retraining decision, not a quick fix.
+
 ## Validator foundation — v7.2.3-validator-foundation (shipped)
 
 | Milestone | Status | Evidence |
