@@ -1994,6 +1994,15 @@ ApplicationWindow {
     }
 
     function runParameterSweep() {
-        console.log("Running parameter sweep...")
+        if (discoveryPanelManager) {
+            discoveryPanelManager.runParameterSweep(
+                Number(sweepFromField.text),
+                Number(sweepToField.text),
+                sweepStepsBox.value,
+                0.0,  // spin
+                0.0,  // charge
+                1e5   // probe radius in meters
+            );
+        }
     }
 }

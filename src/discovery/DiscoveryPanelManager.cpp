@@ -563,6 +563,87 @@ void DiscoveryPanelManager::stopScan()
                << "instruments=" << m_instruments.size();
 }
 
+void DiscoveryPanelManager::runParameterSweep(double massLoMsun, double massHiMsun, int steps,
+                                               double spin, double charge, double probeR)
+{
+    m_sweepRows.clear();
+    (void)charge;  // Kerr metric does not support charge; reserved for Kerr-Newman
+
+    if (steps < 1) steps = 1;
+    if (steps > 10000) steps = 10000;
+
+    // Fixed probe at the production radius, theta = pi/4.
+    double theta = M_PI / 4.0;
+    Event4D probe(0.0, probeR * std::sin(theta), 0.0, probeR * std::cos(theta));
+
+    for (int i = 0; i < steps; ++i) {
+        double t = (steps > 1) ? static_cast<double>(i) / static_cast<double>(steps - 1) : 0.0;
+        double massMsun = massLoMsun + (massHiMsun - massLoMsun) * t;
+        double massKg = massMsun * 1.989e30;
+
+        // Reconstruct the metric per step so every row reflects its own mass.
+        KerrMetric stepMetric(massKg, spin);
+        auto cs = stepMetric.curvatureScalars(probe);
+
+        // Gravitational redshift from g_tt at the probe.
+        auto g = stepMetric.evaluate(probe);
+        double z = 0.0;
+        if (g[0][0] < 0.0) {
+            z = 1.0 / std::sqrt(-g[0][0]) - 1.0;
+        }
+
+        SweepRow row;
+        row.step = i;
+        row.massMsun = massMsun;
+        row.spin = spin;
+        row.charge = charge;
+        row.kretschmann = cs.kretschmann;
+        row.redshift = z;
+        row.valid = cs.valid;
+        m_sweepRows.push_back(row);
+    }
+
+    emit sweepResultsChanged();
+}
+
+QVariantList DiscoveryPanelManager::sweepResults() const
+{
+    QVariantList list;
+    for (const auto& row : m_sweepRows) {
+        QVariantMap item;
+        item["step"] = row.step;
+        item["mass_msun"] = row.massMsun;
+        item["spin"] = row.spin;
+        item["charge"] = row.charge;
+        item["kretschmann"] = row.kretschmann;
+        item["redshift"] = row.redshift;
+        item["valid"] = row.valid;
+        list.append(item);
+    }
+    return list;
+}
+
+void DiscoveryPanelManager::exportCurrentFindings(const QString& path)
+{
+    std::ofstream file(path.toStdString());
+    if (!file.is_open()) {
+        qWarning() << "exportCurrentFindings: cannot open" << path;
+        return;
+    }
+    file << "step,mass_msun,spin,charge,kretschmann,redshift,valid\n";
+    for (const auto& row : m_sweepRows) {
+        file << row.step << ","
+             << row.massMsun << ","
+             << row.spin << ","
+             << row.charge << ","
+             << row.kretschmann << ","
+             << row.redshift << ","
+             << (row.valid ? "true" : "false") << "\n";
+    }
+    file.close();
+    qDebug() << "Exported" << m_sweepRows.size() << "sweep rows to" << path;
+}
+
 void DiscoveryPanelManager::exportCurrentFindings()
 {
     QString findings = exportFindings();

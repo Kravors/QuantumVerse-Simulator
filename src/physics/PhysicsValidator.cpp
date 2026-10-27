@@ -16,80 +16,6 @@
 namespace quantumverse {
 
 // ---------------------------------------------------------------------------
-// Helper: compute eigenvalues of a 4x4 symmetric matrix via Jacobi rotation
-// ---------------------------------------------------------------------------
-static std::array<double, 4> jacobiEigenvalues(
-    std::array<std::array<double, 4>, 4> a) {
-    std::array<double, 4> d = {a[0][0], a[1][1], a[2][2], a[3][3]};
-    std::array<std::array<double, 4>, 4> v = {{
-        {{1.0, 0.0, 0.0, 0.0}},
-        {{0.0, 1.0, 0.0, 0.0}},
-        {{0.0, 0.0, 1.0, 0.0}},
-        {{0.0, 0.0, 0.0, 1.0}},
-    }};
-
-    const int maxRot = 100;
-    for (int rot = 0; rot < maxRot; ++rot) {
-        // Find largest off-diagonal element
-        int p = 0, q = 1;
-        double maxOff = 0.0;
-        for (int i = 0; i < 4; ++i) {
-            for (int j = i + 1; j < 4; ++j) {
-                double aij = std::fabs(a[i][j]);
-                if (aij > maxOff) {
-                    maxOff = aij;
-                    p = i;
-                    q = j;
-                }
-            }
-        }
-
-        if (maxOff < 1e-14) break;  // Converged
-
-        // Jacobi rotation angle
-        double app = a[p][p], aqq = a[q][q], apq = a[p][q];
-        double theta = 0.5 * std::atan2(2.0 * apq, aqq - app);
-        double c = std::cos(theta);
-        double s = std::sin(theta);
-
-        // Apply rotation to rows/cols p and q
-        for (int k = 0; k < 4; ++k) {
-            double akp = a[k][p], akq = a[k][q];
-            a[k][p] = c * akp - s * akq;
-            a[k][q] = s * akp + c * akq;
-        }
-        for (int k = 0; k < 4; ++k) {
-            double apk = a[p][k], aqk = a[q][k];
-            a[p][k] = c * apk - s * aqk;
-            a[q][k] = s * apk + c * aqk;
-        }
-        a[p][q] = 0.0;
-        a[q][p] = 0.0;
-
-        // Update diagonal
-        double appNew = a[p][p];
-        double aqqNew = a[q][q];
-        d[p] = appNew;
-        d[q] = aqqNew;
-
-        // Update eigenvectors
-        for (int k = 0; k < 4; ++k) {
-            double vkp = v[k][p], vkq = v[k][q];
-            v[k][p] = c * vkp - s * vkq;
-            v[k][q] = s * vkp + c * vkq;
-        }
-    }
-
-    return d;
-}
-
-// ---------------------------------------------------------------------------
-// Constructor
-// ---------------------------------------------------------------------------
-PhysicsValidator::PhysicsValidator(std::shared_ptr<MetricTensor> metric)
-    : m_metric(std::move(metric)) {}
-
-// ---------------------------------------------------------------------------
 // Main validation sweep
 // ---------------------------------------------------------------------------
 PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
@@ -204,34 +130,6 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
 
     m_lastReport = report;
     return report;
-}
-
-// ---------------------------------------------------------------------------
-// Lorentzian signature check
-// ---------------------------------------------------------------------------
-bool PhysicsValidator::checkLorentzianSignature(
-    const std::array<std::array<double, 4>, 4>& g,
-    PhysicsCheck& out) const {
-    auto eigs = jacobiEigenvalues(g);
-
-    int negCount = 0, posCount = 0, zeroCount = 0;
-    for (double e : eigs) {
-        if (e < -1e-10) negCount++;
-        else if (e > 1e-10) posCount++;
-        else zeroCount++;
-    }
-
-    out.value = static_cast<double>(negCount);
-    out.expected = 1.0;  // exactly one negative eigenvalue
-    out.tolerance = 0.0;
-    out.passed = (negCount == 1 && posCount == 3 && zeroCount == 0);
-    out.message = out.passed
-                      ? "signature (-,+,+,+)"
-                      : "signature violation: " +
-                            std::to_string(negCount) + " neg, " +
-                            std::to_string(posCount) + " pos, " +
-                            std::to_string(zeroCount) + " zero";
-    return out.passed;
 }
 
 // ---------------------------------------------------------------------------

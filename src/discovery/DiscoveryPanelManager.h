@@ -70,10 +70,34 @@ class DiscoveryPanelManager : public QObject
     Q_PROPERTY(QVariantList correlationsList READ correlationsList NOTIFY correlationsListChanged)
     Q_PROPERTY(QVariantList paretoFront READ paretoFront NOTIFY paretoFrontChanged)
     Q_PROPERTY(QVariantList bmaWeights READ bmaWeights NOTIFY bmaWeightsChanged)
+    Q_PROPERTY(QVariantList sweepResults READ sweepResults NOTIFY sweepResultsChanged)
 
 public:
     explicit DiscoveryPanelManager(QObject* parent = nullptr);
     ~DiscoveryPanelManager() override;
+
+    /** @brief Minimal physics row emitted by one sweep step. */
+    struct SweepRow {
+        int step = 0;
+        double massMsun = 0.0;
+        double spin = 0.0;
+        double charge = 0.0;
+        double kretschmann = 0.0;
+        double redshift = 0.0;
+        bool valid = false;
+    };
+
+    /** @brief Run a mass sweep: one KerrMetric per step, curvatureScalars at the probe. */
+    Q_INVOKABLE void runParameterSweep(double massLoMsun, double massHiMsun, int steps,
+                                        double spin, double charge, double probeR);
+
+    /** @brief Sweep results as QVariantList (one map per row). */
+    QVariantList sweepResults() const;
+
+    /** @brief Export sweep results to CSV at the given path. */
+    Q_INVOKABLE void exportCurrentFindings(const QString& path);
+
+    // Keep the no-arg slot (declared in public slots below) for backward compatibility.
 
     // Register an instrument
     void registerInstrument(std::unique_ptr<DiscoveryInstrument> instrument);
@@ -155,6 +179,7 @@ signals:
     void anomalyDetected(const QJsonObject& anomaly);
     void discoveryResultReady(const QVariantMap& result);
     void followUpTriggered(const CorrelationEvent& correlation);  // GW+EM coincidence
+    void sweepResultsChanged();
 
 private:
     std::vector<std::unique_ptr<DiscoveryInstrument>> m_instruments;
@@ -192,6 +217,7 @@ private:
     std::vector<Event4D> m_scanTrajectory;
     std::atomic<bool> m_scanCancelled{false};
     std::vector<CorrelationEvent> m_correlationEvents;
+    std::vector<SweepRow> m_sweepRows;
 };
 
 #else // QUANTUMVERSE_USE_QML not defined - plain C++ stub

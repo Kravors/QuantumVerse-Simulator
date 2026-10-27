@@ -1770,6 +1770,28 @@ endif()
             )
         endif()
 
+        # Layer 4 + Layer 2: UI wiring stub-catcher + multi-probe validator
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_ui_wiring.cpp)
+            add_executable(test_ui_wiring
+                tests/test_ui_wiring.cpp
+                src/discovery/DiscoveryPanelManager.cpp
+                src/discovery/DiscoveryEngine.cpp
+                src/data/GCNNoticeParser.cpp
+                src/data/MultiMessengerCorrelator.cpp
+                src/ml/CurvatureNormalizingFlow.cpp
+                src/spacetime/KerrMetric.cpp
+            )
+            target_link_libraries(test_ui_wiring PRIVATE dilaton Qt6::Core Qt6::Test)
+            target_include_directories(test_ui_wiring PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_ui_wiring PRIVATE QUANTUMVERSE_USE_QML)
+            set_target_properties(test_ui_wiring PROPERTIES AUTOMOC ON)
+            add_test(NAME UiWiringTest COMMAND test_ui_wiring)
+            set_tests_properties(UiWiringTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
+        endif()
+
     endif()
     # End-to-end discovery workflow test
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_e2e_discovery.cpp)
