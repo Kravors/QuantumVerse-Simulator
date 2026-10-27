@@ -1092,8 +1092,8 @@ ApplicationWindow {
                     background: Rectangle {
                         color: "#1a1a2e"
                         radius: 6
-                        border.color: anomalyMonitor && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? "#f44" : "#2a2a4a"
-                        border.width: anomalyMonitor && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? 2 : 1
+                        border.color: anomalyMonitor && anomalyMonitor.modelLoaded && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? "#f44" : "#2a2a4a"
+                        border.width: anomalyMonitor && anomalyMonitor.modelLoaded && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? 2 : 1
                     }
 
                     ColumnLayout {
@@ -1116,9 +1116,13 @@ ApplicationWindow {
                             }
 
                             Label {
-                                text: "Score: " + (anomalyMonitor ? anomalyMonitor.lastScore.toFixed(4) : "—")
+                                text: anomalyMonitor && anomalyMonitor.modelLoaded
+                                    ? ("Score: " + anomalyMonitor.lastScore.toFixed(4))
+                                    : "ML Model Offline"
                                 font.pixelSize: 10
-                                color: anomalyMonitor && anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? "#f66" : "#aaa"
+                                color: anomalyMonitor && anomalyMonitor.modelLoaded
+                                    ? (anomalyMonitor.lastScore > (anomalyMonitor.thresholdMultiplier * 0.05) ? "#f66" : "#aaa")
+                                    : "#f44"
                             }
                         }
 

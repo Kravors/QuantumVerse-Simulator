@@ -976,7 +976,17 @@ int main(int argc, char* argv[])
                     qDebug() << "AnomalyMonitor: ML model loaded from" << quantumverse::utils::dataPath("ml/anomaly_model.json");
                     anomalyMonitor->setAnomalyDetector(anomalyDetector);
                 } else {
-                    qDebug() << "AnomalyMonitor: No ML model found at" << quantumverse::utils::dataPath("ml/anomaly_model.json") << ", running with empty detector";
+                    qWarning() << "AnomalyMonitor: No ML model found at" << quantumverse::utils::dataPath("ml/anomaly_model.json") << ", running with empty detector";
+                    // Route the failure to the Discovery Console so it's visible in the UI
+                    quantumverse::InstrumentFinding f;
+                    f.id = "ML_Anomaly_Offline";
+                    f.instrumentName = "ML Anomaly Detector";
+                    f.description = "ONNX model failed to load — ML anomaly detection offline. Check data path and model file.";
+                    f.confidence = 1.0;
+                    f.severity = quantumverse::AlertSeverity::HIGH;
+                    f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+                    f.isAnomaly = true;
+                    findingsModel->addFinding(f);
                 }
         anomalyMonitor->setUI4D(ui4d);
         anomalyMonitor->setFindingsProvider([discoveryPanelManager]() {

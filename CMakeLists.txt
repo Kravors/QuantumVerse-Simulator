@@ -1418,6 +1418,18 @@ endif()
     target_link_libraries(test_geodesic_divergence PRIVATE dilaton)
     add_test(NAME GeodesicDivergenceTest COMMAND test_geodesic_divergence)
 
+    # ML dead-UI fix: AnomalyMonitor modelLoaded gating
+    add_executable(test_ml_dead_ui
+        tests/test_ml_dead_ui.cpp
+        src/ml/AnomalyMonitor.cpp
+        src/ml/AnomalyDetector.cpp
+    )
+    target_link_libraries(test_ml_dead_ui PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Quick Qt6::Widgets Qt6::Test)
+    target_include_directories(test_ml_dead_ui PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+    target_compile_definitions(test_ml_dead_ui PRIVATE QUANTUMVERSE_USE_QML)
+    set_target_properties(test_ml_dead_ui PROPERTIES AUTOMOC ON)
+    add_test(NAME MLDeadUITest COMMAND test_ml_dead_ui)
+
     add_executable(test_singularity_handler tests/test_singularity_handler.cpp)
     target_link_libraries(test_singularity_handler PRIVATE dilaton)
     add_test(NAME SingularityHandlerTest COMMAND test_singularity_handler)

@@ -5,6 +5,8 @@
 
 #include "ml/AnomalyMonitor.h"
 
+#include <cmath>
+
 namespace quantumverse {
 
 AnomalyMonitor::AnomalyMonitor(QObject* parent)
@@ -13,6 +15,7 @@ AnomalyMonitor::AnomalyMonitor(QObject* parent)
     , m_enabled(false)
     , m_thresholdMultiplier(1.0)
     , m_lastScore(0.0)
+    , m_modelLoaded(false)
     , m_sampleCount(0)
 {
     m_timer->setInterval(1000);
@@ -33,6 +36,8 @@ void AnomalyMonitor::setUI4D(std::shared_ptr<UI4D> ui4d)
 void AnomalyMonitor::setAnomalyDetector(std::shared_ptr<AnomalyDetector> detector)
 {
     m_detector = std::move(detector);
+    bool loaded = m_detector && m_detector->isLoaded();
+    setModelLoaded(loaded);
 }
 
 void AnomalyMonitor::setFindingsProvider(FindingsProvider provider)
@@ -62,6 +67,17 @@ void AnomalyMonitor::setThresholdMultiplier(double m)
     if (qFuzzyCompare(m_thresholdMultiplier, m)) return;
     m_thresholdMultiplier = m;
     emit thresholdMultiplierChanged();
+}
+
+void AnomalyMonitor::setModelLoaded(bool loaded)
+{
+    if (m_modelLoaded == loaded) return;
+    m_modelLoaded = loaded;
+    emit modelLoadedChanged();
+    if (!loaded) {
+        m_lastScore = -1.0;
+        emit scoreUpdated(-1.0);
+    }
 }
 
 void AnomalyMonitor::setSampleIntervalMs(int ms)
@@ -101,7 +117,13 @@ void AnomalyMonitor::onSamplingTimeout()
 
 void AnomalyMonitor::processSample()
 {
-    if (!m_detector || !m_detector->isLoaded()) return;
+    if (!m_modelLoaded || !m_detector) {
+        if (m_lastScore != -1.0) {
+            m_lastScore = -1.0;
+            emit scoreUpdated(-1.0);
+        }
+        return;
+    }
 
     try {
         UI4D::PhysicsTelemetry telemetry{};
@@ -133,6 +155,17 @@ void AnomalyMonitor::processSample()
         );
 
         double score = m_detector->score(fv);
+
+        // Gate on NaN/Inf — reject garbage scores from diverged integration
+        if (!std::isfinite(score)) {
+            qWarning() << "AnomalyMonitor: non-finite score" << score << "—rejecting";
+            if (m_lastScore != -1.0) {
+                m_lastScore = -1.0;
+                emit scoreUpdated(-1.0);
+            }
+            return;
+        }
+
         m_lastScore = score;
         ++m_sampleCount;
         emit scoreUpdated(score);
@@ -149,6 +182,10 @@ void AnomalyMonitor::processSample()
         }
     } catch (const std::exception& e) {
         qWarning() << "AnomalyMonitor sampling error:" << e.what();
+        if (m_lastScore != -1.0) {
+            m_lastScore = -1.0;
+            emit scoreUpdated(-1.0);
+        }
     }
 }
 

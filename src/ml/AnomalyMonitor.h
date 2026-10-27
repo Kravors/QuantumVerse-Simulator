@@ -38,6 +38,7 @@ class AnomalyMonitor : public QObject
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(double thresholdMultiplier READ thresholdMultiplier WRITE setThresholdMultiplier NOTIFY thresholdMultiplierChanged)
     Q_PROPERTY(double lastScore READ lastScore NOTIFY scoreUpdated)
+    Q_PROPERTY(bool modelLoaded READ isModelLoaded NOTIFY modelLoadedChanged)
     Q_PROPERTY(int sampleIntervalMs READ sampleIntervalMs WRITE setSampleIntervalMs NOTIFY sampleIntervalMsChanged)
     Q_PROPERTY(int sampleCount READ sampleCount NOTIFY sampleCountChanged)
 
@@ -87,6 +88,8 @@ public:
     void setThresholdMultiplier(double m);
 
     double lastScore() const { return m_lastScore; }
+    bool isModelLoaded() const { return m_modelLoaded; }
+    void setModelLoaded(bool loaded);
 
     int sampleIntervalMs() const { return m_timer->interval(); }
     void setSampleIntervalMs(int ms);
@@ -105,10 +108,16 @@ public:
      */
     Q_INVOKABLE void stop();
 
+    /**
+     * @brief Manually trigger one sample (public for testing)
+     */
+    Q_INVOKABLE void processSample();
+
 signals:
     void enabledChanged();
     void thresholdMultiplierChanged();
     void scoreUpdated(double score);
+    void modelLoadedChanged();
     void sampleIntervalMsChanged();
     void sampleCountChanged();
 
@@ -118,17 +127,11 @@ signals:
      */
     void anomalyDetected(const QJsonObject& anomaly);
 
-private slots:
-    /**
-     * @brief Timer callback: extract features and score
-     */
-    void onSamplingTimeout();
-
 private:
     /**
      * @brief Extract features and run inference for the current frame
      */
-    void processSample();
+    void onSamplingTimeout();
 
     QTimer* m_timer;
     std::shared_ptr<UI4D> m_ui4d;
@@ -139,6 +142,7 @@ private:
     bool m_enabled;
     double m_thresholdMultiplier;
     double m_lastScore;
+    bool m_modelLoaded;
     int m_sampleCount;
 };
 
