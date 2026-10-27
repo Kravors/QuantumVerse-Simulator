@@ -460,6 +460,8 @@ _CPack_Packages/
 *.zip
 *.nsis
 QuantumVerse-*-win64.exe
+installer/stage/
+output/
 
 # Build directories
 build*/
