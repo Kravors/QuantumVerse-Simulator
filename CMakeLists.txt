@@ -1410,6 +1410,14 @@ endif()
     target_link_libraries(test_geodesic PRIVATE dilaton)
     add_test(NAME GeodesicTest COMMAND test_geodesic)
 
+    # Sandbox: geodesic divergence benchmark at high Kerr spins
+    add_executable(test_geodesic_divergence
+        tests/test_geodesic_divergence.cpp
+        src/spacetime/KerrMetric.cpp
+    )
+    target_link_libraries(test_geodesic_divergence PRIVATE dilaton)
+    add_test(NAME GeodesicDivergenceTest COMMAND test_geodesic_divergence)
+
     add_executable(test_singularity_handler tests/test_singularity_handler.cpp)
     target_link_libraries(test_singularity_handler PRIVATE dilaton)
     add_test(NAME SingularityHandlerTest COMMAND test_singularity_handler)
