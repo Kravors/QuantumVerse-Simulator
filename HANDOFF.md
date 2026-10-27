@@ -25,12 +25,19 @@
 | v7.3 agent spin exploration | **Not started** | Spin comes from `config/simulator.json` (0.9), not agent exploration. Reward-shaping framing TBD before writing reward function. Independent of pipeline. |
 | v7.2.1-ui-perf patch | **Merged, tagged** | Commit `3ed4454`, tag `v7.2.1-ui-perf` pushed to origin. GPU buffer stall fix (11.4→48.8 FPS), `instrumentNamesChanged()` emit, banner scenegraph invalidation, QML debug logging conditional on `--verbose`. Not yet released as an installer. |
 
-## Open threads
+## Phase 5 — horizon clamp (shipped)
+
+| Thread | Status | Evidence |
+|--------|--------|----------|
+| Phase 5 — horizon clamp in `KerrMetric::curvatureScalars()` | **Shipped** | Commit `6dc666b`, tag `v7.2.2-phase5-clamp` pushed to origin. Clamps `r < 1.5·r_s` to `r_min_safe=1.5·r_s`, preserves `theta`, logs via `std::cerr`. Production path verified safe: M=10 M☉, `r_s=29541.3 m`, probe at r=1e5 is at 3.38× r_s → clamp silent. Tests 8/8b (KerrMetric M=226) updated to assert `valid=true` + finite K after clamp. |
+
+## Follow-ups from Phase 5
 
 | Thread | Priority | Next step |
 |--------|----------|-----------|
-| Phase 5 — horizon clamp for `curvatureScalars` | P1 | Grep call sites first: `Select-String -Path src\**\*.cpp -Pattern "curvatureScalars"`. Then apply `r < 1.5·r_s` guard — preferably inside `KerrMetric::curvatureScalars()` itself so any future caller inherits the fix for free. |
+| SchwarzschildMetric clamp | P2 | `SchwarzschildMetric::curvatureScalars()` retains the dead `r <= rs` pattern Phase 5 removed from Kerr. Test 6 in `tests/test_curvature_units.cpp` fails for this reason. Paper pipeline uses Schwarzschild for M=10 case — probe drift there would silently corrupt paper output. Apply the same guard when convenient. |
 | ML data verification | P2 | After Phase 5, export 50-step Mass sweep via the Export button, verify `K > 0` and `z > 1e-6` on every CSV row. Trivially clean once clamp is in. |
+| Clamp visibility | P3 | Clamp logs via `std::cerr`, invisible to GUI/Discovery Console. Consider a LogSink so clamp events surface in-app (silent wrong values bit us once this session). |
 | v7.1b `AbstractVerifier` runtime | P3 | Ollama not installed; port 11434 not listening. Acceptance case ready to run when Ollama is reachable. |
 | v7.3 RL agent spin exploration | P4 | Reward-shaping framing needed before writing reward function. Independent of pipeline. |
 
