@@ -2533,24 +2533,38 @@ void QmlGlViewport::updateSimulation(double deltaTime)
                     << "texBound=" << texId;
     }
 
-    // Physics Validator - check metric/geodesic invariants every 60 frames
+    // Physics Validator - check metric/geodesic invariants at N probes every 60 frames (Layer 2)
     if (m_physicsValidator && m_probeMetric) {
-        auto report = m_physicsValidator->validate(Event4D(0.0, 0.0, 100000.0, 0.0));
-        bool warning = report.failedChecks > 0;
+        // Build probe set relative to the metric's Schwarzschild radius
+        double rs = 2.0 * 6.67430e-11 * m_blackHoleMass * 1.989e30 / 8.9875517873681764e16;
+
+        std::vector<Event4D> probes = {
+            Event4D(0.0, 1.1 * rs, 0.0, 0.0),   // A: just outside horizon
+            Event4D(0.0, 1.5 * rs, 0.0, 0.0),   // B: outside ergosphere
+            Event4D(0.0, 1e5,      0.0, 0.0),   // C: production probe
+            Event4D(0.0, 1e10,     0.0, 0.0),   // D: far field
+            Event4D(0.0, 0,        0.0, 0.0),   // E: origin — clamped
+        };
+
+        auto result = m_physicsValidator->validateAtProbes(*m_probeMetric, probes);
+        bool warning = result.totalFailures > 0;
         if (m_physicsWarning != warning) {
             m_physicsWarning = warning;
             emit physicsWarningChanged();
         }
-        if (report.failedChecks > 0) {
-            qWarning() << "[VALIDATOR]" << report.failedChecks << "of"
-                       << report.totalChecks << "checks failed:";
-            for (const auto& f : report.failures) {
-                qWarning() << "[VALIDATOR]  " << QString::fromStdString(f.name)
-                           << "value=" << f.value << "expected=" << f.expected
-                           << "- " << QString::fromStdString(f.message);
+        if (result.totalFailures > 0) {
+            qWarning() << "[VALIDATOR]" << result.totalFailures << "of"
+                       << result.totalChecks << "checks failed across"
+                       << result.perProbe.size() << "probes:";
+            for (const auto& report : result.perProbe) {
+                for (const auto& f : report.failures) {
+                    qWarning() << "[VALIDATOR]  " << QString::fromStdString(f.name)
+                               << "value=" << f.value << "expected=" << f.expected
+                               << "- " << QString::fromStdString(f.message);
+                }
             }
-        } else if (report.totalChecks > 0) {
-            qWarning() << "[VALIDATOR] all" << report.totalChecks << "checks passed";
+        } else if (result.totalChecks > 0) {
+            qWarning() << "[VALIDATOR] all" << result.totalChecks << "checks passed";
         }
     }
 
