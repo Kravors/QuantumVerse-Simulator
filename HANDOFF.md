@@ -23,6 +23,16 @@
 | v7.2 probe location + Kerr observables | **Green** | Probe moved from origin (r=0) to r=10M, θ=π/4. `KerrMetric::curvatureScalars()` uses full Kerr Kretschmann, not Schwarzschild approximation. Verified: K=9.2471e-22 (Schwarzschild 1.008e-21), z=0.1175 (Schwarzschild 0.1180) — both match full Kerr to 3+ sig figs. Tag `v7.2-kerr-observables`. |
 | v7.1b `AbstractVerifier` runtime | **Blocked** | Ollama not installed; port 11434 not listening. Acceptance case (LLM abstract passes `verifyAbstract`) and adversarial rejection case ("mass is 25 M☉" when scan found 10 → verifier rejects → retry or fallback) ready to run when Ollama is reachable. |
 | v7.3 agent spin exploration | **Not started** | Spin comes from `config/simulator.json` (0.9), not agent exploration. Reward-shaping framing TBD before writing reward function. Independent of pipeline. |
+| v7.2.1-ui-perf patch | **Merged, tagged** | Commit `3ed4454`, tag `v7.2.1-ui-perf` pushed to origin. GPU buffer stall fix (11.4→48.8 FPS), `instrumentNamesChanged()` emit, banner scenegraph invalidation, QML debug logging conditional on `--verbose`. Not yet released as an installer. |
+
+## Open threads
+
+| Thread | Priority | Next step |
+|--------|----------|-----------|
+| Phase 5 — horizon clamp for `curvatureScalars` | P1 | Grep call sites first: `Select-String -Path src\**\*.cpp -Pattern "curvatureScalars"`. Then apply `r < 1.5·r_s` guard — preferably inside `KerrMetric::curvatureScalars()` itself so any future caller inherits the fix for free. |
+| ML data verification | P2 | After Phase 5, export 50-step Mass sweep via the Export button, verify `K > 0` and `z > 1e-6` on every CSV row. Trivially clean once clamp is in. |
+| v7.1b `AbstractVerifier` runtime | P3 | Ollama not installed; port 11434 not listening. Acceptance case ready to run when Ollama is reachable. |
+| v7.3 RL agent spin exploration | P4 | Reward-shaping framing needed before writing reward function. Independent of pipeline. |
 
 ## Code changes made in this session
 
