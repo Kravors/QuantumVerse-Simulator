@@ -273,6 +273,15 @@ Cannot be fixed by re-exporting alone — `export_best.py` requires a checkpoint
 
 **Session C does not exist as a code task.** The ONNX diagnostic (`tools/onnx_diagnostic.cpp`) confirms the blocker definitively. Any future work on the RL Discovery Agent is a retraining decision, not a quick fix.
 
+## Open verification (P3) — ML panel score source
+
+The ML Anomaly Detection panel displays `Score: 5.76e14` while ONNX model is offline. Source of the score is unresolved:
+
+- **(a)** Model was loaded earlier and computed `5.76e14` as genuine output — model works given valid input, retraining needed only because current `.onnx` is malformed.
+- **(b)** `processSample()` computes a rule-based fallback when model is offline — the "ML" panel is showing heuristic output, not ML output.
+
+Resolve by checking `AnomalyMonitor::processSample()` at `src/ml/AnomalyMonitor.cpp`. Does not block anything — documentation accuracy only.
+
 ## Validator foundation — v7.2.3-validator-foundation (shipped)
 
 | Milestone | Status | Evidence |
