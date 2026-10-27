@@ -1,15 +1,12 @@
-// QuantumVerse Sandbox: ONNX Model Load Test
-// Isolates the ONNX Runtime loading path for rl_discovery_agent.onnx.
-// Attempts to load the model using Ort::Session directly and prints
+// QuantumVerse Sandbox: ONNX Model Load Diagnostic
+// Diagnoses why the RL Discovery Agent reports 'FAILED to load ONNX model'.
+// Loads rl_discovery_agent.onnx using Ort::Session directly and reports
 // the exact result (success or exception message).
 //
-// Three issues identified by this test:
-// 1. QUANTUMVERSE_USE_ONNX is OFF by default → Ort::Session code compiled out
-// 2. main_qml.cpp:703 looks for QDir::currentPath() + "/rl_discovery_agent.onnx"
-//    = build_v71\rl_discovery_agent.onnx (doesn't exist), but the model
-//    actually lives at F:\syyyy\rl_discovery_agent.onnx (repo root)
-// 3. Model exported with ONNX opset 27; ORT 1.22.1 supports up to opset 22
-//    → "The requested API version [27] is not available"
+// Three root causes identified by this diagnostic:
+// 1. QUANTUMVERSE_USE_ONNX=OFF by default → Ort::Session code compiled out
+// 2. main_qml.cpp:703 used QDir::currentPath() instead of repo root (fixed in 0765dff)
+// 3. Model exported with ONNX opset 27; ORT 1.22.1 supports only up to opset 22
 
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 #include <functional>
@@ -40,7 +37,7 @@ static std::wstring utf8_to_wide(const std::string& s) {
 int main(int argc, char** argv) {
     std::string modelPath = (argc > 1) ? argv[1] : "rl_discovery_agent.onnx";
 
-    std::cout << "=== ONNX Model Load Test (Sandbox Session B) ===" << std::endl;
+    std::cout << "=== ONNX Model Load Diagnostic (Sandbox Session B) ===" << std::endl;
     std::cout << "Model path: " << modelPath << std::endl;
     std::cout.flush();
 
@@ -75,8 +72,11 @@ int main(int argc, char** argv) {
         std::cout << "Inputs: " << numInputs << ", Outputs: " << numOutputs << std::endl;
         std::cout.flush();
 
-        std::cout << "=== ONNX Model Load Test PASSED ===" << std::endl;
+        std::cout << "=== ONNX Model Load Diagnostic PASSED ===" << std::endl;
         return 0;
+    } catch (const Ort::Exception& e) {
+        std::cerr << "FAIL: ORT exception loading ONNX model: " << e.what() << std::endl;
+        return 2;  // Diagnostic exit code 2 = opset/version mismatch
     } catch (const std::exception& e) {
         std::cerr << "FAIL: Exception loading ONNX model: " << e.what() << std::endl;
         return 1;

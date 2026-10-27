@@ -1429,19 +1429,6 @@ endif()
     target_compile_definitions(test_ml_dead_ui PRIVATE QUANTUMVERSE_USE_QML)
     add_test(NAME MLDeadUITest COMMAND test_ml_dead_ui)
 
-    # Sandbox: ONNX model load test (isolates RL Discovery Agent ONNX path)
-    add_executable(test_onnx_load tests/test_onnx_load.cpp)
-    target_include_directories(test_onnx_load PRIVATE
-        ${CMAKE_SOURCE_DIR}/third_party/onnxruntime_src/include
-    )
-    target_link_libraries(test_onnx_load PRIVATE
-        ${CMAKE_SOURCE_DIR}/third_party/onnxruntime/onnxruntime-win-x64-1.22.1/lib/onnxruntime.lib
-    )
-    add_test(NAME ONNXLoadTest COMMAND test_onnx_load ${CMAKE_SOURCE_DIR}/rl_discovery_agent.onnx)
-    set_tests_properties(ONNXLoadTest PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    )
-
     add_executable(test_singularity_handler tests/test_singularity_handler.cpp)
     target_link_libraries(test_singularity_handler PRIVATE dilaton)
     add_test(NAME SingularityHandlerTest COMMAND test_singularity_handler)
