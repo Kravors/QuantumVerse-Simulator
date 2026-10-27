@@ -700,7 +700,8 @@ int main(int argc, char* argv[])
 
         // Create the RL Discovery Agent and load the ONNX PPO actor policy
         auto rlDiscoveryAgent = std::make_shared<quantumverse::QmlRLDiscoveryAgent>();
-        QString onnxModelPath = QDir::currentPath() + "/rl_discovery_agent.onnx";
+        QString onnxModelPath = QString::fromStdString(
+            quantumverse::utils::repoRoot() + "/rl_discovery_agent.onnx");
         if (rlDiscoveryAgent->loadONNXModel(onnxModelPath)) {
             qDebug() << "QuantumVerse: RL Discovery Agent ONNX model loaded from:" << onnxModelPath;
         } else {
