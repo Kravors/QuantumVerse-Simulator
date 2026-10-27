@@ -1,9 +1,34 @@
 # QuantumVerse Simulator - Development Status
 
-**Version**: 3.9.0  
-**Last Updated**: 2026-09-29  
-**Status**: Production Ready  
+**Version**: v7.2  
+**Last Updated**: 2026-10-26  
+**Status**: Production Ready (Released)  
 **License**: MIT
+
+---
+
+## v7.2 Release Summary
+
+| Item | Value |
+|------|-------|
+| **Tag** | `v7.2-final` (on `main`) |
+| **Release** | Immutable, published 2026-10-26T23:51:52Z |
+| **Installer** | `QuantumVerse-7.2-Setup.exe` (~32.4 MB) |
+| **Install location** | `%LOCALAPPDATA%\Programs\QuantumVerse\` (non-admin) |
+| **Download** | `https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe` |
+| **Commit** | `c8c2d03` |
+
+### Key v7.2 Changes
+- **Grid deformation**: Fixed mass unit slip in vertex dispatch (`kg→solar-mass`)
+- **Kerr observables**: Verified `K=6.973e-21`, `z=0.1175` against full Kerr formulas
+- **Discovery paper pipeline**: scan → abstract → PDF in `Documents\QuantumVerse\output\`
+- **Non-admin installer**: 32.4 MB unsigned NSIS installer
+- **Metric label honesty**: ComboBox shows actual type, spin display shows actual spin
+- **Physics validator**: All 5 checks pass; red banner eliminated; Kretschmann mass unit fix
+- **Probe location**: Moved from r=0 to r=1e5m
+- **Schwarzschild rs bug**: Fixed `rs = 2GM/c⁴` → `2GM/c²`
+- **Mass sweep clamping**: `[0.1, 10.0] M☉`
+- **Lensing shader**: Camera convention fix (theta, camera world position, camera direction/basis)
 
 ---
 
@@ -901,4 +926,4 @@ main_qml.cpp
 
 ---
 
-*Generated for QuantumVerse v3.9.0 | Last Updated: 2026-09-29*
+*Generated for QuantumVerse v7.2 | Last Updated: 2026-10-26*

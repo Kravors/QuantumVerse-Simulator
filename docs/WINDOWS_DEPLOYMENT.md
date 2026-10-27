@@ -2,7 +2,20 @@
 
 ## Overview
 
-This document provides comprehensive information about Windows deployment for the QuantumVerse Simulator v3.9.0, including build processes, common issues, crash diagnostics, and troubleshooting steps.
+This document provides comprehensive information about Windows deployment for the QuantumVerse Simulator v7.2, including build processes, installer creation, common issues, crash diagnostics, and troubleshooting steps.
+
+## Release Summary
+
+| Item | Value |
+|------|-------|
+| **Version** | v7.2 |
+| **Tag** | `v7.2-final` |
+| **Installer** | `QuantumVerse-7.2-Setup.exe` (~32.4 MB) |
+| **Release URL** | `https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.2-final` |
+| **Download URL** | `https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe` |
+| **Install location** | `%LOCALAPPDATA%\Programs\QuantumVerse\` (non-admin, no elevation) |
+| **Installer type** | NSIS (`installer/quantumverse.iss`) |
+| **Signing** | Unsigned — Windows SmartScreen will show "Windows protected your PC"; click "More info" → "Run anyway" |
 
 ## Build System
 
@@ -25,7 +38,30 @@ ctest -C Release --output-on-failure
 
 REM Full deployment
 deploy.bat
+
+REM Build installer (Inno Setup)
+cd installer
+iscc quantumverse.iss
 ```
+
+## Installer (NSIS)
+
+The v7.2 installer is built with Inno Setup using `installer/quantumverse.iss`.
+
+### Installer Configuration
+- **WorkingDir**: `{app}` on shortcuts
+- **Install location**: `%LOCALAPPDATA%\Programs\QuantumVerse\`
+- **Non-admin install**: No elevation required
+- **Excluded from installer**: `*.h5`, `*.hdf5`, `*.pth`, `*.ckpt`, `*.onnx` (training artifacts, 852 MB removed)
+- **Removed**: `[UninstallDelete]` directive (redundant — Inno Setup auto-deletes `{app}` on uninstall)
+- **MiKTeX prerequisite check**: Included
+
+### Shipping Notes
+- Installer is **unsigned** — Windows SmartScreen will block on first launch
+- User workaround: click "More info" → "Run anyway"
+- For public distribution, purchase a code-signing certificate (~$100-300/yr)
+- Test on clean VM (Windows Sandbox) before public release
+- `Documents\QuantumVerse\output` survives uninstall
 
 ## Deployment Structure
 
@@ -129,6 +165,7 @@ while ((err = glGetError()) != GL_NO_ERROR) {
 - [ ] Executables exist in `build/Release/`
 - [ ] File sizes are reasonable (>100 KB)
 - [ ] No missing symbols in dependency check
+- [ ] Installer builds successfully with `iscc`
 
 ## Runtime Checks
 
@@ -137,6 +174,7 @@ while ((err = glGetError()) != GL_NO_ERROR) {
 - [ ] Renderers initialize without shader errors
 - [ ] QML loads `main.qml` successfully
 - [ ] MultiUserServer initializes without WebSocket errors
+- [ ] Installer installs to `%LOCALAPPDATA%\Programs\QuantumVerse\`
 
 ## Known Limitations
 
@@ -144,6 +182,7 @@ while ((err = glGetError()) != GL_NO_ERROR) {
 1. **High DPI Scaling**: May require `Qt::AA_EnableHighDpiScaling` attribute
 2. **OpenGL Core Profile**: Some drivers may not fully support 4.5 Core Profile
 3. **Thread Safety**: Qt's `synchronize()` runs on render thread; ensure GL context is current
+4. **Unsigned Installer**: Windows SmartScreen will block on first launch
 
 ### Renderer Dependencies
 1. **CurvatureRenderer**: Requires valid `MetricTensor` before `initializeGL()`
@@ -163,11 +202,17 @@ ctest --output-on-failure
    - Should show QML window with 4D viewport
    - Check for solar system objects
    - Verify camera controls work
+2. Run installer `QuantumVerse-7.2-Setup.exe`
+   - Verify non-admin install to `%LOCALAPPDATA%\Programs\QuantumVerse\`
+   - Verify all data loads (config, data, tours, ML model)
+   - Verify uninstall removes install dir + shortcuts
+   - Verify `Documents\QuantumVerse\output` survives uninstall
 
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| **v7.2** | 2026-10-26 | Kerr observables + deliverable installer; grid deformation fix; discovery paper pipeline |
 | 3.9.0 | 2026-09-29 | VR multi-user sessions, volumetric disk, CI hygiene |
 | 3.8.0 | 2026-07-18 | Real-time multi-messenger pipeline, 16 discovery instruments |
 | 3.7.0 | 2026-07-12 | Removed ImGui, Qt-only build |
@@ -176,6 +221,7 @@ ctest --output-on-failure
 
 - `deploy.bat` - Deployment script
 - `CMakeLists.txt` - Build configuration
+- `installer/quantumverse.iss` - Inno Setup installer script
 - `src/main_qml.cpp` - QML entry point
 - `src/qmlglviewport.cpp` - QML OpenGL viewport
 - `src/vr/MultiUserServer.cpp` - Multi-user VR server

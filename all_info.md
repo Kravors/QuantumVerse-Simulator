@@ -1,9 +1,13 @@
 # QuantumVerse Simulator - Complete Project Information
 
-**Version**: 3.8.0 ("Multi-Messenger Observatory" Release)
-**Status**: Phase 0 Complete (100%) | Phase 1 Complete (100%) | Phase 2 Complete (100%) | Phase 3 Complete (100%) | Phase 4 Complete (100%)
-**Overall Completion**: 100% (all tasks complete, build system integrated, all 62 tests passing)
-**Last Updated**: 2026-07-18
+**Version**: v7.2 ("Kerr Observables + Deliverable Installer" Release)  
+**Status**: Phase 0 Complete (100%) | Phase 1 Complete (100%) | Phase 2 Complete (100%) | Phase 3 Complete (100%) | Phase 4 Complete (100%)  
+**Overall Completion**: 100% (all tasks complete, build system integrated, all tests passing)  
+**Last Updated**: 2026-10-26  
+**Release**: `v7.2-final` (immutable, published on GitHub)  
+**Installer**: `QuantumVerse-7.2-Setup.exe` (~32.4 MB)  
+**Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.2-final  
+**Installer URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe
 
 ---
 

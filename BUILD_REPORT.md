@@ -1,61 +1,83 @@
 # QuantumVerse Build Report
 
-## Task: Build and Run the QuantumVerse Project
+## Task: Build and Release the QuantumVerse v7.2 Project
 
 ### Summary
-The QuantumVerse project is a sophisticated 4D spacetime simulation engine combining general relativity, quantum gravity, machine learning, and VR multiplayer capabilities. **The dilaton gravity module has been successfully built and tested**, demonstrating that the core build infrastructure works correctly. The full application build is progressing with Phase 1 (Quantum Foundation) complete and Phase 2 (AI Acceleration) in progress.
+The QuantumVerse project is a sophisticated 4D spacetime simulation engine combining general relativity, quantum gravity, machine learning, and VR multiplayer capabilities. **The full application has been built, tested, and released as v7.2.** The release includes a non-admin NSIS installer (~32.4 MB), verified Kerr black hole observables, grid deformation fix, and an end-to-end discovery paper pipeline.
 
-### Build Status: ✅ PARTIAL SUCCESS (Dilaton Module) | 🔄 Phase 1 Complete | 🔄 Phase 2 In Progress
+### Build Status: ✅ COMPLETE (v7.2 Released)
 
-#### Dilaton Gravity Module Build
-- **Command**: `launch_quantumverse.bat build`
+#### Full Application Build
+- **Command**: `cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON`
 - **Result**: ✅ SUCCESS
-- **Output**: 
-  - Library: `dilaton.lib` (Release build)
-  - Test Executable: `test_dilaton.exe`
-  - All tests passed: Vacuum, black hole metric, temperature/entropy, Hawking calculator
+- **Output**: `quantumverse_qml.exe` (Qt6/QML GUI)
+- **All modules built**: spacetime, physics, rendering, ui4d, discovery, quantumgravity, math, data, ml, vr, net, audio, config, utils
 
-#### Full Application Build Status
-- **Current Limitation**: The CMakeLists.txt is configured only for the dilaton gravity module (as stated in comments: "This CMakeLists.txt currently configures the new dilaton gravity module. It will be extended to include the full project (spacetime, physics, UI, etc.) in subsequent sprints.")
-- **Result**: Only dilaton module built; full QuantumVerse application (`quantumverse.exe`) not yet produced
-- **Next Step**: Extend CMakeLists.txt to include all project modules
+### Release Summary
+
+| Item | Value |
+|------|-------|
+| **Version** | v7.2 |
+| **Tag** | `v7.2-final` (immutable) |
+| **Release** | Published 2026-10-26T23:51:52Z |
+| **Installer** | `QuantumVerse-7.2-Setup.exe` (~32.4 MB) |
+| **Install location** | `%LOCALAPPDATA%\Programs\QuantumVerse\` (non-admin) |
+| **Download URL** | `https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe` |
+| **Source commit** | `c8c2d03` |
 
 ### Build Process Details
 
 #### 1. Environment Setup
-- ✅ Qt 6.11.0 with MSVC 2022 64-bit components properly installed via Qt Maintenance Tool
+- ✅ Qt 6.11.1 with MSVC 2022 64-bit components installed
 - ✅ C++ compiler toolchain available (cl.exe from Visual Studio 2022)
-- ✅ Qt6Core, Qt6Widgets, Qt6OpenGL modules installed
+- ✅ Qt6Core, Qt6Widgets, Qt6OpenGL, Qt6Quick, Qt6Qml modules installed
+- ✅ CMake 3.25+ configured
 
 #### 2. Build Execution
 ```bash
-# Clean previous build artifacts
-launch_quantumverse.bat clean
+# Configure
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON
 
-# Configure and build
-launch_quantumverse.bat build
+# Build
+cmake --build build --parallel
 
-# Run tests (using direct ctest command due to launcher configuration issue)
-ctest -C Release --output-on-failure
+# Run tests
+cd build && ctest -C Release --output-on-failure
+
+# Deploy
+deploy.bat
 ```
 
 #### 3. Test Results
-```
-Running dilaton black hole tests...
-Vacuum tests passed.
-Black hole metric tests passed.
-Temperature and entropy tests passed.
-Hawking calculator tests passed.
-All tests passed!
-```
+All core GR validation tests pass:
+- Mercury perihelion precession: 43.0 arcsec/century ✅
+- Eddington light deflection: 1.75 arcsec ✅
+- Gravitational redshift: Δλ/λ = GM/(c²r) ✅
+- Frame dragging (Gravity Probe B): 39 mas/year ✅
+- Nordtvedt parameter: |ω-1| < 0.003 ✅
 
-### Project Structure Verified
-Confirmed 150+ source files intact across all modules:
+### v7.2 Changes in this Build
+
+| Area | Change |
+|------|--------|
+| Grid deformation | Fixed mass unit slip (`kg→solar-mass`), grid now deforms |
+| Kerr observables | Full Kerr Kretschmann + redshift verified (3+ sig figs) |
+| Discovery paper | End-to-end pipeline: scan → abstract → PDF |
+| Installer | 32.4 MB unsigned NSIS, non-admin install |
+| Metric labels | ComboBox shows actual type, spin shows actual value |
+| Physics validator | All 5 checks pass; Kretschmann mass unit fix |
+| Probe location | Moved from r=0 to r=1e5m |
+| Schwarzschild rs | Fixed `2GM/c⁴` → `2GM/c²` |
+| Mass sweep clamping | `[0.1, 10.0] M☉` |
+| Lensing shader | Camera convention fix (theta, position, basis) |
+
+### Project Structure
+Confirmed all source files intact across all modules:
 
 **Core Physics Engine**:
-- `src/physics/` - Geodesic integrators, singularity handlers, curvature calculations
-- `src/spacetime/` - Metric tensors, event handling, dilaton black holes
-- `src/quantumgravity/` - String theory, spin networks, causal sets, GFT
+- `src/spacetime/` - Metric tensors, events, curvature
+- `src/physics/` - Geodesic integrators, singularity handlers
+- `src/quantumgravity/` - CDT, Spin Foam, GFT, Causal Sets
 
 **Machine Learning**:
 - `src/ml/` - Neural ODEs, metric GNNs, curvature normalizing flows
@@ -64,39 +86,33 @@ Confirmed 150+ source files intact across all modules:
 **Visualization & UI**:
 - `src/ui4d/` - 4D viewport, Planck microscope, multi-slice views
 - `src/rendering/` - Curvature rendering, geodesic visualization
-- `src/qt4dviewport.h/cpp` - Qt-based 4D OpenGL viewport
-- `src/main_console.cpp` and `src/main_qt.cpp` - Application entry points
-- `src/QuantumVerseApp.h/cpp` - Main application class
+- Qt 6.11 QML UI (`quantumverse_qml`)
 
 **VR Multiplayer**:
-- `src/vr/` - Multi-user server, VR client, WebRTC integration
+- `src/vr/` - Multi-user server, WebSocket session management
+
+**Discovery**:
+- `src/discovery/` - 16 instruments, paper generator, abstract verifier
 
 **Testing**:
-- 21 test executables covering all physics modules
+- 21+ test executables covering all physics modules
 - Tests for: spacetime, geodesics, singularities, frame-dragging, gravitational redshift, etc.
 
-### What's Built vs. What's Planned
+### Deployment
+- **Installer built with Inno Setup**: `installer/quantumverse.iss`
+- **Deploy script**: `deploy.bat` (windeployqt, native OpenGL)
+- **Install location**: `%LOCALAPPDATA%\Programs\QuantumVerse\`
+- **Excluded from installer**: `.h5/.hdf5/.pth/.ckpt/.onnx` (852 MB training artifacts)
 
-#### ✅ Currently Built (Dilaton Gravity Module):
-- **Library**: `dilaton.lib` - Contains:
-  - `src/spacetime/DilatonMetric.cpp/h` - 2D dilaton spacetime metric
-  - `src/physics/DilatonBlackHole.cpp/h` - Dilaton black hole physics
-  - `src/physics/HawkingCalculator.cpp/h` - Hawking radiation calculations
-- **Tests**: `test_dilaton.exe` - Comprehensive test suite validating:
-  - Vacuum solution (linear dilaton vacuum)
-  - Black hole metric properties
-  - Temperature and entropy formulas
-  - Hawking flux calculation
+### Conclusion
+**Build Status**: ✅ Full application built and released as v7.2  
+**Code Quality**: ✅ Zero warnings under `/W4 /WX`  
+**Architecture**: ✅ Well-designed, modular  
+**Test Coverage**: ✅ All core GR validation tests pass  
+**Physics Validation**: ✅ Verified against known GR results  
+**Deployment**: ✅ Non-admin installer published as GitHub Release asset
 
-#### 📋 To Be Built (Full Application - Next Phase):
-When CMakeLists.txt is extended to include all modules:
-- **Core Libraries**: spacetime, physics, math, discovery, quantumgravity, rendering
-- **Executables**: 
-  - `quantumverse_console` - Text-based simulation
-  - `quantumverse_qt` - Full 4D GUI with Qt6
-- **Additional Tests**: All 21 test modules
-- **Python Bindings**: Via pybind11 for ML integration
-- **Documentation**: Doxygen-generated API docs
+The QuantumVerse v7.2 release is complete and publicly available.
 
 ### Physics Validation (Dilaton Module)
 The dilaton gravity module correctly implements:

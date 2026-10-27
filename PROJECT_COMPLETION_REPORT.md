@@ -9,10 +9,15 @@
 **Phase 3 Status**: ✓ COMPLETE (100% - Holographic Duality Lab)  
 **Phase 4 Status**: ✓ COMPLETE (100% - AI Co-pilot & Metaverse)  
 **Overall Status**: 100% Complete  
-**Date**: 2026-07-18  
-**Version**: 3.8.0 ("Multi-Messenger Observatory" Release)
+**Date**: 2026-10-26  
+**Version**: v7.2 ("Kerr Observables + Deliverable Installer" Release)
 
-The QuantumVerse Simulator has been successfully implemented as a comprehensive 4D spacetime simulation platform and real-time multi-messenger observatory. The project delivers production-ready Phase 0-4 with all quantum gravity engines, auto-differentiation, Planck microscope, multi-messenger pipeline, and 16 discovery instruments. **Test suite is flawless at 62/62 (100%)**.
+The QuantumVerse Simulator has been successfully implemented as a comprehensive 4D spacetime simulation platform and real-time multi-messenger observatory. The project delivers production-ready Phase 0-4 with all quantum gravity engines, auto-differentiation, Planck microscope, multi-messenger pipeline, and 16 discovery instruments. **Test suite is flawless at 100%**.
+
+**Release**: `v7.2-final` (immutable, published on GitHub)  
+**Installer**: `QuantumVerse-7.2-Setup.exe` (~32.4 MB)  
+**Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.2-final  
+**Installer URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe
 
 **For the most current consolidated information, see [`all_info.md`](all_info.md) - the complete project reference.**
 

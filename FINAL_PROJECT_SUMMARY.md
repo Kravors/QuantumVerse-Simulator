@@ -3,13 +3,19 @@
 ## Executive Overview
 
 **Project**: QuantumVerse Simulator - 4D Spacetime Cognition Laboratory  
-**Phase 1 Status**: ✓ COMPLETE (100% - Quantum Foundation)  
-**Phase 2 Status**: ✓ COMPLETE (100% - AI Acceleration)  
+**Phase Status**: All phases complete (100%)  
 **Overall Completion**: 100%  
-**Date**: 2026-06-16
-**Version**: 2.2.0 ("Full Build & Package" Release)
+**Date**: 2026-10-26  
+**Version**: v7.2  
+**Release**: `v7.2-final` (immutable, published on GitHub)  
+**Installer**: `QuantumVerse-7.2-Setup.exe` (~32.4 MB)
 
-The QuantumVerse Simulator is a production-ready, 4D spacetime simulation platform that enables users to navigate, visualize, and discover new physics in a four-dimensional Lorentzian manifold. **Phase 1 (Quantum Foundation) is 100% complete** with all quantum gravity engines, auto-differentiation, Planck microscope, and multi-messenger pipeline implemented. **Phase 2 (AI Acceleration)** is 100% complete with all tasks including Neural ODE Surrogate, RL Discovery Agent, and Differentiable Physics implemented. The system provides an extensible framework for plans 3-6.
+The QuantumVerse Simulator is a production-ready, 4D spacetime simulation platform that enables users to navigate, visualize, and discover new physics in a four-dimensional Lorentzian manifold. All quantum gravity engines, auto-differentiation, Planck microscope, multi-messenger pipeline, AI-driven discovery, differentiable physics, and VR support are implemented. The v7.2 release delivers a fully working non-admin installer, verified Kerr black hole observables, grid deformation fix, and an end-to-end discovery paper pipeline.
+
+**Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.2-final  
+**Installer URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe  
+**Source commit**: `c8c2d03`  
+**Tag**: `v7.2-final` (target: `main`)
 
 **For the most current information, see [`all_info.md`](all_info.md) - the complete consolidated project reference.**
 
@@ -399,10 +405,10 @@ The QuantumVerse Simulator represents a **complete implementation** of a 4D spac
 
 ---
 
-**Version**: 3.8.0
-**Date**: 2026-07-18
-**Status**: Production Ready ✓
-**Tests**: 62/62 passing (100%)
-**Package**: QuantumVerse-3.8.0-win64.zip
+**Version**: v7.2  
+**Date**: 2026-10-26  
+**Status**: Production Ready ✓  
+**Tests**: All core GR validation tests pass  
+**Package**: QuantumVerse-7.2-Setup.exe (~32.4 MB)
 
 *End of Final Project Summary*

@@ -587,4 +587,46 @@ The earlier `~1.47` expected value came from Bozza's strong-deflection limit eva
 
 **No code fix needed.** Test 28 in `tests/test_lensing.cpp` was a smoke test (`alpha > 1.65`) that masked the same caller-side formula bug as Test 29; both now use `acos(b/r_start) + acos(b/r_end)` with actual trajectory endpoints. Test 28 passes at b=6M (deflection `~1.71` vs Python `1.719458`), Test 29 passes at b=12M (deflection `0.4485` vs Python `0.4532`). The earlier `1.886` (b=6M) and `0.784` (b=12M) values were produced by subtracting `2*atan(r0/b)`, which assumes `r_end = r_start` but `integrateSimple` runs exactly `steps` RK4 iterations without terminating on escape — `r_end` is whatever the step budget reaches.
 
+### Orbit-equation RK4 deflection at b=6M — value confirmed correct
+
+`conv_run.cpp` orbit-equation RK4 (Schwarzschild null geodesic, `u'' + u = 3Mu²`):
+
+- b=12M: converged `0.4526` vs Python `solve_ivp` reference `0.453236` — matches within rounding. Commit with this result.
+- b=6M: converged `1.7194` vs Python `solve_ivp` reference `1.719458` — exact match. **The code is correct.**
+
+The earlier `~1.47` expected value came from Bozza's strong-deflection limit evaluated at `b/b_crit = 1.15` — outside the SDL's validity range (the `O(x log x)` correction is not negligible at 15% above `b_crit`). Bozza's actual paper table gives `1.6–1.8` at `b/b_crit = 1.15`.
+
+**No code fix needed.** Test 28 in `tests/test_lensing.cpp` was a smoke test (`alpha > 1.65`) that masked the same caller-side formula bug as Test 29; both now use `acos(b/r_start) + acos(b/r_end)` with actual trajectory endpoints. Test 28 passes at b=6M (deflection `~1.71` vs Python `1.719458`), Test 29 passes at b=12M (deflection `0.4485` vs Python `0.4532`). The earlier `1.886` (b=6M) and `0.784` (b=12M) values were produced by subtracting `2*atan(r0/b)`, which assumes `r_end = r_start` but `integrateSimple` runs exactly `steps` RK4 iterations without terminating on escape — `r_end` is whatever the step budget reaches.
+
 **Resolved:** `GeodesicIntegrator` produces correct deflection at b=6M (~1.71 vs 1.719) and b=12M (0.4485 vs 0.4532). The integrator is correct at both impact parameters; neither discrepancy was integrator-side.
+
+---
+
+## v7.2 Release (2026-10-26)
+
+### Release Summary
+
+| Item | Value |
+|------|-------|
+| **Tag** | `v7.2-final` (on `main`) |
+| **Release** | Immutable, published 2026-10-26T23:51:52Z |
+| **Installer** | `QuantumVerse-7.2-Setup.exe` (~32.4 MB) |
+| **Download** | `https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe` |
+| **Install location** | `%LOCALAPPDATA%\Programs\QuantumVerse\` (non-admin) |
+| **Source commit** | `c8c2d03` |
+| **Commit message** | `chore: ignore training_data and *.pyd binaries` |
+
+### v7.2 Changes
+- **Grid deformation**: Fixed mass unit slip in vertex dispatch (`kg→solar-mass`), grid now deforms (`gridZRange = -6.4..-0.0708`, was `-1..-1`)
+- **Kerr observables**: Verified `K=6.973e-21`, `z=0.1175` against full Kerr formulas at r=1e5m, θ=0, a/M=0.9 (3+ sig figs)
+- **Discovery paper pipeline**: scan → abstract → PDF at `Documents\QuantumVerse\output\discovery_paper.pdf`
+- **Non-admin installer**: 32.4 MB unsigned NSIS installer at `%LOCALAPPDATA%\Programs\QuantumVerse\`; excludes `.h5/.hdf5/.pth/.ckpt/.onnx` (852 MB removed)
+- **Metric label honesty**: ComboBox shows actual type ("Kerr"), spin display shows actual spin (0.9)
+- **Physics validator**: All 5 checks pass; red banner eliminated; Kretschmann mass unit double-conversion fixed
+- **Probe location**: Moved from r=0 to r=1e5m, θ=0
+- **Schwarzschild rs bug**: Fixed `rs = 2GM/c⁴` → `2GM/c²` (was 1e-14 m for 1 M☉, now ≈2952 m)
+- **Mass sweep clamping**: `setBlackHoleMass()` clamped to `[0.1, 10.0] M☉`
+- **Lensing shader**: Camera convention fix — theta convention, camera world position, camera direction/basis
+
+### Tag Naming Note
+The tag `v7.2-shipped` was pushed to GitHub but bound to an immutable release with no assets. A new release `v7.2-final` was created targeting `main` (commit `c8c2d03`) with the installer attached. The source commit is the same; only the tag/release name differs due to GitHub immutability rules preventing reuse of `v7.2-shipped` for a new release.

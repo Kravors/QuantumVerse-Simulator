@@ -1,6 +1,6 @@
 # QuantumVerse Simulator — 4D Spacetime Cognition Laboratory
 
-![QuantumVerse](https://img.shields.io/badge/QuantumVerse-v3.9.0-blue)
+![QuantumVerse](https://img.shields.io/badge/QuantumVerse-v7.2-blue)
 ![C++17](https://img.shields.io/badge/C++-17%20Standard-orange)
 ![OpenGL 4.5](https://img.shields.io/badge/OpenGL-4.5-green)
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple)
@@ -419,19 +419,24 @@ build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
   
   ---
   
-*QuantumVerse v3.9.0 | Last Updated: 2026-09-29 | MIT License*
+*QuantumVerse v7.2 | Last Updated: 2026-10-26 | MIT License*
 
-### Recent Changes (v3.9.0)
+### Recent Changes (v7.2 — 2026-10-26)
 
-- **VR multi-user sessions**: `MultiUserServer` now uses real Qt WebSocket session management with create/join/leave, head pose broadcasting, and stale participant cleanup (#73)
-- **Volumetric disk color**: Added color-mapped disk rendering for accretion-disk visualization (#68)
-- **Pareto archive performance**: Batch updates to the Pareto archive reduce per-evaluation overhead (#69)
-- **CI hygiene**: Extracted canary exclusions to `.github/workflows/_canary-exclusions.txt`; fixed static-analysis PyYAML issue and coverage `QT_QPA_PLATFORM=offscreen` (#70, #71, `3cfcfa1`)
-- **Workflow maintenance**: Removed redundant CodeQL Advanced workflow and unused Runtime Invariant Monitoring job; Mull Mutation Testing apt-mirror 404s are transient and retry-safe
+- **Grid deformation fix**: Corrected mass unit slip in vertex dispatch (`kg→solar-mass`), grid now deforms correctly (`gridZRange = -6.4..-0.0708`, was `-1..-1`)
+- **Kerr observables verified**: Full Kerr Kretschmann (`K=6.973e-21`) and redshift (`z=0.1175`) match full Kerr formulas at r=1e5m, θ=0, a/M=0.9 (3+ sig figs)
+- **Discovery paper pipeline end-to-end**: scan → abstract → PDF at `Documents\QuantumVerse\output\discovery_paper.pdf` (writable Documents path)
+- **Non-admin installer**: 32.4 MB unsigned NSIS installer at `%LOCALAPPDATA%\Programs\QuantumVerse\`; excludes `.h5/.hdf5/.pth/.ckpt/.onnx` training artifacts (852 MB removed)
+- **Metric label honesty**: ComboBox shows actual type ("Kerr"), spin display shows actual spin (0.9)
+- **Physics validator**: All 5 checks pass; red banner eliminated; Kretschmann mass unit double-conversion fixed
+- **Probe location**: Moved from r=0 to r=1e5m, θ=0 (avoids curvature singularity)
+- **Lensing shader**: Camera convention fix — theta convention, camera world position, and camera direction/basis all corrected
+- **Schwarzschild rs bug fix**: `rs = 2GM/c⁴` → `2GM/c²` (was 1e-14 m for 1 M☉, now ≈2952 m)
+- **Mass sweep clamping**: `setBlackHoleMass()` clamped to `[0.1, 10.0] M☉`
 
-  ### Build & UI Status (2026-09-29)
+### Build & UI Status (2026-10-26)
 
-  The project is **Qt-only** (Qt 6.11.1 + QML). The supported executable is `quantumverse_qml`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
+The project is **Qt-only** (Qt 6.11.1 + QML). The supported executable is `quantumverse_qml`. The release installer is built via Inno Setup (`installer/quantumverse.iss`) and deployed to `%LOCALAPPDATA%\Programs\QuantumVerse\`. Deployment is handled by `deploy.bat` (runs `windeployqt` and forces native OpenGL by removing `opengl32sw.dll`).
 
   **Current status:**
   - Qt6/QML UI (`quantumverse_qml`) is the supported build
