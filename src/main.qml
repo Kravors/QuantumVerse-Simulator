@@ -764,6 +764,12 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             font.pixelSize: 11
 
+                            Component.onCompleted: {
+                                if (Qt.application.arguments.indexOf("--verbose") >= 0) {
+                                    console.log("[DEBUG] instrumentCombo currentText:", currentText, "model count:", model ? model.count : "no model", "manager:", discoveryPanelManager ? "set" : "null")
+                                }
+                            }
+
                             delegate: ItemDelegate {
                                 width: parent ? parent.width : 0
                                 Text {
@@ -1747,6 +1753,11 @@ ApplicationWindow {
                                 model: ["Mass", "Spin", "Charge", "Distance"]
                                 Layout.fillWidth: true
                                 font.pixelSize: 11
+                                Component.onCompleted: {
+                                    if (Qt.application.arguments.indexOf("--verbose") >= 0) {
+                                        console.log("[DEBUG] sweepParamCombo currentText:", currentText, "model count:", model ? model.count : "no model")
+                                    }
+                                }
                             }
                         }
 

@@ -52,6 +52,7 @@ void DiscoveryPanelManager::registerInstrument(std::unique_ptr<DiscoveryInstrume
 {
     m_instruments.push_back(std::move(instrument));
     emit instrumentCountChanged();
+    emit instrumentNamesChanged();
 }
 
 DiscoveryInstrument* DiscoveryPanelManager::instrument(int index)

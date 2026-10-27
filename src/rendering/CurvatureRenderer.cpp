@@ -747,20 +747,13 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
     shader->setUniform("u_global_alpha", m_globalAlpha);
 
     if (currentMetric) {
-        // Re-deform grid when the metric's epoch changes (e.g. mass sweep).
-        // This keeps grid Z deformation in sync with in-place metric mutation
-        // without relying solely on m_metricDirty.
+        // Re-deform grid only when the metric's epoch changes (e.g. mass sweep).
+        // Skipping deformGridGPU() on unchanged epochs avoids a per-frame
+        // synchronous GPU->CPU readback (glMapBufferRange GL_MAP_READ_BIT) that
+        // stalls the pipeline and caps FPS.
         if (currentMetric->epoch() != m_lastEpoch) {
             recomputeGridZRange();
             m_lastEpoch = currentMetric->epoch();
-        }
-
-        if (computeShader.id != 0 && computeBuffersInitialized) {
-            deformGridGPU();
-        } else {
-            // Fall back to CPU deformation using the actual metric when the
-            // compute shader is unavailable (e.g. shader file not found).
-            deformGrid();
         }
         updateGLBuffers();
     }

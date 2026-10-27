@@ -2125,6 +2125,12 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
             m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
         }
     });
+
+    // Force a QML re-render when the validator banner transitions visible→hidden
+    // so any stale scene-graph texture (e.g. red banner pixels) is invalidated.
+    QObject::connect(this, &QmlGlViewport::physicsWarningChanged, this, [this]() {
+        update();
+    });
 }
 
 QmlGlViewport::~QmlGlViewport()
