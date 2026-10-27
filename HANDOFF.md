@@ -239,4 +239,68 @@ F:\syyyy\
   harness_main.cpp                    (headless test, ready to compile)
   harness.pro                         (qmake project, ready to compile)
   HANDOFF.md                          (this file)
+
+## Validator foundation — v7.2.3-validator-foundation (shipped)
+
+| Milestone | Status | Evidence |
+|-----------|--------|----------|
+| v7.2.3-validator-foundation tag | Pushed | Commit `8f51935` pushed to origin main; tag `v7.2.3-validator-foundation` pushed |
+
+### Code changes (commit `8f51935`)
+
+| File | Change |
+|------|--------|
+| `src/discovery/DiscoveryPanelManager.h` | Added `SweepRow` struct, `runParameterSweep()` Q_INVOKABLE, `sweepResults()` getter, `exportCurrentFindings(const QString& path)` overload, `sweepResultsChanged()` signal, `m_sweepRows` member |
+| `src/discovery/DiscoveryPanelManager.cpp` | `runParameterSweep()` reconstructs one `KerrMetric` per step (not one metric reused), computes `curvatureScalars()` per step → `SweepRow` with `{step, mass_msun, spin, charge, kretschmann, redshift, valid}`; `sweepResults()` returns QVariantList of row maps; `exportCurrentFindings(path)` writes CSV with header + data rows |
+| `src/main.qml` | `runParameterSweep()` now calls `discoveryPanelManager.runParameterSweep(...)` instead of `console.log("Running...")` stub |
+| `src/physics/PhysicsValidator.h` | Added `ValidationResult` struct, header-only `validateAtProbes(const MetricTensor&, const std::vector<Event4D>&) const` (4 checks × N probes), inline `determinant4x4` and `jacobiEigenvalues` helpers, inline `checkLorentzianSignature` |
+| `src/physics/PhysicsValidator.cpp` | Removed now-inline `determinant4x4`, `jacobiEigenvalues`, `checkLorentzianSignature`, and constructor from .cpp |
+| `tests/test_ui_wiring.cpp` (new) | 4 tests using QV_CHECK convention: `SweepProducesVaryingRows`, `ExportWritesNonEmptyCsv`, `AllProbesValidate`, `OriginProbeClampedNotInvalid` |
+| `CMakeLists.txt` | Registered `test_ui_wiring` target with `UiWiringTest` test name |
+
+### Tests
+- `ctest -R UiWiringTest --output-on-failure` → 1/1 passed
+- `SweepProducesVaryingRows` asserts sweep rows actually vary (maxK/minK > 1.001) — catches the "50 identical rows" stub-shaped failure
+
+### Deferred
+- **ML anomaly score test** (#3): `AnomalyMonitor` has `lastScore()` Q_PROPERTY but no `score()`/`computeScore()`/`setScore()` method; zero QML matches for Score/AnomalyMonitor/anomalyScore. Panel either dead UI or reads from unknown secondary source. Logged as P1 — add `Q_PROPERTY(score, NOTIFY scoreChanged)` in a future session.
+- **Energy conditions** (Layer 1): `MetricTensor` has no `stressEnergyTensor()` getter. Prerequisite for energy-condition checks. Logged as prerequisite.
+
+## Viewport artifact — v7.2.4-viewport-clean (DEFERRED)
+
+| Milestone | Status | Evidence |
+|-----------|--------|----------|
+| v7.2.4-viewport-clean tag | Deferred | Visual confirmation pending — no GUI/display in this environment |
+
+### Code changes (commit `9a311c8`, pushed to origin main)
+
+| File | Change |
+|------|--------|
+| `src/qmlglviewport.cpp` | Live validator upgraded from single-probe `validate(r=1e5m)` to `validateAtProbes()` across 5 probes: A (1.1·rs), B (1.5·rs), C (1e5m), D (1e10m), E (origin/clamped). Banner shows iff any probe fails. |
+
+### Root cause analysis (not yet resolved)
+
+**Banner still in source** at `src/main.qml:690-706`:
+- Red `#aa0000` Rectangle, `visible: viewportItem ? viewportItem.physicsWarning : false`
+- Text: "🚨 SPACETIME INTEGRITY COMPROMISED — VALIDATOR FAILED"
+
+Three candidate causes, none ruled out:
+
+| Possibility | Diagnosis path |
+|-------------|----------------|
+| **A** Live validator using stale single-probe logic | Addressed by `9a311c8` (multi-probe now live) |
+| **B** QRC shadow copy serving old `main.qml` | `Get-ChildItem -Recurse F:\syyyy -Filter "main.qml" \| Where FullName -notmatch '\\.git\\'` — check `build_v71/` and other build dirs |
+| **C** Scenegraph cache showing stale red banner pixels | `physicsWarningChanged()` → `update()` connection already present at `qmlglviewport.cpp:2131-2133` |
+
+### When a GUI is available
+1. Launch `build_v71\quantumverse_qml.exe` fresh
+2. Screenshot the top-right corner of the viewport
+3. Decision tree:
+   - **No red artifact** → nothing further to push, tag `v7.2.4-viewport-clean` with message: "confirmed banner correctly hidden after multi-probe validator (9a311c8)"
+   - **Red artifact present, `physicsWarning=false` in logs** → QRC staleness or scenegraph cache, NOT the validator. Check shadow copies first (this session's recurring trap — bit app.js QRC and paper_template.tex QRC earlier)
+   - **Red artifact present, `physicsWarning=true` in logs** → one of A (1.1·rs) or B (1.5·rs) failing unexpectedly. Add temporary logging inside the validator loop to see which probe fails.
+
+### Session-wide failure mode (three times this session)
+Source was correct while the served/binary content was stale: `src/wasm/app.js` vs `build_wasm/src/wasm/app.js`, `paper_template.tex` QRC path, and possibly this banner. **Always check for a shadow copy before debugging source.**
+
 ```
