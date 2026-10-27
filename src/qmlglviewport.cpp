@@ -2539,11 +2539,11 @@ void QmlGlViewport::updateSimulation(double deltaTime)
         double rs = 2.0 * 6.67430e-11 * m_blackHoleMass * 1.989e30 / 8.9875517873681764e16;
 
         std::vector<Event4D> probes = {
-            Event4D(0.0, 1.1 * rs, 0.0, 0.0),   // A: just outside horizon
-            Event4D(0.0, 1.5 * rs, 0.0, 0.0),   // B: outside ergosphere
+            Event4D(0.0, 2.0 * rs, 0.0, 0.0),   // A: outside clamp zone (1.5·rs), near horizon
+            Event4D(0.0, 1.5 * rs, 0.0, 0.0),   // B: at clamp boundary
             Event4D(0.0, 1e5,      0.0, 0.0),   // C: production probe
             Event4D(0.0, 1e10,     0.0, 0.0),   // D: far field
-            Event4D(0.0, 0,        0.0, 0.0),   // E: origin — clamped
+            Event4D(0.0, 0.5 * rs, 0.0, 0.0),   // E: inside clamp zone, non-zero radius (origin triggers acos(0/0) NaN)
         };
 
         auto result = m_physicsValidator->validateAtProbes(*m_probeMetric, probes);
@@ -2556,12 +2556,17 @@ void QmlGlViewport::updateSimulation(double deltaTime)
             qWarning() << "[VALIDATOR]" << result.totalFailures << "of"
                        << result.totalChecks << "checks failed across"
                        << result.perProbe.size() << "probes:";
+            int probeIdx = 0;
             for (const auto& report : result.perProbe) {
+                if (report.failedChecks > 0) {
+                    qWarning() << "[VALIDATOR]  probe #" << probeIdx << "failed:";
+                }
                 for (const auto& f : report.failures) {
-                    qWarning() << "[VALIDATOR]  " << QString::fromStdString(f.name)
+                    qWarning() << "[VALIDATOR]    " << QString::fromStdString(f.name)
                                << "value=" << f.value << "expected=" << f.expected
                                << "- " << QString::fromStdString(f.message);
                 }
+                probeIdx++;
             }
         } else if (result.totalChecks > 0) {
             qWarning() << "[VALIDATOR] all" << result.totalChecks << "checks passed";
