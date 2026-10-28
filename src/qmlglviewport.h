@@ -254,6 +254,10 @@ private:
     void setUI4D(std::shared_ptr<UI4D> ui4d);
     size_t geodesicCount() const { return m_cachedGeodesics.size(); }
 
+    // Sandbox bodies pushed from SandboxManager via QmlGlViewport::setSandboxBodies.
+    // Synced from the viewport each frame in ViewportRenderer::synchronize().
+    void setSandboxBodies(const QVariantList& bodies) { m_sandboxBodies = bodies; }
+
     // Camera control
     void setViewMatrix(const QMatrix4x4& view);
     void setProjectionMatrix(const QMatrix4x4& proj);
@@ -435,6 +439,10 @@ private:
     // Celestial body renderer (non-owning)
     std::shared_ptr<CelestialBodyRenderer> m_celestialBodyRenderer;
     bool m_celestialTexturesInitialized = false;
+
+    // Sandbox bodies pushed from SandboxManager via QmlGlViewport::setSandboxBodies;
+    // synced from the viewport each frame in synchronize().
+    QVariantList m_sandboxBodies;
 
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
@@ -787,6 +795,13 @@ public:
     Q_INVOKABLE void setExposure(float exposure);
     Q_INVOKABLE void setToolbarOverflow(bool overflow);
 
+    // Sandbox bodies: user-editable static bodies pushed from SandboxManager.
+    // Re-added each frame alongside N-body data so they persist in the scene.
+    Q_INVOKABLE void setSandboxBodies(const QVariantList& bodies) {
+        m_sandboxBodies = bodies;
+        update();
+    }
+
     // Camera4D adapter access for QML toolbar
     Q_PROPERTY(QObject* camera4DAdapter READ camera4DAdapterObj WRITE setCamera4DAdapterObj NOTIFY camera4DAdapterChanged)
 
@@ -988,6 +1003,9 @@ private:
 
     // Celestial body renderer (non-owning)
     std::shared_ptr<CelestialBodyRenderer> m_celestialBodyRenderer;
+
+    // Sandbox bodies pushed from SandboxManager; re-added each render frame.
+    QVariantList m_sandboxBodies;
 
     // UI4D instance for scene data (non-owning)
     std::shared_ptr<UI4D> m_ui4d;

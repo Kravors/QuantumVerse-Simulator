@@ -344,6 +344,7 @@ src/ml/CurvatureNormalizingFlow.cpp
         src/audio/GravitationalWaveAudio.cpp
         src/scenario/Scenario.cpp
         src/scenario/ScenarioManager.cpp
+        src/sandbox/SandboxManager.cpp
         ${RESOURCES_QRC}
     )
     set_target_properties(quantumverse_qml PROPERTIES AUTOMOC ON)
@@ -1008,6 +1009,29 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
         if(TARGET deploy_qt_runtime)
             add_dependencies(test_ui4d deploy_qt_runtime)
         endif()
+
+        # SandboxManager unit test (Qt-dependent: QObject + JSON persistence)
+        add_executable(test_sandboxmanager
+            tests/unit/test_sandboxmanager.cpp
+            src/sandbox/SandboxManager.cpp
+        )
+        target_include_directories(test_sandboxmanager PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/tests
+            ${CMAKE_SOURCE_DIR}/third_party
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include
+            ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+        )
+        target_link_libraries(test_sandboxmanager PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
+        if(WIN32)
+            target_link_libraries(test_sandboxmanager PRIVATE opengl32 dbghelp)
+        endif()
+        set_target_properties(test_sandboxmanager PROPERTIES AUTOMOC ON)
+        add_test(NAME SandboxManagerTest COMMAND test_sandboxmanager)
+        set_tests_properties(SandboxManagerTest PROPERTIES
+            WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+        )
     endif()
     
     # Fuzz differential testing

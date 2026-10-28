@@ -119,6 +119,7 @@
 #include "utils/DataPaths.h"
 #include "config/ConfigLoader.h"
 #include "scenario/ScenarioManager.h"
+#include "sandbox/SandboxManager.h"
 #include "education/TourManager.h"
 #include "education/TourController.h"
 
@@ -909,6 +910,8 @@ int main(int argc, char* argv[])
             new quantumverse::SceneGraphModel(&engine));
         rootContext->setContextProperty("sceneGraphManager",
             QVariant::fromValue(sceneGraphManager.get()));
+        auto* sandboxManager = new quantumverse::SandboxManager(&engine);
+        rootContext->setContextProperty("sandboxManager", sandboxManager);
         rootContext->setContextProperty("ui4d",
             QVariant::fromValue(ui4d.get()));
         rootContext->setContextProperty("camera4DAdapter",
@@ -1286,6 +1289,7 @@ int main(int argc, char* argv[])
                 viewport->setBlackHoleType(blackHoleSpin > 1e-10 ? "Kerr" : "Schwarzschild");
 
                 viewport->setCamera4DAdapterDirect(camera4DAdapter);
+                sandboxManager->setViewport(viewport);
 
                 // Wire the PhysicsValidator from the viewport to the RL
                 // discovery agent so AI actions can be vetoed on invalid spacetimes.

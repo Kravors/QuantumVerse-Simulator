@@ -15,6 +15,8 @@
 #include <QImage>
 #include <QOpenGLContext>
 #include <QQuickWindow>
+#include <QColor>
+#include <QMetaType>
 #include <qsgtexture_platform.h>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuaternion>
@@ -646,6 +648,47 @@ void QmlGlRenderer::render()
             }
             // Add body (respects maxBodies cap internally)
             m_celestialBodyRenderer->addBody(cbi);
+        }
+
+        // Sandbox bodies: static user-editable bodies pushed from SandboxManager.
+        // Re-added each frame because clearBodies() above wipes the renderer.
+        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
+            const double kRadiusExaggeration = 2000.0;
+            for (const QVariant& vb : m_sandboxBodies) {
+                QVariantMap b = vb.toMap();
+                CelestialBodyInstance cbi;
+                cbi.objectId = b.value("id").toString().toStdString();
+                cbi.name = b.value("name").toString().toStdString();
+                cbi.mass = static_cast<float>(b.value("mass_kg").toDouble());
+                const double rPhys = b.value("radius_m").toDouble() * solarData.scaleFactor;
+                float visRadius = static_cast<float>(rPhys * kRadiusExaggeration);
+                visRadius = std::max(visRadius, 0.04f);
+                visRadius = std::min(visRadius, 2.5f);
+                cbi.radius = visRadius;
+                cbi.position[0] = static_cast<float>(b.value("x").toDouble() * solarData.scaleFactor);
+                cbi.position[1] = static_cast<float>(b.value("y").toDouble() * solarData.scaleFactor);
+                cbi.position[2] = static_cast<float>(b.value("z").toDouble() * solarData.scaleFactor);
+                cbi.isStar = (b.value("type").toString() == QLatin1String("star"));
+                cbi.hasAtmosphere = !cbi.isStar;
+                cbi.atmosphereRadius = 1.15f;
+                cbi.textureLayer = cbi.isStar ? -1 : 0;
+
+                QVariant cv = b.value("color");
+                QColor col;
+                if (cv.userType() == QMetaType::QColor) {
+                    col = cv.value<QColor>();
+                } else {
+                    col = QColor(cv.toString());
+                }
+                cbi.color[0] = static_cast<float>(col.redF());
+                cbi.color[1] = static_cast<float>(col.greenF());
+                cbi.color[2] = static_cast<float>(col.blueF());
+                cbi.emissive[0] = cbi.isStar ? 0.8f : 0.0f;
+                cbi.emissive[1] = cbi.isStar ? 0.6f : 0.0f;
+                cbi.emissive[2] = cbi.isStar ? 0.3f : 0.0f;
+
+                m_celestialBodyRenderer->addBody(cbi);
+            }
         }
         
         // [DIAG-CelestialBodies] Confirm how many bodies were queued and
@@ -3201,6 +3244,7 @@ public:
             m_gl->requestScreenshot(vp->m_pendingScreenshotPath);
             vp->m_pendingScreenshotRequested = false;
         }
+        m_gl->setSandboxBodies(vp->m_sandboxBodies);
     }
 
     void render() override

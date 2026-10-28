@@ -164,6 +164,22 @@ ApplicationWindow {
             // MenuItem { text: "&Open Spacetime Configuration..."; onTriggered: fileDialog.open() }
             // MenuItem { text: "&Save Snapshot..."; onTriggered: saveDialog.open() }
             MenuItem {
+                text: "&New Sandbox"
+                onTriggered: {
+                    sandboxManager.clear()
+                    sandboxManager.setActive(true)
+                }
+            }
+            MenuItem {
+                text: "&Save Scenario"
+                onTriggered: sandboxManager.saveTo("")
+            }
+            MenuItem {
+                text: "&Load Scenario"
+                onTriggered: sandboxManager.loadFrom("")
+            }
+            MenuSeparator {}
+            MenuItem {
                 text: "&Reload Config"
                 onTriggered: {
                     if (viewportItem && typeof viewportItem.reloadConfig === "function") {
@@ -736,6 +752,14 @@ ApplicationWindow {
                 ColumnLayout {
                     width: discoveryPanel.width - 16
                     spacing: 6
+
+                    // Sandbox panel: shown when sandbox mode is active
+                    Loader {
+                        id: sandboxLoader
+                        Layout.fillWidth: true
+                        active: sandboxManager.isActive
+                        source: "SandboxPanel.qml"
+                    }
 
                     Label {
                         text: "🔬 Discovery Console"
