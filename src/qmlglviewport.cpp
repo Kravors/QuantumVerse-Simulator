@@ -2766,7 +2766,6 @@ void QmlGlViewport::setBlackHoleMass(double mass)
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
-        m_curvatureRenderer->recomputeGridZRange();
         probeAt(0.0, 0.0, 100000.0);
         // The lensing ring has never responded to any mass parameter: setLensingMass
         // had no caller at all. Wire it here, on the same code path that updates
@@ -3067,7 +3066,6 @@ void QmlGlViewport::setBlackHoleType(const QString& type)
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
-        m_curvatureRenderer->recomputeGridZRange();
         if (m_physicsValidator) {
             double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
             m_physicsValidator->setMass(mass_kg);
