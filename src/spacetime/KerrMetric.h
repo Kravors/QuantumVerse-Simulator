@@ -38,6 +38,12 @@ public:
     double specificAngularMomentum() const { return m_a; }
     double schwarzschildRadius() const { return m_rs; }
 
+    /// @brief In-place mass update; bumps the metric epoch for cache invalidation.
+    void setMass(double massKg) noexcept;
+
+    /// @brief In-place spin update; bumps the metric epoch for cache invalidation.
+    void setSpin(double spinDimensionless) noexcept;
+
     /**
      * @brief Outer event horizon radius in meters.
      * r_+ = M + sqrt(M² - a²) in geometric units.

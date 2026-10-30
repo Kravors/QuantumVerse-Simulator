@@ -23,9 +23,13 @@
 #include <QDebug>
 #include <fstream>
 #include <QDateTime>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
 #include <QJsonObject>
 #include <algorithm>
 #include <limits>
+#include "../utils/DataPaths.h"
 #include "data/GCNNoticeParser.h"
 
 namespace quantumverse {
@@ -642,6 +646,66 @@ void DiscoveryPanelManager::exportCurrentFindings(const QString& path)
     }
     file.close();
     qDebug() << "Exported" << m_sweepRows.size() << "sweep rows to" << path;
+}
+
+QString DiscoveryPanelManager::exportSweepResults(const QString& fmt)
+{
+    if (m_sweepRows.empty()) {
+        qWarning() << "exportSweepResults: no sweep rows to export";
+        return QString();
+    }
+
+    const QString format = fmt.toLower();
+    if (format != "csv" && format != "json") {
+        qWarning() << "exportSweepResults: unsupported format" << fmt << "(use 'csv' or 'json')";
+        return QString();
+    }
+
+    // Land next to the data tree so installed and dev builds both find it.
+    QString dir = QString::fromStdString(quantumverse::utils::dataPath("experiments/"));
+    QDir().mkpath(dir);
+    const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    const QString path = dir + QStringLiteral("/sweep_") + stamp + QStringLiteral(".") + format;
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "exportSweepResults: cannot open" << path;
+        return QString();
+    }
+
+    QTextStream out(&file);
+    if (format == "csv") {
+        out << "step,mass_msun,spin,charge,kretschmann,redshift,valid\n";
+        for (const auto& row : m_sweepRows) {
+            out << row.step << ","
+                << row.massMsun << ","
+                << row.spin << ","
+                << row.charge << ","
+                << row.kretschmann << ","
+                << row.redshift << ","
+                << (row.valid ? "true" : "false") << "\n";
+        }
+    } else {
+        out << "[\n";
+        for (size_t i = 0; i < m_sweepRows.size(); ++i) {
+            const auto& row = m_sweepRows[i];
+            out << "  {\"step\":" << row.step
+                << ",\"mass_msun\":" << row.massMsun
+                << ",\"spin\":" << row.spin
+                << ",\"charge\":" << row.charge
+                << ",\"kretschmann\":" << row.kretschmann
+                << ",\"redshift\":" << row.redshift
+                << ",\"valid\":" << (row.valid ? "true" : "false") << "}";
+            if (i + 1 < m_sweepRows.size()) out << ",";
+            out << "\n";
+        }
+        out << "]\n";
+    }
+    file.close();
+
+    emit exportSweepFinished(path);
+    qDebug() << "Exported" << m_sweepRows.size() << "sweep rows to" << path;
+    return path;
 }
 
 void DiscoveryPanelManager::exportCurrentFindings()

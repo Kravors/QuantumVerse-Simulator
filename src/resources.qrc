@@ -12,6 +12,9 @@
         <file>ui/Theme.qml</file>
         <file>SandboxPanel.qml</file>
         <file>SandboxBodyDelegate.qml</file>
+        <file>GPSPanel.qml</file>
+        <file>ExperimentParamForm.qml</file>
+        <file>ExperimentsPanel.qml</file>
         <file>../resources/paper_template.tex</file>
     </qresource>
     <qresource prefix="/">

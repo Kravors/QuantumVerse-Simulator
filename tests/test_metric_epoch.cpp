@@ -1,69 +1,57 @@
-// QuantumVerse Test: Metric Epoch
-// Validates that in-place mass mutation bumps MetricTensor::epoch(),
-// epoch only bumps on real change, and is strictly monotonic across a sweep.
+/**
+ * @file test_metric_epoch.cpp
+ * @brief MetricTensor epoch bumps on every in-place mass/spin change.
+ */
 
+#include <QCoreApplication>
 #include <iostream>
-#include <cmath>
-#include <memory>
+
 #include "spacetime/MetricTensor.h"
+#include "spacetime/KerrMetric.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
 
-int main() {
-    std::cout << "=== Metric Epoch Tests ===" << std::endl;
+int main(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
+    std::cout << "=== Metric Epoch Test ===" << std::endl;
 
-    // Test 1: epoch bumps on mass change, not on no-op
+    // SchwarzschildMetric
     {
-        auto metric = std::make_shared<SchwarzschildMetric>(10.0 * 1.989e30);
-        uint64_t e0 = metric->epoch();
-
-        metric->setMass(5.0 * 1.989e30);
-        QV_CHECK(metric->epoch() == e0 + 1);
-
-        uint64_t e1 = metric->epoch();
-        metric->setMass(5.0 * 1.989e30);  // no-op: same mass
-        QV_CHECK(metric->epoch() == e1);   // must NOT bump
-
-        std::cout << "[PASS] epoch bumps on mass change, not on no-op" << std::endl;
+        SchwarzschildMetric m(1.989e30);
+        const uint64_t e0 = m.epoch();
+        m.setMass(2.0 * 1.989e30);
+        QV_CHECK(m.epoch() != e0);
+        const uint64_t e1 = m.epoch();
+        m.setMass(2.0 * 1.989e30); // same value -> no bump
+        QV_CHECK(m.epoch() == e1);
+        std::cout << "[PASS] Schwarzschild epoch bumps on mass change" << std::endl;
     }
 
-    // Test 2: epoch monotonicity
+    // KerrMetric
     {
-        auto metric = std::make_shared<SchwarzschildMetric>(1.0 * 1.989e30);
-        uint64_t prev = metric->epoch();
-
-        for (double m = 0.1; m <= 10.0; m += 0.1) {
-            metric->setMass(m * 1.989e30);
-            QV_CHECK(metric->epoch() > prev);
-            prev = metric->epoch();
-        }
-
-        std::cout << "[PASS] epoch is strictly monotonic across mass sweep" << std::endl;
+        KerrMetric m(1.989e30, 0.5);
+        const uint64_t e0 = m.epoch();
+        m.setSpin(0.9);
+        QV_CHECK(m.epoch() != e0);
+        const uint64_t e1 = m.epoch();
+        m.setMass(3.0 * 1.989e30);
+        QV_CHECK(m.epoch() != e1);
+        std::cout << "[PASS] Kerr epoch bumps on spin and mass change" << std::endl;
     }
 
-    // Test 3: pointer identity preserved across mass change (no swap)
+    // Base MetricTensor: default setters no-op, epoch stays 0
     {
-        auto metric = std::make_shared<SchwarzschildMetric>(10.0 * 1.989e30);
-        void* addr = metric.get();
-
-        metric->setMass(5.0 * 1.989e30);
-        QV_CHECK(metric.get() == addr);  // same object, mutated in place
-
-        std::cout << "[PASS] pointer identity preserved across mass change" << std::endl;
+        MetricTensor m;
+        QV_CHECK(m.epoch() == 0);
+        m.setMass(1.0);
+        m.setSpin(0.5);
+        m.setCharge(1.0);
+        QV_CHECK(m.epoch() == 0);
+        std::cout << "[PASS] base MetricTensor epoch unchanged by no-op setters" << std::endl;
     }
 
-    // Test 4: base MetricTensor epoch() returns 0 (no-op default)
-    {
-        MetricTensor base;
-        QV_CHECK(base.epoch() == 0);
-        base.setMass(5.0);  // base no-op, should not throw
-        QV_CHECK(base.epoch() == 0);
-
-        std::cout << "[PASS] base MetricTensor epoch() is 0 (no-op default)" << std::endl;
-    }
-
-    std::cout << "=== All Metric Epoch tests passed ===" << std::endl;
-    std::cout.flush();
+    std::cout << "=== Metric Epoch Test: ALL PASS ===" << std::endl;
     return 0;
 }

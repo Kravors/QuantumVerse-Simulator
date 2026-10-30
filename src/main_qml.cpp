@@ -54,6 +54,25 @@
 #include "ui4d/PlanckMicroscope.h"
 #include "ui4d/Camera4DAdapter.h"
 #include "ui4d/QmlRLDiscoveryAgent.h"
+#include "ui4d/SpacetimeGPS.h"
+#include "experiment/ExperimentRunner.h"
+#include "experiment/experiments/MassSweepExperiment.h"
+#include "experiment/experiments/SpinSweepExperiment.h"
+#include "experiment/experiments/LensingDeflectionExperiment.h"
+#include "experiment/experiments/ChargeSweepExperiment.h"
+#include "experiment/experiments/MercuryPrecessionExperiment.h"
+#include "experiment/experiments/FrameDraggingExperiment.h"
+#include "experiment/experiments/RedshiftProfileExperiment.h"
+#include "experiment/experiments/AnomalyScanExperiment.h"
+#include "experiment/experiments/TheoryComparisonExperiment.h"
+#include "experiment/experiments/QuantumGeometryExperiment.h"
+#include "experiment/experiments/AgeOfUniverseExperiment.h"
+#include "experiment/experiments/DistanceLadderExperiment.h"
+#include "experiment/experiments/CMBTemperatureExperiment.h"
+#include "experiment/experiments/BAOSoundHorizonExperiment.h"
+#include "experiment/experiments/HubbleEvolutionExperiment.h"
+#include "experiment/experiments/GrowthFactorExperiment.h"
+#include "experiment/experiments/CosmologyValidationSuite.h"
 #include "discovery/LLMCoPilot.h"
 #include "discovery/PaperGenerator.h"
 #include "discovery/ScanSummary.h"
@@ -706,7 +725,8 @@ int main(int argc, char* argv[])
         if (rlDiscoveryAgent->loadONNXModel(onnxModelPath)) {
             qDebug() << "QuantumVerse: RL Discovery Agent ONNX model loaded from:" << onnxModelPath;
         } else {
-            qDebug() << "QuantumVerse: RL Discovery Agent ONNX model NOT found at:" << onnxModelPath;
+            qInfo() << "QuantumVerse: RL Discovery Agent offline — ONNX model not found at:"
+                    << onnxModelPath << "(place a model there or use Load model… in the UI)";
         }
 
         // Create the LLM Co-Pilot (Ollama bridge) for plain-English anomaly explanations
@@ -748,6 +768,75 @@ int main(int argc, char* argv[])
         std::cerr.flush();
         ui4d->setActiveQuantumTheory("CDT");
         std::cerr << "QuantumVerse: Active quantum theory set to: CDT" << std::endl;
+        std::cerr.flush();
+
+        // --- Spacetime GPS: object registry + live telemetry feed ---
+        auto gps = std::make_shared<quantumverse::SpacetimeGPS>();
+
+        // Register every solar-system body the simulation tracks.
+        const auto& ssBodies = ui4d->getSolarSystem().bodies;
+        for (const auto& kv : ssBodies) {
+            const auto& b = kv.second;
+            quantumverse::SpacetimeGPS::Tracked tr;
+            tr.id = QString("body:%1").arg(QString::fromStdString(b.name));
+            tr.name = QString::fromStdString(b.name);
+            tr.type = b.isStar ? QStringLiteral("Star") : QStringLiteral("Planet");
+            tr.color = quantumverse::SpacetimeGPS::typeColor(tr.type);
+            tr.pos = b.position;
+            tr.vel = b.velocity;
+            tr.spinX = 0.0; tr.spinY = 1.0; tr.spinZ = 0.0;
+            tr.spinRate = 0.0;
+            gps->registerObject(tr);
+        }
+
+        // Register the black hole at the metric centre.
+        {
+            quantumverse::SpacetimeGPS::Tracked tr;
+            tr.id = QStringLiteral("bh:primary");
+            tr.name = QStringLiteral("Kerr Black Hole");
+            tr.type = QStringLiteral("BlackHole");
+            tr.color = quantumverse::SpacetimeGPS::typeColor(tr.type);
+            tr.pos = quantumverse::Event4D(0.0, 0.0, 0.0, 0.0);
+            tr.vel = quantumverse::Event4D(0.0, 0.0, 0.0, 0.0);
+            tr.spinX = 0.0; tr.spinY = 1.0; tr.spinZ = 0.0;
+            tr.spinRate = blackHoleSpin;
+            gps->registerObject(tr);
+        }
+
+        gps->setViewportScale(kViewportScale);
+        gps->setTrackingEnabled(true);
+
+        // --- Experiment runner: advanced experiments built and run from the UI ---
+        auto experimentRunner = std::make_shared<quantumverse::ExperimentRunner>();
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::MassSweepExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::SpinSweepExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::LensingDeflectionExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::ChargeSweepExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::MercuryPrecessionExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::FrameDraggingExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::RedshiftProfileExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::AnomalyScanExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::TheoryComparisonExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::QuantumGeometryExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::AgeOfUniverseExperiment>(
+            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::DistanceLadderExperiment>(
+            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::CMBTemperatureExperiment>(
+            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::BAOSoundHorizonExperiment>(
+            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::HubbleEvolutionExperiment>(
+            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::GrowthFactorExperiment>(
+            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::CosmologyValidationSuite>());
+        std::cerr << "QuantumVerse: Experiment runner registered "
+                  << experimentRunner->rowCount() << " experiments" << std::endl;
+        std::cerr.flush();
+
+        std::cerr << "QuantumVerse: Spacetime GPS registered "
+                  << gps->rowCount() << " tracked objects" << std::endl;
         std::cerr.flush();
 
         // Create the Camera4DAdapter for 4D navigation with 6-plane SO(4) rotation
@@ -916,6 +1005,10 @@ int main(int argc, char* argv[])
             QVariant::fromValue(ui4d.get()));
         rootContext->setContextProperty("camera4DAdapter",
             QVariant::fromValue(camera4DAdapter.get()));
+        rootContext->setContextProperty("spacetimeGPS",
+            QVariant::fromValue(gps.get()));
+        rootContext->setContextProperty("experimentRunner",
+            QVariant::fromValue(experimentRunner.get()));
         // Shared meters -> viewport-units factor so QML camera focus lands
         // where the C++ renderer draws the bodies (see kViewportScale above).
         rootContext->setContextProperty("viewportScale",
@@ -1289,6 +1382,18 @@ int main(int argc, char* argv[])
                 viewport->setBlackHoleType(blackHoleSpin > 1e-10 ? "Kerr" : "Schwarzschild");
 
                 viewport->setCamera4DAdapterDirect(camera4DAdapter);
+                viewport->setSpacetimeGPS(gps.get());
+
+                // GPS focus request: re-centre the 4D camera on the clicked object.
+                // Coordinates are already scaled by viewportScale (viewport units).
+                QObject::connect(gps.get(), &quantumverse::SpacetimeGPS::focusRequested,
+                    camera4DAdapter.get(),
+                    [camera4DAdapter](const QString& /*id*/, double x, double y, double z) {
+                        camera4DAdapter->focusOn(QVector3D(static_cast<float>(x),
+                                                           static_cast<float>(y),
+                                                           static_cast<float>(z)));
+                    });
+
                 sandboxManager->setViewport(viewport);
 
                 // Wire the PhysicsValidator from the viewport to the RL

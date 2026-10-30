@@ -71,6 +71,7 @@ class DiscoveryPanelManager : public QObject
     Q_PROPERTY(QVariantList paretoFront READ paretoFront NOTIFY paretoFrontChanged)
     Q_PROPERTY(QVariantList bmaWeights READ bmaWeights NOTIFY bmaWeightsChanged)
     Q_PROPERTY(QVariantList sweepResults READ sweepResults NOTIFY sweepResultsChanged)
+    Q_PROPERTY(bool hasResults READ hasResults NOTIFY sweepResultsChanged)
 
 public:
     explicit DiscoveryPanelManager(QObject* parent = nullptr);
@@ -93,6 +94,12 @@ public:
 
     /** @brief Sweep results as QVariantList (one map per row). */
     QVariantList sweepResults() const;
+
+    /** @brief True once at least one sweep has been run and produced rows. */
+    bool hasResults() const { return !m_sweepRows.empty(); }
+
+    /** @brief Export sweep results to "csv" or "json" under data/ and return the file path. */
+    Q_INVOKABLE QString exportSweepResults(const QString& fmt);
 
     /** @brief Export sweep results to CSV at the given path. */
     Q_INVOKABLE void exportCurrentFindings(const QString& path);
@@ -180,6 +187,7 @@ signals:
     void discoveryResultReady(const QVariantMap& result);
     void followUpTriggered(const CorrelationEvent& correlation);  // GW+EM coincidence
     void sweepResultsChanged();
+    void exportSweepFinished(const QString& path);
 
 private:
     std::vector<std::unique_ptr<DiscoveryInstrument>> m_instruments;

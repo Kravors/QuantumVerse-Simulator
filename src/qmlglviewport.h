@@ -56,6 +56,7 @@ class MetricTensor;
 class PostProcess;
 class GravitationalLensing;
 class PhysicsValidator;
+class SpacetimeGPS;
 }
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
@@ -816,6 +817,10 @@ public:
     void setUI4D(std::shared_ptr<UI4D> ui4d);
     std::shared_ptr<UI4D> ui4d() const { return m_ui4d; }
 
+    // Spacetime GPS telemetry feed
+    void setSpacetimeGPS(SpacetimeGPS* gps);
+    SpacetimeGPS* spacetimeGPS() const { return m_gps; }
+
     // Camera4D adapter access for QML toolbar
     QObject* camera4DAdapterObj() const;
     void setCamera4DAdapterObj(QObject* adapter);
@@ -1009,6 +1014,9 @@ private:
 
     // UI4D instance for scene data (non-owning)
     std::shared_ptr<UI4D> m_ui4d;
+
+    // Spacetime GPS telemetry feed (non-owning)
+    SpacetimeGPS* m_gps = nullptr;
 
     // Gravitational wave audio synthesizer
     class GravitationalWaveAudio* m_gwAudio = nullptr;

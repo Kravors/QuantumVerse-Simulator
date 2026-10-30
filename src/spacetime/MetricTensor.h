@@ -242,13 +242,22 @@ public:
     /// @param massKg New black hole mass in kilograms.
     virtual void setMass(double /*massKg*/) noexcept {}
 
-    /// @brief Monotonic counter incremented on every mass change.
+    /// @brief In-place spin update.
+    /// Default does nothing; KerrMetric overrides.
+    virtual void setSpin(double /*spinDimensionless*/) noexcept {}
+
+    /// @brief In-place charge update.
+    /// Default does nothing.
+    virtual void setCharge(double /*chargeCoulombs*/) noexcept {}
+
+    /// @brief Monotonic counter incremented on every mass/spin/charge change.
     ///
-    /// Consumers include this in cache keys so in-place mass updates don't
-    /// return stale curvature scalars or grid geometry.
+    /// Consumers that cache curvature scalars or grid geometry keyed on this
+    /// metric should include epoch() in their cache keys so in-place mutation
+    /// doesn't return stale values.
     ///
     /// @return Current epoch value.
-    virtual uint64_t epoch() const noexcept { return 0; }
+    virtual uint64_t epoch() const noexcept { return m_epoch; }
 
     // Virtual destructor for proper polymorphic cleanup
     virtual ~MetricTensor() = default;
@@ -450,6 +459,12 @@ private:
         // Apply sign: (-1)^(row+col)
         return ((row + col) % 2 == 0 ? 1 : -1) * det;
     }
+
+protected:
+    /// Bump the monotonic epoch; call from every in-place setter.
+    void bumpEpoch() noexcept { ++m_epoch; }
+
+    uint64_t m_epoch = 0;
 };
 
 /**
@@ -478,12 +493,9 @@ public:
     void setMass(double massKg) noexcept {
         if (std::abs(massKg - m_mass) > 1e-12 * std::max(1.0, std::abs(massKg))) {
             m_mass = massKg;
-            ++m_epoch;
+            bumpEpoch();
         }
     }
-
-    /// @brief Monotonic counter incremented on every mass change.
-    uint64_t epoch() const noexcept { return m_epoch; }
 
     std::array<std::array<double, 4>, 4> evaluate(const Event4D& event) const override {
         if (!std::isfinite(event.x) || !std::isfinite(event.y) || !std::isfinite(event.z)) {
@@ -696,7 +708,6 @@ public:
 
 private:
     double m_mass;
-    uint64_t m_epoch = 0;
 };
 
 // Stress-energy tensor (source of spacetime curvature)

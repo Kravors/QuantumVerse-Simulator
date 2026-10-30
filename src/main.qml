@@ -902,6 +902,37 @@ ApplicationWindow {
                             }
                         }
 
+                        // ONNX model loader — the shipped installer excludes .onnx files,
+                        // so the agent starts offline until a model is attached here.
+                        RowLayout {
+                            spacing: 6
+                            TextField {
+                                id: onnxPathField
+                                placeholderText: "ONNX model path…"
+                                text: "rl_discovery_agent.onnx"
+                                Layout.fillWidth: true
+                                font.pixelSize: 10
+                            }
+                            Button {
+                                text: "Load model…"
+                                Layout.preferredWidth: 70
+                                font.pixelSize: 10
+                                onClicked: {
+                                    if (rlDiscoveryAgent) {
+                                        var ok = rlDiscoveryAgent.loadONNXModel(onnxPathField.text);
+                                        console.log("RL loadONNXModel(" + onnxPathField.text + ") -> " + ok);
+                                    }
+                                }
+                            }
+                            Label {
+                                text: rlDiscoveryAgent && rlDiscoveryAgent.isONNXLoaded()
+                                    ? "RL model loaded"
+                                    : "RL model offline"
+                                font.pixelSize: 9
+                                color: rlDiscoveryAgent && rlDiscoveryAgent.isONNXLoaded() ? "#4af" : "#f44"
+                            }
+                        }
+
                         // Parameter sliders
                         RowLayout {
                             Layout.fillWidth: true
@@ -1801,10 +1832,22 @@ ApplicationWindow {
                             SpinBox { id: sweepStepsBox; from: 10; to: 1000; value: 50; Layout.fillWidth: true }
                         }
 
-                        Button {
-                            text: "Run Sweep"
-                            Layout.fillWidth: true
-                            onClicked: runParameterSweep()
+                        RowLayout {
+                            spacing: 6
+                            Button {
+                                text: "Run Sweep"
+                                Layout.fillWidth: true
+                                onClicked: runParameterSweep()
+                            }
+                            Button {
+                                text: "Export CSV"
+                                enabled: discoveryPanelManager && discoveryPanelManager.hasResults
+                                Layout.preferredWidth: 90
+                                onClicked: {
+                                    var path = discoveryPanelManager.exportSweepResults("csv");
+                                    if (path) console.log("Sweep exported to:" + path);
+                                }
+                            }
                         }
 
                         ProgressBar {
@@ -1813,6 +1856,22 @@ ApplicationWindow {
                             Layout.fillWidth: true
                         }
                     }
+                }
+
+                // Spacetime GPS panel
+                Loader {
+                    id: gpsPanelLoader
+                    Layout.fillWidth: true
+                    active: true
+                    source: "GPSPanel.qml"
+                }
+
+                // Experiments panel
+                Loader {
+                    id: experimentsPanelLoader
+                    Layout.fillWidth: true
+                    active: true
+                    source: "ExperimentsPanel.qml"
                 }
             }
             }

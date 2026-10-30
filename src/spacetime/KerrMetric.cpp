@@ -15,6 +15,25 @@ KerrMetric::KerrMetric(double massKg, double spinDimensionless)
     m_rs = 2.0 * m_M;
 }
 
+void KerrMetric::setMass(double massKg) noexcept {
+    if (std::abs(massKg - m_mass) > 1e-12 * std::max(1.0, std::abs(massKg))) {
+        m_mass = massKg;
+        m_M = PHYS_G() * massKg / (PHYS_C() * PHYS_C());
+        m_a = m_spin * m_M;
+        m_rs = 2.0 * m_M;
+        bumpEpoch();
+    }
+}
+
+void KerrMetric::setSpin(double spinDimensionless) noexcept {
+    double clamped = std::max(0.0, std::min(0.999, spinDimensionless));
+    if (std::abs(clamped - m_spin) > 1e-12) {
+        m_spin = clamped;
+        m_a = m_spin * m_M;
+        bumpEpoch();
+    }
+}
+
 double KerrMetric::outerHorizonRadius() const {
     double disc = m_M * m_M - m_a * m_a;
     if (disc < 0.0) disc = 0.0;
