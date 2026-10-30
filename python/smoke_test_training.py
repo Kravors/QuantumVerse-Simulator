@@ -175,13 +175,25 @@ def main():
         print('Need at least 2 sessions. Found %d.' % len(sessions))
         sys.exit(1)
 
-    train_sessions = sessions[:-1]
-    val_session = sessions[-1]
+    # ---- Within-session split (Option A): first 80% of each session -> train,
+    # last 20% -> val. Train and val have the same physics (same metric, same
+    # bodies, same initial conditions); only different time windows. ----
+    train_x_parts, train_y_parts, val_x_parts, val_y_parts = [], [], [], []
+    for sname, t in sessions:
+        n = t.shape[0]
+        split = int(0.8 * n)
+        if split < 2:
+            continue
+        train_x_parts.append(t[:split - 1])
+        train_y_parts.append(t[1:split])
+        val_x_parts.append(t[split:-1])
+        val_y_parts.append(t[split + 1:])
+        print('  %s: train=%d val=%d' % (sname, split - 1, n - split - 1))
 
-    train_x_full = torch.cat([t[:-1] for _, t in train_sessions], dim=0)
-    train_y_full = torch.cat([t[1:] for _, t in train_sessions], dim=0)
-    val_x_full = val_session[1][:-1]
-    val_y_full = val_session[1][1:]
+    train_x_full = torch.cat(train_x_parts, dim=0)
+    train_y_full = torch.cat(train_y_parts, dim=0)
+    val_x_full = torch.cat(val_x_parts, dim=0)
+    val_y_full = torch.cat(val_y_parts, dim=0)
 
     print()
     print('Train: %s, Val: %s' % (tuple(train_x_full.shape), tuple(val_x_full.shape)))
@@ -191,6 +203,10 @@ def main():
     train_y = train_y_full[:, keep]
     val_x = val_x_full[:, keep]
     val_y = val_y_full[:, keep]
+
+    # Sanity: val must use the same mask as train
+    print('  train_x: %s   val_x: %s   model expects dim=%d' % (
+        tuple(train_x.shape), tuple(val_x.shape), train_x.shape[1]))
 
     # Normalize with masked stats
     train_n = (train_x - mu) / sd
@@ -237,15 +253,19 @@ def main():
     model_val_loss = eval_loss(model, val_n, val_yn)
     model_train_loss = eval_loss(model, train_n, train_yn)
     print()
+    print('=== Diagnostic: model vs identity (fit quality) ===')
+    print('  train: model=%.6e  identity=%.6e  ratio=%.2fx' % (
+        model_train_loss, identity_train_loss,
+        model_train_loss / identity_train_loss))
+    print('  val:   model=%.6e  identity=%.6e  ratio=%.2fx' % (
+        model_val_loss, identity_val_loss,
+        model_val_loss / identity_val_loss))
+    print()
     print('=== RESULT ===')
     print('  model_val_loss      = %.6e' % model_val_loss)
     print('  first_order_val_loss= %.6e' % first_order_val_loss)
     print('  ratio = %.4f' % (model_val_loss / first_order_val_loss))
     print('  model vs identity   = %.4f' % (model_val_loss / identity_val_loss))
-    print()
-    print('  model_train_loss    = %.6e' % model_train_loss)
-    print('  first_order_train   = %.6e' % first_order_train_loss)
-    print('  train ratio         = %.4f' % (model_train_loss / first_order_train_loss))
 
 
 if __name__ == '__main__':
