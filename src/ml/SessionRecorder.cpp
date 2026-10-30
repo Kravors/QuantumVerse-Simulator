@@ -16,9 +16,6 @@ namespace quantumverse {
 
 namespace {
 
-constexpr char kMagic[4] = {'Q', 'V', 'S', 'F'};
-constexpr std::uint32_t kVersion = 1;
-
 /** Create a directory recursively using Windows API (std::filesystem::
  *  create_directories() hangs on this MinGW toolchain). */
 bool createDirectoriesWin(const std::filesystem::path& path) {
@@ -109,19 +106,17 @@ std::string SessionRecorder::start() {
         return sessionId_;
     }
 
-    // Write binary header
-    char header[32];
-    std::memset(header, 0, sizeof(header));
-    std::memcpy(header, kMagic, 4);
-    std::uint32_t* ver = reinterpret_cast<std::uint32_t*>(header + 4);
-    *ver = kVersion;
-    std::uint32_t* fc = reinterpret_cast<std::uint32_t*>(header + 8);
-    *fc = 0; // frame count, updated on stop()
-    std::uint32_t* fs = reinterpret_cast<std::uint32_t*>(header + 12);
-    *fs = 0; // frame size, updated on stop()
-    std::uint32_t* bc = reinterpret_cast<std::uint32_t*>(header + 16);
-    *bc = 0; // body count, updated on stop()
-    framesFile_.write(header, sizeof(header));
+    // Write SessionHeader at the start of frames.bin
+    SessionHeader hdr{};
+    hdr.magic          = kSessionMagic;
+    hdr.schemaVersion  = kSchemaVersion;
+    hdr.endianMarker   = kEndianMarker;
+    hdr.recordSize     = static_cast<std::uint32_t>(sizeof(FrameRecord));
+    hdr.frameCount     = 0; // updated on stop()
+    hdr.createdAtUnix  = static_cast<std::uint64_t>(nowEpochSeconds());
+    hdr.gitCommitPrefix = 0; // placeholder; filled by build system in future
+    std::memset(hdr.reserved, 0, sizeof(hdr.reserved));
+    framesFile_.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
 
     active_ = true;
     frameCount_ = 0;
@@ -140,20 +135,18 @@ void SessionRecorder::stop() {
     flushBuffer();
 
     if (framesFile_.is_open()) {
-        // Rewrite header with final counts
+        // Rewrite SessionHeader with final frame count
         framesFile_.seekp(0);
-        char header[32];
-        std::memset(header, 0, sizeof(header));
-        std::memcpy(header, kMagic, 4);
-        std::uint32_t* ver = reinterpret_cast<std::uint32_t*>(header + 4);
-        *ver = kVersion;
-        std::uint32_t* fc = reinterpret_cast<std::uint32_t*>(header + 8);
-        *fc = frameCount_;
-        std::uint32_t* fs = reinterpret_cast<std::uint32_t*>(header + 12);
-        *fs = 0; // variable-size frames, not fixed
-        std::uint32_t* bc = reinterpret_cast<std::uint32_t*>(header + 16);
-        *bc = 0; // variable body count per frame
-        framesFile_.write(header, sizeof(header));
+        SessionHeader hdr{};
+        hdr.magic          = kSessionMagic;
+        hdr.schemaVersion  = kSchemaVersion;
+        hdr.endianMarker   = kEndianMarker;
+        hdr.recordSize     = static_cast<std::uint32_t>(sizeof(FrameRecord));
+        hdr.frameCount     = frameCount_;
+        hdr.createdAtUnix  = static_cast<std::uint64_t>(nowEpochSeconds());
+        hdr.gitCommitPrefix = 0;
+        std::memset(hdr.reserved, 0, sizeof(hdr.reserved));
+        framesFile_.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
         framesFile_.close();
     }
 
@@ -202,6 +195,7 @@ bool SessionRecorder::writeMetadata(const SessionMetadata& meta) const {
         j["bodyNames"] = meta.bodyNames;
         j["frameCount"] = meta.frameCount;
         j["simDuration"] = meta.simDuration;
+        j["schemaVersion"] = kSchemaVersion;
 
         if (!createDirectoriesWin(sessionDir_)) return false;
         std::ofstream f(sessionDir_ / "metadata.json");
@@ -258,7 +252,6 @@ bool SessionRecorder::appendFrameToFile(const FrameRecord& f) {
                             f.velocities.size() * sizeof(double) +
                             4 * sizeof(double) + // cameraPosition
                             4 * sizeof(double) + // cameraLookAt
-                            2 * sizeof(double) + // gridZMin, gridZMax
                             sizeof(double) +     // blackHoleMassKg
                             3 * sizeof(double);  // totalEnergy, kineticEnergy, potentialEnergy
 
@@ -300,12 +293,6 @@ bool SessionRecorder::appendFrameToFile(const FrameRecord& f) {
     framesFile_.write(reinterpret_cast<const char*>(f.cameraLookAt.data()),
                       4 * sizeof(double));
 
-    // Write grid Z range
-    framesFile_.write(reinterpret_cast<const char*>(&f.gridZMin),
-                      sizeof(f.gridZMin));
-    framesFile_.write(reinterpret_cast<const char*>(&f.gridZMax),
-                      sizeof(f.gridZMax));
-
     // Write black hole mass
     framesFile_.write(reinterpret_cast<const char*>(&f.blackHoleMassKg),
                       sizeof(f.blackHoleMassKg));
@@ -328,16 +315,13 @@ std::vector<FrameRecord> SessionRecorder::readFrames(
     std::ifstream f(sessionDir / "frames.bin", std::ios::binary);
     if (!f.is_open()) return frames;
 
-    // Read and verify header
-    char header[32];
-    f.read(header, sizeof(header));
-    if (f.gcount() != sizeof(header)) return frames;
-    if (std::memcmp(header, kMagic, 4) != 0) return frames;
-
-    std::uint32_t version = *reinterpret_cast<std::uint32_t*>(header + 4);
-    if (version != kVersion) return frames;
-
-    // Skip frame count, frame size, body count in header (variable per frame)
+    // Read and verify SessionHeader
+    SessionHeader hdr;
+    f.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+    if (f.gcount() != sizeof(hdr)) return frames;
+    if (hdr.magic != kSessionMagic) return frames;
+    if (hdr.schemaVersion != kSchemaVersion) return frames;
+    if (hdr.endianMarker != kEndianMarker) return frames;
 
     while (f.good()) {
         // Read frame size prefix
@@ -350,7 +334,6 @@ std::vector<FrameRecord> SessionRecorder::readFrames(
         if (!f.good()) break;
 
         const char* p = buf.data();
-        const char* end = buf.data() + len;
 
         FrameRecord frame;
 
@@ -393,11 +376,7 @@ std::vector<FrameRecord> SessionRecorder::readFrames(
         std::memcpy(frame.cameraLookAt.data(), p, 4 * sizeof(double));
         p += 4 * sizeof(double);
 
-        // grid Z range
-        std::memcpy(&frame.gridZMin, p, sizeof(double));
-        p += sizeof(double);
-        std::memcpy(&frame.gridZMax, p, sizeof(double));
-        p += sizeof(double);
+        // grid Z range NOT in schemaVersion 1 — skipped
 
         // black hole mass
         std::memcpy(&frame.blackHoleMassKg, p, sizeof(double));
@@ -442,6 +421,18 @@ std::unique_ptr<SessionMetadata> SessionRecorder::readMetadata(
                   << e.what() << std::endl;
         return nullptr;
     }
+}
+
+std::optional<SessionHeader> SessionRecorder::readHeader(
+    const std::filesystem::path& sessionDir)
+{
+    std::ifstream f(sessionDir / "frames.bin", std::ios::binary);
+    if (!f.is_open()) return std::nullopt;
+
+    SessionHeader hdr;
+    f.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+    if (f.gcount() != sizeof(hdr)) return std::nullopt;
+    return hdr;
 }
 
 } // namespace quantumverse

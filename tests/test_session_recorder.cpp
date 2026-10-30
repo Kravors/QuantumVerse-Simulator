@@ -93,10 +93,6 @@ int main() {
         frame.cameraPosition = {0.0, 100.0 + i, 50.0, 200.0};
         frame.cameraLookAt = {0.0, 0.0, 0.0, 0.0};
 
-        // Grid Z range (deformed by BH mass)
-        frame.gridZMin = -1.0 - i * 0.001;
-        frame.gridZMax = 0.0 + i * 0.001;
-
         frame.blackHoleMassKg = bhMass;
 
         recorder.recordFrame(frame);
@@ -221,14 +217,6 @@ int main() {
             ++failed;
         }
 
-        // grid Z range
-        if (std::abs(r.gridZMin - (-1.0 - i * 0.001)) > 1e-12 ||
-            std::abs(r.gridZMax - (0.0 + i * 0.001)) > 1e-12) {
-            std::cerr << "[FAIL] Frame " << i << ": gridZRange mismatch "
-                      << r.gridZMin << ".." << r.gridZMax << std::endl;
-            ++failed;
-        }
-
         // black hole mass
         if (std::abs(r.blackHoleMassKg - bhMass) > 1e-6) {
             std::cerr << "[FAIL] Frame " << i << ": blackHoleMassKg mismatch"
@@ -254,6 +242,50 @@ int main() {
         }
         std::cout << "[INFO] Metadata: sessionId=" << meta->sessionId
                   << ", frameCount=" << meta->frameCount << std::endl;
+    }
+
+    // Header round-trip test
+    auto hdr = SessionRecorder::readHeader(sessionDir);
+    if (!hdr) {
+        std::cerr << "[FAIL] Could not read SessionHeader from frames.bin"
+                  << std::endl;
+        ++failed;
+    } else {
+        if (hdr->magic != kSessionMagic) {
+            std::cerr << "[FAIL] Header magic mismatch: " << hdr->magic
+                      << " vs " << kSessionMagic << std::endl;
+            ++failed;
+        }
+        if (hdr->schemaVersion != kSchemaVersion) {
+            std::cerr << "[FAIL] Header schemaVersion mismatch: " << hdr->schemaVersion
+                      << " vs " << kSchemaVersion << std::endl;
+            ++failed;
+        }
+        if (hdr->endianMarker != kEndianMarker) {
+            std::cerr << "[FAIL] Header endianMarker mismatch: " << hdr->endianMarker
+                      << " vs " << kEndianMarker << std::endl;
+            ++failed;
+        }
+        if (hdr->recordSize != static_cast<std::uint32_t>(sizeof(FrameRecord))) {
+            std::cerr << "[FAIL] Header recordSize mismatch: " << hdr->recordSize
+                      << " vs " << sizeof(FrameRecord) << std::endl;
+            ++failed;
+        }
+        if (hdr->frameCount != nFrames) {
+            std::cerr << "[FAIL] Header frameCount mismatch: " << hdr->frameCount
+                      << " vs " << nFrames << std::endl;
+            ++failed;
+        }
+        if (hdr->createdAtUnix == 0) {
+            std::cerr << "[FAIL] Header createdAtUnix is zero" << std::endl;
+            ++failed;
+        }
+        std::cout << "[INFO] Header: magic=0x" << std::hex << hdr->magic << std::dec
+                  << ", schemaVersion=" << hdr->schemaVersion
+                  << ", endianMarker=0x" << std::hex << hdr->endianMarker << std::dec
+                  << ", recordSize=" << hdr->recordSize
+                  << ", frameCount=" << hdr->frameCount
+                  << ", createdAtUnix=" << hdr->createdAtUnix << std::endl;
     }
 
     if (failed == 0) {

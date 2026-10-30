@@ -16,9 +16,13 @@
  *             double vel[3]               - vx, vy, vz (m/s)
  *   double  cameraPos[4]                  - t, x, y, z
  *   double  cameraLookAt[4]               - t, x, y, z
- *   double  gridZMin                      - curvature grid Z min
- *   double  gridZMax                      - curvature grid Z max
  *   double  blackHoleMassKg               - active BH mass (kg)
+ *
+ * Grid Z-range (gridZmin/gridZmax) is NOT in schemaVersion 1:
+ *   CurvatureRenderer::deformGrid() returns sentinel "-1..-1" when all
+ *   grid vertices fall inside the event horizon (gtt >= 0 or non-finite),
+   *   so recording it would bake a constant sentinel into training data.
+ *   Re-add in schemaVersion 2 once gridZRange varies with mass is verified.
  */
 
 #pragma once
@@ -31,12 +35,38 @@
 #include <mutex>
 #include <fstream>
 #include <filesystem>
+#include <optional>
 #include <random>
 #include <chrono>
 #include "spacetime/Event4D.h"
 #include "ui4d/UI4D.h"
 
 namespace quantumverse {
+
+/**
+ * @brief Binary header for frames.bin — versioned so schema changes are
+ *        caught loudly at read time instead of silently misinterpreting bytes.
+ *
+ * 64 bytes exactly (cache-line aligned, easy to spot in a hex dump).
+ * All multi-byte fields are little-endian; kEndianMarker lets a reader
+ * detect big/little-endian mismatch before trusting any other field.
+ */
+struct SessionHeader {
+    std::uint32_t magic;            // kSessionMagic ("QVFR")
+    std::uint32_t schemaVersion;    // kSchemaVersion
+    std::uint32_t endianMarker;     // kEndianMarker
+    std::uint32_t recordSize;       // sizeof(FrameRecord) — catches packing drift
+    std::uint64_t frameCount;       // written at stop(), 0 until then
+    std::uint64_t createdAtUnix;    // seconds since epoch
+    std::uint64_t gitCommitPrefix;  // first 8 hex chars of commit, parsed to uint64
+    std::uint8_t  reserved[24];     // future flags, zero-filled
+};
+static_assert(sizeof(SessionHeader) == 64,
+              "SessionHeader must be 64 bytes");
+
+constexpr std::uint32_t kSessionMagic   = 0x51564652;  // "QVFR"
+constexpr std::uint32_t kSchemaVersion  = 1;
+constexpr std::uint32_t kEndianMarker   = 0x01020304;
 
 /**
  * @brief A single simulation frame captured for training.
@@ -55,8 +85,6 @@ struct FrameRecord {
     double potentialEnergy = 0.0;                         // J
     std::array<double, 4> cameraPosition{};               // t,x,y,z
     std::array<double, 4> cameraLookAt{};                 // t,x,y,z
-    double gridZMin = 0.0;                                // curvature grid Z min
-    double gridZMax = 0.0;                                // curvature grid Z max
     double blackHoleMassKg = 0.0;                         // active BH mass (kg)
 };
 
@@ -161,6 +189,14 @@ public:
      * @brief Read a single session's metadata.json.
      */
     static std::unique_ptr<SessionMetadata> readMetadata(
+        const std::filesystem::path& sessionDir);
+
+    /**
+     * @brief Read the SessionHeader from frames.bin.
+     *        Used by round-trip tests to verify header fidelity.
+     * @return Header with all fields, or empty std::optional on failure.
+     */
+    static std::optional<SessionHeader> readHeader(
         const std::filesystem::path& sessionDir);
 };
 
