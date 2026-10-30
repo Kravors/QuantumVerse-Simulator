@@ -448,6 +448,7 @@ Qt6/
 models/**
 data/ml/**
 training_data/
+data/sessions/
 
 # Kilo cache
 .kilocode/
