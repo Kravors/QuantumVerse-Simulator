@@ -204,6 +204,10 @@ def main():
     val_x = val_x_full[:, keep]
     val_y = val_y_full[:, keep]
 
+    # Sanity: per-dim std for first 5 dims detects distribution shift
+    print('  train std[:5]: %s' % train_x.std(dim=0)[:5].tolist())
+    print('  val   std[:5]: %s' % val_x.std(dim=0)[:5].tolist())
+
     # Sanity: val must use the same mask as train
     print('  train_x: %s   val_x: %s   model expects dim=%d' % (
         tuple(train_x.shape), tuple(val_x.shape), train_x.shape[1]))
@@ -243,7 +247,7 @@ def main():
     print('=== Absolute: model(x_t) -> x_{t+1} ===')
     model = make_model(train_x.shape[1]).double()
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
-    for epoch in range(20):
+    for epoch in range(200):
         tr = train_epoch(model, opt, train_n, train_yn)
         tr_l = eval_loss(model, train_n, train_yn)
         va_l = eval_loss(model, val_n, val_yn)
