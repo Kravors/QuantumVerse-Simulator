@@ -101,9 +101,13 @@ private:
     
     // Compute event horizon radius for Kerr black hole
     double computeKerrEventHorizon(double mass, double angular_momentum) const {
-        double rs = computeSchwarzschildRadius(mass);
-        double a = angular_momentum / (mass * Event4D::C);  // Dimensionless spin
-        return rs / 2.0 * (1.0 + std::sqrt(1.0 - a * a));
+        const double rs = computeSchwarzschildRadius(mass);   // 2GM/c^2
+        const double rh = rs / 2.0;                           // GM/c^2, metres
+        const double a_m = angular_momentum / (mass * Event4D::C);  // J/(Mc), metres
+        const double a_star = a_m / rh;                       // dimensionless spin Jc/(GM^2)
+        double disc = 1.0 - a_star * a_star;
+        if (disc < 0.0) disc = 0.0;                           // naked -> clamp to extremal
+        return rh * (1.0 + std::sqrt(disc));                  // metres
     }
     
     // Compute ergosphere radius (equatorial static limit)

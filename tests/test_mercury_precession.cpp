@@ -1,55 +1,73 @@
-// QuantumVerse Test: Mercury Precession
-// Validates GR prediction: 43.0 arcsec/century
+/**
+ * @file test_mercury_precession.cpp
+ * @brief MercuryPrecessionExperiment: GR predicts ~43 arcsec/century.
+ */
 
+#include <QCoreApplication>
+#include <QVariantMap>
 #include <cmath>
 #include <iostream>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include "experiment/experiments/MercuryPrecessionExperiment.h"
+#include "physics/SingularityHandler.h"
+#include "test_assert.h"
 
-// Lorentz signature spacetime metric
-struct SchwarzschildMetric {
-    double M;  // Mass parameter
-    double r;  // Radial coordinate
-    
-    SchwarzschildMetric(double mass, double radius) : M(mass), r(radius) {}
-    
-    double g_tt() const { return -(1.0 - 2.0 * M / r); }
-    double g_rr() const { return 1.0 / (1.0 - 2.0 * M / r); }
-};
+using namespace quantumverse;
 
-int main() {
-    std::cout << "=== Mercury Perihelion Precession Test ===" << std::endl;
-    
-    // Solar mass parameter (in geometric units)
-    double M_sun = 1477.0;  // meters (GM_sun/c^2)
-    double a = 5.791e10;    // Semi-major axis (m) - Mercury's orbit
-    double e = 0.2056;      // eccentricity
-    
-    // Correct GR formula: perihelion precession per orbit
-    // delta_phi = 6*pi*M / (a*(1-e^2))
-    double precession_per_orbit = 6.0 * M_PI * M_sun / (a * (1.0 - e*e));
-    
-    // Convert to arcsec per century
-    // Mercury orbital period ~87.97 days
-    // Orbits per century = 365.25 * 100 / 87.97 ≈ 415.2
-    double orbits_per_century = 36525.0 / 87.97;
-    double precession_per_century = precession_per_orbit * orbits_per_century;
-    double arcsec_per_century = precession_per_century * 180.0 * 3600.0 / M_PI;
-    
-    std::cout << "Schwarzschild radius: " << M_sun << " m" << std::endl;
-    std::cout << "Precession per century: " << arcsec_per_century << " arcsec" << std::endl;
-    
-    // Validate against expected value (43.0 arcsec/century)
-    double expected = 43.0;
-    if (std::abs(arcsec_per_century - expected) < 0.1) {
-        std::cout << "[PASS] Mercury precession validation (" << arcsec_per_century 
-                  << " arcsec/century, expected ~" << expected << ")" << std::endl;
-    } else {
-        std::cout << "[WARN] Precession differs from expected" << std::endl;
+int main(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
+    std::cout << "=== MercuryPrecessionExperiment Test ===" << std::endl;
+
+    MercuryPrecessionExperiment e;
+
+    // Mercury default parameters should reproduce ~43 arcsec/century.
+    QVariantMap p;
+    p["semi_major_m"] = 5.79e10;
+    p["eccentricity"] = 0.2056;
+    p["orbits"] = 100;
+    p["mass_sun_Msun"] = 1.0;
+    auto r = e.run(p, [](double) {}, []() { return false; });
+    QV_CHECK(r.success);
+    const double prec = r.scalars["precession_arcsec_per_century"].toDouble();
+    QV_CHECK(std::abs(prec - 43.0) < 1.0);
+    QV_CHECK(r.scalars["expected"].toDouble() == 43.0);
+    QV_CHECK(r.scalars["error_arcsec"].toDouble() < 1.0);
+    std::cout << "[PASS] Mercury precession = " << prec
+              << " arcsec/century (expected 43.0)" << std::endl;
+
+    // --- Kerr event horizon: units fix regression test ---
+    // computeKerrEventHorizon previously plugged SI angular momentum
+    // (J/(Mc), metres) into the dimensionless 1 - a^2 formula,
+    // yielding sqrt(negative) = NaN (r_+ = nanm).  Fix: convert to
+    // dimensionless a* = (J/(Mc)) / (GM/c^2) before squaring.
+    {
+        const double M   = 10.0 * 1.98892e30;            // 10 M☉ in kg
+        const double spin = 0.9;
+        const double J   = spin * Event4D::G * M * M / Event4D::C;
+
+        SingularityHandler sh(SingularityType::KERR, M, J);
+        const double r_plus = sh.getProperties().event_horizon_radius;
+        QV_CHECK(std::isfinite(r_plus));
+        QV_CHECK_NEAR(r_plus, 21209.0, 50.0);            // matches log line
+        std::cout << "[PASS] KerrHorizonMatchesMetric: r_+ = " << r_plus
+                  << " m (expected ~21209 m)" << std::endl;
     }
-    
-    std::cout << "=== ALL MERCURY PRECESSION TESTS PASSED ===" << std::endl;
+
+    {
+        const double M   = 10.0 * 1.98892e30;            // 10 M☉ in kg
+        const double spin = 1.5;                         // naked, a* > 1
+        const double J   = spin * Event4D::G * M * M / Event4D::C;
+
+        SingularityHandler sh(SingularityType::KERR, M, J);
+        const double r_plus = sh.getProperties().event_horizon_radius;
+        QV_CHECK(std::isfinite(r_plus));                 // no NaN
+        const double r_h = Event4D::G * M / (Event4D::C * Event4D::C);
+        QV_CHECK_NEAR(r_plus, r_h, 1.0);                 // clamped to extremal
+        std::cout << "[PASS] KerrNakedClamped: r_+ = " << r_plus
+                  << " m (expected ~" << r_h << " m)" << std::endl;
+    }
+
+    std::cout << "=== MercuryPrecessionExperiment Test: ALL PASS ===" << std::endl;
     return 0;
 }
