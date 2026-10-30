@@ -153,10 +153,31 @@ void test_frw_hubble_parameter_consistency() {
 void test_frw_age_of_universe() {
     auto frw = FRWMetric::matterDominated(H0, T0);
     double t_age = frw.ageOfUniverse();
-    double t_expected = 2.0 / (3.0 * H0);
-    QV_CHECK_NEAR(t_age - t_expected, 0.0, 1e-6 * t_expected);
-    (void)t_age; (void)t_expected;
-    std::cout << "[PASS] FRW age of universe = 2/(3H0) exact" << std::endl;
+    // a(t) = (t/T0)^(2/3) → a(t) = 1 at t = T0
+    QV_CHECK_NEAR(t_age - T0, 0.0, 1e-6 * T0);
+    (void)t_age;
+    std::cout << "[PASS] FRW age of universe = T0 (matter-dominated)" << std::endl;
+}
+
+// ============================================================================
+// 19.1.6b - Age of universe: ΛCDM with Ωm=0.3111, ΩΛ=0.6889 → ≈13.8 Gyr
+// ============================================================================
+void test_frw_age_of_universe_lambda_cdm() {
+    // Planck 2018-like: H0 = 67.66 km/s/Mpc, Ωm = 0.3111, ΩΛ = 0.6889
+    constexpr double H0_planck = 67.66 * 1000.0 / 3.0856775814913673e22; // s⁻¹
+    auto frw = FRWMetric::lambdaCDM(0.3111, 0.6889, H0_planck);
+    double t_age = frw.ageOfUniverse();
+    const double secondsPerGyr = 365.25 * 86400.0 * 1e9;
+    double t_age_gyr = t_age / secondsPerGyr;
+
+    // ΛCDM age should be ≈13.8 Gyr (not 2/(3H0) ≈ 9.7 Gyr for matter-dom)
+    QV_CHECK(std::isfinite(t_age));
+    QV_CHECK(t_age_gyr > 10.0);   // well above matter-dominated 2/(3H0)
+    QV_CHECK(t_age_gyr < 20.0);   // below de Sitter infinity
+    QV_CHECK_NEAR(t_age_gyr, 13.8, 0.5); // Planck 2018: 13.787 ± 0.02 Gyr
+    (void)t_age;
+    (void)t_age_gyr;
+    std::cout << "[PASS] FRW ΛCDM age of universe ≈ " << t_age_gyr << " Gyr" << std::endl;
 }
 
 // ============================================================================
@@ -674,6 +695,7 @@ int main() {
     test_frw_lambda_cdm_flat_constraint();
     test_frw_hubble_parameter_consistency();
     test_frw_age_of_universe();
+    test_frw_age_of_universe_lambda_cdm();
     test_frw_metric_diagonal();
     test_frw_lorentzian_signature();
     test_frw_redshift_consistency();
@@ -703,6 +725,6 @@ int main() {
 #pragma warning(pop)
 #endif
 
-    std::cout << "=== ALL FRW CONSISTENCY TESTS PASSED (" << 30 << " test functions) ===" << std::endl;
+    std::cout << "=== ALL FRW CONSISTENCY TESTS PASSED (" << 31 << " test functions) ===" << std::endl;
     return 0;
 }

@@ -199,18 +199,16 @@ public:
     /**
      * @brief Compute the age of the universe for this model.
      *
-     * Numerically integrates dt/a(t) from t=0 to find when the
-     * conformal time integral reaches the present.
+     * Finds cosmic time t such that the scale factor a(t) reaches 1
+     * (present day) by bisection on the scale factor function. Works for
+     * any monotonically increasing scale factor — matter, radiation, ΛCDM,
+     * or custom.
      *
-     * @param tMax Maximum time to integrate (default: 200 Gyr).
-     * @param steps Number of integration steps.
+     * @param tMax Maximum time to search (default: 200 Gyr).
+     * @param steps Number of bisection iterations (default: 200 → ~1e-60 relative precision).
      * @return Estimated age of the universe in seconds.
      */
-    double ageOfUniverse(double tMax = 6.31e17, int steps = 10000) const {
-        (void)tMax; (void)steps;
-        // For flat matter-dominated: t_age ≈ 2/(3H₀)
-        return 2.0 / (3.0 * H0_);
-    }
+    double ageOfUniverse(double tMax = 6.31e18, int steps = 200) const;
 
 private:
     int curvature_;  ///< k = -1, 0, or +1
@@ -229,6 +227,24 @@ private:
         return (a_plus - a_minus) / (2.0 * h);
     }
 };
+
+inline double FRWMetric::ageOfUniverse(double tMax, int steps) const {
+    // Bisection on t: find t such that scaleFactor(t) = 1 (present day).
+    const double aAtZero = scaleFactor_(0.0);
+    if (aAtZero >= 1.0) return 0.0; // degenerate: already at present at t=0
+
+    const double aAtMax = scaleFactor_(tMax);
+    if (aAtMax <= 1.0) return tMax; // hasn't reached present by tMax
+
+    double lo = 0.0, hi = tMax;
+    for (int i = 0; i < steps; ++i) {
+        const double mid = 0.5 * (lo + hi);
+        const double aMid = scaleFactor_(mid);
+        if (aMid < 1.0) lo = mid;
+        else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+}
 
 } // namespace quantumverse
 
