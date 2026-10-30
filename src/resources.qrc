@@ -15,6 +15,7 @@
         <file>GPSPanel.qml</file>
         <file>ExperimentParamForm.qml</file>
         <file>ExperimentsPanel.qml</file>
+        <file>RecordingPanel.qml</file>
         <file>../resources/paper_template.tex</file>
     </qresource>
     <qresource prefix="/">

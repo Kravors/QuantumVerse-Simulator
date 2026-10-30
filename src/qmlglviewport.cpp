@@ -2130,6 +2130,7 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     , m_frameCount(0)
     , m_lastFrameTime(0)
     , m_postProcess(std::make_shared<PostProcess>())
+    , m_sessionRecorder(std::make_unique<quantumverse::SessionRecorder>())
 {
     std::ofstream("viewport_ctor.log") << "QmlGlViewport constructor called, parent=" << parent << std::endl;
     setObjectName("viewport");  // Required for findChild in main_qml.cpp
@@ -2543,6 +2544,45 @@ void QmlGlViewport::updateSimulation(double deltaTime)
     if (m_gps && m_ui4d && m_probeMetric) {
         m_gps->updateFromSimulation(m_ui4d.get(), m_probeMetric.get(),
                                     m_simulationTime, deltaTime);
+    }
+
+    // Persist frames to disk via SessionRecorder when recording.
+    // Accumulated-time gate: record every frameInterval sim frames (~60fps).
+    if (m_recording && m_sessionRecorder && m_ui4d && m_probeMetric) {
+        m_accumulatedTime += deltaTime;
+        const double kFrameIntervalSec = 1.0 / 60.0;
+        if (m_accumulatedTime >= kFrameIntervalSec) {
+            m_accumulatedTime -= kFrameIntervalSec;
+
+            quantumverse::FrameRecord frame;
+            frame.time = m_simulationTime;
+
+            auto& bodies = m_ui4d->getSolarSystem().bodies;
+            for (auto& kv : bodies) {
+                const auto& b = kv.second;
+                frame.bodyNames.push_back(b.name);
+                frame.positions.push_back(b.position.x);
+                frame.positions.push_back(b.position.y);
+                frame.positions.push_back(b.position.z);
+                frame.velocities.push_back(b.velocity.x);
+                frame.velocities.push_back(b.velocity.y);
+                frame.velocities.push_back(b.velocity.z);
+            }
+
+            auto tel = m_ui4d->telemetry();
+            frame.totalEnergy = tel.totalEnergy;
+            frame.kineticEnergy = tel.totalKineticEnergy;
+            frame.potentialEnergy = tel.totalPotentialEnergy;
+
+            if (m_camera4DAdapter) {
+                auto camPos = m_camera4DAdapter->cameraPosition4D();
+                frame.cameraPosition = {camPos.t, camPos.x, camPos.y, camPos.z};
+            }
+
+            frame.blackHoleMassKg = m_blackHoleMass * 1.989e30;
+
+            m_sessionRecorder->recordFrame(frame);
+        }
     }
 
     // Update gravitational wave audio
@@ -3535,6 +3575,12 @@ bool QmlGlViewport::scenarioPlaying() const {
 
 void QmlGlViewport::startRecording(int maxFrames, int frameInterval) {
     if (!m_ui4d) return;
+    quantumverse::SessionRecorderConfig cfg;
+    cfg.maxFrames = maxFrames;
+    cfg.frameInterval = frameInterval;
+    m_sessionRecorder->configure(cfg);
+    m_sessionRecorder->start();
+    m_accumulatedTime = 0.0;
     m_ui4d->startRecording(maxFrames, frameInterval);
     m_recording = true;
     emit recordingChanged();
@@ -3544,6 +3590,7 @@ void QmlGlViewport::startRecording(int maxFrames, int frameInterval) {
 void QmlGlViewport::stopRecording() {
     if (!m_ui4d) return;
     m_ui4d->stopRecording();
+    m_sessionRecorder->stop();
     m_recording = false;
     m_totalFrames = m_ui4d->totalRecordingFrames();
     m_recordingDuration = m_ui4d->recordingDuration();

@@ -38,6 +38,7 @@
 #include <atomic>
 
 #include "ml/SurrogateIntegration.h"
+#include "ml/SessionRecorder.h"
 #include "physics/PhysicsValidator.h"
 #ifdef QUANTUMVERSE_USE_VR
 #include "vr/OpenXRBackend.h"
@@ -1086,6 +1087,9 @@ private:
      int m_currentFrame = 0;
      int m_totalFrames = 0;
     double m_recordingDuration = 0.0;
+    double m_accumulatedTime = 0.0;
+
+    std::unique_ptr<quantumverse::SessionRecorder> m_sessionRecorder;
 
     // Undo/Redo system
     struct Command {

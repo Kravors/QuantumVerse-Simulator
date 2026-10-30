@@ -1866,6 +1866,14 @@ ApplicationWindow {
                     source: "GPSPanel.qml"
                 }
 
+                // Recording panel
+                Loader {
+                    id: recordingPanelLoader
+                    Layout.fillWidth: true
+                    active: true
+                    source: "RecordingPanel.qml"
+                }
+
                 // Experiments panel
                 Loader {
                     id: experimentsPanelLoader
