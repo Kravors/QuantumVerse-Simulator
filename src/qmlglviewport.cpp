@@ -31,6 +31,7 @@
 #include "rendering/gl_check.h"
 #include "ui4d/UI4D.h"
 #include "ui4d/Camera4DAdapter.h"
+#include "ui4d/SpacetimeGPS.h"
 #include "spacetime/Event4D.h"
 #include "config/ConfigLoader.h"
 #include "audio/GravitationalWaveAudio.h"
@@ -2411,6 +2412,11 @@ void QmlGlViewport::setUI4D(std::shared_ptr<UI4D> ui4d)
     }
 }
 
+void QmlGlViewport::setSpacetimeGPS(SpacetimeGPS* gps)
+{
+    m_gps = gps;
+}
+
 void QmlGlViewport::setCelestialBodyRendererDirect(std::shared_ptr<CelestialBodyRenderer> renderer)
 {
     m_celestialBodyRenderer = std::move(renderer);
@@ -2428,6 +2434,14 @@ void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
     if (m_physicsValidator) m_physicsValidator->setMetric(m_probeMetric);
     if (m_probeMetric) {
         probeAt(0.0, 0.0, 100000.0);
+    }
+    // Recompute grid Z displacement so the curvature grid deforms with the new mass.
+    // Without this explicit call, gridZRange() stays at 0..0 because render()'s
+    // epoch check may not fire between mass changes in headless mode.
+    // The deformed grid is a training signal for the SessionRecorder; recording
+    // a static 0..0 grid silently teaches the model to ignore it.
+    if (m_curvatureRenderer) {
+        m_curvatureRenderer->recomputeGridZRange();
     }
 }
 
@@ -2523,6 +2537,12 @@ void QmlGlViewport::updateSimulation(double deltaTime)
     // Step the solar-system N-body physics every frame so bodies move
     if (m_ui4d) {
         m_ui4d->stepSimulation(deltaTime);
+    }
+
+    // Feed the Spacetime GPS telemetry feed from the live simulation.
+    if (m_gps && m_ui4d && m_probeMetric) {
+        m_gps->updateFromSimulation(m_ui4d.get(), m_probeMetric.get(),
+                                    m_simulationTime, deltaTime);
     }
 
     // Update gravitational wave audio
@@ -2746,6 +2766,7 @@ void QmlGlViewport::setBlackHoleMass(double mass)
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
+        m_curvatureRenderer->recomputeGridZRange();
         probeAt(0.0, 0.0, 100000.0);
         // The lensing ring has never responded to any mass parameter: setLensingMass
         // had no caller at all. Wire it here, on the same code path that updates
@@ -3046,6 +3067,7 @@ void QmlGlViewport::setBlackHoleType(const QString& type)
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
+        m_curvatureRenderer->recomputeGridZRange();
         if (m_physicsValidator) {
             double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
             m_physicsValidator->setMass(mass_kg);
