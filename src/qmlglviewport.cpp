@@ -2766,6 +2766,10 @@ void QmlGlViewport::setBlackHoleMass(double mass)
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
+        // Recompute grid Z displacement so the curvature grid deforms with
+        // the new mass. Safe: recomputeGridZRange() guards on m_initialized,
+        // so it's a no-op during QML init before GL context exists.
+        m_curvatureRenderer->recomputeGridZRange();
         probeAt(0.0, 0.0, 100000.0);
         // The lensing ring has never responded to any mass parameter: setLensingMass
         // had no caller at all. Wire it here, on the same code path that updates
@@ -3066,6 +3070,11 @@ void QmlGlViewport::setBlackHoleType(const QString& type)
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
+        // Recompute grid Z displacement so the curvature grid deforms with
+        // the new black hole type. Safe: recomputeGridZRange() guards on
+        // m_initialized, so it's a no-op during QML init before GL context
+        // exists. Removed in 791156b pending this guard; restored here.
+        m_curvatureRenderer->recomputeGridZRange();
         if (m_physicsValidator) {
             double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
             m_physicsValidator->setMass(mass_kg);

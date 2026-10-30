@@ -1678,7 +1678,12 @@ std::pair<float, float> CurvatureRenderer::gridZRange() const
 
 void CurvatureRenderer::recomputeGridZRange()
 {
-    if (vertices.empty()) return;
+    // Guard: don't recompute before GL context is ready (e.g. during QML
+    // component construction, where setBlackHoleMass()/setBlackHoleType()
+    // may fire before initializeGrid() has run). The m_initialized flag is
+    // set at the end of initializeGrid(); until then there's nothing to
+    // recompute anyway.
+    if (!m_initialized || vertices.empty()) return;
 
     if (computeShader.id != 0 && computeBuffersInitialized) {
         deformGridGPU();
