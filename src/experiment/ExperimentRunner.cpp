@@ -304,6 +304,8 @@ QString ExperimentRunner::exportValidationReport(const QString& format) {
 
     QString path = writeValidationReportCSV(result);
 
+    qInfo("[EXPORT] %s", qPrintable(path));
+
     QMutexLocker lock(&m_mutex);
     for (auto& h : m_history) {
         if (h.id == m_currentId) h.result.outputDir = path;
