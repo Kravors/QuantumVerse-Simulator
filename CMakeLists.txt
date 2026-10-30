@@ -253,6 +253,28 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/scenegraphmodel.cpp
         src/ui4d/UI4D.cpp
         src/ui4d/QmlRLDiscoveryAgent.cpp
+        src/ui4d/SpacetimeGPS.cpp
+        src/experiment/ExperimentRunner.cpp
+        src/experiment/experiments/MassSweepExperiment.cpp
+        src/experiment/experiments/SpinSweepExperiment.cpp
+        src/experiment/experiments/LensingDeflectionExperiment.cpp
+        src/experiment/experiments/ChargeSweepExperiment.cpp
+        src/experiment/experiments/MercuryPrecessionExperiment.cpp
+        src/experiment/experiments/FrameDraggingExperiment.cpp
+        src/experiment/experiments/RedshiftProfileExperiment.cpp
+        src/experiment/experiments/AnomalyScanExperiment.cpp
+        src/experiment/experiments/TheoryComparisonExperiment.cpp
+        src/experiment/experiments/QuantumGeometryExperiment.cpp
+        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+        src/experiment/experiments/CosmologyExperimentBase.cpp
+        src/experiment/experiments/AgeOfUniverseExperiment.cpp
+        src/experiment/experiments/DistanceLadderExperiment.cpp
+        src/experiment/experiments/CMBTemperatureExperiment.cpp
+        src/experiment/experiments/BAOSoundHorizonExperiment.cpp
+        src/experiment/experiments/HubbleEvolutionExperiment.cpp
+        src/experiment/experiments/GrowthFactorExperiment.cpp
+        src/experiment/experiments/CosmologyValidationSuite.cpp
         third_party/glad/glad.cpp
         src/ui4d/Camera4DAdapter.cpp
         src/ui4d/SceneGraphManager.cpp
@@ -330,6 +352,7 @@ src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
         src/ml/AnomalyDetector.cpp
         src/ml/TrainingDataCollector.cpp
+        src/ml/SessionRecorder.cpp
         src/ml/AnomalyMonitor.cpp
         src/education/EducationalTour.cpp
         src/education/TourController.cpp
@@ -1172,8 +1195,12 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     endif()
     
     # Physics validation tests
-    add_executable(test_mercury_precession tests/test_mercury_precession.cpp)
-    target_link_libraries(test_mercury_precession PRIVATE dilaton)
+    add_executable(test_mercury_precession
+        tests/test_mercury_precession.cpp
+        src/experiment/experiments/MercuryPrecessionExperiment.cpp
+    )
+    target_link_libraries(test_mercury_precession PRIVATE dilaton Qt6::Core)
+    target_include_directories(test_mercury_precession PRIVATE src)
     add_test(NAME MercuryPrecessionTest COMMAND test_mercury_precession)
 
     # Integrator-level test: 1PN Schwarzschild correction, Mercury perihelion advance
@@ -1303,8 +1330,14 @@ endif()
     add_test(NAME SpacetimeTest COMMAND test_spacetime)
 
     # Metric epoch test (Phase 1.1)
-    add_executable(test_metric_epoch tests/test_metric_epoch.cpp)
-    target_link_libraries(test_metric_epoch PRIVATE dilaton)
+    add_executable(test_metric_epoch
+        tests/test_metric_epoch.cpp
+        src/spacetime/KerrMetric.cpp
+    )
+    target_link_libraries(test_metric_epoch PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
+    target_include_directories(test_metric_epoch PRIVATE src third_party/glad/include third_party/glad/include/glad)
+    target_compile_definitions(test_metric_epoch PRIVATE QUANTUMVERSE_USE_QML)
+    set_target_properties(test_metric_epoch PROPERTIES AUTOMOC ON)
     add_test(NAME MetricEpochTest COMMAND test_metric_epoch)
 
     # Skeleton tests (Phase 0.3-now) — real assertions land with their modules in Phase 3
@@ -1645,6 +1678,16 @@ endif()
         add_test(NAME TrainingDataCollectorTest COMMAND test_training_data_collector)
     endif()
 
+    # ML SessionRecorder unit test — round-trip write/read fidelity
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_session_recorder.cpp)
+        add_executable(test_session_recorder
+            tests/test_session_recorder.cpp
+            src/ml/SessionRecorder.cpp
+        )
+        target_link_libraries(test_session_recorder PRIVATE dilaton)
+        add_test(NAME SessionRecorderTest COMMAND test_session_recorder)
+    endif()
+
     if(TARGET quantumverse_qml)
         # ML AnomalyMonitor integration test
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_anomaly_monitor.cpp)
@@ -1830,6 +1873,101 @@ endif()
             set_target_properties(test_ui_wiring PROPERTIES AUTOMOC ON)
             add_test(NAME UiWiringTest COMMAND test_ui_wiring)
             set_tests_properties(UiWiringTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
+        endif()
+
+        # Spacetime GPS telemetry feed test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_spacetime_gps.cpp)
+            add_executable(test_spacetime_gps
+                tests/test_spacetime_gps.cpp
+                src/ui4d/SpacetimeGPS.cpp
+            )
+            target_link_libraries(test_spacetime_gps PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
+            target_include_directories(test_spacetime_gps PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_spacetime_gps PRIVATE QUANTUMVERSE_USE_QML)
+            set_target_properties(test_spacetime_gps PROPERTIES AUTOMOC ON)
+            add_test(NAME SpacetimeGpsTest COMMAND test_spacetime_gps)
+            set_tests_properties(SpacetimeGpsTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
+        endif()
+
+        # Experiment runner test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_experiment_runner.cpp)
+            add_executable(test_experiment_runner
+                tests/test_experiment_runner.cpp
+                src/experiment/ExperimentRunner.cpp
+                src/experiment/experiments/MassSweepExperiment.cpp
+                src/spacetime/KerrMetric.cpp
+            )
+            target_link_libraries(test_experiment_runner PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
+            target_include_directories(test_experiment_runner PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_experiment_runner PRIVATE QUANTUMVERSE_USE_QML)
+            set_target_properties(test_experiment_runner PROPERTIES AUTOMOC ON)
+            add_test(NAME ExperimentRunnerTest COMMAND test_experiment_runner)
+            set_tests_properties(ExperimentRunnerTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
+        endif()
+
+        # Charge sweep experiment test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_charge_sweep.cpp)
+            add_executable(test_charge_sweep
+                tests/test_charge_sweep.cpp
+                src/experiment/experiments/ChargeSweepExperiment.cpp
+            )
+            target_link_libraries(test_charge_sweep PRIVATE dilaton Qt6::Core Qt6::Test)
+            target_include_directories(test_charge_sweep PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_charge_sweep PRIVATE QUANTUMVERSE_USE_QML)
+            add_test(NAME ChargeSweepTest COMMAND test_charge_sweep)
+            set_tests_properties(ChargeSweepTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
+        endif()
+
+        # Frame dragging experiment test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_frame_dragging_experiment.cpp)
+            add_executable(test_frame_dragging_experiment
+                tests/test_frame_dragging_experiment.cpp
+                src/experiment/experiments/FrameDraggingExperiment.cpp
+            )
+            target_link_libraries(test_frame_dragging_experiment PRIVATE dilaton Qt6::Core Qt6::Test)
+            target_include_directories(test_frame_dragging_experiment PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_frame_dragging_experiment PRIVATE QUANTUMVERSE_USE_QML)
+            add_test(NAME FrameDraggingExperimentTest COMMAND test_frame_dragging_experiment)
+            set_tests_properties(FrameDraggingExperimentTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
+                ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
+        endif()
+
+        # Cosmology validation experiment tests
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_cosmology_experiments.cpp)
+            add_executable(test_cosmology_experiments
+                tests/test_cosmology_experiments.cpp
+                src/experiment/ExperimentRunner.cpp
+                src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+                src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+                src/experiment/experiments/CosmologyExperimentBase.cpp
+                src/experiment/experiments/AgeOfUniverseExperiment.cpp
+                src/experiment/experiments/DistanceLadderExperiment.cpp
+                src/experiment/experiments/CMBTemperatureExperiment.cpp
+                src/experiment/experiments/BAOSoundHorizonExperiment.cpp
+                src/experiment/experiments/HubbleEvolutionExperiment.cpp
+                src/experiment/experiments/GrowthFactorExperiment.cpp
+                src/experiment/experiments/CosmologyValidationSuite.cpp
+            )
+            target_link_libraries(test_cosmology_experiments PRIVATE dilaton Qt6::Core)
+            target_include_directories(test_cosmology_experiments PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_cosmology_experiments PRIVATE QUANTUMVERSE_USE_QML)
+            set_target_properties(test_cosmology_experiments PROPERTIES AUTOMOC ON)
+            add_test(NAME CosmologyExperimentsTest COMMAND test_cosmology_experiments)
+            set_tests_properties(CosmologyExperimentsTest PROPERTIES
                 WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
                 ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
             )
