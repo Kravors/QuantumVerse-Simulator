@@ -3,7 +3,17 @@
 python/smoke_test_training.py — smallest possible training pipeline smoke test.
 
 Loads all data/sessions/*/frames.bin, trains a tiny MLP to predict the next
-frame from the current frame, and compares against trivial baselines.
+frame from the current frame, and compares against trivial baselines:
+
+  identity:  x_{t+1} = x_t                      (no change)
+  first-order: x_{t+1} = x_t + v_t * dt         (kinematic extrapolation)
+  model:     MLP(x_t) -> x_{t+1}                (learned predictor)
+
+The meaningful number is model_val_loss / first_order_val_loss:
+  < 0.5  -> model learned real physics, scale up
+  0.5-0.9 -> model learned something modest
+  ≈ 1.0  -> model learned only trivial kinematics, need representation change
+  > 1.0  -> model is broken, fix training first
 
 Run:  python python/smoke_test_training.py
 """
@@ -101,6 +111,12 @@ def load_sessions(sessions_dir):
     return out
 
 
+# Tensor layout constants (matches session_to_tensor)
+HEADER_DIMS = 5    # t, bhMass, cam_x, cam_y, cam_z
+BODY_DIMS = 6      # per body: x,y,z,vx,vy,vz
+DT = 0.1           # 10 Hz recording interval
+
+
 def make_model(dim):
     return nn.Sequential(
         nn.Linear(dim, 128), nn.ReLU(),
@@ -129,15 +145,27 @@ def eval_loss(model, x, y):
         return ((model(x) - y) ** 2).mean().item()
 
 
-def normalize(train_x):
-    """Per-dimension z-score. Static dims (std~0) map to 0."""
+def first_order(x):
+    """Kinematic extrapolation: x_{t+1} = x_t + v_t * dt.
+       Only body positions change; t, bhMass, camera, and velocities stay."""
+    y = x.clone()
+    n_bodies = (x.shape[1] - HEADER_DIMS) // BODY_DIMS
+    for b in range(n_bodies):
+        off = HEADER_DIMS + b * BODY_DIMS
+        y[:, off + 0] += x[:, off + 3] * DT   # px += vx * dt
+        y[:, off + 1] += x[:, off + 4] * DT   # py += vy * dt
+        y[:, off + 2] += x[:, off + 5] * DT   # pz += vz * dt
+    return y
+
+
+def mask_degenerate(train_x):
+    """Drop dims with std < 1e-3 (constant across the dataset)."""
     mu = train_x.mean(dim=0)
     sd = train_x.std(dim=0)
-    static = sd < 1e-6
-    sd_safe = torch.where(static, torch.ones_like(sd), sd)
-    # For static dims, subtract the mean so (val-mean)=0 -> result 0
-    mu_safe = torch.where(static, mu, mu)
-    return (train_x - mu_safe) / sd_safe, mu_safe, sd_safe, static
+    keep = sd >= 1e-3
+    print('Degenerate dims dropped:',
+          [i for i in range(train_x.shape[1]) if not keep[i].item()])
+    return train_x[:, keep], mu[keep], sd[keep], keep
 
 
 def main():
@@ -150,70 +178,74 @@ def main():
     train_sessions = sessions[:-1]
     val_session = sessions[-1]
 
-    train_x = torch.cat([t[:-1] for _, t in train_sessions], dim=0)
-    train_y = torch.cat([t[1:] for _, t in train_sessions], dim=0)
-    val_x = val_session[1][:-1]
-    val_y = val_session[1][1:]
+    train_x_full = torch.cat([t[:-1] for _, t in train_sessions], dim=0)
+    train_y_full = torch.cat([t[1:] for _, t in train_sessions], dim=0)
+    val_x_full = val_session[1][:-1]
+    val_y_full = val_session[1][1:]
 
     print()
-    print('Train: %s, Val: %s' % (tuple(train_x.shape), tuple(val_x.shape)))
+    print('Train: %s, Val: %s' % (tuple(train_x_full.shape), tuple(val_x_full.shape)))
 
-    # Normalize
-    train_n, mu_safe, sd_safe, static = normalize(train_x)
-    train_n = torch.where(static, torch.zeros_like(train_n), train_n)
-    train_yn = (train_y - mu_safe) / sd_safe
-    train_yn = torch.where(static, torch.zeros_like(train_yn), train_yn)
-    val_n = (val_x - mu_safe) / sd_safe
-    val_n = torch.where(static, torch.zeros_like(val_n), val_n)
-    val_yn = (val_y - mu_safe) / sd_safe
-    val_yn = torch.where(static, torch.zeros_like(val_yn), val_yn)
+    # ---- Mask degenerate dims (the 1e-3 threshold keeps only dims that vary) ----
+    train_x, mu, sd, keep = mask_degenerate(train_x_full)
+    train_y = train_y_full[:, keep]
+    val_x = val_x_full[:, keep]
+    val_y = val_y_full[:, keep]
 
-    print('Static dims (no variance):', [i for i, s in enumerate(static) if s.item()])
+    # Normalize with masked stats
+    train_n = (train_x - mu) / sd
+    train_yn = (train_y - mu) / sd
+    val_n = (val_x - mu) / sd
+    val_yn = (val_y - mu) / sd
 
-    # --- Absolute prediction ---
+    print('Active dims:', int(keep.sum().item()), 'of', len(keep))
+
+    # ---- Baseline ladder ----
+    # Identity: predict current frame = next frame (already in normalized space)
+    identity_train_loss = ((train_n - train_yn) ** 2).mean().item()
+    identity_val_loss = ((val_n - val_yn) ** 2).mean().item()
+
+    # First-order: x_{t+1} = x_t + v_t * dt (raw space, then mask + normalize)
+    first_order_train_raw = first_order(train_x_full)[:, keep]
+    first_order_val_raw = first_order(val_x_full)[:, keep]
+    first_order_train_n = (first_order_train_raw - mu) / sd
+    first_order_val_n = (first_order_val_raw - mu) / sd
+    first_order_train_loss = ((train_n - first_order_train_n) ** 2).mean().item()
+    first_order_val_loss = ((val_n - first_order_val_n) ** 2).mean().item()
+
+    print()
+    print('=== Baseline ladder (validation, masked + normalized dims) ===')
+    print('  identity   : %.6e' % identity_val_loss)
+    print('  first-order: %.6e' % first_order_val_loss)
+    print()
+    print('=== Baseline ladder (training, masked + normalized dims) ===')
+    print('  identity   : %.6e' % identity_train_loss)
+    print('  first-order: %.6e' % first_order_train_loss)
+
+    # ---- Model: absolute prediction on masked dims ----
     print()
     print('=== Absolute: model(x_t) -> x_{t+1} ===')
-    identity_loss = ((train_n - train_yn) ** 2).mean().item()
-    const_loss = (train_yn ** 2).mean().item()
-    print('Baselines: identity=%.6f  constant=%.6f' % (identity_loss, const_loss))
-
     model = make_model(train_x.shape[1]).double()
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
     for epoch in range(20):
         tr = train_epoch(model, opt, train_n, train_yn)
         tr_l = eval_loss(model, train_n, train_yn)
         va_l = eval_loss(model, val_n, val_yn)
-        print('epoch %2d: train=%.6f  val=%.6f' % (epoch, tr_l, va_l))
+        if epoch % 5 == 0 or epoch == 19:
+            print('epoch %2d: train=%.6e  val=%.6e' % (epoch, tr_l, va_l))
 
-    print('train/identity = %.4f   val/identity = %.4f' % (tr_l / identity_loss, va_l / identity_loss))
-
-    # --- Delta prediction ---
+    model_val_loss = eval_loss(model, val_n, val_yn)
+    model_train_loss = eval_loss(model, train_n, train_yn)
     print()
-    print('=== Delta: model(x_t) -> x_{t+1} - x_t ===')
-    train_yd = train_y - train_x
-    val_yd = val_y - val_x
-    mu_d = train_yd.mean(dim=0)
-    sd_d = train_yd.std(dim=0)
-    static_d = sd_d < 1e-6
-    sd_d_safe = torch.where(static_d, torch.ones_like(sd_d), sd_d)
-    mu_d_safe = torch.where(static_d, torch.zeros_like(mu_d), mu_d)
-    train_yn_d = (train_yd - mu_d_safe) / sd_d_safe
-    train_yn_d = torch.where(static_d, torch.zeros_like(train_yn_d), train_yn_d)
-    val_yn_d = (val_yd - mu_d_safe) / sd_d_safe
-    val_yn_d = torch.where(static_d, torch.zeros_like(val_yn_d), val_yn_d)
-    identity_d_loss = (train_yn_d ** 2).mean().item()
-    const_loss_d = (train_yn_d ** 2).mean().item()
-    print('Baselines: identity-delta=%.6e  constant=%.6e' % (identity_d_loss, const_loss_d))
-
-    model_d = make_model(train_x.shape[1]).double()
-    opt_d = torch.optim.Adam(model_d.parameters(), lr=1e-3)
-    for epoch in range(20):
-        tr = train_epoch(model_d, opt_d, train_n, train_yn_d)
-        tr_l = eval_loss(model_d, train_n, train_yn_d)
-        va_l = eval_loss(model_d, val_n, val_yn_d)
-        print('epoch %2d: train=%.6f  val=%.6f' % (epoch, tr_l, va_l))
-
-    print('train/identity = %.4f   val/identity = %.4f' % (tr_l / identity_d_loss, va_l / identity_d_loss))
+    print('=== RESULT ===')
+    print('  model_val_loss      = %.6e' % model_val_loss)
+    print('  first_order_val_loss= %.6e' % first_order_val_loss)
+    print('  ratio = %.4f' % (model_val_loss / first_order_val_loss))
+    print('  model vs identity   = %.4f' % (model_val_loss / identity_val_loss))
+    print()
+    print('  model_train_loss    = %.6e' % model_train_loss)
+    print('  first_order_train   = %.6e' % first_order_train_loss)
+    print('  train ratio         = %.4f' % (model_train_loss / first_order_train_loss))
 
 
 if __name__ == '__main__':
