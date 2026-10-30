@@ -343,6 +343,7 @@ int main(int argc, char* argv[])
     // Headless detection - exit gracefully if no display (for CI environments)
     // But if --frames is specified, attempt headless benchmark rendering below.
     int headlessFrames = 0;
+    int recordFrames = 0;
     bool softwareRendering = false;
     bool noViewport = false;
     bool autoScan = false;
@@ -412,6 +413,8 @@ int main(int argc, char* argv[])
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--record") == 0 && i + 1 < argc) {
+            recordFrames = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--lensing-theta") == 0 && i + 1 < argc) {
             lensingTheta = atof(argv[++i]);
         } else if (strcmp(argv[i], "--no-celestial") == 0) {
@@ -1772,6 +1775,13 @@ int main(int argc, char* argv[])
             std::cerr << "Warmup complete, starting benchmark..." << std::endl;
             std::cerr.flush();
 
+            // Headless recording: start SessionRecorder before the benchmark loop.
+            if (recordFrames > 0 && viewport) {
+                viewport->startRecording(recordFrames, 6);  // 10 Hz (6 frames at 60 FPS)
+                std::cerr << "Headless recording: " << recordFrames << " frames at 10 Hz" << std::endl;
+                std::cerr.flush();
+            }
+
             QElapsedTimer elapsed;
             elapsed.start();
             qint64 lastTickNs = 0;
@@ -1836,6 +1846,12 @@ int main(int argc, char* argv[])
                     snap.gl_error_count = quantumverse::GLDebug::instance().getErrorCount();
                     frameDiagnostics.recordFrame(snap);
                 }
+            }
+
+            if (recordFrames > 0 && viewport) {
+                viewport->stopRecording();
+                std::cerr << "Headless recording stopped (" << viewport->totalFrames() << " frames captured)" << std::endl;
+                std::cerr.flush();
             }
 
             if (headlessRendered > 0) {

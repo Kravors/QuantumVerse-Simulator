@@ -130,7 +130,7 @@ std::string SessionRecorder::start() {
 
 void SessionRecorder::stop() {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!active_) return;
+    if (!active_ && frameCount_ == 0) return;
 
     flushBuffer();
 
@@ -164,13 +164,14 @@ void SessionRecorder::stop() {
         writeMetadata(meta);
     }
 
+    auto written = frameCount_;
     active_ = false;
     sessionId_.clear();
     sessionDir_ = std::filesystem::path();
     frameCount_ = 0;
 
     std::cout << "[SessionRecorder] Session stopped, "
-              << frameCount_ << " frames written" << std::endl;
+              << written << " frames written" << std::endl;
 }
 
 void SessionRecorder::recordFrame(const FrameRecord& frame) {
@@ -181,6 +182,21 @@ void SessionRecorder::recordFrame(const FrameRecord& frame) {
 
     if (buffer_.size() >= config_.maxFrames) {
         flushBuffer();
+        // Rewrite header with final frame count when buffer fills
+        if (framesFile_.is_open()) {
+            framesFile_.seekp(0);
+            SessionHeader hdr{};
+            hdr.magic          = kSessionMagic;
+            hdr.schemaVersion  = kSchemaVersion;
+            hdr.endianMarker   = kEndianMarker;
+            hdr.recordSize     = static_cast<std::uint32_t>(sizeof(FrameRecord));
+            hdr.frameCount     = frameCount_;
+            hdr.createdAtUnix  = static_cast<std::uint64_t>(nowEpochSeconds());
+            hdr.gitCommitPrefix = 0;
+            std::memset(hdr.reserved, 0, sizeof(hdr.reserved));
+            framesFile_.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
+            framesFile_.close();
+        }
         active_ = false;
         std::cout << "[SessionRecorder] Buffer full (" << config_.maxFrames
                   << " frames), stopping" << std::endl;

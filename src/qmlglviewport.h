@@ -1086,8 +1086,9 @@ private:
      bool m_playing = false;
      int m_currentFrame = 0;
      int m_totalFrames = 0;
-    double m_recordingDuration = 0.0;
+     double m_recordingDuration = 0.0;
     double m_accumulatedTime = 0.0;
+    double m_recordingIntervalSec = 0.1;  // 10 Hz default
 
     std::unique_ptr<quantumverse::SessionRecorder> m_sessionRecorder;
 

@@ -2550,9 +2550,8 @@ void QmlGlViewport::updateSimulation(double deltaTime)
     // Accumulated-time gate: record every frameInterval sim frames (~60fps).
     if (m_recording && m_sessionRecorder && m_ui4d && m_probeMetric) {
         m_accumulatedTime += deltaTime;
-        const double kFrameIntervalSec = 1.0 / 60.0;
-        if (m_accumulatedTime >= kFrameIntervalSec) {
-            m_accumulatedTime -= kFrameIntervalSec;
+        while (m_accumulatedTime >= m_recordingIntervalSec) {
+            m_accumulatedTime -= m_recordingIntervalSec;
 
             quantumverse::FrameRecord frame;
             frame.time = m_simulationTime;
@@ -3581,6 +3580,7 @@ void QmlGlViewport::startRecording(int maxFrames, int frameInterval) {
     m_sessionRecorder->configure(cfg);
     m_sessionRecorder->start();
     m_accumulatedTime = 0.0;
+    m_recordingIntervalSec = frameInterval / 60.0;  // frames at 60 FPS -> seconds
     m_ui4d->startRecording(maxFrames, frameInterval);
     m_recording = true;
     emit recordingChanged();
