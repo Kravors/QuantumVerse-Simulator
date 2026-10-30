@@ -27,9 +27,9 @@ At dt=0.1s, Earth orbiting the Sun:
 | Model (PhysicsInformedMLP) | 1.09e-04 | 2.43e-04 |
 | Model / First-order | **1.19x** | **1.10x** |
 
-The model converges to essentially the same loss floor as first-order kinematics (~3-10% above first-order). This is the **correct behavior** — first-order is the best achievable at 10 Hz, and the model learns it.
+The model converges to essentially the same loss floor as first-order kinematics (~10-20% above first-order on both splits). This is the **correct behavior** — first-order is the best achievable at 10 Hz, and the model learns it.
 
-**The bug that made it look worse:** An earlier version of `smoke_test_training.py` computed the first-order baseline loss by comparing **normalized input** against **normalized first-order output** (`((train_n - first_order_n) ** 2)`), instead of **normalized target** against **normalized first-order output** (`((train_yn - first_order_n) ** 2)`). Since input ≈ first-order output at 10 Hz, this produced an artificially tiny first-order loss (3.55e-06), making the model look 29x worse. Fixed by comparing target vs output — first-order is only 3-10% better than identity, and the model matches it.
+**The bug that made it look worse:** An earlier version of `smoke_test_training.py` computed the first-order baseline loss by comparing **normalized input** against **normalized first-order output** (`((train_n - first_order_n) ** 2)`), instead of **normalized target** against **normalized first-order output** (`((train_yn - first_order_n) ** 2)`). Since input ≈ first-order output at 10 Hz, this produced an artificially tiny first-order loss (3.55e-06), making the model look 29x worse. Fixed by comparing target vs output — first-order is only ~3.5% better than identity on both splits, and the model matches it.
 
 ## Ruled out (all fail at float32 precision at 10 Hz)
 
