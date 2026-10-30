@@ -288,8 +288,8 @@ def main():
     first_order_val_raw = first_order(val_x_full)[:, keep]
     first_order_train_n = (first_order_train_raw - mu) / sd
     first_order_val_n = (first_order_val_raw - mu) / sd
-    first_order_train_loss = ((train_n - first_order_train_n) ** 2).mean().item()
-    first_order_val_loss = ((val_n - first_order_val_n) ** 2).mean().item()
+    first_order_train_loss = ((train_yn - first_order_train_n) ** 2).mean().item()
+    first_order_val_loss = ((val_yn - first_order_val_n) ** 2).mean().item()
 
     print()
     print('=== Baseline ladder (validation, masked + normalized dims) ===')
@@ -322,8 +322,8 @@ def main():
     identity_val_loss_norm = ((val_n_full - val_yn_full) ** 2).mean().item()
     first_order_train_n = (first_order(train_x_full) - mu_full) / sd_full
     first_order_val_n = (first_order(val_x_full) - mu_full) / sd_full
-    first_order_train_loss_norm = ((train_n_full - first_order_train_n) ** 2).mean().item()
-    first_order_val_loss_norm = ((val_n_full - first_order_val_n) ** 2).mean().item()
+    first_order_train_loss_norm = ((train_yn_full - first_order_train_n) ** 2).mean().item()
+    first_order_val_loss_norm = ((val_yn_full - first_order_val_n) ** 2).mean().item()
 
     print()
     print('=== Baseline ladder (validation, raw 59-dim) ===')
