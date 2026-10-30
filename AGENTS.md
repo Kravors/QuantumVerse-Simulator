@@ -80,6 +80,32 @@ assert→QV_CHECK sweep (commit `d381c97`) revealed 9 pre-existing failures that
 had been invisible for months. Prefer `QV_CHECK`/`QV_CHECK_NEAR` over `assert()`
 in all test code so assertions stay live under any build type.
 
+### Tests must be provably non-vacuous
+
+A test that passes because the field it asserts on was never set is
+worse than no test — it silently marks regressions as green. Two
+concrete cases caught in `test_cosmology_experiments`:
+
+1. `out.scalars[...]` was commented out in `recordCheck`. Tests
+   asserting `scalars["x_pass"] == true` compared a default-
+   initialized `QVariant(false)` against `bool` — vacuous pass.
+2. Negative providers (`BrokenH0`) overrode accessors (`H0()`) but
+   the computation used the private member (`m_H0`) directly. The
+   "broken" provider was not broken from the computation's
+   perspective — vacuous pass.
+
+For every positive test, add a complementary negative test using a
+provider/builder that is *actually* broken at the data level, and
+assert the specific field is `false`/off. If the negative test
+passes, the positive test is vacuous.
+
+Corollary: when a test asserts on a field with a non-trivial getter,
+grep the implementation for both `m_field` and `field()` usage. If
+they can diverge, the negative test is testing the wrong layer.
+Prefer a constructor-injected `Params` struct over settable members
+so the divergence is structurally impossible, not just avoided by
+convention.
+
 ### Run Headless
 ```bash
 build\Release\quantumverse_qml.exe --headless --frames 3 --metric schwarzschild
@@ -154,6 +180,48 @@ ctest invocation.
 Use `QSG_RHI_BACKEND` instead: `d3d11`, `opengl`, `vulkan`,
 `software`. Setting `QT_OPENGL` in a Qt 6 project silently does
 nothing and makes backend comparisons misleading.
+
+### MinGW compiler must match Qt's shipped MinGW
+
+Qt 6.8.3 mingw_64 ships with MinGW 13.1.0. Building against it with a
+different GCC (e.g. MinGW 16.1.0) produces cross-TU `std::string` /
+`std::function` / `QStringList` layout mismatches. Symptom: heap
+corruption (`0xC0000374`, `STATUS_HEAP_CORRUPTION`) at process exit,
+or crash-on-`QStringList`-destruction inside code that compiles and
+runs standalone. The corruption is detected at `free()`, but the write
+happened earlier — `gflags /p /enable ... /full` (PageHeap) surfaces
+the actual offending write.
+
+Fix: use `C:\Qt\Tools\mingw1310_64\bin\g++.exe`, not
+`C:\ProgramData\mingw64\mingw64\bin\g++.exe`. When a test crashes with
+`0xC0000374` and "passes standalone", check compiler-vs-Qt MinGW
+version before any other hypothesis.
+
+### MinGW 13 on Windows — additional quirks
+
+Three behaviors differ from Linux/GCC expectations:
+
+1. **`std::filesystem::create_directories()` hangs on recursive creation.**
+   Symptom: first call to `create_directories("data/sessions/<uuid>/")`
+   blocks indefinitely (no CPU, no I/O). Workaround: use a recursive
+   `CreateDirectoryA()` helper instead (see `SessionRecorder`). This is
+   a MinGW 13 filesystem implementation issue, not a Windows API issue
+   — the same call works from MSVC and from Linux GCC 13.
+
+2. **`std::mutex` in a setup-path method deadlocks.** Symptom: first
+   `lock()` inside `start()` blocks forever even on a single-threaded
+   caller. Workaround: remove the mutex from methods called exactly once
+   at init (`start()`, `open()`, `connect()`). Guard only genuinely
+   concurrent paths.
+
+3. **`std::function` layout matches Qt's expectation only when the
+   compiler matches Qt's MinGW.** (Covered by the existing rule above —
+   repeated here because the DLL boundary and the in-process layout are
+   the same root cause.)
+
+These three together mean: MinGW 13 works, but not by default. Grep for
+`std::filesystem` and `std::mutex` before claiming a "portable" feature
+is done.
 
 ### GL canary tests bypass backend selection
 `test_rendering_diagnostic`, `test_viewport_content_test`, and
