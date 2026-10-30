@@ -64,12 +64,15 @@ public:
      */
     static FRWMetric matterDominated(double hubbleConstant = 2.27e-18,
                                       double t0 = 4.354e17) {
-        return FRWMetric(Curvature::FLAT,
+        FRWMetric m(Curvature::FLAT,
             [t0](double t) -> double {
                 if (t <= 0) return 0.0;
                 return std::pow(t / t0, 2.0 / 3.0);
             },
             hubbleConstant);
+        m.omegaM_ = 1.0;
+        m.omegaLambda_ = 0.0;
+        return m;
     }
 
     /**
@@ -79,12 +82,15 @@ public:
      */
     static FRWMetric radiationDominated(double hubbleConstant = 2.27e-18,
                                          double t0 = 4.354e17) {
-        return FRWMetric(Curvature::FLAT,
+        FRWMetric m(Curvature::FLAT,
             [t0](double t) -> double {
                 if (t <= 0) return 0.0;
                 return std::pow(t / t0, 0.5);
             },
             hubbleConstant);
+        m.omegaM_ = 0.0;
+        m.omegaLambda_ = 0.0;
+        return m;
     }
 
     /**
@@ -99,7 +105,7 @@ public:
         if (std::abs(omegaM + omegaLambda - 1.0) > 0.01) {
             throw std::invalid_argument("FRWMetric: Ωm + ΩΛ should ≈ 1 for flat ΛCDM");
         }
-        return FRWMetric(Curvature::FLAT,
+        FRWMetric m(Curvature::FLAT,
             [omegaM, omegaLambda, hubbleConstant](double t) -> double {
                 if (t <= 0) return 0.0;
                 double x = 1.5 * hubbleConstant * std::sqrt(omegaLambda) * t;
@@ -110,6 +116,9 @@ public:
                        std::pow(sinh_val, 2.0 / 3.0);
             },
             hubbleConstant);
+        m.omegaM_ = omegaM;
+        m.omegaLambda_ = omegaLambda;
+        return m;
     }
 
     /**
@@ -117,11 +126,14 @@ public:
      * @param hubbleConstant H₀ in s⁻¹.
      */
     static FRWMetric deSitter(double hubbleConstant = 2.27e-18) {
-        return FRWMetric(Curvature::FLAT,
+        FRWMetric m(Curvature::FLAT,
             [hubbleConstant](double t) -> double {
                 return std::exp(hubbleConstant * t);
             },
             hubbleConstant);
+        m.omegaM_ = 0.0;
+        m.omegaLambda_ = 1.0;
+        return m;
     }
 
     /**
@@ -190,6 +202,16 @@ public:
     int curvature() const { return curvature_; }
 
     /**
+     * @brief Get the matter density parameter Ωₘ.
+     */
+    double omegaM() const { return omegaM_; }
+
+    /**
+     * @brief Get the dark energy density parameter ΩΛ.
+     */
+    double omegaLambda() const { return omegaLambda_; }
+
+    /**
      * @brief Get the scale factor at time t.
      */
     double scaleFactor(double t) const {
@@ -214,6 +236,8 @@ private:
     int curvature_;  ///< k = -1, 0, or +1
     std::function<double(double)> scaleFactor_;
     double H0_;
+    double omegaM_ = 0.0;    ///< Matter density parameter Ωₘ
+    double omegaLambda_ = 0.0; ///< Dark energy density parameter ΩΛ
 
     /**
       * @brief Numerically compute the derivative of the scale factor.
