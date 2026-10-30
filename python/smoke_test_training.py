@@ -246,7 +246,7 @@ def main():
     print()
     print('=== Absolute: model(x_t) -> x_{t+1} ===')
     model = make_model(train_x.shape[1]).double()
-    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    opt = torch.optim.Adam(model.parameters(), lr=1e-4)
     for epoch in range(200):
         tr = train_epoch(model, opt, train_n, train_yn)
         tr_l = eval_loss(model, train_n, train_yn)
