@@ -2062,6 +2062,22 @@ ApplicationWindow {
         }
     }
 
+    // Camera orbit during recording — drives camera_az variation so training
+    // data contains camera motion, not just body motion. Runs on simTimer
+    // cadence so it fires identically under software rendering and headless.
+    Timer {
+        id: cameraOrbitTimer
+        interval: 100  // 10 Hz
+        running: viewportItem && viewportItem.recording
+        repeat: true
+        onTriggered: {
+            if (viewportItem && viewportItem.camera4DAdapter) {
+                var az = viewportItem.camera4DAdapter.azimuth
+                viewportItem.camera4DAdapter.azimuth = az + 0.05
+            }
+        }
+    }
+
     // =========================================================================
     // HELPER FUNCTIONS
     // =========================================================================
