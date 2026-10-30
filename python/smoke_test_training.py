@@ -125,6 +125,62 @@ def make_model(dim):
     )
 
 
+class PhysicsInformedMLP(nn.Module):
+    """MLP that predicts raw acceleration only; position/velocity updated by
+    exact kinematics in RAW space. Input is normalized internally for the MLP,
+    but the kinematic update pos += vel*dt, vel += accel*dt is in raw space.
+    If net outputs zero, model == first-order baseline exactly."""
+
+    def __init__(self, state_dim=59, dt=0.1, mu=None, sd=None):
+        super().__init__()
+        self.dt = dt
+        self.n_bodies = (state_dim - HEADER_DIMS) // BODY_DIMS
+        if mu is not None:
+            self.register_buffer('mu', mu.double())
+            self.register_buffer('sd', sd.double())
+        else:
+            self.register_buffer('mu', torch.zeros(state_dim))
+            self.register_buffer('sd', torch.ones(state_dim))
+        self.net = nn.Sequential(
+            nn.Linear(state_dim, 128), nn.Tanh(),
+            nn.Linear(128, 128), nn.Tanh(),
+            nn.Linear(128, self.n_bodies * 3),  # raw acceleration per body
+        )
+        # Zero-init bias, small random weights for last layer so model starts
+        # near first-order but gradients can flow to all layers
+        nn.init.zeros_(self.net[-1].bias)
+        nn.init.uniform_(self.net[-1].weight, -1e-4, 1e-4)
+
+    def forward(self, x_raw):
+        # Normalize input for MLP stability (all dims O(1))
+        x_norm = (x_raw - self.mu) / self.sd
+
+        # Per-body raw position and velocity
+        n_bodies = self.n_bodies
+        pos_parts, vel_parts = [], []
+        for b in range(n_bodies):
+            off = HEADER_DIMS + b * BODY_DIMS
+            pos_parts.append(x_raw[:, off:off + 3])
+            vel_parts.append(x_raw[:, off + 3:off + 6])
+        pos_raw = torch.stack(pos_parts, dim=1)   # [B, N, 3]
+        vel_raw = torch.stack(vel_parts, dim=1)   # [B, N, 3]
+
+        # Predict raw acceleration (last layer linear, outputs raw m/s^2)
+        accel_raw = self.net(x_norm).view(-1, n_bodies, 3)  # [B, N, 3]
+
+        # Raw-space kinematics (exact, no network involvement for positions)
+        out_raw = x_raw.clone()
+        out_raw[:, 0] = x_raw[:, 0] + self.dt                       # t += dt
+        for b in range(n_bodies):
+            off = HEADER_DIMS + b * BODY_DIMS
+            out_raw[:, off:off + 3] = pos_raw[:, b, :] + vel_raw[:, b, :] * self.dt  # pos += vel*dt
+            out_raw[:, off + 3:off + 6] = vel_raw[:, b, :] + accel_raw[:, b, :] * self.dt  # vel += accel*dt
+
+        # Normalize output so all dims are O(1) for the loss
+        out_norm = (out_raw - self.mu) / self.sd
+        return out_norm
+
+
 def train_epoch(model, opt, train_n, train_yn, batch=64):
     perm = torch.randperm(train_n.shape[0])
     total_loss = 0.0
@@ -147,8 +203,10 @@ def eval_loss(model, x, y):
 
 def first_order(x):
     """Kinematic extrapolation: x_{t+1} = x_t + v_t * dt.
-       Only body positions change; t, bhMass, camera, and velocities stay."""
+       t advances by dt, positions advance by vel*dt, velocities stay,
+       bhMass/camera/energy stay unchanged."""
     y = x.clone()
+    y[:, 0] = x[:, 0] + DT   # t += dt
     n_bodies = (x.shape[1] - HEADER_DIMS) // BODY_DIMS
     for b in range(n_bodies):
         off = HEADER_DIMS + b * BODY_DIMS
@@ -242,34 +300,79 @@ def main():
     print('  identity   : %.6e' % identity_train_loss)
     print('  first-order: %.6e' % first_order_train_loss)
 
-    # ---- Model: absolute prediction on masked dims ----
-    print()
-    print('=== Absolute: model(x_t) -> x_{t+1} ===')
-    model = make_model(train_x.shape[1]).double()
-    opt = torch.optim.Adam(model.parameters(), lr=1e-4)
-    for epoch in range(200):
-        tr = train_epoch(model, opt, train_n, train_yn)
-        tr_l = eval_loss(model, train_n, train_yn)
-        va_l = eval_loss(model, val_n, val_yn)
-        if epoch % 5 == 0 or epoch == 19:
-            print('epoch %2d: train=%.6e  val=%.6e' % (epoch, tr_l, va_l))
+    # ---- Normalize full data (clamped std to avoid div-by-zero on degenerate dims) ----
+    mu_full = train_x_full.mean(dim=0).double()
+    sd_full = train_x_full.std(dim=0).clamp(min=1e-6).double()
+    train_n_full = (train_x_full - mu_full) / sd_full
+    train_yn_full = (train_y_full - mu_full) / sd_full
+    val_n_full = (val_x_full - mu_full) / sd_full
+    val_yn_full = (val_y_full - mu_full) / sd_full
 
-    model_val_loss = eval_loss(model, val_n, val_yn)
-    model_train_loss = eval_loss(model, train_n, train_yn)
+    # ---- Baseline ladder on RAW full data ----
+    identity_train_loss_raw = ((train_x_full - train_y_full) ** 2).mean().item()
+    identity_val_loss_raw = ((val_x_full - val_y_full) ** 2).mean().item()
+
+    first_order_train_raw = first_order(train_x_full)
+    first_order_val_raw = first_order(val_x_full)
+    first_order_train_loss_raw = ((first_order_train_raw - train_y_full) ** 2).mean().item()
+    first_order_val_loss_raw = ((first_order_val_raw - val_y_full) ** 2).mean().item()
+
+    # Also compute baselines in normalized space (matches model's loss space)
+    identity_train_loss_norm = ((train_n_full - train_yn_full) ** 2).mean().item()
+    identity_val_loss_norm = ((val_n_full - val_yn_full) ** 2).mean().item()
+    first_order_train_n = (first_order(train_x_full) - mu_full) / sd_full
+    first_order_val_n = (first_order(val_x_full) - mu_full) / sd_full
+    first_order_train_loss_norm = ((train_n_full - first_order_train_n) ** 2).mean().item()
+    first_order_val_loss_norm = ((val_n_full - first_order_val_n) ** 2).mean().item()
+
+    print()
+    print('=== Baseline ladder (validation, raw 59-dim) ===')
+    print('  identity   : %.6e' % identity_val_loss_raw)
+    print('  first-order: %.6e' % first_order_val_loss_raw)
+    print()
+    print('=== Baseline ladder (training, raw 59-dim) ===')
+    print('  identity   : %.6e' % identity_train_loss_raw)
+    print('  first-order: %.6e' % first_order_train_loss_raw)
+    print()
+    print('=== Baseline ladder (validation, normalized 59-dim) ===')
+    print('  identity   : %.6e' % identity_val_loss_norm)
+    print('  first-order: %.6e' % first_order_val_loss_norm)
+    print()
+    print('=== Baseline ladder (training, normalized 59-dim) ===')
+    print('  identity   : %.6e' % identity_train_loss_norm)
+    print('  first-order: %.6e' % first_order_train_loss_norm)
+
+    # ---- Model: PhysicsInformedMLP on RAW input, normalized output ----
+    # Net predicts raw acceleration; pos += vel*dt in raw space; output normalized.
+    # Zero-init bias + small random weights -> starts near first-order,
+    # gradients flow to all layers. Loss in normalized space (all dims O(1)).
+    print()
+    print('=== Physics-informed: MLP(x_t) -> accel, then x_{t+1} = kinematics (norm loss) ===')
+    model = PhysicsInformedMLP(state_dim=59, dt=DT, mu=mu_full, sd=sd_full).double()
+    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    for epoch in range(200):
+        tr = train_epoch(model, opt, train_x_full, train_yn_full)
+        tr_l = eval_loss(model, train_x_full, train_yn_full)
+        va_l = eval_loss(model, val_x_full, val_yn_full)
+        if epoch % 5 == 0 or epoch == 199:
+            print('epoch %3d: train=%.6e  val=%.6e' % (epoch, tr_l, va_l))
+
+    model_val_loss = eval_loss(model, val_x_full, val_yn_full)
+    model_train_loss = eval_loss(model, train_x_full, train_yn_full)
     print()
     print('=== Diagnostic: model vs identity (fit quality) ===')
     print('  train: model=%.6e  identity=%.6e  ratio=%.2fx' % (
-        model_train_loss, identity_train_loss,
-        model_train_loss / identity_train_loss))
+        model_train_loss, identity_train_loss_norm,
+        model_train_loss / identity_train_loss_norm))
     print('  val:   model=%.6e  identity=%.6e  ratio=%.2fx' % (
-        model_val_loss, identity_val_loss,
-        model_val_loss / identity_val_loss))
+        model_val_loss, identity_val_loss_norm,
+        model_val_loss / identity_val_loss_norm))
     print()
     print('=== RESULT ===')
     print('  model_val_loss      = %.6e' % model_val_loss)
-    print('  first_order_val_loss= %.6e' % first_order_val_loss)
-    print('  ratio = %.4f' % (model_val_loss / first_order_val_loss))
-    print('  model vs identity   = %.4f' % (model_val_loss / identity_val_loss))
+    print('  first_order_val_loss= %.6e' % first_order_val_loss_norm)
+    print('  ratio = %.4f' % (model_val_loss / first_order_val_loss_norm))
+    print('  model vs identity   = %.4f' % (model_val_loss / identity_val_loss_norm))
 
 
 if __name__ == '__main__':
