@@ -994,6 +994,8 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_lensing_time_delay
         tests/test_lensing_time_delay.cpp
         src/experiment/experiments/LensingTimeDelayExperiment.cpp
+        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
     )
     target_link_libraries(test_lensing_time_delay PRIVATE Qt6::Core dilaton)
     add_test(NAME LensingTimeDelayTest COMMAND test_lensing_time_delay)
@@ -1001,6 +1003,8 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_frb_generator
         tests/test_frb_generator.cpp
         src/experiment/experiments/FRBGeneratorExperiment.cpp
+        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
     )
     target_link_libraries(test_frb_generator PRIVATE Qt6::Core dilaton)
     target_include_directories(test_frb_generator PRIVATE ${CMAKE_SOURCE_DIR}/tests)

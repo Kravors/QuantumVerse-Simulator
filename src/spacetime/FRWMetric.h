@@ -212,6 +212,42 @@ public:
     double omegaLambda() const { return omegaLambda_; }
 
     /**
+     * @brief Get the Hubble parameter H(z) at redshift z.
+     *
+     * Standard flat-ΛCDM: H(z) = H₀ · √(Ωₘ(1+z)³ + ΩΛ).
+     * Returns H(z) in s⁻¹, consistent with hubbleConstant().
+     *
+     * @param z Redshift (z ≥ 0).
+     * @return Hubble parameter at redshift z, in s⁻¹.
+     */
+    double hubble(double z) const noexcept {
+        const double opz = 1.0 + z;
+        const double E2  = omegaM_ * opz * opz * opz + omegaLambda_;
+        return H0_ * std::sqrt(E2);
+    }
+
+    /**
+     * @brief Comoving line-of-sight distance χ(z) = c ∫₀^z dz'/H(z').
+     *
+     * Numerical integral via Simpson's rule with 4096 intervals.
+     * Returns distance in Mpc.
+     *
+     * @param z Redshift (z ≥ 0).
+     * @return Comoving distance in Mpc.
+     */
+    double comovingDistance(double z) const noexcept;
+
+    /**
+     * @brief Angular-diameter distance D_A(z) = χ(z)/(1+z) (flat universe).
+     *
+     * @param z Redshift (z ≥ 0).
+     * @return Angular-diameter distance in Mpc.
+     */
+    double angularDiameterDistance(double z) const noexcept {
+        return comovingDistance(z) / (1.0 + z);
+    }
+
+    /**
      * @brief Get the scale factor at time t.
      */
     double scaleFactor(double t) const {
@@ -268,6 +304,30 @@ inline double FRWMetric::ageOfUniverse(double tMax, int steps) const {
         else hi = mid;
     }
     return 0.5 * (lo + hi);
+}
+
+inline double FRWMetric::comovingDistance(double z) const noexcept {
+    // χ(z) = c ∫₀^z dz'/H(z')  via Simpson's rule
+    // H(z) in s⁻¹, c in m/s → result in metres, convert to Mpc.
+    constexpr double C_SI   = 299792458.0;   // m/s
+    constexpr double MPC_M  = 3.0856775814913673e22; // m per Mpc
+
+    const int steps = 4096;
+    if (z <= 0.0) return 0.0;
+    if (steps % 2 != 0) { /* steps already even */ }
+
+    const double h = z / static_cast<double>(steps);
+    auto H_inv = [this](double zp) { return 1.0 / hubble(zp); }; // seconds
+
+    double s = H_inv(0.0) + H_inv(z);
+    for (int i = 1; i < steps; ++i) {
+        const double zp = i * h;
+        const double w  = (i % 2 == 0) ? 2.0 : 4.0;
+        s += w * H_inv(zp);
+    }
+    const double integral_seconds = s * h / 3.0; // seconds
+    const double distance_m       = C_SI * integral_seconds; // metres
+    return distance_m / MPC_M; // Mpc
 }
 
 } // namespace quantumverse

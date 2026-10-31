@@ -15,6 +15,10 @@
 
 #include <cmath>
 #include <algorithm>
+#include <memory>
+
+#include "../cosmology/LambdaCDMReferenceProvider.h"
+#include "../cosmology/ProjectCosmologyAdapter.h"
 
 namespace quantumverse {
 
@@ -41,6 +45,11 @@ QVector<ExperimentParameter> FRBGeneratorExperiment::parameters() const {
     p.append({QStringLiteral("n_steps"),  QStringLiteral("Redshift samples"),
               QStringLiteral("int"), QVariant(30), QVariant(3), QVariant(100),
               QStringList(), QStringLiteral(""), QStringLiteral("Number of z points on the curve.")});
+    p.append({QStringLiteral("cosmology_source"), QStringLiteral("Cosmology source"),
+              QStringLiteral("enum"), QVariant(QStringLiteral("reference")),
+              QVariant(), QVariant(),
+              QStringList({QStringLiteral("reference"), QStringLiteral("project")}),
+              QStringLiteral(""), QStringLiteral("Which H(z) to use: reference ΛCDM or project FLRW.")});
     return p;
 }
 
@@ -48,6 +57,9 @@ ExperimentResult FRBGeneratorExperiment::run(const QVariantMap& p,
                                              std::function<void(double)> progress,
                                              std::function<bool()> shouldAbort) {
     ExperimentResult out;
+
+    const QString cosmology_source = p.value(QStringLiteral("cosmology_source"),
+                                             QStringLiteral("reference")).toString();
 
     const double H0_kms  = p.value(QStringLiteral("H0"),      67.66).toDouble();
     const double Om      = p.value(QStringLiteral("OmegaM"),  0.3111).toDouble();
@@ -64,6 +76,24 @@ ExperimentResult FRBGeneratorExperiment::run(const QVariantMap& p,
         return out;
     }
 
+    // Build the cosmology provider: reference (first-principles LambdaCDM) or
+    // project (FRWMetric via ProjectCosmologyAdapter).
+    std::shared_ptr<CosmologyProvider> provider;
+    if (cosmology_source == QStringLiteral("project")) {
+        provider = std::make_shared<ProjectCosmologyAdapter>(
+            H0_kms, Om, Ob, 9.1e-5, OL, 0.0, 2.7255);
+    } else {
+        LambdaCDMReferenceProvider::Params pp;
+        pp.H0 = H0_kms;
+        pp.Om = Om;
+        pp.Ob = Ob;
+        pp.OL = OL;
+        pp.Or = 9.1e-5;
+        pp.Ok = 0.0;
+        pp.Tcmb = 2.7255;
+        provider = std::make_shared<LambdaCDMReferenceProvider>(pp);
+    }
+
     constexpr double C_SI      = 299792458.0;
     constexpr double G_SI      = 6.67430e-11;
     constexpr double M_P_KG    = 1.67262192e-27;
@@ -71,15 +101,14 @@ ExperimentResult FRBGeneratorExperiment::run(const QVariantMap& p,
     constexpr double PC_M      = 3.085677581e16;
     constexpr double Y_HELIUM  = 0.24;
 
-    const double H0_si   = H0_kms * 1e3 / MPC_M;
+    const double H0_si   = provider->H0() * 1e3 / MPC_M;
     const double rho_c0  = 3.0 * H0_si * H0_si / (8.0 * M_PI * G_SI);
-    const double n_e_com = Ob * rho_c0 * f_igm * (1.0 - Y_HELIUM / 2.0) / M_P_KG;
+    const double n_e_com = provider->OmegaB() * rho_c0 * f_igm * (1.0 - Y_HELIUM / 2.0) / M_P_KG;
     const double prefactor_m2 = n_e_com * C_SI / H0_si;
     const double m2_to_pccm3  = 1.0 / (PC_M * 1.0e6);
 
     auto Ez = [&](double z) {
-        const double opz = 1.0 + z;
-        return std::sqrt(Om * opz * opz * opz + OL);
+        return provider->H(z) / provider->H0();  // dimensionless E(z)
     };
     auto integral = [&](double z_end, int n) {
         // Simpson's rule on int_0^z (1+z')/E(z') dz'
@@ -94,13 +123,14 @@ ExperimentResult FRBGeneratorExperiment::run(const QVariantMap& p,
         return s * h / 3.0;
     };
 
-    out.scalars[QStringLiteral("H0_kms")]            = H0_kms;
-    out.scalars[QStringLiteral("OmegaM")]            = Om;
-    out.scalars[QStringLiteral("OmegaB")]            = Ob;
-    out.scalars[QStringLiteral("OmegaL")]            = OL;
+    out.scalars[QStringLiteral("H0_kms")]            = provider->H0();
+    out.scalars[QStringLiteral("OmegaM")]            = provider->OmegaM();
+    out.scalars[QStringLiteral("OmegaB")]            = provider->OmegaB();
+    out.scalars[QStringLiteral("OmegaL")]            = provider->OmegaLambda();
     out.scalars[QStringLiteral("f_IGM")]             = f_igm;
     out.scalars[QStringLiteral("n_e_com_per_cm3")]   = n_e_com * 1e-6;
     out.scalars[QStringLiteral("DM_at_z0")]          = 0.0;
+    out.scalars[QStringLiteral("cosmology_source")]  = cosmology_source;
 
     const int n = std::max(1, n_steps);
     for (int i = 0; i < n; ++i) {

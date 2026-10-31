@@ -61,5 +61,24 @@ int main(int argc, char** argv) {
         QV_CHECK(dt_tiny < 1.0);   // << 29.96; catches sign / log-term bugs
     }
 
+    // Test 5: reference and project agree on delay at z_L=0.3, z_S=1.0 (within 1%).
+    // Only meaningful while ProjectCosmologyAdapter delegates to FRWMetric.
+    {
+        auto p_ref = refParams();
+        p_ref["cosmology_source"] = "reference";
+        p_ref["z_S"] = 1.0;
+        auto r_ref = e.run(p_ref, [](double){}, [](){ return false; });
+        QV_CHECK(r_ref.success);
+
+        auto p_prj = p_ref;
+        p_prj["cosmology_source"] = "project";
+        auto r_prj = e.run(p_prj, [](double){}, [](){ return false; });
+        QV_CHECK(r_prj.success);
+
+        const double dt_ref = r_ref.scalars["reference_delay_days"].toDouble();
+        const double dt_prj = r_prj.scalars["reference_delay_days"].toDouble();
+        QV_CHECK_NEAR(dt_prj / dt_ref, 1.0, 0.01);
+    }
+
     return 0;
 }

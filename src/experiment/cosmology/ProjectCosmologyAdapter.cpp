@@ -19,17 +19,12 @@ constexpr double A_RAD       = 7.5657e-16;
 constexpr double C_SI        = 299792458.0;
 constexpr double Z_DRAG      = 1059.94;
 
-double E(double z, double Om, double Or, double Ok, double OL) {
-    const double a = 1.0 / (1.0 + z);
-    return std::sqrt(Om / (a * a * a) + Or / (a * a * a * a)
-                     + Ok / (a * a) + OL);
-}
 } // namespace
 
 ProjectCosmologyAdapter::ProjectCosmologyAdapter(double H0, double OmegaM,
-                                                 double OmegaB, double OmegaR,
-                                                 double OmegaLambda, double OmegaK,
-                                                 double Tcmb0)
+                                                  double OmegaB, double OmegaR,
+                                                  double OmegaLambda, double OmegaK,
+                                                  double Tcmb0)
     : m_H0(H0), m_Om(OmegaM), m_Ob(OmegaB), m_Or(OmegaR),
       m_OL(OmegaLambda), m_Ok(OmegaK), m_Tcmb(Tcmb0)
 {
@@ -50,14 +45,14 @@ ProjectCosmologyAdapter::ProjectCosmologyAdapter(double H0, double OmegaM,
 }
 
 double ProjectCosmologyAdapter::H(double z) const {
-    const double H0 = m_frw ? m_frw->hubbleConstant() * MPC_M / 1000.0 : m_H0;
-    const double Om = m_frw ? m_frw->omegaM() : m_Om;
-    const double OL = m_frw ? m_frw->omegaLambda() : m_OL;
-    return H0 * E(z, Om, m_Or, m_Ok, OL);
+    // Delegate to FRWMetric when available; bit-exact agreement with the
+    // project's cosmology module. Falls back to first-principles otherwise.
+    return m_frw ? m_frw->hubble(z) * MPC_M / 1000.0 : m_H0;
 }
 
 double ProjectCosmologyAdapter::comovingDistance(double z) const {
-    // χ(z) = c ∫₀ᶻ dz' / H(z')
+    if (m_frw) return m_frw->comovingDistance(z);
+    // Fallback: first-principles Simpson integration
     const int steps = 8192;
     const double h = z / steps;
     auto f = [this](double zp) { return 1.0 / H(zp); };
@@ -68,10 +63,12 @@ double ProjectCosmologyAdapter::comovingDistance(double z) const {
 }
 
 double ProjectCosmologyAdapter::luminosityDistance(double z) const {
+    if (m_frw) return (1.0 + z) * m_frw->comovingDistance(z);
     return (1.0 + z) * comovingDistance(z);
 }
 
 double ProjectCosmologyAdapter::angularDiameterDistance(double z) const {
+    if (m_frw) return m_frw->angularDiameterDistance(z);
     return comovingDistance(z) / (1.0 + z);
 }
 

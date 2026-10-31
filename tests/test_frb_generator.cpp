@@ -80,5 +80,23 @@ int main() {
         QV_CHECK_NEAR(r.scalars["DM_at_z0"].toDouble(), 0.0, 1e-12);
     }
 
+    // Test 7: reference and project agree on DM at z=1.0 (within 1%).
+    // Only meaningful while ProjectCosmologyAdapter delegates to FRWMetric.
+    {
+        auto p_ref = defaultParams();
+        p_ref["cosmology_source"] = "reference";
+        auto r_ref = e.run(p_ref, [](double){}, [](){ return false; });
+        QV_CHECK(r_ref.success);
+
+        auto p_prj = defaultParams();
+        p_prj["cosmology_source"] = "project";
+        auto r_prj = e.run(p_prj, [](double){}, [](){ return false; });
+        QV_CHECK(r_prj.success);
+
+        const double dm_ref = r_ref.scalars["DM_at_z1.0"].toDouble();
+        const double dm_prj = r_prj.scalars["DM_at_z1.0"].toDouble();
+        QV_CHECK_NEAR(dm_prj / dm_ref, 1.0, 0.01);
+    }
+
     return 0;
 }
