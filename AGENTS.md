@@ -80,6 +80,19 @@ assert→QV_CHECK sweep (commit `d381c97`) revealed 9 pre-existing failures that
 had been invisible for months. Prefer `QV_CHECK`/`QV_CHECK_NEAR` over `assert()`
 in all test code so assertions stay live under any build type.
 
+### Test file pattern is `main()` + `QV_CHECK`, not `TEST()`
+
+Test files use `int main(int argc, char** argv)` with `QV_CHECK` /
+`QV_CHECK_NEAR` from `tests/test_assert.h`. There is **no** `TEST()`
+macro — a test file beginning with `TEST(...)` will not compile.
+
+Reference implementations:
+- `tests/test_cosmology_experiments.cpp` — multiple checks per file
+- `tests/test_lensing_time_delay.cpp` — 4 checks (pins + non-vacuity)
+
+Both survive `-DNDEBUG`; the `assert()` → `QV_CHECK` rule above applies
+to all assertions inside the `main()` body.
+
 ### Tests must be provably non-vacuous
 
 A test that passes because the field it asserts on was never set is
