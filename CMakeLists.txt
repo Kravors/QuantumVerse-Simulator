@@ -258,6 +258,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/MassSweepExperiment.cpp
         src/experiment/experiments/SpinSweepExperiment.cpp
         src/experiment/experiments/LensingDeflectionExperiment.cpp
+        src/experiment/experiments/LensingTimeDelayExperiment.cpp
         src/experiment/experiments/ChargeSweepExperiment.cpp
         src/experiment/experiments/MercuryPrecessionExperiment.cpp
         src/experiment/experiments/FrameDraggingExperiment.cpp
@@ -988,6 +989,13 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_matrix4x4 tests/test_matrix4x4.cpp)
     target_link_libraries(test_matrix4x4 PRIVATE dilaton)
     add_test(NAME Matrix4x4Test COMMAND test_matrix4x4)
+
+    add_executable(test_lensing_time_delay
+        tests/test_lensing_time_delay.cpp
+        src/experiment/experiments/LensingTimeDelayExperiment.cpp
+    )
+    target_link_libraries(test_lensing_time_delay PRIVATE Qt6::Core dilaton)
+    add_test(NAME LensingTimeDelayTest COMMAND test_lensing_time_delay)
     
     # Property-based tests
     add_executable(test_property_based

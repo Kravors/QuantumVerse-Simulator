@@ -59,6 +59,7 @@
 #include "experiment/experiments/MassSweepExperiment.h"
 #include "experiment/experiments/SpinSweepExperiment.h"
 #include "experiment/experiments/LensingDeflectionExperiment.h"
+#include "experiment/experiments/LensingTimeDelayExperiment.h"
 #include "experiment/experiments/ChargeSweepExperiment.h"
 #include "experiment/experiments/MercuryPrecessionExperiment.h"
 #include "experiment/experiments/FrameDraggingExperiment.h"
@@ -823,6 +824,7 @@ int main(int argc, char* argv[])
         experimentRunner->registerExperiment(std::make_unique<quantumverse::MassSweepExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::SpinSweepExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::LensingDeflectionExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::LensingTimeDelayExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::ChargeSweepExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::MercuryPrecessionExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::FrameDraggingExperiment>());
