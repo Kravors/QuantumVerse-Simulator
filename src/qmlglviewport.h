@@ -639,6 +639,10 @@ public:
     Q_INVOKABLE void clearProbe();
     /// @brief Provide the metric used for probe computations.
     void setProbeMetric(std::shared_ptr<MetricTensor> metric);
+    /// @brief Set the probe position for curvature readout and recording.
+    void setProbePosition(double x, double y, double z);
+    /// @brief Get the current probe position.
+    Event4D probePosition() const { return m_probePosition; }
 
     QString kretschmann() const { return m_kretschmann; }
     QString ricciScalar() const { return m_ricciScalar; }
@@ -1039,6 +1043,7 @@ private:
 
     // Probe readout state (driven by probeAt)
     std::shared_ptr<MetricTensor> m_probeMetric;
+    Event4D m_probePosition{0.0, 0.0, 0.0, 100000.0};  // probe position (t,x,y,z)
     QString m_kretschmann = "—";
     QString m_ricciScalar = "—";
     QString m_weylSquared = "—";

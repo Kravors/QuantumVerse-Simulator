@@ -2448,6 +2448,7 @@ void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
 
 void QmlGlViewport::probeAt(double x, double y, double z)
 {
+    m_probePosition = Event4D(0.0, x, y, z);
     auto metric = m_probeMetric
         ? m_probeMetric
         : (m_curvatureRenderer ? m_curvatureRenderer->metric() : nullptr);
@@ -2507,6 +2508,11 @@ void QmlGlViewport::clearProbe()
     m_redshift = "—";
     m_probeValid = false;
     emit probeChanged();
+}
+
+void QmlGlViewport::setProbePosition(double x, double y, double z)
+{
+    m_probePosition = Event4D(0.0, x, y, z);
 }
 
 QObject* QmlGlViewport::camera4DAdapterObj() const
@@ -2578,7 +2584,24 @@ void QmlGlViewport::updateSimulation(double deltaTime)
                 frame.cameraPosition = {camPos.t, camPos.x, camPos.y, camPos.z};
             }
 
-            frame.blackHoleMassKg = m_blackHoleMass * 1.989e30;
+            frame.blackHoleMassKg = m_probeMetric->mass();
+            frame.blackHoleSpin = m_probeMetric->spin();
+
+            // Probe curvature scalars at the configured probe position.
+            if (m_probeMetric) {
+                auto scalars = m_probeMetric->curvatureScalars(m_probePosition);
+                if (scalars.valid) {
+                    frame.probeKretschmann = scalars.kretschmann;
+                    frame.probeRicciScalar = scalars.ricciScalar;
+                    frame.probeWeylSquared = scalars.weylSquared;
+                }
+                // Redshift from g00 at probe position
+                auto g = m_probeMetric->evaluate(m_probePosition);
+                double gtt = g[0][0];
+                if (gtt < 0.0 && std::isfinite(gtt) && -gtt > 1e-6) {
+                    frame.probeRedshift = 1.0 / std::sqrt(-gtt) - 1.0;
+                }
+            }
 
             m_sessionRecorder->recordFrame(frame);
         }

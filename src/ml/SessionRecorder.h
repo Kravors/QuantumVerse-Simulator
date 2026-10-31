@@ -6,7 +6,8 @@
  *   metadata.json  - session UUID, timestamps, body names, frame count
  *   config.json    - recording configuration (maxFrames, frameInterval, etc.)
  *   frames.bin     - binary packed frame data (time, positions, velocities,
- *                    camera state, grid Z-range, black hole mass)
+ *                    camera state, black hole mass/spin, probe curvature
+ *                    scalars). Schema v2 adds bhSpin and 4 probe observables.
  *
  * Binary frame layout (little-endian, native double):
  *   double  time                          - simulation time (s)
@@ -17,12 +18,11 @@
  *   double  cameraPos[4]                  - t, x, y, z
  *   double  cameraLookAt[4]               - t, x, y, z
  *   double  blackHoleMassKg               - active BH mass (kg)
- *
- * Grid Z-range (gridZmin/gridZmax) is NOT in schemaVersion 1:
- *   CurvatureRenderer::deformGrid() returns sentinel "-1..-1" when all
- *   grid vertices fall inside the event horizon (gtt >= 0 or non-finite),
-   *   so recording it would bake a constant sentinel into training data.
- *   Re-add in schemaVersion 2 once gridZRange varies with mass is verified.
+ *   double  blackHoleSpin                 - dimensionless spin a*
+ *   double  probeKretschmann              - Kretschmann scalar at probe pos
+ *   double  probeRicciScalar              - Ricci scalar at probe pos
+ *   double  probeWeylSquared              - Weyl^2 at probe pos
+ *   double  probeRedshift                 - gravitational redshift at probe pos
  */
 
 #pragma once
@@ -65,7 +65,7 @@ static_assert(sizeof(SessionHeader) == 64,
               "SessionHeader must be 64 bytes");
 
 constexpr std::uint32_t kSessionMagic   = 0x51564652;  // "QVFR"
-constexpr std::uint32_t kSchemaVersion  = 1;
+constexpr std::uint32_t kSchemaVersion  = 2;           // v2: +bhSpin + probe scalars
 constexpr std::uint32_t kEndianMarker   = 0x01020304;
 
 /**
@@ -86,6 +86,11 @@ struct FrameRecord {
     std::array<double, 4> cameraPosition{};               // t,x,y,z
     std::array<double, 4> cameraLookAt{};                 // t,x,y,z
     double blackHoleMassKg = 0.0;                         // active BH mass (kg)
+    double blackHoleSpin = 0.0;                           // dimensionless spin a*
+    double probeKretschmann = 0.0;                        // curvature invariant at probe
+    double probeRicciScalar = 0.0;                        // Ricci scalar at probe
+    double probeWeylSquared = 0.0;                        // Weyl^2 at probe
+    double probeRedshift = 0.0;                           // gravitational redshift at probe
 };
 
 /**

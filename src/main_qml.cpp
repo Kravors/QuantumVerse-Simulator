@@ -344,6 +344,9 @@ int main(int argc, char* argv[])
     // But if --frames is specified, attempt headless benchmark rendering below.
     int headlessFrames = 0;
     int recordFrames = 0;
+    double probePosX = 0.0;
+    double probePosY = 0.0;
+    double probePosZ = 100000.0;
     bool softwareRendering = false;
     bool noViewport = false;
     bool autoScan = false;
@@ -455,6 +458,12 @@ int main(int argc, char* argv[])
             if (headlessFrames <= 0) {
                 headlessFrames = 1;
             }
+        } else if (strcmp(argv[i], "--probe-x") == 0 && i + 1 < argc) {
+            probePosX = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--probe-y") == 0 && i + 1 < argc) {
+            probePosY = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--probe-z") == 0 && i + 1 < argc) {
+            probePosZ = atof(argv[++i]);
         } else if (strcmp(argv[i], "--gcn-test") == 0) {
             gcnTestMode = true;
         } else if (strcmp(argv[i], "--gcn-prod") == 0) {
@@ -1386,6 +1395,8 @@ int main(int argc, char* argv[])
 
                 viewport->setCamera4DAdapterDirect(camera4DAdapter);
                 viewport->setSpacetimeGPS(gps.get());
+
+                viewport->setProbePosition(probePosX, probePosY, probePosZ);
 
                 // GPS focus request: re-centre the 4D camera on the clicked object.
                 // Coordinates are already scaled by viewportScale (viewport units).

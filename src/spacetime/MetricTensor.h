@@ -246,6 +246,14 @@ public:
     /// Default does nothing; KerrMetric overrides.
     virtual void setSpin(double /*spinDimensionless*/) noexcept {}
 
+    /// @brief Black hole mass in kilograms. Default returns 0.0; subclasses
+    /// that model a black hole override.
+    virtual double mass() const noexcept { return 0.0; }
+
+    /// @brief Dimensionless spin parameter a*. Default returns 0.0; KerrMetric
+    /// overrides.
+    virtual double spin() const noexcept { return 0.0; }
+
     /// @brief In-place charge update.
     /// Default does nothing.
     virtual void setCharge(double /*chargeCoulombs*/) noexcept {}
@@ -481,7 +489,7 @@ public:
     explicit SchwarzschildMetric(double massKg) : m_mass(massKg) {}
 
     /// @brief Black hole mass in kilograms.
-    double mass() const { return m_mass; }
+    double mass() const noexcept override { return m_mass; }
 
     /// @brief In-place mass update with epoch bump for cache invalidation.
     ///

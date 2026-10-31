@@ -269,6 +269,8 @@ bool SessionRecorder::appendFrameToFile(const FrameRecord& f) {
                             4 * sizeof(double) + // cameraPosition
                             4 * sizeof(double) + // cameraLookAt
                             sizeof(double) +     // blackHoleMassKg
+                            sizeof(double) +     // blackHoleSpin
+                            4 * sizeof(double) + // probeKretschmann, probeRicciScalar, probeWeylSquared, probeRedshift
                             3 * sizeof(double);  // totalEnergy, kineticEnergy, potentialEnergy
 
     // Write frame size prefix
@@ -312,6 +314,20 @@ bool SessionRecorder::appendFrameToFile(const FrameRecord& f) {
     // Write black hole mass
     framesFile_.write(reinterpret_cast<const char*>(&f.blackHoleMassKg),
                       sizeof(f.blackHoleMassKg));
+
+    // Write black hole spin
+    framesFile_.write(reinterpret_cast<const char*>(&f.blackHoleSpin),
+                      sizeof(f.blackHoleSpin));
+
+    // Write probe curvature scalars
+    framesFile_.write(reinterpret_cast<const char*>(&f.probeKretschmann),
+                      sizeof(f.probeKretschmann));
+    framesFile_.write(reinterpret_cast<const char*>(&f.probeRicciScalar),
+                      sizeof(f.probeRicciScalar));
+    framesFile_.write(reinterpret_cast<const char*>(&f.probeWeylSquared),
+                      sizeof(f.probeWeylSquared));
+    framesFile_.write(reinterpret_cast<const char*>(&f.probeRedshift),
+                      sizeof(f.probeRedshift));
 
     // Write energies
     framesFile_.write(reinterpret_cast<const char*>(&f.totalEnergy),
@@ -396,6 +412,20 @@ std::vector<FrameRecord> SessionRecorder::readFrames(
 
         // black hole mass
         std::memcpy(&frame.blackHoleMassKg, p, sizeof(double));
+        p += sizeof(double);
+
+        // black hole spin (schema v2)
+        std::memcpy(&frame.blackHoleSpin, p, sizeof(double));
+        p += sizeof(double);
+
+        // probe curvature scalars (schema v2)
+        std::memcpy(&frame.probeKretschmann, p, sizeof(double));
+        p += sizeof(double);
+        std::memcpy(&frame.probeRicciScalar, p, sizeof(double));
+        p += sizeof(double);
+        std::memcpy(&frame.probeWeylSquared, p, sizeof(double));
+        p += sizeof(double);
+        std::memcpy(&frame.probeRedshift, p, sizeof(double));
         p += sizeof(double);
 
         // energies

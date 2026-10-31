@@ -1,468 +1,284 @@
 #!/usr/bin/env python3
 """
-Task 2.5: Train Normalizing Flow on Curvature Dataset
+python/train_curvature_flow.py — train a RealNVP normalizing flow on 6 curvature dims.
 
-Trains a normalizing flow (RealNVP or MAF) to learn the distribution
-of curvature invariants from "normal" GR spacetimes. The trained model
-will be used for anomaly detection: high -log p(x) indicates unusual
-curvature patterns (exotic spacetimes, quantum corrections, etc.).
+Trains on normal v2 sessions (varied probe positions → real variance), evaluates
+on the equator anomaly session (off-manifold curvature).
 
-Usage:
-    python train_curvature_flow.py --dataset data/curvature_dataset.h5 --output-dir models/curvature_flow
+6 input dims: [bhMass, bhSpin, probeKretschmann, probeRicciScalar,
+               probeWeylSquared, probeRedshift]
+Curvature dims are log10-transformed (span orders of magnitude).
+
+Success criterion: >50% of anomaly frames have log p below normal 5th percentile.
+
+Run:  python python/train_curvature_flow.py
 """
 
-import argparse
-import os
-import sys
+import struct, os, math, sys
 from pathlib import Path
 
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-import h5py
-import yaml
-from tqdm import tqdm
+import numpy as np
 
-# Try to import nflows (recommended)
-try:
-    from nflows import flows, transforms, distributions
-    HAS_NFLOWS = False  # FORCE SimpleRealNVP for debugging
-    print("nflows available but FORCING SimpleRealNVP for debugging")
-except ImportError:
-    HAS_NFLOWS = False
-    print("Warning: nflows not installed. Will implement simple RealNVP from scratch.")
 
-# ======================
-# Simple RealNVP Implementation (if nflows not available)
-# ======================
+# ---------------------------------------------------------------------------
+# Binary reader for SessionRecorder frames.bin (schema v2)
+# ---------------------------------------------------------------------------
+def read_frames(path):
+    frames = []
+    with open(path, 'rb') as f:
+        header = f.read(64)
+        magic = struct.unpack('<I', header[:4])[0]
+        if magic != 0x51564652:
+            raise ValueError('bad magic in %s' % path)
+        schema = struct.unpack('<I', header[4:8])[0]
+        if schema != 2:
+            raise ValueError('schema v1 not supported')
+        while True:
+            len_bytes = f.read(4)
+            if not len_bytes or len(len_bytes) < 4:
+                break
+            frame_len = struct.unpack('<I', len_bytes)[0]
+            buf = f.read(frame_len)
+            if not buf or len(buf) < frame_len:
+                break
+            p = 0
+            struct.unpack_from('<d', buf, p); p += 8  # time
+            bodyCount = struct.unpack_from('<I', buf, p)[0]; p += 4
+            for i in range(bodyCount):
+                nameLen = struct.unpack_from('<I', buf, p)[0]; p += 4
+                p += nameLen
+            p += bodyCount * 48  # positions + velocities
+            p += 64  # cameras
+            bhMass = struct.unpack_from('<d', buf, p)[0]; p += 8
+            bhSpin = struct.unpack_from('<d', buf, p)[0]; p += 8
+            probeKret = struct.unpack_from('<d', buf, p)[0]; p += 8
+            probeRicci = struct.unpack_from('<d', buf, p)[0]; p += 8
+            probeWeyl = struct.unpack_from('<d', buf, p)[0]; p += 8
+            probeRedshift = struct.unpack_from('<d', buf, p)[0]; p += 8
+            te, ke, pe = struct.unpack_from('<ddd', buf, p); p += 24
+            frames.append({
+                'bhMass': bhMass,
+                'bhSpin': bhSpin,
+                'probeKretschmann': probeKret,
+                'probeRicciScalar': probeRicci,
+                'probeWeylSquared': probeWeyl,
+                'probeRedshift': probeRedshift,
+            })
+    return frames
 
-class SimpleCouplingLayer(nn.Module):
-    """Simple affine coupling layer for RealNVP with ONNX-export-friendly operations."""
-    
-    def __init__(self, dim, hidden_dim=128, mask_type='alternate'):
+
+def load_curvature_data(session_dirs):
+    """Load 6 curvature dims from each session. Returns list of (name, tensor[N,6])."""
+    sessions_dir = Path('data/sessions')
+    out = []
+    for name in session_dirs:
+        sdir = sessions_dir / name
+        if not (sdir / 'frames.bin').exists():
+            print('WARNING: %s not found' % sdir)
+            continue
+        frames = read_frames(str(sdir / 'frames.bin'))
+        data = np.array([[
+            fr['bhMass'], fr['bhSpin'],
+            fr['probeKretschmann'], fr['probeRicciScalar'],
+            fr['probeWeylSquared'], fr['probeRedshift'],
+        ] for fr in frames], dtype=np.float64)
+        out.append((name, torch.tensor(data, dtype=torch.float64)))
+        print('  %s: %d frames' % (name, len(frames)))
+    return out
+
+
+# Dim names
+DIM_NAMES = ['bhMass', 'bhSpin', 'probeKretschmann', 'probeRicciScalar',
+             'probeWeylSquared', 'probeRedshift']
+
+# Dims to log-transform (span orders of magnitude, always positive in normal)
+LOG_DIMS = {'probeKretschmann', 'probeWeylSquared', 'probeRedshift'}
+
+
+def log10_safe_transform(x):
+    """log10(x + eps) for positive dims; identity for others."""
+    out = x.clone()
+    for i, name in enumerate(DIM_NAMES):
+        if name in LOG_DIMS:
+            out[:, i] = torch.log10(torch.abs(out[:, i]) + 1e-300)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# RealNVP coupling layer
+# ---------------------------------------------------------------------------
+class CouplingLayer(nn.Module):
+    def __init__(self, dim, hidden_dim=64, mask_parity=0):
         super().__init__()
         self.dim = dim
-        self.hidden_dim = hidden_dim
-        
-        # Create binary mask: alternate dimensions
-        # mask=1 means identity (unchanged), mask=0 means transform
-        if mask_type == 'alternate':
-            mask = torch.zeros(dim)
-            mask[::2] = 1  # even indices are identity
-        else:
-            mask = torch.ones(dim)
-            mask[::2] = 0
-        self.register_buffer('mask', mask)
-        
-        # Number of identity and transform dimensions
-        self.unchanged_dim = int(mask.sum().item())
-        self.changed_dim = dim - self.unchanged_dim
-        
-        # Precompute permutation indices for reconstruction (ONNX-friendly)
-        # identity_idx: positions in output tensor that come from identity part
-        # transform_idx: positions in output tensor that come from transform part
-        identity_positions = torch.where(mask == 1)[0]  # indices where identity goes
-        transform_positions = torch.where(mask == 0)[0]  # indices where transform goes
-        self.register_buffer('identity_positions', identity_positions)
-        self.register_buffer('transform_positions', transform_positions)
-        
-        # Neural network for scale and shift
-        # Input: identity features (unchanged part)
-        # Output: scale and shift for transform part (2 * changed_dim)
-        self.net = nn.Sequential(
-            nn.Linear(self.unchanged_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, 2 * self.changed_dim)  # scale + shift
+        self.mask = torch.zeros(dim)
+        self.mask[mask_parity::2] = 1.0  # alternate dims
+        self.scale_net = nn.Sequential(
+            nn.Linear(dim, hidden_dim), nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim), nn.Tanh(),
+            nn.Linear(hidden_dim, dim),
         )
-        
+        self.translate_net = nn.Sequential(
+            nn.Linear(dim, hidden_dim), nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim), nn.Tanh(),
+            nn.Linear(hidden_dim, dim),
+        )
+
     def forward(self, x, reverse=False):
-        # x: (batch, dim)
-        # Split x into identity (x1) and transform (x2) parts using advanced indexing
-        x1 = x[:, self.identity_positions]  # (batch, unchanged_dim) - identity features
-        x2 = x[:, self.transform_positions]  # (batch, changed_dim) - transform features
-
-        if self.changed_dim == 0:
-            return x, torch.zeros(x.shape[0], device=x.device)
-
-        # Network takes identity part x1 and outputs parameters for transform part x2
-        net_output = self.net(x1)  # (batch, 2 * changed_dim)
-
-        # Split into scale and shift for the transform dimensions
-        scale_raw = net_output[:, :self.changed_dim]
-        shift = net_output[:, self.changed_dim:2*self.changed_dim]
-
-        # Clamp scale_raw to prevent exp overflow/underflow
-        # exp(20) ≈ 4.85e8, exp(-20) ≈ 2e-9; these are safe for float32
-        scale_raw = torch.clamp(scale_raw, min=-20.0, max=20.0)
-        scale = torch.exp(scale_raw)
-
-        # Apply affine transform to the transform part
+        masked = x * self.mask.to(x.device)
+        s = self.scale_net(masked) * (1 - self.mask.to(x.device))
+        t = self.translate_net(masked) * (1 - self.mask.to(x.device))
         if reverse:
-            # Inverse: x2 = (y2 - shift) / scale
-            new_x2 = (x2 - shift) / scale
-            log_det = -torch.log(scale).sum(dim=1)
+            x = (x - t) * torch.exp(-s)
+            log_det = -s.sum(dim=1)
         else:
-            # Forward: y2 = scale * x2 + shift
-            new_x2 = scale * x2 + shift
-            log_det = torch.log(scale).sum(dim=1)
+            x = masked + (1 - self.mask.to(x.device)) * (x * torch.exp(s) + t)
+            log_det = s.sum(dim=1)
+        return x, log_det
 
-        # Recombine: use scatter with precomputed indices (ONNX-friendly)
-        # Create empty output and scatter identity and transform parts into correct positions
-        y = torch.zeros_like(x)
-        # Scatter identity part
-        y[:, self.identity_positions] = x1
-        # Scatter transform part
-        y[:, self.transform_positions] = new_x2
-        return y, log_det
 
-class StandardNormal(nn.Module):
-    """Standard multivariate normal distribution without validation guards.
-    
-    This custom implementation avoids the data-dependent shape guards in
-    torch.distributions.MultivariateNormal.log_prob() that break ONNX export.
-    """
-    def __init__(self, dim):
+class RealNVP(nn.Module):
+    def __init__(self, dim, n_layers=6, hidden_dim=64):
         super().__init__()
         self.dim = dim
-        # Register buffers so they're part of the module state
-        self.register_buffer('loc', torch.zeros(dim))
-        self.register_buffer('scale', torch.ones(dim))
-    
-    def log_prob(self, z):
-        """Compute log p(z) for standard normal.
-        
-        log p(z) = -0.5 * (dim * log(2π) + ||z||²)
-        """
-        # Sum of squares along feature dimension
-        sq_norm = (z ** 2).sum(dim=1)
-        log_prob = -0.5 * (self.dim * np.log(2 * np.pi) + sq_norm)
-        return log_prob
-    
-    def sample(self, shape):
-        """Sample from standard normal."""
-        return torch.randn(shape, device=self.loc.device)
+        self.layers = nn.ModuleList([
+            CouplingLayer(dim, hidden_dim, i % 2) for i in range(n_layers)
+        ])
 
-
-class SimpleRealNVP(nn.Module):
-    """Stack of coupling layers to form a RealNVP flow."""
-    
-    def __init__(self, dim, n_layers=4, hidden_dim=128):
-        super().__init__()
-        self.dim = dim
-        self.n_layers = n_layers
-        
-        layers = []
-        for i in range(n_layers):
-            # Alternate mask pattern
-            mask_type = 'alternate' if i % 2 == 0 else 'reverse'
-            layers.append(SimpleCouplingLayer(dim, hidden_dim, mask_type))
-        self.layers = nn.ModuleList(layers)
-        
-        # Base distribution (standard Gaussian) - custom implementation for ONNX export
-        self.base_dist = StandardNormal(dim)
-        
-    def forward(self, x, reverse=False):
+    def forward(self, x):
         log_det_total = torch.zeros(x.shape[0], device=x.device)
-        y = x
-        
-        if not reverse:
-            # Forward: data -> latent
-            for layer in self.layers:
-                y, log_det = layer(y, reverse=False)
-                log_det_total += log_det
-        else:
-            # Inverse: latent -> data
-            for layer in reversed(self.layers):
-                y, log_det = layer(y, reverse=True)
-                log_det_total += log_det
-                
-        return y, log_det_total
-    
-    def log_prob(self, x):
-        z, log_det = self.forward(x, reverse=False)
-        log_prob_base = self.base_dist.log_prob(z)
-        return log_prob_base + log_det
-    
-    def sample(self, n):
-        z = torch.randn((n, self.dim), device=self.layers[0].mask.device)
-        x, _ = self.forward(z, reverse=True)
+        for layer in self.layers:
+            x, ld = layer(x, reverse=False)
+            log_det_total = log_det_total + ld
+        return x, log_det_total
+
+    def inverse(self, z):
+        x = z
+        for layer in reversed(self.layers):
+            x, _ = layer(x, reverse=True)
         return x
 
-# ======================
-# Training
-# ======================
+    def log_prob(self, x):
+        z, log_det = self.forward(x)
+        # Standard normal prior
+        log_prior = -0.5 * (z ** 2).sum(dim=1) - 0.5 * self.dim * np.log(2 * np.pi)
+        return log_prior + log_det
 
-def load_dataset(dataset_path):
-    """Load curvature dataset from HDF5."""
-    print(f"Loading dataset from {dataset_path}...")
-    with h5py.File(dataset_path, 'r') as f:
-        features = f['features'][:]
-        labels = f['labels'][:]
-        params = f['params'][:]
-    
-    print(f"Dataset: {len(features)} samples, {features.shape[1]} features")
-    print(f"Label distribution:")
-    unique, counts = np.unique(labels, return_counts=True)
-    for label, count in zip(unique, counts):
-        print(f"  Label {label}: {count} samples")
-    
-    return features, labels, params
 
-def create_model(feature_dim, model_type='realnvp', n_layers=4, hidden_dim=128):
-    """Create normalizing flow model."""
-    if model_type.lower() == 'realnvp':
-        if HAS_NFLOWS:
-            # Use nflows library
-            # nflows expects transform_net_create_fn(num_identity, num_transform_output)
-            transform_list = []
-            for i in range(n_layers):
-                # Alternating mask
-                mask = torch.zeros(feature_dim)
-                if i % 2 == 0:
-                    mask[::2] = 1.0
-                else:
-                    mask[1::2] = 1.0
-                
-                # Factory with correct signature: returns a module that accepts (identity, context)
-                def make_transform_net(num_identity, num_transform_output):
-                    """Create a transform net that concatenates identity and context before MLP."""
-                    class TransformNet(nn.Module):
-                        def __init__(self, identity_dim, output_dim):
-                            super().__init__()
-                            self.net = nn.Sequential(
-                                nn.Linear(identity_dim, hidden_dim),
-                                nn.ReLU(),
-                                nn.Linear(hidden_dim, hidden_dim),
-                                nn.ReLU(),
-                                nn.Linear(hidden_dim, output_dim)
-                            )
-                        def forward(self, identity, context):
-                            # For unconditional flow, context is empty; just use identity
-                            return self.net(identity)
-                    return TransformNet(num_identity, num_transform_output)
-                
-                transform_list.append(
-                    transforms.AffineCouplingTransform(
-                        mask=mask,
-                        transform_net_create_fn=make_transform_net
-                    )
-                )
-            transform = transforms.CompositeTransform(transform_list)
-            flow = flows.Flow(transform, distributions.StandardNormal([feature_dim]))
-        else:
-            print("Using simple RealNVP implementation (nflows not available)")
-            flow = SimpleRealNVP(feature_dim, n_layers=n_layers, hidden_dim=hidden_dim)
-    else:
-        raise ValueError(f"Unsupported model type: {model_type}")
-    return flow
+def train_epoch(model, opt, data, batch=256):
+    n = data.shape[0]
+    perm = torch.randperm(n)
+    total_loss = 0.0
+    count = 0
+    for i in range(0, n, batch):
+        idx = perm[i:i + batch]
+        x = data[idx]
+        log_p = model.log_prob(x)
+        loss = -log_p.mean()
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+        total_loss += loss.item() * idx.shape[0]
+        count += idx.shape[0]
+    return total_loss / count
 
-# ======================
-# Training Function
-# ======================
-
-def train_flow(model, train_loader, val_loader, n_epochs=200, lr=1e-3,
-               device='cpu', checkpoint_dir='models/curvature_flow'):
-    """Train normalizing flow model."""
-    os.makedirs(checkpoint_dir, exist_ok=True)
-
-    model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, factor=0.5)
-
-    train_losses = []
-    val_losses = []
-    best_val_loss = float('inf')
-    best_epoch = 0
-
-    print(f"Training on {device}")
-    print(f"Train set: {len(train_loader.dataset)} samples")
-    print(f"Val set: {len(val_loader.dataset)} samples")
-    print(f"Epochs: {n_epochs}, Batch size: {train_loader.batch_size}")
-    print("-" * 60)
-
-    for epoch in range(n_epochs):
-        # Training
-        model.train()
-        train_loss = 0.0
-        n_batches = 0
-
-        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{n_epochs} [train]")
-        for batch_x in pbar:
-            batch_x = batch_x[0].to(device)  # TensorDataset returns tuple
-            optimizer.zero_grad()
-
-            # Compute log probability
-            log_prob = model.log_prob(batch_x)
-            loss = -log_prob.mean()  # NLL
-
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-
-            train_loss += loss.item()
-            n_batches += 1
-            pbar.set_postfix({'loss': '{:.4f}'.format(loss.item())})
-
-        avg_train_loss = train_loss / n_batches
-        train_losses.append(avg_train_loss)
-
-        # Validation
-        model.eval()
-        val_loss = 0.0
-        n_val_batches = 0
-
-        with torch.no_grad():
-            for batch_x in tqdm(val_loader, desc=f"Epoch {epoch+1}/{n_epochs} [val]"):
-                batch_x = batch_x[0].to(device)
-                log_prob = model.log_prob(batch_x)
-                loss = -log_prob.mean()
-                val_loss += loss.item()
-                n_val_batches += 1
-
-        avg_val_loss = val_loss / n_val_batches
-        val_losses.append(avg_val_loss)
-        scheduler.step(avg_val_loss)
-
-        # Checkpoint
-        if avg_val_loss < best_val_loss:
-            best_val_loss = avg_val_loss
-            best_epoch = epoch
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss': avg_train_loss,
-                'val_loss': avg_val_loss,
-            }, os.path.join(checkpoint_dir, 'best_model.pth'))
-
-        # Periodic save
-        if (epoch + 1) % 10 == 0:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'train_loss': avg_train_loss,
-                'val_loss': avg_val_loss,
-            }, os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch+1}.pth'))
-
-        print(f"Epoch {epoch+1:3d}: train_loss={avg_train_loss:.4f}, val_loss={avg_val_loss:.4f}, "
-              f"best_val={best_val_loss:.4f} (epoch {best_epoch+1})")
-
-    # Save final model
-    torch.save({
-        'epoch': n_epochs,
-        'model_state_dict': model.state_dict(),
-        'train_loss': avg_train_loss,
-        'val_loss': avg_val_loss,
-    }, os.path.join(checkpoint_dir, 'final_model.pth'))
-
-    # Save training history
-    np.savez(os.path.join(checkpoint_dir, 'training_history.npz'),
-             train_losses=np.array(train_losses),
-             val_losses=np.array(val_losses),
-             best_epoch=best_epoch,
-             best_val_loss=best_val_loss)
-
-    print(f"\nTraining complete. Best validation loss: {best_val_loss:.4f} at epoch {best_epoch+1}")
-    return model, train_losses, val_losses
 
 def main():
-    parser = argparse.ArgumentParser(description='Train normalizing flow for anomaly detection')
-    parser.add_argument('--dataset', type=str, default='data/curvature_dataset.h5',
-                        help='Path to curvature dataset HDF5')
-    parser.add_argument('--output-dir', type=str, default='models/curvature_flow',
-                        help='Output directory for model checkpoints')
-    parser.add_argument('--model-type', type=str, default='realnvp', choices=['realnvp', 'maf'],
-                        help='Flow architecture')
-    parser.add_argument('--n-layers', type=int, default=4, help='Number of coupling layers')
-    parser.add_argument('--hidden-dim', type=int, default=128, help='Hidden dimension in coupling nets')
-    parser.add_argument('--epochs', type=int, default=200, help='Training epochs')
-    parser.add_argument('--batch-size', type=int, default=64, help='Batch size')
-    parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate')
-    parser.add_argument('--val-split', type=float, default=0.2, help='Validation split')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu',
-                        help='Device (cuda or cpu)')
-    args = parser.parse_args()
+    # ---- Normal sessions: S1, S2, S3, N4, N5, N6 ----
+    normal_names = [
+        '5c896a226f77e318-session',   # S1-v2 normal Kerr, probe at r=100000
+        '08ea8ad7a77e318-session',   # S2-v2 normal Kerr, probe at r=100000
+        'b09e244b8777e318-session',  # S3-v2 normal Schwarzschild, probe at r=100000
+        'a45edb6b5078e318-session',  # N4 normal Kerr, probe at r=50000
+        'e0bd7bb5778e318-session',   # N5 normal Kerr, probe at r=75000
+        '6c7782fa5778e318-session',  # N6 normal Kerr, probe at r=150000
+    ]
+    # Anomaly session: equator near horizon
+    anomaly_name = 'fc78a0a9ef77e318-session'  # probe at r=23330, kret=1.38e-18
 
-    # Set seed
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
+    print('Loading normal sessions...')
+    normal = load_curvature_data(normal_names)
+    print('Loading anomaly session...')
+    anomaly = load_curvature_data([anomaly_name])
 
-    # Load dataset
-    features, labels, params = load_dataset(args.dataset)
-    feature_dim = features.shape[1]
+    if len(normal) < 3:
+        print('Need at least 3 normal sessions. Found %d.' % len(normal))
+        sys.exit(1)
+    if len(anomaly) < 1:
+        print('Need anomaly session. Found %d.' % len(anomaly))
+        sys.exit(1)
 
-    # Normalize features (standard scaling)
-    mean = features.mean(axis=0, keepdims=True)
-    std = features.std(axis=0, keepdims=True) + 1e-8
-    features_norm = (features - mean) / std
+    # Concatenate normals
+    normal_data = torch.cat([t for _, t in normal], dim=0).double()
+    n_normal = normal_data.shape[0]
+    anomaly_data = anomaly[0][1].double()
+    n_anomaly = anomaly_data.shape[0]
+    print()
+    print('Normal: %d frames, %d dims' % (n_normal, normal_data.shape[1]))
+    print('Anomaly: %d frames' % n_anomaly)
 
-    # Save normalization stats
-    os.makedirs(args.output_dir, exist_ok=True)
-    np.savez(os.path.join(args.output_dir, 'normalization_stats.npz'),
-             mean=mean, std=std)
+    # ---- Log10 transform curvature dims ----
+    normal_tr = log10_safe_transform(normal_data)
+    anomaly_tr = log10_safe_transform(anomaly_data)
 
-    # Split train/val
-    n_val = int(len(features_norm) * args.val_split)
-    indices = np.random.permutation(len(features_norm))
-    train_indices = indices[n_val:]
-    val_indices = indices[:n_val]
+    # ---- Normalize: per-dim mean/std from normals ----
+    mu = normal_tr.mean(dim=0)
+    sd = normal_tr.std(dim=0).clamp(min=1e-6)
+    normal_norm = (normal_tr - mu) / sd
+    anomaly_norm = (anomaly_tr - mu) / sd
 
-    train_features = torch.tensor(features_norm[train_indices], dtype=torch.float32)
-    val_features = torch.tensor(features_norm[val_indices], dtype=torch.float32)
+    print()
+    print('Normal per-dim mean/std (log-space):')
+    for i, name in enumerate(DIM_NAMES):
+        print('  %s: mean=%+.4f  std=%.4f' % (name, mu[i].item(), sd[i].item()))
 
-    train_dataset = TensorDataset(train_features)
-    val_dataset = TensorDataset(val_features)
+    # ---- Train RealNVP ----
+    model = RealNVP(dim=6, n_layers=6, hidden_dim=64).double()
+    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    print()
+    print('Training RealNVP (%d layers, 64 hidden)...' % len(model.layers))
+    for epoch in range(200):
+        loss = train_epoch(model, opt, normal_norm, batch=256)
+        if epoch % 20 == 0 or epoch == 199:
+            with torch.no_grad():
+                train_lp = model.log_prob(normal_norm).mean().item()
+                anomaly_lp = model.log_prob(anomaly_norm).mean().item()
+            print('epoch %3d: loss=%.4f  train_logp=%.4f  anomaly_logp=%.4f' % (
+                epoch, loss, train_lp, anomaly_lp))
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    # ---- Evaluate ----
+    with torch.no_grad():
+        normal_logp = model.log_prob(normal_norm)
+        anomaly_logp = model.log_prob(anomaly_norm)
 
-    print(f"\nTrain set: {len(train_features)} samples")
-    print(f"Val set: {len(val_features)} samples")
-    print(f"Feature dimension: {feature_dim}")
-    print(f"Device: {args.device}")
-    print(f"Model: {args.model_type} with {args.n_layers} layers, hidden_dim={args.hidden_dim}")
+    # Threshold: normal 5th percentile
+    threshold = torch.quantile(normal_logp, 0.05).item()
 
-    # Create model
-    model = create_model(feature_dim, model_type=args.model_type,
-                         n_layers=args.n_layers, hidden_dim=args.hidden_dim)
+    anomaly_below = (anomaly_logp < threshold).sum().item()
+    anomaly_pct = 100.0 * anomaly_below / n_anomaly
 
-    # Count parameters
-    n_params = sum(p.numel() for p in model.parameters())
-    print(f"Model parameters: {n_params:,}")
+    print()
+    print('=== RESULTS ===')
+    print('Normal log p: mean=%.4f  std=%.4f  5th pct=%.4f' % (
+        normal_logp.mean().item(), normal_logp.std().item(), threshold))
+    print('Anomaly log p: mean=%.4f  std=%.4f  min=%.4f  max=%.4f' % (
+        anomaly_logp.mean().item(), anomaly_logp.std().item(),
+        anomaly_logp.min().item(), anomaly_logp.max().item()))
+    print()
+    print('Anomaly frames below normal 5th percentile: %d/%d = %.1f%%' % (
+        anomaly_below, n_anomaly, anomaly_pct))
+    print()
+    if anomaly_pct > 50:
+        print('RESULT: PASS — flow detects off-manifold curvature (meaningful)')
+    elif anomaly_pct > 10:
+        print('RESULT: MARGINAL — flow sees anomaly but not confidently')
+    else:
+        print('RESULT: FAIL — flow does not detect anomaly')
 
-    # Train
-    model, train_losses, val_losses = train_flow(
-        model, train_loader, val_loader,
-        n_epochs=args.epochs, lr=args.lr,
-        device=args.device, checkpoint_dir=args.output_dir
-    )
+    return 0 if anomaly_pct > 50 else 1
 
-    # Save final normalization stats in model metadata
-    metadata = {
-        'feature_dim': feature_dim,
-        'model_type': args.model_type,
-        'n_layers': args.n_layers,
-        'hidden_dim': args.hidden_dim,
-        'train_samples': len(train_features),
-        'val_samples': len(val_features),
-        'mean': mean.tolist(),
-        'std': std.tolist(),
-    }
-    with open(os.path.join(args.output_dir, 'metadata.yaml'), 'w') as f:
-        yaml.dump(metadata, f)
-
-    print(f"\nModel saved to {args.output_dir}")
-    print(f"  - best_model.pth (best checkpoint)")
-    print(f"  - final_model.pth (final epoch)")
-    print(f"  - normalization_stats.npz (feature scaling)")
-    print(f"  - metadata.yaml (model config)")
-    print(f"  - training_history.npz (loss curves)")
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

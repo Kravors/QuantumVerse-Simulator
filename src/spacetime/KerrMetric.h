@@ -32,8 +32,8 @@ public:
      */
     KerrMetric(double massKg, double spinDimensionless);
 
-    double mass() const { return m_mass; }
-    double spin() const { return m_spin; }
+    double mass() const noexcept override { return m_mass; }
+    double spin() const noexcept override { return m_spin; }
     double geometricMass() const { return m_M; }
     double specificAngularMomentum() const { return m_a; }
     double schwarzschildRadius() const { return m_rs; }
