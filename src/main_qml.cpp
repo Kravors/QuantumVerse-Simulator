@@ -1389,8 +1389,9 @@ int main(int argc, char* argv[])
                 viewport->setQuantumRendererDirect(quantumRenderer);
                 viewport->setUI4D(ui4d);
 
-                // Initialize viewport spin/type from config so QML UI reflects actual metric
+                // Initialize viewport spin/type/mass from config so QML UI reflects actual metric
                 viewport->setBlackHoleSpin(blackHoleSpin);
+                viewport->setBlackHoleMass(blackHoleMass / 1.989e30);
                 viewport->setBlackHoleType(blackHoleSpin > 1e-10 ? "Kerr" : "Schwarzschild");
 
                 viewport->setCamera4DAdapterDirect(camera4DAdapter);

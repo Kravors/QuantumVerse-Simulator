@@ -944,7 +944,7 @@ ApplicationWindow {
                                 from: 0.1
                                 to: 100.0
                                 stepSize: 0.1
-                                value: 10.0
+                                value: viewportItem ? viewportItem.blackHoleMass : 10.0
                                 Layout.fillWidth: true
                                 onValueChanged: {
                                     bhMassValue = value

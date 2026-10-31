@@ -223,6 +223,12 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     double numerator = r6 - 15.0 * a2 * r4 * cos2 + 15.0 * a2 * a2 * r2 * cos4 - a2 * a2 * a2 * cos6;
     double denominator = std::pow(sigmaBL, 6);
     double K = 48.0 * m_M * m_M * numerator / denominator;
+    // Kretschmann scalar K = R_{abcd} R^{abcd} is a sum of squares and must
+    // be >= 0 for any Lorentzian metric. At theta = 0 or pi (the rotation axis),
+    // Boyer-Lindquist coordinates are singular and the closed-form expression
+    // can yield negative values for certain r (e.g. r ~ 3M at a* = 0.9).
+    // Clamp to the non-negative physical range.
+    if (K < 0.0) K = 0.0;
 
     CurvatureScalars s;
     s.kretschmann = K;
