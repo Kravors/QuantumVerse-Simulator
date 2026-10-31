@@ -23,7 +23,7 @@ Rectangle {
             spacing: 6
             ComboBox {
                 id: catCombo
-                model: ["All", "Sweep", "GR Validation", "Cosmology", "Discovery", "Quantum Gravity"]
+                model: ["All", "Sweep", "GR Validation", "Cosmology", "Gravitational Waves", "Discovery", "Quantum Gravity"]
                 font.pixelSize: 10
             }
             Item { Layout.fillWidth: true }
