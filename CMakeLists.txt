@@ -259,6 +259,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/SpinSweepExperiment.cpp
         src/experiment/experiments/LensingDeflectionExperiment.cpp
         src/experiment/experiments/LensingTimeDelayExperiment.cpp
+        src/experiment/experiments/FRBGeneratorExperiment.cpp
         src/experiment/experiments/ChargeSweepExperiment.cpp
         src/experiment/experiments/MercuryPrecessionExperiment.cpp
         src/experiment/experiments/FrameDraggingExperiment.cpp
@@ -996,6 +997,14 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     )
     target_link_libraries(test_lensing_time_delay PRIVATE Qt6::Core dilaton)
     add_test(NAME LensingTimeDelayTest COMMAND test_lensing_time_delay)
+
+    add_executable(test_frb_generator
+        tests/test_frb_generator.cpp
+        src/experiment/experiments/FRBGeneratorExperiment.cpp
+    )
+    target_link_libraries(test_frb_generator PRIVATE Qt6::Core dilaton)
+    target_include_directories(test_frb_generator PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+    add_test(NAME FRBGeneratorTest COMMAND test_frb_generator)
     
     # Property-based tests
     add_executable(test_property_based
