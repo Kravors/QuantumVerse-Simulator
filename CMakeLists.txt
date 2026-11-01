@@ -269,6 +269,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/TheoryComparisonExperiment.cpp
         src/experiment/experiments/QuantumGeometryExperiment.cpp
         src/experiment/experiments/GWRingdownExperiment.cpp
+        src/experiment/experiments/PhotonSphereExperiment.cpp
         src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
         src/experiment/cosmology/ProjectCosmologyAdapter.cpp
         src/experiment/experiments/CosmologyExperimentBase.cpp
@@ -1027,6 +1028,14 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     target_link_libraries(test_gw_ringdown PRIVATE Qt6::Core dilaton)
     target_include_directories(test_gw_ringdown PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME GWRingdownTest COMMAND test_gw_ringdown)
+
+    add_executable(test_photon_sphere
+        tests/test_photon_sphere.cpp
+        src/experiment/experiments/PhotonSphereExperiment.cpp
+    )
+    target_link_libraries(test_photon_sphere PRIVATE Qt6::Core dilaton)
+    target_include_directories(test_photon_sphere PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+    add_test(NAME PhotonSphereTest COMMAND test_photon_sphere)
     
     # Property-based tests
     add_executable(test_property_based
@@ -1989,7 +1998,7 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_cosmology_experiments.cpp)
             add_executable(test_cosmology_experiments
                 tests/test_cosmology_experiments.cpp
-                src/experiment/ExperimentRunner.cpp
+                src/experiment/experimentRunner.cpp
                 src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
                 src/experiment/cosmology/ProjectCosmologyAdapter.cpp
                 src/experiment/experiments/CosmologyExperimentBase.cpp

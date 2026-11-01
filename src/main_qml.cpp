@@ -63,6 +63,7 @@
 #include "experiment/experiments/FRBGeneratorExperiment.h"
 #include "experiment/experiments/PTASpectrumExperiment.h"
 #include "experiment/experiments/GWRingdownExperiment.h"
+#include "experiment/experiments/PhotonSphereExperiment.h"
 #include "experiment/experiments/ChargeSweepExperiment.h"
 #include "experiment/experiments/MercuryPrecessionExperiment.h"
 #include "experiment/experiments/FrameDraggingExperiment.h"
@@ -831,6 +832,7 @@ int main(int argc, char* argv[])
         experimentRunner->registerExperiment(std::make_unique<quantumverse::FRBGeneratorExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::PTASpectrumExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::GWRingdownExperiment>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::PhotonSphereExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::ChargeSweepExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::MercuryPrecessionExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::FrameDraggingExperiment>());
