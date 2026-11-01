@@ -281,6 +281,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/HubbleEvolutionExperiment.cpp
         src/experiment/experiments/GrowthFactorExperiment.cpp
         src/experiment/experiments/CosmologyValidationSuite.cpp
+        src/experiment/ScanSummaryBuilder.cpp
         third_party/glad/glad.cpp
         src/ui4d/Camera4DAdapter.cpp
         src/ui4d/SceneGraphManager.cpp
@@ -2025,6 +2026,21 @@ endif()
             set_tests_properties(ExperimentRunnerTest PROPERTIES
                 WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
                 ENVIRONMENT "PATH=$<TARGET_FILE_DIR:Qt6::Core>;$ENV{PATH}"
+            )
+        endif()
+
+        # QML paper pipeline headless test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_qml_paper_pipeline.cpp)
+            add_executable(test_qml_paper_pipeline
+                tests/test_qml_paper_pipeline.cpp
+                )
+            target_link_libraries(test_qml_paper_pipeline PRIVATE Qt6::Core)
+            target_include_directories(test_qml_paper_pipeline PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_qml_paper_pipeline PRIVATE QUANTUMVERSE_USE_QML)
+            set_target_properties(test_qml_paper_pipeline PROPERTIES AUTOMOC ON)
+            add_test(NAME QmlPaperPipelineTest COMMAND test_qml_paper_pipeline)
+            set_tests_properties(QmlPaperPipelineTest PROPERTIES
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             )
         endif()
 

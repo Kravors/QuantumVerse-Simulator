@@ -32,10 +32,12 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QEventLoop>
 #include <QThread>
 #include <QWidget>
 #include <QWindow>
@@ -383,6 +385,7 @@ int main(int argc, char* argv[])
     double lensingTheta = -1.0;  // <0 = not set; >=0 overrides QML default
     bool disableCelestial = false;
     bool noStarfield = false;
+    QString paperPipelineId;  // --run-paper-pipeline <experiment-id>
 
     // Camera CLI overrides. Angles are in DEGREES (converted to radians below),
     // distances/targets are world units. Any --cam-* flag sets cliCameraSet,
@@ -479,6 +482,8 @@ int main(int argc, char* argv[])
             sessionId = argv[++i];
         } else if (strcmp(argv[i], "--start-tour") == 0 && i + 1 < argc) {
             startTourId = argv[++i];
+        } else if (strcmp(argv[i], "--run-paper-pipeline") == 0 && i + 1 < argc) {
+            paperPipelineId = argv[++i];
         } else if (strcmp(argv[i], "--cam-az") == 0 && i + 1 < argc) {
             cliCamAzimuthDeg = atof(argv[++i]);
             cliCameraSet = true;
@@ -548,7 +553,7 @@ int main(int argc, char* argv[])
 #ifdef _WIN32
     noDisplay = GetSystemMetrics(SM_CMONITORS) == 0;
 #endif
-    if (noDisplay && headlessFrames <= 0) {
+    if (noDisplay && headlessFrames <= 0 && paperPipelineId.isEmpty()) {
         std::cerr << "No display detected. Exiting gracefully (headless environment)." << std::endl;
         std::cerr.flush();
         return 0;
@@ -856,6 +861,52 @@ int main(int argc, char* argv[])
         std::cerr << "QuantumVerse: Experiment runner registered "
                   << experimentRunner->rowCount() << " experiments" << std::endl;
         std::cerr.flush();
+
+        // Headless paper pipeline: generate a discovery paper for the given
+        // experiment id, print the PDF path, and exit. Exercises the same
+        // Q_INVOKABLE path as the QML "Generate Paper" button.
+        if (!paperPipelineId.isEmpty()) {
+            QString path =
+                experimentRunner->generateDiscoveryPaper(paperPipelineId);
+            if (path.isEmpty()) {
+                // No prior result — run the experiment first (same as QML:
+                // run, then generate paper).
+                QEventLoop runLoop;
+            QObject::connect(experimentRunner.get(),
+                &quantumverse::ExperimentRunner::experimentFinished,
+                &runLoop, [&]() { runLoop.quit(); });
+                experimentRunner->start(paperPipelineId, QVariantMap());
+                QTimer::singleShot(30000, &runLoop, &QEventLoop::quit);
+                runLoop.exec();
+
+                path = experimentRunner->generateDiscoveryPaper(paperPipelineId);
+                if (path.isEmpty()) {
+                    std::cerr << "QuantumVerse: paper pipeline for '"
+                              << paperPipelineId.toStdString()
+                              << "' produced no PDF" << std::endl;
+                    std::cerr.flush();
+                    return 1;
+                }
+            }
+            // pdflatex runs asynchronously via QProcess signals; poll for the
+            // output file (up to 120s — first MiKTeX run installs packages).
+            QElapsedTimer timer; timer.start();
+            while (timer.elapsed() < 120000 && !QFileInfo::exists(path)) {
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
+            }
+            if (!QFileInfo::exists(path)) {
+                std::cerr << "QuantumVerse: pdflatex timed out for '"
+                          << paperPipelineId.toStdString() << "'" << std::endl;
+                std::cerr.flush();
+                return 1;
+            }
+            // Grace period for pdflatex to finish writing before exit.
+            QThread::msleep(1000);
+            std::cerr << "[PAPER-PIPELINE] " << paperPipelineId.toStdString()
+                      << " -> " << path.toStdString() << std::endl;
+            std::cerr.flush();
+            return 0;
+        }
 
         std::cerr << "QuantumVerse: Spacetime GPS registered "
                   << gps->rowCount() << " tracked objects" << std::endl;
