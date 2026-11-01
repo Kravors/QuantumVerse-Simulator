@@ -268,6 +268,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/AnomalyScanExperiment.cpp
         src/experiment/experiments/TheoryComparisonExperiment.cpp
         src/experiment/experiments/QuantumGeometryExperiment.cpp
+        src/experiment/experiments/GWRingdownExperiment.cpp
         src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
         src/experiment/cosmology/ProjectCosmologyAdapter.cpp
         src/experiment/experiments/CosmologyExperimentBase.cpp
@@ -1018,6 +1019,14 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     target_link_libraries(test_pta_spectrum PRIVATE Qt6::Core dilaton)
     target_include_directories(test_pta_spectrum PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME PTASpectrumTest COMMAND test_pta_spectrum)
+
+    add_executable(test_gw_ringdown
+        tests/test_gw_ringdown.cpp
+        src/experiment/experiments/GWRingdownExperiment.cpp
+    )
+    target_link_libraries(test_gw_ringdown PRIVATE Qt6::Core dilaton)
+    target_include_directories(test_gw_ringdown PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+    add_test(NAME GWRingdownTest COMMAND test_gw_ringdown)
     
     # Property-based tests
     add_executable(test_property_based
