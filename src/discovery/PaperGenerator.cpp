@@ -76,7 +76,8 @@ QString PaperGenerator::escapeLatex(const QString& input)
 void PaperGenerator::generatePaper(double mass, double spin, double charge,
                                    double kretch, double redshift,
                                    const QString& llmAbstract,
-                                   const QString& bhType)
+                                   const QString& bhType,
+                                   const QString& outputPath)
 {
     QString tex = loadTemplate();
     if (tex.isEmpty()) {
@@ -94,9 +95,14 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
 
     // Write .tex to output directory
     QString outDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/QuantumVerse/output";
+    if (!outputPath.isEmpty()) {
+        outDir = QFileInfo(outputPath).absolutePath();
+    }
     QDir().mkpath(outDir);
 
-    QString texPath = outDir + "/discovery_paper.tex";
+    QString texPath = outputPath.isEmpty()
+        ? outDir + "/discovery_paper.tex"
+        : outputPath;
     QFile outFile(texPath);
     if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "[PaperGenerator] Could not write" << texPath;
@@ -109,7 +115,8 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
     // Compile with pdflatex
     QProcess* process = new QProcess(this);
     process->setWorkingDirectory(outDir);
-    process->start("pdflatex", QStringList() << "-interaction=batchmode" << "-halt-on-error" << "discovery_paper.tex");
+    QString texFileName = QFileInfo(texPath).fileName();
+    process->start("pdflatex", QStringList() << "-interaction=batchmode" << "-halt-on-error" << texFileName);
 
     QObject::connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
         [this, process, texPath](int exitCode, QProcess::ExitStatus) {
@@ -126,11 +133,12 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
 }
 
 void PaperGenerator::generatePaper(const ScanSummary& summary,
-                                   const QString& llmAbstract)
+                                   const QString& llmAbstract,
+                                   const QString& outputPath)
 {
     generatePaper(summary.mass, summary.spin, summary.charge,
                   summary.kretschmann, summary.redshift,
-                  llmAbstract, summary.bhType);
+                  llmAbstract, summary.bhType, outputPath);
 }
 
 } // namespace quantumverse

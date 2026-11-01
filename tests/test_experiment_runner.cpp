@@ -9,6 +9,7 @@
 #include <QVariantMap>
 #include <QFileInfo>
 #include <QDir>
+#include <QProcess>
 #include <iostream>
 
 #include "experiment/ExperimentRunner.h"
@@ -105,25 +106,61 @@ int main(int argc, char** argv)
     QV_CHECK(lensFinished);
     QV_CHECK(!runner.running());
 
-    // Export PDF for the lensing experiment
+    // Export PDF for the lensing experiment (first export)
     QSignalSpy pdfDoneSpy(&runner, &ExperimentRunner::pdfFinished);
-    runner.exportPDF(QStringLiteral("lensing_time_delay"), QString());
+    QString pdfPath1 = runner.exportPDF(QStringLiteral("lensing_time_delay"), QString());
 
-    bool pdfDone = false;
-    QString actualPdfPath;
-    for (int i = 0; i < 400 && !pdfDone; ++i) { // pdflatex can be slow
+    bool pdfDone1 = false;
+    QString actualPdfPath1;
+    for (int i = 0; i < 400 && !pdfDone1; ++i) { // pdflatex can be slow
         QTest::qWait(25);
         if (pdfDoneSpy.count() >= 1) {
-            pdfDone = true;
-            actualPdfPath = pdfDoneSpy.takeFirst().at(0).toString();
+            pdfDone1 = true;
+            actualPdfPath1 = pdfDoneSpy.takeFirst().at(0).toString();
         }
         QCoreApplication::processEvents();
     }
-    QV_CHECK(pdfDone);
-    QV_CHECK(QFileInfo::exists(actualPdfPath));
-    QV_CHECK(actualPdfPath.size() > 0);
+    QV_CHECK(pdfDone1);
+    QV_CHECK(QFileInfo::exists(actualPdfPath1));
+    QV_CHECK(actualPdfPath1.size() > 0);
+    QV_CHECK(actualPdfPath1.contains(QStringLiteral("lensing_time_delay_")));
+    QV_CHECK(actualPdfPath1.endsWith(QStringLiteral(".pdf")));
 
-    std::cout << "PDF exported to: " << actualPdfPath.toStdString() << std::endl;
+    std::cout << "PDF #1 exported to: " << actualPdfPath1.toStdString() << std::endl;
+
+    // ---- Verify PDF content via pdftotext ----
+    QString pdfText;
+    {
+        QProcess pdftotext;
+        pdftotext.setProcessChannelMode(QProcess::MergedChannels);
+        pdftotext.start("pdftotext", QStringList() << actualPdfPath1 << "-");
+        pdftotext.waitForFinished(30000);
+        pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
+    }
+    QV_CHECK(!pdfText.isEmpty());
+    QV_CHECK(pdfText.contains(QStringLiteral("lensing")));
+    QV_CHECK(pdfText.contains(QStringLiteral("29.96")) || pdfText.contains(QStringLiteral("29.9")));
+    QV_CHECK(pdfText.contains(QStringLiteral("0.5")));
+
+    // ---- Second export must produce a DIFFERENT (unique) file ----
+    QSignalSpy pdfDoneSpy2(&runner, &ExperimentRunner::pdfFinished);
+    QString pdfPath2 = runner.exportPDF(QStringLiteral("lensing_time_delay"), QString());
+
+    bool pdfDone2 = false;
+    QString actualPdfPath2;
+    for (int i = 0; i < 400 && !pdfDone2; ++i) {
+        QTest::qWait(25);
+        if (pdfDoneSpy2.count() >= 1) {
+            pdfDone2 = true;
+            actualPdfPath2 = pdfDoneSpy2.takeFirst().at(0).toString();
+        }
+        QCoreApplication::processEvents();
+    }
+    QV_CHECK(pdfDone2);
+    QV_CHECK(QFileInfo::exists(actualPdfPath2));
+    QV_CHECK(actualPdfPath2 != actualPdfPath1);
+
+    std::cout << "PDF #2 exported to: " << actualPdfPath2.toStdString() << std::endl;
     std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;
     return 0;
 }

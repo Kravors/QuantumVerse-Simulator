@@ -14,6 +14,7 @@
 #include <QMetaObject>
 #include <QDebug>
 #include <QMap>
+#include <QStandardPaths>
 #include <algorithm>
 #include <thread>
 #include <cmath>
@@ -340,6 +341,16 @@ QString ExperimentRunner::exportPDF(const QString& id, const QString& path /*= Q
         return QString();
     }
 
+    // Compute a unique output path: <experimentId>_<timestamp>.pdf
+    QString pdfPath = path;
+    if (pdfPath.isEmpty()) {
+        QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                        + "/QuantumVerse/output";
+        QDir().mkpath(baseDir);
+        const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+        pdfPath = baseDir + QStringLiteral("/") + id + QStringLiteral("_") + stamp + QStringLiteral(".pdf");
+    }
+
     // Map experiment scalars to PaperGenerator parameters.
     // Lens mass (M_sun) is the natural "mass"; redshift is directly available.
     // Spin/charge are N/A for lensing (0). Kretschmann uses Einstein radius as
@@ -361,13 +372,12 @@ QString ExperimentRunner::exportPDF(const QString& id, const QString& path /*= Q
 
     // PaperGenerator::generatePaper is async (QProcess). We fire it and let
     // the paperGenerated signal propagate via pdfFinished. The caller can
-    // listen to pdfFinished for the actual path. Return the requested output
-    // path hint (PaperGenerator writes to its own default location).
+    // listen to pdfFinished for the actual path.
     m_paperGenerator->generatePaper(
         mass, 0.0, 0.0, einsteinRadius, redshift,
-        abstract, QStringLiteral("lensing"));
+        abstract, QStringLiteral("lensing"), pdfPath);
 
-    return path.isEmpty() ? QString() : path;
+    return pdfPath;
 }
 
 QVariantList ExperimentRunner::history() const {

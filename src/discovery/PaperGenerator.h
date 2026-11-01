@@ -33,11 +33,13 @@ public:
     Q_INVOKABLE void generatePaper(double mass, double spin, double charge,
                                    double kretch, double redshift,
                                    const QString& llmAbstract,
-                                   const QString& bhType = QStringLiteral("unknown"));
+                                   const QString& bhType = QStringLiteral("unknown"),
+                                   const QString& outputPath = QString());
 
     /// Generate a LaTeX paper and compile to PDF from a ScanSummary + LLM abstract.
     Q_INVOKABLE void generatePaper(const ScanSummary& summary,
-                                   const QString& llmAbstract);
+                                   const QString& llmAbstract,
+                                   const QString& outputPath = QString());
 
 signals:
     /// Emitted with the path to the generated PDF on success.
