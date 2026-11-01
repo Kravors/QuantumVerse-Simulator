@@ -13,6 +13,7 @@
 #include <array>
 #include <tuple>
 #include <numeric>
+#include "bayesian/BayesianEvidenceCalculator.h"
 #ifdef _MSC_VER
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -1117,14 +1118,20 @@ TheoryDiscoveryAgent::BayesianComparisonResult TheoryDiscoveryAgent::computeBaye
     int n_gr_params = 0; // GR has no extra free parameters
 
     // Compute log-likelihoods
-    result.log_likelihood = computeLogLikelihood(candidate_chi2, n_data);
+    double candLogLik = computeLogLikelihood(candidate_chi2, n_data);
+    double grLogLik   = computeLogLikelihood(gr_chi2, n_data);
+    result.log_likelihood = candLogLik;
 
-    // Compute BICs
+    // Compute BICs (stored in result for reference)
     result.bic_candidate = computeBIC(candidate_chi2, n_params, n_data);
     result.bic_baseline = computeBIC(gr_chi2, n_gr_params, n_data);
 
-    // Bayes factor via BIC approximation: log BF = (BIC_GR - BIC_candidate) / 2
-    result.log_bayes_factor = (result.bic_baseline - result.bic_candidate) / 2.0;
+    // Delegate Bayes factor computation to BayesianEvidenceCalculator
+    // Convention: logBF > 0 means CANDIDATE is favored (matches existing convention)
+    auto bfResult = BayesianEvidenceCalculator::compareFromInputs(
+        "GR", BICInputs{ n_gr_params, n_data, grLogLik },
+        "candidate", BICInputs{ n_params, n_data, candLogLik });
+    result.log_bayes_factor = bfResult.logBF_natural;
 
     // Clamp to avoid overflow in exp
     const double LOG_BF_MAX = 700.0;

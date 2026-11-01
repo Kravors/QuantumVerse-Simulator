@@ -272,6 +272,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/PhotonSphereExperiment.cpp
         src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
         src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+        src/bayesian/BayesianEvidenceCalculator.cpp
         src/experiment/experiments/CosmologyExperimentBase.cpp
         src/experiment/experiments/AgeOfUniverseExperiment.cpp
         src/experiment/experiments/DistanceLadderExperiment.cpp
@@ -1036,7 +1037,15 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     target_link_libraries(test_photon_sphere PRIVATE Qt6::Core dilaton)
     target_include_directories(test_photon_sphere PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME PhotonSphereTest COMMAND test_photon_sphere)
-    
+
+    add_executable(test_bayesian_evidence
+        tests/test_bayesian_evidence.cpp
+        src/bayesian/BayesianEvidenceCalculator.cpp
+    )
+    target_link_libraries(test_bayesian_evidence PRIVATE Qt6::Core dilaton)
+    target_include_directories(test_bayesian_evidence PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+    add_test(NAME BayesianEvidenceTest COMMAND test_bayesian_evidence)
+
     # Property-based tests
     add_executable(test_property_based
         tests/unit/test_property_based.cpp
@@ -2000,7 +2009,8 @@ endif()
                 tests/test_cosmology_experiments.cpp
                 src/experiment/experimentRunner.cpp
                 src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
-                src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+        src/bayesian/BayesianEvidenceCalculator.cpp
                 src/experiment/experiments/CosmologyExperimentBase.cpp
                 src/experiment/experiments/AgeOfUniverseExperiment.cpp
                 src/experiment/experiments/DistanceLadderExperiment.cpp
@@ -2551,6 +2561,7 @@ endif()
         src/data/GCNNoticeParser.cpp
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
+        src/bayesian/BayesianEvidenceCalculator.cpp
     )
     target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
     target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QT=1)
