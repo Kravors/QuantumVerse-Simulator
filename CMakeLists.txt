@@ -1988,12 +1988,16 @@ endif()
 
         # Experiment runner test
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_experiment_runner.cpp)
-            add_executable(test_experiment_runner
+        add_executable(test_experiment_runner
                 tests/test_experiment_runner.cpp
                 src/experiment/ExperimentRunner.cpp
                 src/experiment/experiments/MassSweepExperiment.cpp
+                src/experiment/experiments/LensingTimeDelayExperiment.cpp
+                src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+                src/experiment/cosmology/ProjectCosmologyAdapter.cpp
                 src/spacetime/KerrMetric.cpp
-            )
+                src/discovery/PaperGenerator.cpp
+                )
             target_link_libraries(test_experiment_runner PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
             target_include_directories(test_experiment_runner PRIVATE src third_party/glad/include third_party/glad/include/glad)
             target_compile_definitions(test_experiment_runner PRIVATE QUANTUMVERSE_USE_QML)

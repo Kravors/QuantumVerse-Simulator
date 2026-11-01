@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "Experiment.h"
+#include "discovery/PaperGenerator.h"
 
 namespace quantumverse {
 
@@ -73,6 +74,11 @@ public:
     /** Export a fixed-schema cosmology validation report (CSV) from the last
      *  result's scalars. Returns the file path, or empty on failure. */
     Q_INVOKABLE QString exportValidationReport(const QString& format = QStringLiteral("csv"));
+
+    /** Generate a PDF paper from the last result of experiment `id` via
+     *  PaperGenerator. Writes to `path` if non-empty, else to the default
+     *  output directory. Returns the PDF path on success, empty on failure. */
+    Q_INVOKABLE QString exportPDF(const QString& id, const QString& path = QString());
     /** Core CSV-writing logic: takes an ExperimentResult directly (testable
      *  without QML/event loop). Returns the file path, or empty on failure. */
     static QString writeValidationReportCSV(const ExperimentResult& result,
@@ -104,6 +110,7 @@ signals:
     void historyChanged();
     void experimentFinished(const QString& id, bool ok);
     void exportFinished(const QString& path);
+    void pdfFinished(const QString& path);
 
 public slots:
     // Marshalled back from the worker thread.
@@ -132,6 +139,7 @@ private:
 
     QThreadPool m_pool;
     mutable QMutex m_mutex;
+    std::unique_ptr<PaperGenerator> m_paperGenerator;
 
     class RunJob : public QRunnable {
     public:

@@ -24,6 +24,10 @@ ExperimentRunner::ExperimentRunner(QObject* parent)
     : QAbstractListModel(parent)
 {
     m_pool.setMaxThreadCount(std::max<size_t>(1, std::thread::hardware_concurrency() / 2));
+
+    m_paperGenerator = std::make_unique<PaperGenerator>(this);
+    connect(m_paperGenerator.get(), &PaperGenerator::paperGenerated,
+        this, &ExperimentRunner::pdfFinished);
 }
 
 ExperimentRunner::~ExperimentRunner() {
@@ -314,6 +318,56 @@ QString ExperimentRunner::exportValidationReport(const QString& format) {
     emit exportFinished(path);
     qDebug() << "Validation report exported to" << path;
     return path;
+}
+
+QString ExperimentRunner::exportPDF(const QString& id, const QString& path /*= QString()*/) {
+    // Find the latest history entry for this experiment id
+    ExperimentResult result;
+    QString experimentName;
+    {
+        QMutexLocker lock(&m_mutex);
+        for (int i = static_cast<int>(m_history.size()) - 1; i >= 0; --i) {
+            if (m_history[i].id == id) {
+                result = m_history[i].result;
+                experimentName = m_history[i].name;
+                break;
+            }
+        }
+    }
+
+    if (result.scalars.isEmpty()) {
+        qWarning() << "exportPDF: no result for experiment" << id;
+        return QString();
+    }
+
+    // Map experiment scalars to PaperGenerator parameters.
+    // Lens mass (M_sun) is the natural "mass"; redshift is directly available.
+    // Spin/charge are N/A for lensing (0). Kretschmann uses Einstein radius as
+    // a curvature proxy since lensing doesn't directly compute K.
+    double mass = result.scalars.value(QStringLiteral("lens_mass_msun"), 0.0).toDouble();
+    double redshift = result.scalars.value(QStringLiteral("lens_redshift"), 0.0).toDouble();
+    double einsteinRadius = result.scalars.value(QStringLiteral("einstein_radius_arcsec"), 0.0).toDouble();
+    double delayDays = result.scalars.value(QStringLiteral("reference_delay_days"), 0.0).toDouble();
+
+    // Build a plain-English abstract from the scalars
+    QString abstract = QStringLiteral(
+        "Strong gravitational lensing by a point-mass lens of %1 M_sun at z = %2. "
+        "The Einstein radius is %3 arcsec. The reference time delay at "
+        "beta = 0.5 theta_E is %4 days.")
+        .arg(QString::number(mass, 'f', 2))
+        .arg(QString::number(redshift, 'f', 3))
+        .arg(QString::number(einsteinRadius, 'f', 4))
+        .arg(QString::number(delayDays, 'f', 2));
+
+    // PaperGenerator::generatePaper is async (QProcess). We fire it and let
+    // the paperGenerated signal propagate via pdfFinished. The caller can
+    // listen to pdfFinished for the actual path. Return the requested output
+    // path hint (PaperGenerator writes to its own default location).
+    m_paperGenerator->generatePaper(
+        mass, 0.0, 0.0, einsteinRadius, redshift,
+        abstract, QStringLiteral("lensing"));
+
+    return path.isEmpty() ? QString() : path;
 }
 
 QVariantList ExperimentRunner::history() const {

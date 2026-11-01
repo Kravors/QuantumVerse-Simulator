@@ -7,10 +7,13 @@
 #include <QSignalSpy>
 #include <QTest>
 #include <QVariantMap>
+#include <QFileInfo>
+#include <QDir>
 #include <iostream>
 
 #include "experiment/ExperimentRunner.h"
 #include "experiment/experiments/MassSweepExperiment.h"
+#include "experiment/experiments/LensingTimeDelayExperiment.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -77,6 +80,50 @@ int main(int argc, char** argv)
     QV_CHECK(!log.isEmpty());
     QV_CHECK(log.contains(QStringLiteral("K=")));
 
+    // ---- PDF export test ----
+    runner.registerExperiment(std::make_unique<LensingTimeDelayExperiment>());
+    QV_CHECK(runner.count() == 2);
+
+    QVariantMap lensParams;
+    lensParams[QStringLiteral("lens_mass_msun")] = 1.0e11;
+    lensParams[QStringLiteral("lens_redshift")] = 0.3;
+    lensParams[QStringLiteral("D_L_Gpc")] = 1.0;
+    lensParams[QStringLiteral("D_S_Gpc")] = 2.0;
+    lensParams[QStringLiteral("D_LS_Gpc")] = 1.5;
+    lensParams[QStringLiteral("source_positions")] = 10;
+    lensParams[QStringLiteral("cosmology_source")] = QStringLiteral("fixed");
+
+    QSignalSpy pdfSpy(&runner, &ExperimentRunner::pdfFinished);
+    runner.start(QStringLiteral("lensing_time_delay"), lensParams);
+
+    bool lensFinished = false;
+    for (int i = 0; i < 200 && !lensFinished; ++i) {
+        QTest::qWait(25);
+        if (finishedSpy.count() >= 1) lensFinished = true;
+        QCoreApplication::processEvents();
+    }
+    QV_CHECK(lensFinished);
+    QV_CHECK(!runner.running());
+
+    // Export PDF for the lensing experiment
+    QSignalSpy pdfDoneSpy(&runner, &ExperimentRunner::pdfFinished);
+    runner.exportPDF(QStringLiteral("lensing_time_delay"), QString());
+
+    bool pdfDone = false;
+    QString actualPdfPath;
+    for (int i = 0; i < 400 && !pdfDone; ++i) { // pdflatex can be slow
+        QTest::qWait(25);
+        if (pdfDoneSpy.count() >= 1) {
+            pdfDone = true;
+            actualPdfPath = pdfDoneSpy.takeFirst().at(0).toString();
+        }
+        QCoreApplication::processEvents();
+    }
+    QV_CHECK(pdfDone);
+    QV_CHECK(QFileInfo::exists(actualPdfPath));
+    QV_CHECK(actualPdfPath.size() > 0);
+
+    std::cout << "PDF exported to: " << actualPdfPath.toStdString() << std::endl;
     std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;
     return 0;
 }

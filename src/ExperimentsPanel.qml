@@ -92,6 +92,12 @@ Rectangle {
                 Layout.preferredWidth: 150
                 onClicked: experimentRunner.exportValidationReport("csv")
             }
+            Button {
+                text: "Export PDF"
+                enabled: !experimentRunner.running && experimentRunner.currentId !== ""
+                Layout.preferredWidth: 70
+                onClicked: experimentRunner.exportPDF(experimentRunner.currentId, "")
+            }
             Item { Layout.fillWidth: true }
             Text {
                 text: Math.round(experimentRunner.progress * 100) + "%"
