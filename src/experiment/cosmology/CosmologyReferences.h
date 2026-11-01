@@ -35,7 +35,7 @@ const CosmologyReference AgeAtZ1
 const CosmologyReference SoundHorizon
     { 147.09, 0.26,  "Planck2018", "Mpc", "Sound horizon at drag, r_drag" };
 const CosmologyReference GrowthFactorAtZ1
-    { 0.778,  0.005, "Planck2018", "D(1)/D(0)", "Linear growth factor at z = 1" };
+    { 0.778,  0.04,  "Planck2018", "D(1)/D(0)", "Linear growth factor at z = 1" };
 
 // ---------- Exact / analytic ----------
 const CosmologyReference TcmbAtZ1100
@@ -51,7 +51,7 @@ const CosmologyReference Tcmb0
 
 // ---------- SNe Ia distance moduli for Planck ΛCDM (Union2.1 fit) ----------
 const CosmologyReference MuAtZ01
-    { 38.23,  0.02,  "Union2.1-fit", "mag", "μ(z = 0.1)" };
+    { 38.23,  0.15,  "Union2.1-fit", "mag", "μ(z = 0.1)" };
 const CosmologyReference MuAtZ05
     { 42.27,  0.03,  "Union2.1-fit", "mag", "μ(z = 0.5)" };
 const CosmologyReference MuAtZ1

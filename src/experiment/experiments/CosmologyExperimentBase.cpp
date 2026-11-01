@@ -30,12 +30,14 @@ CosmologyCheck CosmologyExperimentBase::makeCheck(
     else
         c.relErrorPct = (projectVal == 0.0) ? 0.0 : std::numeric_limits<double>::infinity();
 
-    if (ref.sigma > 0.0)
+    if (ref.sigma > 0.0 && ref.sigma >= 1e-10 * std::abs(ref.value)) {
         c.tensionSigma = (projectVal - ref.value) / ref.sigma;
-    else
-        c.tensionSigma = 0.0;
+    } else {
+        // Analytic / exact reference (sigma ~ 0): no meaningful sigma-tension.
+        c.tensionSigma = std::numeric_limits<double>::quiet_NaN();
+    }
 
-    c.pass = (ref.sigma > 0.0)
+    c.pass = (ref.sigma > 0.0 && ref.sigma >= 1e-10 * std::abs(ref.value))
         ? (std::abs(c.tensionSigma) <= passSigma)
         : (std::abs(c.relErrorPct) <= passRelativePct);
     return c;

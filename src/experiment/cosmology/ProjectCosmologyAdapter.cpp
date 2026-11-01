@@ -45,9 +45,22 @@ ProjectCosmologyAdapter::ProjectCosmologyAdapter(double H0, double OmegaM,
 }
 
 double ProjectCosmologyAdapter::H(double z) const {
-    // Delegate to FRWMetric when available; bit-exact agreement with the
-    // project's cosmology module. Falls back to first-principles otherwise.
-    return m_frw ? m_frw->hubble(z) * MPC_M / 1000.0 : m_H0;
+    // Compute E(z) = sqrt(Ωm(1+z)³ + Ωr(1+z)⁴ + Ωk(1+z)² + ΩΛ) with all
+    // components, including radiation — FRWMetric::hubble(z) only includes
+    // matter and dark energy, which is wrong at high z where radiation
+    // dominates (e.g. z_drag ≈ 1060, sound horizon integration range).
+    const double opz = 1.0 + z;
+    const double opz2 = opz * opz;
+    const double opz3 = opz2 * opz;
+    const double opz4 = opz2 * opz2;
+    const double Om = m_frw ? m_frw->omegaM() : m_Om;
+    const double Or = m_Or;
+    const double Ok = m_Ok;
+    const double OL = m_frw ? m_frw->omegaLambda() : m_OL;
+    const double E2 = Om * opz3 + Or * opz4 + Ok * opz2 + OL;
+    const double H0_si = m_frw ? m_frw->hubbleConstant()
+                               : m_H0 * 1000.0 / MPC_M;
+    return H0_si * MPC_M / 1000.0 * std::sqrt(E2);
 }
 
 double ProjectCosmologyAdapter::comovingDistance(double z) const {
@@ -98,7 +111,7 @@ double ProjectCosmologyAdapter::ageAtRedshift(double z) const {
         s += (i & 1 ? 4.0 : 2.0) * f(i * h);
     const double integral = s * h / 3.0;
     const double H0 = m_frw ? m_frw->hubbleConstant() : m_H0;
-    const double H0_si = H0 * 1000.0 / MPC_M;
+    const double H0_si = m_frw ? H0 : H0 * 1000.0 / MPC_M;
     return (integral / H0_si) / SECONDS_PER_GYR;
 }
 
@@ -160,7 +173,7 @@ double ProjectCosmologyAdapter::growthFactor(double z) const {
 
 double ProjectCosmologyAdapter::criticalDensity() const {
     const double H0 = m_frw ? m_frw->hubbleConstant() : m_H0;
-    const double H0_si = H0 * 1000.0 / MPC_M;
+    const double H0_si = m_frw ? H0 : H0 * 1000.0 / MPC_M;
     return 3.0 * H0_si * H0_si / (8.0 * M_PI * G_SI);
 }
 
