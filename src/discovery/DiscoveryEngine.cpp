@@ -1,5 +1,6 @@
 #include "DiscoveryEngine.h"
 #include <cmath>
+#include <limits>
 #include <algorithm>
 #include <numeric>
 #include <random>
@@ -311,7 +312,7 @@ double DiscoveryEngine::calculateBayesFactor(
     (void)h1;
     (void)h2;
     (void)data;
-    return 1.0;
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 void DiscoveryEngine::registerDiscoveryCallback(
