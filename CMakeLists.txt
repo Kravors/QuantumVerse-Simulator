@@ -1046,6 +1046,40 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     target_include_directories(test_bayesian_evidence PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME BayesianEvidenceTest COMMAND test_bayesian_evidence)
 
+    add_executable(test_experiment_smoke
+        tests/test_experiment_smoke.cpp
+        src/experiment/experiments/MassSweepExperiment.cpp
+        src/experiment/experiments/SpinSweepExperiment.cpp
+        src/experiment/experiments/LensingDeflectionExperiment.cpp
+        src/experiment/experiments/LensingTimeDelayExperiment.cpp
+        src/experiment/experiments/FRBGeneratorExperiment.cpp
+        src/experiment/experiments/PTASpectrumExperiment.cpp
+        src/experiment/experiments/GWRingdownExperiment.cpp
+        src/experiment/experiments/PhotonSphereExperiment.cpp
+        src/experiment/experiments/ChargeSweepExperiment.cpp
+        src/experiment/experiments/MercuryPrecessionExperiment.cpp
+        src/experiment/experiments/FrameDraggingExperiment.cpp
+        src/experiment/experiments/RedshiftProfileExperiment.cpp
+        src/experiment/experiments/AnomalyScanExperiment.cpp
+        src/experiment/experiments/TheoryComparisonExperiment.cpp
+        src/experiment/experiments/QuantumGeometryExperiment.cpp
+        src/experiment/experiments/AgeOfUniverseExperiment.cpp
+        src/experiment/experiments/DistanceLadderExperiment.cpp
+        src/experiment/experiments/CMBTemperatureExperiment.cpp
+        src/experiment/experiments/BAOSoundHorizonExperiment.cpp
+        src/experiment/experiments/HubbleEvolutionExperiment.cpp
+        src/experiment/experiments/GrowthFactorExperiment.cpp
+        src/experiment/experiments/CosmologyValidationSuite.cpp
+        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+        src/experiment/experiments/CosmologyExperimentBase.cpp
+        src/spacetime/KerrMetric.cpp
+        src/quantumgravity/CDTEngine.cpp
+    )
+    target_link_libraries(test_experiment_smoke PRIVATE Qt6::Core dilaton)
+    target_include_directories(test_experiment_smoke PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+    add_test(NAME ExperimentSmokeTest COMMAND test_experiment_smoke)
+
     # Property-based tests
     add_executable(test_property_based
         tests/unit/test_property_based.cpp

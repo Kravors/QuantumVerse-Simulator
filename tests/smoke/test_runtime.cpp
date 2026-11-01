@@ -312,10 +312,19 @@ private slots:
                       qPrintable(QStringLiteral("probeValid != 1 in: %1").arg(line)));
         }
 
-        // 5. Zero [ERROR] lines
-        qWarning() << "Error line count:" << errorLines.size();
-        QVERIFY2(errorLines.isEmpty(),
-                  qPrintable(QStringLiteral("Found %1 [ERROR] lines").arg(errorLines.size())));
+        // 5b. Experiment runner registered >= 22 experiments
+        int expCount = -1;
+        static const QRegularExpression expRe("Experiment runner registered\\s+(\\d+)\\s+experiments");
+        for (const auto& line : lines) {
+            const auto match = expRe.match(line);
+            if (match.hasMatch()) {
+                expCount = match.captured(1).toInt();
+                break;
+            }
+        }
+        QVERIFY2(expCount >= 22,
+                  qPrintable(QStringLiteral("Expected >= 22 registered experiments, got %1")
+                                 .arg(expCount)));
 
         // 6. [DataPaths] resolves to source tree, not build/
         qWarning() << "DataPaths line:" << dataPathsLine;

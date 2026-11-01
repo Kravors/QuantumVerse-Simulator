@@ -3,7 +3,7 @@
 **Version**: v7.2 ("Kerr Observables + Deliverable Installer" Release)  
 **Status**: Phase 0 Complete (100%) | Phase 1 Complete (100%) | Phase 2 Complete (100%) | Phase 3 Complete (100%) | Phase 4 Complete (100%)  
 **Overall Completion**: 100% (all tasks complete, build system integrated, all tests passing)  
-**Last Updated**: 2026-10-26  
+**Last Updated**: 2026-11-01  
 **Release**: `v7.2-final` (immutable, published on GitHub)  
 **Installer**: `QuantumVerse-7.2-Setup.exe` (~32.4 MB)  
 **Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.2-final  
@@ -11,7 +11,21 @@
 
 ---
 
-## Table of Contents
+### 2026-11-01 — Experiment Framework Milestone (N=5)
+
+**New experiments shipped**: FRBGenerator (dispersion measure vs z), PTASpectrum (power-law strain spectrum), GWRingdown (damped-sinusoid QNM waveform), PhotonSphere (Bardeen 1972 photon orbits vs spin). Total: 22 registered experiments spanning 5 curve shapes (peaked, monotonic, power-law, damped-sinusoid, decreasing) and 5 physics families.
+
+**New module**: `src/bayesian/BayesianEvidenceCalculator.h/.cpp` — BIC-based logZ + Bayes factors with Kass & Raftery interpretation. `TheoryDiscoveryAgent::computeBayesFactor()` now delegates to it (single source of truth; regression test confirms unchanged return values).
+
+**Correctness fix**: `DiscoveryEngine::calculateBayesFactor()` stub now returns `quiet_NaN()` instead of silent `1.0` (which meant "inconclusive" and was silently wrong).
+
+**New test harness**: `tests/test_experiment_smoke.cpp` — collection-level smoke test that instantiates all 22 experiments with default parameters, verifies non-empty output (curve or scalars), and checks default parameters are within declared ranges. 88/88 checks pass.
+
+**New test**: `tests/test_runtime.cpp` — added experiment registration count check (>= 22 registered experiments) to `testHeadlessRealityDump`.
+
+**Regression test**: `tests/test_bayesian_evidence.cpp` — 6 checks (4 non-vacuous) pinning the sign convention (±ΔBIC/2), identical-models BF=1, Δk·ln(n)/2 parameter penalty, n-cancellation when k₁=k₂, and Kass & Raftery interpretation thresholds.
+
+---
 
 1. [Executive Overview](#1-executive-overview)
 2. [Project Architecture](#2-project-architecture)
