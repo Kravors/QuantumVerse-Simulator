@@ -11,6 +11,7 @@
 
 #include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/KerrMetric.h"
 
 namespace quantumverse {
 
@@ -79,6 +80,15 @@ ExperimentResult RedshiftProfileExperiment::run(const QVariantMap& params,
     }
 
     out.scalars[QStringLiteral("z_at_r_min")] = zAtRmin;
+
+    // Kretschmann scalar at r_min — Schwarzschild (spin = 0).
+    KerrMetric km(massKg, 0.0);
+    const double r_min_geo = rMin; // r_min already in meters
+    const auto curv = km.curvatureScalars(Event4D(0.0, r_min_geo, 0.0, 0.0));
+    if (curv.valid) {
+        out.scalars[QStringLiteral("kretschmann_at_r_min")] = curv.kretschmann;
+    }
+
     out.outputDir = QDir::currentPath();
     return out;
 }

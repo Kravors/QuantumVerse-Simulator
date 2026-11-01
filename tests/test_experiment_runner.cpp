@@ -20,6 +20,8 @@
 #include "experiment/experiments/MassSweepExperiment.h"
 #include "experiment/experiments/LensingTimeDelayExperiment.h"
 #include "experiment/experiments/PhotonSphereExperiment.h"
+#include "experiment/experiments/RedshiftProfileExperiment.h"
+#include "experiment/experiments/FrameDraggingExperiment.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -174,86 +176,115 @@ int main(int argc, char** argv)
 
     std::cout << "PDF #2 exported to: " << actualPdfPath2.toStdString() << std::endl;
 
-    // ---- Discovery paper test: photon_sphere -> generateDiscoveryPaper ----
+    // ---- Discovery paper test: all supported experiments ----
     runner.registerExperiment(std::make_unique<PhotonSphereExperiment>());
-    QV_CHECK(runner.count() == 3);
+    runner.registerExperiment(std::make_unique<RedshiftProfileExperiment>());
+    runner.registerExperiment(std::make_unique<FrameDraggingExperiment>());
+    QV_CHECK(runner.count() == 5);
 
-    QVariantMap photonParams;
-    photonParams[QStringLiteral("mass_Msun")] = 10.0;
-    photonParams[QStringLiteral("spin_a_max")] = 0.99;
-    photonParams[QStringLiteral("n_steps")] = 50;
+    struct DiscoveryCase {
+        QString id;
+        QVariantMap params;
+        QStringList contentMustContain;
+        QString contentMustNotContain;
+        QString bhTypeExpected;
+    };
 
-    QSignalSpy photonFinishedSpy(&runner, &ExperimentRunner::experimentFinished);
-    runner.start(QStringLiteral("photon_sphere"), photonParams);
+    QVector<DiscoveryCase> cases = {
+        { QStringLiteral("photon_sphere"),
+          {{QStringLiteral("mass_Msun"), 10.0},
+           {QStringLiteral("spin_a_max"), 0.99},
+           {QStringLiteral("n_steps"), 50}},
+          {QStringLiteral("Kerr"), QStringLiteral("10"), QStringLiteral("0.99"), QStringLiteral("e-")},
+          QStringLiteral("NaN"), QStringLiteral("Kerr") },
+        { QStringLiteral("redshift_profile"),
+          {{QStringLiteral("mass"), 42.0},
+           {QStringLiteral("r_min"), 3000.0},
+           {QStringLiteral("r_max"), 1.0e6},
+           {QStringLiteral("steps"), 50}},
+          {QStringLiteral("Schwarzschild"), QStringLiteral("42"), QStringLiteral("e-")},
+          QStringLiteral("NaN"), QStringLiteral("Schwarzschild") },
+        { QStringLiteral("frame_dragging"),
+          {{QStringLiteral("mass_Msun"), 42.0},
+           {QStringLiteral("spin_a_star"), 0.5},
+           {QStringLiteral("orbit_radius_m"), 7.0e6},
+           {QStringLiteral("steps"), 50}},
+          {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"), QStringLiteral("e-")},
+          QStringLiteral("NaN"), QStringLiteral("Kerr") },
+    };
 
-    bool photonFinished = false;
-    for (int i = 0; i < 200 && !photonFinished; ++i) {
-        QTest::qWait(25);
-        if (photonFinishedSpy.count() >= 1) photonFinished = true;
-        QCoreApplication::processEvents();
-    }
-    QV_CHECK(photonFinished);
-    QV_CHECK(!runner.running());
+    const QString outputDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                            + "/QuantumVerse/output";
 
-    // Clean up old discovery PDFs from previous runs so the poll below
-    // picks up the current run's output, not a stale file.
-    {
-        QDir cleanupDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
-                        + "/QuantumVerse/output");
-        const auto oldEntries = cleanupDir.entryList({ QStringLiteral("photon_sphere_discovery_*.pdf") },
-                                                     QDir::Files);
-        for (const auto& e : oldEntries) {
-            QFile::remove(cleanupDir.absoluteFilePath(e));
-        }
-    }
-
-    QString discoveryPath = runner.generateDiscoveryPaper(QStringLiteral("photon_sphere"));
-    QV_CHECK(!discoveryPath.isEmpty());
-
-    // Poll for the compiled PDF (pdflatex is async via generatePaper).
-    QString resolvedDiscoveryPath;
-    QElapsedTimer timer; timer.start();
-    while (timer.elapsed() < 120000) {
-        QDir dir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
-               + "/QuantumVerse/output");
-        const auto entries = dir.entryList({ QStringLiteral("photon_sphere_discovery_*.pdf") },
-                                           QDir::Files, QDir::Time);
-        if (!entries.isEmpty()) {
-            const QString candidate = dir.absoluteFilePath(entries.first());
-            if (QFileInfo(candidate).size() > 1000) {
-                resolvedDiscoveryPath = candidate;
-                break;
+    for (const auto& c : cases) {
+        // Clean up old discovery PDFs for this experiment id.
+        {
+            QDir cleanupDir(outputDir);
+            const QStringList pattern = { QStringLiteral("%1_discovery_*.pdf").arg(c.id) };
+            const auto oldEntries = cleanupDir.entryList(pattern, QDir::Files);
+            for (const auto& e : oldEntries) {
+                QFile::remove(cleanupDir.absoluteFilePath(e));
             }
         }
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
-    }
-    QV_CHECK(!resolvedDiscoveryPath.isEmpty());
-    QV_CHECK(resolvedDiscoveryPath.endsWith(QStringLiteral(".pdf")));
 
-    std::cout << "Discovery paper exported to: " << resolvedDiscoveryPath.toStdString() << std::endl;
+        QSignalSpy finishedSpy(&runner, &ExperimentRunner::experimentFinished);
+        runner.start(c.id, c.params);
 
-    // Content verification
-    {
-        QString pdftotextPath = QStringLiteral("pdftotext");
-#ifdef Q_OS_WIN
-        const QString miktexPdftotext = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
-        if (QFileInfo::exists(miktexPdftotext)) {
-            pdftotextPath = miktexPdftotext;
+        bool finished = false;
+        for (int i = 0; i < 200 && !finished; ++i) {
+            QTest::qWait(25);
+            if (finishedSpy.count() >= 1) finished = true;
+            QCoreApplication::processEvents();
         }
+        QV_CHECK(finished);
+        QV_CHECK(!runner.running());
+
+        QString discoveryPath = runner.generateDiscoveryPaper(c.id);
+        QV_CHECK(!discoveryPath.isEmpty());
+
+        // Poll for the compiled PDF.
+        QString resolvedPath;
+        QElapsedTimer timer; timer.start();
+        while (timer.elapsed() < 120000) {
+            QDir dir(outputDir);
+            const QStringList pattern = { QStringLiteral("%1_discovery_*.pdf").arg(c.id) };
+            const auto entries = dir.entryList(pattern, QDir::Files, QDir::Time);
+            if (!entries.isEmpty()) {
+                const QString candidate = dir.absoluteFilePath(entries.first());
+                if (QFileInfo(candidate).size() > 1000) {
+                    resolvedPath = candidate;
+                    break;
+                }
+            }
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
+        }
+        QV_CHECK(!resolvedPath.isEmpty());
+        QV_CHECK(resolvedPath.endsWith(QStringLiteral(".pdf")));
+
+        std::cout << "Discovery paper (" << c.id.toStdString()
+                  << ") exported to: " << resolvedPath.toStdString() << std::endl;
+
+        // Content verification via pdftotext.
+        {
+            QString pdftotextPath = QStringLiteral("pdftotext");
+#ifdef Q_OS_WIN
+            const QString miktexPdftotext = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
+            if (QFileInfo::exists(miktexPdftotext)) {
+                pdftotextPath = miktexPdftotext;
+            }
 #endif
-        QProcess pdftotext;
-        pdftotext.setProcessChannelMode(QProcess::MergedChannels);
-        pdftotext.start(pdftotextPath, QStringList() << resolvedDiscoveryPath << "-");
-        pdftotext.waitForFinished(30000);
-        const QString pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
-        QV_CHECK(!pdfText.isEmpty());
-        QV_CHECK(pdfText.contains(QStringLiteral("Kerr")));              // template sanity
-        QV_CHECK(pdfText.contains(QStringLiteral("10"))                 // mass from params: mass_Msun=10
-                 || pdfText.contains(QStringLiteral("10.0")));
-        QV_CHECK(pdfText.contains(QStringLiteral("0.99")));              // spin from scalar: spin_a_max=0.99
-        QV_CHECK(pdfText.contains(QStringLiteral("e-")));                // Kretschmann in scientific notation
-        QV_CHECK(!pdfText.contains(QStringLiteral("NaN")));              // no silent builder default leaked
-        QV_CHECK(!pdfText.contains(QStringLiteral("{")));                // no unsubstituted template placeholder
+            QProcess pdftotext;
+            pdftotext.setProcessChannelMode(QProcess::MergedChannels);
+            pdftotext.start(pdftotextPath, QStringList() << resolvedPath << "-");
+            pdftotext.waitForFinished(30000);
+            const QString pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
+            QV_CHECK(!pdfText.isEmpty());
+            for (const auto& token : c.contentMustContain) {
+                QV_CHECK(pdfText.contains(token));
+            }
+            QV_CHECK(!pdfText.contains(c.contentMustNotContain));
+            QV_CHECK(!pdfText.contains(QStringLiteral("{")));
+        }
     }
 
     std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;

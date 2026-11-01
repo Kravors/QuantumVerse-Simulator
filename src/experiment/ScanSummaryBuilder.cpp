@@ -8,23 +8,25 @@
 namespace quantumverse {
 
 bool ScanSummaryBuilder::canBuildFrom(const QString& id) {
-    static const QStringList kSupported = { QStringLiteral("photon_sphere") };
+    static const QStringList kSupported = { QStringLiteral("photon_sphere"),
+                                            QStringLiteral("redshift_profile"),
+                                            QStringLiteral("frame_dragging") };
     return kSupported.contains(id);
 }
 
-double ScanSummaryBuilder::requireScalar(const ExperimentResult& r,
-                                         const QString& key, bool* ok) {
-    if (!r.scalars.contains(key)) {
-        *ok = false;
-        return std::numeric_limits<double>::quiet_NaN();
+double ScanSummaryBuilder::requireScalarAny(
+    const ExperimentResult& r, const QStringList& keys, bool* ok) {
+    for (const auto& k : keys) {
+        if (r.scalars.contains(k)) {
+            const double v = r.scalars.value(k).toDouble();
+            if (std::isfinite(v)) {
+                *ok = true;
+                return v;
+            }
+        }
     }
-    const double v = r.scalars.value(key).toDouble();
-    if (!std::isfinite(v)) {
-        *ok = false;
-        return v;
-    }
-    *ok = true;
-    return v;
+    *ok = false;
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
@@ -41,28 +43,33 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
     if (!canBuildFrom(id)) return s;
     if (!r.success) return s;
 
-    bool ok = false;
+    bool ok_mass = false;
+    const double mass = requireScalarAny(r,
+        { QStringLiteral("mass_Msun"), QStringLiteral("mass") }, &ok_mass);
+    if (!ok_mass) return s;
 
-    // mass — echoed into scalars by PhotonSphereExperiment::run()
-    const double mass = requireScalar(r, QStringLiteral("mass_Msun"), &ok);
-    if (!ok) return s;
+    bool ok_spin = false;
+    double spin = 0.0; // default: Schwarzschild (non-rotating)
+    const double spin_found = requireScalarAny(r,
+        { QStringLiteral("spin_a_max"), QStringLiteral("spin_a_star"),
+          QStringLiteral("spin") }, &ok_spin);
+    if (ok_spin) spin = spin_found;
 
-    // spin — real measurement from the result
-    const double spin = requireScalar(r, QStringLiteral("spin_a_max"), &ok);
-    if (!ok) return s;
-
-    // kretschmann — real curvature scalar from the experiment
-    const double kret = requireScalar(r,
-                                      QStringLiteral("kretschmann_at_r_ph_pro"),
-                                      &ok);
-    if (!ok) return s;
+    bool ok_kret = false;
+    const double kret = requireScalarAny(r,
+        { QStringLiteral("kretschmann_at_r_ph_pro"),
+          QStringLiteral("kretschmann_at_r_min"),
+          QStringLiteral("kretschmann_at_r_orbit") }, &ok_kret);
+    if (!ok_kret) return s;
 
     s.mass = mass;
     s.spin = spin;
     s.charge = 0.0;   // Kerr is vacuum — documentable constant
     s.kretschmann = kret;
     s.redshift = 0.0; // static observer at infinity — documentable constant
-    s.bhType = QStringLiteral("Kerr");
+    s.bhType = (std::abs(spin) < 1e-9)
+        ? QStringLiteral("Schwarzschild")
+        : QStringLiteral("Kerr");
     s.discoveryType = id;
     s.discoveryId = QStringLiteral("exp_") + id;
     s.candidatesExplored = static_cast<int>(r.curve.size());

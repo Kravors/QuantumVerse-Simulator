@@ -37,9 +37,10 @@ public:
                                       const ExperimentResult& result);
 
 private:
-    /** Returns scalars[key] if present and finite; sets *ok=false otherwise. */
-    static double requireScalar(const ExperimentResult& r,
-                                const QString& key, bool* ok);
+    /** Returns scalars[keys[0]] if present and finite, else tries keys[1]...;
+     *  sets *ok=false if none found or none finite. */
+    static double requireScalarAny(const ExperimentResult& r,
+                                   const QStringList& keys, bool* ok);
 };
 
 } // namespace quantumverse

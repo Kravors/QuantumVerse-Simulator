@@ -14,6 +14,7 @@
 #include <QDateTime>
 
 #include "spacetime/Event4D.h"
+#include "spacetime/KerrMetric.h"
 
 namespace quantumverse {
 
@@ -83,6 +84,14 @@ ExperimentResult FrameDraggingExperiment::run(const QVariantMap& params,
 
     out.scalars[QStringLiteral("last_mas_per_year")] = lastMasPerYear;
     out.scalars[QStringLiteral("expected_gpb_mas_per_year")] = 39.0;
+
+    // Kretschmann scalar at the orbit radius — Kerr with spin a*.
+    KerrMetric km(massKg, aStar);
+    const auto curv = km.curvatureScalars(Event4D(0.0, rOrb, 0.0, 0.0));
+    if (curv.valid) {
+        out.scalars[QStringLiteral("kretschmann_at_r_orbit")] = curv.kretschmann;
+    }
+
     out.outputDir = QDir::currentPath();
     return out;
 }

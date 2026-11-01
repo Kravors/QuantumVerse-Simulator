@@ -402,6 +402,38 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
             .arg(QString::number(spin, 'f', 4))
             .arg(QString::number(kret, 'e', 4));
     }
+    if (id == QStringLiteral("redshift_profile")) {
+        const double mass = result.scalars.value(QStringLiteral("mass"), 0.0).toDouble();
+        const double rMin = result.scalars.value(QStringLiteral("r_min"), 0.0).toDouble();
+        const double z = result.scalars.value(QStringLiteral("z_at_r_min"), 0.0).toDouble();
+        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_min"), 0.0).toDouble();
+        return QStringLiteral(
+            "Gravitational redshift profile of a Schwarzschild black hole of mass "
+            "%1 M_sun. At the minimum sampled radius r = %2 m, the observed redshift "
+            "is z = %3. The Kretschmann curvature invariant at this radius is K = %4, "
+            "consistent with the Schwarzschild vacuum solution K = 12 r_s^2 / r^6.")
+            .arg(QString::number(mass, 'f', 2))
+            .arg(QString::number(rMin, 'e', 4))
+            .arg(QString::number(z, 'e', 4))
+            .arg(QString::number(kret, 'e', 4));
+    }
+    if (id == QStringLiteral("frame_dragging")) {
+        const double mass = result.scalars.value(QStringLiteral("mass_Msun"), 0.0).toDouble();
+        const double spin = result.scalars.value(QStringLiteral("spin_a_star"), 0.0).toDouble();
+        const double rOrb = result.scalars.value(QStringLiteral("orbit_radius_m"), 0.0).toDouble();
+        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_orbit"), 0.0).toDouble();
+        const double masYr = result.scalars.value(QStringLiteral("last_mas_per_year"), 0.0).toDouble();
+        return QStringLiteral(
+            "Lense-Thirring frame-dragging precession around a Kerr black hole of "
+            "mass %1 M_sun with dimensionless spin a* = %2. At orbital radius r = %3 m, "
+            "the precession rate corresponds to %4 mas/year. The Kretschmann invariant "
+            "at this radius is %5 m^-4.")
+            .arg(QString::number(mass, 'f', 2))
+            .arg(QString::number(spin, 'f', 4))
+            .arg(QString::number(rOrb, 'e', 4))
+            .arg(QString::number(masYr, 'f', 3))
+            .arg(QString::number(kret, 'e', 4));
+    }
     return QStringLiteral("Discovery paper for experiment %1.").arg(id);
 }
 
