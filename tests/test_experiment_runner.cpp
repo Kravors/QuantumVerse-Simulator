@@ -243,12 +243,17 @@ int main(int argc, char** argv)
 #endif
         QProcess pdftotext;
         pdftotext.setProcessChannelMode(QProcess::MergedChannels);
-        pdftotext.start(pdftotextPath, QStringList() << discoveryPath << "-");
+        pdftotext.start(pdftotextPath, QStringList() << resolvedDiscoveryPath << "-");
         pdftotext.waitForFinished(30000);
         const QString pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
         QV_CHECK(!pdfText.isEmpty());
-        QV_CHECK(pdfText.contains(QStringLiteral("Kerr")));
-        QV_CHECK(pdfText.contains(QStringLiteral("discovery")));
+        QV_CHECK(pdfText.contains(QStringLiteral("Kerr")));              // template sanity
+        QV_CHECK(pdfText.contains(QStringLiteral("10"))                 // mass from params: mass_Msun=10
+                 || pdfText.contains(QStringLiteral("10.0")));
+        QV_CHECK(pdfText.contains(QStringLiteral("0.99")));              // spin from scalar: spin_a_max=0.99
+        QV_CHECK(pdfText.contains(QStringLiteral("e-")));                // Kretschmann in scientific notation
+        QV_CHECK(!pdfText.contains(QStringLiteral("NaN")));              // no silent builder default leaked
+        QV_CHECK(!pdfText.contains(QStringLiteral("{")));                // no unsubstituted template placeholder
     }
 
     std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;

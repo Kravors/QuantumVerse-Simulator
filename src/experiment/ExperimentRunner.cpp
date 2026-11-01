@@ -405,6 +405,10 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
     return QStringLiteral("Discovery paper for experiment %1.").arg(id);
 }
 
+bool ExperimentRunner::canBuildPaper(const QString& id) const {
+    return ScanSummaryBuilder::canBuildFrom(id);
+}
+
 QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
     if (!ScanSummaryBuilder::canBuildFrom(id)) return QString();
 

@@ -86,6 +86,9 @@ public:
      *  no prior run, or builder returned invalid sentinel). Synchronous from
      *  the caller's perspective (pdflatex runs on the worker thread). */
     Q_INVOKABLE QString generateDiscoveryPaper(const QString& id);
+    /** Whether `generateDiscoveryPaper(id)` can produce a paper — forwards
+     *  to ScanSummaryBuilder::canBuildFrom(id). Used to gate the QML button. */
+    Q_INVOKABLE bool canBuildPaper(const QString& id) const;
     /** Core CSV-writing logic: takes an ExperimentResult directly (testable
      *  without QML/event loop). Returns the file path, or empty on failure. */
     static QString writeValidationReportCSV(const ExperimentResult& result,

@@ -100,7 +100,9 @@ Rectangle {
             }
             Button {
                 text: "Generate Paper"
-                enabled: !experimentRunner.running && experimentRunner.currentId !== ""
+                enabled: !experimentRunner.running
+                       && experimentRunner.currentId !== ""
+                       && experimentRunner.canBuildPaper(experimentRunner.currentId)
                 Layout.preferredWidth: 100
                 onClicked: {
                     const path = experimentRunner.generateDiscoveryPaper(experimentRunner.currentId);
