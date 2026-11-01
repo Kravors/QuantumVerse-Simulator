@@ -93,16 +93,21 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
     tex.replace("{{BH_TYPE}}", bhType);
     tex.replace("{{LLM_ABSTRACT}}", escapeLatex(llmAbstract));
 
-    // Write .tex to output directory
+    // Write .tex to output directory; derive .pdf path alongside it.
+    // outputPath (when non-empty) is the desired PDF path; the .tex goes
+    // next to it with the same base name.
     QString outDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/QuantumVerse/output";
     if (!outputPath.isEmpty()) {
         outDir = QFileInfo(outputPath).absolutePath();
     }
     QDir().mkpath(outDir);
 
-    QString texPath = outputPath.isEmpty()
-        ? outDir + "/discovery_paper.tex"
-        : outputPath;
+    QString baseName = outputPath.isEmpty()
+        ? QStringLiteral("discovery_paper")
+        : QFileInfo(outputPath).baseName();
+    QString texPath = outDir + QStringLiteral("/") + baseName + QStringLiteral(".tex");
+    QString pdfPath = outDir + QStringLiteral("/") + baseName + QStringLiteral(".pdf");
+
     QFile outFile(texPath);
     if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "[PaperGenerator] Could not write" << texPath;

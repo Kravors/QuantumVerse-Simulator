@@ -98,6 +98,19 @@ Rectangle {
                 Layout.preferredWidth: 70
                 onClicked: experimentRunner.exportPDF(experimentRunner.currentId, "")
             }
+            Button {
+                text: "Generate Paper"
+                enabled: !experimentRunner.running && experimentRunner.currentId !== ""
+                Layout.preferredWidth: 100
+                onClicked: {
+                    const path = experimentRunner.generateDiscoveryPaper(experimentRunner.currentId);
+                    if (path === "") {
+                        console.log("[QML] Discovery paper not available for: " + experimentRunner.currentId);
+                    } else {
+                        console.log("[QML] Discovery paper generated: " + path);
+                    }
+                }
+            }
             Item { Layout.fillWidth: true }
             Text {
                 text: Math.round(experimentRunner.progress * 100) + "%"

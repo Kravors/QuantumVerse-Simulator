@@ -28,6 +28,8 @@
 
 #include "Experiment.h"
 #include "discovery/PaperGenerator.h"
+#include "experiment/ScanSummaryBuilder.h"
+#include "discovery/ScanSummary.h"
 
 namespace quantumverse {
 
@@ -79,6 +81,11 @@ public:
      *  PaperGenerator. Writes to `path` if non-empty, else to the default
      *  output directory. Returns the PDF path on success, empty on failure. */
     Q_INVOKABLE QString exportPDF(const QString& id, const QString& path = QString());
+    /** Generate a discovery paper from the last result of experiment `id`.
+     *  Returns the PDF path on success, empty on failure (unsupported id,
+     *  no prior run, or builder returned invalid sentinel). Synchronous from
+     *  the caller's perspective (pdflatex runs on the worker thread). */
+    Q_INVOKABLE QString generateDiscoveryPaper(const QString& id);
     /** Core CSV-writing logic: takes an ExperimentResult directly (testable
      *  without QML/event loop). Returns the file path, or empty on failure. */
     static QString writeValidationReportCSV(const ExperimentResult& result,
@@ -140,6 +147,12 @@ private:
     QThreadPool m_pool;
     mutable QMutex m_mutex;
     std::unique_ptr<PaperGenerator> m_paperGenerator;
+
+    /** Most recent successful result for the given experiment id, or nullptr. */
+    const ExperimentResult* lastResultFor(const QString& id) const;
+    /** Plain-English abstract for the discovery paper, keyed by experiment id. */
+    QString abstractForExperiment(const QString& id,
+                                  const ExperimentResult& result) const;
 
     class RunJob : public QRunnable {
     public:

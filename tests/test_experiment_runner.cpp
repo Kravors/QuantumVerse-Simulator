@@ -9,12 +9,17 @@
 #include <QVariantMap>
 #include <QFileInfo>
 #include <QDir>
+#include <QFile>
 #include <QProcess>
+#include <QStandardPaths>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <iostream>
 
 #include "experiment/ExperimentRunner.h"
 #include "experiment/experiments/MassSweepExperiment.h"
 #include "experiment/experiments/LensingTimeDelayExperiment.h"
+#include "experiment/experiments/PhotonSphereExperiment.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -168,6 +173,84 @@ int main(int argc, char** argv)
     QV_CHECK(actualPdfPath2 != actualPdfPath1);
 
     std::cout << "PDF #2 exported to: " << actualPdfPath2.toStdString() << std::endl;
+
+    // ---- Discovery paper test: photon_sphere -> generateDiscoveryPaper ----
+    runner.registerExperiment(std::make_unique<PhotonSphereExperiment>());
+    QV_CHECK(runner.count() == 3);
+
+    QVariantMap photonParams;
+    photonParams[QStringLiteral("mass_Msun")] = 10.0;
+    photonParams[QStringLiteral("spin_a_max")] = 0.99;
+    photonParams[QStringLiteral("n_steps")] = 50;
+
+    QSignalSpy photonFinishedSpy(&runner, &ExperimentRunner::experimentFinished);
+    runner.start(QStringLiteral("photon_sphere"), photonParams);
+
+    bool photonFinished = false;
+    for (int i = 0; i < 200 && !photonFinished; ++i) {
+        QTest::qWait(25);
+        if (photonFinishedSpy.count() >= 1) photonFinished = true;
+        QCoreApplication::processEvents();
+    }
+    QV_CHECK(photonFinished);
+    QV_CHECK(!runner.running());
+
+    // Clean up old discovery PDFs from previous runs so the poll below
+    // picks up the current run's output, not a stale file.
+    {
+        QDir cleanupDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                        + "/QuantumVerse/output");
+        const auto oldEntries = cleanupDir.entryList({ QStringLiteral("photon_sphere_discovery_*.pdf") },
+                                                     QDir::Files);
+        for (const auto& e : oldEntries) {
+            QFile::remove(cleanupDir.absoluteFilePath(e));
+        }
+    }
+
+    QString discoveryPath = runner.generateDiscoveryPaper(QStringLiteral("photon_sphere"));
+    QV_CHECK(!discoveryPath.isEmpty());
+
+    // Poll for the compiled PDF (pdflatex is async via generatePaper).
+    QString resolvedDiscoveryPath;
+    QElapsedTimer timer; timer.start();
+    while (timer.elapsed() < 120000) {
+        QDir dir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+               + "/QuantumVerse/output");
+        const auto entries = dir.entryList({ QStringLiteral("photon_sphere_discovery_*.pdf") },
+                                           QDir::Files, QDir::Time);
+        if (!entries.isEmpty()) {
+            const QString candidate = dir.absoluteFilePath(entries.first());
+            if (QFileInfo(candidate).size() > 1000) {
+                resolvedDiscoveryPath = candidate;
+                break;
+            }
+        }
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
+    }
+    QV_CHECK(!resolvedDiscoveryPath.isEmpty());
+    QV_CHECK(resolvedDiscoveryPath.endsWith(QStringLiteral(".pdf")));
+
+    std::cout << "Discovery paper exported to: " << resolvedDiscoveryPath.toStdString() << std::endl;
+
+    // Content verification
+    {
+        QString pdftotextPath = QStringLiteral("pdftotext");
+#ifdef Q_OS_WIN
+        const QString miktexPdftotext = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
+        if (QFileInfo::exists(miktexPdftotext)) {
+            pdftotextPath = miktexPdftotext;
+        }
+#endif
+        QProcess pdftotext;
+        pdftotext.setProcessChannelMode(QProcess::MergedChannels);
+        pdftotext.start(pdftotextPath, QStringList() << discoveryPath << "-");
+        pdftotext.waitForFinished(30000);
+        const QString pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
+        QV_CHECK(!pdfText.isEmpty());
+        QV_CHECK(pdfText.contains(QStringLiteral("Kerr")));
+        QV_CHECK(pdfText.contains(QStringLiteral("discovery")));
+    }
+
     std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;
     return 0;
 }

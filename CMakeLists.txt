@@ -2004,8 +2004,10 @@ endif()
                 src/experiment/ExperimentRunner.cpp
                 src/experiment/experiments/MassSweepExperiment.cpp
                 src/experiment/experiments/LensingTimeDelayExperiment.cpp
+                src/experiment/experiments/PhotonSphereExperiment.cpp
                 src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
                 src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+                src/experiment/ScanSummaryBuilder.cpp
                 src/spacetime/KerrMetric.cpp
                 src/discovery/PaperGenerator.cpp
                 )

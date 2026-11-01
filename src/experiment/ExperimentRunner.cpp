@@ -380,6 +380,57 @@ QString ExperimentRunner::exportPDF(const QString& id, const QString& path /*= Q
     return pdfPath;
 }
 
+const ExperimentResult* ExperimentRunner::lastResultFor(const QString& id) const {
+    for (int i = static_cast<int>(m_history.size()) - 1; i >= 0; --i) {
+        if (m_history[i].id == id && m_history[i].result.success) {
+            return &m_history[i].result;
+        }
+    }
+    return nullptr;
+}
+
+QString ExperimentRunner::abstractForExperiment(const QString& id,
+                                                 const ExperimentResult& result) const {
+    if (id == QStringLiteral("photon_sphere")) {
+        const double mass = result.scalars.value(QStringLiteral("mass_Msun"), 0.0).toDouble();
+        const double spin = result.scalars.value(QStringLiteral("spin_a_max"), 0.0).toDouble();
+        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_ph_pro"), 0.0).toDouble();
+        return QStringLiteral(
+            "Kerr black hole discovery scan: mass = %1 M_sun, spin a* = %2, "
+            "Kretschmann scalar at prograde photon sphere = %3.")
+            .arg(QString::number(mass, 'f', 2))
+            .arg(QString::number(spin, 'f', 4))
+            .arg(QString::number(kret, 'e', 4));
+    }
+    return QStringLiteral("Discovery paper for experiment %1.").arg(id);
+}
+
+QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
+    if (!ScanSummaryBuilder::canBuildFrom(id)) return QString();
+
+    const auto* result = lastResultFor(id);
+    if (!result) return QString();
+
+    const auto summary = ScanSummaryBuilder::fromExperiment(id, *result);
+    if (summary.mass <= 0.0) return QString(); // invalid sentinel
+
+    const QString abstract = abstractForExperiment(id, *result);
+
+    // Compute a unique output path: <id>_discovery_<timestamp>.pdf
+    QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                    + "/QuantumVerse/output";
+    QDir().mkpath(baseDir);
+    const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    const QString pdfPath = baseDir + QStringLiteral("/") + id
+                          + QStringLiteral("_discovery_") + stamp + QStringLiteral(".pdf");
+
+    // Fire async pdflatex via PaperGenerator; pdfFinished signal carries
+    // the actual result path. Caller polls for file existence.
+    m_paperGenerator->generatePaper(summary, abstract, pdfPath);
+
+    return pdfPath;
+}
+
 QVariantList ExperimentRunner::history() const {
     QVariantList list;
     QMutexLocker lock(&m_mutex);
