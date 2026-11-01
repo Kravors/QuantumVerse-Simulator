@@ -25,6 +25,16 @@
 
 **Regression test**: `tests/test_bayesian_evidence.cpp` — 6 checks (4 non-vacuous) pinning the sign convention (±ΔBIC/2), identical-models BF=1, Δk·ln(n)/2 parameter penalty, n-cancellation when k₁=k₂, and Kass & Raftery interpretation thresholds.
 
+**Cosmology validation experiments — `success=false` is expected**:
+Three validation experiments (`distance_ladder`, `growth_factor`, `cosmology_validation_suite`) intentionally return `success=false` when the reference ΛCDM prediction differs from observed data by >3σ. Measured tensions at Planck 2018 parameters:
+- `H0_SH0ES`: -5.17σ — known Planck vs SH0ES H₀ tension (Case A: real physics)
+- `mu_z0.1`: 7.86σ — larger than H₀ tension alone; worth investigating
+- `D_z1`: 35.18σ — beyond known σ₈ tension (~2-3σ); σ likely too small
+- `age_at_z1_Gyr`: 3.61×10²¹σ — division by near-zero σ (Case C: σ inflation)
+- `r_drag_Mpc`: 391.87σ — σ too small (Case C)
+
+The smoke test treats `success` as informational for these experiments — it verifies "runs end-to-end and produces output", not "matches observations". Check `tension_sigma` fields to distinguish known tensions from potential bugs.
+
 ---
 
 1. [Executive Overview](#1-executive-overview)

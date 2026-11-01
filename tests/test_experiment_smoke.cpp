@@ -158,6 +158,16 @@ int main() {
         check(id.toStdString().c_str(), hasOutput,
               "produces non-empty curve or scalars");
 
+        // Log tension values for cosmology validation experiments
+        if (!r.success) {
+            for (const auto& key : r.scalars.keys()) {
+                if (key.endsWith("_tension")) {
+                    std::cout << "    [TENSION] " << key.toStdString()
+                              << " = " << r.scalars[key].toDouble() << " sigma" << std::endl;
+                }
+            }
+        }
+
         // success=true means "all internal checks passed" — for cosmology
         // validation experiments this can legitimately be false (comparing
         // against observational data). Report it as info, not fail.
