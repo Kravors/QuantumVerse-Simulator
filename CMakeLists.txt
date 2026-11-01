@@ -1033,10 +1033,21 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_photon_sphere
         tests/test_photon_sphere.cpp
         src/experiment/experiments/PhotonSphereExperiment.cpp
+        src/spacetime/KerrMetric.cpp
     )
     target_link_libraries(test_photon_sphere PRIVATE Qt6::Core dilaton)
     target_include_directories(test_photon_sphere PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME PhotonSphereTest COMMAND test_photon_sphere)
+
+    add_executable(test_scan_summary_builder
+        tests/test_scan_summary_builder.cpp
+        src/experiment/ScanSummaryBuilder.cpp
+        src/experiment/experiments/PhotonSphereExperiment.cpp
+        src/spacetime/KerrMetric.cpp
+    )
+    target_link_libraries(test_scan_summary_builder PRIVATE Qt6::Core dilaton)
+    target_include_directories(test_scan_summary_builder PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+    add_test(NAME ScanSummaryBuilderTest COMMAND test_scan_summary_builder)
 
     add_executable(test_bayesian_evidence
         tests/test_bayesian_evidence.cpp

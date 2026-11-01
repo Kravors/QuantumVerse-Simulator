@@ -116,17 +116,29 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
     QProcess* process = new QProcess(this);
     process->setWorkingDirectory(outDir);
     QString texFileName = QFileInfo(texPath).fileName();
-    process->start("pdflatex", QStringList() << "-interaction=batchmode" << "-halt-on-error" << texFileName);
+
+    // Resolve pdflatex: prefer PATH, fall back to known MiKTeX install path
+    QString pdflatexPath = QStringLiteral("pdflatex");
+#ifdef Q_OS_WIN
+    const QString miktexPath = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdflatex.exe");
+    if (QFileInfo::exists(miktexPath)) {
+        pdflatexPath = miktexPath;
+    }
+#endif
+
+    process->start(pdflatexPath, QStringList() << "-interaction=batchmode" << "-halt-on-error" << texFileName);
 
     QObject::connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
         [this, process, texPath](int exitCode, QProcess::ExitStatus) {
-            if (exitCode == 0) {
-                QString pdfPath = texPath;
-                pdfPath.replace(".tex", ".pdf");
+            QString pdfPath = texPath;
+            pdfPath.replace(".tex", ".pdf");
+            if (exitCode == 0 && QFileInfo::exists(pdfPath) && QFileInfo(pdfPath).size() > 1000) {
                 qDebug() << "[PaperGenerator] PDF generated:" << pdfPath;
                 emit paperGenerated(pdfPath);
             } else {
-                qWarning() << "[PaperGenerator] pdflatex failed with exit code" << exitCode;
+                qWarning() << "[PaperGenerator] pdflatex failed (exit" << exitCode
+                           << ", pdf exists:" << QFileInfo::exists(pdfPath) << ")";
+                emit paperGenerated(QString());
             }
             process->deleteLater();
         });

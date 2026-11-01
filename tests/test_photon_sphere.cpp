@@ -6,6 +6,7 @@ using namespace quantumverse;
 
 static QVariantMap defaultParams() {
     QVariantMap p;
+    p["mass_Msun"]  = 10.0;
     p["spin_a_max"] = 0.99;
     p["n_steps"]    = 50;
     return p;
@@ -65,6 +66,39 @@ int main() {
         const double asym = r.scalars["shadow_asymmetry_a_max"].toDouble();
         QV_CHECK(asym > 0.25);
         QV_CHECK(asym < 0.40);
+    }
+
+    // Test 7 (non-vacuous): Kretschmann K > 0 at prograde photon sphere —
+    // real curvature, not fabricated. K = 0 would mean flat spacetime,
+    // which Kerr is not.
+    {
+        auto r = e.run(defaultParams(), [](double){}, [](){ return false; });
+        QV_CHECK(r.success);
+        const double k_pro = r.scalars["kretschmann_at_r_ph_pro"].toDouble();
+        QV_CHECK(std::isfinite(k_pro));
+        QV_CHECK(k_pro > 0.0);
+    }
+
+    // Test 8 (non-vacuous): Kretschmann K > 0 at retrograde photon sphere.
+    {
+        auto r = e.run(defaultParams(), [](double){}, [](){ return false; });
+        QV_CHECK(r.success);
+        const double k_ret = r.scalars["kretschmann_at_r_ph_ret"].toDouble();
+        QV_CHECK(std::isfinite(k_ret));
+        QV_CHECK(k_ret > 0.0);
+    }
+
+    // Test 9 (non-vacuous): K at prograde photon sphere > K at Schwarzschild
+    // (r_ph+ < 3M for a* > 0, and K ~ 1/r^6 on equator).
+    {
+        auto r_prj = e.run(defaultParams(), [](double){}, [](){ return false; });
+        QV_CHECK(r_prj.success);
+        auto p_sch = defaultParams();
+        p_sch["spin_a_max"] = 0.0;
+        auto r_sch = e.run(p_sch, [](double){}, [](){ return false; });
+        QV_CHECK(r_sch.success);
+        QV_CHECK(r_prj.scalars["kretschmann_at_r_ph_pro"].toDouble()
+               > r_sch.scalars["kretschmann_at_r_ph_pro"].toDouble());
     }
 
     return 0;

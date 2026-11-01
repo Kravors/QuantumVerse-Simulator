@@ -112,7 +112,7 @@ int main(int argc, char** argv)
 
     bool pdfDone1 = false;
     QString actualPdfPath1;
-    for (int i = 0; i < 400 && !pdfDone1; ++i) { // pdflatex can be slow
+    for (int i = 0; i < 4800 && !pdfDone1; ++i) { // up to 120s: first MiKTeX run can exceed 10s
         QTest::qWait(25);
         if (pdfDoneSpy.count() >= 1) {
             pdfDone1 = true;
@@ -131,9 +131,16 @@ int main(int argc, char** argv)
     // ---- Verify PDF content via pdftotext ----
     QString pdfText;
     {
+        QString pdftotextPath = QStringLiteral("pdftotext");
+#ifdef Q_OS_WIN
+        const QString miktexPdftotext = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
+        if (QFileInfo::exists(miktexPdftotext)) {
+            pdftotextPath = miktexPdftotext;
+        }
+#endif
         QProcess pdftotext;
         pdftotext.setProcessChannelMode(QProcess::MergedChannels);
-        pdftotext.start("pdftotext", QStringList() << actualPdfPath1 << "-");
+        pdftotext.start(pdftotextPath, QStringList() << actualPdfPath1 << "-");
         pdftotext.waitForFinished(30000);
         pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
     }
