@@ -50,11 +50,41 @@ fields to distinguish known tensions from potential bugs.
 `src/discovery/PaperGenerator.h/.cpp`, `src/ExperimentsPanel.qml`):
 `ExperimentRunner::exportPDF(id, path)` runs the selected experiment, maps its scalars
 to PaperGenerator LaTeX template parameters, and compiles a PDF via pdflatex. Output is
-`<experimentId>_<timestamp>.pdf` in `Documents/QuantumVerse/output/`. A "Export PDF"
-button appears next to the existing CSV export buttons in `ExperimentsPanel.qml`. Content
-is verified via pdftotext assertions (experiment name, scalar values, curve data appear
-in extracted text); repeated exports produce unique filenames. 15 commits shipped as
-ffd6d88 + 928d7f7.
+`<experimentId>_<timestamp>.pdf` in `Documents/QuantumVerse/output/`. An "Export PDF"
+button appears next to the existing CSV export buttons in `ExperimentsPanel.qml`.
+
+**Discovery paper pipeline** (`src/experiment/ScanSummaryBuilder.h/.cpp`): bridges the last
+`ExperimentResult` of any supported experiment into `PaperGenerator` to produce a discovery
+paper with a template abstract. Supports N=4 experiments:
+
+| Experiment | Family | bhType | Observable |
+|---|---|---|---|
+| `photon_sphere` | Photon geometry | Kerr | Kretschmann at prograde photon sphere |
+| `redshift_profile` | Gravitational redshift z(r) | Schwarzschild | z at r_min |
+| `frame_dragging` | Lense-Thirring precession | Kerr | Precession rate in mas/year |
+| `gw_ringdown` | QNM ringdown spectroscopy | Kerr | f_R, tau, Q from Berti table VIII |
+
+`ExperimentRunner::generateDiscoveryPaper(id)` is `Q_INVOKABLE` — runs the experiment if
+needed, builds a `ScanSummary`, renders the template abstract, compiles via pdflatex, and
+returns the PDF path (empty for unsupported experiments). QML "Generate Paper" button is
+gated by `canBuildPaper(id)` (disabled for unsupported experiments).
+
+**Two design decisions** that let N extend mechanically:
+
+- `requireScalarAny(keys)` — builder accepts alternative key names for mass
+  (`mass_Msun`/`mass`), spin (`spin_a_max`/`spin_a_star`/`spin_a`/`spin`), and
+  kretschmann (per-experiment keys). No per-experiment echo required; key mismatch
+  fails loudly instead of silently producing an invalid `ScanSummary`.
+- `bhType` derived from spin — `spin==0` → Schwarzschild, `spin>0` → Kerr. `redshift_profile`
+  correctly labels itself without per-experiment metadata. Caveat: silently mislabels
+  Reissner-Nordström (spin=0, charge>0 → "Schwarzschild") and Kerr-Newman (spin>0,
+  charge>0 → "Kerr"). See comment in `ScanSummaryBuilder.cpp:72`.
+
+Content verified via pdftotext assertions (experiment name, scalar values, bhType appear
+in extracted text; no NaN, no unsubstituted placeholders); repeated exports produce unique
+filenames. `ExperimentRunnerTest` runs all four experiments end-to-end (run → generate
+PDF → pdftotext assert) at 3× stability; `ScanSummaryBuilderTest` covers all four with
+non-vacuity checks. 6 commits shipped as `6b59c8e` + `de5f866` + `384617f` + `6d743c2`.
 
 **High-z comparison tests** (`tests/test_cosmology_experiments.cpp`, AGENTS.md):
 `test_project_adapter_H_matches_reference_at_high_z` compares H(100) and H(1000) between
@@ -1226,6 +1256,16 @@ cmake --install . --prefix "C:\Program Files\QuantumVerse"  # Windows
 ---
 
 ## Changelog
+
+### 2026-11-01 — Discovery Paper Pipeline Extended to N=4
+
+| # | Change | File | Details |
+|---|--------|------|---------|
+| 1 | `feat(paper): extend to gw_ringdown` | `6d743c2` | gw_ringdown as 4th supported discovery-paper experiment; emits mass_Msun, spin_a, f_R_Hz, tau_ms, Q_factor, kretschmann_at_r_plus; `requireScalarAny` spin keys extended with "spin_a"; kretschmann keys extended with "kretschmann_at_r_plus"; template abstract added |
+| 2 | `feat(paper): extend to redshift_profile + frame_dragging` | `384617f` | redshift_profile (Schwarzschild, z(r)) + frame_dragging (Kerr, Lense-Thirring) added; `requireScalarAny()` accepts alternative key names for mass/spin/kretschmann; `bhType` derived from spin (spin=0 → Schwarzschild, spin>0 → Kerr); canBuildFrom extended; template abstracts added; non-vacuity tests for all 4 experiments; end-to-end ExperimentRunnerTest with pdftotext assertions |
+| 3 | `fix(paper): gate Generate Paper button; strengthen PDF content assertions` | `de5f866` | `canBuildPaper(id)` Q_INVOKABLE added; QML "Generate Paper" button disabled for unsupported experiments; test asserts actual computed values (mass, spin, kretschmann in e- notation), rejects NaN and unsubstituted `{` placeholders |
+| 4 | `feat(discovery-paper): add generateDiscoveryPaper + QML Generate Paper button` | `6b59c8e` | `generateDiscoveryPaper(id)` → QString, `abstractForExperiment(id, result)` templates, `lastResultFor(id)` helper, `abstractForExperiment` dispatch, QML button wired |
+| 5 | `fix(paper): correct .tex/.pdf path; resolve pdflatex via MiKTeX path; emit empty on failure` | `55d7627` | pdflatex/pdftotext resolved from `C:/Program Files/MiKTeX/miktex/bin/x64/` when not in PATH; `paperGenerated(QString())` emitted on failure (no hanging callers); ScanSummaryBuilder added with `canBuildFrom`/`fromExperiment`/`requireScalar` |
 
 ### 2026-06-07 — QuantumVerse Upgrade Complete: All Advanced Features + 100% Test Pass Rate
 

@@ -72,6 +72,12 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
     s.bhType = (std::abs(spin) < 1e-9)
         ? QStringLiteral("Schwarzschild")
         : QStringLiteral("Kerr");
+    // bhType derived from spin only — correct for Schwarzschild (spin=0, charge=0)
+    // and Kerr (spin>0, charge=0). Silently mislabels Reissner-Nordström
+    // (spin=0, charge>0 → "Schwarzschild") and Kerr-Newman (spin>0, charge>0 → "Kerr").
+    // When a charged-metric experiment joins the pipeline, either:
+    //   (a) requireScalar "bhType" from each experiment, or
+    //   (b) extend derivation: charge>0 ? (spin>0 ? "Kerr-Newman" : "Reissner-Nordström") : ...
     s.discoveryType = id;
     s.discoveryId = QStringLiteral("exp_") + id;
     s.candidatesExplored = static_cast<int>(r.curve.size());
