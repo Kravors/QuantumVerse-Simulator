@@ -179,6 +179,40 @@ static void test_project_adapter_age_matches_reference_impl() {
               << proj_age << " vs " << ref_age << " Gyr)" << std::endl;
 }
 
+static void test_project_adapter_H_matches_reference_at_high_z() {
+    // Regression test for the missing-radiation bug: at z=1, Ωr(1+z)^4 is
+    // ~0.046% of E² — a missing radiation term passes. At z=100 it's ~0.4%,
+    // at z=1000 it's ~31%. A test only at z=1 is blind to this bug.
+    ProjectCosmologyAdapter adapter(67.66, 0.3111, 0.049, 9.1e-5, 0.6889, 0.0, 2.7255);
+    auto ref = std::make_shared<LambdaCDMReferenceProvider>();
+
+    for (double z : {100.0, 1000.0}) {
+        const double h_proj = adapter.H(z);
+        const double h_ref = ref->H(z);
+        QV_CHECK(std::isfinite(h_proj));
+        QV_CHECK(std::isfinite(h_ref));
+        QV_CHECK_NEAR(h_proj, h_ref, 0.01); // 1% — catches missing radiation term
+        std::cout << "[INFO] H(" << z << "): project=" << h_proj
+                  << " reference=" << h_ref << " km/s/Mpc" << std::endl;
+    }
+    std::cout << "[PASS] ProjectAdapter H(z) matches reference at high z" << std::endl;
+}
+
+static void test_project_adapter_soundHorizon_matches_reference() {
+    ProjectCosmologyAdapter adapter(67.66, 0.3111, 0.049, 9.1e-5, 0.6889, 0.0, 2.7255);
+    auto ref = std::make_shared<LambdaCDMReferenceProvider>();
+
+    const double rd_proj = adapter.soundHorizon();
+    const double rd_ref = ref->soundHorizon();
+    QV_CHECK(std::isfinite(rd_proj));
+    QV_CHECK(std::isfinite(rd_ref));
+    // Both use direct Simpson integration; agreement should be at the
+    // sub-percent level. Missing radiation gave r_d ≈ 249 Mpc vs 147 Mpc.
+    QV_CHECK_NEAR(rd_proj / rd_ref, 1.0, 0.01); // 1%
+    std::cout << "[PASS] ProjectAdapter soundHorizon ≈ reference ("
+              << rd_proj << " vs " << rd_ref << " Mpc)" << std::endl;
+}
+
 // Positive: a correct provider passes every experiment.
 // ===========================================================================
 
@@ -407,6 +441,9 @@ int main() {
     runTest("adapter H0 delegates to FRWMetric",    &test_project_adapter_h0_delegates_to_frw);
     runTest("adapter age delegates to FRWMetric",   &test_project_adapter_age_delegates_to_frw);
     runTest("adapter age matches reference impl",   &test_project_adapter_age_matches_reference_impl);
+
+    runTest("adapter H(z) matches reference at high z", &test_project_adapter_H_matches_reference_at_high_z);
+    runTest("adapter soundHorizon matches reference", &test_project_adapter_soundHorizon_matches_reference);
 
     runTest("age experiment passes",                &test_age_experiment_passes);
     runTest("distance ladder passes",               &test_distance_ladder_experiment_passes);

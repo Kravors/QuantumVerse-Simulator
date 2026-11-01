@@ -112,6 +112,23 @@ provider/builder that is *actually* broken at the data level, and
 assert the specific field is `false`/off. If the negative test
 passes, the positive test is vacuous.
 
+### Comparison tests must exercise the relevant parameter regime
+
+A "reference vs project" comparison test at one z-value only validates
+that regime. A test at z=1 does **not** validate H(z) at z=1000 —
+radiation Ωr(1+z)⁴ is ~0.046% of E² at z=1 but ~31% at z_drag≈1060, so
+a missing-radiation bug in H(z) is invisible at low z and catastrophic
+at the drag epoch.
+
+When adding a comparison test, choose z-values where the physics being
+compared is actually relevant:
+- z ≈ 1: growth factor, distance modulus (matter+dark energy dominated)
+- z ≈ 100–1000: sound horizon integration, drag epoch (radiation matters)
+- z ≈ 1100: recombination (radiation dominates)
+
+The drag epoch (~1059) and recombination (~1100) are separate regimes
+from z≈1 growth — each needs its own test point.
+
 Corollary: when a test asserts on a field with a non-trivial getter,
 grep the implementation for both `m_field` and `field()` usage. If
 they can diverge, the negative test is testing the wrong layer.
