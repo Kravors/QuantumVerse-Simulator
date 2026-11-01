@@ -434,6 +434,26 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
             .arg(QString::number(masYr, 'f', 3))
             .arg(QString::number(kret, 'e', 4));
     }
+    if (id == QStringLiteral("gw_ringdown")) {
+        const double mass = result.scalars.value(QStringLiteral("mass_Msun"), 0.0).toDouble();
+        const double spin = result.scalars.value(QStringLiteral("spin_a"), 0.0).toDouble();
+        const double fR = result.scalars.value(QStringLiteral("f_R_Hz"), 0.0).toDouble();
+        const double tau = result.scalars.value(QStringLiteral("tau_ms"), 0.0).toDouble();
+        const double Q = result.scalars.value(QStringLiteral("Q_factor"), 0.0).toDouble();
+        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_plus"), 0.0).toDouble();
+        return QStringLiteral(
+            "GW ringdown detection: l=m=2, n=0 quasinormal mode of a Kerr black hole "
+            "of mass %1 M_sun with dimensionless spin a* = %2. The fundamental mode has "
+            "frequency $f_R = %3$ Hz and damping time $\\tau = %4$ ms (Q = %5). The "
+            "Kretschmann invariant just outside the horizon is K = %6 m^-4, consistent "
+            "with the Kerr vacuum solution.")
+            .arg(QString::number(mass, 'f', 2))
+            .arg(QString::number(spin, 'f', 4))
+            .arg(QString::number(fR, 'e', 4))
+            .arg(QString::number(tau, 'e', 4))
+            .arg(QString::number(Q, 'f', 2))
+            .arg(QString::number(kret, 'e', 4));
+    }
     return QStringLiteral("Discovery paper for experiment %1.").arg(id);
 }
 

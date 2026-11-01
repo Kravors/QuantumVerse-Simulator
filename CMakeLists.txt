@@ -1045,6 +1045,7 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/PhotonSphereExperiment.cpp
         src/experiment/experiments/RedshiftProfileExperiment.cpp
         src/experiment/experiments/FrameDraggingExperiment.cpp
+        src/experiment/experiments/GWRingdownExperiment.cpp
         src/spacetime/KerrMetric.cpp
     )
     target_link_libraries(test_scan_summary_builder PRIVATE Qt6::Core dilaton)
@@ -2009,6 +2010,7 @@ endif()
                 src/experiment/experiments/PhotonSphereExperiment.cpp
                 src/experiment/experiments/RedshiftProfileExperiment.cpp
                 src/experiment/experiments/FrameDraggingExperiment.cpp
+                src/experiment/experiments/GWRingdownExperiment.cpp
                 src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
                 src/experiment/cosmology/ProjectCosmologyAdapter.cpp
                 src/experiment/ScanSummaryBuilder.cpp

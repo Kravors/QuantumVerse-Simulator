@@ -10,7 +10,8 @@ namespace quantumverse {
 bool ScanSummaryBuilder::canBuildFrom(const QString& id) {
     static const QStringList kSupported = { QStringLiteral("photon_sphere"),
                                             QStringLiteral("redshift_profile"),
-                                            QStringLiteral("frame_dragging") };
+                                            QStringLiteral("frame_dragging"),
+                                            QStringLiteral("gw_ringdown") };
     return kSupported.contains(id);
 }
 
@@ -52,14 +53,15 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
     double spin = 0.0; // default: Schwarzschild (non-rotating)
     const double spin_found = requireScalarAny(r,
         { QStringLiteral("spin_a_max"), QStringLiteral("spin_a_star"),
-          QStringLiteral("spin") }, &ok_spin);
+          QStringLiteral("spin_a"),   QStringLiteral("spin") }, &ok_spin);
     if (ok_spin) spin = spin_found;
 
     bool ok_kret = false;
     const double kret = requireScalarAny(r,
         { QStringLiteral("kretschmann_at_r_ph_pro"),
           QStringLiteral("kretschmann_at_r_min"),
-          QStringLiteral("kretschmann_at_r_orbit") }, &ok_kret);
+          QStringLiteral("kretschmann_at_r_orbit"),
+          QStringLiteral("kretschmann_at_r_plus") }, &ok_kret);
     if (!ok_kret) return s;
 
     s.mass = mass;

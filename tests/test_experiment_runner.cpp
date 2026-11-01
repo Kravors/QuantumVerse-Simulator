@@ -22,6 +22,7 @@
 #include "experiment/experiments/PhotonSphereExperiment.h"
 #include "experiment/experiments/RedshiftProfileExperiment.h"
 #include "experiment/experiments/FrameDraggingExperiment.h"
+#include "experiment/experiments/GWRingdownExperiment.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -180,7 +181,8 @@ int main(int argc, char** argv)
     runner.registerExperiment(std::make_unique<PhotonSphereExperiment>());
     runner.registerExperiment(std::make_unique<RedshiftProfileExperiment>());
     runner.registerExperiment(std::make_unique<FrameDraggingExperiment>());
-    QV_CHECK(runner.count() == 5);
+    runner.registerExperiment(std::make_unique<GWRingdownExperiment>());
+    QV_CHECK(runner.count() == 6);
 
     struct DiscoveryCase {
         QString id;
@@ -204,12 +206,21 @@ int main(int argc, char** argv)
            {QStringLiteral("steps"), 50}},
           {QStringLiteral("Schwarzschild"), QStringLiteral("42"), QStringLiteral("e-")},
           QStringLiteral("NaN"), QStringLiteral("Schwarzschild") },
-        { QStringLiteral("frame_dragging"),
+         { QStringLiteral("frame_dragging"),
+           {{QStringLiteral("mass_Msun"), 42.0},
+            {QStringLiteral("spin_a_star"), 0.5},
+            {QStringLiteral("orbit_radius_m"), 7.0e6},
+            {QStringLiteral("steps"), 50}},
+           {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"), QStringLiteral("e-")},
+           QStringLiteral("NaN"), QStringLiteral("Kerr") },
+        { QStringLiteral("gw_ringdown"),
           {{QStringLiteral("mass_Msun"), 42.0},
-           {QStringLiteral("spin_a_star"), 0.5},
-           {QStringLiteral("orbit_radius_m"), 7.0e6},
-           {QStringLiteral("steps"), 50}},
-          {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"), QStringLiteral("e-")},
+           {QStringLiteral("spin_a"), 0.5},
+           {QStringLiteral("amplitude"), 1.0},
+           {QStringLiteral("duration_ms"), 5.0},
+           {QStringLiteral("n_steps"), 50}},
+          {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"), QStringLiteral("e-"),
+           QStringLiteral("f R"), QStringLiteral("quasinormal")},
           QStringLiteral("NaN"), QStringLiteral("Kerr") },
     };
 

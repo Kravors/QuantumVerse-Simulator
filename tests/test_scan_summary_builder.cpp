@@ -3,6 +3,7 @@
 #include "experiment/experiments/PhotonSphereExperiment.h"
 #include "experiment/experiments/RedshiftProfileExperiment.h"
 #include "experiment/experiments/FrameDraggingExperiment.h"
+#include "experiment/experiments/GWRingdownExperiment.h"
 
 using namespace quantumverse;
 
@@ -35,11 +36,23 @@ static ExperimentResult makeFrameDraggingResult(double mass = 42.0, double spin 
     return e.run(p, [](double){}, [](){ return false; });
 }
 
+static ExperimentResult makeGWRingdownResult(double mass = 42.0, double spin = 0.5) {
+    GWRingdownExperiment e;
+    QVariantMap p;
+    p["mass_Msun"]   = mass;
+    p["spin_a"]      = spin;
+    p["amplitude"]   = 1.0;
+    p["duration_ms"] = 5.0;
+    p["n_steps"]     = 50;
+    return e.run(p, [](double){}, [](){ return false; });
+}
+
 int main() {
-    // 1. Capability gate — all three supported
+    // 1. Capability gate — all four supported
     QV_CHECK(ScanSummaryBuilder::canBuildFrom(QStringLiteral("photon_sphere")));
     QV_CHECK(ScanSummaryBuilder::canBuildFrom(QStringLiteral("redshift_profile")));
     QV_CHECK(ScanSummaryBuilder::canBuildFrom(QStringLiteral("frame_dragging")));
+    QV_CHECK(ScanSummaryBuilder::canBuildFrom(QStringLiteral("gw_ringdown")));
     QV_CHECK(!ScanSummaryBuilder::canBuildFrom(QStringLiteral("frb_generator")));
     QV_CHECK(!ScanSummaryBuilder::canBuildFrom(QStringLiteral("unknown_experiment")));
 
@@ -86,6 +99,17 @@ int main() {
         auto s = ScanSummaryBuilder::fromExperiment(QStringLiteral("frame_dragging"), r);
         QV_CHECK_NEAR(s.mass,   42.0, 1e-9);   // NOT default 10.0
         QV_CHECK_NEAR(s.spin,   0.5,  1e-9);   // from spin_a_star key
+        QV_CHECK(std::isfinite(s.kretschmann));
+        QV_CHECK(s.kretschmann > 0.0);
+        QV_CHECK(s.bhType == QStringLiteral("Kerr"));  // spin > 0 → Kerr
+    }
+
+    // 6. NON-VACUOUS: gw_ringdown — spin uses "spin_a" key, kretschmann at r_+
+    {
+        auto r = makeGWRingdownResult(/*mass=*/42.0, /*spin=*/0.5);
+        auto s = ScanSummaryBuilder::fromExperiment(QStringLiteral("gw_ringdown"), r);
+        QV_CHECK_NEAR(s.mass,   42.0, 1e-9);   // from mass_Msun key
+        QV_CHECK_NEAR(s.spin,   0.5,  1e-9);   // from spin_a key
         QV_CHECK(std::isfinite(s.kretschmann));
         QV_CHECK(s.kretschmann > 0.0);
         QV_CHECK(s.bhType == QStringLiteral("Kerr"));  // spin > 0 → Kerr

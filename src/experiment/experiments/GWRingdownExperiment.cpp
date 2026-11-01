@@ -16,6 +16,9 @@
 #include <cmath>
 #include <algorithm>
 
+#include "spacetime/Event4D.h"
+#include "spacetime/KerrMetric.h"
+
 namespace quantumverse {
 
 struct QNM {
@@ -99,6 +102,16 @@ ExperimentResult GWRingdownExperiment::run(const QVariantMap& p,
     out.scalars[QStringLiteral("M_omega_I")]      = q.M_omega_I;
     out.scalars[QStringLiteral("mass_Msun")]      = M_msun;
     out.scalars[QStringLiteral("spin_a")]         = a;
+
+    // Kretschmann scalar just outside the horizon (r_+ * 1.01).
+    const double massKg = M_msun * 1.989e30;
+    KerrMetric km(massKg, a);
+    const double r_horizon = km.outerHorizonRadius();
+    const double r_just_outside = r_horizon * 1.01;
+    const auto curv = km.curvatureScalars(Event4D(0.0, r_just_outside, 0.0, 0.0));
+    if (curv.valid) {
+        out.scalars[QStringLiteral("kretschmann_at_r_plus")] = curv.kretschmann;
+    }
 
     for (int i = 0; i < n; ++i) {
         if (shouldAbort()) { out.success = false; return out; }
