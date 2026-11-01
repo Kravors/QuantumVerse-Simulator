@@ -46,6 +46,25 @@ The smoke test treats `success` as informational for these experiments — it ve
 "runs end-to-end and produces output", not "matches observations". Check `tension_sigma`
 fields to distinguish known tensions from potential bugs.
 
+**PDF export** (`src/experiment/ExperimentRunner.cpp`, `src/experiment/ExperimentRunner.h`,
+`src/discovery/PaperGenerator.h/.cpp`, `src/ExperimentsPanel.qml`):
+`ExperimentRunner::exportPDF(id, path)` runs the selected experiment, maps its scalars
+to PaperGenerator LaTeX template parameters, and compiles a PDF via pdflatex. Output is
+`<experimentId>_<timestamp>.pdf` in `Documents/QuantumVerse/output/`. A "Export PDF"
+button appears next to the existing CSV export buttons in `ExperimentsPanel.qml`. Content
+is verified via pdftotext assertions (experiment name, scalar values, curve data appear
+in extracted text); repeated exports produce unique filenames. 15 commits shipped as
+ffd6d88 + 928d7f7.
+
+**High-z comparison tests** (`tests/test_cosmology_experiments.cpp`, AGENTS.md):
+`test_project_adapter_H_matches_reference_at_high_z` compares H(100) and H(1000) between
+ProjectCosmologyAdapter and LambdaCDMReferenceProvider — radiation Ωr(1+z)⁴ is ~0.046% at
+z=1 but ~31% at z=1000, so a low-z-only test would have missed the missing-radiation bug
+that produced r_drag_Mpc at 391σ (fixed in 1851685). `test_project_adapter_soundHorizon_matches_reference`
+compares r_drag (~147.2 Mpc). AGENTS.md rule added: comparison tests must exercise the
+relevant parameter regime — drag epoch (~1059), recombination (~1100), and z≈1 growth
+are separate regimes.
+
 ---
 
 1. [Executive Overview](#1-executive-overview)
