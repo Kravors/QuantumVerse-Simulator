@@ -722,6 +722,7 @@ src/ml/CurvatureNormalizingFlow.cpp
             src/spacetime/KerrMetric.cpp
             src/scenario/Scenario.cpp
             src/scenario/ScenarioManager.cpp
+            src/ml/SessionRecorder.cpp
         )
         target_link_libraries(test_viewport_isolation PRIVATE
             Qt6::Core
@@ -2679,10 +2680,11 @@ endif()
         src/discovery/FastRadioBurstAnalyzer.cpp
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
+        src/discovery/PaperGenerator.cpp
         src/data/GCNNoticeParser.cpp
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
-        src/bayesian/BayesianEvidenceCalculator.cpp
+        src/experiment/ScanSummaryBuilder.cpp
     )
     target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
     target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QT=1)
@@ -2765,6 +2767,8 @@ endif()
         src/discovery/SymbolicMath.cpp
         src/discovery/DiscoveryEngine.cpp
         src/data/GCNNoticeParser.cpp
+        src/discovery/PaperGenerator.cpp
+        src/experiment/ScanSummaryBuilder.cpp
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
@@ -2812,6 +2816,7 @@ endif()
         src/data/GCNNoticeParser.cpp
         src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
+        src/bayesian/BayesianEvidenceCalculator.cpp
     )
     target_link_libraries(test_generalized_adjoint PRIVATE dilaton Qt6::Core)
     add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
