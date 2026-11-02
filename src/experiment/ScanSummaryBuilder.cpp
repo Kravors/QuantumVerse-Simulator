@@ -11,7 +11,8 @@ bool ScanSummaryBuilder::canBuildFrom(const QString& id) {
     static const QStringList kSupported = { QStringLiteral("photon_sphere"),
                                             QStringLiteral("redshift_profile"),
                                             QStringLiteral("frame_dragging"),
-                                            QStringLiteral("gw_ringdown") };
+                                            QStringLiteral("gw_ringdown"),
+                                            QStringLiteral("theory_sensitivity") };
     return kSupported.contains(id);
 }
 

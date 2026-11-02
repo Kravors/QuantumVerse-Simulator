@@ -10,6 +10,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QJsonObject>
 
 #include "discovery/ScanSummary.h"
 
@@ -40,6 +41,13 @@ public:
     Q_INVOKABLE void generatePaper(const ScanSummary& summary,
                                    const QString& llmAbstract,
                                    const QString& outputPath = QString());
+
+    /// Generate a theory-sensitivity narrative paper from a matrix of
+    /// σ-tensions + LLM abstract. Writes LaTeX with a theory × experiment
+    /// table and compiles to PDF via pdflatex.
+    Q_INVOKABLE void generateTheorySensitivityPaper(const QJsonObject& matrix,
+                                                    const QString& llmAbstract,
+                                                    const QString& outputPath = QString());
 
 signals:
     /// Emitted with the path to the generated PDF on success.

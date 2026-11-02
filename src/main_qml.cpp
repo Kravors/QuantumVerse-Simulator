@@ -80,6 +80,7 @@
 #include "experiment/experiments/HubbleEvolutionExperiment.h"
 #include "experiment/experiments/GrowthFactorExperiment.h"
 #include "experiment/experiments/CosmologyValidationSuite.h"
+#include "experiment/experiments/TheorySensitivityExperiment.h"
 #include "discovery/LLMCoPilot.h"
 #include "discovery/PaperGenerator.h"
 #include "discovery/ScanSummary.h"
@@ -858,6 +859,7 @@ int main(int argc, char* argv[])
         experimentRunner->registerExperiment(std::make_unique<quantumverse::GrowthFactorExperiment>(
             std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
         experimentRunner->registerExperiment(std::make_unique<quantumverse::CosmologyValidationSuite>());
+        experimentRunner->registerExperiment(std::make_unique<quantumverse::TheorySensitivityExperiment>());
         std::cerr << "QuantumVerse: Experiment runner registered "
                   << experimentRunner->rowCount() << " experiments" << std::endl;
         std::cerr.flush();

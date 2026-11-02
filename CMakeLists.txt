@@ -271,6 +271,9 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/GWRingdownExperiment.cpp
         src/experiment/experiments/PhotonSphereExperiment.cpp
         src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/FRGravityProvider.cpp
+        src/experiment/cosmology/WCDMProvider.cpp
+        src/experiment/cosmology/BransDickeProvider.cpp
         src/experiment/cosmology/ProjectCosmologyAdapter.cpp
         src/bayesian/BayesianEvidenceCalculator.cpp
         src/experiment/experiments/CosmologyExperimentBase.cpp
@@ -281,6 +284,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/HubbleEvolutionExperiment.cpp
         src/experiment/experiments/GrowthFactorExperiment.cpp
         src/experiment/experiments/CosmologyValidationSuite.cpp
+        src/experiment/experiments/TheorySensitivityExperiment.cpp
         src/experiment/ScanSummaryBuilder.cpp
         third_party/glad/glad.cpp
         src/ui4d/Camera4DAdapter.cpp
@@ -2025,11 +2029,13 @@ endif()
         src/experiment/experiments/HubbleEvolutionExperiment.cpp
         src/experiment/experiments/GrowthFactorExperiment.cpp
         src/experiment/experiments/CosmologyExperimentBase.cpp
+        src/experiment/experiments/TheorySensitivityExperiment.cpp
         src/experiment/ScanSummaryBuilder.cpp
-                src/spacetime/KerrMetric.cpp
-                src/discovery/PaperGenerator.cpp
+        src/spacetime/KerrMetric.cpp
+        src/discovery/PaperGenerator.cpp
+        src/discovery/LLMCoPilot.cpp
                 )
-            target_link_libraries(test_experiment_runner PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
+            target_link_libraries(test_experiment_runner PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Test)
             target_include_directories(test_experiment_runner PRIVATE src third_party/glad/include third_party/glad/include/glad)
             target_compile_definitions(test_experiment_runner PRIVATE QUANTUMVERSE_USE_QML)
             set_target_properties(test_experiment_runner PROPERTIES AUTOMOC ON)
@@ -2107,7 +2113,10 @@ endif()
             add_executable(test_cosmology_experiments
                 tests/test_cosmology_experiments.cpp
                 src/experiment/experimentRunner.cpp
-                src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/FRGravityProvider.cpp
+        src/experiment/cosmology/WCDMProvider.cpp
+        src/experiment/cosmology/BransDickeProvider.cpp
         src/experiment/cosmology/ProjectCosmologyAdapter.cpp
         src/bayesian/BayesianEvidenceCalculator.cpp
                 src/experiment/experiments/CosmologyExperimentBase.cpp

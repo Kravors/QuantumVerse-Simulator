@@ -28,6 +28,7 @@
 
 #include "Experiment.h"
 #include "discovery/PaperGenerator.h"
+#include "discovery/LLMCoPilot.h"
 #include "experiment/ScanSummaryBuilder.h"
 #include "discovery/ScanSummary.h"
 
@@ -150,6 +151,7 @@ private:
     QThreadPool m_pool;
     mutable QMutex m_mutex;
     std::unique_ptr<PaperGenerator> m_paperGenerator;
+    std::unique_ptr<LLMCoPilot> m_llmCoPilot;
 
     /** Most recent successful result for the given experiment id, or nullptr. */
     const ExperimentResult* lastResultFor(const QString& id) const;

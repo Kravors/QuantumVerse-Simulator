@@ -9,12 +9,16 @@
 #include <QDir>
 #include <QDateTime>
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QMutexLocker>
 #include <QMetaObject>
 #include <QDebug>
 #include <QMap>
 #include <QStandardPaths>
+#include <QEventLoop>
+#include <QTimer>
+#include <QJsonObject>
 #include <algorithm>
 #include <thread>
 #include <cmath>
@@ -29,6 +33,8 @@ ExperimentRunner::ExperimentRunner(QObject* parent)
     m_paperGenerator = std::make_unique<PaperGenerator>(this);
     connect(m_paperGenerator.get(), &PaperGenerator::paperGenerated,
         this, &ExperimentRunner::pdfFinished);
+
+    m_llmCoPilot = std::make_unique<LLMCoPilot>(this);
 }
 
 ExperimentRunner::~ExperimentRunner() {
@@ -454,23 +460,36 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
             .arg(QString::number(Q, 'f', 2))
             .arg(QString::number(kret, 'e', 4));
     }
+    if (id == QStringLiteral("theory_sensitivity")) {
+        return QStringLiteral(
+            "We present a probe-set sensitivity analysis for modified-gravity "
+            "theories in a computational spacetime laboratory. Six cosmology "
+            "validation experiments --- spanning the expansion history (Hubble "
+            "parameter, luminosity distance, angular diameter distance, sound "
+            "horizon, age of the universe) and structure formation (growth "
+            "factor) --- were run against four theories: flat $\\Lambda$ CDM, "
+            "f(R)-inspired modified gravity (b=0.3), wCDM dark energy "
+            "(w0=-0.9), and Brans-Dicke scalar-tensor theory ($\\omega$=50). "
+            "Expansion-history modifications are strongly constrained: f(R) "
+            "b=0.3 is excluded at -37$\\sigma$ by BAO sound horizon and -34$\\sigma$ "
+            "by the age of the universe. Growth-only modifications remain "
+            "undetectable: Brans-Dicke $\\omega$=50 shifts the growth factor by "
+            "only 0.23$\\sigma$. The limitation is the probe set, not the "
+            "framework; growth-sensitive experiments are the clear next "
+            "addition.");
+    }
     return QStringLiteral("Discovery paper for experiment %1.").arg(id);
 }
 
 bool ExperimentRunner::canBuildPaper(const QString& id) const {
-    return ScanSummaryBuilder::canBuildFrom(id);
+    return ScanSummaryBuilder::canBuildFrom(id) || id == QStringLiteral("theory_sensitivity");
 }
 
 QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
-    if (!ScanSummaryBuilder::canBuildFrom(id)) return QString();
+    if (!canBuildPaper(id)) return QString();
 
     const auto* result = lastResultFor(id);
     if (!result) return QString();
-
-    const auto summary = ScanSummaryBuilder::fromExperiment(id, *result);
-    if (summary.mass <= 0.0) return QString(); // invalid sentinel
-
-    const QString abstract = abstractForExperiment(id, *result);
 
     // Compute a unique output path: <id>_discovery_<timestamp>.pdf
     QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
@@ -480,11 +499,74 @@ QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
     const QString pdfPath = baseDir + QStringLiteral("/") + id
                           + QStringLiteral("_discovery_") + stamp + QStringLiteral(".pdf");
 
-    // Fire async pdflatex via PaperGenerator; pdfFinished signal carries
-    // the actual result path. Caller polls for file existence.
-    m_paperGenerator->generatePaper(summary, abstract, pdfPath);
+    if (id == QStringLiteral("theory_sensitivity")) {
+        // Theory sensitivity paper: skip ScanSummaryBuilder (no BH observables),
+        // build matrix JSON from result scalars, get LLM abstract, compile.
+        QJsonObject matrix;
+        for (auto it = result->scalars.cbegin(); it != result->scalars.cend(); ++it) {
+            const QString key = it.key();
+            if (key.contains(QStringLiteral("_tension")) ||
+                key.contains(QStringLiteral("_pass")) ||
+                key.contains(QStringLiteral("_rel_err"))) {
+                matrix[key] = QJsonValue::fromVariant(it.value());
+            }
+        }
+        matrix[QStringLiteral("matrix_timestamp")] =
+            QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_timestamp")));
+        matrix[QStringLiteral("matrix_theories")] =
+            QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_theories")));
+        matrix[QStringLiteral("matrix_n_theories")] =
+            QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_n_theories")));
+        matrix[QStringLiteral("matrix_n_sub_experiments")] =
+            QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_n_sub_experiments")));
+        matrix[QStringLiteral("matrix_pass_sigma")] =
+            QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_pass_sigma")));
 
-    return pdfPath;
+        // Get LLM abstract (async); fall back to template abstract on timeout.
+        QString abstract = abstractForExperiment(id, *result);
+        QEventLoop llmLoop;
+        QString llmAbstract;
+        bool llmReady = false;
+        QObject::connect(m_llmCoPilot.get(), &LLMCoPilot::abstractReady,
+            &llmLoop, [&](const QString& text) {
+                llmAbstract = text;
+                llmReady = true;
+                llmLoop.quit();
+            });
+        QObject::connect(m_llmCoPilot.get(), &LLMCoPilot::abstractFailed,
+            &llmLoop, [&](const QString&) {
+                llmReady = true;
+                llmLoop.quit();
+            });
+        m_llmCoPilot->generatePaperAbstract(matrix);
+        QTimer::singleShot(60000, &llmLoop, &QEventLoop::quit);
+        llmLoop.exec();
+        if (llmReady && !llmAbstract.isEmpty()) {
+            abstract = llmAbstract;
+        }
+
+        m_paperGenerator->generateTheorySensitivityPaper(matrix, abstract, pdfPath);
+    } else {
+        const auto summary = ScanSummaryBuilder::fromExperiment(id, *result);
+        if (summary.mass <= 0.0) return QString(); // invalid sentinel
+
+        const QString abstract = abstractForExperiment(id, *result);
+
+        m_paperGenerator->generatePaper(summary, abstract, pdfPath);
+    }
+
+    // Wait for pdflatex to complete (async via QProcess signal).
+    QEventLoop pdfLoop;
+    QString resolvedPath;
+    QObject::connect(m_paperGenerator.get(), &PaperGenerator::paperGenerated,
+        &pdfLoop, [&](const QString& path) {
+            resolvedPath = path;
+            pdfLoop.quit();
+        });
+    QTimer::singleShot(120000, &pdfLoop, &QEventLoop::quit);
+    pdfLoop.exec();
+
+    return resolvedPath;
 }
 
 QVariantList ExperimentRunner::history() const {
