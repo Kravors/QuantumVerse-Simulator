@@ -48,8 +48,9 @@ QVector<ExperimentParameter> CosmologyValidationSuite::parameters() const {
     p.append({QStringLiteral("theory_choice"),QStringLiteral("Cosmology theory to test"),
               QStringLiteral("string"), QVariant(QStringLiteral("project")),
               QVariant(), QVariant(),
-              QStringList({QStringLiteral("project"), QStringLiteral("fR")}),
-              QStringLiteral(""), QStringLiteral("project = ΛCDM via FRWMetric adapter; fR = modified-gravity f(R) provider.")});
+              QStringList({QStringLiteral("project"), QStringLiteral("fR"),
+                           QStringLiteral("wcdm"), QStringLiteral("brans_dicke")}),
+              QStringLiteral(""), QStringLiteral("project = ΛCDM via FRWMetric adapter; fR = f(R) gravity; wcdm = wCDM with CPL dark energy; brans_dicke = Brans-Dicke scalar-tensor.")});
     return p;
 }
 
@@ -87,6 +88,12 @@ ExperimentResult CosmologyValidationSuite::run(
     if (m_theoryChoice == QStringLiteral("fR")) {
         project = std::make_shared<FRGravityProvider>(
             m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb, 0.3);
+    } else if (m_theoryChoice == QStringLiteral("wcdm")) {
+        project = std::make_shared<WCDMProvider>(
+            m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb, -0.9, 0.0);
+    } else if (m_theoryChoice == QStringLiteral("brans_dicke")) {
+        project = std::make_shared<BransDickeProvider>(
+            m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb, 50.0);
     } else {
         project = std::make_shared<ProjectCosmologyAdapter>(
             m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb);
@@ -103,6 +110,17 @@ ExperimentResult CosmologyValidationSuite::run(
     if (m_theoryChoice == QStringLiteral("fR")) {
         auto fr = std::dynamic_pointer_cast<FRGravityProvider>(project);
         if (fr) out.scalars[QStringLiteral("suite_fR_b")] = fr->fR();
+    }
+    if (m_theoryChoice == QStringLiteral("wcdm")) {
+        auto w = std::dynamic_pointer_cast<WCDMProvider>(project);
+        if (w) {
+            out.scalars[QStringLiteral("suite_wCDM_w0")] = w->w0();
+            out.scalars[QStringLiteral("suite_wCDM_wa")] = w->wa();
+        }
+    }
+    if (m_theoryChoice == QStringLiteral("brans_dicke")) {
+        auto bd = std::dynamic_pointer_cast<BransDickeProvider>(project);
+        if (bd) out.scalars[QStringLiteral("suite_BD_omega")] = bd->omega();
     }
     out.logLines << QString("Cosmology Validation Suite — %1").arg(stamp);
     out.logLines << QString("Provider: %1  (%2)   Reference: %3  (%4)")

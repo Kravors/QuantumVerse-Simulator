@@ -503,7 +503,9 @@ QVariantList ExperimentRunner::history() const {
 
 void ExperimentRunner::showHistoryEntry(const QString& id) {
     QMutexLocker lock(&m_mutex);
-    for (const auto& h : m_history) {
+    // Iterate backwards to get the LATEST entry with this id, not the first.
+    for (int i = static_cast<int>(m_history.size()) - 1; i >= 0; --i) {
+        const auto& h = m_history[i];
         if (h.id == id) {
             m_currentScalars = h.result.scalars;
             QVariantList curve;

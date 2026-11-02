@@ -13,6 +13,8 @@
 
 #include "experiment/cosmology/FRGravityProvider.h"
 #include "experiment/cosmology/LambdaCDMReferenceProvider.h"
+#include "experiment/cosmology/WCDMProvider.h"
+#include "experiment/cosmology/BransDickeProvider.h"
 
 #include <cmath>
 #include <iostream>
@@ -171,6 +173,57 @@ int main() {
         std::cout << "Test 4 PASS: H(0) unchanged for all b" << std::endl;
     }
 
-    std::cout << "=== FRGravityProvider Test: ALL PASS ===" << std::endl;
+    // ---- Test 5: wCDM degenerate case — w0=-1, wa=0 reproduces ΛCDM exactly ----
+    {
+        WCDMProvider w0(H0, Om, Ob, Or, OL, Ok, Tcmb, -1.0, 0.0);
+        LambdaCDMReferenceProvider lcdm(H0, Om, Ob, Or, OL, Ok, Tcmb);
+
+        QV_CHECK(w0.name() == QStringLiteral("wCDM"));
+        QV_CHECK(w0.w0() == -1.0);
+        QV_CHECK(w0.wa() == 0.0);
+
+        for (double z : zvals) {
+            QV_CHECK(nearEqual(w0.H(z), lcdm.H(z), 1e-6));
+        }
+        QV_CHECK(nearEqual(w0.soundHorizon(), lcdm.soundHorizon(), 1e-6));
+        QV_CHECK(nearEqual(w0.distanceModulus(1059.94), lcdm.distanceModulus(1059.94), 1e-6));
+
+        // w0=-0.9, wa=0 should differ measurably at intermediate z (DE ~matter)
+        WCDMProvider w09(H0, Om, Ob, Or, OL, Ok, Tcmb, -0.9, 0.0);
+        const double relDiff = std::fabs(w09.H(1.0) - lcdm.H(1.0)) / lcdm.H(1.0);
+        QV_CHECK(relDiff > 0.01);
+        std::cout << "  wCDM(w0=-0.9) vs ΛCDM at z=1: relDiff=" << (relDiff * 100.0) << "%" << std::endl;
+
+        std::cout << "Test 5 PASS: wCDM degenerate case" << std::endl;
+    }
+
+    // ---- Test 6: Brans-Dicke degenerate case — ω→∞ reproduces ΛCDM growth ----
+    {
+        // ω=1e12 is effectively infinite for double precision
+        BransDickeProvider bdInf(H0, Om, Ob, Or, OL, Ok, Tcmb, 1e12);
+        BransDickeProvider bd10(H0, Om, Ob, Or, OL, Ok, Tcmb, 10.0);
+        LambdaCDMReferenceProvider lcdm(H0, Om, Ob, Or, OL, Ok, Tcmb);
+
+        QV_CHECK(bdInf.name() == QStringLiteral("Brans-Dicke"));
+        QV_CHECK_NEAR(bdInf.omega(), 1e12, 1.0);
+
+        // H(z) must be identical to ΛCDM for all ω (background unchanged)
+        QV_CHECK(nearEqual(bdInf.H(1059.94), lcdm.H(1059.94), 1e-12));
+        QV_CHECK(nearEqual(bd10.H(1059.94), lcdm.H(1059.94), 1e-12));
+
+        // Growth must match GR for ω→∞
+        QV_CHECK(nearEqual(bdInf.growthFactor(1.0), lcdm.growthFactor(1.0), 1e-12));
+
+        // Growth must differ for finite ω (ω=10 gives ~4.3% enhancement)
+        const double grGrowth = bdInf.growthFactor(1.0);
+        const double bdGrowth = bd10.growthFactor(1.0);
+        const double relDiff = std::fabs(bdGrowth - grGrowth) / grGrowth;
+        QV_CHECK(relDiff > 0.01);
+        std::cout << "  Brans-Dicke(ω=10) vs GR at z=1: growth relDiff=" << (relDiff * 100.0) << "%" << std::endl;
+
+        std::cout << "Test 6 PASS: Brans-Dicke degenerate case" << std::endl;
+    }
+
+    std::cout << "=== Cosmology Provider Tests: ALL PASS ===" << std::endl;
     return 0;
 }

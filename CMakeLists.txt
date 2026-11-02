@@ -2014,6 +2014,8 @@ endif()
                 src/experiment/experiments/GWRingdownExperiment.cpp
         src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
         src/experiment/cosmology/FRGravityProvider.cpp
+        src/experiment/cosmology/WCDMProvider.cpp
+        src/experiment/cosmology/BransDickeProvider.cpp
         src/experiment/cosmology/ProjectCosmologyAdapter.cpp
         src/experiment/experiments/CosmologyValidationSuite.cpp
         src/experiment/experiments/AgeOfUniverseExperiment.cpp
@@ -2058,6 +2060,8 @@ endif()
             add_executable(test_fr_gravity_provider
                 tests/test_fr_gravity_provider.cpp
                 src/experiment/cosmology/FRGravityProvider.cpp
+                src/experiment/cosmology/WCDMProvider.cpp
+                src/experiment/cosmology/BransDickeProvider.cpp
                 src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
             )
             target_link_libraries(test_fr_gravity_provider PRIVATE dilaton Qt6::Core Qt6::Test)
