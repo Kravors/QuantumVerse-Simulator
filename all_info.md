@@ -227,7 +227,7 @@ Quantum Gravity (src/quantumgravity/) - CDT, Spin Foam, GFT, Causal Sets
 - Application: QuantumVerseApp, main_glfw, main_qml
 - Bayesian: BayesianEvidenceCalculator (Complete)
 - Paper: PaperGenerator (Complete)
-- VR: MultiUserServer, VRClient, CollaborationHub (Complete)
+- VR: MultiUserServer, SignalingClient, SharedSession (peer presence, verified session 15; no clock sync, no server-authoritative sim state)
 
 ---
 
@@ -707,7 +707,7 @@ Output: [t_f, r_f, θ_f, φ_f]  (final event)
  | 2.3 | Differentiable Simulator Backbone | ✅ 100% |
  | 2.4 | Metric Surrogate GNN | ✅ 100% |
  | 2.5 | Anomaly Detection (Normalizing Flow) | ✅ 100% |
- | 2.6 | Collaborative VR | ✅ 100% |
+ | 2.6 | Collaborative VR | ⚠️ ~70% |
  | 2.7 | SymPy/Mathematica Integration | ✅ 100% |
  | 2.8 | Bayesian Evidence | ✅ 100% |
  | 2.9 | LaTeX Paper Generator | ✅ 100% |
@@ -731,7 +731,7 @@ Output: [t_f, r_f, θ_f, φ_f]  (final event)
  | Task 2.3: Differentiable Backbone | ✅ 100% | COMPLETE |
  | Task 2.4: Metric Surrogate GNN | ✅ 100% | COMPLETE (test_metric_gnn.cpp) |
  | Task 2.5: Anomaly Detection | ✅ 100% | COMPLETE (test_curvature_flow.cpp) |
- | Task 2.6: Collaborative VR | ✅ 100% | COMPLETE (MultiUserServer, VRClient, TimeLocking) |
+ | Task 2.6: Collaborative VR | ⚠️ ~70% | COMPLETE (MultiUserServer, SignalingClient, SharedSession — peer presence verified); ABSENT (TimeLocking, VRClient, CollaborationHub, clock sync)
  | Task 2.7: SymPy Integration | ✅ 100% | COMPLETE (test_symbolic_regression.cpp) |
  | Task 2.8: Bayesian Evidence | ✅ 100% | COMPLETE (test_bayesian_evidence.cpp) |
  | Task 2.9: LaTeX Generator | ✅ 100% | COMPLETE (test_paper_generator.cpp) |
@@ -1138,7 +1138,7 @@ python train.py --dataset data/geodesics_1M.h5 --output-dir models/geodesic_ode
  3. ✅ **Task 2.3**: Differentiable Simulator Backbone (100%)
  4. ✅ **Task 2.4**: Metric Surrogate GNN (100%)
  5. ✅ **Task 2.5**: Anomaly Detection (Normalizing Flow) (100%)
- 6. ✅ **Task 2.6**: Collaborative VR (100%)
+ 6. ⚠️ **Task 2.6**: Collaborative VR (~70%)
  7. ✅ **Task 2.7**: SymPy/Mathematica Integration (100%)
  8. ✅ **Task 2.8**: Bayesian Evidence (100%)
  9. ✅ **Task 2.9**: LaTeX Paper Generator (100%)
@@ -1335,14 +1335,14 @@ cmake --install . --prefix "C:\Program Files\QuantumVerse"  # Windows
   
  | # | Change | File | Details |
  |---|--------|------|---------|
- | 1 | CMakeLists.txt updated | `CMakeLists.txt` | Added `src/bayesian/BayesianEvidenceCalculator.cpp`, `src/paper/PaperGenerator.cpp`, `src/vr/MultiUserServer.cpp`, `src/vr/VRClient.cpp`, `src/vr/VRCommon.cpp`, `src/vr/CollaborationHub.cpp` to dilaton library |
+ | 1 | CMakeLists.txt updated | `CMakeLists.txt` | Added `src/bayesian/BayesianEvidenceCalculator.cpp`, `src/paper/PaperGenerator.cpp`, `src/vr/MultiUserServer.cpp`, `src/vr/SignalingClient.cpp`, `src/vr/SharedSession.cpp` to dilaton library |
  | 2 | Test targets added | `CMakeLists.txt` | Added `test_metric_gnn`, `test_bayesian_evidence`, `test_paper_generator`, `test_vr_multiplayer`, `test_rl_discovery`, `test_symbolic_regression`, `test_curvature_flow` to ctest |
  | 3 | Test count updated | `all_info.md` | Total: 49 tests in ctest (all passing) |
  | 4 | Task 2.1 completed | `src/ml/GeodesicNeuralODE.h/.cpp` | Neural ODE surrogate with stub fallback, training complete (100 epochs) |
  | 5 | Task 2.2 completed | `src/discovery/RLDiscoveryAgent.h/.cpp` | RL discovery agent with epsilon-greedy policy, test_rl_discovery.cpp passes |
  | 6 | Task 2.4 completed | `src/ml/MetricGNN.h/.cpp` | Metric surrogate GNN with stub inference, test_metric_gnn.cpp passes |
  | 7 | Task 2.5 completed | `src/ml/CurvatureNormalizingFlow.h/.cpp` | Anomaly detection with normalizing flow, test_curvature_flow.cpp passes |
- | 8 | Task 2.6 completed | `src/vr/` | MultiUserServer, VRClient, TimeLockingProtocol, SpatialAudio all implemented and tested |
+ | 8 | Task 2.6 completed | `src/vr/` | MultiUserServer, SignalingClient, SharedSession (peer presence verified session 15); TimeLocking, VRClient, CollaborationHub, clock sync not implemented |
  | 9 | Task 2.7 completed | `src/discovery/SymbolicMath.h/.cpp` | SymPy integration stub, test_symbolic_regression.cpp passes |
  | 10 | Task 2.8 completed | `src/bayesian/BayesianEvidenceCalculator.h/.cpp` | Bayesian evidence with grid integration, test_bayesian_evidence.cpp passes |
  | 11 | Task 2.9 completed | `src/paper/PaperGenerator.h/.cpp` | LaTeX paper generator with APS/Nature templates, test_paper_generator.cpp passes |
