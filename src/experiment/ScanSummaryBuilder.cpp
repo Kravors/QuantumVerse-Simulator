@@ -12,7 +12,8 @@ bool ScanSummaryBuilder::canBuildFrom(const QString& id) {
                                             QStringLiteral("redshift_profile"),
                                             QStringLiteral("frame_dragging"),
                                             QStringLiteral("gw_ringdown"),
-                                            QStringLiteral("theory_sensitivity") };
+                                            QStringLiteral("theory_sensitivity"),
+                                            QStringLiteral("mercury_precession") };
     return kSupported.contains(id);
 }
 
@@ -47,7 +48,7 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
 
     bool ok_mass = false;
     const double mass = requireScalarAny(r,
-        { QStringLiteral("mass_Msun"), QStringLiteral("mass") }, &ok_mass);
+        { QStringLiteral("mass_Msun"), QStringLiteral("mass"), QStringLiteral("mass_sun_Msun") }, &ok_mass);
     if (!ok_mass) return s;
 
     bool ok_spin = false;
@@ -91,7 +92,8 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
 
     bool ok_obs = false;
     const double obs = requireScalarAny(r,
-        { QStringLiteral("f_R_Hz"), QStringLiteral("observedValue") }, &ok_obs);
+        { QStringLiteral("f_R_Hz"), QStringLiteral("observedValue"),
+          QStringLiteral("precession_arcsec_per_century") }, &ok_obs);
     if (ok_obs) s.observedValue = obs;
 
     return s;

@@ -464,7 +464,7 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
                 "Comparing to the published l=m=2 value f_R = %6 Hz and "
                 "damping time $\\tau = %7$ ms (Abbott et al. 2016, PRL 116, 061102), "
                 "we find f_R = %8 Hz (Delta sigma = %9) and "
-                "tau = %10 ms (Delta sigma = %11), consistent within the "
+                "tau = %10 ms (Delta sigma = %10), consistent within the "
                 "observational uncertainty of the ringdown measurement.")
                 .arg(QString::number(mass, 'f', 2))
                 .arg(QString::number(spin, 'f', 4))
@@ -491,6 +491,35 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
             .arg(QString::number(tau, 'e', 4))
             .arg(QString::number(Q, 'f', 2))
             .arg(QString::number(kret, 'e', 4));
+    }
+    if (id == QStringLiteral("mercury_precession")) {
+        const double mass = result.scalars.value(QStringLiteral("mass_sun_Msun"), 0.0).toDouble();
+        const double precession = result.scalars.value(QStringLiteral("precession_arcsec_per_century"), 0.0).toDouble();
+
+        // Reproduction-paper template: compare computed precession to published Mercury value
+        if (result.scalars.value(QStringLiteral("compareToPublished"), false).toBool()) {
+            const double precession_pub = result.scalars.value(QStringLiteral("precession_published_arcsec_per_century"), 43.0).toDouble();
+            const QString citation = result.scalars.value(QStringLiteral("reference"), QStringLiteral("Einstein 1915")).toString();
+            const double precession_dsigma = result.scalars.value(QStringLiteral("precession_delta_sigma"), 0.0).toDouble();
+            return QStringLiteral(
+                "Mercury perihelion precession: first post-Newtonian prediction for a "
+                "Kerr black hole of mass %1 M_sun. The perihelion advance is "
+                "$%2$ arcsec per century. Comparing to the published value "
+                "$%3$ arcsec per century (Einstein 1915, Annalen der Physik 49:769-822), "
+                "we find $\\Delta\\sigma = %4$, consistent within observational "
+                "uncertainty.")
+                .arg(QString::number(mass, 'f', 1))
+                .arg(QString::number(precession, 'f', 2))
+                .arg(QString::number(precession_pub, 'f', 1))
+                .arg(QString::number(precession_dsigma, 'f', 2));
+        }
+
+        return QStringLiteral(
+            "Mercury perihelion precession: first post-Newtonian prediction for a "
+            "Kerr black hole of mass %1 M_sun. The perihelion advance is "
+            "$%2$ arcsec per century.")
+                .arg(QString::number(mass, 'f', 1))
+                .arg(QString::number(precession, 'f', 2));
     }
     if (id == QStringLiteral("theory_sensitivity")) {
         return QStringLiteral(

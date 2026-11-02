@@ -3013,6 +3013,16 @@ endif()
         )
         target_link_libraries(test_gw_ringdown_reproduction PRIVATE Qt6::Core dilaton)
         add_test(NAME GWRingdownReproductionTest COMMAND test_gw_ringdown_reproduction)
+
+        # Mercury precession reproduction test
+        add_executable(test_mercury_precession_reproduction tests/unit/test_mercury_precession_reproduction.cpp
+            src/experiment/ScanSummaryBuilder.cpp
+            src/experiment/experiments/MercuryPrecessionExperiment.cpp
+            src/experiment/experiments/CosmologyExperimentBase.cpp
+            src/spacetime/KerrMetric.cpp
+        )
+        target_link_libraries(test_mercury_precession_reproduction PRIVATE Qt6::Core dilaton)
+        add_test(NAME MercuryPrecessionReproductionTest COMMAND test_mercury_precession_reproduction)
     endif()
 endif()
 
