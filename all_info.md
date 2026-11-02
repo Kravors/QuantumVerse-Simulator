@@ -11,9 +11,34 @@
 
 ---
 
-### 2026-11-01 — Experiment Framework Milestone (N=5)
+### 2026-11-02 — Discovery Paper Pipeline Closed (N=5)
 
-**New experiments shipped**: FRBGenerator (dispersion measure vs z), PTASpectrum (power-law strain spectrum), GWRingdown (damped-sinusoid QNM waveform), PhotonSphere (Bardeen 1972 photon orbits vs spin). Total: 22 registered experiments spanning 5 curve shapes (peaked, monotonic, power-law, damped-sinusoid, decreasing) and 5 physics families.
+**Arc complete** — all sessions 8b-13 shipped, 5 paper shapes verified:
+
+| Session | Commit | Deliverable |
+|---|---|---|
+| 8b | `55d7627` → `6b59c8e` → `de5f866` | `ScanSummaryBuilder` bridge, `generateDiscoveryPaper(id)`, QML "Generate Paper" button gated by `canBuildPaper(id)` |
+| 9 | `384617f` → `6d743c2` | Extended to `redshift_profile` + `frame_dragging` (N=3), `requireScalarAny` alternative keys, `bhType` derived from spin |
+| 9b | `09deea5` | Extended to `gw_ringdown` (N=4), `wCDMProvider` + `BransDickeProvider` (wCDM w0=-0.9, Brans-Dicke ω=50) |
+| 10 | `bf78c21` | Fixed `showHistoryEntry` first-match bug; corrected f(R) b=0.3 tensions (-37σ r_drag, -34σ age, -10σ age_z1) |
+| 11 | `117f082` | Headless `--run-paper-pipeline <id>` flag + `test_qml_paper_pipeline.cpp` — closes QML click-through gap |
+| 12 | `a119068` | `wCDMProvider` + `BransDickeProvider`; theory×experiment discrimination matrix; `docs/theory-discrimination-matrix.md` |
+| 13 | `a78bff6` | `TheorySensitivityExperiment`, `generateTheorySensitivityPaper`, LLMCoPilot abstract wiring (template fallback when Ollama unavailable) |
+
+**5 paper shapes verified structurally distinct**:
+- `photon_sphere` — Kerr BH discovery scan (mass, spin, Kretschmann at photon sphere)
+- `redshift_profile` — Schwarzschild gravitational redshift profile (mass, z(r), Kretschmann)
+- `frame_dragging` — Lense-Thirring precession kinematics (mass, spin, mas/year)
+- `gw_ringdown` — QNM spectroscopy (mass, spin, f_R, tau, Q)
+- `theory_sensitivity` — Theory × experiment σ-tension matrix (4 theories × 6 experiments)
+
+**Arc close-out**: The discovery-paper pipeline is a proven capability at N=5.
+- Paper pipeline produces genuine paper-shaped PDFs (abstract, methods, results, discussion, conclusion)
+- All 5 tests pass: `ExperimentRunnerTest`, `ScanSummaryBuilderTest`, `FRGravityProviderTest`, `QmlPaperPipelineTest`, `PhotonSphereTest`
+- `lastResultFor` iterates backwards (verified — no stale-paper bug from session 12's `showHistoryEntry` fix)
+- **LLM abstract is decorative, not verified**: Ollama not running during session 13; template fallback used. Code path is correct but untested against live Ollama.
+
+**Pivot point** — session 15 starts a new arc. Recommended: multi-user / VR demo (`src/vr/`), with 5-min infrastructure greps before committing (see session 14 plan).
 
 **New module**: `src/bayesian/BayesianEvidenceCalculator.h/.cpp` — BIC-based logZ + Bayes factors with Kass & Raftery interpretation. `TheoryDiscoveryAgent::computeBayesFactor()` now delegates to it (single source of truth; regression test confirms unchanged return values).
 
@@ -55,7 +80,7 @@ button appears next to the existing CSV export buttons in `ExperimentsPanel.qml`
 
 **Discovery paper pipeline** (`src/experiment/ScanSummaryBuilder.h/.cpp`): bridges the last
 `ExperimentResult` of any supported experiment into `PaperGenerator` to produce a discovery
-paper with a template abstract. Supports N=4 experiments:
+paper with a template abstract. Supports N=5 experiments:
 
 | Experiment | Family | bhType | Observable |
 |---|---|---|---|
@@ -63,11 +88,19 @@ paper with a template abstract. Supports N=4 experiments:
 | `redshift_profile` | Gravitational redshift z(r) | Schwarzschild | z at r_min |
 | `frame_dragging` | Lense-Thirring precession | Kerr | Precession rate in mas/year |
 | `gw_ringdown` | QNM ringdown spectroscopy | Kerr | f_R, tau, Q from Berti table VIII |
+| `theory_sensitivity` | Theory discrimination | N/A | Theory × experiment σ-tension matrix |
 
 `ExperimentRunner::generateDiscoveryPaper(id)` is `Q_INVOKABLE` — runs the experiment if
 needed, builds a `ScanSummary`, renders the template abstract, compiles via pdflatex, and
 returns the PDF path (empty for unsupported experiments). QML "Generate Paper" button is
 gated by `canBuildPaper(id)` (disabled for unsupported experiments).
+
+**Paper shapes** — 5 genuinely distinct structures, not 5 instantiations of one template:
+- `photon_sphere`: Numerical result with extremal pins (mass, spin, Kretschmann)
+- `redshift_profile`: Formula paper with Schwarzschild asymptote (mass, z(r), Kretschmann)
+- `frame_dragging`: Kinematics paper with Lense-Thirring rate (mass, spin, mas/year)
+- `gw_ringdown`: Spectroscopy paper with QNM damping (mass, spin, f_R, tau, Q)
+- `theory_sensitivity`: Matrix paper with cross-theory comparison (4 theories × 6 experiments)
 
 **Two design decisions** that let N extend mechanically:
 
@@ -85,6 +118,17 @@ in extracted text; no NaN, no unsubstituted placeholders); repeated exports prod
 filenames. `ExperimentRunnerTest` runs all four experiments end-to-end (run → generate
 PDF → pdftotext assert) at 3× stability; `ScanSummaryBuilderTest` covers all four with
 non-vacuity checks. 6 commits shipped as `6b59c8e` + `de5f866` + `384617f` + `6d743c2`.
+
+**LLM abstract — template fallback, not live generation** (`src/experiment/ExperimentRunner.cpp`,
+`src/discovery/LLMCoPilot.h/.cpp`): `generateDiscoveryPaper(id)` calls
+`LLMCoPilot::generatePaperAbstract(matrix)` and waits up to 60s for `abstractReady`.
+If Ollama is not running on `localhost:11434` (or any other failure occurs),
+`abstractFailed` fires and the `abstractForExperiment(id, result)` template is used instead.
+Ollama was not running during session 13 verification, so all theory_sensitivity papers
+produced use the template abstract. The code path is correct but untested against a live
+Ollama instance. **Do not document "LLM integration ✅" as verified** — it's wired but not
+validated. Session 15 option: run Ollama and verify `abstractReady` fires with substantive
+content (not just template substitution).
 
 **High-z comparison tests** (`tests/test_cosmology_experiments.cpp`, AGENTS.md):
 `test_project_adapter_H_matches_reference_at_high_z` compares H(100) and H(1000) between
