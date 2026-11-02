@@ -1204,6 +1204,7 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
         src/discovery/PrimordialLithiumCrisisSolver.cpp
         src/discovery/GalacticTidalStreamCartographer.cpp
         src/discovery/RecombinationConstantVariationImager.cpp
+        src/bayesian/BayesianEvidenceCalculator.cpp
     )
     target_include_directories(fuzz_discovery_instruments PRIVATE
             ${CMAKE_SOURCE_DIR}/src
@@ -2008,6 +2009,32 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_experiment_runner.cpp)
         add_executable(test_experiment_runner
                 tests/test_experiment_runner.cpp
+                src/experiment/ExperimentRunner.cpp
+                src/experiment/experiments/MassSweepExperiment.cpp
+                src/experiment/experiments/LensingTimeDelayExperiment.cpp
+                src/experiment/experiments/PhotonSphereExperiment.cpp
+                src/experiment/experiments/RedshiftProfileExperiment.cpp
+                src/experiment/experiments/FrameDraggingExperiment.cpp
+                src/experiment/experiments/GWRingdownExperiment.cpp
+                src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/FRGravityProvider.cpp
+        src/experiment/cosmology/WCDMProvider.cpp
+        src/experiment/cosmology/BransDickeProvider.cpp
+        src/experiment/cosmology/HuSawickiProvider.cpp
+        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+                src/experiment/experiments/CosmologyValidationSuite.cpp
+                src/experiment/experiments/AgeOfUniverseExperiment.cpp
+                src/experiment/experiments/DistanceLadderExperiment.cpp
+                src/experiment/experiments/CMBTemperatureExperiment.cpp
+                src/experiment/experiments/BAOSoundHorizonExperiment.cpp
+                src/experiment/experiments/HubbleEvolutionExperiment.cpp
+                src/experiment/experiments/GrowthFactorExperiment.cpp
+                src/experiment/experiments/CosmologyExperimentBase.cpp
+                src/experiment/experiments/TheorySensitivityExperiment.cpp
+                src/experiment/ScanSummaryBuilder.cpp
+                src/spacetime/KerrMetric.cpp
+                src/discovery/PaperGenerator.cpp
+                src/discovery/LLMCoPilot.cpp
                 )
             target_link_libraries(test_experiment_runner PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Test)
             target_include_directories(test_experiment_runner PRIVATE src third_party/glad/include third_party/glad/include/glad)
