@@ -2999,6 +2999,10 @@ endif()
         add_executable(test_vr_networking tests/unit/test_vr_networking.cpp)
         target_link_libraries(test_vr_networking PRIVATE dilaton quantumverse_multi_user)
         add_test(NAME VRNetworkingTest COMMAND test_vr_networking)
+
+        add_executable(test_vr_camera_sync tests/unit/test_vr_camera_sync.cpp)
+        target_link_libraries(test_vr_camera_sync PRIVATE dilaton quantumverse_multi_user)
+        add_test(NAME VRCameraSyncTest COMMAND test_vr_camera_sync)
     endif()
 endif()
 

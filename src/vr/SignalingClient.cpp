@@ -185,6 +185,12 @@ void SignalingClient::handleServerMessage(const QJsonObject& obj)
         if (!senderId.isEmpty() && senderId != m_clientId) {
             emit stateReceived(senderId, state);
         }
+    } else if (type == "camera_pose") {
+        QString senderId = obj.value("senderId").toString();
+        QJsonObject camera = obj.value("camera").toObject();
+        if (!senderId.isEmpty() && senderId != m_clientId) {
+            emit cameraPoseReceived(senderId, camera);
+        }
     } else if (type == "welcome") {
         QJsonArray peers = obj.value("peers").toArray();
         m_peerIds.clear();

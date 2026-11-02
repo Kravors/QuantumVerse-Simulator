@@ -135,6 +135,13 @@ signals:
     void stateReceived(const QString& senderId, const QJsonObject& stateJson);
 
     /**
+     * @brief Emitted when a camera pose update is received from a peer
+     * @param senderId ID of the client that sent the update
+     * @param cameraJson Camera pose JSON (position, azimuth, elevation, distance)
+     */
+    void cameraPoseReceived(const QString& senderId, const QJsonObject& cameraJson);
+
+    /**
      * @brief Emitted on connection error
      * @param errorMessage Description of the error
      */
@@ -185,7 +192,12 @@ private:
      * @brief Send a JSON message to the server
      * @param obj JSON object to send
      */
-    void sendJson(const QJsonObject& obj);
+public:
+    /**
+     * @brief Send a raw JSON message to the server
+     * @param obj JSON object to send
+     */
+    Q_INVOKABLE void sendJson(const QJsonObject& obj);
 
     /**
      * @brief Handle a parsed JSON message from the server

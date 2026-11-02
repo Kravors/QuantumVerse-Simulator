@@ -260,6 +260,10 @@ private:
     // Synced from the viewport each frame in ViewportRenderer::synchronize().
     void setSandboxBodies(const QVariantList& bodies) { m_sandboxBodies = bodies; }
 
+    // Peer bodies pushed via QmlGlViewport::setPeerBodies from VR collaboration.
+    // Synced from the viewport each frame in ViewportRenderer::synchronize().
+    void setPeerBodies(const QVariantList& bodies) { m_peerBodies = bodies; }
+
     // Camera control
     void setViewMatrix(const QMatrix4x4& view);
     void setProjectionMatrix(const QMatrix4x4& proj);
@@ -445,6 +449,10 @@ private:
     // Sandbox bodies pushed from SandboxManager via QmlGlViewport::setSandboxBodies;
     // synced from the viewport each frame in synchronize().
     QVariantList m_sandboxBodies;
+
+    // Peer bodies pushed via QmlGlViewport::setPeerBodies from VR collaboration;
+    // re-added each render frame so peer positions stay live.
+    QVariantList m_peerBodies;
 
     // Camera4D adapter for 4D navigation (non-owning)
     std::shared_ptr<Camera4DAdapter> m_camera4DAdapter;
@@ -808,6 +816,13 @@ public:
         update();
     }
 
+    // Peer bodies: remote VR participants' camera positions pushed from
+    // main_qml.cpp via VR signaling. Re-added each render frame.
+    Q_INVOKABLE void setPeerBodies(const QVariantList& bodies) {
+        m_peerBodies = bodies;
+        update();
+    }
+
     // Camera4D adapter access for QML toolbar
     Q_PROPERTY(QObject* camera4DAdapter READ camera4DAdapterObj WRITE setCamera4DAdapterObj NOTIFY camera4DAdapterChanged)
 
@@ -1016,6 +1031,10 @@ private:
 
     // Sandbox bodies pushed from SandboxManager; re-added each render frame.
     QVariantList m_sandboxBodies;
+
+    // Peer bodies pushed via QmlGlViewport::setPeerBodies from VR collaboration;
+    // re-added each render frame so peer positions stay live.
+    QVariantList m_peerBodies;
 
     // UI4D instance for scene data (non-owning)
     std::shared_ptr<UI4D> m_ui4d;

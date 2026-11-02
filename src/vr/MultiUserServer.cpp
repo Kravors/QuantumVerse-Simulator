@@ -214,9 +214,11 @@ void MultiUserServer::onTextMessageReceived(const QString& message)
         handleStateUpdate(clientId, obj);
     } else if (type == "head_pose_update") {
         handleHeadPoseUpdate(clientId, obj);
-    } else if (type == "controller_update") {
-        handleControllerUpdate(clientId, obj);
-    } else {
+        } else if (type == "controller_update") {
+            handleControllerUpdate(clientId, obj);
+        } else if (type == "camera_pose") {
+            handleCameraPoseUpdate(clientId, obj);
+        } else {
         qWarning() << "Unknown message type:" << type << "from" << clientId;
     }
 }
@@ -360,6 +362,24 @@ void MultiUserServer::handleControllerUpdate(const QString& clientId, const QJso
     forward["senderName"] = QString::fromStdString(clientIt->name);
     forward["leftController"] = obj.value("leftController");
     forward["rightController"] = obj.value("rightController");
+    forward["timestamp"] = QDateTime::currentMSecsSinceEpoch();
+
+    broadcastToSession(clientIt->sessionId, forward, clientIt->id);
+}
+
+void MultiUserServer::handleCameraPoseUpdate(const QString& clientId, const QJsonObject& obj)
+{
+    auto clientIt = findClient(clientId.toStdString());
+    if (clientIt == m_clients.end() || clientIt->sessionId.empty()) return;
+
+    clientIt->lastUpdateTime = QDateTime::currentSecsSinceEpoch();
+
+    // Broadcast camera pose to all other peers in session
+    QJsonObject forward;
+    forward["type"] = "camera_pose";
+    forward["senderId"] = clientId;
+    forward["senderName"] = QString::fromStdString(clientIt->name);
+    forward["camera"] = obj.value("camera");
     forward["timestamp"] = QDateTime::currentMSecsSinceEpoch();
 
     broadcastToSession(clientIt->sessionId, forward, clientIt->id);

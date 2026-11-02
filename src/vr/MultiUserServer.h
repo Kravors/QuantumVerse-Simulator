@@ -190,6 +190,11 @@ private:
     void handleControllerUpdate(const QString& clientId, const QJsonObject& obj);
 
     /**
+     * @brief Handle camera pose update from client
+     */
+    void handleCameraPoseUpdate(const QString& clientId, const QJsonObject& obj);
+
+    /**
      * @brief Broadcast message to all clients in a session except sender
      */
     void broadcastToSession(const std::string& sessionId,

@@ -691,6 +691,43 @@ void QmlGlRenderer::render()
                 m_celestialBodyRenderer->addBody(cbi);
             }
         }
+
+        // Peer bodies: remote VR participants' camera positions pushed via
+        // setPeerBodies(). Rendered as small colored spheres so each client
+        // can see where its peers are looking.
+        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
+            for (const QVariant& vb : m_peerBodies) {
+                QVariantMap b = vb.toMap();
+                CelestialBodyInstance cbi;
+                cbi.objectId = b.value("id").toString().toStdString();
+                cbi.name = b.value("name").toString().toStdString();
+                cbi.mass = 0.0f;
+                cbi.radius = 0.08f; // small peer indicator sphere
+                cbi.position[0] = static_cast<float>(b.value("x").toDouble());
+                cbi.position[1] = static_cast<float>(b.value("y").toDouble());
+                cbi.position[2] = static_cast<float>(b.value("z").toDouble());
+                cbi.isStar = false;
+                cbi.hasAtmosphere = false;
+                cbi.atmosphereRadius = 0.0f;
+                cbi.textureLayer = -1;
+
+                QVariant cv = b.value("color");
+                QColor col;
+                if (cv.userType() == QMetaType::QColor) {
+                    col = cv.value<QColor>();
+                } else {
+                    col = QColor(cv.toString());
+                }
+                cbi.color[0] = static_cast<float>(col.redF());
+                cbi.color[1] = static_cast<float>(col.greenF());
+                cbi.color[2] = static_cast<float>(col.blueF());
+                cbi.emissive[0] = cbi.color[0];
+                cbi.emissive[1] = cbi.color[1];
+                cbi.emissive[2] = cbi.color[2];
+
+                m_celestialBodyRenderer->addBody(cbi);
+            }
+        }
         
         // [DIAG-CelestialBodies] Confirm how many bodies were queued and
         // at what scale, so it is clear whether the population loop ran.
@@ -3336,6 +3373,7 @@ public:
             vp->m_pendingScreenshotRequested = false;
         }
         m_gl->setSandboxBodies(vp->m_sandboxBodies);
+        m_gl->setPeerBodies(vp->m_peerBodies);
     }
 
     void render() override

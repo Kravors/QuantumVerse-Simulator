@@ -41,6 +41,7 @@
 #include <QThread>
 #include <QWidget>
 #include <QWindow>
+#include <QMap>
 #include <vector>
 #include <iostream>
 #include <csignal>
@@ -140,6 +141,7 @@
 #include "discovery/TheoryDiscoveryAgent.h"
 #include "vr/SignalingClient.h"
 #include "vr/SharedSession.h"
+#include "vr/MultiUserServer.h"
 #include "utils/TraceLogger.h"
 #include "utils/CrashHandler.h"
 #include "utils/FrameDiagnostics.h"
@@ -388,6 +390,16 @@ int main(int argc, char* argv[])
     bool noStarfield = false;
     QString paperPipelineId;  // --run-paper-pipeline <experiment-id>
 
+    // VR / multi-user collaboration: --vr-server runs a MultiUserServer on the
+    // given port; --vr-connect <port> connects as a SignalingClient. Each client
+    // broadcasts its camera pose at 10 Hz and renders peers as colored dots.
+    bool vrServerMode = false;
+    bool vrClientMode = false;
+    uint16_t vrPort = 7777;
+    QString vrSessionId = "default";
+    QString vrClientName = "Peer";
+    QString vrConnectUrl;  // --vr-connect ws://host:port
+
     // Camera CLI overrides. Angles are in DEGREES (converted to radians below),
     // distances/targets are world units. Any --cam-* flag sets cliCameraSet,
     // which gates the QML startup camera defaults in main.qml
@@ -481,7 +493,16 @@ int main(int argc, char* argv[])
             signalingServerUrl = argv[++i];
         } else if (strcmp(argv[i], "--session-id") == 0 && i + 1 < argc) {
             sessionId = argv[++i];
-        } else if (strcmp(argv[i], "--start-tour") == 0 && i + 1 < argc) {
+        } else if (strcmp(argv[i], "--vr-server") == 0 && i + 1 < argc) {
+            vrServerMode = true;
+            vrPort = static_cast<uint16_t>(atoi(argv[++i]));
+        } else if (strcmp(argv[i], "--vr-connect") == 0 && i + 1 < argc) {
+            vrClientMode = true;
+            vrConnectUrl = argv[++i];
+        } else if (strcmp(argv[i], "--vr-session") == 0 && i + 1 < argc) {
+            vrSessionId = argv[++i];
+        } else if (strcmp(argv[i], "--vr-name") == 0 && i + 1 < argc) {
+            vrClientName = argv[++i];
             startTourId = argv[++i];
         } else if (strcmp(argv[i], "--run-paper-pipeline") == 0 && i + 1 < argc) {
             paperPipelineId = argv[++i];
@@ -1361,6 +1382,28 @@ int main(int argc, char* argv[])
                      << "session=" << effectiveSessionId;
         }
 
+        // VR / multi-user collaboration: server mode runs a MultiUserServer on
+        // vrPort; client mode connects via SignalingClient to vrConnectUrl.
+        std::shared_ptr<quantumverse::vr::MultiUserServer> vrServer;
+        if (vrServerMode) {
+            vrServer = std::make_shared<quantumverse::vr::MultiUserServer>();
+            if (vrServer->start(vrPort)) {
+                qDebug() << "QuantumVerse VR: server listening on port" << vrPort;
+            } else {
+                qWarning() << "QuantumVerse VR: failed to start server on port" << vrPort;
+                vrServer.reset();
+            }
+        }
+        if (vrClientMode) {
+            QString effectiveSessionId = vrSessionId;
+            if (effectiveSessionId.isEmpty()) {
+                effectiveSessionId = "default";
+            }
+            signalingClient->connectToServer(vrConnectUrl, effectiveSessionId, vrClientName);
+            qDebug() << "QuantumVerse VR: connecting to" << vrConnectUrl
+                     << "session=" << effectiveSessionId << "name=" << vrClientName;
+        }
+
         rootContext->setContextProperty("signalingClient",
             QVariant::fromValue(signalingClient.get()));
         rootContext->setContextProperty("sharedSession",
@@ -1478,6 +1521,65 @@ int main(int argc, char* argv[])
                 // discovery agent so AI actions can be vetoed on invalid spacetimes.
                 rlDiscoveryAgent->setPhysicsValidator(viewport->physicsValidator());
                 rlDiscoveryAgent->setLLMCoPilot(llmCoPilot);
+
+                // VR / multi-user: broadcast local camera pose at 10 Hz and
+                // render peers as colored dots. Only active in --vr-server or
+                // --vr-connect mode.
+                if (vrServerMode || vrClientMode) {
+                    // Peer camera poses received via cameraPoseReceived signal.
+                    QMap<QString, QVariantMap> peerPoses;
+
+                    QObject::connect(signalingClient.get(),
+                        &quantumverse::vr::SignalingClient::cameraPoseReceived,
+                        [&peerPoses](const QString& senderId, const QJsonObject& cameraJson) {
+                        QVariantMap b;
+                        b["id"] = senderId;
+                        b["name"] = QString("Peer %1").arg(senderId.left(8));
+                        b["x"] = cameraJson.value("x").toDouble();
+                        b["y"] = cameraJson.value("y").toDouble();
+                        b["z"] = cameraJson.value("z").toDouble();
+                        b["color"] = "#00ff00"; // peer dot color
+                        peerPoses[senderId] = b;
+                    });
+
+                    auto vrTimer = new QTimer();
+                    vrTimer->setInterval(100); // 10 Hz
+
+                    QObject::connect(vrTimer, &QTimer::timeout, [viewport, camera4DAdapter,
+                        signalingClient, &peerPoses, vrClientName, vrSessionId]() mutable {
+                        if (!viewport || !camera4DAdapter) return;
+
+                        // Broadcast local camera pose to peers
+                        if (signalingClient && signalingClient->isConnected()) {
+                            QJsonObject poseMsg;
+                            poseMsg["type"] = "camera_pose";
+                            poseMsg["sessionId"] = vrSessionId;
+                            poseMsg["senderId"] = signalingClient->clientId();
+                            poseMsg["senderName"] = vrClientName;
+                            poseMsg["timestamp"] = QDateTime::currentMSecsSinceEpoch();
+                            QJsonObject cam;
+                            quantumverse::Event4D camPos = camera4DAdapter->cameraPosition4D();
+                            cam["x"] = camPos.x;
+                            cam["y"] = camPos.y;
+                            cam["z"] = camPos.z;
+                            cam["az"] = camera4DAdapter->azimuth();
+                            cam["el"] = camera4DAdapter->elevation();
+                            cam["d"] = camera4DAdapter->distance();
+                            poseMsg["camera"] = cam;
+                            signalingClient->sendJson(poseMsg);
+                        }
+
+                        // Render peer bodies from received camera poses
+                        QVariantList peerBodies;
+                        for (auto it = peerPoses.begin(); it != peerPoses.end(); ++it) {
+                            peerBodies.append(it.value());
+                        }
+                        if (viewport) {
+                            viewport->setPeerBodies(peerBodies);
+                        }
+                    });
+                    vrTimer->start();
+                }
 
                 // Connect LLM Co-Pilot analysisReady signal to QML updateCoPilotText
                 QObject::connect(llmCoPilot, &quantumverse::LLMCoPilot::analysisReady,
