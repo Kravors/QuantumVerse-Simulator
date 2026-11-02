@@ -389,6 +389,7 @@ int main(int argc, char* argv[])
     bool disableCelestial = false;
     bool noStarfield = false;
     QString paperPipelineId;  // --run-paper-pipeline <experiment-id>
+    bool comparePublished = false;  // --compare-published: pass compareToPublished=true
 
     // VR / multi-user collaboration: --vr-server runs a MultiUserServer on the
     // given port; --vr-connect <port> connects as a SignalingClient. Each client
@@ -503,6 +504,8 @@ int main(int argc, char* argv[])
             vrSessionId = argv[++i];
         } else if (strcmp(argv[i], "--vr-name") == 0 && i + 1 < argc) {
             vrClientName = argv[++i];
+        } else if (strcmp(argv[i], "--compare-published") == 0) {
+            comparePublished = true;
             startTourId = argv[++i];
         } else if (strcmp(argv[i], "--run-paper-pipeline") == 0 && i + 1 < argc) {
             paperPipelineId = argv[++i];
@@ -889,16 +892,20 @@ int main(int argc, char* argv[])
         // experiment id, print the PDF path, and exit. Exercises the same
         // Q_INVOKABLE path as the QML "Generate Paper" button.
         if (!paperPipelineId.isEmpty()) {
+            QVariantMap paperParams;
+            if (comparePublished) {
+                paperParams[QStringLiteral("compareToPublished")] = true;
+            }
             QString path =
                 experimentRunner->generateDiscoveryPaper(paperPipelineId);
             if (path.isEmpty()) {
                 // No prior result — run the experiment first (same as QML:
                 // run, then generate paper).
                 QEventLoop runLoop;
-            QObject::connect(experimentRunner.get(),
-                &quantumverse::ExperimentRunner::experimentFinished,
-                &runLoop, [&]() { runLoop.quit(); });
-                experimentRunner->start(paperPipelineId, QVariantMap());
+                QObject::connect(experimentRunner.get(),
+                    &quantumverse::ExperimentRunner::experimentFinished,
+                    &runLoop, [&]() { runLoop.quit(); });
+                experimentRunner->start(paperPipelineId, paperParams);
                 QTimer::singleShot(30000, &runLoop, &QEventLoop::quit);
                 runLoop.exec();
 
