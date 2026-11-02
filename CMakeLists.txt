@@ -2995,6 +2995,10 @@ endif()
         add_executable(test_multi_user_server tests/unit/test_multi_user_server.cpp)
         target_link_libraries(test_multi_user_server PRIVATE dilaton quantumverse_multi_user)
         add_test(NAME MultiUserServerTest COMMAND test_multi_user_server)
+
+        add_executable(test_vr_networking tests/unit/test_vr_networking.cpp)
+        target_link_libraries(test_vr_networking PRIVATE dilaton quantumverse_multi_user)
+        add_test(NAME VRNetworkingTest COMMAND test_vr_networking)
     endif()
 endif()
 
