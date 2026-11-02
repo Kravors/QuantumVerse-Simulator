@@ -1545,8 +1545,12 @@ int main(int argc, char* argv[])
                         b["x"] = cameraJson.value("x").toDouble();
                         b["y"] = cameraJson.value("y").toDouble();
                         b["z"] = cameraJson.value("z").toDouble();
-                        b["color"] = "#00ff00"; // peer dot color
+                        b["color"] = "#00ff00";
                         peerPoses[senderId] = b;
+                        qDebug() << "[VR] Received camera_pose from" << senderId
+                                 << "at" << cameraJson.value("x").toDouble()
+                                 << cameraJson.value("y").toDouble()
+                                 << cameraJson.value("z").toDouble();
                     });
 
                     auto vrTimer = new QTimer();
