@@ -968,7 +968,7 @@ src/ml/CurvatureNormalizingFlow.cpp
                 add_dependencies(test_hud_toggle deploy_qt_runtime)
             endif()
 
-            # PaperGenerator test (Phase 3.11) — LaTeX escaping + PDF output
+            # PaperGenerator test (Phase 3.11) ??? LaTeX escaping + PDF output
             add_executable(test_paper_generator tests/test_paper_generator.cpp src/discovery/PaperGenerator.cpp src/discovery/AbstractVerifier.cpp)
             target_link_libraries(test_paper_generator PRIVATE Qt6::Core Qt6::Test dilaton)
             set_target_properties(test_paper_generator PROPERTIES AUTOMOC ON)
@@ -1076,7 +1076,6 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
         src/experiment/experiments/GWRingdownExperiment.cpp
         src/experiment/experiments/PhotonSphereExperiment.cpp
         src/experiment/experiments/ChargeSweepExperiment.cpp
-        src/experiment/experiments/MercuryPrecessionExperiment.cpp
         src/experiment/experiments/FrameDraggingExperiment.cpp
         src/experiment/experiments/RedshiftProfileExperiment.cpp
         src/experiment/experiments/AnomalyScanExperiment.cpp
@@ -1450,7 +1449,7 @@ endif()
     set_target_properties(test_metric_epoch PROPERTIES AUTOMOC ON)
     add_test(NAME MetricEpochTest COMMAND test_metric_epoch)
 
-    # Skeleton tests (Phase 0.3-now) — real assertions land with their modules in Phase 3
+    # Skeleton tests (Phase 0.3-now) ??? real assertions land with their modules in Phase 3
     add_executable(test_neural_ode tests/test_neural_ode.cpp)
     target_link_libraries(test_neural_ode PRIVATE dilaton)
     add_test(NAME NeuralOdeTest COMMAND test_neural_ode)
@@ -1788,7 +1787,7 @@ endif()
         add_test(NAME TrainingDataCollectorTest COMMAND test_training_data_collector)
     endif()
 
-    # ML SessionRecorder unit test — round-trip write/read fidelity
+    # ML SessionRecorder unit test ??? round-trip write/read fidelity
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_session_recorder.cpp)
         add_executable(test_session_recorder
             tests/test_session_recorder.cpp
@@ -2009,31 +2008,6 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_experiment_runner.cpp)
         add_executable(test_experiment_runner
                 tests/test_experiment_runner.cpp
-                src/experiment/ExperimentRunner.cpp
-                src/experiment/experiments/MassSweepExperiment.cpp
-                src/experiment/experiments/LensingTimeDelayExperiment.cpp
-                src/experiment/experiments/PhotonSphereExperiment.cpp
-                src/experiment/experiments/RedshiftProfileExperiment.cpp
-                src/experiment/experiments/FrameDraggingExperiment.cpp
-                src/experiment/experiments/GWRingdownExperiment.cpp
-        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
-        src/experiment/cosmology/FRGravityProvider.cpp
-        src/experiment/cosmology/WCDMProvider.cpp
-        src/experiment/cosmology/BransDickeProvider.cpp
-        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
-        src/experiment/experiments/CosmologyValidationSuite.cpp
-        src/experiment/experiments/AgeOfUniverseExperiment.cpp
-        src/experiment/experiments/DistanceLadderExperiment.cpp
-        src/experiment/experiments/CMBTemperatureExperiment.cpp
-        src/experiment/experiments/BAOSoundHorizonExperiment.cpp
-        src/experiment/experiments/HubbleEvolutionExperiment.cpp
-        src/experiment/experiments/GrowthFactorExperiment.cpp
-        src/experiment/experiments/CosmologyExperimentBase.cpp
-        src/experiment/experiments/TheorySensitivityExperiment.cpp
-        src/experiment/ScanSummaryBuilder.cpp
-        src/spacetime/KerrMetric.cpp
-        src/discovery/PaperGenerator.cpp
-        src/discovery/LLMCoPilot.cpp
                 )
             target_link_libraries(test_experiment_runner PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Test)
             target_include_directories(test_experiment_runner PRIVATE src third_party/glad/include third_party/glad/include/glad)
@@ -2074,6 +2048,18 @@ endif()
             target_include_directories(test_fr_gravity_provider PRIVATE src third_party/glad/include third_party/glad/include/glad)
             target_compile_definitions(test_fr_gravity_provider PRIVATE QUANTUMVERSE_USE_QML)
             add_test(NAME FRGravityProviderTest COMMAND test_fr_gravity_provider)
+        endif()
+
+        # Hu-Sawicki f(R) provider test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_hu_sawicki_provider.cpp)
+            add_executable(test_hu_sawicki_provider
+                tests/test_hu_sawicki_provider.cpp
+                src/experiment/cosmology/HuSawickiProvider.cpp
+                src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+            )
+            target_link_libraries(test_hu_sawicki_provider PRIVATE dilaton Qt6::Core Qt6::Test)
+            target_include_directories(test_hu_sawicki_provider PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            add_test(NAME HuSawickiProviderTest COMMAND test_hu_sawicki_provider)
         endif()
 
         # Charge sweep experiment test
@@ -2201,7 +2187,7 @@ endif()
     target_link_libraries(test_adjoint PRIVATE dilaton)
     add_test(NAME AdjointTest COMMAND test_adjoint)
 
-    # Physics & spacetime absolute correctness — curvature unit consistency
+    # Physics & spacetime absolute correctness ??? curvature unit consistency
     if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_curvature_units
         tests/test_curvature_units.cpp
@@ -2289,7 +2275,7 @@ endif()
 
     if(TARGET quantumverse_qml)
         # Phase 21.2: Observational Data Cross-Validation
-        # 21.2.1 Pantheon+ SNe Ia ΛCDM χ² + 21.2.3 GW170817 time delay
+        # 21.2.1 Pantheon+ SNe Ia ??CDM ???? + 21.2.3 GW170817 time delay
         add_executable(test_observational_data
             tests/validation/test_observational_data.cpp
             src/data/MultiMessengerCorrelator.cpp
@@ -3075,7 +3061,7 @@ if(QUANTUMVERSE_USE_QT)
       endif()
     ")
 
-    # Data files — must land in bin/data so the relative path data/tours/
+    # Data files ??? must land in bin/data so the relative path data/tours/
     # resolves when the shortcut's cwd is $INSTDIR\bin
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/
             DESTINATION bin/data
@@ -3237,9 +3223,10 @@ if(NOT QUANTUMVERSE_BUILD_WASM)
     set(CPACK_CREATE_DESKTOP_LINKS "quantumverse_qml")
 endif()
 
-# WASM Portal build (Emscripten) — mutually exclusive with Qt UI
+# WASM Portal build (Emscripten) ??? mutually exclusive with Qt UI
 if(QUANTUMVERSE_BUILD_WASM)
     add_subdirectory(src/wasm)
 endif()
 
 include(CPack)
+

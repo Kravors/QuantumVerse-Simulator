@@ -28,13 +28,13 @@ namespace quantumverse {
 ExperimentRunner::ExperimentRunner(QObject* parent)
     : QAbstractListModel(parent)
 {
-    m_pool.setMaxThreadCount(std::max<size_t>(1, std::thread::hardware_concurrency() / 2));
+    // m_pool.setMaxThreadCount(std::max<size_t>(1, std::thread::hardware_concurrency() / 2));
 
-    m_paperGenerator = std::make_unique<PaperGenerator>(this);
-    connect(m_paperGenerator.get(), &PaperGenerator::paperGenerated,
-        this, &ExperimentRunner::pdfFinished);
+    // m_paperGenerator = std::make_unique<PaperGenerator>(this);
+    // connect(m_paperGenerator.get(), &PaperGenerator::paperGenerated,
+    //     this, &ExperimentRunner::pdfFinished);
 
-    m_llmCoPilot = std::make_unique<LLMCoPilot>(this);
+    // m_llmCoPilot = std::make_unique<LLMCoPilot>(this);
 }
 
 ExperimentRunner::~ExperimentRunner() {

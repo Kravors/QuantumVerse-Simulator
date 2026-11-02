@@ -11,8 +11,8 @@ LLMCoPilot::LLMCoPilot(QObject* parent)
     : QObject(parent)
     , m_pendingSuccess(nullptr)
     , m_pendingFailure(nullptr)
+    , m_network(nullptr)
 {
-    m_network = new QNetworkAccessManager(this);
     connect(m_network, &QNetworkAccessManager::finished,
         this, [this](QNetworkReply* reply) {
             auto success = m_pendingSuccess;
