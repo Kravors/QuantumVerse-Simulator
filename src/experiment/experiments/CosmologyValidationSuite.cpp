@@ -45,6 +45,11 @@ QVector<ExperimentParameter> CosmologyValidationSuite::parameters() const {
     p.append({QStringLiteral("passSigma"),QStringLiteral("Pass tolerance (σ)"),
               QStringLiteral("double"), QVariant(3.0), QVariant(1.0), QVariant(5.0),
               QStringList(), QStringLiteral("σ"), QStringLiteral("Tolerance for σ-referenced checks.")});
+    p.append({QStringLiteral("theory_choice"),QStringLiteral("Cosmology theory to test"),
+              QStringLiteral("string"), QVariant(QStringLiteral("project")),
+              QVariant(), QVariant(),
+              QStringList({QStringLiteral("project"), QStringLiteral("fR")}),
+              QStringLiteral(""), QStringLiteral("project = ΛCDM via FRWMetric adapter; fR = modified-gravity f(R) provider.")});
     return p;
 }
 
@@ -77,8 +82,15 @@ ExperimentResult CosmologyValidationSuite::run(
     m_passSigma = params.value(QStringLiteral("passSigma"), 3.0).toDouble();
 
     const double Ok = m_Ok();
-    auto project = std::make_shared<ProjectCosmologyAdapter>(
-        m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb);
+    m_theoryChoice = params.value(QStringLiteral("theory_choice"), QStringLiteral("project")).toString();
+    std::shared_ptr<CosmologyProvider> project;
+    if (m_theoryChoice == QStringLiteral("fR")) {
+        project = std::make_shared<FRGravityProvider>(
+            m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb, 0.3);
+    } else {
+        project = std::make_shared<ProjectCosmologyAdapter>(
+            m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb);
+    }
     auto reference = std::make_shared<LambdaCDMReferenceProvider>(
         m_H0, m_Om, m_Ob, m_Or, m_OL, Ok, m_Tcmb);
 
@@ -87,6 +99,11 @@ ExperimentResult CosmologyValidationSuite::run(
     out.scalars[QStringLiteral("suite_provider")]  = project->name();
     out.scalars[QStringLiteral("suite_source")]    = project->parametersSource();
     out.scalars[QStringLiteral("suite_reference")] = reference->name();
+    out.scalars[QStringLiteral("suite_theory")]    = m_theoryChoice;
+    if (m_theoryChoice == QStringLiteral("fR")) {
+        auto fr = std::dynamic_pointer_cast<FRGravityProvider>(project);
+        if (fr) out.scalars[QStringLiteral("suite_fR_b")] = fr->fR();
+    }
     out.logLines << QString("Cosmology Validation Suite — %1").arg(stamp);
     out.logLines << QString("Provider: %1  (%2)   Reference: %3  (%4)")
                     .arg(project->name(), project->parametersSource(),

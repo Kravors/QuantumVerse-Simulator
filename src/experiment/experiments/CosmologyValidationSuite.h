@@ -22,6 +22,7 @@
 
 #include "../Experiment.h"
 #include "../cosmology/CosmologyProvider.h"
+#include "../cosmology/FRGravityProvider.h"
 #include "../cosmology/LambdaCDMReferenceProvider.h"
 #include "../cosmology/ProjectCosmologyAdapter.h"
 #include "../experiments/CosmologyExperimentBase.h"
@@ -56,6 +57,7 @@ private:
     double m_H0 = 67.66, m_Om = 0.3111, m_Ob = 0.049, m_Or = 9.1e-5,
            m_OL = 0.6889, m_Tcmb = 2.7255;
     double m_passSigma = 3.0;
+    QString m_theoryChoice = QStringLiteral("project"); // "project" | "fR"
     double m_Ok() const { return 1.0 - m_Om - m_Or - m_OL; }
 };
 

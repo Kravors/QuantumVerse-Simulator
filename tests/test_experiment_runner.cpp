@@ -23,6 +23,7 @@
 #include "experiment/experiments/RedshiftProfileExperiment.h"
 #include "experiment/experiments/FrameDraggingExperiment.h"
 #include "experiment/experiments/GWRingdownExperiment.h"
+#include "experiment/experiments/CosmologyValidationSuite.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -299,5 +300,43 @@ int main(int argc, char** argv)
     }
 
     std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;
+
+    // ---- CosmologyValidationSuite with f(R) theory (b=0.3) ----
+    // Verifies the first non-ΛCDM theory in the validation harness:
+    // captures σ-tensions between f(R) gravity and ΛCDM across all 6
+    // cosmology experiments.
+    runner.registerExperiment(std::make_unique<CosmologyValidationSuite>());
+    QV_CHECK(runner.count() == 7);
+
+    QVariantMap cvsParams;
+    cvsParams[QStringLiteral("theory_choice")] = QStringLiteral("fR");
+    cvsParams[QStringLiteral("passSigma")] = 3.0;
+
+    QSignalSpy cvsFinishedSpy(&runner, &ExperimentRunner::experimentFinished);
+    runner.start(QStringLiteral("cosmology_validation_suite"), cvsParams);
+
+    bool cvsFinished = false;
+    for (int i = 0; i < 800 && !cvsFinished; ++i) {
+        QTest::qWait(25);
+        if (cvsFinishedSpy.count() >= 1) cvsFinished = true;
+        QCoreApplication::processEvents();
+    }
+    QV_CHECK(cvsFinished);
+    QV_CHECK(!runner.running());
+
+    // Print the validation suite result scalars (σ-tensions) for inspection.
+    runner.showHistoryEntry(QStringLiteral("cosmology_validation_suite"));
+    const QVariantMap cvsScalars = runner.currentScalars();
+    std::cout << "  suite_theory=" << cvsScalars.value(QStringLiteral("suite_theory")).toString().toStdString()
+              << " suite_fR_b=" << cvsScalars.value(QStringLiteral("suite_fR_b")).toDouble()
+              << std::endl;
+    for (auto it = cvsScalars.cbegin(); it != cvsScalars.cend(); ++it) {
+        const QString key = it.key();
+        if (key.contains(QStringLiteral("sigma")) || key.contains(QStringLiteral("pass"))) {
+            std::cout << "    " << key.toStdString() << " = " << it.value().toDouble() << std::endl;
+        }
+    }
+    std::cout << "CosmologyValidationSuite with f(R) b=0.3 completed successfully." << std::endl;
+
     return 0;
 }

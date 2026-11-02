@@ -2012,9 +2012,18 @@ endif()
                 src/experiment/experiments/RedshiftProfileExperiment.cpp
                 src/experiment/experiments/FrameDraggingExperiment.cpp
                 src/experiment/experiments/GWRingdownExperiment.cpp
-                src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
-                src/experiment/cosmology/ProjectCosmologyAdapter.cpp
-                src/experiment/ScanSummaryBuilder.cpp
+        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+        src/experiment/cosmology/FRGravityProvider.cpp
+        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
+        src/experiment/experiments/CosmologyValidationSuite.cpp
+        src/experiment/experiments/AgeOfUniverseExperiment.cpp
+        src/experiment/experiments/DistanceLadderExperiment.cpp
+        src/experiment/experiments/CMBTemperatureExperiment.cpp
+        src/experiment/experiments/BAOSoundHorizonExperiment.cpp
+        src/experiment/experiments/HubbleEvolutionExperiment.cpp
+        src/experiment/experiments/GrowthFactorExperiment.cpp
+        src/experiment/experiments/CosmologyExperimentBase.cpp
+        src/experiment/ScanSummaryBuilder.cpp
                 src/spacetime/KerrMetric.cpp
                 src/discovery/PaperGenerator.cpp
                 )
@@ -2042,6 +2051,19 @@ endif()
             set_tests_properties(QmlPaperPipelineTest PROPERTIES
                 WORKING_DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>"
             )
+        endif()
+
+        # f(R) gravity provider test
+        if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_fr_gravity_provider.cpp)
+            add_executable(test_fr_gravity_provider
+                tests/test_fr_gravity_provider.cpp
+                src/experiment/cosmology/FRGravityProvider.cpp
+                src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
+            )
+            target_link_libraries(test_fr_gravity_provider PRIVATE dilaton Qt6::Core Qt6::Test)
+            target_include_directories(test_fr_gravity_provider PRIVATE src third_party/glad/include third_party/glad/include/glad)
+            target_compile_definitions(test_fr_gravity_provider PRIVATE QUANTUMVERSE_USE_QML)
+            add_test(NAME FRGravityProviderTest COMMAND test_fr_gravity_provider)
         endif()
 
         # Charge sweep experiment test
