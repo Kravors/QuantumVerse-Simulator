@@ -3003,6 +3003,16 @@ endif()
         add_executable(test_vr_camera_sync tests/unit/test_vr_camera_sync.cpp)
         target_link_libraries(test_vr_camera_sync PRIVATE dilaton quantumverse_multi_user)
         add_test(NAME VRCameraSyncTest COMMAND test_vr_camera_sync)
+
+        # GW150914 reproduction test (discovery paper pipeline capstone)
+        add_executable(test_gw_ringdown_reproduction tests/unit/test_gw_ringdown_reproduction.cpp
+            src/experiment/ScanSummaryBuilder.cpp
+            src/experiment/experiments/GWRingdownExperiment.cpp
+            src/experiment/experiments/CosmologyExperimentBase.cpp
+            src/spacetime/KerrMetric.cpp
+        )
+        target_link_libraries(test_gw_ringdown_reproduction PRIVATE Qt6::Core dilaton)
+        add_test(NAME GWRingdownReproductionTest COMMAND test_gw_ringdown_reproduction)
     endif()
 endif()
 

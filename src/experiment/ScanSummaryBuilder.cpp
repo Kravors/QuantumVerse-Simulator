@@ -84,6 +84,16 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
     s.candidatesExplored = static_cast<int>(r.curve.size());
     s.extremalityMargin = spin; // a* → 1 is extremal
 
+    // Reproduction-paper metadata: cite the reference and carry the observed
+    // value being reproduced (e.g. GW150914 f_R = 251 Hz).
+    const QString ref = r.scalars.value(QStringLiteral("reference")).toString();
+    if (!ref.isEmpty()) s.citation = ref;
+
+    bool ok_obs = false;
+    const double obs = requireScalarAny(r,
+        { QStringLiteral("f_R_Hz"), QStringLiteral("observedValue") }, &ok_obs);
+    if (ok_obs) s.observedValue = obs;
+
     return s;
 }
 

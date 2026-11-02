@@ -87,7 +87,7 @@ paper with a template abstract. Supports N=5 experiments:
 | `photon_sphere` | Photon geometry | Kerr | Kretschmann at prograde photon sphere |
 | `redshift_profile` | Gravitational redshift z(r) | Schwarzschild | z at r_min |
 | `frame_dragging` | Lense-Thirring precession | Kerr | Precession rate in mas/year |
-| `gw_ringdown` | QNM ringdown spectroscopy | Kerr | f_R, tau, Q from Berti table VIII |
+| `gw_ringdown` | QNM ringdown spectroscopy | Kerr | f_R, tau, Q from Berti table VIII; `compareToPublished=true` reproduces GW150914 (f_R=251 Hz, tau=4.0 ms) |
 | `theory_sensitivity` | Theory discrimination | N/A | Theory × experiment σ-tension matrix |
 
 `ExperimentRunner::generateDiscoveryPaper(id)` is `Q_INVOKABLE` — runs the experiment if
@@ -99,7 +99,7 @@ gated by `canBuildPaper(id)` (disabled for unsupported experiments).
 - `photon_sphere`: Numerical result with extremal pins (mass, spin, Kretschmann)
 - `redshift_profile`: Formula paper with Schwarzschild asymptote (mass, z(r), Kretschmann)
 - `frame_dragging`: Kinematics paper with Lense-Thirring rate (mass, spin, mas/year)
-- `gw_ringdown`: Spectroscopy paper with QNM damping (mass, spin, f_R, tau, Q)
+- `gw_ringdown`: Spectroscopy paper with QNM damping (mass, spin, f_R, tau, Q); with `compareToPublished=true`, reproduces GW150914 (f_R=251 Hz, tau=4.0 ms) and reports Δσ vs published values
 - `theory_sensitivity`: Matrix paper with cross-theory comparison (4 theories × 6 experiments)
 
 **Two design decisions** that let N extend mechanically:

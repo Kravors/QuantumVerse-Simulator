@@ -63,6 +63,9 @@ QVector<ExperimentParameter> GWRingdownExperiment::parameters() const {
     p.append({QStringLiteral("n_steps"),     QStringLiteral("Samples"),
               QStringLiteral("int"), QVariant(500), QVariant(50), QVariant(2000),
               QStringList(), QStringLiteral(""), QStringLiteral("Number of time samples.")});
+    p.append({QStringLiteral("compareToPublished"), QStringLiteral("Compare to published GW150914 values"),
+              QStringLiteral("bool"), QVariant(false), QVariant(), QVariant(),
+              QStringList(), QStringLiteral(""), QStringLiteral("If true, compute sigma-tension vs Abbott et al. 2016 GW150914 values.")});
     return p;
 }
 
@@ -92,8 +95,12 @@ ExperimentResult GWRingdownExperiment::run(const QVariantMap& p,
     const double tau_s = 1.0 / (2.0 * M_PI * std::abs(q.M_omega_I) * HZ_PER_M);
     const double Q     = M_PI * f_R * tau_s;
 
-    const double dur_s = dur_ms * 1e-3;
-    const int    n     = std::max(1, N);
+    // GW150914 reproduction: Abbott et al. 2016, PRL 116, 061102
+    // Published: f_R = 251 +/- 5 Hz, tau = 4.0 +/- 0.6 ms
+    const double f_R_pub   = 251.0;
+    const double f_R_err   = 5.0;
+    const double tau_pub   = 4.0;
+    const double tau_err   = 0.6;
 
     out.scalars[QStringLiteral("f_R_Hz")]         = f_R;
     out.scalars[QStringLiteral("tau_ms")]         = tau_s * 1e3;
@@ -102,6 +109,17 @@ ExperimentResult GWRingdownExperiment::run(const QVariantMap& p,
     out.scalars[QStringLiteral("M_omega_I")]      = q.M_omega_I;
     out.scalars[QStringLiteral("mass_Msun")]      = M_msun;
     out.scalars[QStringLiteral("spin_a")]         = a;
+    out.scalars[QStringLiteral("reference")]        = QStringLiteral("Abbott et al. 2016, PRL 116, 061102");
+    out.scalars[QStringLiteral("source_system")]    = QStringLiteral("GW150914");
+    out.scalars[QStringLiteral("f_R_published_Hz")]   = f_R_pub;
+    out.scalars[QStringLiteral("f_R_published_err_Hz")] = f_R_err;
+    out.scalars[QStringLiteral("tau_published_ms")]     = tau_pub;
+    out.scalars[QStringLiteral("tau_published_err_ms")] = tau_err;
+    out.scalars[QStringLiteral("f_R_delta_sigma")]    = (f_R - f_R_pub) / f_R_err;
+    out.scalars[QStringLiteral("tau_delta_sigma")]    = (tau_s * 1e3 - tau_pub) / tau_err;
+
+    const double dur_s = dur_ms * 1e-3;
+    const int    n     = std::max(1, N);
 
     // Kretschmann scalar just outside the horizon (r_+ * 1.01).
     const double massKg = M_msun * 1.989e30;
@@ -123,6 +141,9 @@ ExperimentResult GWRingdownExperiment::run(const QVariantMap& p,
 
         if (progress) progress(static_cast<double>(i + 1) / static_cast<double>(n));
     }
+
+    out.scalars[QStringLiteral("compareToPublished")]
+        = p.value(QStringLiteral("compareToPublished"), false).toBool();
 
     out.success = true;
     return out;

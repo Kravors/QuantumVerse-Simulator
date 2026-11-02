@@ -12,6 +12,7 @@
 #include <QString>
 #include <QJsonObject>
 #include <cmath>
+#include <optional>
 
 namespace quantumverse {
 
@@ -38,6 +39,10 @@ struct ScanSummary {
     double  confidence = 0.0;
     QString bhType;        // "Kerr" or "Schwarzschild" — drives narrative
 
+    // Reproduction-paper metadata (optional, set when compareToPublished=true)
+    QString citation;      // e.g. "Abbott et al. 2016, PRL 116, 061102"
+    std::optional<double> observedValue; // e.g. 251.0 Hz — published value being reproduced
+
     QJsonObject toJson() const {
         QJsonObject o;
         o["mass"]               = mass;
@@ -52,6 +57,8 @@ struct ScanSummary {
         o["discoveryType"]      = discoveryType;
         o["confidence"]         = confidence;
         o["bhType"]             = bhType;
+        if (!citation.isEmpty()) o["citation"] = citation;
+        if (observedValue.has_value()) o["observedValue"] = *observedValue;
         return o;
     }
 };
