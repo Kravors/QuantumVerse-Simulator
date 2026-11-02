@@ -105,7 +105,38 @@ int main() {
             std::cout << "FAIL: distanceModulus at z_drag must differ by >0.01 mag for b=0.1" << std::endl;
         }
 
+        // ---- Diagnostic: show actual H(z) ratios for all z ----
+        std::cout << "  DIAGNOSTIC H(z) ratios b=0.1 vs b=0:" << std::endl;
+        for (double z : zvals) {
+            const double h00 = lcdm.H(z);
+            const double h01 = fr01.H(z);
+            std::cout << "    z=" << z << ": H_b0=" << h00 << " H_b01=" << h01
+                      << " ratio=" << (h01 / h00) << std::endl;
+        }
+        std::cout << "  DIAGNOSTIC r_drag: b=0=" << lcdm.soundHorizon()
+                  << " Mpc  b=0.1=" << fr01.soundHorizon() << " Mpc"
+                  << std::endl;
+
         std::cout << "Test 2 PASS: b=0.1 differs from ΛCDM by >1% at high z" << std::endl;
+    }
+
+    // ---- Diagnostic: provider-level H(z) ratios and r_drag for b=0,0.1,0.3 ----
+    {
+        FRGravityProvider diag0(H0, Om, Ob, Or, OL, Ok, Tcmb, 0.0);
+        FRGravityProvider diag01(H0, Om, Ob, Or, OL, Ok, Tcmb, 0.1);
+        FRGravityProvider diag03(H0, Om, Ob, Or, OL, Ok, Tcmb, 0.3);
+        std::cout << "  DIAGNOSTIC H(z) ratios b vs b=0:" << std::endl;
+        for (double z : zvals) {
+            const double h0 = diag0.H(z);
+            const double h01 = diag01.H(z);
+            const double h03 = diag03.H(z);
+            std::cout << "    z=" << z << ": H_b0=" << h0 << " H_b01=" << h01
+                      << " ratio_b01=" << (h01 / h0) << " H_b03=" << h03
+                      << " ratio_b03=" << (h03 / h0) << std::endl;
+        }
+        std::cout << "  DIAGNOSTIC r_drag: b=0=" << diag0.soundHorizon()
+                  << " Mpc  b=0.1=" << diag01.soundHorizon() << " Mpc  b=0.3="
+                  << diag03.soundHorizon() << " Mpc" << std::endl;
     }
 
     // ---- Test 3: b=0.3 produces even larger deviation ----

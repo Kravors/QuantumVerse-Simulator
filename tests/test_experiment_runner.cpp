@@ -332,7 +332,7 @@ int main(int argc, char** argv)
               << std::endl;
     for (auto it = cvsScalars.cbegin(); it != cvsScalars.cend(); ++it) {
         const QString key = it.key();
-        if (key.contains(QStringLiteral("sigma")) || key.contains(QStringLiteral("pass"))) {
+        if (key.contains(QStringLiteral("tension")) || key.contains(QStringLiteral("pass"))) {
             std::cout << "    " << key.toStdString() << " = " << it.value().toDouble() << std::endl;
         }
     }
