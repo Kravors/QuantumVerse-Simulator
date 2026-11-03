@@ -8,6 +8,7 @@
  * power law.
  */
 
+#define _USE_MATH_DEFINES
 #include "LambdaCDMReferenceProvider.h"
 
 #include <cmath>

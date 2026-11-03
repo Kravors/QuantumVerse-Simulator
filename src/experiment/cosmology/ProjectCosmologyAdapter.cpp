@@ -3,6 +3,7 @@
  * @brief Adapter exposing the project's FLRW cosmology through CosmologyProvider.
  */
 
+#define _USE_MATH_DEFINES
 #include "ProjectCosmologyAdapter.h"
 
 #include <cmath>

@@ -6,6 +6,8 @@
 #include "ExperimentRunner.h"
 #include "Experiment.h"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <QDir>
 #include <QDateTime>
 #include <QFile>
