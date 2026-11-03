@@ -1,7 +1,22 @@
 # QuantumVerse Simulator - CMakeLists.txt
 # Production-ready 4D spacetime cognition laboratory
 cmake_minimum_required(VERSION 3.20)
-project(QuantumVerse LANGUAGES C CXX VERSION 3.9.0)
+project(QuantumVerse LANGUAGES C CXX VERSION 7.3.0)
+
+# CPack packaging configuration
+set(CPACK_PROJECT_NAME "QuantumVerse")
+set(CPACK_PACKAGE_VERSION "7.3.0")
+set(CPACK_PACKAGE_VENDOR "QuantumVerse Project")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "4D Spacetime Cognition Lab")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "QuantumVerse")
+set(CPACK_NSIS_DISPLAY_NAME "QuantumVerse Simulator")
+set(CPACK_NSIS_PACKAGE_NAME "QuantumVerse Simulator")
+set(CPACK_NSIS_CONTACT "support@quantumverse.dev")
+set(CPACK_NSIS_MODIFY_PATH ON)
+set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+set(CPACK_NSIS_MENU_LINKS
+    "bin/quantumverse_qml.exe" "QuantumVerse Simulator")
+set(CPACK_PACKAGE_EXECUTABLES "quantumverse_qml" "QuantumVerse Simulator")
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
