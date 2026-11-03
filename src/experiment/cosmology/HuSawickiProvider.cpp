@@ -17,7 +17,6 @@
  * between screened modified-gravity theories.
  */
 
-#define _USE_MATH_DEFINES
 #include "HuSawickiProvider.h"
 #include <functional>
 

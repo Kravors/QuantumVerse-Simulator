@@ -7,7 +7,6 @@
 // Author: QuantumVerse Phase 3 Implementation
 // Date: 2026-05-13
 
-#define _USE_MATH_DEFINES
 #include "DifferentiableSimulator.h"
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)

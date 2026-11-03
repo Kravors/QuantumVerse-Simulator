@@ -3,7 +3,6 @@
  * @brief Implementation of Group Field Theory Engine
  */
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include "GFTEngine.h"

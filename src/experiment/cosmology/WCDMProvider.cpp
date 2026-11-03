@@ -12,7 +12,6 @@
  * between expansion-history theories.
  */
 
-#define _USE_MATH_DEFINES
 #include "WCDMProvider.h"
 
 #include <cmath>

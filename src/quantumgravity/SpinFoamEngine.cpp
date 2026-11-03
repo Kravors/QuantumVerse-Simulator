@@ -3,7 +3,6 @@
  * @brief Implementation of Spin Foam Engine for LQG
  */
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)

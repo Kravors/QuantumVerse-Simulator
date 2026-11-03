@@ -12,7 +12,6 @@
  * in E(z), so any deviation from ΛCDM is provably due to the f(R) parameter.
  */
 
-#define _USE_MATH_DEFINES
 #include "FRGravityProvider.h"
 
 #include <cmath>

@@ -27,6 +27,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # Compiler warnings
 if(MSVC)
     add_compile_options(/W4)
+    add_compile_definitions(_USE_MATH_DEFINES)
 else()
     add_compile_options(-Wall -Wextra)
 endif()
