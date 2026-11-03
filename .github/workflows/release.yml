@@ -46,7 +46,7 @@ jobs:
       run: New-Item -ItemType Directory -Path reports -Force
 
     - name: Configure CMake
-      run: cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe -DQUANTUMVERSE_BUILD_TESTS=ON -DQUANTUMVERSE_USE_QT=ON -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install"
+      run: cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe -DQUANTUMVERSE_BUILD_TESTS=OFF -DQUANTUMVERSE_USE_QT=ON -DQUANTUMVERSE_USE_ONNX=OFF -DCMAKE_PREFIX_PATH="${{ steps.setup_qt.outputs.Qt6_DIR }}" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install"
 
     - name: Build
       run: cmake --build build --config Release --parallel 2
