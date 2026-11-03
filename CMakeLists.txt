@@ -3142,52 +3142,152 @@ if(WIN32 AND QUANTUMVERSE_USE_QT)
         PATTERN "*.dll"
         PATTERN "*.conf"
         PATTERN "qt.conf"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     # Install Qt plugins (platforms, imageformats, etc.)
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/platforms/"
         DESTINATION bin/platforms
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/imageformats/"
         DESTINATION bin/imageformats
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/iconengines/"
         DESTINATION bin/iconengines
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/styles/"
         DESTINATION bin/styles
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/tls/"
         DESTINATION bin/tls
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/generic/"
         DESTINATION bin/generic
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/networkinformation/"
         DESTINATION bin/networkinformation
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/platforminputcontexts/"
         DESTINATION bin/platforminputcontexts
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/vectorimageformats/"
         DESTINATION bin/vectorimageformats
         USE_SOURCE_PERMISSIONS
         FILES_MATCHING PATTERN "*.dll"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
     # Install QML files
     install(DIRECTORY "$<TARGET_FILE_DIR:quantumverse_qml>/qml/"
@@ -3198,6 +3298,16 @@ if(WIN32 AND QUANTUMVERSE_USE_QT)
         PATTERN "*.qml"
         PATTERN "*.qmltypes"
         PATTERN "*.qmldir"
+        PATTERN "_CPack_Packages" EXCLUDE
+        PATTERN "CMakeFiles" EXCLUDE
+        PATTERN "Testing" EXCLUDE
+        PATTERN "install" EXCLUDE
+        PATTERN ".git" EXCLUDE
+        PATTERN "*.obj" EXCLUDE
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.ilk" EXCLUDE
+        PATTERN "test_*_autogen" EXCLUDE
+        PATTERN "*_autogen" EXCLUDE
     )
 endif()
 
