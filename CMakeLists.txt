@@ -70,6 +70,14 @@ option(QUANTUMVERSE_USE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
 option(QUANTUMVERSE_USE_TSAN "Build with ThreadSanitizer" OFF)
 option(QUANTUMVERSE_BUILD_WASM "Build WASM Portal (Emscripten)" OFF)
 
+# Test targets link Qt6::Core unconditionally, so BUILD_TESTS=ON implies
+# USE_QT=ON. Auto-enable rather than fail-fast: tests requiring Qt is an
+# implication, not a user-facing choice.
+if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_USE_QT)
+    message(STATUS "QUANTUMVERSE_BUILD_TESTS=ON implies QUANTUMVERSE_USE_QT=ON")
+    set(QUANTUMVERSE_USE_QT ON CACHE BOOL "" FORCE)
+endif()
+
 # Sanitizer configuration
 if(QUANTUMVERSE_USE_ASAN)
     if(MSVC)
@@ -244,12 +252,13 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     # source-list drift is impossible: adding a new .cpp requires exactly one
     # edit (this list), and every target picks it up automatically.
     # ============================================================================
-    file(GLOB QUANTUMVERSE_CORE_SOURCES
-        "${CMAKE_SOURCE_DIR}/src/**/*.cpp"
+    file(GLOB_RECURSE QUANTUMVERSE_CORE_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_SOURCE_DIR}/src/*.cpp"
     )
-    list(REMOVE_ITEM QUANTUMVERSE_CORE_SOURCES
-        "${CMAKE_SOURCE_DIR}/src/main_qml.cpp"
-    )
+    # Exclude entry points and special modules not part of the core library.
+    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/main_qml\\.cpp$")
+    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/physics/geodesic_pybind\\.cpp$")
+    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/wasm/.*\\.cpp$")
 
     add_library(quantumverse_core STATIC ${QUANTUMVERSE_CORE_SOURCES})
     target_include_directories(quantumverse_core PUBLIC
