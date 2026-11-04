@@ -1940,23 +1940,8 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_cosmology_experiments.cpp)
             add_executable(test_cosmology_experiments
                 tests/test_cosmology_experiments.cpp
-                src/experiment/ExperimentRunner.cpp
-        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
-        src/experiment/cosmology/FRGravityProvider.cpp
-        src/experiment/cosmology/WCDMProvider.cpp
-        src/experiment/cosmology/BransDickeProvider.cpp
-        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
-        src/bayesian/BayesianEvidenceCalculator.cpp
-                src/experiment/experiments/CosmologyExperimentBase.cpp
-                src/experiment/experiments/AgeOfUniverseExperiment.cpp
-                src/experiment/experiments/DistanceLadderExperiment.cpp
-                src/experiment/experiments/CMBTemperatureExperiment.cpp
-                src/experiment/experiments/BAOSoundHorizonExperiment.cpp
-                src/experiment/experiments/HubbleEvolutionExperiment.cpp
-                src/experiment/experiments/GrowthFactorExperiment.cpp
-                src/experiment/experiments/CosmologyValidationSuite.cpp
             )
-            target_link_libraries(test_cosmology_experiments PRIVATE dilaton Qt6::Core)
+            target_link_libraries(test_cosmology_experiments PRIVATE quantumverse_core Qt6::Core Qt6::Network)
             target_include_directories(test_cosmology_experiments PRIVATE src third_party/glad/include third_party/glad/include/glad)
             target_compile_definitions(test_cosmology_experiments PRIVATE QUANTUMVERSE_USE_QML)
             set_target_properties(test_cosmology_experiments PROPERTIES AUTOMOC ON)
