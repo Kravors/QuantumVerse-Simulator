@@ -261,9 +261,14 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/wasm/.*\\.cpp$")
 
     add_library(quantumverse_core STATIC ${QUANTUMVERSE_CORE_SOURCES})
+    target_sources(quantumverse_core PRIVATE
+        ${CMAKE_SOURCE_DIR}/third_party/glad/glad.cpp
+    )
     target_include_directories(quantumverse_core PUBLIC
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
     )
     target_link_libraries(quantumverse_core PUBLIC
         dilaton
