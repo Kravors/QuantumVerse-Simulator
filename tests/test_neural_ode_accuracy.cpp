@@ -7,6 +7,9 @@
 #include <array>
 #include <string>
 #include <cstdlib>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #include "ml/GeodesicNeuralODE.h"
 #include "spacetime/Event4D.h"
