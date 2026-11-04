@@ -1,7 +1,7 @@
 #ifndef QUANTUMVERSE_GEOMETRY_BVH_H
 #define QUANTUMVERSE_GEOMETRY_BVH_H
 
-namespace quantumverse {
+namespace geometry {
 
 class BVH {
 public:
@@ -9,6 +9,6 @@ public:
     ~BVH() = default;
 };
 
-} // namespace quantumverse
+} // namespace geometry
 
 #endif // QUANTUMVERSE_GEOMETRY_BVH_H
