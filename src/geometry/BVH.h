@@ -3,10 +3,11 @@
 
 namespace geometry {
 
-class BVH {
+template<typename T>
+class BoundingVolumeHierarchy {
 public:
-    BVH() = default;
-    ~BVH() = default;
+    BoundingVolumeHierarchy() = default;
+    ~BoundingVolumeHierarchy() = default;
 };
 
 } // namespace geometry
