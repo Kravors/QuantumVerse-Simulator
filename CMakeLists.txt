@@ -389,9 +389,9 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     target_link_libraries(quantumverse_core PUBLIC
         dilaton
     )
-    # PRIVATE: Qt and platform deps needed to compile Qt-dependent sources.
-    # Not propagated to consumers — non-Qt tests don't get Qt transitively.
-    target_link_libraries(quantumverse_core PRIVATE
+    # Qt and platform deps needed to compile Qt-dependent sources.
+    # Propagated to consumers so targets linking quantumverse_core get Qt.
+    target_link_libraries(quantumverse_core PUBLIC
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
