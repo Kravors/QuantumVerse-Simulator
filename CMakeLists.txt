@@ -1186,9 +1186,8 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     # Physics validation tests
     add_executable(test_mercury_precession
         tests/test_mercury_precession.cpp
-        src/experiment/experiments/MercuryPrecessionExperiment.cpp
     )
-    target_link_libraries(test_mercury_precession PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_mercury_precession PRIVATE quantumverse_core)
     target_include_directories(test_mercury_precession PRIVATE src)
     add_test(NAME MercuryPrecessionTest COMMAND test_mercury_precession)
 
