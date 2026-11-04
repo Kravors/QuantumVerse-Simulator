@@ -1187,7 +1187,7 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_mercury_precession
         tests/test_mercury_precession.cpp
     )
-    target_link_libraries(test_mercury_precession PRIVATE quantumverse_core)
+    target_link_libraries(test_mercury_precession PRIVATE quantumverse_core Qt6::Core)
     target_include_directories(test_mercury_precession PRIVATE src)
     add_test(NAME MercuryPrecessionTest COMMAND test_mercury_precession)
 
