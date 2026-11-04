@@ -14,7 +14,8 @@ public:
 
     void insert(const std::array<double, N>& point) {}
     void rebuild() {}
-    
+    void clear() {}
+
     template<typename QueryType>
     std::vector<std::vector<std::vector<double>>> query(
         const QueryType& query_points) const {
