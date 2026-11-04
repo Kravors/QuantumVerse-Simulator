@@ -10,15 +10,19 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 namespace quantumverse {
 
 namespace {
 
-/** Create a directory recursively using Windows API (std::filesystem::
- *  create_directories() hangs on this MinGW toolchain). */
+/** Create a directory recursively. On Windows uses CreateDirectoryA
+ *  because std::filesystem::create_directories() hangs on this MinGW
+ *  toolchain. On Linux uses std::filesystem::create_directories(). */
 bool createDirectoriesWin(const std::filesystem::path& path) {
+#ifdef _WIN32
     std::string p = path.string();
     // Create each parent directory in turn
     for (std::size_t i = 3; i < p.size(); ++i) {
@@ -35,6 +39,10 @@ bool createDirectoriesWin(const std::filesystem::path& path) {
         if (err != ERROR_ALREADY_EXISTS) return false;
     }
     return true;
+#else
+    std::error_code ec;
+    return std::filesystem::create_directories(path, ec);
+#endif
 }
 
 /** Generate a random UUID v4 string. */
