@@ -730,8 +730,8 @@ ApplicationWindow {
         // --- RIGHT PANEL: Discovery & Info ---
         Pane {
             id: discoveryPanel
-            SplitView.preferredWidth: 360
-            SplitView.minimumWidth: 340
+            SplitView.preferredWidth: 380
+            SplitView.minimumWidth: 380
             SplitView.maximumWidth: 450
             visible: true
             z: 1
@@ -750,7 +750,8 @@ ApplicationWindow {
                 clip: true
 
                 ColumnLayout {
-                    width: discoveryPanel.width - 16
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     spacing: 6
 
                     // Sandbox panel: shown when sandbox mode is active
@@ -831,10 +832,17 @@ ApplicationWindow {
                                 }
                             }
                         }
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 6
 
                         Button {
                             text: "Export"
-                            Layout.preferredWidth: 70
+                            Layout.fillWidth: true
+                            enabled: discoveryPanelManager ? discoveryPanelManager.instrumentCount > 0 : false
                             onClicked: {
                                 console.log("Export button clicked!")
                                 if (discoveryPanelManager) discoveryPanelManager.exportCurrentFindings()
@@ -854,6 +862,8 @@ ApplicationWindow {
                         spacing: 6
 
                         RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 6
                             spacing: 6
 
                             Button {
@@ -874,6 +884,12 @@ ApplicationWindow {
                                     }
                                 }
                             }
+                        }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            spacing: 6
 
                             Button {
                                 text: "Reset"
@@ -896,6 +912,7 @@ ApplicationWindow {
                             CheckBox {
                                 text: "Neural Geodesics"
                                 checked: false
+                                Layout.preferredWidth: 150
                                 onCheckedChanged: {
                                     if (viewportItem) viewportItem.setNeuralGeodesicsEnabled(checked)
                                 }
@@ -1172,7 +1189,7 @@ ApplicationWindow {
 
                             Label {
                                 text: anomalyMonitor && anomalyMonitor.modelLoaded
-                                    ? ("Score: " + anomalyMonitor.lastScore.toFixed(4))
+                                    ? ("Score: " + Math.min(Math.max(anomalyMonitor.lastScore, 0.0), 1.0).toFixed(4))
                                     : "ML Model Offline"
                                 font.pixelSize: 10
                                 color: anomalyMonitor && anomalyMonitor.modelLoaded
@@ -1880,6 +1897,11 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     active: true
                     source: "ExperimentsPanel.qml"
+                }
+
+                // Absorb remaining vertical space so sections don't cluster at top
+                Item {
+                    Layout.fillHeight: true
                 }
             }
             }

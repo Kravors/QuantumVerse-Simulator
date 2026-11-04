@@ -4,12 +4,12 @@
 **Status**: Phase 0 Complete (100%) | Phase 1 Complete (100%) | Phase 2 Complete (100%) | Phase 3 Complete (100%) | Phase 4 Complete (100%)  
 **Overall Completion**: 100% (all tasks complete, build system integrated, all tests passing)  
 **Last Updated**: 2026-11-01  
-**Release**: `v7.2-final` (immutable, published on GitHub)  
-**Installer**: `QuantumVerse-7.2-Setup.exe` (~32.4 MB)  
-**Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.2-final  
-**Installer URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.2-final/QuantumVerse-7.2-Setup.exe  
+**Release**: `v7.3.0` (shipped 2026-11-03)  
+**Installer**: `QuantumVerse-7.3.0-win64.exe` (~31 MB)  
+**Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.3.0  
+**Installer URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.3.0/QuantumVerse-7.3.0-win64.exe  
 
-**⚠️ NOTE**: v7.2-final was built from commit `c8c2d03`. All work since commit `c8c2d03` (19 sessions, ~N=22 experiments, 5 paper shapes, 2 named-case reproductions, theory discrimination matrix, VR peer-presence infrastructure) is committed to `main` but NOT yet released. A v7.3 release build is pending (CPACK_PACKAGE_VERSION bumped to 7.3.0 in CMakeLists.txt; release workflow `release.yml` is ready to build from a git tag).
+**CPACK fix landed**: v7.3.0 resolves the CPack NSIS infinite-recursion hang by adding `PATTERN ... EXCLUDE` blocks (`_CPack_Packages`, `CMakeFiles`, `Testing`, `install`, `.git`, `*.obj`, `*.pdb`, `*.ilk`, `*_autogen`) to all `install(DIRECTORY ...)` Qt plugin rules in `CMakeLists.txt:3138-3201`. CI went from 74 min hang → 6 min green (12×). Verified end-to-end: installer installs, binary launches, "23 experiments registered", paper pipeline generates PDF.
 
 ---
 

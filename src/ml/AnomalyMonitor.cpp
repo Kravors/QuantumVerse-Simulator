@@ -166,9 +166,11 @@ void AnomalyMonitor::processSample()
             return;
         }
 
-        m_lastScore = score;
+        // Normalize raw anomaly score to [0, 1] via sigmoid so the QML
+        // never displays an unclamped running-total or raw logit.
+        m_lastScore = 1.0 / (1.0 + std::exp(-score));
         ++m_sampleCount;
-        emit scoreUpdated(score);
+        emit scoreUpdated(m_lastScore);
         emit sampleCountChanged();
 
         double threshold = m_detector->threshold() * m_thresholdMultiplier;
