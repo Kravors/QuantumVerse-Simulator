@@ -303,6 +303,9 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/data/MultiMessengerCorrelator.cpp
         src/discovery/DiscoveryEngine.cpp
         src/discovery/TheoryManager.cpp
+        src/discovery/TheoryDiscoveryAgent.cpp
+        src/discovery/TheoryParameterSpace.cpp
+        src/discovery/TheorySurrogate.cpp
         src/rendering/CurvatureRenderer.cpp
         src/ml/GeodesicNeuralODE.cpp
         src/rendering/PostProcess.cpp
