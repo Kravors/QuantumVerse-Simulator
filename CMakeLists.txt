@@ -2142,7 +2142,7 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_cosmology_experiments.cpp)
             add_executable(test_cosmology_experiments
                 tests/test_cosmology_experiments.cpp
-                src/experiment/experimentRunner.cpp
+                src/experiment/ExperimentRunner.cpp
         src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
         src/experiment/cosmology/FRGravityProvider.cpp
         src/experiment/cosmology/WCDMProvider.cpp
