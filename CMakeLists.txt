@@ -38,7 +38,7 @@ add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 # ONNX Runtime is optional. Declared as an option so a fresh clone configures
 # cleanly on machines without onnxruntime (default OFF). Use
 # -DQUANTUMVERSE_USE_ONNX=ON to enable RL agent ONNX inference.
-option(QUANTUMVERSE_USE_ONNX "Enable ONNX Runtime for RL agent inference" ON)
+option(QUANTUMVERSE_USE_ONNX "Enable ONNX Runtime for RL agent inference" OFF)
 
 # Coverage instrumentation
 if(QUANTUMVERSE_USE_COVERAGE)
