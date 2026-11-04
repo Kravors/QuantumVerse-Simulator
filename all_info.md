@@ -3,13 +3,23 @@
 **Version**: v7.2 ("Kerr Observables + Deliverable Installer" Release)  
 **Status**: Phase 0 Complete (100%) | Phase 1 Complete (100%) | Phase 2 Complete (100%) | Phase 3 Complete (100%) | Phase 4 Complete (100%)  
 **Overall Completion**: 100% (all tasks complete, build system integrated, all tests passing)  
-**Last Updated**: 2026-11-01  
-**Release**: `v7.3.0` (shipped 2026-11-03)  
+**Last Updated**: 2026-11-04  
+**Release**: `v7.3.1` (shipped 2026-11-04)  
 **Installer**: `QuantumVerse-7.3.0-win64.exe` (~31 MB)  
-**Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.3.0  
-**Installer URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.3.0/QuantumVerse-7.3.0-win64.exe  
+**Release URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/tag/v7.3.1  
+**Installer URL**: https://github.com/Kravors/QuantumVerse-Simulator/releases/download/v7.3.1/QuantumVerse-7.3.0-win64.exe  
 
 **CPACK fix landed**: v7.3.0 resolves the CPack NSIS infinite-recursion hang by adding `PATTERN ... EXCLUDE` blocks (`_CPack_Packages`, `CMakeFiles`, `Testing`, `install`, `.git`, `*.obj`, `*.pdb`, `*.ilk`, `*_autogen`) to all `install(DIRECTORY ...)` Qt plugin rules in `CMakeLists.txt:3138-3201`. CI went from 74 min hang → 6 min green (12×). Verified end-to-end: installer installs, binary launches, "23 experiments registered", paper pipeline generates PDF.
+
+**v7.3.1 UI patch**: six UI defects fixed post-v7.3.0:
+- RL Anomaly Detection score normalized to [0, 1] via running-max (was raw MSE ~1e8+)
+- Parameter Sweep Export button unclipped, gated on results
+- Orphaned unlabeled SpinBox removed
+- "Natural Geodesics" checkbox untruncated
+- Right panel min width 340 → 380px
+- Dead vertical gap removed via fill-height ColumnLayout
+- Upgrade note: uninstall v7.3.0 first (Windows UAC silent-cancel trap)
+
 
 ---
 
