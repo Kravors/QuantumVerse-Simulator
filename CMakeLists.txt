@@ -237,33 +237,14 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     endif()
 
     set(QML_DIR ${CMAKE_SOURCE_DIR}/src)
-    set(RESOURCES_QRC ${CMAKE_SOURCE_DIR}/src/resources.qrc)
-
-    # Compile Qt resources
-    qt_add_resources(RESOURCES_QRC ${RESOURCES_QRC})
-
-    # Multi-user collaboration library
-    add_library(quantumverse_multi_user STATIC
-        src/vr/SignalingClient.cpp
-        src/vr/SharedSession.cpp
-        src/vr/MultiUserServer.cpp
-    )
-    target_include_directories(quantumverse_multi_user PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/third_party
-    )
-    target_link_libraries(quantumverse_multi_user PUBLIC
-        Qt6::Core
-        Qt6::Network
-        Qt6::WebSockets
-        dilaton
-    )
-    set_target_properties(quantumverse_multi_user PROPERTIES
-        AUTOMOC ON
-    )
-
-    add_executable(quantumverse_qml
-        src/main_qml.cpp
+    # ============================================================================
+    # quantumverse_core STATIC library
+    # All shared .cpp sources live here, defined exactly once. Every consumer
+    # (quantumverse_qml, every Qt test target) links this single library, so
+    # source-list drift is impossible: adding a new .cpp requires exactly one
+    # edit (this list), and every target picks it up automatically.
+    # ============================================================================
+    set(QUANTUMVERSE_CORE_SOURCES
         src/qmlglviewport.cpp
         src/qmlcamcontroller.cpp
         src/scenegraphmodel.cpp
@@ -371,11 +352,11 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         src/discovery/SGWBBackgroundAnalyzer.cpp
         src/discovery/DarkMatterAnnihilationAnalyzer.cpp
         src/discovery/PBHMicrolensingScanner.cpp
-src/discovery/EMBrightGWCounterpartDetector.cpp
-src/discovery/LLMCoPilot.cpp
+        src/discovery/EMBrightGWCounterpartDetector.cpp
+        src/discovery/LLMCoPilot.cpp
         src/discovery/PaperGenerator.cpp
         src/discovery/AbstractVerifier.cpp
-src/ml/CurvatureNormalizingFlow.cpp
+        src/ml/CurvatureNormalizingFlow.cpp
         src/ml/DifferentiableSimulator.cpp
         src/ml/AnomalyDetector.cpp
         src/ml/TrainingDataCollector.cpp
@@ -395,11 +376,71 @@ src/ml/CurvatureNormalizingFlow.cpp
         src/scenario/Scenario.cpp
         src/scenario/ScenarioManager.cpp
         src/sandbox/SandboxManager.cpp
+    )
+
+    add_library(quantumverse_core STATIC ${QUANTUMVERSE_CORE_SOURCES})
+    target_include_directories(quantumverse_core PUBLIC
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/tests
+    )
+    target_link_libraries(quantumverse_core PUBLIC
+        dilaton
+    )
+    # PRIVATE: Qt and platform deps needed to compile Qt-dependent sources.
+    # Not propagated to consumers — non-Qt tests don't get Qt transitively.
+    target_link_libraries(quantumverse_core PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Quick
+        Qt6::Widgets
+        Qt6::OpenGL
+        Qt6::OpenGLWidgets
+        Qt6::Network
+        Qt6::WebSockets
+        ${QT6_MULTIMEDIA_LINK_LIBS}
+    )
+    target_include_directories(quantumverse_core PRIVATE
+        ${CMAKE_SOURCE_DIR}/third_party
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+        ${LIBRDKAFKA_INCLUDE_DIRS}
+    )
+    target_compile_definitions(quantumverse_core PRIVATE QUANTUMVERSE_USE_QML)
+    set_target_properties(quantumverse_core PROPERTIES AUTOMOC ON)
+
+    set(RESOURCES_QRC ${CMAKE_SOURCE_DIR}/src/resources.qrc)
+
+    # Compile Qt resources
+    qt_add_resources(RESOURCES_QRC ${RESOURCES_QRC})
+
+    # Multi-user collaboration library
+    add_library(quantumverse_multi_user STATIC
+        src/vr/SignalingClient.cpp
+        src/vr/SharedSession.cpp
+        src/vr/MultiUserServer.cpp
+    )
+    target_include_directories(quantumverse_multi_user PUBLIC
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
+    )
+    target_link_libraries(quantumverse_multi_user PUBLIC
+        Qt6::Core
+        Qt6::Network
+        Qt6::WebSockets
+        dilaton
+    )
+    set_target_properties(quantumverse_multi_user PROPERTIES
+        AUTOMOC ON
+    )
+
+    add_executable(quantumverse_qml
+        src/main_qml.cpp
         ${RESOURCES_QRC}
     )
     set_target_properties(quantumverse_qml PROPERTIES AUTOMOC ON)
     target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_QML)
-    target_link_libraries(quantumverse_qml PRIVATE quantumverse_multi_user)
+    target_link_libraries(quantumverse_qml PRIVATE quantumverse_core quantumverse_multi_user)
     if(QUANTUMVERSE_USE_VR)
         target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_VR)
         target_sources(quantumverse_qml PRIVATE
@@ -717,28 +758,6 @@ src/ml/CurvatureNormalizingFlow.cpp
         # 5.1 QmlGlViewport isolation test
         add_executable(test_viewport_isolation
             tests/ui/test_viewport_isolation.cpp
-            src/qmlglviewport.cpp
-            src/audio/GravitationalWaveAudio.cpp
-            third_party/glad/glad.cpp
-            src/rendering/CurvatureRenderer.cpp
-            src/rendering/PostProcess.cpp
-            src/rendering/QuantumGeometryRenderer.cpp
-            src/rendering/CelestialBodyRenderer.cpp
-            src/rendering/GLDebug.cpp
-            src/rendering/ComputeShader.cpp
-            src/rendering/GravitationalLensing.cpp
-            src/ui4d/Camera4DAdapter.cpp
-            src/physics/CurvatureCalculator.cpp
-            src/physics/PhysicsValidator.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            src/ui4d/UI4D.cpp
-            src/rendering/Texture.cpp
-            src/rendering/ProceduralTextures.cpp
-            src/utils/TraceLogger.cpp
-            src/spacetime/KerrMetric.cpp
-            src/scenario/Scenario.cpp
-            src/scenario/ScenarioManager.cpp
-            src/ml/SessionRecorder.cpp
         )
         target_link_libraries(test_viewport_isolation PRIVATE
             Qt6::Core
@@ -748,7 +767,7 @@ src/ml/CurvatureNormalizingFlow.cpp
             Qt6::OpenGLWidgets
             Qt6::Test
             ${QT6_MULTIMEDIA_LINK_LIBS}
-            dilaton
+            quantumverse_core
         )
         if(WIN32)
             target_link_libraries(test_viewport_isolation PRIVATE opengl32 dbghelp)
@@ -773,27 +792,6 @@ src/ml/CurvatureNormalizingFlow.cpp
         # 5.3 Interaction stress test (rapid mouse/wheel input + property toggles)
         add_executable(test_interaction_stress
             tests/ui/test_interaction_stress.cpp
-            src/qmlglviewport.cpp
-            src/audio/GravitationalWaveAudio.cpp
-            third_party/glad/glad.cpp
-            src/rendering/CurvatureRenderer.cpp
-            src/rendering/PostProcess.cpp
-            src/rendering/QuantumGeometryRenderer.cpp
-            src/rendering/CelestialBodyRenderer.cpp
-            src/rendering/GLDebug.cpp
-            src/rendering/ComputeShader.cpp
-            src/rendering/GravitationalLensing.cpp
-            src/ui4d/Camera4DAdapter.cpp
-            src/physics/CurvatureCalculator.cpp
-            src/physics/PhysicsValidator.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            src/ui4d/UI4D.cpp
-            src/rendering/Texture.cpp
-            src/rendering/ProceduralTextures.cpp
-            src/utils/TraceLogger.cpp
-            src/spacetime/KerrMetric.cpp
-            src/scenario/Scenario.cpp
-            src/scenario/ScenarioManager.cpp
         )
         target_link_libraries(test_interaction_stress PRIVATE
             Qt6::Core
@@ -803,7 +801,7 @@ src/ml/CurvatureNormalizingFlow.cpp
             Qt6::OpenGLWidgets
             Qt6::Test
             ${QT6_MULTIMEDIA_LINK_LIBS}
-            dilaton
+            quantumverse_core
         )
         if(WIN32)
             target_link_libraries(test_interaction_stress PRIVATE opengl32 dbghelp)
@@ -829,27 +827,6 @@ src/ml/CurvatureNormalizingFlow.cpp
         # 5.4 Resize/toggle stress test (FBO recreation + panel toggling)
         add_executable(test_resize_stress
             tests/ui/test_resize_stress.cpp
-            src/qmlglviewport.cpp
-            src/audio/GravitationalWaveAudio.cpp
-            third_party/glad/glad.cpp
-            src/rendering/CurvatureRenderer.cpp
-            src/rendering/PostProcess.cpp
-            src/rendering/QuantumGeometryRenderer.cpp
-            src/rendering/CelestialBodyRenderer.cpp
-            src/rendering/GLDebug.cpp
-            src/rendering/ComputeShader.cpp
-            src/rendering/GravitationalLensing.cpp
-            src/ui4d/Camera4DAdapter.cpp
-            src/physics/CurvatureCalculator.cpp
-            src/physics/PhysicsValidator.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            src/ui4d/UI4D.cpp
-            src/rendering/Texture.cpp
-            src/rendering/ProceduralTextures.cpp
-            src/utils/TraceLogger.cpp
-            src/spacetime/KerrMetric.cpp
-            src/scenario/Scenario.cpp
-            src/scenario/ScenarioManager.cpp
         )
         target_link_libraries(test_resize_stress PRIVATE
             Qt6::Core
@@ -859,7 +836,7 @@ src/ml/CurvatureNormalizingFlow.cpp
             Qt6::OpenGLWidgets
             Qt6::Test
             ${QT6_MULTIMEDIA_LINK_LIBS}
-            dilaton
+            quantumverse_core
         )
         if(WIN32)
             target_link_libraries(test_resize_stress PRIVATE opengl32 dbghelp)
@@ -903,10 +880,8 @@ src/ml/CurvatureNormalizingFlow.cpp
         if(WIN32)
             add_executable(crash_helper
                 tests/utils/crash_helper.cpp
-                src/utils/CrashHandler.cpp
-                src/utils/TraceLogger.cpp
             )
-            target_link_libraries(crash_helper PRIVATE dilaton)
+            target_link_libraries(crash_helper PRIVATE quantumverse_core)
             if(WIN32)
                 target_link_libraries(crash_helper PRIVATE dbghelp)
             endif()
@@ -928,9 +903,8 @@ src/ml/CurvatureNormalizingFlow.cpp
             # 9.1 Frame diagnostics JSON output
             add_executable(test_frame_diagnostics
                 tests/utils/test_frame_diagnostics.cpp
-                src/utils/FrameDiagnostics.cpp
             )
-            target_link_libraries(test_frame_diagnostics PRIVATE Qt6::Core Qt6::Test)
+            target_link_libraries(test_frame_diagnostics PRIVATE Qt6::Core Qt6::Test quantumverse_core)
             set_target_properties(test_frame_diagnostics PROPERTIES AUTOMOC ON)
             add_test(NAME DiagnosticsOutputTest COMMAND test_frame_diagnostics)
             set_tests_properties(DiagnosticsOutputTest PROPERTIES
@@ -942,29 +916,8 @@ src/ml/CurvatureNormalizingFlow.cpp
             # 9.2 HUD toggle test
             add_executable(test_hud_toggle
                 tests/utils/test_hud_toggle.cpp
-                src/qmlglviewport.cpp
-                src/audio/GravitationalWaveAudio.cpp
-                third_party/glad/glad.cpp
-                src/rendering/CurvatureRenderer.cpp
-                src/rendering/PostProcess.cpp
-                src/rendering/QuantumGeometryRenderer.cpp
-                src/rendering/CelestialBodyRenderer.cpp
-                src/rendering/GLDebug.cpp
-                src/rendering/ComputeShader.cpp
-                src/rendering/GravitationalLensing.cpp
-                src/ui4d/Camera4DAdapter.cpp
-                src/physics/CurvatureCalculator.cpp
-                src/physics/PhysicsValidator.cpp
-                src/ml/GeodesicNeuralODE.cpp
-                src/ui4d/UI4D.cpp
-                src/rendering/Texture.cpp
-                src/rendering/ProceduralTextures.cpp
-                src/utils/TraceLogger.cpp
-                src/spacetime/KerrMetric.cpp
-                src/scenario/Scenario.cpp
-                src/scenario/ScenarioManager.cpp
             )
-            target_link_libraries(test_hud_toggle PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Quick Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS} dilaton)
+            target_link_libraries(test_hud_toggle PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Quick Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS} quantumverse_core)
             set_target_properties(test_hud_toggle PROPERTIES AUTOMOC ON)
             target_compile_definitions(test_hud_toggle PRIVATE QUANTUMVERSE_USE_QML)
             target_include_directories(test_hud_toggle PRIVATE
@@ -974,7 +927,6 @@ src/ml/CurvatureNormalizingFlow.cpp
                 ${CMAKE_SOURCE_DIR}/third_party/glad/include
                 ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
             )
-            target_link_libraries(test_hud_toggle PRIVATE nlohmann_json)
             add_test(NAME HUDToggleTest COMMAND test_hud_toggle)
             set_tests_properties(HUDToggleTest PROPERTIES
                 WORKING_DIRECTORY "${QT_RUNTIME_DEST}"
@@ -986,8 +938,8 @@ src/ml/CurvatureNormalizingFlow.cpp
             endif()
 
             # PaperGenerator test (Phase 3.11) ??? LaTeX escaping + PDF output
-            add_executable(test_paper_generator tests/test_paper_generator.cpp src/discovery/PaperGenerator.cpp src/discovery/AbstractVerifier.cpp)
-            target_link_libraries(test_paper_generator PRIVATE Qt6::Core Qt6::Test dilaton)
+            add_executable(test_paper_generator tests/test_paper_generator.cpp)
+            target_link_libraries(test_paper_generator PRIVATE Qt6::Core Qt6::Test quantumverse_core)
             set_target_properties(test_paper_generator PROPERTIES AUTOMOC ON)
             target_include_directories(test_paper_generator PRIVATE
                 ${CMAKE_SOURCE_DIR}/tests
@@ -1010,11 +962,11 @@ endif()
 if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     # Core math tests
     add_executable(test_vector4d tests/test_vector4d.cpp)
-    target_link_libraries(test_vector4d PRIVATE dilaton)
+    target_link_libraries(test_vector4d PRIVATE quantumverse_core)
     add_test(NAME Vector4DTest COMMAND test_vector4d)
     
     add_executable(test_matrix4x4 tests/test_matrix4x4.cpp)
-    target_link_libraries(test_matrix4x4 PRIVATE dilaton)
+    target_link_libraries(test_matrix4x4 PRIVATE quantumverse_core)
     add_test(NAME Matrix4x4Test COMMAND test_matrix4x4)
 
     add_executable(test_lensing_time_delay
@@ -1028,100 +980,59 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
 
     add_executable(test_frb_generator
         tests/test_frb_generator.cpp
-        src/experiment/experiments/FRBGeneratorExperiment.cpp
-        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
-        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
     )
-    target_link_libraries(test_frb_generator PRIVATE Qt6::Core dilaton)
+    target_link_libraries(test_frb_generator PRIVATE Qt6::Core quantumverse_core)
     target_include_directories(test_frb_generator PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME FRBGeneratorTest COMMAND test_frb_generator)
 
     add_executable(test_pta_spectrum
         tests/test_pta_spectrum.cpp
-        src/experiment/experiments/PTASpectrumExperiment.cpp
     )
-    target_link_libraries(test_pta_spectrum PRIVATE Qt6::Core dilaton)
+    target_link_libraries(test_pta_spectrum PRIVATE Qt6::Core quantumverse_core)
     target_include_directories(test_pta_spectrum PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME PTASpectrumTest COMMAND test_pta_spectrum)
 
     add_executable(test_gw_ringdown
         tests/test_gw_ringdown.cpp
-        src/experiment/experiments/GWRingdownExperiment.cpp
     )
-    target_link_libraries(test_gw_ringdown PRIVATE Qt6::Core dilaton)
+    target_link_libraries(test_gw_ringdown PRIVATE Qt6::Core quantumverse_core)
     target_include_directories(test_gw_ringdown PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME GWRingdownTest COMMAND test_gw_ringdown)
 
     add_executable(test_photon_sphere
         tests/test_photon_sphere.cpp
-        src/experiment/experiments/PhotonSphereExperiment.cpp
-        src/spacetime/KerrMetric.cpp
     )
-    target_link_libraries(test_photon_sphere PRIVATE Qt6::Core dilaton)
+    target_link_libraries(test_photon_sphere PRIVATE Qt6::Core quantumverse_core)
     target_include_directories(test_photon_sphere PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME PhotonSphereTest COMMAND test_photon_sphere)
 
     add_executable(test_scan_summary_builder
         tests/test_scan_summary_builder.cpp
-        src/experiment/ScanSummaryBuilder.cpp
-        src/experiment/experiments/PhotonSphereExperiment.cpp
-        src/experiment/experiments/RedshiftProfileExperiment.cpp
-        src/experiment/experiments/FrameDraggingExperiment.cpp
-        src/experiment/experiments/GWRingdownExperiment.cpp
-        src/spacetime/KerrMetric.cpp
     )
-    target_link_libraries(test_scan_summary_builder PRIVATE Qt6::Core dilaton)
+    target_link_libraries(test_scan_summary_builder PRIVATE Qt6::Core quantumverse_core)
     target_include_directories(test_scan_summary_builder PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME ScanSummaryBuilderTest COMMAND test_scan_summary_builder)
 
     add_executable(test_bayesian_evidence
         tests/test_bayesian_evidence.cpp
-        src/bayesian/BayesianEvidenceCalculator.cpp
     )
-    target_link_libraries(test_bayesian_evidence PRIVATE Qt6::Core dilaton)
+    target_link_libraries(test_bayesian_evidence PRIVATE Qt6::Core quantumverse_core)
     target_include_directories(test_bayesian_evidence PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME BayesianEvidenceTest COMMAND test_bayesian_evidence)
 
     add_executable(test_experiment_smoke
         tests/test_experiment_smoke.cpp
-        src/experiment/experiments/MassSweepExperiment.cpp
-        src/experiment/experiments/SpinSweepExperiment.cpp
-        src/experiment/experiments/LensingDeflectionExperiment.cpp
-        src/experiment/experiments/LensingTimeDelayExperiment.cpp
-        src/experiment/experiments/FRBGeneratorExperiment.cpp
-        src/experiment/experiments/PTASpectrumExperiment.cpp
-        src/experiment/experiments/GWRingdownExperiment.cpp
-        src/experiment/experiments/PhotonSphereExperiment.cpp
-        src/experiment/experiments/ChargeSweepExperiment.cpp
-        src/experiment/experiments/FrameDraggingExperiment.cpp
-        src/experiment/experiments/RedshiftProfileExperiment.cpp
-        src/experiment/experiments/AnomalyScanExperiment.cpp
-        src/experiment/experiments/TheoryComparisonExperiment.cpp
-        src/experiment/experiments/QuantumGeometryExperiment.cpp
-        src/experiment/experiments/AgeOfUniverseExperiment.cpp
-        src/experiment/experiments/DistanceLadderExperiment.cpp
-        src/experiment/experiments/CMBTemperatureExperiment.cpp
-        src/experiment/experiments/BAOSoundHorizonExperiment.cpp
-        src/experiment/experiments/HubbleEvolutionExperiment.cpp
-        src/experiment/experiments/GrowthFactorExperiment.cpp
-        src/experiment/experiments/CosmologyValidationSuite.cpp
-        src/experiment/cosmology/LambdaCDMReferenceProvider.cpp
-        src/experiment/cosmology/ProjectCosmologyAdapter.cpp
-        src/experiment/experiments/CosmologyExperimentBase.cpp
-        src/spacetime/KerrMetric.cpp
-        src/quantumgravity/CDTEngine.cpp
     )
-    target_link_libraries(test_experiment_smoke PRIVATE Qt6::Core dilaton)
+    target_link_libraries(test_experiment_smoke PRIVATE Qt6::Core quantumverse_core)
     target_include_directories(test_experiment_smoke PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     add_test(NAME ExperimentSmokeTest COMMAND test_experiment_smoke)
 
     # Property-based tests
     add_executable(test_property_based
         tests/unit/test_property_based.cpp
-        src/quantumgravity/CDTEngine.cpp
     )
     target_include_directories(test_property_based PRIVATE ${CMAKE_SOURCE_DIR}/src)
-    target_link_libraries(test_property_based PRIVATE dilaton)
+    target_link_libraries(test_property_based PRIVATE quantumverse_core)
     add_test(NAME PropertyBasedTest COMMAND test_property_based)
 
     # 5.2 UI4D unit test (camera, slicing, probe, causal graph)
@@ -1130,13 +1041,6 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     if(QUANTUMVERSE_USE_QT)
         add_executable(test_ui4d
             tests/unit/test_ui4d.cpp
-            src/ui4d/UI4D.cpp
-            src/rendering/CurvatureRenderer.cpp
-            src/rendering/QuantumGeometryRenderer.cpp
-            src/rendering/ComputeShader.cpp
-            src/physics/CurvatureCalculator.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            third_party/glad/glad.cpp
         )
         target_include_directories(test_ui4d PRIVATE
             ${CMAKE_SOURCE_DIR}/src
@@ -1144,7 +1048,7 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
-        target_link_libraries(test_ui4d PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS} dilaton)
+        target_link_libraries(test_ui4d PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test ${QT6_MULTIMEDIA_LINK_LIBS} quantumverse_core)
         if(WIN32)
             target_link_libraries(test_ui4d PRIVATE opengl32 dbghelp)
         endif()
@@ -1162,7 +1066,6 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
         # SandboxManager unit test (Qt-dependent: QObject + JSON persistence)
         add_executable(test_sandboxmanager
             tests/unit/test_sandboxmanager.cpp
-            src/sandbox/SandboxManager.cpp
         )
         target_include_directories(test_sandboxmanager PRIVATE
             ${CMAKE_SOURCE_DIR}/src
@@ -1171,7 +1074,7 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
         )
-        target_link_libraries(test_sandboxmanager PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
+        target_link_libraries(test_sandboxmanager PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test quantumverse_core)
         if(WIN32)
             target_link_libraries(test_sandboxmanager PRIVATE opengl32 dbghelp)
         endif()
@@ -1202,31 +1105,17 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
         target_include_directories(fuzz_geodesic_differential PRIVATE
             ${CMAKE_SOURCE_DIR}/src
         )
-        target_link_libraries(fuzz_geodesic_differential PRIVATE dilaton)
+        target_link_libraries(fuzz_geodesic_differential PRIVATE quantumverse_core)
         target_compile_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer)
         target_link_options(fuzz_geodesic_differential PRIVATE -fsanitize=fuzzer)
 
         add_executable(fuzz_discovery_instruments
             tests/fuzz/fuzz_discovery_instruments.cpp
-            src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-            src/discovery/GalacticRotationCurveScanner.cpp
-            src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/bayesian/BayesianEvidenceCalculator.cpp
-    )
-    target_include_directories(fuzz_discovery_instruments PRIVATE
-            ${CMAKE_SOURCE_DIR}/src
         )
-        target_link_libraries(fuzz_discovery_instruments PRIVATE dilaton)
+        target_include_directories(fuzz_discovery_instruments PRIVATE
+                ${CMAKE_SOURCE_DIR}/src
+        )
+        target_link_libraries(fuzz_discovery_instruments PRIVATE quantumverse_core)
         target_compile_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer)
         target_link_options(fuzz_discovery_instruments PRIVATE -fsanitize=fuzzer)
     endif()
@@ -1234,28 +1123,8 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     # Standalone fuzz driver (always built when tests are enabled)
     add_executable(fuzz_instruments
         tests/fuzz/fuzz_instruments.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
-        src/discovery/GWMemoryDetector.cpp
-        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
     )
-    target_link_libraries(fuzz_instruments PRIVATE dilaton)
+    target_link_libraries(fuzz_instruments PRIVATE quantumverse_core)
     add_test(NAME FuzzInstrumentsTest COMMAND fuzz_instruments)
     set_tests_properties(FuzzInstrumentsTest PROPERTIES
         LABELS "fuzz;discovery"
@@ -1265,9 +1134,8 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     # Phase 21.3: Fuzz-driven formal verification of physics invariants
     add_executable(fuzz_physics_invariants
         tests/fuzz/fuzz_physics_invariants.cpp
-        src/physics/CurvatureCalculator.cpp
     )
-    target_link_libraries(fuzz_physics_invariants PRIVATE dilaton)
+    target_link_libraries(fuzz_physics_invariants PRIVATE quantumverse_core)
     if(MSVC)
         target_compile_definitions(fuzz_physics_invariants PRIVATE _CRT_SECURE_NO_WARNINGS=1)
     endif()
@@ -1282,24 +1150,14 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     # Phase 22: Autonomous discovery runner (outputs JSON to stdout)
     add_executable(theory_discovery_runner
         tools/theory_discovery_runner.cpp
-        src/discovery/TheorySurrogate.cpp
-        src/discovery/DiscoveryEngine.cpp
-        src/discovery/SymbolicMath.cpp
-        src/discovery/TheoryParameterSpace.cpp
-        src/discovery/TheoryDiscoveryAgent.cpp
-        src/discovery/RLDiscoveryAgent.cpp
-        src/discovery/TheoryManager.cpp
-        src/physics/CurvatureCalculator.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(theory_discovery_runner PRIVATE dilaton)
+    target_link_libraries(theory_discovery_runner PRIVATE quantumverse_core)
 
     # Performance regression gate: actual benchmark measurements
     add_executable(test_performance_regression
         tests/test_performance_regression.cpp
-        src/quantumgravity/CDTEngine.cpp
     )
-    target_link_libraries(test_performance_regression PRIVATE dilaton)
+    target_link_libraries(test_performance_regression PRIVATE quantumverse_core)
     add_test(NAME PerformanceRegressionTest COMMAND test_performance_regression)
     set_tests_properties(PerformanceRegressionTest PROPERTIES
         LABELS "performance"
@@ -1369,11 +1227,11 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     endif()
     
     add_executable(test_light_deflection tests/test_light_deflection.cpp)
-    target_link_libraries(test_light_deflection PRIVATE dilaton)
+    target_link_libraries(test_light_deflection PRIVATE quantumverse_core)
     add_test(NAME LightDeflectionTest COMMAND test_light_deflection)
     
     add_executable(test_gravitational_redshift tests/test_gravitational_redshift.cpp)
-    target_link_libraries(test_gravitational_redshift PRIVATE dilaton)
+    target_link_libraries(test_gravitational_redshift PRIVATE quantumverse_core)
     add_test(NAME GravitationalRedshiftTest COMMAND test_gravitational_redshift)
 
     # Runtime smoke test: launches quantumverse_qml headless and asserts on [REALITY] dumps
@@ -1391,16 +1249,14 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_config_loader.cpp)
     add_executable(test_config_loader tests/test_config_loader.cpp)
-    target_link_libraries(test_config_loader PRIVATE dilaton nlohmann_json)
+    target_link_libraries(test_config_loader PRIVATE quantumverse_core nlohmann_json)
     add_test(NAME ConfigLoaderTest COMMAND test_config_loader)
     set_tests_properties(ConfigLoaderTest PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_nbody.cpp AND QUANTUMVERSE_USE_QT AND Qt6Core_FOUND)
-    add_executable(test_nbody tests/test_nbody.cpp src/ui4d/UI4D.cpp 
-    src/rendering/ComputeShader.cpp src/rendering/CurvatureRenderer.cpp src/rendering/QuantumGeometryRenderer.cpp 
-    src/physics/CurvatureCalculator.cpp src/ml/GeodesicNeuralODE.cpp third_party/glad/glad.cpp)
-    target_link_libraries(test_nbody PRIVATE dilaton nlohmann_json Qt6::Core Qt6::Gui)
+    add_executable(test_nbody tests/test_nbody.cpp)
+    target_link_libraries(test_nbody PRIVATE quantumverse_core Qt6::Core Qt6::Gui)
     target_include_directories(test_nbody PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/third_party/glad/include ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad)
     add_test(NAME NBodyTest COMMAND test_nbody)
     set_tests_properties(NBodyTest PROPERTIES
@@ -1412,8 +1268,8 @@ endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_scenario_system.cpp)
     # Scenario system tests
-    add_executable(test_scenario_system tests/test_scenario_system.cpp src/scenario/Scenario.cpp src/scenario/ScenarioManager.cpp)
-    target_link_libraries(test_scenario_system PRIVATE dilaton nlohmann_json)
+    add_executable(test_scenario_system tests/test_scenario_system.cpp)
+    target_link_libraries(test_scenario_system PRIVATE quantumverse_core nlohmann_json)
     target_include_directories(test_scenario_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
     add_test(NAME ScenarioSystemTest COMMAND test_scenario_system)
 endif()
@@ -1439,29 +1295,28 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/data/ml)
 endif()
 
     add_executable(test_frame_dragging tests/test_frame_dragging.cpp)
-    target_link_libraries(test_frame_dragging PRIVATE dilaton)
+    target_link_libraries(test_frame_dragging PRIVATE quantumverse_core)
     add_test(NAME FrameDraggingTest COMMAND test_frame_dragging)
     
     # Quantum gravity tests
     add_executable(test_cdt tests/test_cdt.cpp)
-    target_link_libraries(test_cdt PRIVATE dilaton)
+    target_link_libraries(test_cdt PRIVATE quantumverse_core)
     add_test(NAME CDTTest COMMAND test_cdt)
     
     add_executable(test_spin_foam tests/test_spin_foam.cpp)
-    target_link_libraries(test_spin_foam PRIVATE dilaton)
+    target_link_libraries(test_spin_foam PRIVATE quantumverse_core)
     add_test(NAME SpinFoamTest COMMAND test_spin_foam)
     
     # Core spacetime tests
     add_executable(test_spacetime tests/test_spacetime.cpp)
-    target_link_libraries(test_spacetime PRIVATE dilaton)
+    target_link_libraries(test_spacetime PRIVATE quantumverse_core)
     add_test(NAME SpacetimeTest COMMAND test_spacetime)
 
     # Metric epoch test (Phase 1.1)
     add_executable(test_metric_epoch
         tests/test_metric_epoch.cpp
-        src/spacetime/KerrMetric.cpp
     )
-    target_link_libraries(test_metric_epoch PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
+    target_link_libraries(test_metric_epoch PRIVATE quantumverse_core Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
     target_include_directories(test_metric_epoch PRIVATE src third_party/glad/include third_party/glad/include/glad)
     target_compile_definitions(test_metric_epoch PRIVATE QUANTUMVERSE_USE_QML)
     set_target_properties(test_metric_epoch PROPERTIES AUTOMOC ON)
@@ -1469,45 +1324,45 @@ endif()
 
     # Skeleton tests (Phase 0.3-now) ??? real assertions land with their modules in Phase 3
     add_executable(test_neural_ode tests/test_neural_ode.cpp)
-    target_link_libraries(test_neural_ode PRIVATE dilaton)
+    target_link_libraries(test_neural_ode PRIVATE quantumverse_core)
     add_test(NAME NeuralOdeTest COMMAND test_neural_ode)
 
     add_executable(test_neural_ode_onnx tests/test_neural_ode_onnx.cpp)
-    target_link_libraries(test_neural_ode_onnx PRIVATE dilaton)
+    target_link_libraries(test_neural_ode_onnx PRIVATE quantumverse_core)
     add_test(NAME NeuralOdeOnnxTest COMMAND test_neural_ode_onnx)
 
     add_executable(test_curvature_flow tests/test_curvature_flow.cpp)
-    target_link_libraries(test_curvature_flow PRIVATE dilaton)
+    target_link_libraries(test_curvature_flow PRIVATE quantumverse_core)
     add_test(NAME CurvatureFlowTest COMMAND test_curvature_flow)
 
     # Reverse AD test (Phase 1.2)
     add_executable(test_reverse_ad tests/test_reverse_ad.cpp)
-    target_link_libraries(test_reverse_ad PRIVATE dilaton)
+    target_link_libraries(test_reverse_ad PRIVATE quantumverse_core)
     add_test(NAME ReverseADTest COMMAND test_reverse_ad)
 
     # Differentiable benchmark (Phase 1.2)
     add_executable(test_differentiable_benchmark tests/test_differentiable_benchmark.cpp)
-    target_link_libraries(test_differentiable_benchmark PRIVATE dilaton)
+    target_link_libraries(test_differentiable_benchmark PRIVATE quantumverse_core)
     add_test(NAME DifferentiableBenchmarkTest COMMAND test_differentiable_benchmark)
 
     add_executable(test_rl_discovery tests/test_rl_discovery.cpp)
-    target_link_libraries(test_rl_discovery PRIVATE dilaton)
+    target_link_libraries(test_rl_discovery PRIVATE quantumverse_core)
     add_test(NAME RlDiscoveryTest COMMAND test_rl_discovery)
 
     add_executable(test_anomaly_detection tests/test_anomaly_detection.cpp)
-    target_link_libraries(test_anomaly_detection PRIVATE dilaton)
+    target_link_libraries(test_anomaly_detection PRIVATE quantumverse_core)
     add_test(NAME AnomalyDetectionTest COMMAND test_anomaly_detection)
 
     add_executable(test_solar_system tests/test_solar_system.cpp)
-    target_link_libraries(test_solar_system PRIVATE dilaton)
+    target_link_libraries(test_solar_system PRIVATE quantumverse_core)
     add_test(NAME SolarSystemTest COMMAND test_solar_system)
 
     # Kerr metric test
 if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_kerr_metric.cpp)
     add_executable(test_kerr_metric
         tests/test_kerr_metric.cpp
-        src/spacetime/KerrMetric.cpp)
-    target_link_libraries(test_kerr_metric PRIVATE dilaton)
+    )
+    target_link_libraries(test_kerr_metric PRIVATE quantumverse_core)
     add_test(NAME KerrMetricTest COMMAND test_kerr_metric)
 endif()
 
@@ -1515,16 +1370,13 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_lensing.cpp)
     # Gravitational lensing test
     add_executable(test_lensing
         tests/test_lensing.cpp
-        src/spacetime/KerrMetric.cpp
-        src/physics/KerrGeodesic.cpp
-        src/rendering/GravitationalLensing.cpp
-        third_party/glad/glad.cpp)
+    )
     target_include_directories(test_lensing PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party
         ${CMAKE_SOURCE_DIR}/third_party/glad/include
         ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad)
-    target_link_libraries(test_lensing PRIVATE dilaton)
+    target_link_libraries(test_lensing PRIVATE quantumverse_core)
     if(WIN32)
         target_link_libraries(test_lensing PRIVATE opengl32)
     endif()
@@ -1540,13 +1392,12 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_educational.cpp)
         # Educational tour controller (data model + state machine)
         add_executable(test_educational
             tests/test_educational.cpp
-            src/education/EducationalTour.cpp
-            src/education/TourController.cpp
-            src/education/TourManager.cpp)
+        )
         target_include_directories(test_educational PRIVATE
             ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_SOURCE_DIR}/third_party)
-        target_link_libraries(test_educational PRIVATE Qt6::Core Qt6::Gui dilaton)
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
+        target_link_libraries(test_educational PRIVATE Qt6::Core Qt6::Gui quantumverse_core)
         add_test(NAME EducationalTourTest COMMAND test_educational)
         set_tests_properties(EducationalTourTest PROPERTIES
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -1560,14 +1411,13 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_tour_manager.cpp)
         # TourManager directory scanner (smoke test against data/tours/)
         add_executable(test_tour_manager
             tests/test_tour_manager.cpp
-            src/education/EducationalTour.cpp
-            src/education/TourManager.cpp)
+        )
         target_include_directories(test_tour_manager PRIVATE
             ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_SOURCE_DIR}/third_party)
+            ${CMAKE_SOURCE_DIR}/third_party
+        )
         target_link_libraries(test_tour_manager PRIVATE
-            dilaton
-            nlohmann_json::nlohmann_json
+            quantumverse_core
             Qt6::Core
             Qt6::Gui
         )
@@ -1583,163 +1433,140 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_pbr_rendering.cpp)
     # PBR rendering test
     add_executable(test_pbr_rendering
         tests/test_pbr_rendering.cpp
-        src/rendering/ProceduralTextures.cpp
     )
     target_include_directories(test_pbr_rendering PRIVATE ${CMAKE_SOURCE_DIR}/src)
-    target_link_libraries(test_pbr_rendering PRIVATE dilaton)
+    target_link_libraries(test_pbr_rendering PRIVATE quantumverse_core)
     add_test(NAME PBRRenderingTest COMMAND test_pbr_rendering)
 endif()
 
     add_executable(test_geodesic tests/test_geodesic.cpp)
-    target_link_libraries(test_geodesic PRIVATE dilaton)
+    target_link_libraries(test_geodesic PRIVATE quantumverse_core)
     add_test(NAME GeodesicTest COMMAND test_geodesic)
 
     # Sandbox: geodesic divergence benchmark at high Kerr spins
     add_executable(test_geodesic_divergence
         tests/test_geodesic_divergence.cpp
-        src/spacetime/KerrMetric.cpp
     )
-    target_link_libraries(test_geodesic_divergence PRIVATE dilaton)
+    target_link_libraries(test_geodesic_divergence PRIVATE quantumverse_core)
     add_test(NAME GeodesicDivergenceTest COMMAND test_geodesic_divergence)
 
     # ML dead-UI fix: AnomalyMonitor modelLoaded gating
     add_executable(test_ml_dead_ui
         tests/test_ml_dead_ui.cpp
-        src/ml/AnomalyMonitor.cpp
-        src/ml/AnomalyDetector.cpp
     )
-    target_link_libraries(test_ml_dead_ui PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Quick Qt6::Widgets Qt6::Test)
+    target_link_libraries(test_ml_dead_ui PRIVATE quantumverse_core Qt6::Core Qt6::Gui Qt6::Quick Qt6::Widgets Qt6::Test)
     target_include_directories(test_ml_dead_ui PRIVATE ${CMAKE_SOURCE_DIR}/tests)
     target_compile_definitions(test_ml_dead_ui PRIVATE QUANTUMVERSE_USE_QML)
     add_test(NAME MLDeadUITest COMMAND test_ml_dead_ui)
 
     add_executable(test_singularity_handler tests/test_singularity_handler.cpp)
-    target_link_libraries(test_singularity_handler PRIVATE dilaton)
+    target_link_libraries(test_singularity_handler PRIVATE quantumverse_core)
     add_test(NAME SingularityHandlerTest COMMAND test_singularity_handler)
 
     # Scenario integration test (headless pipeline validation)
     add_executable(test_scenario_integration
         tests/integration/test_scenario_integration.cpp
-        src/ui4d/SceneGraphManager.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
     )
-    target_link_libraries(test_scenario_integration PRIVATE dilaton)
+    target_link_libraries(test_scenario_integration PRIVATE quantumverse_core)
     add_test(NAME ScenarioIntegrationTest COMMAND test_scenario_integration)
 
     # Neutron star glitch phase detector (discovery instrument)
     add_executable(test_neutron_glitch
         tests/test_neutron_glitch.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
     )
-    target_link_libraries(test_neutron_glitch PRIVATE dilaton)
+    target_link_libraries(test_neutron_glitch PRIVATE quantumverse_core)
     add_test(NAME NeutronStarGlitchTest COMMAND test_neutron_glitch)
 
     # Ultralight DM wave interferometer (discovery instrument)
     add_executable(test_ultralight_dm_wave
         tests/test_ultralight_dm_wave.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
     )
-    target_link_libraries(test_ultralight_dm_wave PRIVATE dilaton)
+    target_link_libraries(test_ultralight_dm_wave PRIVATE quantumverse_core)
     add_test(NAME UltralightDMWaveTest COMMAND test_ultralight_dm_wave)
 
     # Galactic rotation curve scanner (discovery instrument)
     add_executable(test_galactic_rotation_curve
         tests/test_galactic_rotation_curve.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
     )
-    target_link_libraries(test_galactic_rotation_curve PRIVATE dilaton)
+    target_link_libraries(test_galactic_rotation_curve PRIVATE quantumverse_core)
     add_test(NAME GalacticRotationCurveTest COMMAND test_galactic_rotation_curve)
 
     # Fine-structure constant drift observatory (discovery instrument)
     add_executable(test_fine_structure_drift
         tests/test_fine_structure_drift.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
     )
-    target_link_libraries(test_fine_structure_drift PRIVATE dilaton)
+    target_link_libraries(test_fine_structure_drift PRIVATE quantumverse_core)
     add_test(NAME FineStructureConstantDriftTest COMMAND test_fine_structure_drift)
 
     # Boson star collision predictor (discovery instrument)
     add_executable(test_boson_star_collision
         tests/test_boson_star_collision.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
     )
-    target_link_libraries(test_boson_star_collision PRIVATE dilaton)
+    target_link_libraries(test_boson_star_collision PRIVATE quantumverse_core)
     add_test(NAME BosonStarCollisionTest COMMAND test_boson_star_collision)
 
     # Hawking radiation detector (discovery instrument)
     add_executable(test_hawking_radiation_detector
         tests/discovery/test_hawking_radiation_detector.cpp
-        src/discovery/HawkingRadiationDetector.cpp
     )
-    target_link_libraries(test_hawking_radiation_detector PRIVATE dilaton)
+    target_link_libraries(test_hawking_radiation_detector PRIVATE quantumverse_core)
     add_test(NAME HawkingRadiationDetectorTest COMMAND test_hawking_radiation_detector)
 
     # Kerr no-hair violation analyzer (discovery instrument)
     add_executable(test_kerr_no_hair_violation
         tests/discovery/test_kerr_no_hair_violation_analyzer.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
     )
-    target_link_libraries(test_kerr_no_hair_violation PRIVATE dilaton)
+    target_link_libraries(test_kerr_no_hair_violation PRIVATE quantumverse_core)
     add_test(NAME KerrNoHairViolationTest COMMAND test_kerr_no_hair_violation)
 
     # Merging binary inspiral analyzer (discovery instrument)
     add_executable(test_merging_binary_inspiral
         tests/discovery/test_merging_binary_inspiral_analyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
     )
-    target_link_libraries(test_merging_binary_inspiral PRIVATE dilaton)
+    target_link_libraries(test_merging_binary_inspiral PRIVATE quantumverse_core)
     add_test(NAME MergingBinaryInspiralTest COMMAND test_merging_binary_inspiral)
 
     # Black hole jet anomaly recogniser (discovery instrument)
     add_executable(test_black_hole_jet_anomaly
         tests/test_black_hole_jet_anomaly.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
     )
-    target_link_libraries(test_black_hole_jet_anomaly PRIVATE dilaton)
+    target_link_libraries(test_black_hole_jet_anomaly PRIVATE quantumverse_core)
     add_test(NAME BlackHoleJetAnomalyTest COMMAND test_black_hole_jet_anomaly)
 
     # Primordial lithium crisis solver (discovery instrument)
     add_executable(test_primordial_lithium
         tests/test_primordial_lithium.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
     )
-    target_link_libraries(test_primordial_lithium PRIVATE dilaton)
+    target_link_libraries(test_primordial_lithium PRIVATE quantumverse_core)
     add_test(NAME PrimordialLithiumCrisisTest COMMAND test_primordial_lithium)
 
     # Galactic tidal stream cartographer (discovery instrument)
     add_executable(test_galactic_tidal_stream
         tests/test_galactic_tidal_stream.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
     )
-    target_link_libraries(test_galactic_tidal_stream PRIVATE dilaton)
+    target_link_libraries(test_galactic_tidal_stream PRIVATE quantumverse_core)
     add_test(NAME GalacticTidalStreamTest COMMAND test_galactic_tidal_stream)
 
     # Recombination constant variation imager (discovery instrument)
     add_executable(test_recombination_constant_variation
         tests/test_recombination_constant_variation.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
     )
-    target_link_libraries(test_recombination_constant_variation PRIVATE dilaton)
+    target_link_libraries(test_recombination_constant_variation PRIVATE quantumverse_core)
     add_test(NAME RecombinationConstantVariationTest COMMAND test_recombination_constant_variation)
 
     # Exoplanetary TTV fifth-force hunter (discovery instrument)
     add_executable(test_exoplanetary_ttv
         tests/test_exoplanetary_ttv.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
     )
-    target_link_libraries(test_exoplanetary_ttv PRIVATE dilaton)
+    target_link_libraries(test_exoplanetary_ttv PRIVATE quantumverse_core)
     add_test(NAME ExoplanetaryTTVFifthForceHunterTest COMMAND test_exoplanetary_ttv)
 
     # Neural ODE accuracy test
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_neural_ode_accuracy.cpp)
         add_executable(test_neural_ode_accuracy
             tests/test_neural_ode_accuracy.cpp
-            src/ml/GeodesicNeuralODE.cpp
         )
-        target_link_libraries(test_neural_ode_accuracy PRIVATE dilaton)
+        target_link_libraries(test_neural_ode_accuracy PRIVATE quantumverse_core)
         add_test(NAME NeuralODEAccuracyTest COMMAND test_neural_ode_accuracy WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     endif()
 
@@ -1747,9 +1574,8 @@ endif()
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_metric_gnn.cpp)
         add_executable(test_metric_gnn
             tests/test_metric_gnn.cpp
-            src/ml/MetricGNN.cpp
         )
-        target_link_libraries(test_metric_gnn PRIVATE dilaton)
+        target_link_libraries(test_metric_gnn PRIVATE quantumverse_core)
         add_test(NAME MetricGNNTest COMMAND test_metric_gnn)
     endif()
 
@@ -1757,12 +1583,8 @@ endif()
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_surrogate_integration.cpp)
         add_executable(test_surrogate_integration
             tests/test_surrogate_integration.cpp
-            src/ml/SurrogateIntegration.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            src/ml/MetricGNN.cpp
-            src/ml/BVHAcceleratedMetricQuery.cpp
         )
-        target_link_libraries(test_surrogate_integration PRIVATE dilaton)
+        target_link_libraries(test_surrogate_integration PRIVATE quantumverse_core)
         add_test(NAME SurrogateIntegrationTest COMMAND test_surrogate_integration)
     endif()
 
@@ -1771,16 +1593,7 @@ endif()
         add_executable(test_multimessenger
             tests/test_multimessenger.cpp
         )
-        if(EXISTS ${CMAKE_SOURCE_DIR}/src/data/MultiMessengerAdapter.cpp)
-            target_sources(test_multimessenger PRIVATE src/data/MultiMessengerAdapter.cpp)
-        endif()
-        if(EXISTS ${CMAKE_SOURCE_DIR}/src/data/LIGOAdapter.cpp)
-            target_sources(test_multimessenger PRIVATE src/data/LIGOAdapter.cpp)
-        endif()
-        if(EXISTS ${CMAKE_SOURCE_DIR}/src/data/IceCubeAdapter.cpp)
-            target_sources(test_multimessenger PRIVATE src/data/IceCubeAdapter.cpp)
-        endif()
-        target_link_libraries(test_multimessenger PRIVATE dilaton)
+        target_link_libraries(test_multimessenger PRIVATE quantumverse_core)
         add_test(NAME MultiMessengerTest COMMAND test_multimessenger)
     endif()
 
@@ -1788,9 +1601,8 @@ endif()
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_anomaly_detector.cpp)
         add_executable(test_anomaly_detector
             tests/test_anomaly_detector.cpp
-            src/ml/AnomalyDetector.cpp
         )
-        target_link_libraries(test_anomaly_detector PRIVATE dilaton)
+        target_link_libraries(test_anomaly_detector PRIVATE quantumverse_core)
         add_test(NAME AnomalyDetectorTest COMMAND test_anomaly_detector)
     endif()
 
@@ -1798,10 +1610,8 @@ endif()
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_training_data_collector.cpp)
         add_executable(test_training_data_collector
             tests/test_training_data_collector.cpp
-            src/ml/TrainingDataCollector.cpp
-            src/ml/AnomalyDetector.cpp
         )
-        target_link_libraries(test_training_data_collector PRIVATE dilaton)
+        target_link_libraries(test_training_data_collector PRIVATE quantumverse_core)
         add_test(NAME TrainingDataCollectorTest COMMAND test_training_data_collector)
     endif()
 
@@ -1809,9 +1619,8 @@ endif()
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_session_recorder.cpp)
         add_executable(test_session_recorder
             tests/test_session_recorder.cpp
-            src/ml/SessionRecorder.cpp
         )
-        target_link_libraries(test_session_recorder PRIVATE dilaton)
+        target_link_libraries(test_session_recorder PRIVATE quantumverse_core)
         add_test(NAME SessionRecorderTest COMMAND test_session_recorder)
     endif()
 
@@ -1820,11 +1629,8 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_anomaly_monitor.cpp)
             add_executable(test_anomaly_monitor
                 tests/test_anomaly_monitor.cpp
-                src/ml/AnomalyMonitor.cpp
-                src/ml/AnomalyDetector.cpp
-                src/discovery/FindingsModel.cpp
             )
-            target_link_libraries(test_anomaly_monitor PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test)
+            target_link_libraries(test_anomaly_monitor PRIVATE quantumverse_core Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test)
             set_target_properties(test_anomaly_monitor PROPERTIES AUTOMOC ON)
             target_compile_definitions(test_anomaly_monitor PRIVATE QUANTUMVERSE_USE_QML)
             add_test(NAME AnomalyMonitorTest COMMAND test_anomaly_monitor)
@@ -1840,11 +1646,8 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_minimal_construct.cpp)
             add_executable(test_minimal_construct
                 tests/test_minimal_construct.cpp
-                src/ml/AnomalyMonitor.cpp
-                src/ml/AnomalyDetector.cpp
-                src/discovery/FindingsModel.cpp
             )
-            target_link_libraries(test_minimal_construct PRIVATE dilaton Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test)
+            target_link_libraries(test_minimal_construct PRIVATE quantumverse_core Qt6::Core Qt6::Gui Qt6::Quick Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test)
             set_target_properties(test_minimal_construct PROPERTIES AUTOMOC ON)
             target_compile_definitions(test_minimal_construct PRIVATE QUANTUMVERSE_USE_QML)
             add_test(NAME MinimalConstructTest COMMAND test_minimal_construct)
@@ -1861,29 +1664,24 @@ endif()
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_fermi_gbm_adapter.cpp)
             add_executable(test_fermi_gbm_adapter
                 tests/data/test_fermi_gbm_adapter.cpp
-                src/data/FermiGBMAdapter.cpp
             )
-            target_link_libraries(test_fermi_gbm_adapter PRIVATE dilaton Qt6::Core)
-            add_test(NAME FermiGBMAdapterTest COMMAND test_fermi_gbm_adapter)
+            target_link_libraries(test_fermi_gbm_adapter PRIVATE quantumverse_core Qt6::Core)
         endif()
 
         # Phase 12: Swift BAT adapter unit test
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_swift_bat_adapter.cpp)
             add_executable(test_swift_bat_adapter
                 tests/data/test_swift_bat_adapter.cpp
-                src/data/SwiftBATAdapter.cpp
             )
-            target_link_libraries(test_swift_bat_adapter PRIVATE dilaton Qt6::Core)
-            add_test(NAME SwiftBATAdapterTest COMMAND test_swift_bat_adapter)
+            target_link_libraries(test_swift_bat_adapter PRIVATE quantumverse_core Qt6::Core)
         endif()
 
         # Phase 12: GCN parser unit test
         if(EXISTS ${CMAKE_SOURCE_DIR}/tests/data/test_gcn_parser.cpp)
             add_executable(test_gcn_parser
                 tests/data/test_gcn_parser.cpp
-                src/data/GCNNoticeParser.cpp
             )
-            target_link_libraries(test_gcn_parser PRIVATE dilaton Qt6::Core)
+            target_link_libraries(test_gcn_parser PRIVATE quantumverse_core Qt6::Core)
             add_test(NAME GCNParserTest COMMAND test_gcn_parser)
         endif()
 
@@ -2213,32 +2011,26 @@ endif()
     # 3.3 Quantum gravity self-consistency
     add_executable(test_quantum_gravity_consistency
         tests/test_quantum_gravity_consistency.cpp
-        src/quantumgravity/CDTEngine.cpp
-        src/quantumgravity/CausalSet.cpp
-        src/quantumgravity/SpinFoam.cpp
-        src/quantumgravity/SpinNetwork.cpp
     )
-    target_link_libraries(test_quantum_gravity_consistency PRIVATE dilaton)
+    target_link_libraries(test_quantum_gravity_consistency PRIVATE quantumverse_core)
     add_test(NAME QuantumGravityConsistencyTest COMMAND test_quantum_gravity_consistency)
 
     # 3.4 Automatic differentiation validation
     add_executable(test_autodiff_validation tests/test_autodiff_validation.cpp)
-    target_link_libraries(test_autodiff_validation PRIVATE dilaton)
+    target_link_libraries(test_autodiff_validation PRIVATE quantumverse_core)
     add_test(NAME AutoDiffValidationTest COMMAND test_autodiff_validation)
 
     # 3.5 Reverse-mode adjoint AD (tape-based)
     add_executable(test_adjoint tests/test_adjoint.cpp)
-    target_link_libraries(test_adjoint PRIVATE dilaton)
+    target_link_libraries(test_adjoint PRIVATE quantumverse_core)
     add_test(NAME AdjointTest COMMAND test_adjoint)
 
     # Physics & spacetime absolute correctness ??? curvature unit consistency
     if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_curvature_units
         tests/test_curvature_units.cpp
-        src/spacetime/KerrMetric.cpp
-        src/ui4d/Camera4DAdapter.cpp
     )
-    target_link_libraries(test_curvature_units PRIVATE dilaton Qt6::Gui Qt6::Widgets)
+    target_link_libraries(test_curvature_units PRIVATE quantumverse_core Qt6::Gui Qt6::Widgets)
     set_target_properties(test_curvature_units PROPERTIES AUTOMOC ON)
     target_compile_definitions(test_curvature_units PRIVATE QUANTUMVERSE_USE_QML)
     add_test(NAME CurvatureUnitsTest COMMAND test_curvature_units)
@@ -2247,52 +2039,40 @@ endif()
     # 18.1 Exhaustive exact solution validation (60 test functions)
     add_executable(test_full_exact_solutions
         tests/physics/test_full_exact_solutions.cpp
-        src/physics/CurvatureCalculator.cpp
-        src/physics/GeodesicDeviation.cpp
-        src/spacetime/DilatonMetric.cpp
     )
-    target_link_libraries(test_full_exact_solutions PRIVATE dilaton)
+    target_link_libraries(test_full_exact_solutions PRIVATE quantumverse_core)
     add_test(NAME FullExactSolutionsTest COMMAND test_full_exact_solutions)
 
     # Quick geodesic diagnostic
     add_executable(test_geodesic_quick tests/physics/test_geodesic_quick.cpp)
-    target_link_libraries(test_geodesic_quick PRIVATE dilaton)
+    target_link_libraries(test_geodesic_quick PRIVATE quantumverse_core)
     add_test(NAME GeodesicQuickTest COMMAND test_geodesic_quick)
 
     # Phase 33: Adjoint geodesic integrator
     add_executable(test_adjoint_geodesic tests/physics/test_adjoint_geodesic.cpp)
-    target_link_libraries(test_adjoint_geodesic PRIVATE dilaton)
+    target_link_libraries(test_adjoint_geodesic PRIVATE quantumverse_core)
     add_test(NAME AdjointGeodesicTest COMMAND test_adjoint_geodesic)
 
     # 18.2 Numerical convergence & error analysis
     add_executable(test_numerical_convergence
         tests/physics/test_numerical_convergence.cpp
-        src/physics/CurvatureCalculator.cpp
     )
-    target_link_libraries(test_numerical_convergence PRIVATE dilaton)
+    target_link_libraries(test_numerical_convergence PRIVATE quantumverse_core)
     add_test(NAME NumericalConvergenceTest COMMAND test_numerical_convergence)
 
     # 18.3 Conservation laws & invariant monitoring
     add_executable(test_conservation_laws
         tests/physics/test_conservation_laws.cpp
-        src/physics/CurvatureCalculator.cpp
-        src/physics/GeodesicDeviation.cpp
     )
-    target_link_libraries(test_conservation_laws PRIVATE dilaton)
+    target_link_libraries(test_conservation_laws PRIVATE quantumverse_core)
     add_test(NAME ConservationLawsTest COMMAND test_conservation_laws)
 
     # 18.4 Singularity & extreme regime robustness
     if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_extreme_regimes
         tests/physics/test_extreme_regimes.cpp
-        src/physics/PhysicsValidator.cpp
-        src/physics/CurvatureCalculator.cpp
-        src/spacetime/DilatonMetric.cpp
-        src/rendering/CurvatureRenderer.cpp
-        src/ml/GeodesicNeuralODE.cpp
-        third_party/glad/glad.cpp
     )
-    target_link_libraries(test_extreme_regimes PRIVATE dilaton Qt6::Gui)
+    target_link_libraries(test_extreme_regimes PRIVATE quantumverse_core Qt6::Gui)
     target_include_directories(test_extreme_regimes PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party
@@ -2335,12 +2115,8 @@ endif()
         # 19.2 Signal/data fidelity across multi-messenger pipeline (25 test functions)
         add_executable(test_signal_fidelity
             tests/data/test_signal_fidelity.cpp
-            src/data/GCNNoticeParser.cpp
-            src/data/MultiMessengerCorrelator.cpp
-            src/data/AlertRouter.cpp
-            src/discovery/UltralightDMWaveInterferometer.cpp
         )
-        target_link_libraries(test_signal_fidelity PRIVATE dilaton Qt6::Core Qt6::Test)
+        target_link_libraries(test_signal_fidelity PRIVATE quantumverse_core Qt6::Core Qt6::Test)
         set_target_properties(test_signal_fidelity PROPERTIES AUTOMOC ON)
         add_test(NAME SignalFidelityTest COMMAND test_signal_fidelity)
         set_tests_properties(SignalFidelityTest PROPERTIES
@@ -2443,18 +2219,9 @@ endif()
         # blank-output regressions via FBO pixel readback.
         add_executable(test_rendering_diagnostic
             tests/rendering/test_rendering_diagnostic.cpp
-            src/rendering/CurvatureRenderer.cpp
-            src/rendering/CelestialBodyRenderer.cpp
-            src/rendering/ProceduralTextures.cpp
-            src/rendering/Texture.cpp
-            src/physics/CurvatureCalculator.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            src/rendering/GravitationalLensing.cpp
-            src/spacetime/KerrMetric.cpp
-            third_party/glad/glad.cpp
         )
         target_link_libraries(test_rendering_diagnostic PRIVATE
-            Qt6::Core Qt6::Gui dilaton)
+            Qt6::Core Qt6::Gui quantumverse_core)
         target_include_directories(test_rendering_diagnostic PRIVATE
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
@@ -2474,16 +2241,9 @@ endif()
         # frames with wireframe toggling, verifying GL state is clean.
         add_executable(test_viewport_state_test
             tests/rendering/test_viewport_state_test.cpp
-            src/rendering/CurvatureRenderer.cpp
-            src/rendering/CelestialBodyRenderer.cpp
-            src/rendering/ProceduralTextures.cpp
-            src/rendering/Texture.cpp
-            src/physics/CurvatureCalculator.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            third_party/glad/glad.cpp
         )
         target_link_libraries(test_viewport_state_test PRIVATE
-            Qt6::Core Qt6::Gui dilaton)
+            Qt6::Core Qt6::Gui quantumverse_core)
         target_include_directories(test_viewport_state_test PRIVATE
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
@@ -2506,16 +2266,9 @@ endif()
         # scene, and no red geodesic leakage via glReadPixels histogram analysis.
         add_executable(test_viewport_content_test
             tests/rendering/test_viewport_content_test.cpp
-            src/rendering/CurvatureRenderer.cpp
-            src/rendering/CelestialBodyRenderer.cpp
-            src/rendering/ProceduralTextures.cpp
-            src/rendering/Texture.cpp
-            src/physics/CurvatureCalculator.cpp
-            src/ml/GeodesicNeuralODE.cpp
-            third_party/glad/glad.cpp
         )
         target_link_libraries(test_viewport_content_test PRIVATE
-            Qt6::Core Qt6::Gui dilaton)
+            Qt6::Core Qt6::Gui quantumverse_core)
         target_include_directories(test_viewport_content_test PRIVATE
             ${CMAKE_SOURCE_DIR}/third_party/glad/include
             ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
@@ -2546,50 +2299,26 @@ endif()
     add_test(NAME DifferentialTest COMMAND test_differential)
 
     add_executable(test_symbolic_execution tests/verification/harness_geodesic.cpp)
-    target_link_libraries(test_symbolic_execution PRIVATE dilaton)
+    target_link_libraries(test_symbolic_execution PRIVATE quantumverse_core)
     add_test(NAME SymbolicExecutionTest COMMAND test_symbolic_execution)
 
     add_executable(test_cbmc_verification tests/verification/harness_metric.cpp)
-    target_link_libraries(test_cbmc_verification PRIVATE dilaton)
+    target_link_libraries(test_cbmc_verification PRIVATE quantumverse_core)
     add_test(NAME CBMCVerificationTest COMMAND test_cbmc_verification)
 
     add_executable(test_stress_extreme tests/verification/harness_geodesic.cpp)
-    target_link_libraries(test_stress_extreme PRIVATE dilaton)
+    target_link_libraries(test_stress_extreme PRIVATE quantumverse_core)
     add_test(NAME StressExtremeTest COMMAND test_stress_extreme)
 
     add_executable(test_dilaton tests/verification/harness_metric.cpp)
-    target_link_libraries(test_dilaton PRIVATE dilaton)
+    target_link_libraries(test_dilaton PRIVATE quantumverse_core)
     add_test(NAME DilatonTest COMMAND test_dilaton)
 
     add_executable(test_instrument_audit
         tests/discovery/test_instrument_audit.cpp
-        src/discovery/DiscoveryPanelManager.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
-        src/discovery/GWMemoryDetector.cpp
-        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
-        src/discovery/ECORingdownAnalyzer.cpp
-        src/discovery/SGWBBackgroundAnalyzer.cpp
-        src/discovery/DarkMatterAnnihilationAnalyzer.cpp
     )
     message(STATUS "Linking test_instrument_audit")
-    target_link_libraries(test_instrument_audit PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_instrument_audit PRIVATE quantumverse_core Qt6::Core)
     message(STATUS "Adding InstrumentAuditTest")
     add_test(NAME InstrumentAuditTest COMMAND test_instrument_audit)
     message(STATUS "InstrumentAuditTest added")
@@ -2597,112 +2326,30 @@ endif()
     # 6.2 Symbolic regression sanity
     add_executable(test_symbolic_regression
         tests/discovery/test_symbolic_regression.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
-        src/discovery/GWMemoryDetector.cpp
-        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
-        src/discovery/SymbolicMath.cpp
-        src/discovery/DiscoveryEngine.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_symbolic_regression PRIVATE dilaton)
+    target_link_libraries(test_symbolic_regression PRIVATE quantumverse_core)
     add_test(NAME SymbolicRegressionSanityTest COMMAND test_symbolic_regression)
 
     # 6.3 RL agent convergence
     add_executable(test_rl_agent
         tests/discovery/test_rl_agent.cpp
-        src/discovery/RLDiscoveryAgent.cpp
     )
-    target_link_libraries(test_rl_agent PRIVATE dilaton)
+    target_link_libraries(test_rl_agent PRIVATE quantumverse_core)
     add_test(NAME RLAgentConvergenceTest COMMAND test_rl_agent WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
     # 6.4 Discovery pipeline integration
     add_executable(test_discovery_pipeline
         tests/discovery/test_discovery_pipeline.cpp
-        src/discovery/DiscoveryPanelManager.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
-        src/discovery/GWMemoryDetector.cpp
-        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
-        src/discovery/DiscoveryEngine.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_discovery_pipeline PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_discovery_pipeline PRIVATE quantumverse_core Qt6::Core)
     add_test(NAME DiscoveryPipelineIntegrationTest COMMAND test_discovery_pipeline)
 
     # 6.6 Theory discovery agent (Phase 22.1)
     if(QUANTUMVERSE_USE_QT)
     add_executable(test_theory_discovery_agent
         tests/discovery/test_theory_discovery_agent.cpp
-        src/discovery/TheoryDiscoveryAgent.cpp
-        src/discovery/TheoryParameterSpace.cpp
-        src/discovery/TheorySurrogate.cpp
-        src/discovery/RLDiscoveryAgent.cpp
-        src/discovery/TheoryManager.cpp
-        src/discovery/DiscoveryPanelManager.cpp
-        src/data/MultiMessengerCorrelator.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
-        src/discovery/FRBDispersionScanner.cpp
-        src/discovery/CosmicShearScanner.cpp
-        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
-        src/discovery/SymbolicMath.cpp
-        src/discovery/DiscoveryEngine.cpp
-        src/discovery/PaperGenerator.cpp
-        src/data/GCNNoticeParser.cpp
-        src/physics/CurvatureCalculator.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
-        src/experiment/ScanSummaryBuilder.cpp
     )
-    target_link_libraries(test_theory_discovery_agent PRIVATE dilaton Qt6::Core Qt6::Test)
+    target_link_libraries(test_theory_discovery_agent PRIVATE quantumverse_core Qt6::Core Qt6::Test)
     target_compile_definitions(test_theory_discovery_agent PRIVATE QUANTUMVERSE_USE_QT=1)
     set_target_properties(test_theory_discovery_agent PROPERTIES AUTOMOC ON)
     add_test(NAME TheoryDiscoveryAgentTest COMMAND test_theory_discovery_agent)
@@ -2711,41 +2358,8 @@ endif()
     # Phase 33: Gradient-based theory optimizer
     add_executable(test_gradient_optimizer
         tests/discovery/test_gradient_optimizer.cpp
-        src/discovery/TheoryDiscoveryAgent.cpp
-        src/discovery/TheoryParameterSpace.cpp
-        src/discovery/TheorySurrogate.cpp
-        src/discovery/RLDiscoveryAgent.cpp
-        src/discovery/TheoryManager.cpp
-        src/discovery/DiscoveryPanelManager.cpp
-        src/data/MultiMessengerCorrelator.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
-        src/discovery/FRBDispersionScanner.cpp
-        src/discovery/CosmicShearScanner.cpp
-        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
-        src/discovery/SymbolicMath.cpp
-        src/discovery/DiscoveryEngine.cpp
-        src/data/GCNNoticeParser.cpp
-        src/physics/CurvatureCalculator.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_gradient_optimizer PRIVATE dilaton Qt6::Core Qt6::Test)
+    target_link_libraries(test_gradient_optimizer PRIVATE quantumverse_core Qt6::Core Qt6::Test)
     set_target_properties(test_gradient_optimizer PROPERTIES AUTOMOC ON)
     add_test(NAME GradientOptimizerTest COMMAND test_gradient_optimizer)
     set_tests_properties(GradientOptimizerTest PROPERTIES TIMEOUT 600)
@@ -2785,10 +2399,9 @@ endif()
         src/data/GCNNoticeParser.cpp
         src/discovery/PaperGenerator.cpp
         src/experiment/ScanSummaryBuilder.cpp
-        src/physics/CurvatureCalculator.cpp
         src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_adjoint_gradient_optimizer PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_adjoint_gradient_optimizer PRIVATE quantumverse_core Qt6::Core)
     target_include_directories(test_adjoint_gradient_optimizer PRIVATE
         ${CMAKE_SOURCE_DIR}/tests
         ${CMAKE_SOURCE_DIR}/src
@@ -2800,73 +2413,32 @@ endif()
     # Phase 33.6: Generalized adjoint integrator
     add_executable(test_generalized_adjoint
         tests/physics/test_generalized_adjoint.cpp
-        src/discovery/TheoryDiscoveryAgent.cpp
-        src/discovery/TheoryParameterSpace.cpp
-        src/discovery/TheorySurrogate.cpp
-        src/discovery/RLDiscoveryAgent.cpp
-        src/discovery/TheoryManager.cpp
-        src/discovery/DiscoveryPanelManager.cpp
-        src/discovery/ExoplanetaryTTVFifthForceHunter.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/discovery/BosonStarCollisionPredictor.cpp
-        src/discovery/HawkingRadiationDetector.cpp
-        src/discovery/KerrNoHairViolationAnalyzer.cpp
-        src/discovery/MergingBinaryInspiralAnalyzer.cpp
-        src/discovery/NeutronStarGlitchPhaseDetector.cpp
-        src/discovery/UltralightDMWaveInterferometer.cpp
-        src/discovery/BlackHoleJetAnomalyRecogniser.cpp
-        src/discovery/PrimordialLithiumCrisisSolver.cpp
-        src/discovery/GalacticTidalStreamCartographer.cpp
-        src/discovery/RecombinationConstantVariationImager.cpp
-        src/discovery/CMBLensingScanner.cpp
-        src/discovery/PTAScanner.cpp
-        src/discovery/FRBDispersionScanner.cpp
-        src/discovery/CosmicShearScanner.cpp
-        src/discovery/GravitationalWaveMemoryAnalyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
-        src/discovery/SymbolicMath.cpp
-        src/discovery/DiscoveryEngine.cpp
-        src/data/GCNNoticeParser.cpp
-        src/physics/CurvatureCalculator.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
-        src/bayesian/BayesianEvidenceCalculator.cpp
     )
-    target_link_libraries(test_generalized_adjoint PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_generalized_adjoint PRIVATE quantumverse_core Qt6::Core)
     add_test(NAME GeneralizedAdjointTest COMMAND test_generalized_adjoint)
     endif()
 
     # 6.5b Yukawa fifth-force modified-gravity plugin
     add_executable(test_yukawa_gravity
         tests/physics/test_yukawa_gravity.cpp
-        src/discovery/DiscoveryEngine.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
     )
-    target_link_libraries(test_yukawa_gravity PRIVATE dilaton)
+    target_link_libraries(test_yukawa_gravity PRIVATE quantumverse_core)
     add_test(NAME YukawaGravityTest COMMAND test_yukawa_gravity)
     set_tests_properties(YukawaGravityTest PROPERTIES LABELS "unit")
 
     # 6.5 Discovery robustness & fallback handling
     add_executable(test_discovery_robustness
         tests/discovery/test_discovery_robustness.cpp
-        src/discovery/DiscoveryPanelManager.cpp
-        src/discovery/GalacticRotationCurveScanner.cpp
-        src/discovery/FineStructureConstantDriftObservatory.cpp
-        src/ml/CurvatureNormalizingFlow.cpp
-        src/ml/GeodesicNeuralODE.cpp
     )
-    target_link_libraries(test_discovery_robustness PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_discovery_robustness PRIVATE quantumverse_core Qt6::Core)
     add_test(NAME DiscoveryRobustnessTest COMMAND test_discovery_robustness)
 
     # Phase 2: Sim-frame correlation test
     if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     add_executable(test_correlation
         tests/discovery/test_correlation.cpp
-        src/data/MultiMessengerCorrelator.cpp
     )
-    target_link_libraries(test_correlation PRIVATE dilaton Qt6::Core)
+    target_link_libraries(test_correlation PRIVATE quantumverse_core Qt6::Core)
     set_target_properties(test_correlation PROPERTIES AUTOMOC ON)
     add_test(NAME SimFrameCorrelationTest COMMAND test_correlation)
     set_tests_properties(SimFrameCorrelationTest PROPERTIES
@@ -2877,9 +2449,8 @@ endif()
     # 6.6 CMB lensing anomaly scanner
     add_executable(test_cmb_lensing_scanner
         tests/discovery/test_cmb_lensing_scanner.cpp
-        src/discovery/CMBLensingScanner.cpp
     )
-    target_link_libraries(test_cmb_lensing_scanner PRIVATE dilaton)
+    target_link_libraries(test_cmb_lensing_scanner PRIVATE quantumverse_core)
     add_test(NAME CMBLensingScannerTest COMMAND test_cmb_lensing_scanner)
 
     # 6.7 Pulsar Timing Array scanner
@@ -2925,77 +2496,68 @@ endif()
     # Neutrino-GW coincidence detector (multi-messenger)
     add_executable(test_neutrino_burst_analyzer
         tests/discovery/test_neutrino_burst_analyzer.cpp
-        src/discovery/NeutrinoBurstAnalyzer.cpp
     )
-    target_link_libraries(test_neutrino_burst_analyzer PRIVATE dilaton)
+    target_link_libraries(test_neutrino_burst_analyzer PRIVATE quantumverse_core)
     add_test(NAME NeutrinoBurstAnalyzerTest COMMAND test_neutrino_burst_analyzer)
 
     # EM kilonova afterglow scanner (multi-messenger)
     add_executable(test_kilonova_afterglow_scanner
         tests/discovery/test_kilonova_afterglow_scanner.cpp
-        src/discovery/KilonovaAfterglowScanner.cpp
     )
-    target_link_libraries(test_kilonova_afterglow_scanner PRIVATE dilaton)
+    target_link_libraries(test_kilonova_afterglow_scanner PRIVATE quantumverse_core)
     add_test(NAME KilonovaAfterglowScannerTest COMMAND test_kilonova_afterglow_scanner)
 
     # Fast Radio Burst analyzer (multi-messenger)
     add_executable(test_fast_radio_burst_analyzer
         tests/discovery/test_fast_radio_burst_analyzer.cpp
-        src/discovery/FastRadioBurstAnalyzer.cpp
     )
-    target_link_libraries(test_fast_radio_burst_analyzer PRIVATE dilaton)
+    target_link_libraries(test_fast_radio_burst_analyzer PRIVATE quantumverse_core)
     add_test(NAME FastRadioBurstAnalyzerTest COMMAND test_fast_radio_burst_analyzer)
 
     # 6.11 GW ringdown scanner (discovery instrument)
     add_executable(test_gw_ringdown_scanner
         tests/discovery/test_gw_ringdown_scanner.cpp
-        src/discovery/GWRingdownScanner.cpp
     )
-    target_link_libraries(test_gw_ringdown_scanner PRIVATE dilaton)
+    target_link_libraries(test_gw_ringdown_scanner PRIVATE quantumverse_core)
     add_test(NAME GWRingdownScannerTest COMMAND test_gw_ringdown_scanner)
 
     # 6.11b GW echo hunter (discovery instrument)
     add_executable(test_gw_echo_hunter
         tests/discovery/test_gw_echo_hunter.cpp
-        src/discovery/GWEchoHunter.cpp
     )
-    target_link_libraries(test_gw_echo_hunter PRIVATE dilaton)
+    target_link_libraries(test_gw_echo_hunter PRIVATE quantumverse_core)
     add_test(NAME GWEchoHunterTest COMMAND test_gw_echo_hunter)
     set_tests_properties(GWEchoHunterTest PROPERTIES LABELS "unit")
 
     # 6.11b-ii ECO ringdown analyzer (discovery instrument)
     add_executable(test_eco_ringdown_analyzer
         tests/discovery/test_eco_ringdown_analyzer.cpp
-        src/discovery/ECORingdownAnalyzer.cpp
     )
-    target_link_libraries(test_eco_ringdown_analyzer PRIVATE dilaton)
+    target_link_libraries(test_eco_ringdown_analyzer PRIVATE quantumverse_core)
     add_test(NAME ECORingdownAnalyzerTest COMMAND test_eco_ringdown_analyzer)
     set_tests_properties(ECORingdownAnalyzerTest PROPERTIES LABELS "unit")
 
     # 6.11b-iii Stochastic Gravitational-Wave Background (SGWB) analyzer
     add_executable(test_sgwb_analyzer
         tests/discovery/test_sgwb_analyzer.cpp
-        src/discovery/SGWBBackgroundAnalyzer.cpp
     )
-    target_link_libraries(test_sgwb_analyzer PRIVATE dilaton)
+    target_link_libraries(test_sgwb_analyzer PRIVATE quantumverse_core)
     add_test(NAME SGWBAnalyzerTest COMMAND test_sgwb_analyzer)
     set_tests_properties(SGWBAnalyzerTest PROPERTIES LABELS "unit")
 
     # 6.11b-iv Dark Matter Annihilation Signal analyzer
     add_executable(test_dm_annihilation_analyzer
         tests/discovery/test_dm_annihilation_analyzer.cpp
-        src/discovery/DarkMatterAnnihilationAnalyzer.cpp
     )
-    target_link_libraries(test_dm_annihilation_analyzer PRIVATE dilaton)
+    target_link_libraries(test_dm_annihilation_analyzer PRIVATE quantumverse_core)
     add_test(NAME DMAnnihilationAnalyzerTest COMMAND test_dm_annihilation_analyzer)
     set_tests_properties(DMAnnihilationAnalyzerTest PROPERTIES LABELS "unit")
 
     # 6.11c PBH microlensing scanner (discovery instrument)
     add_executable(test_pbh_microlensing_scanner
         tests/discovery/test_pbh_microlensing_scanner.cpp
-        src/discovery/PBHMicrolensingScanner.cpp
     )
-    target_link_libraries(test_pbh_microlensing_scanner PRIVATE dilaton)
+    target_link_libraries(test_pbh_microlensing_scanner PRIVATE quantumverse_core)
     add_test(NAME PBHMicrolensingScannerTest COMMAND test_pbh_microlensing_scanner)
     set_tests_properties(PBHMicrolensingScannerTest PROPERTIES LABELS "unit")
 
@@ -3003,15 +2565,14 @@ endif()
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/discovery/test_em_bright_gw_counterpart_detector.cpp)
         add_executable(test_em_bright_gw_counterpart_detector
             tests/discovery/test_em_bright_gw_counterpart_detector.cpp
-            src/discovery/EMBrightGWCounterpartDetector.cpp
         )
-        target_link_libraries(test_em_bright_gw_counterpart_detector PRIVATE dilaton)
+        target_link_libraries(test_em_bright_gw_counterpart_detector PRIVATE quantumverse_core)
         add_test(NAME EMBrightGWCounterpartDetectorTest COMMAND test_em_bright_gw_counterpart_detector)
     endif()
 
     # Phase 21: Symbolic verification companion binary
     add_executable(test_symbolic_verify tests/validation/test_symbolic_verify.cpp)
-    target_link_libraries(test_symbolic_verify PRIVATE dilaton)
+    target_link_libraries(test_symbolic_verify PRIVATE quantumverse_core)
     add_test(NAME SymbolicVerifyTest COMMAND test_symbolic_verify ${CMAKE_SOURCE_DIR}/tests/validation/test_symbolic_verify_input.json)
 
     # Multi-user collaboration tests
@@ -3019,43 +2580,33 @@ endif()
     # library, so they cannot configure/link when Qt is disabled.
     if(QUANTUMVERSE_USE_QT)
         add_executable(test_shared_session tests/unit/test_shared_session.cpp)
-        target_link_libraries(test_shared_session PRIVATE dilaton quantumverse_multi_user)
+        target_link_libraries(test_shared_session PRIVATE quantumverse_core quantumverse_multi_user)
         add_test(NAME SharedSessionTest COMMAND test_shared_session)
 
         add_executable(test_signaling_client tests/unit/test_signaling_client.cpp)
-        target_link_libraries(test_signaling_client PRIVATE dilaton quantumverse_multi_user)
+        target_link_libraries(test_signaling_client PRIVATE quantumverse_core quantumverse_multi_user)
         add_test(NAME SignalingClientTest COMMAND test_signaling_client)
 
         add_executable(test_multi_user_server tests/unit/test_multi_user_server.cpp)
-        target_link_libraries(test_multi_user_server PRIVATE dilaton quantumverse_multi_user)
+        target_link_libraries(test_multi_user_server PRIVATE quantumverse_core quantumverse_multi_user)
         add_test(NAME MultiUserServerTest COMMAND test_multi_user_server)
 
         add_executable(test_vr_networking tests/unit/test_vr_networking.cpp)
-        target_link_libraries(test_vr_networking PRIVATE dilaton quantumverse_multi_user)
+        target_link_libraries(test_vr_networking PRIVATE quantumverse_core quantumverse_multi_user)
         add_test(NAME VRNetworkingTest COMMAND test_vr_networking)
 
         add_executable(test_vr_camera_sync tests/unit/test_vr_camera_sync.cpp)
-        target_link_libraries(test_vr_camera_sync PRIVATE dilaton quantumverse_multi_user)
+        target_link_libraries(test_vr_camera_sync PRIVATE quantumverse_core quantumverse_multi_user)
         add_test(NAME VRCameraSyncTest COMMAND test_vr_camera_sync)
 
         # GW150914 reproduction test (discovery paper pipeline capstone)
-        add_executable(test_gw_ringdown_reproduction tests/unit/test_gw_ringdown_reproduction.cpp
-            src/experiment/ScanSummaryBuilder.cpp
-            src/experiment/experiments/GWRingdownExperiment.cpp
-            src/experiment/experiments/CosmologyExperimentBase.cpp
-            src/spacetime/KerrMetric.cpp
-        )
-        target_link_libraries(test_gw_ringdown_reproduction PRIVATE Qt6::Core dilaton)
+        add_executable(test_gw_ringdown_reproduction tests/unit/test_gw_ringdown_reproduction.cpp)
+        target_link_libraries(test_gw_ringdown_reproduction PRIVATE Qt6::Core quantumverse_core)
         add_test(NAME GWRingdownReproductionTest COMMAND test_gw_ringdown_reproduction)
 
         # Mercury precession reproduction test
-        add_executable(test_mercury_precession_reproduction tests/unit/test_mercury_precession_reproduction.cpp
-            src/experiment/ScanSummaryBuilder.cpp
-            src/experiment/experiments/MercuryPrecessionExperiment.cpp
-            src/experiment/experiments/CosmologyExperimentBase.cpp
-            src/spacetime/KerrMetric.cpp
-        )
-        target_link_libraries(test_mercury_precession_reproduction PRIVATE Qt6::Core dilaton)
+        add_executable(test_mercury_precession_reproduction tests/unit/test_mercury_precession_reproduction.cpp)
+        target_link_libraries(test_mercury_precession_reproduction PRIVATE Qt6::Core quantumverse_core)
         add_test(NAME MercuryPrecessionReproductionTest COMMAND test_mercury_precession_reproduction)
     endif()
 endif()
