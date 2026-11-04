@@ -1150,6 +1150,7 @@ if(QUANTUMVERSE_BUILD_TESTS AND NOT QUANTUMVERSE_BUILD_WASM)
     # Phase 22: Autonomous discovery runner (outputs JSON to stdout)
     add_executable(theory_discovery_runner
         tools/theory_discovery_runner.cpp
+        src/discovery/TheoryDiscoveryAgent.cpp
     )
     target_link_libraries(theory_discovery_runner PRIVATE quantumverse_core)
 
