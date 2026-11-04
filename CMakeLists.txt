@@ -2757,8 +2757,6 @@ if(NOT QUANTUMVERSE_BUILD_WASM)
 
     pybind11_add_module(_geodesic_cpp MODULE
       src/physics/geodesic_pybind.cpp
-      src/physics/CurvatureCalculator.cpp
-      src/spacetime/KerrMetric.cpp
     )
     target_link_libraries(_geodesic_cpp PRIVATE quantumverse_core)
     set_target_properties(_geodesic_cpp PROPERTIES

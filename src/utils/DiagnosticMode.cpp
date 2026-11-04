@@ -18,7 +18,6 @@
 #else
     #include <unistd.h>
     #define ACCESS access
-    #define F_OK F_OK
 #endif
 
 namespace quantumverse {
