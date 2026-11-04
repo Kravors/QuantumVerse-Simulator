@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir -p build-cbmc
           cd build-cbmc
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Build with CBMC
         run: |
@@ -78,14 +78,14 @@ jobs:
         run: |
           mkdir -p build-double
           cd build-double
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build . --parallel 2
 
       - name: Build long double precision
         run: |
           mkdir -p build-long-double
           cd build-long-double
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DQUANTUMVERSE_BUILD_TESTS=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build . --parallel 2
 
       - name: Run differential tests
