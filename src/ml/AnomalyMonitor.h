@@ -142,6 +142,7 @@ private:
     bool m_enabled;
     double m_thresholdMultiplier;
     double m_lastScore;
+    double m_runningMax;
     bool m_modelLoaded;
     int m_sampleCount;
 };

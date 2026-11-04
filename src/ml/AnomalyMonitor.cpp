@@ -15,6 +15,7 @@ AnomalyMonitor::AnomalyMonitor(QObject* parent)
     , m_enabled(false)
     , m_thresholdMultiplier(1.0)
     , m_lastScore(0.0)
+    , m_runningMax(0.0)
     , m_modelLoaded(false)
     , m_sampleCount(0)
 {
@@ -166,9 +167,12 @@ void AnomalyMonitor::processSample()
             return;
         }
 
-        // Normalize raw anomaly score to [0, 1] via sigmoid so the QML
-        // never displays an unclamped running-total or raw logit.
-        m_lastScore = 1.0 / (1.0 + std::exp(-score));
+        // Running-max normalization keeps score in [0, 1] and always informative.
+        // Sigmoid would saturate to exactly 1.0 for MSE-scale raw scores (e.g. 1e8),
+        // hiding the difference between "normal" and "anomalous". Running max adapts
+        // to the actual data distribution instead.
+        m_runningMax = std::max(m_runningMax * 0.995, score);
+        m_lastScore = (m_runningMax > 1e-9) ? (score / m_runningMax) : 0.0;
         ++m_sampleCount;
         emit scoreUpdated(m_lastScore);
         emit sampleCountChanged();
