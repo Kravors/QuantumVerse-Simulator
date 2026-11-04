@@ -12,16 +12,19 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 using namespace quantumverse;
 
 int main() {
     int failed = 0;
 
-    // Use a fixed directory under the build tree (std::filesystem::
+    // Use a directory under the build tree (std::filesystem::
     // create_directories() hangs on this MinGW toolchain; use Win32 API
     // directly instead)
+#ifdef _WIN32
     std::filesystem::path tmpDir = "F:\\syyyy\\build_cosmo_test\\session_test";
     if (!CreateDirectoryA(tmpDir.string().c_str(), nullptr)) {
         DWORD err = GetLastError();
@@ -31,6 +34,15 @@ int main() {
             return 1;
         }
     }
+#else
+    std::filesystem::path tmpDir = "/tmp/session_test";
+    std::error_code ec;
+    if (!std::filesystem::create_directories(tmpDir, ec)) {
+        std::cerr << "[SessionRecorder test] create_directories error: "
+                  << ec.message() << std::endl;
+        return 1;
+    }
+#endif
 
     SessionRecorder recorder;
     SessionRecorderConfig cfg;
