@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <QtCore/QStandardPaths>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -21,11 +22,14 @@ using namespace quantumverse;
 int main() {
     int failed = 0;
 
-    // Use a directory under the build tree (std::filesystem::
-    // create_directories() hangs on this MinGW toolchain; use Win32 API
-    // directly instead)
+    // Use QStandardPaths::TempLocation so the directory exists on every
+    // machine/CI runner without hardcoding build paths. createDirectoryA
+    // only creates the final component — we need recursive creation.
 #ifdef _WIN32
-    std::filesystem::path tmpDir = "F:\\syyyy\\build_cosmo_test\\session_test";
+    std::filesystem::path tmpDir =
+        std::filesystem::path(QStandardPaths::writableLocation(
+                                  QStandardPaths::TempLocation).toStdString()) /
+        "session_test";
     if (!CreateDirectoryA(tmpDir.string().c_str(), nullptr)) {
         DWORD err = GetLastError();
         if (err != ERROR_ALREADY_EXISTS) {
