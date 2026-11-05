@@ -259,18 +259,12 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/main_qml\\.cpp$")
     list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/physics/geodesic_pybind\\.cpp$")
     list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/wasm/.*\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/discovery/DiscoveryPanelManager\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/ui4d/UI4D\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/rendering/ComputeShader\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/rendering/CurvatureRenderer\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/rendering/QuantumGeometryRenderer\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/physics/CurvatureCalculator\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/ml/GeodesicNeuralODE\\.cpp$")
 
     add_library(quantumverse_core STATIC ${QUANTUMVERSE_CORE_SOURCES})
     target_sources(quantumverse_core PRIVATE
         ${CMAKE_SOURCE_DIR}/third_party/glad/glad.cpp
     )
+    set_target_properties(quantumverse_core PROPERTIES AUTOMOC ON)
     target_include_directories(quantumverse_core PUBLIC
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/tests
