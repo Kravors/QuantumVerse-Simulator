@@ -259,6 +259,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/main_qml\\.cpp$")
     list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/physics/geodesic_pybind\\.cpp$")
     list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/wasm/.*\\.cpp$")
+    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/vr/.*\\.cpp$")
 
     add_library(quantumverse_core STATIC ${QUANTUMVERSE_CORE_SOURCES})
     target_sources(quantumverse_core PRIVATE
