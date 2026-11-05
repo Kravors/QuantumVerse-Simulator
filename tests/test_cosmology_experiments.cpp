@@ -37,18 +37,26 @@ namespace {
 
 class BrokenH0 : public LambdaCDMReferenceProvider {
 public:
-    explicit BrokenH0() : LambdaCDMReferenceProvider(Params{ .H0 = 80.0 }) {}
+    explicit BrokenH0() : LambdaCDMReferenceProvider(brokenParams(80.0)) {}
 };
 
 class BrokenTcmb : public LambdaCDMReferenceProvider {
 public:
-    explicit BrokenTcmb() : LambdaCDMReferenceProvider(Params{ .Tcmb = 3.0 }) {}
+    explicit BrokenTcmb() : LambdaCDMReferenceProvider(brokenParams(67.66, 0.3111, 3.0)) {}
 };
 
 class BrokenOm : public LambdaCDMReferenceProvider {
 public:
-    explicit BrokenOm() : LambdaCDMReferenceProvider(Params{ .Om = 0.5 }) {}
+    explicit BrokenOm() : LambdaCDMReferenceProvider(brokenParams(67.66, 0.5, 2.7255)) {}
 };
+
+Params brokenParams(double h0 = 67.66, double om = 0.3111, double tcmb = 2.7255) {
+    Params p;
+    p.H0 = h0;
+    p.Om = om;
+    p.Tcmb = tcmb;
+    return p;
+}
 
 std::shared_ptr<CosmologyProvider> goodProvider() {
     return std::make_shared<LambdaCDMReferenceProvider>();
