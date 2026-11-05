@@ -35,7 +35,7 @@ using namespace quantumverse;
 
 namespace {
 
-Params brokenParams(double h0 = 67.66, double om = 0.3111, double tcmb = 2.7255) {
+LambdaCDMReferenceProvider::Params brokenParams(double h0 = 67.66, double om = 0.3111, double tcmb = 2.7255) {
     LambdaCDMReferenceProvider::Params p;
     p.H0 = h0;
     p.Om = om;
