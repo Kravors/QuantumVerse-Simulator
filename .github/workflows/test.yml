@@ -41,12 +41,18 @@ jobs:
         run: cmake --build build --config Release --parallel 2
       
       - name: Run unit tests
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure -L unit
       
       - name: Run integration tests
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure -L integration
       
       - name: Run validation tests
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure -L validation
       
       - name: Run benchmarks
