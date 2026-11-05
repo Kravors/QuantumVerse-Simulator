@@ -26,7 +26,6 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       
       - name: Check Code Formatting
-        continue-on-error: true
         run: |
           FORMAT_FILES=""
           if [ -d src ]; then
@@ -92,7 +91,6 @@ jobs:
         run: head -c 500 build/compile_commands.json
 
       - name: Run Clang-Tidy
-        continue-on-error: true
         timeout-minutes: 90
         run: |
           cd build
@@ -148,9 +146,7 @@ jobs:
             --suppress=missingInclude \
             --suppress=unknownMacro \
             --suppress=invalidLifetime \
-            --suppress=uninitvar \
             --suppress=uninitStructMember \
-            --suppress=nullPointer \
             --suppress=uninitMemberVar \
             --suppress=duplInheritedMember \
             --suppress=unusedFunction \

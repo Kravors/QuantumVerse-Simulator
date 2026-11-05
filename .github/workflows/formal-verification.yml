@@ -94,13 +94,15 @@ jobs:
           if [ -f ./test_differential ]; then
             ./test_differential
           else
-            echo "test_differential not available in build-double - skipping"
+            echo "::error::test_differential not available in build-double — cannot verify"
+            exit 1
           fi
           cd ../build-long-double
           if [ -f ./test_differential ]; then
             ./test_differential
           else
-            echo "test_differential not available in build-long-double - skipping"
+            echo "::error::test_differential not available in build-long-double — cannot verify"
+            exit 1
           fi
 
       - name: Compare results
