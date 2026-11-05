@@ -146,10 +146,6 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
     }
 }
 
-void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location) {
-    runScan(metric, location, {});
-}
-
 void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric, const Event4D& location,
                                        const std::vector<Event4D>& trajectory)
 {
