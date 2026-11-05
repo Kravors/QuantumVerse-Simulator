@@ -225,6 +225,48 @@ if(QUANTUMVERSE_USE_ONNX)
     endif()
 endif()
 
+# ============================================================================
+# quantumverse_core STATIC library
+# All shared .cpp sources live here, defined exactly once. Every consumer
+# (quantumverse_qml, every Qt test target) links this single library, so
+# source-list drift is impossible: adding a new .cpp requires exactly one
+# edit (this list), and every target picks it up automatically.
+# Defined outside the QUANTUMVERSE_USE_QT guard so it is always available,
+# even when QUANTUMVERSE_USE_QT=OFF (e.g. Formal Verification workflows).
+# ============================================================================
+set(QML_DIR ${CMAKE_SOURCE_DIR}/src)
+file(GLOB_RECURSE QUANTUMVERSE_CORE_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/*.cpp"
+)
+# Exclude entry points and special modules not part of the core library.
+list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/main_qml\\.cpp$")
+list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/physics/geodesic_pybind\\.cpp$")
+list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/wasm/.*\\.cpp$")
+list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/vr/.*\\.cpp$")
+
+add_library(quantumverse_core STATIC ${QUANTUMVERSE_CORE_SOURCES})
+target_sources(quantumverse_core PRIVATE
+    ${CMAKE_SOURCE_DIR}/third_party/glad/glad.cpp
+)
+set_target_properties(quantumverse_core PROPERTIES AUTOMOC ON)
+target_include_directories(quantumverse_core PUBLIC
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/third_party/glad/include
+    ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+)
+target_link_libraries(quantumverse_core PUBLIC
+    dilaton
+)
+if(QUANTUMVERSE_USE_QT)
+    target_include_directories(quantumverse_core PRIVATE
+        ${CMAKE_SOURCE_DIR}/third_party
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include
+        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
+        ${LIBRDKAFKA_INCLUDE_DIRS}
+    )
+    target_compile_definitions(quantumverse_core PRIVATE QUANTUMVERSE_USE_QML)
+endif()
 # Qt/QML configuration
 if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     find_package(Qt6 QUIET COMPONENTS Multimedia)
@@ -240,43 +282,8 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
     endif()
     find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick OpenGL OpenGLWidgets QuickControls2 QuickTemplates2 QuickLayouts Network WebSockets Test ${QT6_MULTIMEDIA_COMPONENTS})
 
-    if(Qt6Core_DIR)
-        get_filename_component(QT_HOST_PATH "${Qt6Core_DIR}/../../.." ABSOLUTE)
-    endif()
-
-    set(QML_DIR ${CMAKE_SOURCE_DIR}/src)
-    # ============================================================================
-    # quantumverse_core STATIC library
-    # All shared .cpp sources live here, defined exactly once. Every consumer
-    # (quantumverse_qml, every Qt test target) links this single library, so
-    # source-list drift is impossible: adding a new .cpp requires exactly one
-    # edit (this list), and every target picks it up automatically.
-    # ============================================================================
-    file(GLOB_RECURSE QUANTUMVERSE_CORE_SOURCES CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/src/*.cpp"
-    )
-    # Exclude entry points and special modules not part of the core library.
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/main_qml\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/physics/geodesic_pybind\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/wasm/.*\\.cpp$")
-    list(FILTER QUANTUMVERSE_CORE_SOURCES EXCLUDE REGEX "/src/vr/.*\\.cpp$")
-
-    add_library(quantumverse_core STATIC ${QUANTUMVERSE_CORE_SOURCES})
-    target_sources(quantumverse_core PRIVATE
-        ${CMAKE_SOURCE_DIR}/third_party/glad/glad.cpp
-    )
-    set_target_properties(quantumverse_core PROPERTIES AUTOMOC ON)
-    target_include_directories(quantumverse_core PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/tests
-        ${CMAKE_SOURCE_DIR}/third_party/glad/include
-        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
-    )
-    target_link_libraries(quantumverse_core PUBLIC
-        dilaton
-    )
-    # Qt and platform deps needed to compile Qt-dependent sources.
-    # Propagated to consumers so targets linking quantumverse_core get Qt.
+    # Qt link libraries for quantumverse_core (defined outside this guard).
+    # Placed here so QT6_MULTIMEDIA_LINK_LIBS is already set.
     target_link_libraries(quantumverse_core PUBLIC
         Qt6::Core
         Qt6::Gui
@@ -289,14 +296,13 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         Qt6::WebSockets
         ${QT6_MULTIMEDIA_LINK_LIBS}
     )
-    target_include_directories(quantumverse_core PRIVATE
-        ${CMAKE_SOURCE_DIR}/third_party
-        ${CMAKE_SOURCE_DIR}/third_party/glad/include
-        ${CMAKE_SOURCE_DIR}/third_party/glad/include/glad
-        ${LIBRDKAFKA_INCLUDE_DIRS}
-    )
-    target_compile_definitions(quantumverse_core PRIVATE QUANTUMVERSE_USE_QML)
-    set_target_properties(quantumverse_core PROPERTIES AUTOMOC ON)
+
+    if(Qt6Core_DIR)
+        get_filename_component(QT_HOST_PATH "${Qt6Core_DIR}/../../.." ABSOLUTE)
+    endif()
+
+    # quantumverse_core is defined above the Qt guard (always available,
+    # even when QUANTUMVERSE_USE_QT=OFF). Only Qt link libraries go here.
 
     set(RESOURCES_QRC ${CMAKE_SOURCE_DIR}/src/resources.qrc)
 
