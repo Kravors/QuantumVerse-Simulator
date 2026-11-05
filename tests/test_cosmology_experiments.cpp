@@ -35,6 +35,14 @@ using namespace quantumverse;
 
 namespace {
 
+Params brokenParams(double h0 = 67.66, double om = 0.3111, double tcmb = 2.7255) {
+    LambdaCDMReferenceProvider::Params p;
+    p.H0 = h0;
+    p.Om = om;
+    p.Tcmb = tcmb;
+    return p;
+}
+
 class BrokenH0 : public LambdaCDMReferenceProvider {
 public:
     explicit BrokenH0() : LambdaCDMReferenceProvider(brokenParams(80.0)) {}
@@ -49,14 +57,6 @@ class BrokenOm : public LambdaCDMReferenceProvider {
 public:
     explicit BrokenOm() : LambdaCDMReferenceProvider(brokenParams(67.66, 0.5, 2.7255)) {}
 };
-
-Params brokenParams(double h0 = 67.66, double om = 0.3111, double tcmb = 2.7255) {
-    Params p;
-    p.H0 = h0;
-    p.Om = om;
-    p.Tcmb = tcmb;
-    return p;
-}
 
 std::shared_ptr<CosmologyProvider> goodProvider() {
     return std::make_shared<LambdaCDMReferenceProvider>();
@@ -118,8 +118,8 @@ static void test_reference_vs_reference_is_bit_exact() {
 }
 
 static void test_parameter_drift_shows_as_tension() {
-    auto sh0es = std::make_shared<LambdaCDMReferenceProvider>(
-        LambdaCDMReferenceProvider::Params{ .H0 = 73.04 });
+    LambdaCDMReferenceProvider::Params p = brokenParams(73.04);
+    auto sh0es = std::make_shared<LambdaCDMReferenceProvider>(p);
     AgeOfUniverseExperiment e(sh0es);
     auto r = e.run({}, [](double){}, [](){ return false; });
     // H0=73.04 vs Planck 67.66 → ~8% shorter age → |rel_err| > 5%
