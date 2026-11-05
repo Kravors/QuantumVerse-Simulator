@@ -244,7 +244,8 @@ public:
     const DiscoveryInstrument* instrument(int index) const;
 
     // Run all active instruments
-    void runScan(const MetricTensor& metric, const Event4D& location);
+    void runScan(const MetricTensor& metric, const Event4D& location,
+                 const std::vector<Event4D>& trajectory = {});
 
     // Run a specific instrument
     void runInstrument(int index, const MetricTensor& metric, const Event4D& location);

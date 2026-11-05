@@ -833,7 +833,8 @@ const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const {
     return nullptr;
 }
 
-void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location) {
+void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location,
+                                     const std::vector<Event4D>& trajectory) {
     m_allFindings.clear();
     for (auto& inst : m_instruments) {
         if (!inst->isEnabled()) continue;
