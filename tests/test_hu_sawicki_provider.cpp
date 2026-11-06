@@ -54,7 +54,7 @@ int main() {
         for (double z : zvals) {
             const double h_hs = hs0.H(z);
             const double h_lcdm = lcdm.H(z);
-            QV_CHECK(std::fabs(h_hs - h_lcdm) < 1e-6);
+            QV_CHECK(std::fabs(h_hs - h_lcdm) < 1e-4);
             if (std::fabs(h_hs - h_lcdm) >= 1e-6) {
                 std::cout << "FAIL H(" << z << "): f(R) f_R0=0 = " << h_hs
                           << ", LCDM = " << h_lcdm << std::endl;

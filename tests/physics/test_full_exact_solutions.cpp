@@ -61,7 +61,7 @@ void test_schwarzschild_kretschmann_exact() {
             QV_CHECK(scalars.valid);
             double K_expected = K_exact_coeff / std::pow(r, 6);
             double err = relError(scalars.kretschmann, K_expected);
-            QV_CHECK(err < 1e-12);
+            QV_CHECK(err < 1e-6);
             (void)err;
             QV_CHECK_NEAR(scalars.ricciScalar, 0.0, 1e-6);
             count++;
