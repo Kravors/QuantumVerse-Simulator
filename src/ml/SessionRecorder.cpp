@@ -42,15 +42,16 @@ bool createDirectoriesWin(const std::filesystem::path& path) {
     return true;
 #else
     std::error_code ec;
-    bool result = std::filesystem::create_directories(path, ec);
-    if (!result) {
+    std::filesystem::create_directories(path, ec);
+    if (ec.value() != 0) {
         std::cerr << "[SessionRecorder] createDirectoriesWin failed for "
                   << path.string()
                   << ": ec=" << ec.value()
                   << " (" << ec.category().name() << "): " << ec.message()
                   << std::endl;
+        return false;
     }
-    return result;
+    return true;
 #endif
 }
 

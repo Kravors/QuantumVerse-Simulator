@@ -44,7 +44,7 @@ AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: true
-AlwaysBreakFollowingDefinitionInitializer: true
+# AlwaysBreakFollowingDefinitionInitializer: true  # Not supported by installed clang-format
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Attach
 BreakBeforeConceptDeclarations: true
