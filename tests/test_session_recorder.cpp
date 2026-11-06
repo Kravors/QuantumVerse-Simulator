@@ -13,9 +13,6 @@
 #include <string>
 #include <vector>
 #include <QtCore/QStandardPaths>
-#ifdef _WIN32
-#include <windows.h>
-#endif
 
 using namespace quantumverse;
 
@@ -25,28 +22,16 @@ int main() {
     // Use QStandardPaths::TempLocation so the directory exists on every
     // machine/CI runner without hardcoding build paths. createDirectoryA
     // only creates the final component — we need recursive creation.
-#ifdef _WIN32
     std::filesystem::path tmpDir =
         std::filesystem::path(QStandardPaths::writableLocation(
                                   QStandardPaths::TempLocation).toStdString()) /
         "session_test";
-    if (!CreateDirectoryA(tmpDir.string().c_str(), nullptr)) {
-        DWORD err = GetLastError();
-        if (err != ERROR_ALREADY_EXISTS) {
-            std::cerr << "[SessionRecorder test] CreateDirectoryA error: "
-                      << err << std::endl;
-            return 1;
-        }
-    }
-#else
-    std::filesystem::path tmpDir = "/tmp/session_test";
     std::error_code ec;
     if (!std::filesystem::create_directories(tmpDir, ec)) {
         std::cerr << "[SessionRecorder test] create_directories error: "
                   << ec.message() << std::endl;
         return 1;
     }
-#endif
 
     SessionRecorder recorder;
     SessionRecorderConfig cfg;
