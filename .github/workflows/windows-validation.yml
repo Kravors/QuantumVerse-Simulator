@@ -63,7 +63,7 @@ jobs:
         working-directory: build
         timeout-minutes: 60
         run: |
-          EXCLUSIONS=$(cat ../.github/workflows/_canary-exclusions.txt)
+          $EXCLUSIONS = Get-Content ../.github/workflows/_canary-exclusions.txt -Raw
           ctest -E "$EXCLUSIONS" -C ${{ matrix.build_type }} --timeout 120 --output-on-failure -j 2
       
       - name: Upload Test Results
