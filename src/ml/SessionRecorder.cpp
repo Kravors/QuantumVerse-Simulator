@@ -221,9 +221,17 @@ bool SessionRecorder::writeMetadata(const SessionMetadata& meta) const {
         j["simDuration"] = meta.simDuration;
         j["schemaVersion"] = kSchemaVersion;
 
-        if (!createDirectoriesWin(sessionDir_)) return false;
+        if (!createDirectoriesWin(sessionDir_)) {
+            std::cerr << "[SessionRecorder] writeMetadata: createDirectories failed for "
+                      << sessionDir_.string() << std::endl;
+            return false;
+        }
         std::ofstream f(sessionDir_ / "metadata.json");
-        if (!f.is_open()) return false;
+        if (!f.is_open()) {
+            std::cerr << "[SessionRecorder] writeMetadata: failed to open "
+                      << (sessionDir_ / "metadata.json").string() << std::endl;
+            return false;
+        }
         f << j.dump(2);
         return true;
     } catch (const std::exception& e) {
@@ -240,9 +248,17 @@ bool SessionRecorder::writeConfig() const {
         j["frameInterval"] = config_.frameInterval;
         j["baseDir"] = config_.baseDir;
 
-        if (!createDirectoriesWin(sessionDir_)) return false;
+        if (!createDirectoriesWin(sessionDir_)) {
+            std::cerr << "[SessionRecorder] writeConfig: createDirectories failed for "
+                      << sessionDir_.string() << std::endl;
+            return false;
+        }
         std::ofstream f(sessionDir_ / "config.json");
-        if (!f.is_open()) return false;
+        if (!f.is_open()) {
+            std::cerr << "[SessionRecorder] writeConfig: failed to open "
+                      << (sessionDir_ / "config.json").string() << std::endl;
+            return false;
+        }
         f << j.dump(2);
         return true;
     } catch (const std::exception& e) {
