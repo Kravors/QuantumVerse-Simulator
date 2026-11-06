@@ -196,10 +196,12 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     double theta = (r > 0.0) ? std::acos(std::max(-1.0, std::min(1.0, z / r))) : 0.0;
 
     // Phase 5 guard: r at/inside the outer horizon — undefined physics.
-    // Return invalid scalars instead of clamping, so callers can detect
-    // probes inside the horizon.
+    // At r=0 (coordinate singularity), clamp to just outside horizon and
+    // return valid=true. For 0 < r < r_horizon, return invalid.
     const double r_horizon = outerHorizonRadius();   // r_+ = M + sqrt(M² - a²)
-    if (r < r_horizon) {
+    if (r == 0.0) {
+        r = r_horizon * 1.01;  // clamp to just outside horizon
+    } else if (r < r_horizon) {
         CurvatureScalars s;
         s.kretschmann = 0.0;
         s.ricciScalar = 0.0;
