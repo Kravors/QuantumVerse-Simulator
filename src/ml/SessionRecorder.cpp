@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <system_error>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -41,7 +42,15 @@ bool createDirectoriesWin(const std::filesystem::path& path) {
     return true;
 #else
     std::error_code ec;
-    return std::filesystem::create_directories(path, ec);
+    bool result = std::filesystem::create_directories(path, ec);
+    if (!result) {
+        std::cerr << "[SessionRecorder] createDirectoriesWin failed for "
+                  << path.string()
+                  << ": ec=" << ec.value()
+                  << " (" << ec.category().name() << "): " << ec.message()
+                  << std::endl;
+    }
+    return result;
 #endif
 }
 
