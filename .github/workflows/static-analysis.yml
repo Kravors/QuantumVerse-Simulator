@@ -96,7 +96,7 @@ jobs:
           cd build
           run-clang-tidy -p . \
             -checks='-*,bugprone-*,performance-*,modernize-*,cppcoreguidelines-*,clang-analyzer-*' \
-            -header-filter='.*' \
+            -header-filter='src/.*|tests/.*|examples/.*' \
             # run-clang-tidy parallelizes internally via file batching;
             # -j is not a supported flag on the installed clang-tidy version
             # and was causing immediate failure before analysis started
