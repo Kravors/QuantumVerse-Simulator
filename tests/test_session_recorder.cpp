@@ -12,20 +12,17 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <QtCore/QStandardPaths>
 
 using namespace quantumverse;
 
 int main() {
     int failed = 0;
 
-    // Use QStandardPaths::TempLocation so the directory exists on every
-    // machine/CI runner without hardcoding build paths. createDirectoryA
-    // only creates the final component — we need recursive creation.
+    // Use std::filesystem::temp_directory_path() so the directory exists on
+    // every machine/CI runner without hardcoding build paths or depending
+    // on QStandardPaths (which may return unexpected paths on headless CI).
     std::filesystem::path tmpDir =
-        std::filesystem::path(QStandardPaths::writableLocation(
-                                  QStandardPaths::TempLocation).toStdString()) /
-        "session_test";
+        std::filesystem::temp_directory_path() / "session_test";
     std::error_code ec;
     if (!std::filesystem::create_directories(tmpDir, ec)) {
         std::cerr << "[SessionRecorder test] create_directories error: "
