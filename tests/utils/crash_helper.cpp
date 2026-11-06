@@ -20,7 +20,7 @@ int main()
     quantumverse::utils::initializeCrashHandler(dumpDir);
 
     // Deliberately cause an access violation.
-    int* p = nullptr;
+    int* p = nullptr;  // cppcheck-suppress nullPointer
     *p = 42;
 
     return EXIT_FAILURE;

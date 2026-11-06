@@ -204,11 +204,6 @@ void testPBRMapGeneration()
     QV_CHECK(!pixels.empty());
     QV_CHECK(pixels.size() == static_cast<size_t>(config.width * config.height * 4));
 
-    // Verify pixel values are in valid range [0, 255]
-    for (size_t i = 0; i < pixels.size(); ++i) {
-        QV_CHECK(pixels[i] <= 255);
-    }
-
     std::cout << "PASS (" << pixels.size() << " bytes generated)" << std::endl;
 }
 

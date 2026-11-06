@@ -88,7 +88,7 @@ struct KerrInvariants {
 };
 
 static KerrInvariants kerr_exact(double M, double a, double r, double theta) {
-    KerrInvariants out;
+    KerrInvariants out{};
     const double minR = 1e-12;
     r = std::max(r, minR);
 
@@ -131,7 +131,7 @@ struct FLRWInvariants {
 };
 
 static FLRWInvariants flrw_matter_exact(double t, double t0) {
-    FLRWInvariants out;
+    FLRWInvariants out{};
     if (t <= 0.0 || t0 <= 0.0) {
         out.valid = false;
         return out;
@@ -163,7 +163,7 @@ struct CGHSInvariants {
 };
 
 static CGHSInvariants cghs_exact(double M, double sigma, double x_plus, double x_minus) {
-    CGHSInvariants out;
+    CGHSInvariants out{};
     const double A = 1.0 + M * std::exp(2.0 * sigma) * x_plus * x_minus;
     if (A <= 0.0) {
         out.valid = false;

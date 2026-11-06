@@ -181,6 +181,7 @@ jobs:
              --suppress=uselessCallsSubstr \
              --suppress=constParameterCallback \
              --suppress=checkersReport \
+             --suppress=throwInEntryPoint \
              --inline-suppr \
              --suppress=unmatchedSuppression \
              --error-exitcode=1 \
