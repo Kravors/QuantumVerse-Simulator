@@ -196,17 +196,16 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     double theta = (r > 0.0) ? std::acos(std::max(-1.0, std::min(1.0, z / r))) : 0.0;
 
     // Phase 5 guard: r at/inside the outer horizon — undefined physics.
-    // Clamp radially outward to just outside r_+, preserving theta so the
-    // angular location is not lost. The old 1.5·r_s (=3M) clamp was too
-    // conservative: it clamped valid physics at the prograde photon sphere
-    // (r_ph < 3M for any spin > 0), silently reporting K(3M) instead of K(r_ph).
+    // Return invalid scalars instead of clamping, so callers can detect
+    // probes inside the horizon.
     const double r_horizon = outerHorizonRadius();   // r_+ = M + sqrt(M² - a²)
-    const double r_min_safe = r_horizon * 1.01;      // just outside the horizon
-    if (r < r_min_safe) {
-        std::cerr << "[KerrMetric] probe inside horizon: r=" << r
-                  << " r_+=" << r_horizon
-                  << " - clamping to r=" << r_min_safe << std::endl;
-        r = r_min_safe;
+    if (r < r_horizon) {
+        CurvatureScalars s;
+        s.kretschmann = 0.0;
+        s.ricciScalar = 0.0;
+        s.weylSquared = 0.0;
+        s.valid = false;
+        return s;
     }
 
     // Vacuum solution: Ricci = 0, Weyl = Riemann
