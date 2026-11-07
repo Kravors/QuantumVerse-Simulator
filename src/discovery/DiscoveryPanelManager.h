@@ -75,7 +75,7 @@ class DiscoveryPanelManager : public QObject
 
 public:
     explicit DiscoveryPanelManager(QObject* parent = nullptr);
-    ~DiscoveryPanelManager() override;
+    ~DiscoveryPanelManager() override = default;
 
     /** @brief Minimal physics row emitted by one sweep step. */
     struct SweepRow {

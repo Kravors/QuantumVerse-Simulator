@@ -3,13 +3,12 @@
 
 //! [0]
 #include <QApplication>
-#include <QPushButton>
 #include <QLabel>
-#include "myobject.h"
+#include <QPushButton>
 #include "mydialog.h"
+#include "myobject.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     QApplication app(argc, argv);
 
     MyObject obj;

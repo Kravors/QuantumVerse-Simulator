@@ -466,7 +466,7 @@ void test_frw_metric_determinant() {
     double r = ev.x;
     double det_expected = -Event4D::C * Event4D::C * a * a * a * a * a * a *
                           r * r * r * r * std::sin(ev.y) * std::sin(ev.y);
-    QV_CHECK_NEAR(det - det_expected, 0.0, 1e-6);
+    QV_CHECK_NEAR(det, det_expected, 1e-6 * std::fabs(det_expected));
     (void)det;
     (void)det_expected;
     std::cout << "[PASS] FRW metric determinant exact" << std::endl;

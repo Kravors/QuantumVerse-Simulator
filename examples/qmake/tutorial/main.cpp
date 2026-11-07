@@ -4,8 +4,7 @@
 #include <QApplication>
 #include "hello.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     QApplication app(argc, argv);
 
     MyPushButton helloButton("Hello world!");

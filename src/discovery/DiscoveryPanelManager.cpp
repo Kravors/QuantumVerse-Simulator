@@ -50,8 +50,6 @@ DiscoveryPanelManager::DiscoveryPanelManager(QObject* parent)
 #endif
 }
 
-DiscoveryPanelManager::~DiscoveryPanelManager() = default;
-
 void DiscoveryPanelManager::registerInstrument(std::unique_ptr<DiscoveryInstrument> instrument)
 {
     m_instruments.push_back(std::move(instrument));
@@ -104,11 +102,12 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
 
     m_scanRemaining.store(enabledCount);
 
+    MetricTensor metricCopy = metric;
     for (const auto& inst : m_instruments) {
         if (!inst->isEnabled()) continue;
         DiscoveryInstrument* ptr = inst.get();
-        m_pool.enqueue([this, ptr, &metric, location, enabledCount]() {
-            auto findings = ptr->analyze(metric, location, m_scanTrajectory);
+        m_pool.enqueue([this, ptr, metricCopy, location, enabledCount]() {
+            auto findings = ptr->analyze(metricCopy, location, m_scanTrajectory);
             QMetaObject::invokeMethod(this, [this, findings = std::move(findings), enabledCount]() mutable {
                 if (m_scanCancelled.load()) return;
 

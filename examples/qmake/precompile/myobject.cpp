@@ -2,19 +2,16 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 //! [0]
-#include <iostream>
+#include "myobject.h"
 #include <QDebug>
 #include <QObject>
-#include "myobject.h"
+#include <iostream>
 
-MyObject::MyObject()
-    : QObject()
-{
+MyObject::MyObject() : QObject() {
     std::cout << "MyObject::MyObject()\n";
 }
 //! [0]
 
-MyObject::~MyObject()
-{
+MyObject::~MyObject() {
     qDebug() << "MyObject::~MyObject()";
 }
