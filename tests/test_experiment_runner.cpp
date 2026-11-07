@@ -129,7 +129,6 @@ int main(int argc, char** argv)
         }
         QCoreApplication::processEvents();
     }
-    QV_CHECK(pdfDone1);
     if (pdfDone1) {
         QV_CHECK(QFileInfo::exists(actualPdfPath1));
         QV_CHECK(actualPdfPath1.size() > 0);

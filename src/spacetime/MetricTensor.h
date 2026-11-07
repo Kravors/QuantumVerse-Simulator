@@ -558,12 +558,9 @@ public:
         double G = PHYS_G();
         double rs = 2.0 * PHYS_G() * m_mass / c2;
 
-        // Clamp r to just outside the horizon to avoid singularity at r=0
-        const double minR = rs * 1.01;
-        if (r < minR) r = minR;
-
-        // Inside the horizon (r <= rs), the geometric view is degenerate:
-        // g_tt > 0, radial/time roles swap. Report invalid.
+        // Inside the horizon (r <= rs), report invalid BEFORE clamping.
+        // The clamp below would push r just outside rs, masking the invalid
+        // region if checked afterwards.
         if (r <= rs) {
             CurvatureScalars s;
             s.kretschmann = 0.0;
@@ -573,9 +570,12 @@ public:
             return s;
         }
 
+        // Clamp r to just outside the horizon to avoid singularity at r=0
+        const double minR = rs * 1.01;
+        if (r < minR) r = minR;
+
         // Clamp r to a floor just outside the horizon so K = 48 G² M² / (c⁴ r⁶)
         // stays finite even when the probe lands very close to the horizon.
-        // Cells just outside rs still report their genuine (large but finite) K.
         const double r_eps = 0.01 * rs;
         if (r < r_eps) r = r_eps;
 

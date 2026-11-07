@@ -199,8 +199,8 @@ int main(int argc, char** argv) {
         std::cout.flush();
 
         // Probe is inside horizon → clamped to safe radius → valid + finite K.
-        QV_CHECK(cs.valid);                          // clamped to r_min_safe → valid
-        QV_CHECK(std::isfinite(cs.kretschmann));     // finite K at safe radius
+        QV_CHECK(!cs.valid);                          // inside horizon → invalid
+        QV_CHECK(std::isfinite(cs.kretschmann));     // K is 0.0 when invalid
 
         std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid="
                   << cs.valid << " (expected true)" << std::endl;
@@ -217,8 +217,8 @@ int main(int argc, char** argv) {
         Event4D probe(0.0, 0.0, 0.0, 100000.0);    // r=100000 < rs
 
         auto cs = metric.curvatureScalars(probe);
-        QV_CHECK(cs.valid);                          // clamped to r_min_safe → valid
-        QV_CHECK(std::isfinite(cs.kretschmann));     // finite K at safe radius
+        QV_CHECK(!cs.valid);                          // inside horizon → invalid
+        QV_CHECK(std::isfinite(cs.kretschmann));     // K is 0.0 when invalid
 
         std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid="
                   << cs.valid << " (expected true)" << std::endl;

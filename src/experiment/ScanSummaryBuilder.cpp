@@ -64,13 +64,8 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
           QStringLiteral("kretschmann_at_r_min"),
           QStringLiteral("kretschmann_at_r_orbit"),
           QStringLiteral("kretschmann_at_r_plus") }, &ok_kret);
-    if (!ok_kret) return s;
 
-    s.mass = mass;
     s.spin = spin;
-    s.charge = 0.0;   // Kerr is vacuum — documentable constant
-    s.kretschmann = kret;
-    s.redshift = 0.0; // static observer at infinity — documentable constant
     s.bhType = (std::abs(spin) < 1e-9)
         ? QStringLiteral("Schwarzschild")
         : QStringLiteral("Kerr");
@@ -80,7 +75,11 @@ ScanSummary ScanSummaryBuilder::fromExperiment(const QString& id,
     // When a charged-metric experiment joins the pipeline, either:
     //   (a) requireScalar "bhType" from each experiment, or
     //   (b) extend derivation: charge>0 ? (spin>0 ? "Kerr-Newman" : "Reissner-Nordström") : ...
-    s.discoveryType = id;
+    if (!ok_kret) return s;
+    s.mass = mass;
+    s.charge = 0.0;
+    s.kretschmann = kret;
+    s.redshift = 0.0; // static observer at infinity — documentable constant
     s.discoveryId = QStringLiteral("exp_") + id;
     s.candidatesExplored = static_cast<int>(r.curve.size());
     s.extremalityMargin = spin; // a* → 1 is extremal
