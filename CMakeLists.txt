@@ -2093,6 +2093,22 @@ endif()
     )
     message(STATUS "Linking test_instrument_audit")
     target_link_libraries(test_instrument_audit PRIVATE quantumverse_core Qt6::Core)
+
+    # DiscoveryPanelManager, Camera4DAdapter, PlanckMicroscope, and
+    # TheoryDiscoveryAgent are declared with #ifdef QUANTUMVERSE_USE_QML:
+    # the QML build gets the full QObject class, the non-QML build gets a
+    # plain-C++ stub. quantumverse_core is always built with the flag, so
+    # any test target that includes one of these headers MUST also be
+    # compiled with the flag — otherwise sizeof() and member offsets diverge,
+    # producing heap corruption or SEGV in methods that touch instance fields
+    # (e.g. m_instruments vector at wrong offset).
+    #
+    # test_instrument_audit and test_discovery_pipeline are the only tests
+    # that currently instantiate DiscoveryPanelManager directly. Any future
+    # test using DiscoveryPanelManager, Camera4DAdapter, PlanckMicroscope,
+    # or TheoryDiscoveryAgent needs the same target_compile_definitions line.
+
+    target_compile_definitions(test_instrument_audit PRIVATE QUANTUMVERSE_USE_QML)
     message(STATUS "Adding InstrumentAuditTest")
     add_test(NAME InstrumentAuditTest COMMAND test_instrument_audit)
     message(STATUS "InstrumentAuditTest added")
@@ -2116,6 +2132,7 @@ endif()
         tests/discovery/test_discovery_pipeline.cpp
     )
     target_link_libraries(test_discovery_pipeline PRIVATE quantumverse_core Qt6::Core)
+    target_compile_definitions(test_discovery_pipeline PRIVATE QUANTUMVERSE_USE_QML)
     add_test(NAME DiscoveryPipelineIntegrationTest COMMAND test_discovery_pipeline)
 
     # 6.6 Theory discovery agent (Phase 22.1)
