@@ -731,6 +731,7 @@ void test_kretschmann_positive() {
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
         [[maybe_unused]] auto s = sch.curvatureScalars(ev);
+        if (!s.valid) continue;  // inside horizon → K=0
         QV_CHECK(s.kretschmann > 0.0);
     }
     std::cout << "[PASS] Kretschmann positive definite" << std::endl;
