@@ -622,8 +622,8 @@ void test_schwarzschild_radius_formula() {
     double rs_expected = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
     (void)rs_expected;
     SchwarzschildMetric sch(M);
-    // Check via curvatureScalars at small r (where K diverges as 48M^2/r^6)
-    double r_test = 1e3;
+    // Check via curvatureScalars outside horizon (r > rs ≈ 7400 m for 2.5 M☉)
+    double r_test = 10000.0;
     Event4D ev(0.0, r_test, 0.0, 0.0);
     auto s = sch.curvatureScalars(ev);
     [[maybe_unused]] double K = s.kretschmann;
