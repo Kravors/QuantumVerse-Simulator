@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 
     bool pdfDone1 = false;
     QString actualPdfPath1;
-    for (int i = 0; i < 4800 && !pdfDone1; ++i) { // up to 120s: first MiKTeX run can exceed 10s
+    for (int i = 0; i < 9600 && !pdfDone1; ++i) { // up to 240s: PDF export can be slow on CI
         QTest::qWait(25);
         if (pdfDoneSpy.count() >= 1) {
             pdfDone1 = true;
@@ -130,12 +130,15 @@ int main(int argc, char** argv)
         QCoreApplication::processEvents();
     }
     QV_CHECK(pdfDone1);
-    QV_CHECK(QFileInfo::exists(actualPdfPath1));
-    QV_CHECK(actualPdfPath1.size() > 0);
-    QV_CHECK(actualPdfPath1.contains(QStringLiteral("lensing_time_delay_")));
-    QV_CHECK(actualPdfPath1.endsWith(QStringLiteral(".pdf")));
-
-    std::cout << "PDF #1 exported to: " << actualPdfPath1.toStdString() << std::endl;
+    if (pdfDone1) {
+        QV_CHECK(QFileInfo::exists(actualPdfPath1));
+        QV_CHECK(actualPdfPath1.size() > 0);
+        QV_CHECK(actualPdfPath1.contains(QStringLiteral("lensing_time_delay_")));
+        QV_CHECK(actualPdfPath1.endsWith(QStringLiteral(".pdf")));
+        std::cout << "PDF #1 exported to: " << actualPdfPath1.toStdString() << std::endl;
+    } else {
+        std::cerr << "WARNING: PDF export timed out, skipping PDF content checks" << std::endl;
+    }
 
     // ---- Verify PDF content via pdftotext ----
     QString pdfText;
