@@ -14,6 +14,7 @@
 #include "CurvatureRenderer.h"
 #include "../physics/CurvatureCalculator.h"
 #include <cstdlib>
+#include <string>
 #include <QVector4D>
 #include <QDebug>
 #include <cmath>
@@ -115,7 +116,7 @@ CurvatureRenderer::CurvatureRenderer(
 ) : gridResolution(resolution), gridSize(size), mode(initialMode),
      wireframe(false), showGrid(true), showLightCones(false),
      vao(0), vbo(0), ebo(0), time(0.0f), animationSpeed(1.0f),
-     m_initialized(false), lodLevel(0), cacheValid(false),
+      m_initialized(false), lodLevel(0), cacheValid(false),
      lightConeVao(0), lightConeVbo(0), lightConeEbo(0),
      lightConeBuffersInitialized(false),
      fallbackVao(0), fallbackVbo(0),
@@ -125,7 +126,7 @@ CurvatureRenderer::CurvatureRenderer(
      gridSSBO(0), gridWidth(500), gridHeight(500),
      computeBuffersInitialized(false), m_computeDirty(false),
      m_gridZMin(0.0f), m_gridZMax(0.0f),
-     m_lastEpoch(0),
+      m_lastEpoch(uint64_t(-1)),
      neuralODE(nullptr), neuralPool(nullptr),
      neuralGeoVao(0), neuralGeoVbo(0), neuralGeoVertexCount(0),
      neuralGeoBuffersInitialized(false), m_showNeuralGeodesics(false)
@@ -1668,6 +1669,11 @@ void CurvatureRenderer::deformGridGPU()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     m_metricDirty = false;
     m_computeDirty = true; // Signal render() to use SSBO as VBO source
+    if (std::getenv("GRID_DEBUG")) {
+        std::cout << "[GRID] wellCenter=" << m_blackHoleCenter[0] << ","
+                  << m_blackHoleCenter[1] << "," << m_blackHoleCenter[2]
+                  << std::endl;
+    }
 }
 
 std::pair<float, float> CurvatureRenderer::gridZRange() const
@@ -1678,12 +1684,9 @@ std::pair<float, float> CurvatureRenderer::gridZRange() const
 
 void CurvatureRenderer::recomputeGridZRange()
 {
-    // Guard: don't recompute before GL context is ready (e.g. during QML
-    // component construction, where setBlackHoleMass()/setBlackHoleType()
-    // may fire before initializeGrid() has run). The m_initialized flag is
-    // set at the end of initializeGrid(); until then there's nothing to
-    // recompute anyway.
-    if (!m_initialized || vertices.empty()) return;
+    // Guard: don't recompute before grid vertices exist. The GL context is
+    // guaranteed ready because this is only called from render().
+    if (vertices.empty()) return;
 
     if (computeShader.id != 0 && computeBuffersInitialized) {
         deformGridGPU();

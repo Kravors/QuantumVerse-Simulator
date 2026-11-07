@@ -119,9 +119,6 @@ private:
      float time;
      float animationSpeed;  ///< Multiplier for time-dependent deformation
     
-    // OpenGL initialization flag
-    bool m_initialized;
-    
     // Performance optimization caches
     std::vector<double> metricCache;      ///< Cached metric evaluations
     std::vector<double> curvatureCache;   ///< Cached curvature values
@@ -191,9 +188,13 @@ private:
 
     // Last observed metric epoch, used to detect mass changes that require
     // grid re-deformation. Kept in sync with metric->epoch().
-    uint64_t m_lastEpoch = 0;
+    uint64_t m_lastEpoch = uint64_t(-1);
 
-    // Spatial partitioning for optimization
+    // Grid initialized flag. Set true by initializeGL(); defaults to false so
+    // that initializeGL() is still called on first render (it performs OpenGL
+    // buffer creation that recomputeGridZRange() depends on). The grid
+    // deformation itself is gated by vertices.empty() inside recomputeGridZRange().
+    bool m_initialized = false;
     struct GridCell {
         int startIndex;
         int endIndex;
