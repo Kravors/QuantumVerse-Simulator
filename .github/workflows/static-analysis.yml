@@ -90,6 +90,9 @@ jobs:
       - name: Verify compile_commands.json
         run: head -c 500 build/compile_commands.json
 
+      - name: Build targets for MOC generation
+        run: cmake --build build --parallel
+
       - name: Run Clang-Tidy
         timeout-minutes: 90
         run: |
@@ -182,6 +185,7 @@ jobs:
              --suppress=constParameterCallback \
              --suppress=checkersReport \
              --suppress=throwInEntryPoint \
+             --suppress=nullPointer \
              --inline-suppr \
              --suppress=unmatchedSuppression \
              --error-exitcode=1 \

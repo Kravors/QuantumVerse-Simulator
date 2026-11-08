@@ -78,6 +78,7 @@ void UI4D::endWorldLineCreation() {
         newWorldLine.name = "New Object";
         newWorldLine.isClosed = false;
         newWorldLine.mass = 1.0e24;
+        newWorldLine.isSelected = false;
 
         for (size_t i = 0; i < newWorldLinePoints.size(); i++) {
             WorldLinePoint point;
