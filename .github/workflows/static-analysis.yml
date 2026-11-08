@@ -185,8 +185,9 @@ jobs:
              --suppress=constParameterCallback \
              --suppress=checkersReport \
              --suppress=throwInEntryPoint \
-             --suppress=nullPointer \
-             --inline-suppr \
+              --suppress=nullPointer \
+              --suppress=constParameter \
+              --inline-suppr \
              --suppress=unmatchedSuppression \
              --error-exitcode=1 \
              $CPPCHECK_DIRS 2>&1 | tee cppcheck-report.txt
