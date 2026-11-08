@@ -1,6 +1,6 @@
 name: Nightly Baseline Update
 permissions:
-  contents: read
+  contents: write
   actions: read
   checks: write
 
