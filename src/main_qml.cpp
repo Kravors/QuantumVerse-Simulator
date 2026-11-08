@@ -12,8 +12,8 @@
 
 #ifdef _WIN32
 #define NOMINMAX
+#include <windows.h>   // must precede DbgHelp.h — defines HANDLE, CALLBACK, PCSTR
 #include <DbgHelp.h>
-#include <windows.h>  // for MessageBoxA
 #pragma comment(lib, "DbgHelp.lib")
 #undef connect
 #endif

@@ -17,8 +17,8 @@
 #include <string>
 
 #ifdef _WIN32
+#include <windows.h>    // must precede dbghelp.h — defines HANDLE, CALLBACK, PCSTR
 #include <dbghelp.h>
-#include <windows.h>
 #endif
 
 namespace quantumverse {

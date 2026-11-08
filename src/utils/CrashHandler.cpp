@@ -12,9 +12,9 @@
 #include "TraceLogger.h"
 
 #ifdef _WIN32
+#include <windows.h>    // must precede dbghelp.h — defines HANDLE, CALLBACK, PCSTR
 #include <dbghelp.h>
 #include <tchar.h>
-#include <windows.h>
 #pragma comment(lib, "dbghelp.lib")
 #endif
 
