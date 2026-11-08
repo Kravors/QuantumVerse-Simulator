@@ -10,9 +10,11 @@
 
 // Include GL header for error codes - must be after glad if used
 #ifdef _WIN32
+// clang-format off
+#include <windows.h>    // must come first — dbghelp.h uses HANDLE, CALLBACK, PCSTR
 #include <dbghelp.h>
-#include <windows.h>
 #pragma comment(lib, "dbghelp.lib")
+// clang-format on
 #endif
 
 // For OpenGL error codes
