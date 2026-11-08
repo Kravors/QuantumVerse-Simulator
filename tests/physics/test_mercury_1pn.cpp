@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 
+#include "test_assert.h"
 #include "ui4d/UI4D.h"
 
 #ifndef M_PI
