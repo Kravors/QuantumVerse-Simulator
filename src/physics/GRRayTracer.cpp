@@ -9,23 +9,20 @@
 #endif
 
 #include "GRRayTracer.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace quantumverse {
 
 GRRayTracer::GRRayTracer(MetricType metricType)
-    : m_metricType(metricType)
-    , m_mass(1.0)
-    , m_spin(0.0)
-    , m_stepSize(0.01)
-    , m_adaptive(true)
-    , m_cacheValid(false)
-{
-}
+    : m_metricType(metricType),
+      m_mass(1.0),
+      m_spin(0.0),
+      m_stepSize(0.01),
+      m_adaptive(true),
+      m_cacheValid(false) {}
 
-MetricTensor GRRayTracer::getMetric(const Event4D& event) const
-{
+MetricTensor GRRayTracer::getMetric(const Event4D& event) const {
     if (m_metricType == MetricType::CUSTOM && m_customMetric) {
         return m_customMetric(event);
     }
@@ -60,7 +57,8 @@ MetricTensor GRRayTracer::getMetric(const Event4D& event) const
         metric.g[0][0] = -(1.0 - 2.0 * M * r / sigma);
         metric.g[1][1] = sigma / delta;
         metric.g[2][2] = sigma;
-        metric.g[3][3] = (r * r + a * a + 2.0 * M * r * (r * r + a * a) / sigma) * (M_PI * M_PI / 4.0);
+        metric.g[3][3] =
+            (r * r + a * a + 2.0 * M * r * (r * r + a * a) / sigma) * (M_PI * M_PI / 4.0);
 
         return metric;
     }
@@ -93,12 +91,9 @@ MetricTensor GRRayTracer::getMetric(const Event4D& event) const
     return metric;
 }
 
-void GRRayTracer::computeChristoffel(const Event4D& position) const
-{
-    if (m_cacheValid && m_lastPosition.t == position.t &&
-        m_lastPosition.x == position.x &&
-        m_lastPosition.y == position.y &&
-        m_lastPosition.z == position.z) {
+void GRRayTracer::computeChristoffel(const Event4D& position) const {
+    if (m_cacheValid && m_lastPosition.t == position.t && m_lastPosition.x == position.x &&
+        m_lastPosition.y == position.y && m_lastPosition.z == position.z) {
         return;
     }
 
@@ -118,10 +113,22 @@ void GRRayTracer::computeChristoffel(const Event4D& position) const
         Event4D pos_minus = position;
 
         switch (mu) {
-            case 0: pos_plus.t += h; pos_minus.t -= h; break;
-            case 1: pos_plus.x += h; pos_minus.x -= h; break;
-            case 2: pos_plus.y += h; pos_minus.y -= h; break;
-            case 3: pos_plus.z += h; pos_minus.z -= h; break;
+            case 0:
+                pos_plus.t += h;
+                pos_minus.t -= h;
+                break;
+            case 1:
+                pos_plus.x += h;
+                pos_minus.x -= h;
+                break;
+            case 2:
+                pos_plus.y += h;
+                pos_minus.y -= h;
+                break;
+            case 3:
+                pos_plus.z += h;
+                pos_minus.z -= h;
+                break;
         }
 
         MetricTensor g_plus = getMetric(pos_plus);
@@ -145,17 +152,15 @@ void GRRayTracer::computeChristoffel(const Event4D& position) const
     m_lastPosition = position;
 }
 
-double GRRayTracer::getChristoffel(int lambda, int mu, int nu) const
-{
-    if (!m_cacheValid) return 0.0;
+double GRRayTracer::getChristoffel(int lambda, int mu, int nu) const {
+    if (!m_cacheValid)
+        return 0.0;
     return m_christoffel[lambda][mu][nu];
 }
 
-std::array<double, 4> GRRayTracer::verletStep(
-    const std::array<double, 4>& position,
-    const std::array<double, 4>& momentum,
-    double step) const
-{
+std::array<double, 4> GRRayTracer::verletStep(const std::array<double, 4>& position,
+                                              const std::array<double, 4>& momentum,
+                                              double step) const {
     // Simplified geodesic equation: d^2x/dtau^2 = -Gamma * dx/dtau * dx/dtau
     Event4D pos(position[0], position[1], position[2], position[3]);
     computeChristoffel(pos);
@@ -179,8 +184,7 @@ std::array<double, 4> GRRayTracer::verletStep(
 
 RayTraceResult GRRayTracer::traceRay(const Event4D& startEvent,
                                      const std::array<double, 3>& initialDirection,
-                                     double maxDistance)
-{
+                                     double maxDistance) {
     RayTraceResult result;
     result.hitEventHorizon = false;
     result.hitSingularity = false;
@@ -188,7 +192,8 @@ RayTraceResult GRRayTracer::traceRay(const Event4D& startEvent,
 
     // Initial conditions
     std::array<double, 4> position = {startEvent.t, startEvent.x, startEvent.y, startEvent.z};
-    std::array<double, 4> momentum = {1.0, initialDirection[0], initialDirection[1], initialDirection[2]};
+    std::array<double, 4> momentum = {1.0, initialDirection[0], initialDirection[1],
+                                      initialDirection[2]};
 
     // Normalize momentum
     double norm = 0.0;
@@ -208,9 +213,8 @@ RayTraceResult GRRayTracer::traceRay(const Event4D& startEvent,
         result.path.push_back(currentPos);
 
         // Check for event horizon (Schwarzschild: r = 2M)
-        double r = std::sqrt(currentPos.x * currentPos.x +
-                            currentPos.y * currentPos.y +
-                            currentPos.z * currentPos.z);
+        double r = std::sqrt(currentPos.x * currentPos.x + currentPos.y * currentPos.y +
+                             currentPos.z * currentPos.z);
         if (m_metricType == MetricType::SCHWARZSCHILD && r < 2.0 * m_mass) {
             result.hitEventHorizon = true;
             break;
@@ -226,11 +230,9 @@ RayTraceResult GRRayTracer::traceRay(const Event4D& startEvent,
         std::array<double, 4> newPosition = verletStep(position, momentum, m_stepSize);
 
         // Update distance
-        double dr = std::sqrt(
-            (newPosition[1] - position[1]) * (newPosition[1] - position[1]) +
-            (newPosition[2] - position[2]) * (newPosition[2] - position[2]) +
-            (newPosition[3] - position[3]) * (newPosition[3] - position[3])
-        );
+        double dr = std::sqrt((newPosition[1] - position[1]) * (newPosition[1] - position[1]) +
+                              (newPosition[2] - position[2]) * (newPosition[2] - position[2]) +
+                              (newPosition[3] - position[3]) * (newPosition[3] - position[3]));
         distance += dr;
         time += m_stepSize;
 
@@ -241,4 +243,4 @@ RayTraceResult GRRayTracer::traceRay(const Event4D& startEvent,
     return result;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

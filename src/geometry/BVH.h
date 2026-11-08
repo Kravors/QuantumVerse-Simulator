@@ -1,14 +1,14 @@
 #ifndef QUANTUMVERSE_GEOMETRY_BVH_H
 #define QUANTUMVERSE_GEOMETRY_BVH_H
 
-#include <vector>
 #include <array>
+#include <vector>
 
 namespace geometry {
 
-template<std::size_t N>
+template <std::size_t N>
 class BoundingVolumeHierarchy {
-public:
+   public:
     BoundingVolumeHierarchy() = default;
     ~BoundingVolumeHierarchy() = default;
 
@@ -16,13 +16,12 @@ public:
     void rebuild() {}
     void clear() {}
 
-    template<typename QueryType>
-    std::vector<std::vector<std::vector<double>>> query(
-        const QueryType& query_points) const {
+    template <typename QueryType>
+    std::vector<std::vector<std::vector<double>>> query(const QueryType& query_points) const {
         return {};
     }
 };
 
-} // namespace geometry
+}  // namespace geometry
 
-#endif // QUANTUMVERSE_GEOMETRY_BVH_H
+#endif  // QUANTUMVERSE_GEOMETRY_BVH_H

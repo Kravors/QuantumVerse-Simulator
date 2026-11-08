@@ -15,21 +15,27 @@
 namespace quantumverse {
 
 class CMBTemperatureExperiment : public CosmologyExperimentBase {
-public:
+   public:
     using CosmologyExperimentBase::CosmologyExperimentBase;
 
-    QString id() const override { return QStringLiteral("cmb_temperature"); }
-    QString name() const override { return QStringLiteral("CMB Temperature"); }
-    QString category() const override { return QStringLiteral("Cosmology"); }
+    QString id() const override {
+        return QStringLiteral("cmb_temperature");
+    }
+    QString name() const override {
+        return QStringLiteral("CMB Temperature");
+    }
+    QString category() const override {
+        return QStringLiteral("Cosmology");
+    }
     QString description() const override {
-        return QStringLiteral("T_CMB today vs COBE/FIRAS and T(z=1100) vs T₀(1+z); full T(z) curve z = 0..2000.");
+        return QStringLiteral(
+            "T_CMB today vs COBE/FIRAS and T(z=1100) vs T₀(1+z); full T(z) curve z = 0..2000.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_CMB_TEMPERATURE_EXPERIMENT_H
+#endif  // QUANTUMVERSE_CMB_TEMPERATURE_EXPERIMENT_H

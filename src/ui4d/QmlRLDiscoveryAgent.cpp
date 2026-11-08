@@ -1,26 +1,24 @@
 #include "QmlRLDiscoveryAgent.h"
+#include <QDateTime>
 #include <QVariant>
 #include <cmath>
-#include <QDateTime>
 #include "spacetime/KerrMetric.h"
 
 namespace quantumverse {
 
-QmlRLDiscoveryAgent::QmlRLDiscoveryAgent(QObject* parent)
-    : QObject(parent)
-{
+QmlRLDiscoveryAgent::QmlRLDiscoveryAgent(QObject* parent) : QObject(parent) {
     // Default parameter ranges for [Mass, Spin, Charge]
     std::vector<std::pair<double, double>> ranges = {
-        {0.1, 100.0},   // Mass in solar masses
-        {0.0, 1.5},     // Spin
-        {0.0, 1.5},     // Charge
+        {0.1, 100.0},  // Mass in solar masses
+        {0.0, 1.5},    // Spin
+        {0.0, 1.5},    // Charge
     };
     m_agent = std::make_unique<quantumverse::discovery::RLDiscoveryAgent>(3, ranges);
 }
 
-bool QmlRLDiscoveryAgent::loadONNXModel(const QString& onnxPath)
-{
-    if (!m_agent) return false;
+bool QmlRLDiscoveryAgent::loadONNXModel(const QString& onnxPath) {
+    if (!m_agent)
+        return false;
 #if HAVE_ONNX
     m_loaded = m_agent->loadONNXModel(onnxPath.toStdString());
 #else
@@ -34,23 +32,19 @@ bool QmlRLDiscoveryAgent::loadONNXModel(const QString& onnxPath)
     return m_loaded;
 }
 
-bool QmlRLDiscoveryAgent::isONNXLoaded() const
-{
+bool QmlRLDiscoveryAgent::isONNXLoaded() const {
     return m_loaded;
 }
 
-void QmlRLDiscoveryAgent::setPhysicsValidator(PhysicsValidator* validator)
-{
+void QmlRLDiscoveryAgent::setPhysicsValidator(PhysicsValidator* validator) {
     m_physicsValidator = validator;
 }
 
-void QmlRLDiscoveryAgent::setLLMCoPilot(LLMCoPilot* coPilot)
-{
+void QmlRLDiscoveryAgent::setLLMCoPilot(LLMCoPilot* coPilot) {
     m_llmCoPilot = coPilot;
 }
 
-QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, double charge)
-{
+QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, double charge) {
     QVariantList result;
     if (!m_loaded || !m_agent) {
         result.append(0.0);
@@ -60,9 +54,7 @@ QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, dou
     }
 
     std::array<float, 4> state = {
-        static_cast<float>(mass),
-        static_cast<float>(spin),
-        static_cast<float>(charge),
+        static_cast<float>(mass), static_cast<float>(spin), static_cast<float>(charge),
         0.0f  // anomaly score
     };
 
@@ -106,15 +98,24 @@ QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, dou
 
         if (!isValid) {
             QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
-            appendLog(QString("[AI VETO] t=%1 Proposed M=%.2f a=%.3f Q=%.3f failed physics validation (%d checks). Action vetoed.")
-                .arg(timestamp).arg(newMass).arg(newSpin).arg(newCharge).arg(report.failedChecks));
+            appendLog(QString("[AI VETO] t=%1 Proposed M=%.2f a=%.3f Q=%.3f failed physics "
+                              "validation (%d checks). Action vetoed.")
+                          .arg(timestamp)
+                          .arg(newMass)
+                          .arg(newSpin)
+                          .arg(newCharge)
+                          .arg(report.failedChecks));
 
             // Send to LLM Co-Pilot for plain-English explanation
             if (m_llmCoPilot) {
-                QString anomalyData = QString("VETO: Proposed state M=%1, a=%2, Q=%3. "
-                    "Violates cosmic censorship (naked singularity). "
-                    "PhysicsValidator reported %d failed checks.")
-                    .arg(newMass).arg(newSpin).arg(newCharge).arg(report.failedChecks);
+                QString anomalyData = QString(
+                                          "VETO: Proposed state M=%1, a=%2, Q=%3. "
+                                          "Violates cosmic censorship (naked singularity). "
+                                          "PhysicsValidator reported %d failed checks.")
+                                          .arg(newMass)
+                                          .arg(newSpin)
+                                          .arg(newCharge)
+                                          .arg(report.failedChecks);
                 m_llmCoPilot->analyzeAnomaly(anomalyData);
             }
 
@@ -128,8 +129,13 @@ QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, dou
     // Log the action
     QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
     QString logMsg = QString("[AI] t=%1 M=%.2f a=%.3f Q=%.3f -> dM=%+.3f da=%+.3f dQ=%+.3f")
-        .arg(timestamp).arg(mass).arg(spin).arg(charge)
-        .arg(deltaM).arg(deltaA).arg(deltaQ);
+                         .arg(timestamp)
+                         .arg(mass)
+                         .arg(spin)
+                         .arg(charge)
+                         .arg(deltaM)
+                         .arg(deltaA)
+                         .arg(deltaQ);
     appendLog(logMsg);
 
     // Check for cosmic censorship violation
@@ -139,8 +145,13 @@ QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, dou
 
     // Check for extremal black hole
     if (extremality > 0.99) {
-        appendLog(QString("🚨 DISCOVERY ALERT: Extremal black hole! M=%.2f a=%.3f Q=%.3f Extremality=%.4f")
-            .arg(newMass).arg(newSpin).arg(newCharge).arg(extremality));
+        appendLog(
+            QString(
+                "🚨 DISCOVERY ALERT: Extremal black hole! M=%.2f a=%.3f Q=%.3f Extremality=%.4f")
+                .arg(newMass)
+                .arg(newSpin)
+                .arg(newCharge)
+                .arg(extremality));
     }
 
     result.append(deltaM);
@@ -149,19 +160,16 @@ QVariantList QmlRLDiscoveryAgent::runDiscoveryStep(double mass, double spin, dou
     return result;
 }
 
-QStringList QmlRLDiscoveryAgent::discoveryLog() const
-{
+QStringList QmlRLDiscoveryAgent::discoveryLog() const {
     return m_discoveryLog;
 }
 
-void QmlRLDiscoveryAgent::clearLog()
-{
+void QmlRLDiscoveryAgent::clearLog() {
     m_discoveryLog.clear();
     emit discoveryLogChanged();
 }
 
-void QmlRLDiscoveryAgent::appendLog(const QString& msg)
-{
+void QmlRLDiscoveryAgent::appendLog(const QString& msg) {
     m_discoveryLog.append(msg);
     if (m_discoveryLog.size() > 100) {
         m_discoveryLog.removeFirst();
@@ -169,4 +177,4 @@ void QmlRLDiscoveryAgent::appendLog(const QString& msg)
     emit discoveryLogChanged();
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

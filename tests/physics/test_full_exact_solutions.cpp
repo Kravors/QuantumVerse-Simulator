@@ -1,15 +1,15 @@
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "spacetime/FRWMetric.h"
-#include "spacetime/DilatonMetric.h"
-#include "physics/GeodesicIntegrator.h"
-#include "physics/CurvatureCalculator.h"
-#include "physics/SingularityHandler.h"
-#include "physics/GeodesicDeviation.h"
-#include "coord_helpers.h"
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include "coord_helpers.h"
+#include "physics/CurvatureCalculator.h"
+#include "physics/GeodesicDeviation.h"
+#include "physics/GeodesicIntegrator.h"
+#include "physics/SingularityHandler.h"
+#include "spacetime/DilatonMetric.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/FRWMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse::test_helpers;
@@ -20,7 +20,7 @@ using namespace quantumverse::test_helpers;
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4189)
+#pragma warning(disable : 4189)
 #endif
 
 using namespace quantumverse;
@@ -32,7 +32,8 @@ static constexpr double EPS = 1e-12;
 // Helper: relative error with safe denominator
 // ============================================================================
 static double relError(double computed, double expected) {
-    if (expected == 0.0) return std::abs(computed);
+    if (expected == 0.0)
+        return std::abs(computed);
     return std::abs(computed - expected) / std::abs(expected);
 }
 
@@ -55,10 +56,12 @@ void test_schwarzschild_kretschmann_exact() {
         double K_exact_coeff = 48.0 * G * G * M * M / c4;
 
         for (double r : radii) {
-            if (r <= 0.0) continue;
+            if (r <= 0.0)
+                continue;
             Event4D ev(0.0, r, 0.0, 0.0);
             auto scalars = sch.curvatureScalars(ev);
-            if (!scalars.valid) continue;  // inside horizon → skip
+            if (!scalars.valid)
+                continue;  // inside horizon → skip
             QV_CHECK(scalars.valid);
             double K_expected = K_exact_coeff / std::pow(r, 6);
             double err = relError(scalars.kretschmann, K_expected);
@@ -68,7 +71,8 @@ void test_schwarzschild_kretschmann_exact() {
             count++;
         }
     }
-    std::cout << "[PASS] Schwarzschild Kretschmann exact: " << count << " points verified" << std::endl;
+    std::cout << "[PASS] Schwarzschild Kretschmann exact: " << count << " points verified"
+              << std::endl;
 }
 
 // ============================================================================
@@ -82,14 +86,9 @@ void test_schwarzschild_ricci_zero() {
     CurvatureCalculator calc(metric);
     calc.setMetric(metric);
 
-    std::vector<Event4D> points = {
-        Event4D(0.0, 1e3, 0.0, 0.0),
-        Event4D(0.0, 1e6, 0.0, 0.0),
-        Event4D(0.0, 1e9, 0.0, 0.0),
-        Event4D(0.0, 1e12, 0.0, 0.0),
-        Event4D(0.0, 5e10, 3e10, 0.0),
-        Event4D(0.0, 1e8, -1e8, 2e8)
-    };
+    std::vector<Event4D> points = {Event4D(0.0, 1e3, 0.0, 0.0),   Event4D(0.0, 1e6, 0.0, 0.0),
+                                   Event4D(0.0, 1e9, 0.0, 0.0),   Event4D(0.0, 1e12, 0.0, 0.0),
+                                   Event4D(0.0, 5e10, 3e10, 0.0), Event4D(0.0, 1e8, -1e8, 2e8)};
 
     for (const auto& ev : points) {
         auto result = calc.computeAll(ev);
@@ -107,13 +106,15 @@ void test_schwarzschild_ricci_zero() {
 void test_schwarzschild_redshift() {
     double M = 1.0;  // Use geometric units: M = GM/c^2
     double rs = 2.0 * M;
-    SingularityHandler handler(SingularityType::SCHWARZSCHILD, M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+    SingularityHandler handler(SingularityType::SCHWARZSCHILD,
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     std::vector<double> r_factors = {3.0, 5.0, 10.0, 20.0, 50.0, 100.0, 1000.0};
     int count = 0;
     for (double factor : r_factors) {
         double r = factor * M;
-        if (r <= rs) continue;
+        if (r <= rs)
+            continue;
         Event4D ev(0.0, r, 0.0, 0.0);
         double z = handler.getGravitationalRedshift(ev);
         double z_expected = 1.0 / std::sqrt(1.0 - rs / r) - 1.0;
@@ -132,12 +133,8 @@ void test_schwarzschild_metric_properties() {
     [[maybe_unused]] double M = 5.0 * Event4D::G * 1.989e30 / (Event4D::C * Event4D::C);
     SchwarzschildMetric sch(5.0 * 1.989e30);
 
-    std::vector<Event4D> points = {
-        Event4D(0.0, 1e5, 0.0, 0.0),
-        Event4D(0.0, 1e7, 0.0, 0.0),
-        Event4D(0.0, 1e9, 1e8, 1e7),
-        Event4D(0.0, 5e10, 3e10, -2e10)
-    };
+    std::vector<Event4D> points = {Event4D(0.0, 1e5, 0.0, 0.0), Event4D(0.0, 1e7, 0.0, 0.0),
+                                   Event4D(0.0, 1e9, 1e8, 1e7), Event4D(0.0, 5e10, 3e10, -2e10)};
 
     for (const auto& ev : points) {
         auto g = sch.evaluate(ev);
@@ -152,8 +149,8 @@ void test_schwarzschild_metric_properties() {
         // Full determinant via MetricTensor
         MetricTensor mt = sch;  // won't work directly, use static
         // Just check via evaluate result
-        double full_det = g[0][0] * (g[1][1] * (g[2][2] * g[3][3]) - g[1][2] * g[2][1] * g[3][3])
-                        - g[0][1] * (g[1][0] * (g[2][2] * g[3][3]) - g[1][2] * g[2][0] * g[3][3]);
+        double full_det = g[0][0] * (g[1][1] * (g[2][2] * g[3][3]) - g[1][2] * g[2][1] * g[3][3]) -
+                          g[0][1] * (g[1][0] * (g[2][2] * g[3][3]) - g[1][2] * g[2][0] * g[3][3]);
         (void)full_det;
     }
     std::cout << "[PASS] Schwarzschild metric symmetry and signature checks" << std::endl;
@@ -173,7 +170,8 @@ void test_schwarzschild_geodesic_constraint() {
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
 
     QV_CHECK(!traj.empty());
-    std::cout << "[PASS] Schwarzschild geodesic integration produced " << traj.size() << " steps" << std::endl;
+    std::cout << "[PASS] Schwarzschild geodesic integration produced " << traj.size() << " steps"
+              << std::endl;
 }
 
 // ============================================================================
@@ -185,7 +183,8 @@ void test_kerr_horizon_and_structure() {
 
     for (double a_frac : {0.0, 0.2, 0.5, 0.9, 0.99}) {
         double a = a_frac * rs / 2.0;  // a <= rs/2 for Kerr in code's units
-        if (a > rs / 2.0 - 1e-10) continue;  // skip extremal/naked
+        if (a > rs / 2.0 - 1e-10)
+            continue;  // skip extremal/naked
 
         double delta_discriminant = rs * rs - 4.0 * a * a;
         QV_CHECK(delta_discriminant >= 0.0);
@@ -196,8 +195,8 @@ void test_kerr_horizon_and_structure() {
         QV_CHECK(r_plus > 0.0);
 
         auto kerr = MetricTensor::kerr(M * Event4D::C * Event4D::C / Event4D::G,
-                                       a * M * Event4D::C * Event4D::C / Event4D::G,
-                                       r_plus * 2.0, M_PI / 2.0);
+                                       a * M * Event4D::C * Event4D::C / Event4D::G, r_plus * 2.0,
+                                       M_PI / 2.0);
         // Check symmetry
         for (int i = 0; i < 4; i++)
             for (int j = i + 1; j < 4; j++)
@@ -214,10 +213,8 @@ void test_kerr_frame_dragging() {
     double rs = 2.0 * M;
     double a = 0.3 * rs / 2.0;
 
-    SingularityHandler handler(SingularityType::KERR,
-        M * Event4D::C * Event4D::C / Event4D::G,
-        a * M * Event4D::C * Event4D::C / Event4D::G,
-        0.0);
+    SingularityHandler handler(SingularityType::KERR, M * Event4D::C * Event4D::C / Event4D::G,
+                               a * M * Event4D::C * Event4D::C / Event4D::G, 0.0);
 
     std::vector<double> r_factors = {2.5, 5.0, 10.0, 50.0, 100.0};
     for (double factor : r_factors) {
@@ -243,19 +240,23 @@ void test_reissner_nordstrom_horizon() {
 
     for (double q_frac : {0.0, 0.2, 0.5, 0.9}) {
         double q = q_frac;
-        if (q >= 1.0) continue;  // extremal/naked
+        if (q >= 1.0)
+            continue;  // extremal/naked
 
         double r_plus_expected = (rs / 2.0) * (1.0 + std::sqrt(1.0 - q * q));
         double r_minus_expected = (rs / 2.0) * (1.0 - std::sqrt(1.0 - q * q));
-        (void)r_plus_expected; (void)r_minus_expected;
+        (void)r_plus_expected;
+        (void)r_minus_expected;
 
         SingularityHandler handler(SingularityType::REISSNER_NORDSTROM,
-            M * Event4D::C * Event4D::C / Event4D::G, 0.0,
-            q * std::sqrt(4.0 * M_PI * 8.854187817e-12 * Event4D::C2 * M * Event4D::C * Event4D::C / Event4D::G));
+                                   M * Event4D::C * Event4D::C / Event4D::G, 0.0,
+                                   q * std::sqrt(4.0 * M_PI * 8.854187817e-12 * Event4D::C2 * M *
+                                                 Event4D::C * Event4D::C / Event4D::G));
 
         double r_plus_actual = handler.getProperties().event_horizon_radius;
         double r_minus_actual = handler.getProperties().inner_horizon_radius;
-        (void)r_plus_actual; (void)r_minus_actual;
+        (void)r_plus_actual;
+        (void)r_minus_actual;
 
         QV_CHECK_NEAR(r_plus_actual - r_plus_expected, 0.0, 1e-6);
         QV_CHECK_NEAR(r_minus_actual - r_minus_expected, 0.0, 1e-6);
@@ -397,8 +398,7 @@ void test_frw_deceleration_parameter() {
 void test_dilaton_vacuum_ricci() {
     DilatonMetric vacuum(0.0, 0.0);
     std::vector<std::pair<double, double>> coords = {
-        {1.0, 2.0}, {0.5, -0.5}, {10.0, 0.1}, {-2.0, 3.0}
-    };
+        {1.0, 2.0}, {0.5, -0.5}, {10.0, 0.1}, {-2.0, 3.0}};
     for (auto [xp, xm] : coords) {
         double R = vacuum.ricciScalar(xp, xm);
         QV_CHECK_NEAR(R, 0.0, 1e-12);
@@ -457,7 +457,8 @@ void test_dilaton_fields() {
     double phi = dm.dilaton(xp, xm);
     double phi_expected = -sigma + 0.5 * std::log(Omega_expected);
     QV_CHECK_NEAR(phi - phi_expected, 0.0, 1e-12);
-    (void)phi; (void)phi_expected;
+    (void)phi;
+    (void)phi_expected;
 
     // Vacuum
     DilatonMetric vm(sigma, 0.0);
@@ -523,8 +524,7 @@ void test_kerr_equatorial_angular_velocity() {
         (void)Omega_expected;
         // Integrate a timelike geodesic at r=10M
         auto kerr = MetricTensor::kerr(M * Event4D::C * Event4D::C / Event4D::G,
-                                       a * M * Event4D::C * Event4D::C / Event4D::G,
-                                       r, M_PI / 2.0);
+                                       a * M * Event4D::C * Event4D::C / Event4D::G, r, M_PI / 2.0);
         GeodesicIntegrator integrator(1e-8);
         integrator.setMetric(std::make_shared<MetricTensor>(kerr));
 
@@ -561,13 +561,14 @@ void test_rn_kretschmann_regular() {
     // (in geometric units where G=c=1)
     double M_geom = rs / 2.0;
     double Q_geom = q * M_geom;
-    [[maybe_unused]] double K_expected = 48.0 * M_geom * M_geom / std::pow(r, 6)
-                      - 96.0 * Q_geom * Q_geom * M_geom / std::pow(r, 7)
-                      + 56.0 * std::pow(Q_geom, 4) / std::pow(r, 8);
+    [[maybe_unused]] double K_expected = 48.0 * M_geom * M_geom / std::pow(r, 6) -
+                                         96.0 * Q_geom * Q_geom * M_geom / std::pow(r, 7) +
+                                         56.0 * std::pow(Q_geom, 4) / std::pow(r, 8);
 
     SingularityHandler handler(SingularityType::REISSNER_NORDSTROM,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0,
-        q * std::sqrt(4.0 * M_PI * 8.854187817e-12 * Event4D::C2 * M * Event4D::C * Event4D::C / Event4D::G));
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0,
+                               q * std::sqrt(4.0 * M_PI * 8.854187817e-12 * Event4D::C2 * M *
+                                             Event4D::C * Event4D::C / Event4D::G));
     double K_actual = handler.computeKretschmannAtRadius(r);
     QV_CHECK(std::isfinite(K_actual));
     QV_CHECK(K_actual > 0.0);
@@ -617,11 +618,8 @@ void test_lorentzian_signature() {
 
     double M = 1e30;
     SchwarzschildMetric sch(M);
-    std::vector<Event4D> pts = {
-        Event4D(0.0, 1e5, 0.0, 0.0),
-        Event4D(0.0, 1e8, 1e7, -1e7),
-        Event4D(0.0, 1e12, 0.0, 0.0)
-    };
+    std::vector<Event4D> pts = {Event4D(0.0, 1e5, 0.0, 0.0), Event4D(0.0, 1e8, 1e7, -1e7),
+                                Event4D(0.0, 1e12, 0.0, 0.0)};
     for (const auto& ev : pts) {
         auto g = sch.evaluate(ev);
         // Check determinant < 0 for Lorentzian (-,+,+,+)
@@ -633,7 +631,8 @@ void test_lorentzian_signature() {
         QV_CHECK(full_det < 0.0);
         (void)full_det;
     }
-    std::cout << "[PASS] Lorentzian signature verified for Minkowski and Schwarzschild" << std::endl;
+    std::cout << "[PASS] Lorentzian signature verified for Minkowski and Schwarzschild"
+              << std::endl;
 }
 
 // ============================================================================
@@ -655,13 +654,15 @@ void test_geodesic_constraint_timelike() {
             norm0 += g0[i][j] * vel[i] * vel[j];
     if (norm0 < 0.0) {
         double scale = 1.0 / std::sqrt(-norm0);
-        for (int i = 0; i < 4; i++) vel[i] *= scale;
+        for (int i = 0; i < 4; i++)
+            vel[i] *= scale;
     }
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
 
     QV_CHECK(!traj.empty());
-    std::cout << "[PASS] Geodesic timelike integration completed: " << traj.size() << " steps" << std::endl;
+    std::cout << "[PASS] Geodesic timelike integration completed: " << traj.size() << " steps"
+              << std::endl;
 }
 
 // ============================================================================
@@ -678,10 +679,12 @@ void test_schwarzschild_kretschmann_grid() {
         SchwarzschildMetric sch(M);
         double coeff = 48.0 * G * G * M * M / c4;
         for (double r : radii) {
-            if (r <= 1e-9) continue;
+            if (r <= 1e-9)
+                continue;
             Event4D ev(0.0, r, 0.0, 0.0);
             [[maybe_unused]] auto s = sch.curvatureScalars(ev);
-            if (!s.valid) continue;  // inside horizon → skip
+            if (!s.valid)
+                continue;  // inside horizon → skip
             QV_CHECK(s.valid);
             [[maybe_unused]] double expected = coeff / std::pow(r, 6);
             QV_CHECK(relError(s.kretschmann, expected) < 1e-12);
@@ -728,10 +731,10 @@ void test_frw_curvature_types() {
     double t = t0 * 0.8;
 
     auto flat = FRWMetric::matterDominated(H0, t0);
-    auto closed = FRWMetric(FRWMetric::Curvature::CLOSED,
-        [t0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
-    auto open = FRWMetric(FRWMetric::Curvature::OPEN,
-        [t0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
+    auto closed = FRWMetric(
+        FRWMetric::Curvature::CLOSED, [t0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
+    auto open = FRWMetric(
+        FRWMetric::Curvature::OPEN, [t0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
 
     QV_CHECK(flat.curvature() == 0);
     QV_CHECK(closed.curvature() == 1);
@@ -787,7 +790,7 @@ void test_schwarzschild_inside_horizon() {
     QV_CHECK(std::isfinite(g[1][1]));
 
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
     QV_CHECK(handler.isInsideEventHorizon(inside));
     std::cout << "[PASS] Schwarzschild inside horizon: signature flips correctly" << std::endl;
 }
@@ -855,7 +858,8 @@ void test_kerr_ergosphere() {
     double r_ergo = handler.getProperties().ergosphere_radius;
     double r_horizon = handler.getProperties().event_horizon_radius;
     QV_CHECK(r_ergo > r_horizon);
-    (void)r_ergo; (void)r_horizon;
+    (void)r_ergo;
+    (void)r_horizon;
     QV_CHECK(std::isfinite(r_ergo));
     std::cout << "[PASS] Kerr ergosphere outside horizon" << std::endl;
 }
@@ -893,7 +897,9 @@ void test_schwarzschild_metric_formulas() {
         double g_tt_expected = -(1.0 - rs / r);
         double grr_expected = 1.0 / (1.0 - rs / r);
         QV_CHECK_NEAR(g[0][0] - g_tt_expected, 0.0, 1e-10);
-        (void)g; (void)g_tt_expected; (void)grr_expected;
+        (void)g;
+        (void)g_tt_expected;
+        (void)grr_expected;
         QV_CHECK_NEAR(g[1][1] - grr_expected, 0.0, 1e-10);
         QV_CHECK_NEAR(g[2][2] - r * r, 0.0, 1e-6);
         QV_CHECK_NEAR(g[3][3] - r * r, 0.0, 1e-6);
@@ -929,9 +935,8 @@ void test_naked_singularity_detection() {
     double a_over_rs2 = 1.5;  // a > rs/2 => naked
     double a = a_over_rs2 * rs / 2.0;
 
-    SingularityHandler handler(SingularityType::NAKED,
-        M * Event4D::C * Event4D::C / Event4D::G,
-        a * M * Event4D::C * Event4D::C / Event4D::G, 0.0);
+    SingularityHandler handler(SingularityType::NAKED, M * Event4D::C * Event4D::C / Event4D::G,
+                               a * M * Event4D::C * Event4D::C / Event4D::G, 0.0);
 
     QV_CHECK(handler.getProperties().is_naked);
     Event4D ev(0.0, 5.0 * M, 0.0, 0.0);
@@ -944,10 +949,9 @@ void test_naked_singularity_detection() {
 // ============================================================================
 void test_regular_bh_finite_curvature() {
     double M = 1.0;
-    std::vector<SingularityType> regularTypes = {
-        SingularityType::HAYWARD, SingularityType::BARDEEN,
-        SingularityType::LOOP_QUANTUM, SingularityType::REGULAR_GAUSS
-    };
+    std::vector<SingularityType> regularTypes = {SingularityType::HAYWARD, SingularityType::BARDEEN,
+                                                 SingularityType::LOOP_QUANTUM,
+                                                 SingularityType::REGULAR_GAUSS};
 
     for (auto type : regularTypes) {
         SingularityHandler handler(type, M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
@@ -974,7 +978,9 @@ void test_schwarzschild_newtonian_limit() {
     double g_tt_newton = -(1.0 - rs / r);
     double grr_newton = 1.0 + rs / r;
     QV_CHECK_NEAR(g[0][0] - g_tt_newton, 0.0, 1e-10);
-    (void)g; (void)g_tt_newton; (void)grr_newton;
+    (void)g;
+    (void)g_tt_newton;
+    (void)grr_newton;
     QV_CHECK_NEAR(g[1][1] - grr_newton, 0.0, 1e-10);
     std::cout << "[PASS] Schwarzschild Newtonian limit at large r" << std::endl;
 }
@@ -995,10 +1001,12 @@ void test_schwarzschild_parameter_grid() {
         double coeff = 48.0 * G * G * M * M / c4;
         for (double lR : logR) {
             double r = std::pow(10.0, lR);
-            if (r <= 1e-9) continue;
+            if (r <= 1e-9)
+                continue;
             Event4D ev(0.0, r, 0.0, 0.0);
             auto s = sch.curvatureScalars(ev);
-            if (!s.valid) continue;  // inside horizon → skip
+            if (!s.valid)
+                continue;  // inside horizon → skip
             QV_CHECK(s.valid);
             (void)s;
             double K_exp = coeff / std::pow(r, 6);
@@ -1024,7 +1032,9 @@ void test_schwarzschild_tidal_tensor() {
     double expected_rr = -2.0 * M / (r * r * r);
     double expected_tt = M / (r * r * r);
     double expected_pp = M / (r * r * r);
-    (void)expected_rr; (void)expected_tt; (void)expected_pp;
+    (void)expected_rr;
+    (void)expected_tt;
+    (void)expected_pp;
 
     QV_CHECK_NEAR(tidal[0][0] - expected_rr, 0.0, 1e-6);
     QV_CHECK_NEAR(tidal[1][1] - expected_tt, 0.0, 1e-6);
@@ -1042,7 +1052,8 @@ void test_schwarzschild_weyl_equals_kretschmann() {
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
         [[maybe_unused]] auto s = sch.curvatureScalars(ev);
-        if (!s.valid) continue;  // inside horizon → skip
+        if (!s.valid)
+            continue;  // inside horizon → skip
         QV_CHECK(s.valid);
         QV_CHECK_NEAR(s.weylSquared - s.kretschmann, 0.0, 1e-6);
     }
@@ -1085,17 +1096,19 @@ void test_schwarzschild_redshift_infinity() {
     double M = 1.0;
     double rs = 2.0 * M;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     std::vector<double> r_factors = {3.0, 5.0, 10.0, 20.0, 100.0, 1000.0};
     for (double f : r_factors) {
         double r = f * M;
-        if (r <= rs) continue;
+        if (r <= rs)
+            continue;
         Event4D ev(0.0, r, 0.0, 0.0);
         double z = handler.getGravitationalRedshift(ev);
         double z_expected = 1.0 / std::sqrt(1.0 - rs / r) - 1.0;
         QV_CHECK_NEAR(z - z_expected, 0.0, 1e-10);
-        (void)z; (void)z_expected;
+        (void)z;
+        (void)z_expected;
     }
     std::cout << "[PASS] Schwarzschild redshift to infinity exact" << std::endl;
 }
@@ -1205,7 +1218,7 @@ void test_schwarzschild_horizon_radius() {
     double M = 1.0;
     [[maybe_unused]] double rs = 2.0 * M;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     QV_CHECK_NEAR(handler.getProperties().schwarzschild_radius - rs, 0.0, 1e-6);
     QV_CHECK_NEAR(handler.getProperties().event_horizon_radius - rs, 0.0, 1e-6);
@@ -1222,14 +1235,14 @@ void test_dilaton_ricci_scalar_exact() {
     DilatonMetric dm(sigma, M);
 
     std::vector<std::pair<double, double>> pts = {
-        {1.0, 1.0}, {2.0, -1.0}, {0.5, 3.0}, {-1.5, 0.8}, {5.0, 0.1}
-    };
+        {1.0, 1.0}, {2.0, -1.0}, {0.5, 3.0}, {-1.5, 0.8}, {5.0, 0.1}};
     for (auto [xp, xm] : pts) {
         double A = 1.0 + M * std::exp(2.0 * sigma) * xp * xm;
         double R_expected = 4.0 * M * std::exp(2.0 * sigma) / (A * A * A);
         double R_actual = dm.ricciScalar(xp, xm);
         QV_CHECK_NEAR(R_actual - R_expected, 0.0, 1e-12);
-        (void)R_expected; (void)R_actual;
+        (void)R_expected;
+        (void)R_actual;
     }
     std::cout << "[PASS] Dilaton Ricci scalar exact formula" << std::endl;
 }
@@ -1244,7 +1257,8 @@ void test_dilaton_temperature_grid() {
         double T = dm.hawkingTemperature();
         double T_exp = 1.0 / (4.0 * M_PI * M);
         QV_CHECK_NEAR(T - T_exp, 0.0, 1e-12);
-        (void)T; (void)T_exp;
+        (void)T;
+        (void)T_exp;
     }
     std::cout << "[PASS] Dilaton Hawking temperature grid exact" << std::endl;
 }
@@ -1256,17 +1270,19 @@ void test_schwarzschild_spherical_symmetry() {
     double M = 1e30;
     SchwarzschildMetric sch(M);
     double r = 1e8;
-    std::vector<std::pair<double, double>> angles = {
-        {0.0, 0.0}, {M_PI / 4.0, 0.0}, {M_PI / 2.0, M_PI / 4.0},
-        {M_PI / 3.0, M_PI / 2.0}, {M_PI, 0.0}
-    };
+    std::vector<std::pair<double, double>> angles = {{0.0, 0.0},
+                                                     {M_PI / 4.0, 0.0},
+                                                     {M_PI / 2.0, M_PI / 4.0},
+                                                     {M_PI / 3.0, M_PI / 2.0},
+                                                     {M_PI, 0.0}};
 
-    [[maybe_unused]] double K_ref = 48.0 * Event4D::G * Event4D::G * M * M /
-                    std::pow(Event4D::C, 4) / std::pow(r, 6);
+    [[maybe_unused]] double K_ref =
+        48.0 * Event4D::G * Event4D::G * M * M / std::pow(Event4D::C, 4) / std::pow(r, 6);
     for (auto [th, ph] : angles) {
         Event4D ev(0.0, r, th, ph);
         [[maybe_unused]] auto s = sch.curvatureScalars(ev);
-        if (!s.valid) continue;  // inside horizon → skip
+        if (!s.valid)
+            continue;  // inside horizon → skip
         QV_CHECK(s.valid);
         QV_CHECK_NEAR(s.kretschmann - K_ref, 0.0, 1e-12);
     }
@@ -1314,10 +1330,12 @@ void test_schwarzschild_circular_orbit_period() {
     // Find max x to determine orbit
     double x_max = -1e100;
     for (const auto& step : traj) {
-        if (step.event.x > x_max) x_max = step.event.x;
+        if (step.event.x > x_max)
+            x_max = step.event.x;
     }
     QV_CHECK(x_max > 0.0);
-    std::cout << "[PASS] Schwarzschild circular orbit integration: " << traj.size() << " steps" << std::endl;
+    std::cout << "[PASS] Schwarzschild circular orbit integration: " << traj.size() << " steps"
+              << std::endl;
 }
 
 // ============================================================================
@@ -1374,7 +1392,8 @@ void test_schwarzschild_kretschmann_divergence() {
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
         auto s = sch.curvatureScalars(ev);
-        if (!s.valid) continue;  // inside horizon → skip
+        if (!s.valid)
+            continue;  // inside horizon → skip
         QV_CHECK(s.valid);
         QV_CHECK(std::isfinite(s.kretschmann));
         K_prev = s.kretschmann;
@@ -1451,6 +1470,7 @@ int main() {
 #pragma warning(pop)
 #endif
 
-    std::cout << "=== ALL EXACT SOLUTION TESTS PASSED (" << 60 << " test functions) ===" << std::endl;
+    std::cout << "=== ALL EXACT SOLUTION TESTS PASSED (" << 60
+              << " test functions) ===" << std::endl;
     return 0;
 }

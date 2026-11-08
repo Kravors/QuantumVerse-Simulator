@@ -1,18 +1,18 @@
 // QuantumVerse Test: Geodesic Integrator
 // Tests the real GeodesicIntegrator class with edge cases
 
-#include <iostream>
-#include <cmath>
-#include <vector>
 #include <array>
+#include <cmath>
+#include <iostream>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 #include "physics/GeodesicIntegrator.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -40,7 +40,8 @@ int main() {
     // Test 2: Schwarzschild geodesic (non-flat spacetime)
     {
         GeodesicIntegrator integrator(1e-6);
-        auto metric = std::make_shared<MetricTensor>(MetricTensor::schwarzschild(1.0, 10.0, M_PI / 2.0, 0.0));
+        auto metric =
+            std::make_shared<MetricTensor>(MetricTensor::schwarzschild(1.0, 10.0, M_PI / 2.0, 0.0));
         integrator.setMetric(metric);
 
         Event4D start(0.0, 10.0, 0.0, 0.0);
@@ -59,7 +60,8 @@ int main() {
         double mass = 1.0;
         double r_horizon = 2.0 * mass;
         double r_near = r_horizon * 1.01;
-        auto metric = std::make_shared<MetricTensor>(MetricTensor::schwarzschild(mass, r_near, M_PI / 2.0, 0.0));
+        auto metric = std::make_shared<MetricTensor>(
+            MetricTensor::schwarzschild(mass, r_near, M_PI / 2.0, 0.0));
         integrator.setMetric(metric);
 
         Event4D start(0.0, r_near, 0.0, 0.0);

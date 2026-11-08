@@ -9,8 +9,8 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
-#include <QJsonObject>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QSignalSpy>
 #include <QTimer>
 #include <iostream>
@@ -20,8 +20,7 @@
 
 using namespace quantumverse;
 
-static void writeGcnFile(const QString& dir, const QString& name, double timestampSec)
-{
+static void writeGcnFile(const QString& dir, const QString& name, double timestampSec) {
     QFile f(QDir(dir).absoluteFilePath(name));
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
         std::cerr << "Failed to write test file:" << f.fileName().toStdString() << std::endl;
@@ -35,8 +34,7 @@ static void writeGcnFile(const QString& dir, const QString& name, double timesta
     f.close();
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== GCNReplayStream Test ===" << std::endl;
 

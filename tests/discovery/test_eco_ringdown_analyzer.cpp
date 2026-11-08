@@ -15,8 +15,8 @@
 #include <vector>
 
 #include "discovery/ECORingdownAnalyzer.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -38,8 +38,7 @@ std::vector<Event4D> makeKerrRingdown(size_t n = 300, double dt = 0.1) {
 // Synthetic ECO ringdown: Kerr-like ringdown PLUS a delayed, repeated echo
 // pulse (the horizonless-compact-object signature).
 std::vector<Event4D> makeECORingdown(size_t n = 300, double dt = 0.1,
-                                     double echoDelaySamples = 60.0,
-                                     double echoAmp = 0.8) {
+                                     double echoDelaySamples = 60.0, double echoAmp = 0.8) {
     std::vector<Event4D> traj;
     traj.reserve(n);
     double tau = 12.0;
@@ -56,7 +55,7 @@ std::vector<Event4D> makeECORingdown(size_t n = 300, double dt = 0.1,
     return traj;
 }
 
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== ECORingdownAnalyzerTest ===" << std::endl;
@@ -81,10 +80,13 @@ int main() {
         ECORingdownAnalyzer eco;
         eco.setParameter("echo_threshold", 0.05);
         auto findings = eco.analyze(metric, location, makeKerrRingdown());
-        double kerrSig = findings.empty() ? 0.0 : findings.front().parameters.at("echo_significance");
-        std::cout << "  Kerr signal findings: " << findings.size() << " sig=" << kerrSig << std::endl;
+        double kerrSig =
+            findings.empty() ? 0.0 : findings.front().parameters.at("echo_significance");
+        std::cout << "  Kerr signal findings: " << findings.size() << " sig=" << kerrSig
+                  << std::endl;
         if (!findings.empty()) {
-            std::cerr << "FAIL: pure Kerr ringdown must NOT be flagged as ECO (sig=" << kerrSig << ")\n";
+            std::cerr << "FAIL: pure Kerr ringdown must NOT be flagged as ECO (sig=" << kerrSig
+                      << ")\n";
             return 1;
         }
     }

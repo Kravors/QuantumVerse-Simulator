@@ -6,12 +6,11 @@
 
 #include "ui_mydialog.h"
 
-class MyDialog : public QDialog, public Ui::MyDialog
-{
+class MyDialog : public QDialog, public Ui::MyDialog {
     Q_OBJECT
 
-public:
-    MyDialog(QWidget *parent = nullptr);
+   public:
+    MyDialog(QWidget* parent = nullptr);
 };
 
 #endif

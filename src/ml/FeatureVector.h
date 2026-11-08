@@ -11,13 +11,13 @@
 #define QUANTUMVERSE_FEATURE_VECTOR_H
 
 #include <array>
-#include <vector>
-#include <string>
-#include <limits>
 #include <cmath>
-#include "ui4d/UI4D.h"
+#include <limits>
+#include <string>
+#include <vector>
 #include "discovery/DiscoveryInstrument.h"
 #include "physics/PhysicsConstants.h"
+#include "ui4d/UI4D.h"
 
 namespace quantumverse {
 
@@ -59,23 +59,20 @@ struct FeatureVector {
      * @param findings Latest discovery instrument findings
      * @return Populated feature vector
      */
-    static FeatureVector extract(
-        const UI4D::PhysicsTelemetry& telemetry,
-        double blackHoleMassKg,
-        const std::vector<UI4D::SolarSystemBody>& bodies,
-        const std::vector<InstrumentFinding>& findings
-    ) {
+    static FeatureVector extract(const UI4D::PhysicsTelemetry& telemetry, double blackHoleMassKg,
+                                 const std::vector<UI4D::SolarSystemBody>& bodies,
+                                 const std::vector<InstrumentFinding>& findings) {
         FeatureVector fv;
-        fv.data[0]  = telemetry.totalKineticEnergy;
-        fv.data[1]  = telemetry.totalPotentialEnergy;
-        fv.data[2]  = telemetry.totalEnergy;
-        fv.data[3]  = telemetry.angularMomentumZ;
-        fv.data[4]  = telemetry.earthOrbitalSpeed;
-        fv.data[5]  = telemetry.earthDistance;
-        fv.data[6]  = telemetry.gravitationalWaveStrain;
-        fv.data[7]  = telemetry.gravitationalWaveFreq;
-        fv.data[8]  = PhysicsConstants::instance().get_G();
-        fv.data[9]  = PhysicsConstants::instance().get_c();
+        fv.data[0] = telemetry.totalKineticEnergy;
+        fv.data[1] = telemetry.totalPotentialEnergy;
+        fv.data[2] = telemetry.totalEnergy;
+        fv.data[3] = telemetry.angularMomentumZ;
+        fv.data[4] = telemetry.earthOrbitalSpeed;
+        fv.data[5] = telemetry.earthDistance;
+        fv.data[6] = telemetry.gravitationalWaveStrain;
+        fv.data[7] = telemetry.gravitationalWaveFreq;
+        fv.data[8] = PhysicsConstants::instance().get_G();
+        fv.data[9] = PhysicsConstants::instance().get_c();
         fv.data[10] = blackHoleMassKg;
         fv.data[11] = static_cast<double>(telemetry.bodyCount);
 
@@ -115,7 +112,7 @@ struct FeatureVector {
         return fv;
     }
 
-private:
+   private:
     static double bodySpeed(const UI4D::SolarSystemBody& body) {
         double vx = body.velocity.x;
         double vy = body.velocity.y;
@@ -124,28 +121,35 @@ private:
     }
 
     static double meanBodySpeed(const std::vector<UI4D::SolarSystemBody>& bodies) {
-        if (bodies.empty()) return 0.0;
+        if (bodies.empty())
+            return 0.0;
         double sum = 0.0;
-        for (const auto& b : bodies) sum += bodySpeed(b);
+        for (const auto& b : bodies)
+            sum += bodySpeed(b);
         return sum / static_cast<double>(bodies.size());
     }
 
     static double maxBodySpeed(const std::vector<UI4D::SolarSystemBody>& bodies) {
-        if (bodies.empty()) return 0.0;
+        if (bodies.empty())
+            return 0.0;
         double mx = 0.0;
-        for (const auto& b : bodies) mx = std::max(mx, bodySpeed(b));
+        for (const auto& b : bodies)
+            mx = std::max(mx, bodySpeed(b));
         return mx;
     }
 
     static double minBodySpeed(const std::vector<UI4D::SolarSystemBody>& bodies) {
-        if (bodies.empty()) return 0.0;
+        if (bodies.empty())
+            return 0.0;
         double mn = std::numeric_limits<double>::max();
-        for (const auto& b : bodies) mn = std::min(mn, bodySpeed(b));
+        for (const auto& b : bodies)
+            mn = std::min(mn, bodySpeed(b));
         return mn;
     }
 
     static double stdBodySpeed(const std::vector<UI4D::SolarSystemBody>& bodies) {
-        if (bodies.size() < 2) return 0.0;
+        if (bodies.size() < 2)
+            return 0.0;
         double m = meanBodySpeed(bodies);
         double sum = 0.0;
         for (const auto& b : bodies) {
@@ -156,28 +160,33 @@ private:
     }
 
     static double meanConfidence(const std::vector<InstrumentFinding>& findings) {
-        if (findings.empty()) return 0.0;
+        if (findings.empty())
+            return 0.0;
         double sum = 0.0;
-        for (const auto& f : findings) sum += f.confidence;
+        for (const auto& f : findings)
+            sum += f.confidence;
         return sum / static_cast<double>(findings.size());
     }
 
     static double maxConfidence(const std::vector<InstrumentFinding>& findings) {
-        if (findings.empty()) return 0.0;
+        if (findings.empty())
+            return 0.0;
         double mx = 0.0;
-        for (const auto& f : findings) mx = std::max(mx, f.confidence);
+        for (const auto& f : findings)
+            mx = std::max(mx, f.confidence);
         return mx;
     }
 
     static int anomalyCount(const std::vector<InstrumentFinding>& findings) {
         int cnt = 0;
         for (const auto& f : findings) {
-            if (f.isAnomaly) ++cnt;
+            if (f.isAnomaly)
+                ++cnt;
         }
         return cnt;
     }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_FEATURE_VECTOR_H
+#endif  // QUANTUMVERSE_FEATURE_VECTOR_H

@@ -1,12 +1,12 @@
 // QuantumVerse Test: ML Anomaly Detector
 // Validates lightweight autoencoder inference and feature extraction
 
+#include <chrono>
 #include <cmath>
 #include <iostream>
-#include <chrono>
 
-#include "ml/FeatureVector.h"
 #include "ml/AnomalyDetector.h"
+#include "ml/FeatureVector.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -70,7 +70,7 @@ int main() {
 
         FeatureVector fv;
         fv.data.fill(0.0);
-        QV_CHECK(!det.isAnomalous(fv)); // score should be 0 with zero weights
+        QV_CHECK(!det.isAnomalous(fv));  // score should be 0 with zero weights
 
         det.setThreshold(-1.0);
         QV_CHECK(det.isAnomalous(fv));
@@ -91,7 +91,7 @@ int main() {
         } catch (...) {
             threw = true;
         }
-        QV_CHECK(!threw); // no throw expected here
+        QV_CHECK(!threw);  // no throw expected here
         std::cout << "[PASS] Dimension checks intact" << std::endl;
     }
 

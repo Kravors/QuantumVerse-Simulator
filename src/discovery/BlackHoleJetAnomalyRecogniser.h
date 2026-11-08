@@ -6,9 +6,9 @@
 #ifndef QUANTUMVERSE_BLACK_HOLE_JET_ANOMALY_RECOGNISER_H
 #define QUANTUMVERSE_BLACK_HOLE_JET_ANOMALY_RECOGNISER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -19,30 +19,34 @@ namespace quantumverse {
  * from Kerr metric predictions, indicating exotic compact objects
  * or modified gravity effects near the horizon.
  */
-class BlackHoleJetAnomalyRecogniser : public DiscoveryInstrument
-{
-public:
+class BlackHoleJetAnomalyRecogniser : public DiscoveryInstrument {
+   public:
     BlackHoleJetAnomalyRecogniser();
     ~BlackHoleJetAnomalyRecogniser() override = default;
 
     std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "BlackHoleJetAnomalyRecogniser"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "BlackHoleJetAnomalyRecogniser";
+    }
+    std::string getDescription() const override {
         return "Non-Kerr jet launching analysis. Detects anomalies in black hole "
                "jet morphology and launching parameters that deviate from Kerr "
                "metric predictions, indicating exotic compact objects or modified "
                "gravity near the horizon.";
     }
-    std::string getCategory() const override { return "Black Holes"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Black Holes";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
-private:
+   private:
     // (no private helpers; detection is performed inline in analyze)
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_BLACK_HOLE_JET_ANOMALY_RECOGNISER_H
+#endif  // QUANTUMVERSE_BLACK_HOLE_JET_ANOMALY_RECOGNISER_H

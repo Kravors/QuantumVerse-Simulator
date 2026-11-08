@@ -7,9 +7,8 @@
 //! [0]
 #include <QObject>
 
-class MyObject : public QObject
-{
-public:
+class MyObject : public QObject {
+   public:
     MyObject();
     ~MyObject();
 };

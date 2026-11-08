@@ -21,12 +21,11 @@ int main() {
     // Use std::filesystem::temp_directory_path() so the directory exists on
     // every machine/CI runner without hardcoding build paths or depending
     // on QStandardPaths (which may return unexpected paths on headless CI).
-    std::filesystem::path tmpDir =
-        std::filesystem::temp_directory_path() / "session_test";
+    std::filesystem::path tmpDir = std::filesystem::temp_directory_path() / "session_test";
     std::error_code ec;
     if (!std::filesystem::create_directories(tmpDir, ec)) {
-        std::cerr << "[SessionRecorder test] create_directories error: "
-                  << ec.message() << std::endl;
+        std::cerr << "[SessionRecorder test] create_directories error: " << ec.message()
+                  << std::endl;
         return 1;
     }
 
@@ -62,11 +61,11 @@ int main() {
     // Write 100 frames with known values
     const int nFrames = 100;
     const int nBodies = 3;
-    const double bhMass = 1.989e30; // 1 solar mass
+    const double bhMass = 1.989e30;  // 1 solar mass
 
     for (int i = 0; i < nFrames; ++i) {
         FrameRecord frame;
-        frame.time = i * 0.1; // 0.1s steps
+        frame.time = i * 0.1;  // 0.1s steps
 
         // Body names
         frame.bodyNames = {"Sun", "Earth", "Mars"};
@@ -101,8 +100,8 @@ int main() {
     // Read frames back
     auto frames = SessionRecorder::readFrames(sessionDir);
     if (static_cast<int>(frames.size()) != nFrames) {
-        std::cerr << "[FAIL] Expected " << nFrames << " frames, read "
-                  << frames.size() << std::endl;
+        std::cerr << "[FAIL] Expected " << nFrames << " frames, read " << frames.size()
+                  << std::endl;
         ++failed;
     } else {
         std::cout << "[INFO] Read " << frames.size() << " frames back" << std::endl;
@@ -120,15 +119,13 @@ int main() {
         // time
         double expectedTime = i * 0.1;
         if (std::abs(r.time - expectedTime) > 1e-12) {
-            std::cerr << "[FAIL] Frame " << i << ": time mismatch "
-                      << r.time << " vs " << expectedTime << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": time mismatch " << r.time << " vs "
+                      << expectedTime << std::endl;
             ++failed;
         }
 
         // body names
-        if (r.bodyNames.size() != nBodies ||
-            r.bodyNames[0] != "Sun" ||
-            r.bodyNames[1] != "Earth" ||
+        if (r.bodyNames.size() != nBodies || r.bodyNames[0] != "Sun" || r.bodyNames[1] != "Earth" ||
             r.bodyNames[2] != "Mars") {
             std::cerr << "[FAIL] Frame " << i << ": bodyNames mismatch" << std::endl;
             ++failed;
@@ -137,8 +134,8 @@ int main() {
         // positions (3 per body)
         std::size_t expectedPosSize = nBodies * 3;
         if (r.positions.size() != expectedPosSize) {
-            std::cerr << "[FAIL] Frame " << i << ": positions size "
-                      << r.positions.size() << " vs " << expectedPosSize << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": positions size " << r.positions.size() << " vs "
+                      << expectedPosSize << std::endl;
             ++failed;
         } else {
             for (std::size_t j = 0; j < expectedPosSize; ++j) {
@@ -147,9 +144,8 @@ int main() {
                 double base = (c == 0) ? 10.0 : (c == 1) ? 20.0 : 30.0;
                 double expected = base * b + i * 0.001 * (c + 1);
                 if (std::abs(r.positions[j] - expected) > 1e-12) {
-                    std::cerr << "[FAIL] Frame " << i << ": positions[" << j
-                              << "] mismatch " << r.positions[j]
-                              << " vs " << expected << std::endl;
+                    std::cerr << "[FAIL] Frame " << i << ": positions[" << j << "] mismatch "
+                              << r.positions[j] << " vs " << expected << std::endl;
                     ++failed;
                     break;
                 }
@@ -159,8 +155,8 @@ int main() {
         // velocities (3 per body)
         std::size_t expectedVelSize = nBodies * 3;
         if (r.velocities.size() != expectedVelSize) {
-            std::cerr << "[FAIL] Frame " << i << ": velocities size "
-                      << r.velocities.size() << " vs " << expectedVelSize << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": velocities size " << r.velocities.size()
+                      << " vs " << expectedVelSize << std::endl;
             ++failed;
         } else {
             for (std::size_t j = 0; j < expectedVelSize; ++j) {
@@ -169,9 +165,8 @@ int main() {
                 double base = (c == 0) ? 1.0 : (c == 1) ? 2.0 : 3.0;
                 double expected = base * b + i * 0.0001 * (c + 1);
                 if (std::abs(r.velocities[j] - expected) > 1e-12) {
-                    std::cerr << "[FAIL] Frame " << i << ": velocities[" << j
-                              << "] mismatch " << r.velocities[j]
-                              << " vs " << expected << std::endl;
+                    std::cerr << "[FAIL] Frame " << i << ": velocities[" << j << "] mismatch "
+                              << r.velocities[j] << " vs " << expected << std::endl;
                     ++failed;
                     break;
                 }
@@ -180,18 +175,18 @@ int main() {
 
         // energies
         if (std::abs(r.totalEnergy - (1e40 + i * 1e35)) > 1e25) {
-            std::cerr << "[FAIL] Frame " << i << ": totalEnergy mismatch "
-                      << r.totalEnergy << " vs " << (1e40 + i * 1e35) << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": totalEnergy mismatch " << r.totalEnergy
+                      << " vs " << (1e40 + i * 1e35) << std::endl;
             ++failed;
         }
         if (std::abs(r.kineticEnergy - (5e39 + i * 5e34)) > 1e24) {
-            std::cerr << "[FAIL] Frame " << i << ": kineticEnergy mismatch "
-                      << r.kineticEnergy << " vs " << (5e39 + i * 5e34) << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": kineticEnergy mismatch " << r.kineticEnergy
+                      << " vs " << (5e39 + i * 5e34) << std::endl;
             ++failed;
         }
         if (std::abs(r.potentialEnergy - (5e39 + i * 5e34)) > 1e24) {
-            std::cerr << "[FAIL] Frame " << i << ": potentialEnergy mismatch "
-                      << r.potentialEnergy << " vs " << (5e39 + i * 5e34) << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": potentialEnergy mismatch " << r.potentialEnergy
+                      << " vs " << (5e39 + i * 5e34) << std::endl;
             ++failed;
         }
 
@@ -200,25 +195,20 @@ int main() {
             std::abs(r.cameraPosition[1] - (100.0 + i)) > 1e-12 ||
             std::abs(r.cameraPosition[2] - 50.0) > 1e-12 ||
             std::abs(r.cameraPosition[3] - 200.0) > 1e-12) {
-            std::cerr << "[FAIL] Frame " << i << ": cameraPosition mismatch"
-                      << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": cameraPosition mismatch" << std::endl;
             ++failed;
         }
 
         // camera lookAt
-        if (std::abs(r.cameraLookAt[0]) > 1e-12 ||
-            std::abs(r.cameraLookAt[1]) > 1e-12 ||
-            std::abs(r.cameraLookAt[2]) > 1e-12 ||
-            std::abs(r.cameraLookAt[3]) > 1e-12) {
-            std::cerr << "[FAIL] Frame " << i << ": cameraLookAt mismatch"
-                      << std::endl;
+        if (std::abs(r.cameraLookAt[0]) > 1e-12 || std::abs(r.cameraLookAt[1]) > 1e-12 ||
+            std::abs(r.cameraLookAt[2]) > 1e-12 || std::abs(r.cameraLookAt[3]) > 1e-12) {
+            std::cerr << "[FAIL] Frame " << i << ": cameraLookAt mismatch" << std::endl;
             ++failed;
         }
 
         // black hole mass
         if (std::abs(r.blackHoleMassKg - bhMass) > 1e-6) {
-            std::cerr << "[FAIL] Frame " << i << ": blackHoleMassKg mismatch"
-                      << std::endl;
+            std::cerr << "[FAIL] Frame " << i << ": blackHoleMassKg mismatch" << std::endl;
             ++failed;
         }
     }
@@ -230,8 +220,8 @@ int main() {
         ++failed;
     } else {
         if (meta->frameCount != nFrames) {
-            std::cerr << "[FAIL] metadata frameCount " << meta->frameCount
-                      << " vs " << nFrames << std::endl;
+            std::cerr << "[FAIL] metadata frameCount " << meta->frameCount << " vs " << nFrames
+                      << std::endl;
             ++failed;
         }
         if (meta->sessionId != sessionId) {
@@ -245,33 +235,32 @@ int main() {
     // Header round-trip test
     auto hdr = SessionRecorder::readHeader(sessionDir);
     if (!hdr) {
-        std::cerr << "[FAIL] Could not read SessionHeader from frames.bin"
-                  << std::endl;
+        std::cerr << "[FAIL] Could not read SessionHeader from frames.bin" << std::endl;
         ++failed;
     } else {
         if (hdr->magic != kSessionMagic) {
-            std::cerr << "[FAIL] Header magic mismatch: " << hdr->magic
-                      << " vs " << kSessionMagic << std::endl;
+            std::cerr << "[FAIL] Header magic mismatch: " << hdr->magic << " vs " << kSessionMagic
+                      << std::endl;
             ++failed;
         }
         if (hdr->schemaVersion != kSchemaVersion) {
-            std::cerr << "[FAIL] Header schemaVersion mismatch: " << hdr->schemaVersion
-                      << " vs " << kSchemaVersion << std::endl;
+            std::cerr << "[FAIL] Header schemaVersion mismatch: " << hdr->schemaVersion << " vs "
+                      << kSchemaVersion << std::endl;
             ++failed;
         }
         if (hdr->endianMarker != kEndianMarker) {
-            std::cerr << "[FAIL] Header endianMarker mismatch: " << hdr->endianMarker
-                      << " vs " << kEndianMarker << std::endl;
+            std::cerr << "[FAIL] Header endianMarker mismatch: " << hdr->endianMarker << " vs "
+                      << kEndianMarker << std::endl;
             ++failed;
         }
         if (hdr->recordSize != static_cast<std::uint32_t>(sizeof(FrameRecord))) {
-            std::cerr << "[FAIL] Header recordSize mismatch: " << hdr->recordSize
-                      << " vs " << sizeof(FrameRecord) << std::endl;
+            std::cerr << "[FAIL] Header recordSize mismatch: " << hdr->recordSize << " vs "
+                      << sizeof(FrameRecord) << std::endl;
             ++failed;
         }
         if (hdr->frameCount != nFrames) {
-            std::cerr << "[FAIL] Header frameCount mismatch: " << hdr->frameCount
-                      << " vs " << nFrames << std::endl;
+            std::cerr << "[FAIL] Header frameCount mismatch: " << hdr->frameCount << " vs "
+                      << nFrames << std::endl;
             ++failed;
         }
         if (hdr->createdAtUnix == 0) {
@@ -279,11 +268,10 @@ int main() {
             ++failed;
         }
         std::cout << "[INFO] Header: magic=0x" << std::hex << hdr->magic << std::dec
-                  << ", schemaVersion=" << hdr->schemaVersion
-                  << ", endianMarker=0x" << std::hex << hdr->endianMarker << std::dec
-                  << ", recordSize=" << hdr->recordSize
-                  << ", frameCount=" << hdr->frameCount
-                  << ", createdAtUnix=" << hdr->createdAtUnix << std::endl;
+                  << ", schemaVersion=" << hdr->schemaVersion << ", endianMarker=0x" << std::hex
+                  << hdr->endianMarker << std::dec << ", recordSize=" << hdr->recordSize
+                  << ", frameCount=" << hdr->frameCount << ", createdAtUnix=" << hdr->createdAtUnix
+                  << std::endl;
     }
 
     if (failed == 0) {

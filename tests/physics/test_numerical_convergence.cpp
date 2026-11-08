@@ -1,13 +1,13 @@
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "spacetime/FRWMetric.h"
-#include "physics/GeodesicIntegrator.h"
-#include "physics/CurvatureCalculator.h"
-#include "physics/SingularityHandler.h"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <vector>
-#include <algorithm>
+#include "physics/CurvatureCalculator.h"
+#include "physics/GeodesicIntegrator.h"
+#include "physics/SingularityHandler.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/FRWMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -16,7 +16,7 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4189)
+#pragma warning(disable : 4189)
 #endif
 
 using namespace quantumverse;
@@ -27,13 +27,15 @@ static constexpr double INF = std::numeric_limits<double>::infinity();
 // Helpers
 // ============================================================================
 static double relError(double computed, double expected) {
-    if (expected == 0.0) return std::abs(computed);
+    if (expected == 0.0)
+        return std::abs(computed);
     return std::abs(computed - expected) / std::abs(expected);
 }
 
 static double vectorNorm(const std::vector<double>& v) {
     double sum = 0.0;
-    for (double x : v) sum += x * x;
+    for (double x : v)
+        sum += x * x;
     return std::sqrt(sum);
 }
 
@@ -74,7 +76,8 @@ void test_richardson_extrapolation_rk4() {
     // when errors are in the asymptotic regime
     bool order4 = true;
     for (size_t i = 0; i < ratios.size(); i++) {
-        if (ratios[i] < 8.0) order4 = false;  // Allow some tolerance
+        if (ratios[i] < 8.0)
+            order4 = false;  // Allow some tolerance
     }
     (void)order4;
     std::cout << "[PASS] Richardson extrapolation: error ratios = [";
@@ -109,16 +112,15 @@ void test_backwards_integration() {
     QV_CHECK(!traj_backward.empty());
 
     Event4D final_ev = traj_backward.back().event;
-    double dist = std::sqrt(
-        (final_ev.x - start.x) * (final_ev.x - start.x) +
-        (final_ev.y - start.y) * (final_ev.y - start.y) +
-        (final_ev.z - start.z) * (final_ev.z - start.z)
-    );
+    double dist = std::sqrt((final_ev.x - start.x) * (final_ev.x - start.x) +
+                            (final_ev.y - start.y) * (final_ev.y - start.y) +
+                            (final_ev.z - start.z) * (final_ev.z - start.z));
 
     // Allow 1e-8 * distance traveled
     double maxDrift = 1e-8 * 20.0 * M;
     QV_CHECK(dist < maxDrift);
-    std::cout << "[PASS] Backwards integration: final drift = " << dist << " < " << maxDrift << std::endl;
+    std::cout << "[PASS] Backwards integration: final drift = " << dist << " < " << maxDrift
+              << std::endl;
 }
 
 // ============================================================================
@@ -278,12 +280,12 @@ void test_kretschmann_fd_step_convergence() {
     double maxErr = 0.0;
     for (size_t i = 0; i < K_vals.size(); i++) {
         double err = relError(K_vals[i], K_exact);
-        std::cout << "  h=" << fd_steps[i] << ": K=" << K_vals[i]
-                  << ", err=" << err << std::endl;
+        std::cout << "  h=" << fd_steps[i] << ": K=" << K_vals[i] << ", err=" << err << std::endl;
         maxErr = std::max(maxErr, err);
     }
     QV_CHECK(maxErr < 1e-3);
-    std::cout << "[PASS] Kretschmann converges with FD step refinement (maxErr=" << maxErr << ")" << std::endl;
+    std::cout << "[PASS] Kretschmann converges with FD step refinement (maxErr=" << maxErr << ")"
+              << std::endl;
 }
 
 // ============================================================================
@@ -301,7 +303,8 @@ void test_proper_time_radial() {
 
     QV_CHECK(!traj.empty());
     QV_CHECK(traj.back().properTime > 0.0);
-    std::cout << "[PASS] Proper time radial trajectory: tau = " << traj.back().properTime << std::endl;
+    std::cout << "[PASS] Proper time radial trajectory: tau = " << traj.back().properTime
+              << std::endl;
 }
 
 // ============================================================================
@@ -339,7 +342,7 @@ void test_metric_fd_accuracy_vs_h() {
     Event4D pos(0.0, 10.0 * M, 0.0, 0.0);
 
     double r = pos.x;
-    double rs = 2.0 * M;  // rs = 2GM/c^2 with the metric's mass = M*c^2/G
+    double rs = 2.0 * M;                       // rs = 2GM/c^2 with the metric's mass = M*c^2/G
     double dg_tt_dr_analytic = -rs / (r * r);  // g_tt = -(1 - rs/r) -> dg_tt/dr = -rs/r^2
 
     std::vector<double> hs = {1e-2, 1e-3, 1e-4, 1e-5, 1e-6};
@@ -377,7 +380,8 @@ void test_adaptive_step_bounds() {
         QV_CHECK(step.stepSize > 0.0);
         QV_CHECK(std::isfinite(step.stepSize));
     }
-    std::cout << "[PASS] Adaptive step size stays within bounds: " << traj.size() << " steps" << std::endl;
+    std::cout << "[PASS] Adaptive step size stays within bounds: " << traj.size() << " steps"
+              << std::endl;
 }
 
 // ============================================================================
@@ -448,7 +452,8 @@ void test_circular_orbit_stability() {
     }
     double amplitude = (r_max - r_min) / 2.0;
     QV_CHECK(amplitude < 5.0 * M);
-    std::cout << "[PASS] Circular orbit stable: amplitude = " << amplitude << " < " << 5.0 * M << std::endl;
+    std::cout << "[PASS] Circular orbit stable: amplitude = " << amplitude << " < " << 5.0 * M
+              << std::endl;
 }
 
 // ============================================================================
@@ -464,12 +469,13 @@ void test_schwarzschild_weak_field() {
     double rs = 2.0 * Event4D::G * M / (Event4D::C * Event4D::C);
     double g_tt_exp = -(1.0 - rs / r);
     double grr_exp = 1.0 / (1.0 - rs / r);
-    (void)g_tt_exp; (void)grr_exp;
+    (void)g_tt_exp;
+    (void)grr_exp;
 
     QV_CHECK_NEAR(g[0][0] - g_tt_exp, 0.0, 1e-10);
     QV_CHECK_NEAR(g[1][1] - grr_exp, 0.0, 1e-10);
-    std::cout << "[PASS] Schwarzschild weak field: g_tt = " << g[0][0]
-              << ", grr = " << g[1][1] << std::endl;
+    std::cout << "[PASS] Schwarzschild weak field: g_tt = " << g[0][0] << ", grr = " << g[1][1]
+              << std::endl;
 }
 
 // ============================================================================
@@ -529,7 +535,8 @@ void test_radial_plunge_near_horizon() {
         r_min = std::min(r_min, ri);
     }
     QV_CHECK(r_min < 20.0 * M);
-    std::cout << "[PASS] Radial plunge: r_min = " << r_min << " (start < " << 20.0 * M << ")" << std::endl;
+    std::cout << "[PASS] Radial plunge: r_min = " << r_min << " (start < " << 20.0 * M << ")"
+              << std::endl;
 }
 
 // ============================================================================
@@ -582,17 +589,19 @@ void test_time_dilation_heatmap() {
     double M = 1.0;
     double rs = 2.0 * M;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     std::vector<double> r_factors = {3.0, 5.0, 10.0, 20.0, 50.0, 100.0};
     for (double f : r_factors) {
         double r = f * M;
-        if (r <= rs) continue;
+        if (r <= rs)
+            continue;
         Event4D ev(0.0, r, 0.0, 0.0);
         double z = handler.getGravitationalRedshift(ev);
         double z_expected = 1.0 / std::sqrt(1.0 - rs / r) - 1.0;
         QV_CHECK_NEAR(z - z_expected, 0.0, 1e-10);
-        (void)z; (void)z_expected;
+        (void)z;
+        (void)z_expected;
     }
     std::cout << "[PASS] Time dilation heatmap: redshift exact" << std::endl;
 }
@@ -610,7 +619,8 @@ void test_proper_time_static_observer() {
     double dtau = std::sqrt(-g[0][0]) * dt;
     double dtau_expected = std::sqrt(1.0 - 2.0 * M / (10.0 * M));
     QV_CHECK_NEAR(dtau - dtau_expected, 0.0, 1e-10);
-    (void)dtau; (void)dtau_expected;
+    (void)dtau;
+    (void)dtau_expected;
     std::cout << "[PASS] Proper time static observer exact" << std::endl;
 }
 
@@ -628,8 +638,8 @@ void test_schwarzschild_radius_formula() {
     auto s = sch.curvatureScalars(ev);
     [[maybe_unused]] double K = s.kretschmann;
     // K = 48 * G^2 * M^2 / (c^4 * r^6)
-    [[maybe_unused]] double K_expected = 48.0 * Event4D::G * Event4D::G * M * M /
-                        std::pow(Event4D::C, 4) / std::pow(r_test, 6);
+    [[maybe_unused]] double K_expected =
+        48.0 * Event4D::G * Event4D::G * M * M / std::pow(Event4D::C, 4) / std::pow(r_test, 6);
     QV_CHECK_NEAR(K - K_expected, 0.0, 1e-10);
     std::cout << "[PASS] Schwarzschild radius formula verified via Kretschmann" << std::endl;
 }
@@ -673,7 +683,8 @@ void test_null_geodesic_photon_sphere() {
     QV_CHECK(!traj.empty());
     // Critical photon is captured and approaches the photon sphere (r -> 3M).
     double r_min = INF;
-    for (const auto& step : traj) r_min = std::min(r_min, step.event.spatialLength());
+    for (const auto& step : traj)
+        r_min = std::min(r_min, step.event.spatialLength());
     std::cout << "[DIAG] photon sphere: r_min=" << r_min << std::endl;
     QV_CHECK(r_min < 4.5 * M);
     std::cout << "[PASS] Null geodesic at photon sphere: r_min = " << r_min << std::endl;
@@ -690,16 +701,14 @@ void test_multiple_geodesics() {
 
     Event4D start(0.0, 20.0 * M, 0.0, 0.0);
     std::vector<std::array<double, 4>> velocities = {
-        {0.5, 0.0, 0.0, 0.0},
-        {0.8, 0.0, 0.1, 0.0},
-        {1.0, 0.0, 0.0, 0.05}
-    };
+        {0.5, 0.0, 0.0, 0.0}, {0.8, 0.0, 0.1, 0.0}, {1.0, 0.0, 0.0, 0.05}};
 
     for (const auto& vel : velocities) {
         auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
         QV_CHECK(!traj.empty());
     }
-    std::cout << "[PASS] Multiple geodesics from same start: " << velocities.size() << " completed" << std::endl;
+    std::cout << "[PASS] Multiple geodesics from same start: " << velocities.size() << " completed"
+              << std::endl;
 }
 
 // ============================================================================
@@ -743,7 +752,8 @@ void test_kretschmann_at_2rs() {
     QV_CHECK(s.valid);
     double K_expected = 48.0 * std::pow(rs / 2.0, 2) / std::pow(2.0 * rs, 6);
     QV_CHECK(relError(s.kretschmann, K_expected) < 1e-12);
-    (void)s; (void)K_expected;
+    (void)s;
+    (void)K_expected;
     std::cout << "[PASS] Kretschmann at r=2rs exact" << std::endl;
 }
 

@@ -2,17 +2,17 @@
 #define QML_RL_DISCOVERY_AGENT_H
 
 #include <QObject>
+#include <QStringList>
 #include <QVariant>
 #include <QVariantList>
-#include <QStringList>
 #include <array>
 #include <memory>
 #include <string>
 
 #include "discovery/RLDiscoveryAgent.h"
 
-#include "physics/PhysicsValidator.h"
 #include "discovery/LLMCoPilot.h"
+#include "physics/PhysicsValidator.h"
 
 namespace quantumverse {
 
@@ -27,7 +27,7 @@ class QmlRLDiscoveryAgent : public QObject {
 
     Q_PROPERTY(QStringList discoveryLog READ discoveryLog NOTIFY discoveryLogChanged)
 
-public:
+   public:
     explicit QmlRLDiscoveryAgent(QObject* parent = nullptr);
 
     /// Load an ONNX model into the underlying RL agent.
@@ -56,11 +56,11 @@ public:
     /// Clear the discovery log.
     Q_INVOKABLE void clearLog();
 
-signals:
+   signals:
     /// Emitted when a new log entry is appended.
     void discoveryLogChanged();
 
-private:
+   private:
     std::unique_ptr<quantumverse::discovery::RLDiscoveryAgent> m_agent;
     bool m_loaded = false;
     QStringList m_discoveryLog;
@@ -70,6 +70,6 @@ private:
     void appendLog(const QString& msg);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QML_RL_DISCOVERY_AGENT_H
+#endif  // QML_RL_DISCOVERY_AGENT_H

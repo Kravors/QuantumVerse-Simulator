@@ -23,32 +23,34 @@
 namespace quantumverse {
 
 class TheorySensitivityExperiment : public Experiment {
-public:
+   public:
     TheorySensitivityExperiment();
 
-    QString id() const override { return QStringLiteral("theory_sensitivity"); }
-    QString name() const override { return QStringLiteral("Theory Sensitivity Matrix"); }
-    QString category() const override { return QStringLiteral("Cosmology"); }
+    QString id() const override {
+        return QStringLiteral("theory_sensitivity");
+    }
+    QString name() const override {
+        return QStringLiteral("Theory Sensitivity Matrix");
+    }
+    QString category() const override {
+        return QStringLiteral("Cosmology");
+    }
     QString description() const override {
-        return QStringLiteral("Run all 6 cosmology experiments against 4 theories "
-                              "(ΛCDM, f(R) b=0.3, wCDM w0=-0.9, Brans-Dicke ω=50) "
-                              "and collect the theory × experiment σ-tension matrix "
-                              "for the discovery paper.");
+        return QStringLiteral(
+            "Run all 6 cosmology experiments against 4 theories "
+            "(ΛCDM, f(R) b=0.3, wCDM w0=-0.9, Brans-Dicke ω=50) "
+            "and collect the theory × experiment σ-tension matrix "
+            "for the discovery paper.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 
-private:
-    QStringList m_theories = {
-        QStringLiteral("project"),
-        QStringLiteral("fR"),
-        QStringLiteral("wcdm"),
-        QStringLiteral("brans_dicke")
-    };
+   private:
+    QStringList m_theories = {QStringLiteral("project"), QStringLiteral("fR"),
+                              QStringLiteral("wcdm"), QStringLiteral("brans_dicke")};
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_THEORY_SENSITIVITY_EXPERIMENT_H
+#endif  // QUANTUMVERSE_THEORY_SENSITIVITY_EXPERIMENT_H

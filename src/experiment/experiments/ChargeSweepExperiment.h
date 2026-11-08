@@ -13,19 +13,26 @@
 namespace quantumverse {
 
 class ChargeSweepExperiment : public Experiment {
-public:
-    QString id() const override { return QStringLiteral("charge_sweep"); }
-    QString name() const override { return QStringLiteral("Charge Sweep (Reissner–Nordström)"); }
-    QString category() const override { return QStringLiteral("Sweep"); }
+   public:
+    QString id() const override {
+        return QStringLiteral("charge_sweep");
+    }
+    QString name() const override {
+        return QStringLiteral("Charge Sweep (Reissner–Nordström)");
+    }
+    QString category() const override {
+        return QStringLiteral("Sweep");
+    }
     QString description() const override {
-        return QStringLiteral("Sweep charge ratio Q/M from 0 (Schwarzschild) to 1 (extremal); plots inner/outer horizons.");
+        return QStringLiteral(
+            "Sweep charge ratio Q/M from 0 (Schwarzschild) to 1 (extremal); plots inner/outer "
+            "horizons.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_CHARGE_SWEEP_EXPERIMENT_H
+#endif  // QUANTUMVERSE_CHARGE_SWEEP_EXPERIMENT_H

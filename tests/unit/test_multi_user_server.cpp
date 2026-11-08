@@ -6,15 +6,15 @@
  * client connections, session management, and message routing.
  */
 
-#include "vr/MultiUserServer.h"
 #include <QCoreApplication>
-#include <QWebSocket>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
+#include <QWebSocket>
+#include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <algorithm>
+#include "vr/MultiUserServer.h"
 
 using namespace quantumverse;
 using namespace quantumverse::vr;
@@ -28,8 +28,7 @@ static void check(bool cond, const char* msg) {
     }
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
 
     std::cout << "=== MultiUserServerTest ===" << std::endl;
@@ -116,12 +115,10 @@ int main(int argc, char** argv)
             socket2.sendTextMessage(QJsonDocument(joinMsg).toJson(QJsonDocument::Compact));
         });
 
-        QObject::connect(&socket1, &QWebSocket::textMessageReceived, [&](const QString&) {
-            joinCount++;
-        });
-        QObject::connect(&socket2, &QWebSocket::textMessageReceived, [&](const QString&) {
-            joinCount++;
-        });
+        QObject::connect(&socket1, &QWebSocket::textMessageReceived,
+                         [&](const QString&) { joinCount++; });
+        QObject::connect(&socket2, &QWebSocket::textMessageReceived,
+                         [&](const QString&) { joinCount++; });
 
         socket1.open(QUrl("ws://localhost:7779"));
         socket2.open(QUrl("ws://localhost:7779"));
@@ -166,12 +163,10 @@ int main(int argc, char** argv)
             socket2.sendTextMessage(QJsonDocument(joinMsg).toJson(QJsonDocument::Compact));
         });
 
-        QObject::connect(&socket1, &QWebSocket::textMessageReceived, [&](const QString&) {
-            joinCount++;
-        });
-        QObject::connect(&socket2, &QWebSocket::textMessageReceived, [&](const QString&) {
-            joinCount++;
-        });
+        QObject::connect(&socket1, &QWebSocket::textMessageReceived,
+                         [&](const QString&) { joinCount++; });
+        QObject::connect(&socket2, &QWebSocket::textMessageReceived,
+                         [&](const QString&) { joinCount++; });
 
         socket1.open(QUrl("ws://localhost:7780"));
         socket2.open(QUrl("ws://localhost:7780"));

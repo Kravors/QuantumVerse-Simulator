@@ -8,17 +8,17 @@
 
 #pragma once
 
-#include <string>
-#include <fstream>
-#include <mutex>
 #include <chrono>
-#include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <memory>
+#include <mutex>
+#include <sstream>
+#include <string>
 
 #ifdef _WIN32
-    #include <windows.h>
-    #include <dbghelp.h>
+#include <dbghelp.h>
+#include <windows.h>
 #endif
 
 namespace quantumverse {
@@ -28,19 +28,19 @@ namespace utils {
  * @brief Log entry categories for filtering
  */
 enum class LogCategory {
-    INIT,           ///< Initialization steps
-    RENDER,         ///< Rendering operations
-    GL,             ///< OpenGL specific
-    THREAD,         ///< Thread operations
-    ERR,            ///< Error conditions
-    CRASH           ///< Crash information
+    INIT,    ///< Initialization steps
+    RENDER,  ///< Rendering operations
+    GL,      ///< OpenGL specific
+    THREAD,  ///< Thread operations
+    ERR,     ///< Error conditions
+    CRASH    ///< Crash information
 };
 
 /**
  * @brief Central trace logger for structured JSON logging
  */
 class TraceLogger {
-public:
+   public:
     /**
      * @brief Get singleton instance
      */
@@ -84,7 +84,7 @@ public:
      */
     void shutdown();
 
-private:
+   private:
     TraceLogger() = default;
     ~TraceLogger();
 
@@ -111,22 +111,27 @@ private:
 /**
  * @brief GL error checking macro
  */
-#define CHECK_GL_ERROR() \
-    do { \
-        unsigned int err = glGetError(); \
-        if (err != GL_NO_ERROR) { \
+#define CHECK_GL_ERROR()                                                                      \
+    do {                                                                                      \
+        unsigned int err = glGetError();                                                      \
+        if (err != GL_NO_ERROR) {                                                             \
             quantumverse::utils::TraceLogger::instance().logGLError(__FILE__, __LINE__, err); \
-        } \
-    } while(0)
+        }                                                                                     \
+    } while (0)
 
 /**
  * @brief Convenience logging macros
  */
-#define TRACE_INIT(msg) quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::INIT, msg)
-#define TRACE_RENDER(msg) quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::RENDER, msg)
-#define TRACE_GL(msg) quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::GL, msg)
-#define TRACE_THREAD(msg) quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::THREAD, msg)
-#define TRACE_ERROR(msg) quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::ERR, msg)
+#define TRACE_INIT(msg) \
+    quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::INIT, msg)
+#define TRACE_RENDER(msg) \
+    quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::RENDER, msg)
+#define TRACE_GL(msg) \
+    quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::GL, msg)
+#define TRACE_THREAD(msg) \
+    quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::THREAD, msg)
+#define TRACE_ERROR(msg) \
+    quantumverse::utils::TraceLogger::instance().log(quantumverse::utils::LogCategory::ERR, msg)
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

@@ -33,7 +33,9 @@
 namespace quantumverse {
 
 KerrGeodesic::KerrGeodesic(double M, double aDimless) noexcept
-    : M_(M), aDimless_(aDimless), a_(aDimless * M) {}
+    : M_(M),
+      aDimless_(aDimless),
+      a_(aDimless * M) {}
 
 double KerrGeodesic::orbitEquation(double u, double M, double a, double b) noexcept {
     double u2 = u * u;
@@ -52,7 +54,8 @@ double KerrGeodesic::orbitEquation(double u, double M, double a, double b) noexc
     // C(u) = b + 2M(a-b)u
     double C = b + 2.0 * M * (a - b) * u;
 
-    if (std::abs(C) < 1e-300) return 0.0;  // Avoid division by zero
+    if (std::abs(C) < 1e-300)
+        return 0.0;  // Avoid division by zero
 
     return A * B / (C * C);
 }
@@ -81,19 +84,20 @@ double KerrGeodesic::photonSphereRadius(bool prograde) const noexcept {
     //   a = 0.9 pro:  r_ph ≈ 1.561 M
     //   a = 0.9 retro: r_ph ≈ 3.911 M
 
-    double rLo = M_;           // Below horizon for sub-extremal Kerr
-    double rHi = 20.0 * M_;    // Well outside any photon sphere
+    double rLo = M_;         // Below horizon for sub-extremal Kerr
+    double rHi = 20.0 * M_;  // Well outside any photon sphere
 
     for (int iter = 0; iter < 100; iter++) {
         double rMid = 0.5 * (rLo + rHi);
         double b = prograde ? std::sqrt(a_ * a_ + 3.0 * rMid * rMid)
                             : -std::sqrt(a_ * a_ + 3.0 * rMid * rMid);
         double bma = b - a_;
-        double rhs = M_ * bma * bma;   // M(b-a)^2
+        double rhs = M_ * bma * bma;      // M(b-a)^2
         double lhs = rMid * rMid * rMid;  // r^3
         double diff = lhs - rhs;
 
-        if (std::abs(diff) < 1e-12 * M_ * M_ * M_) break;
+        if (std::abs(diff) < 1e-12 * M_ * M_ * M_)
+            break;
 
         if (diff > 0.0) {
             rHi = rMid;  // r^3 too big, need smaller r
@@ -107,8 +111,7 @@ double KerrGeodesic::photonSphereRadius(bool prograde) const noexcept {
 
 double KerrGeodesic::photonSphereImpactParameter(bool prograde) const noexcept {
     double rPh = photonSphereRadius(prograde);
-    return prograde ? std::sqrt(a_ * a_ + 3.0 * rPh * rPh)
-                    : -std::sqrt(a_ * a_ + 3.0 * rPh * rPh);
+    return prograde ? std::sqrt(a_ * a_ + 3.0 * rPh * rPh) : -std::sqrt(a_ * a_ + 3.0 * rPh * rPh);
 }
 
 double KerrGeodesic::traceRay(double b) const noexcept {
@@ -147,10 +150,12 @@ double KerrGeodesic::traceRay(double b) const noexcept {
         const double r = 1.0 / u;
 
         // Check capture by event horizon
-        if (r < uHorizon) return -1.0;
+        if (r < uHorizon)
+            return -1.0;
 
         double F = orbitEquationInstance(u, b);
-        if (F < 0.0) return -1.0;  // captured (b < b_crit)
+        if (F < 0.0)
+            return -1.0;  // captured (b < b_crit)
 
         if (F < 1e-12) {
             // At periapsis! Use reflection symmetry:
@@ -165,8 +170,9 @@ double KerrGeodesic::traceRay(double b) const noexcept {
         u += du;
 
         // Safety: stop if phi gets too large (shouldn't happen for b > b_crit)
-        if (phi > 1000.0 * M_PI) return -1.0;
+        if (phi > 1000.0 * M_PI)
+            return -1.0;
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

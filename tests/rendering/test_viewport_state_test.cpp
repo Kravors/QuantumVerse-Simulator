@@ -20,19 +20,19 @@
 #include <QOpenGLContext>
 #include <QSurfaceFormat>
 
-#include <cstring>
 #include <cmath>
+#include <cstring>
 #include <iostream>
-#include <vector>
 #include <memory>
 #include <string>
+#include <vector>
 
-#include "rendering/CurvatureRenderer.h"
-#include "rendering/CelestialBodyRenderer.h"
-#include "rendering/ProceduralTextures.h"
 #include "physics/CurvatureCalculator.h"
-#include "spacetime/MetricTensor.h"
 #include "physics/SingularityHandler.h"
+#include "rendering/CelestialBodyRenderer.h"
+#include "rendering/CurvatureRenderer.h"
+#include "rendering/ProceduralTextures.h"
+#include "spacetime/MetricTensor.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -40,8 +40,7 @@
 
 static int g_failures = 0;
 
-static void check(bool cond, const char* msg)
-{
+static void check(bool cond, const char* msg) {
     if (cond) {
         std::cout << "  [PASS] " << msg << std::endl;
     } else {
@@ -50,8 +49,7 @@ static void check(bool cond, const char* msg)
     }
 }
 
-static void perspective(float* m, float fovy, float aspect, float n, float f)
-{
+static void perspective(float* m, float fovy, float aspect, float n, float f) {
     const float t = 1.0f / std::tan(fovy / 2.0f);
     std::memset(m, 0, 16 * sizeof(float));
     m[0] = t / aspect;
@@ -61,16 +59,16 @@ static void perspective(float* m, float fovy, float aspect, float n, float f)
     m[14] = (2.0f * f * n) / (n - f);
 }
 
-static void translate(float* m, float x, float y, float z)
-{
+static void translate(float* m, float x, float y, float z) {
     std::memset(m, 0, 16 * sizeof(float));
     m[0] = m[5] = m[10] = m[15] = 1.0f;
-    m[12] = x; m[13] = y; m[14] = z;
+    m[12] = x;
+    m[13] = y;
+    m[14] = z;
 }
 
 /// @brief Verify that a valid (non-default) FBO is bound and no GL errors linger.
-static bool checkState(const char* stage)
-{
+static bool checkState(const char* stage) {
     bool pass = true;
 
     GLint fbo = -1;
@@ -82,8 +80,8 @@ static bool checkState(const char* stage)
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
-        std::cerr << "  [FAIL] " << stage << ": glGetError=0x" << std::hex << err
-                  << std::dec << " (not clean)" << std::endl;
+        std::cerr << "  [FAIL] " << stage << ": glGetError=0x" << std::hex << err << std::dec
+                  << " (not clean)" << std::endl;
         pass = false;
     }
 
@@ -92,8 +90,7 @@ static bool checkState(const char* stage)
 
 static int runMockGLMode();
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
 
     QGuiApplication app(argc, argv);
@@ -113,7 +110,8 @@ int main(int argc, char* argv[])
     QOpenGLContext ctx;
     ctx.setFormat(fmt);
     if (!ctx.create()) {
-        std::cerr << "  [SKIP] QOpenGLContext::create() failed — no usable GL context." << std::endl;
+        std::cerr << "  [SKIP] QOpenGLContext::create() failed — no usable GL context."
+                  << std::endl;
         return runMockGLMode();
     }
     ctx.makeCurrent(&surface);
@@ -121,7 +119,8 @@ int main(int argc, char* argv[])
     // ---- Load GLAD over this Qt context ----
     auto loader = [](const char* name) -> void* {
         QOpenGLContext* c = QOpenGLContext::currentContext();
-        if (!c) return nullptr;
+        if (!c)
+            return nullptr;
         return reinterpret_cast<void*>(c->getProcAddress(name));
     };
     if (!gladLoadGLLoader(loader)) {
@@ -137,7 +136,7 @@ int main(int argc, char* argv[])
 
     // ---- Offscreen test FBO (NOT the default framebuffer) ----
     const int FB_W = 512, FB_H = 512;
-    uint8_t bg[4] = { 13, 13, 18, 255 };
+    uint8_t bg[4] = {13, 13, 18, 255};
 
     GLuint testFBO = 0, testColorTex = 0, testDepthRBO = 0;
     glGenFramebuffers(1, &testFBO);
@@ -145,18 +144,16 @@ int main(int argc, char* argv[])
 
     glGenTextures(1, &testColorTex);
     glBindTexture(GL_TEXTURE_2D, testColorTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, FB_W, FB_H, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, FB_W, FB_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_2D, testColorTex, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, testColorTex, 0);
 
     glGenRenderbuffers(1, &testDepthRBO);
     glBindRenderbuffer(GL_RENDERBUFFER, testDepthRBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, FB_W, FB_H);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, testDepthRBO);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
+                              testDepthRBO);
 
     GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
@@ -166,19 +163,16 @@ int main(int argc, char* argv[])
     }
 
     // ---- Initialize CurvatureRenderer ----
-    quantumverse::CurvatureRenderer curv(
-        24, 100.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
+    quantumverse::CurvatureRenderer curv(24, 100.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
     curv.initializeGL();
     check(curv.isInitialized(), "CurvatureRenderer.initializeGL()");
 
     auto metric = std::make_shared<quantumverse::MetricTensor>(
-        quantumverse::MetricTensor::schwarzschild(1.0, 10.0,
-            M_PI / 2.0, 0.0));
+        quantumverse::MetricTensor::schwarzschild(1.0, 10.0, M_PI / 2.0, 0.0));
     curv.setMetric(metric);
 
     auto singularity = std::make_shared<quantumverse::SingularityHandler>(
-        quantumverse::SingularityType::SCHWARZSCHILD,
-        1.0e30, 0.0, 0.0,
+        quantumverse::SingularityType::SCHWARZSCHILD, 1.0e30, 0.0, 0.0,
         std::array<double, 3>{0.0, 0.0, 0.0});
     curv.addSingularity(singularity);
 
@@ -193,23 +187,24 @@ int main(int argc, char* argv[])
     star.isStar = true;
     star.radius = 16.0f;
     star.position[0] = 25.0f;
-    star.emissive[0] = 1.0f; star.emissive[1] = 0.85f; star.emissive[2] = 0.4f;
-    star.color[0] = 1.0f; star.color[1] = 0.9f; star.color[2] = 0.6f;
+    star.emissive[0] = 1.0f;
+    star.emissive[1] = 0.85f;
+    star.emissive[2] = 0.4f;
+    star.color[0] = 1.0f;
+    star.color[1] = 0.9f;
+    star.color[2] = 0.6f;
     check(bodyRenderer.addBody(star) >= 0, "addBody(star)");
 
     float view[16], proj[16];
     translate(view, 0.0f, -40.0f, -90.0f);
-    perspective(proj,
-        50.0f * static_cast<float>(M_PI) / 180.0f,
-        1.0f, 1.0f, 1000.0f);
+    perspective(proj, 50.0f * static_cast<float>(M_PI) / 180.0f, 1.0f, 1.0f, 1000.0f);
 
     // ---- Render across 10 frames, alternating wireframe ----
     bool allPassed = true;
     const int numFrames = 10;
     for (int frame = 0; frame < numFrames; ++frame) {
         glViewport(0, 0, FB_W, FB_H);
-        glClearColor(bg[0] / 255.0f, bg[1] / 255.0f,
-                     bg[2] / 255.0f, 1.0f);
+        glClearColor(bg[0] / 255.0f, bg[1] / 255.0f, bg[2] / 255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // The test FBO must be bound after glClear.
@@ -227,18 +222,16 @@ int main(int argc, char* argv[])
         GLint polyMode = -1;
         glGetIntegerv(GL_POLYGON_MODE, &polyMode);
         bool polyOk = (polyMode == GL_FILL);
-        check(polyOk,
-            (std::string("Frame ") + std::to_string(frame)
-             + ": glPolygonMode == GL_FILL").c_str());
+        check(
+            polyOk,
+            (std::string("Frame ") + std::to_string(frame) + ": glPolygonMode == GL_FILL").c_str());
         allPassed &= polyOk;
 
         // FBO binding must still be our test FBO.
         GLint fboAfter = -1;
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboAfter);
         bool fboOk = (fboAfter == static_cast<GLint>(testFBO));
-        check(fboOk,
-            (std::string("Frame ") + std::to_string(frame)
-             + ": FBO preserved").c_str());
+        check(fboOk, (std::string("Frame ") + std::to_string(frame) + ": FBO preserved").c_str());
         allPassed &= fboOk;
     }
 
@@ -255,8 +248,7 @@ int main(int argc, char* argv[])
             }
         }
     }
-    stbi_write_png("latest_viewport_state.png", FB_W, FB_H, 4,
-                   pixels.data(), FB_W * 4);
+    stbi_write_png("latest_viewport_state.png", FB_W, FB_H, 4, pixels.data(), FB_W * 4);
 
     // ---- Cleanup ----
     glDeleteRenderbuffers(1, &testDepthRBO);
@@ -265,24 +257,22 @@ int main(int argc, char* argv[])
     ctx.doneCurrent();
 
     std::cout << "=== Viewport State Test: "
-              << ((allPassed && g_failures == 0) ? "ALL CHECKS PASSED"
-                                                 : "FAILURES PRESENT")
-              << " (" << g_failures << " failure(s)) ===" << std::endl;
+              << ((allPassed && g_failures == 0) ? "ALL CHECKS PASSED" : "FAILURES PRESENT") << " ("
+              << g_failures << " failure(s)) ===" << std::endl;
     return (allPassed && g_failures == 0) ? 0 : 1;
 }
 
 // ---------------------------------------------------------------------------
 // Mock GL mode: validates CPU-side rendering logic when no GL context exists.
 // ---------------------------------------------------------------------------
-static int runMockGLMode()
-{
+static int runMockGLMode() {
     std::cout << "=== Viewport State Test (Mock GL Mode) ===" << std::endl;
     int failures = 0;
 
     // 1. CurvatureRenderer: wireframe state and grid generation
     {
-        quantumverse::CurvatureRenderer curv(
-            8, 50.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
+        quantumverse::CurvatureRenderer curv(8, 50.0f,
+                                             quantumverse::CurvatureMode::GRID_DEFORMATION);
         if (!curv.isWireframe()) {
             std::cout << "  [PASS] CurvatureRenderer starts in fill mode" << std::endl;
         } else {
@@ -307,8 +297,8 @@ static int runMockGLMode()
 
     // 2. CurvatureRenderer: mode switching
     {
-        quantumverse::CurvatureRenderer curv(
-            6, 50.0f, quantumverse::CurvatureMode::GRID_DEFORMATION);
+        quantumverse::CurvatureRenderer curv(6, 50.0f,
+                                             quantumverse::CurvatureMode::GRID_DEFORMATION);
         if (curv.getMode() == quantumverse::CurvatureMode::GRID_DEFORMATION) {
             std::cout << "  [PASS] Default mode is GRID_DEFORMATION" << std::endl;
         } else {
@@ -364,7 +354,7 @@ static int runMockGLMode()
     }
 
     std::cout << "=== Mock GL Summary: "
-              << (failures == 0 ? "ALL CHECKS PASSED" : "FAILURES PRESENT")
-              << " (" << failures << " failure(s)) ===" << std::endl;
+              << (failures == 0 ? "ALL CHECKS PASSED" : "FAILURES PRESENT") << " (" << failures
+              << " failure(s)) ===" << std::endl;
     return failures == 0 ? 0 : 1;
 }

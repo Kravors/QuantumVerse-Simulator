@@ -5,12 +5,12 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "discovery/GWMemoryDetector.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -61,7 +61,7 @@ std::vector<Event4D> makeTinyDeviationTrajectory() {
     }
     return data;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== GWMemoryDetector Test ===" << std::endl;
@@ -75,7 +75,8 @@ int main() {
         auto traj = makeCleanMemoryTrajectory();
         auto findings = detector.analyze(metric, location, traj);
         QV_CHECK(findings.empty());
-        std::cout << "  Clean memory trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  Clean memory trajectory: no anomaly (findings=" << findings.size() << ")"
+                  << std::endl;
     }
 
     // --- 2. Injected excess memory: should be flagged ------------------------------

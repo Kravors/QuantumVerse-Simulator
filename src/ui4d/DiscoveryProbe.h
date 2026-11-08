@@ -7,4 +7,5 @@
 #include "UI4D.h"
 
 // The DiscoveryProbe class is already defined in UI4D.h within the quantumverse namespace
-// No additional definition needed here - this file exists to satisfy #include "ui4d/DiscoveryProbe.h"
+// No additional definition needed here - this file exists to satisfy #include
+// "ui4d/DiscoveryProbe.h"

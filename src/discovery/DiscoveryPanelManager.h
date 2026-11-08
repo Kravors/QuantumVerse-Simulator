@@ -15,25 +15,25 @@
 // Qt headers MUST be included BEFORE the quantumverse namespace to prevent
 // STL types from being incorrectly resolved as quantumverse::std::
 #ifdef QUANTUMVERSE_USE_QML
+#include <QDebug>
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
-#include <QJsonObject>
-#include <QDebug>
 #endif
 
-#include <memory>
-#include <vector>
-#include <map>
-#include <cmath>
-#include <string>
 #include <atomic>
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
+#include <cmath>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 #include "../spacetime/Event4D.h"
-#include "discovery/DiscoveryEngine.h"
+#include "../spacetime/MetricTensor.h"
 #include "../utils/ThreadPool.h"
+#include "DiscoveryInstrument.h"
+#include "discovery/DiscoveryEngine.h"
 #ifdef QUANTUMVERSE_USE_QML
 #include "data/MultiMessengerCorrelator.h"
 #endif
@@ -55,17 +55,19 @@ struct ParsedGCNNotice;
  */
 #ifdef QUANTUMVERSE_USE_QML
 
-class DiscoveryPanelManager : public QObject
-{
+class DiscoveryPanelManager : public QObject {
     Q_OBJECT
-    Q_PROPERTY(int activeInstrumentIndex READ activeInstrumentIndex WRITE setActiveInstrumentIndex NOTIFY activeInstrumentIndexChanged)
+    Q_PROPERTY(int activeInstrumentIndex READ activeInstrumentIndex WRITE setActiveInstrumentIndex
+                   NOTIFY activeInstrumentIndexChanged)
     Q_PROPERTY(int instrumentCount READ instrumentCount NOTIFY instrumentCountChanged)
     Q_PROPERTY(QStringList instrumentNames READ instrumentNames NOTIFY instrumentNamesChanged)
     Q_PROPERTY(bool scanRunning READ scanRunning NOTIFY scanRunningChanged)
     Q_PROPERTY(double scanProgress READ scanProgress NOTIFY scanProgressChanged)
     Q_PROPERTY(QVariantList findingsList READ findingsList NOTIFY findingsListChanged)
-    Q_PROPERTY(QVariantMap activeInstrumentInfo READ activeInstrumentInfo NOTIFY activeInstrumentInfoChanged)
-    Q_PROPERTY(QVariantList instrumentParameters READ instrumentParameters NOTIFY instrumentParametersChanged)
+    Q_PROPERTY(QVariantMap activeInstrumentInfo READ activeInstrumentInfo NOTIFY
+                   activeInstrumentInfoChanged)
+    Q_PROPERTY(QVariantList instrumentParameters READ instrumentParameters NOTIFY
+                   instrumentParametersChanged)
     Q_PROPERTY(int correlationCount READ correlationCount NOTIFY correlationCountChanged)
     Q_PROPERTY(QVariantList correlationsList READ correlationsList NOTIFY correlationsListChanged)
     Q_PROPERTY(QVariantList paretoFront READ paretoFront NOTIFY paretoFrontChanged)
@@ -73,7 +75,7 @@ class DiscoveryPanelManager : public QObject
     Q_PROPERTY(QVariantList sweepResults READ sweepResults NOTIFY sweepResultsChanged)
     Q_PROPERTY(bool hasResults READ hasResults NOTIFY sweepResultsChanged)
 
-public:
+   public:
     explicit DiscoveryPanelManager(QObject* parent = nullptr);
     ~DiscoveryPanelManager() override = default;
 
@@ -89,14 +91,16 @@ public:
     };
 
     /** @brief Run a mass sweep: one KerrMetric per step, curvatureScalars at the probe. */
-    Q_INVOKABLE void runParameterSweep(double massLoMsun, double massHiMsun, int steps,
-                                        double spin, double charge, double probeR);
+    Q_INVOKABLE void runParameterSweep(double massLoMsun, double massHiMsun, int steps, double spin,
+                                       double charge, double probeR);
 
     /** @brief Sweep results as QVariantList (one map per row). */
     QVariantList sweepResults() const;
 
     /** @brief True once at least one sweep has been run and produced rows. */
-    bool hasResults() const { return !m_sweepRows.empty(); }
+    bool hasResults() const {
+        return !m_sweepRows.empty();
+    }
 
     /** @brief Export sweep results to "csv" or "json" under data/ and return the file path. */
     Q_INVOKABLE QString exportSweepResults(const QString& fmt);
@@ -128,11 +132,19 @@ public:
     QString exportFindings() const;
 
     // Getters
-    int activeInstrumentIndex() const { return m_activeInstrumentIndex; }
-    int instrumentCount() const { return static_cast<int>(m_instruments.size()); }
+    int activeInstrumentIndex() const {
+        return m_activeInstrumentIndex;
+    }
+    int instrumentCount() const {
+        return static_cast<int>(m_instruments.size());
+    }
     QStringList instrumentNames() const;
-    bool scanRunning() const { return m_scanRunning; }
-    double scanProgress() const { return m_scanProgress; }
+    bool scanRunning() const {
+        return m_scanRunning;
+    }
+    double scanProgress() const {
+        return m_scanProgress;
+    }
     QVariantList findingsList() const;
     QVariantMap activeInstrumentInfo() const;
     QVariantList instrumentParameters() const;
@@ -145,12 +157,16 @@ public:
     QVariantList bmaWeights() const;
 
     /** @brief Access the underlying multi-messenger correlator. */
-    MultiMessengerCorrelator* correlator() const { return m_correlator.get(); }
+    MultiMessengerCorrelator* correlator() const {
+        return m_correlator.get();
+    }
 
     /** @brief Direct access to the underlying findings (for FindingsModel). */
-    const std::vector<InstrumentFinding>& findings() const { return m_allFindings; }
+    const std::vector<InstrumentFinding>& findings() const {
+        return m_allFindings;
+    }
 
-public slots:
+   public slots:
     void setActiveInstrumentIndex(int index);
     void startScan();
     void stopScan();
@@ -160,13 +176,14 @@ public slots:
     void setMetric(const std::shared_ptr<MetricTensor>& metric);
     void setLocation(const Event4D& location);
 
-    /** @brief Ingest a live alert JSON (from GCN Kafka) and process it through the discovery pipeline. */
+    /** @brief Ingest a live alert JSON (from GCN Kafka) and process it through the discovery
+     * pipeline. */
     void ingestAlert(const QJsonObject& alertJson);
 
     /** @brief Handle a GW+EM follow-up trigger from the correlator. */
     void onFollowUpTriggered(const CorrelationEvent& correlation);
 
-signals:
+   signals:
     void activeInstrumentIndexChanged();
     void instrumentCountChanged();
     void instrumentNamesChanged();
@@ -180,7 +197,8 @@ signals:
     void correlationsListChanged();
     void paretoFrontChanged();
     void bmaWeightsChanged();
-    void newFindingDiscovered(const QString& instrumentName, const QString& description, double confidence);
+    void newFindingDiscovered(const QString& instrumentName, const QString& description,
+                              double confidence);
     void scanComplete();
     void liveAlertProcessed(const QString& findingId);
     void anomalyDetected(const QJsonObject& anomaly);
@@ -189,7 +207,7 @@ signals:
     void sweepResultsChanged();
     void exportSweepFinished(const QString& path);
 
-private:
+   private:
     std::vector<std::unique_ptr<DiscoveryInstrument>> m_instruments;
     int m_activeInstrumentIndex = 0;
     bool m_scanRunning = false;
@@ -213,10 +231,10 @@ private:
 
     QString severityToString(AlertSeverity sev) const;
 
-private slots:
+   private slots:
     void onCorrelationDetected(const CorrelationEvent& correlation);
 
-private:
+   private:
     DiscoveryEngine m_engine;
     bool m_anomalyDetectionEnabled = true;
     std::unique_ptr<MultiMessengerCorrelator> m_correlator;
@@ -228,11 +246,10 @@ private:
     std::vector<SweepRow> m_sweepRows;
 };
 
-#else // QUANTUMVERSE_USE_QML not defined - plain C++ stub
+#else  // QUANTUMVERSE_USE_QML not defined - plain C++ stub
 
-class DiscoveryPanelManager
-{
-public:
+class DiscoveryPanelManager {
+   public:
     DiscoveryPanelManager() = default;
     ~DiscoveryPanelManager() = default;
 
@@ -257,25 +274,37 @@ public:
     std::string exportFindings() const;
 
     // Getters
-    int activeInstrumentIndex() const { return m_activeInstrumentIndex; }
-    int instrumentCount() const { return static_cast<int>(m_instruments.size()); }
+    int activeInstrumentIndex() const {
+        return m_activeInstrumentIndex;
+    }
+    int instrumentCount() const {
+        return static_cast<int>(m_instruments.size());
+    }
     std::vector<std::string> instrumentNames() const;
-    bool scanRunning() const { return m_scanRunning; }
-    double scanProgress() const { return m_scanProgress; }
-     const std::vector<InstrumentFinding>& findings() const { return m_allFindings; }
+    bool scanRunning() const {
+        return m_scanRunning;
+    }
+    double scanProgress() const {
+        return m_scanProgress;
+    }
+    const std::vector<InstrumentFinding>& findings() const {
+        return m_allFindings;
+    }
 
-     int correlationCount() const { return 0; }
+    int correlationCount() const {
+        return 0;
+    }
 
-     // Scan control
-     void startScan();
-     void stopScan();
-     void exportCurrentFindings();
+    // Scan control
+    void startScan();
+    void stopScan();
+    void exportCurrentFindings();
 
-     // Set the metric for scan operations
-     void setMetric(const std::shared_ptr<MetricTensor>& metric);
-     void setLocation(const Event4D& location);
+    // Set the metric for scan operations
+    void setMetric(const std::shared_ptr<MetricTensor>& metric);
+    void setLocation(const Event4D& location);
 
-private:
+   private:
     std::vector<std::unique_ptr<DiscoveryInstrument>> m_instruments;
     int m_activeInstrumentIndex = 0;
     bool m_scanRunning = false;
@@ -286,8 +315,8 @@ private:
     bool m_locationSet = false;
 };
 
-#endif // QUANTUMVERSE_USE_QML
+#endif  // QUANTUMVERSE_USE_QML
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_DISCOVERY_PANEL_MANAGER_H
+#endif  // QUANTUMVERSE_DISCOVERY_PANEL_MANAGER_H

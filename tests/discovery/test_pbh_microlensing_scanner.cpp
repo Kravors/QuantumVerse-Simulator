@@ -4,15 +4,15 @@
 // bump (flagged), a symmetric transit dip (not a brightening lens -> not
 // flagged), empty/small input, NaN/Inf robustness, and parameter ranges.
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
-#include <algorithm>
+#include <vector>
 
 #include "discovery/PBHMicrolensingScanner.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -22,7 +22,8 @@ constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
 double paczynski(double u) {
-    if (u <= 0.0) return 1.0;
+    if (u <= 0.0)
+        return 1.0;
     double u2 = u * u;
     return (u2 + 2.0) / (u * std::sqrt(u2 + 4.0));
 }
@@ -64,14 +65,16 @@ std::vector<Event4D> makeDip() {
     }
     return d;
 }
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== PBHMicrolensingScanner Test ===" << std::endl;
 
     MetricTensor metric;
-    metric.g[0][0] = -1.0; metric.g[1][1] = 1.0;
-    metric.g[2][2] = 1.0; metric.g[3][3] = 1.0;
+    metric.g[0][0] = -1.0;
+    metric.g[1][1] = 1.0;
+    metric.g[2][2] = 1.0;
+    metric.g[3][3] = 1.0;
     Event4D location(0.0, 0.0, 0.0, 0.0);
 
     // --- 1. Flat light curve: no event expected -------------------------
@@ -79,7 +82,8 @@ int main() {
         PBHMicrolensingScanner scanner;
         auto findings = scanner.analyze(metric, location, makeFlat());
         QV_CHECK(findings.empty());
-        std::cout << "  Flat light curve: no event (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  Flat light curve: no event (findings=" << findings.size() << ")"
+                  << std::endl;
     }
 
     // --- 2. Paczynski magnification bump: should be flagged --------------
@@ -100,8 +104,8 @@ int main() {
         QV_CHECK(findings[0].parameters["einstein_radius_au"] > 0.0);
         QV_CHECK(findings[0].parameters["pbh_velocity_kms"] > 0.0);
         std::cout << "  PBH estimate: M=" << findings[0].parameters["pbh_mass_solar"]
-                  << " M_sun, R_E=" << findings[0].parameters["einstein_radius_au"]
-                  << " AU" << std::endl;
+                  << " M_sun, R_E=" << findings[0].parameters["einstein_radius_au"] << " AU"
+                  << std::endl;
     }
 
     // --- 3. Symmetric transit dip: darkening, not a brightening lens -----
@@ -109,7 +113,8 @@ int main() {
         PBHMicrolensingScanner scanner;
         auto findings = scanner.analyze(metric, location, makeDip());
         QV_CHECK(findings.empty());
-        std::cout << "  Transit dip: correctly not flagged (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  Transit dip: correctly not flagged (findings=" << findings.size() << ")"
+                  << std::endl;
     }
 
     // --- 4. Empty trajectory: must not crash, returns empty -------------
@@ -125,7 +130,8 @@ int main() {
     {
         PBHMicrolensingScanner scanner;
         std::vector<Event4D> small;
-        for (int i = 0; i < 5; ++i) small.emplace_back(i * 0.05, 1.0, 0.0, 0.0);
+        for (int i = 0; i < 5; ++i)
+            small.emplace_back(i * 0.05, 1.0, 0.0, 0.0);
         auto findings = scanner.analyze(metric, location, small);
         QV_CHECK(findings.empty());
         std::cout << "  Small trajectory handled safely." << std::endl;
@@ -169,9 +175,9 @@ int main() {
         const double G = 6.67430e-11, c = 299792458.0, Msun = 1.98847e30, kpc = 3.085677581e19;
         auto tEfromMass = [&](double M_solar, double Dl, double Ds, double v_kms) {
             double M = M_solar * Msun;
-            double RE = std::sqrt((4.0 * G * M / (c * c)) *
-                (Dl * kpc) * ((Ds - Dl) * kpc) / (Ds * kpc));
-            return RE / (v_kms * 1000.0); // seconds
+            double RE =
+                std::sqrt((4.0 * G * M / (c * c)) * (Dl * kpc) * ((Ds - Dl) * kpc) / (Ds * kpc));
+            return RE / (v_kms * 1000.0);  // seconds
         };
 
         double tE = tEfromMass(1.0, 4.0, 8.0, 200.0);
@@ -179,15 +185,15 @@ int main() {
         QV_CHECK_NEAR(est.mass_solar - 1.0, 0.0, 1e-6);
         QV_CHECK_NEAR(est.velocity_kms - 200.0, 0.0, 1e-9);
         QV_CHECK(est.einstein_radius_au > 0.0);
-        std::cout << "  Mass mapping round-trip: M=" << est.mass_solar
-                  << " M_sun (expected 1.0)" << std::endl;
+        std::cout << "  Mass mapping round-trip: M=" << est.mass_solar << " M_sun (expected 1.0)"
+                  << std::endl;
 
         // A heavier PBH should map to a larger mass.
         double tE2 = tEfromMass(10.0, 4.0, 8.0, 200.0);
         auto est2 = PBHMicrolensingScanner::estimatePBH(tE2, 0.3, 4.0, 8.0, 200.0, 0.9);
         QV_CHECK(est2.mass_solar > est.mass_solar);
-        std::cout << "  Heavier PBH maps to larger mass: M=" << est2.mass_solar
-                  << " M_sun" << std::endl;
+        std::cout << "  Heavier PBH maps to larger mass: M=" << est2.mass_solar << " M_sun"
+                  << std::endl;
     }
 
     // --- 9. Degenerate/ill-posed geometry returns a zero estimate -------
@@ -195,7 +201,8 @@ int main() {
         auto bad = PBHMicrolensingScanner::estimatePBH(0.0, 0.3, 4.0);
         QV_CHECK(bad.mass_solar == 0.0);
         (void)bad;
-        auto bad2 = PBHMicrolensingScanner::estimatePBH(100.0, 0.3, 8.0, 4.0); // lens behind source
+        auto bad2 =
+            PBHMicrolensingScanner::estimatePBH(100.0, 0.3, 8.0, 4.0);  // lens behind source
         QV_CHECK(bad2.mass_solar == 0.0);
         (void)bad2;
         std::cout << "  Degenerate geometry handled safely (M=0)." << std::endl;

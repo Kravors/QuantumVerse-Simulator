@@ -13,24 +13,24 @@
 #define QUANTUMVERSE_EXPERIMENT_RUNNER_H
 
 #include <QAbstractListModel>
-#include <QThreadPool>
-#include <QMutex>
-#include <QVector>
 #include <QHash>
-#include <QString>
-#include <QVariant>
-#include <QVariantMap>
-#include <QVariantList>
+#include <QMutex>
 #include <QPointF>
+#include <QString>
+#include <QThreadPool>
+#include <QVariant>
+#include <QVariantList>
+#include <QVariantMap>
+#include <QVector>
 #include <atomic>
 #include <memory>
 #include <vector>
 
 #include "Experiment.h"
-#include "discovery/PaperGenerator.h"
 #include "discovery/LLMCoPilot.h"
-#include "experiment/ScanSummaryBuilder.h"
+#include "discovery/PaperGenerator.h"
 #include "discovery/ScanSummary.h"
+#include "experiment/ScanSummaryBuilder.h"
 
 namespace quantumverse {
 
@@ -51,7 +51,7 @@ class ExperimentRunner : public QAbstractListModel {
     Q_PROPERTY(QVariantMap currentScalars READ currentScalars NOTIFY currentScalarsChanged)
     Q_PROPERTY(int historyCount READ historyCount NOTIFY historyChanged)
 
-public:
+   public:
     enum Roles { IdRole = Qt::UserRole + 1, NameRole, CategoryRole, DescriptionRole };
     Q_ENUM(Roles)
 
@@ -100,17 +100,33 @@ public:
     Q_INVOKABLE QVariantList history() const;
     Q_INVOKABLE void clearHistory();
 
-    bool running() const { return m_running.load(); }
-    double progress() const { return m_progress.load(); }
-    QString currentId() const { return m_currentId; }
-    QString currentName() const { return m_currentName; }
-    QString currentLog() const { return m_currentLog; }
+    bool running() const {
+        return m_running.load();
+    }
+    double progress() const {
+        return m_progress.load();
+    }
+    QString currentId() const {
+        return m_currentId;
+    }
+    QString currentName() const {
+        return m_currentName;
+    }
+    QString currentLog() const {
+        return m_currentLog;
+    }
     QVariantList currentCurve() const;
-    QVariantMap currentScalars() const { return m_currentScalars; }
-    int count() const { return static_cast<int>(m_experiments.size()); }
-    int historyCount() const { return static_cast<int>(m_history.size()); }
+    QVariantMap currentScalars() const {
+        return m_currentScalars;
+    }
+    int count() const {
+        return static_cast<int>(m_experiments.size());
+    }
+    int historyCount() const {
+        return static_cast<int>(m_history.size());
+    }
 
-signals:
+   signals:
     void runningChanged();
     void progressChanged();
     void currentIdChanged();
@@ -123,13 +139,13 @@ signals:
     void exportFinished(const QString& path);
     void pdfFinished(const QString& path);
 
-public slots:
+   public slots:
     // Marshalled back from the worker thread.
     void setProgress(double p);
     void setLog(const QString& log);
     void setResult(const ExperimentRunOutcome& outcome);
 
-private:
+   private:
     struct Slot {
         std::unique_ptr<Experiment> exp;
         QVariantMap lastParams;
@@ -156,21 +172,23 @@ private:
     /** Most recent successful result for the given experiment id, or nullptr. */
     const ExperimentResult* lastResultFor(const QString& id) const;
     /** Plain-English abstract for the discovery paper, keyed by experiment id. */
-    QString abstractForExperiment(const QString& id,
-                                  const ExperimentResult& result) const;
+    QString abstractForExperiment(const QString& id, const ExperimentResult& result) const;
 
     class RunJob : public QRunnable {
-    public:
+       public:
         RunJob(ExperimentRunner* runner, Experiment* exp, QVariantMap params)
-            : m_runner(runner), m_exp(exp), m_params(std::move(params)) {}
+            : m_runner(runner),
+              m_exp(exp),
+              m_params(std::move(params)) {}
         void run() override;
-    private:
+
+       private:
         ExperimentRunner* m_runner;
         Experiment* m_exp;
         QVariantMap m_params;
     };
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_EXPERIMENT_RUNNER_H
+#endif  // QUANTUMVERSE_EXPERIMENT_RUNNER_H

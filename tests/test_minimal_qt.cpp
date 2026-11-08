@@ -1,12 +1,10 @@
-#include <QTest>
 #include <QDebug>
+#include <QTest>
 
-class MinimalTest : public QObject
-{
+class MinimalTest : public QObject {
     Q_OBJECT
-private slots:
-    void test_basic()
-    {
+   private slots:
+    void test_basic() {
         qDebug() << "MinimalTest running";
         QVERIFY(true);
     }

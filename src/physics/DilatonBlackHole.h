@@ -18,7 +18,7 @@ namespace quantumverse {
  * can be added by evolving the mass parameter as a function of advanced time.
  */
 class DilatonBlackHole {
-public:
+   public:
     /** @brief Pi constant for calculations. */
     static constexpr double PI = 3.14159265358979323846;
 
@@ -80,8 +80,8 @@ public:
      */
     double entropy() const noexcept;
 
-private:
+   private:
     DilatonMetric metric;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -6,13 +6,13 @@
  * gravitational force calculation. Requires OpenGL 4.3+.
  */
 
-#include "glad.h"
 #include "ComputeShader.h"
+#include "glad.h"
 
-#include <fstream>
-#include <sstream>
-#include <iostream>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 namespace quantumverse {
 
@@ -115,21 +115,27 @@ void ComputeShader::dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t 
 }
 
 void ComputeShader::setUniform(const char* name, float value) const {
-    if (m_programId == 0) return;
+    if (m_programId == 0)
+        return;
     GLint loc = glGetUniformLocation(static_cast<GLuint>(m_programId), name);
-    if (loc >= 0) glUniform1f(loc, value);
+    if (loc >= 0)
+        glUniform1f(loc, value);
 }
 
 void ComputeShader::setUniform(const char* name, int value) const {
-    if (m_programId == 0) return;
+    if (m_programId == 0)
+        return;
     GLint loc = glGetUniformLocation(static_cast<GLuint>(m_programId), name);
-    if (loc >= 0) glUniform1i(loc, value);
+    if (loc >= 0)
+        glUniform1i(loc, value);
 }
 
 void ComputeShader::setUniform(const char* name, uint32_t value) const {
-    if (m_programId == 0) return;
+    if (m_programId == 0)
+        return;
     GLint loc = glGetUniformLocation(static_cast<GLuint>(m_programId), name);
-    if (loc >= 0) glUniform1ui(loc, value);
+    if (loc >= 0)
+        glUniform1ui(loc, value);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

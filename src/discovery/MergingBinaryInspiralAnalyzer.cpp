@@ -4,8 +4,8 @@
  */
 
 #include "MergingBinaryInspiralAnalyzer.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 #ifndef M_PI
@@ -14,41 +14,38 @@
 
 namespace quantumverse {
 
-MergingBinaryInspiralAnalyzer::MergingBinaryInspiralAnalyzer()
-{
+MergingBinaryInspiralAnalyzer::MergingBinaryInspiralAnalyzer() {
     setParameter("snr_threshold", 5.0);
     setParameter("confidence_threshold", 0.7);
     setParameter("min_samples", static_cast<double>(kMinSamples));
 }
 
 std::map<std::string, std::pair<double, double>>
-MergingBinaryInspiralAnalyzer::getParameterRanges() const
-{
-    return {
-        {"snr_threshold", {3.0, 10.0}},
-        {"confidence_threshold", {0.5, 0.99}},
-        {"min_samples", {16.0, 256.0}}
-    };
+MergingBinaryInspiralAnalyzer::getParameterRanges() const {
+    return {{"snr_threshold", {3.0, 10.0}},
+            {"confidence_threshold", {0.5, 0.99}},
+            {"min_samples", {16.0, 256.0}}};
 }
 
-double MergingBinaryInspiralAnalyzer::taylorF2Frequency(double chirpMass, double tau)
-{
-    if (tau <= 0.0 || chirpMass <= 0.0) return 0.0;
+double MergingBinaryInspiralAnalyzer::taylorF2Frequency(double chirpMass, double tau) {
+    if (tau <= 0.0 || chirpMass <= 0.0)
+        return 0.0;
     double mc58 = std::pow(chirpMass, -5.0 / 8.0);
     double tau38 = std::pow(tau, -3.0 / 8.0);
     return (1.0 / (8.0 * M_PI)) * mc58 * tau38;
 }
 
 std::vector<std::pair<double, double>>
-MergingBinaryInspiralAnalyzer::trackInstantaneousFrequency(
-    const std::vector<Event4D>& trajectory, size_t windowSize)
-{
+MergingBinaryInspiralAnalyzer::trackInstantaneousFrequency(const std::vector<Event4D>& trajectory,
+                                                           size_t windowSize) {
     std::vector<std::pair<double, double>> track;
     size_t n = trajectory.size();
-    if (n < 4) return track;
+    if (n < 4)
+        return track;
 
     double dt = trajectory[1].t - trajectory[0].t;
-    if (dt <= 0.0) return track;
+    if (dt <= 0.0)
+        return track;
 
     // Interpolated zero-crossing detection: find the exact (sub-sample) time
     // at which the signal crosses zero, using linear interpolation between
@@ -62,7 +59,8 @@ MergingBinaryInspiralAnalyzer::trackInstantaneousFrequency(
     for (size_t i = 1; i < n; ++i) {
         double hPrev = trajectory[i - 1].x;
         double hCurr = trajectory[i].x;
-        if (!std::isfinite(hPrev) || !std::isfinite(hCurr)) continue;
+        if (!std::isfinite(hPrev) || !std::isfinite(hCurr))
+            continue;
         if ((hPrev >= 0.0 && hCurr < 0.0) || (hPrev < 0.0 && hCurr >= 0.0)) {
             double frac = hPrev / (hPrev - hCurr);
             double tCross = trajectory[i - 1].t + frac * dt;
@@ -95,16 +93,16 @@ MergingBinaryInspiralAnalyzer::trackInstantaneousFrequency(
     return track;
 }
 
-MergingBinaryInspiralAnalyzer::ChirpFit
-MergingBinaryInspiralAnalyzer::fitTaylorF2(
-    const std::vector<std::pair<double, double>>& freqTrack)
-{
+MergingBinaryInspiralAnalyzer::ChirpFit MergingBinaryInspiralAnalyzer::fitTaylorF2(
+    const std::vector<std::pair<double, double>>& freqTrack) {
     ChirpFit result;
-    if (freqTrack.size() < 4) return result;
+    if (freqTrack.size() < 4)
+        return result;
 
     double tLast = freqTrack.back().first;
     double fLast = freqTrack.back().second;
-    if (fLast <= 0.0) return result;
+    if (fLast <= 0.0)
+        return result;
 
     double bestMc = 0.0;
     double bestTc = 0.0;
@@ -118,7 +116,8 @@ MergingBinaryInspiralAnalyzer::fitTaylorF2(
             size_t count = 0;
             for (const auto& p : freqTrack) {
                 double tau = tc - p.first;
-                if (tau <= 0.0) continue;
+                if (tau <= 0.0)
+                    continue;
                 double fPred = taylorF2Frequency(mc, tau);
                 double diff = (p.second - fPred) / p.second;
                 err += diff * diff;
@@ -147,9 +146,11 @@ MergingBinaryInspiralAnalyzer::fitTaylorF2(
     std::vector<double> residuals;
     for (const auto& p : freqTrack) {
         double tau = bestTc - p.first;
-        if (tau <= 0.0) continue;
+        if (tau <= 0.0)
+            continue;
         double fPred = taylorF2Frequency(bestMc, tau);
-        if (fPred <= 0.0 || p.second <= 0.0) continue;
+        if (fPred <= 0.0 || p.second <= 0.0)
+            continue;
         residuals.push_back(std::abs((p.second - fPred) / p.second));
     }
     std::vector<std::pair<double, double>> cleanTrack = freqTrack;
@@ -162,9 +163,11 @@ MergingBinaryInspiralAnalyzer::fitTaylorF2(
             cleanTrack.clear();
             for (const auto& p : freqTrack) {
                 double tau = bestTc - p.first;
-                if (tau <= 0.0) continue;
+                if (tau <= 0.0)
+                    continue;
                 double fPred = taylorF2Frequency(bestMc, tau);
-                if (fPred <= 0.0 || p.second <= 0.0) continue;
+                if (fPred <= 0.0 || p.second <= 0.0)
+                    continue;
                 double relErr = std::abs((p.second - fPred) / p.second);
                 if (relErr <= outlierThreshold) {
                     cleanTrack.push_back(p);
@@ -181,18 +184,22 @@ MergingBinaryInspiralAnalyzer::fitTaylorF2(
     const double coarseTcOff = bestTc - tLast;
     for (int iMc = -fineSteps; iMc <= fineSteps; ++iMc) {
         double mc = bestMc + iMc * fineStep;
-        if (mc < 0.001) continue;
+        if (mc < 0.001)
+            continue;
         for (int iTc = -fineSteps; iTc <= fineSteps; ++iTc) {
             double tcOff = coarseTcOff + iTc * fineStep;
-            if (tcOff < 0.0) continue;
+            if (tcOff < 0.0)
+                continue;
             double tc = tLast + tcOff;
             double err = 0.0;
             size_t count = 0;
             for (const auto& p : fitTrack) {
                 double tau = tc - p.first;
-                if (tau <= 0.0) continue;
+                if (tau <= 0.0)
+                    continue;
                 double fPred = taylorF2Frequency(mc, tau);
-                if (fPred <= 0.0) continue;
+                if (fPred <= 0.0)
+                    continue;
                 double diff = (p.second - fPred) / p.second;
                 err += diff * diff;
                 count++;
@@ -233,33 +240,38 @@ MergingBinaryInspiralAnalyzer::fitTaylorF2(
     return result;
 }
 
-std::vector<InstrumentFinding> MergingBinaryInspiralAnalyzer::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+MergingBinaryInspiralAnalyzer::analyze(const MetricTensor& metric, const Event4D& location,
+                                       const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
     size_t n = trajectory.size();
     size_t minSamples = static_cast<size_t>(getParameter("min_samples"));
-    if (n < minSamples) return findings;
+    if (n < minSamples)
+        return findings;
 
     double dt = trajectory[1].t - trajectory[0].t;
-    if (dt <= 0.0) return findings;
+    if (dt <= 0.0)
+        return findings;
 
     for (size_t i = 0; i < n; ++i) {
-        if (std::isnan(trajectory[i].x) || std::isinf(trajectory[i].x)) return findings;
+        if (std::isnan(trajectory[i].x) || std::isinf(trajectory[i].x))
+            return findings;
     }
 
     size_t windowSize = n / 4;
-    if (windowSize < 8) windowSize = 8;
+    if (windowSize < 8)
+        windowSize = 8;
 
     auto freqTrack = trackInstantaneousFrequency(trajectory, windowSize);
 
-    if (freqTrack.size() < 4) return findings;
+    if (freqTrack.size() < 4)
+        return findings;
 
     ChirpFit fit = fitTaylorF2(freqTrack);
-    if (fit.chirpMass <= 0.0 || fit.snr <= 0.0) return findings;
+    if (fit.chirpMass <= 0.0 || fit.snr <= 0.0)
+        return findings;
 
     double snrThreshold = getParameter("snr_threshold");
     double confThreshold = getParameter("confidence_threshold");
@@ -272,8 +284,9 @@ std::vector<InstrumentFinding> MergingBinaryInspiralAnalyzer::analyze(
         finding.confidence = fit.confidence;
         finding.isAnomaly = true;
         finding.description = "Binary inspiral detected: chirp mass " +
-            std::to_string(fit.chirpMass) + " M_sun, mass ratio q=" +
-            std::to_string(fit.massRatio) + ", SNR=" + std::to_string(fit.snr) + ".";
+                              std::to_string(fit.chirpMass) +
+                              " M_sun, mass ratio q=" + std::to_string(fit.massRatio) +
+                              ", SNR=" + std::to_string(fit.snr) + ".";
         finding.location = location;
         finding.timestamp = trajectory.back().t;
         finding.parameters["chirp_mass"] = fit.chirpMass;
@@ -289,4 +302,4 @@ std::vector<InstrumentFinding> MergingBinaryInspiralAnalyzer::analyze(
     return findings;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -50,8 +50,8 @@ void test_adjoint_gradient_from_best() {
     QV_CHECK(std::isfinite(opt_result.total_reward));
     QV_CHECK(opt_result.total_reward >= best_before - 1e-6);
 
-    std::cout << "  Reward before = " << best_before
-              << ", after = " << opt_result.total_reward << "\n";
+    std::cout << "  Reward before = " << best_before << ", after = " << opt_result.total_reward
+              << "\n";
 }
 
 void test_adjoint_gradient_updates_pareto() {

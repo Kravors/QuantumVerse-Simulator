@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <memory>
 #include <array>
 #include <filesystem>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace quantumverse {
 namespace utils {
@@ -47,7 +47,7 @@ struct SpacetimeConfig {
  * @brief Secure file I/O manager
  */
 class FileIO {
-public:
+   public:
     FileIO();
     ~FileIO() = default;
 
@@ -77,7 +77,7 @@ public:
      */
     static std::filesystem::path getUserDocumentsDir();
 
-private:
+   private:
     // Security validation
     bool validatePath(const std::string& path) const;
     bool validateConfig(const SpacetimeConfig& config) const;
@@ -86,5 +86,5 @@ private:
     std::filesystem::path m_dataDir;
 };
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

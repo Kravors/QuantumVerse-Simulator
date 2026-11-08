@@ -10,10 +10,10 @@
 
 #pragma once
 
-#include <vector>
-#include <memory>
 #include <array>
 #include <functional>
+#include <memory>
+#include <vector>
 #include "../spacetime/MetricTensor.h"
 
 namespace quantumverse {
@@ -53,7 +53,7 @@ enum class MetricType {
  * Uses 2nd order Verlet integration with adaptive step size.
  */
 class GRRayTracer {
-public:
+   public:
     /**
      * @brief Construct a new GRRayTracer
      * @param metricType Type of metric to use
@@ -63,7 +63,9 @@ public:
     /**
      * @brief Set the metric type
      */
-    void setMetricType(MetricType type) { m_metricType = type; }
+    void setMetricType(MetricType type) {
+        m_metricType = type;
+    }
 
     /**
      * @brief Set custom metric function
@@ -91,8 +93,8 @@ public:
      * @return Ray trace result
      */
     RayTraceResult traceRay(const Event4D& startEvent,
-                          const std::array<double, 3>& initialDirection,
-                          double maxDistance = 1000.0);
+                            const std::array<double, 3>& initialDirection,
+                            double maxDistance = 1000.0);
 
     /**
      * @brief Get the current metric at a point
@@ -102,14 +104,18 @@ public:
     /**
      * @brief Set integration step size
      */
-    void setStepSize(double step) { m_stepSize = step; }
+    void setStepSize(double step) {
+        m_stepSize = step;
+    }
 
     /**
      * @brief Enable/disable adaptive stepping
      */
-    void setAdaptive(bool adaptive) { m_adaptive = adaptive; }
+    void setAdaptive(bool adaptive) {
+        m_adaptive = adaptive;
+    }
 
-private:
+   private:
     /**
      * @brief Compute Christoffel symbols for current metric
      */
@@ -123,10 +129,8 @@ private:
     /**
      * @brief Verlet integration step
      */
-    std::array<double, 4> verletStep(
-        const std::array<double, 4>& position,
-        const std::array<double, 4>& momentum,
-        double step) const;
+    std::array<double, 4> verletStep(const std::array<double, 4>& position,
+                                     const std::array<double, 4>& momentum, double step) const;
 
     MetricType m_metricType;
     double m_mass;
@@ -143,4 +147,4 @@ private:
     mutable Event4D m_lastPosition;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <chrono>
-#include <vector>
-#include <string>
-#include <cstdint>
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <string>
+#include <vector>
 
 namespace quantumverse {
 namespace utils {
@@ -25,23 +25,23 @@ using PerfTimePoint = std::chrono::time_point<PerfClock>;
  * @brief Performance metrics snapshot
  */
 struct PerformanceMetrics {
-    double frameTimeMs;           ///< Frame time in milliseconds
-    double fps;                   ///< Frames per second
-    double cpuUsagePercent;       ///< CPU usage percentage
-    size_t memoryUsedMB;          ///< Memory used in MB
-    size_t vramUsedMB;            ///< VRAM used in MB
-    double renderTimeMs;          ///< Rendering time in ms
-    double updateTimeMs;          ///< Update time in ms
-    double uiTimeMs;              ///< UI render time in ms
-    int drawCalls;                ///< Number of draw calls
-    int triangleCount;            ///< Number of triangles rendered
+    double frameTimeMs;      ///< Frame time in milliseconds
+    double fps;              ///< Frames per second
+    double cpuUsagePercent;  ///< CPU usage percentage
+    size_t memoryUsedMB;     ///< Memory used in MB
+    size_t vramUsedMB;       ///< VRAM used in MB
+    double renderTimeMs;     ///< Rendering time in ms
+    double updateTimeMs;     ///< Update time in ms
+    double uiTimeMs;         ///< UI render time in ms
+    int drawCalls;           ///< Number of draw calls
+    int triangleCount;       ///< Number of triangles rendered
 };
 
 /**
  * @brief High-resolution performance monitor
  */
 class PerformanceMonitor {
-public:
+   public:
     PerformanceMonitor();
     ~PerformanceMonitor() = default;
 
@@ -65,7 +65,9 @@ public:
     /**
      * @brief Get current performance metrics
      */
-    const PerformanceMetrics& getMetrics() const { return m_currentMetrics; }
+    const PerformanceMetrics& getMetrics() const {
+        return m_currentMetrics;
+    }
 
     /**
      * @brief Get average FPS over last N frames
@@ -101,12 +103,16 @@ public:
     /**
      * @brief Get UI render time in milliseconds
      */
-    double getUIRenderTimeMs() const { return m_currentMetrics.uiTimeMs; }
+    double getUIRenderTimeMs() const {
+        return m_currentMetrics.uiTimeMs;
+    }
 
     /**
      * @brief Check if performance target is met (≥45 FPS)
      */
-    bool isPerformanceTargetMet() const { return m_currentMetrics.fps >= 45.0; }
+    bool isPerformanceTargetMet() const {
+        return m_currentMetrics.fps >= 45.0;
+    }
 
     /**
      * @brief Get performance grade based on FPS
@@ -114,7 +120,7 @@ public:
      */
     char getPerformanceGrade() const;
 
-private:
+   private:
     PerfTimePoint m_frameStart;
     PerfTimePoint m_renderStart;
     PerfTimePoint m_updateStart;
@@ -144,9 +150,11 @@ private:
  * @brief Scoped timer for automatic event timing
  */
 class ScopedTimer {
-public:
+   public:
     explicit ScopedTimer(PerformanceMonitor& monitor, const std::string& name)
-        : m_monitor(monitor), m_name(name), m_start(PerfClock::now()) {}
+        : m_monitor(monitor),
+          m_name(name),
+          m_start(PerfClock::now()) {}
 
     ~ScopedTimer() {
         auto end = PerfClock::now();
@@ -154,7 +162,7 @@ public:
         m_monitor.recordEvent(m_name, duration);
     }
 
-private:
+   private:
     PerformanceMonitor& m_monitor;
     std::string m_name;
     PerfTimePoint m_start;
@@ -164,7 +172,7 @@ private:
  * @brief RAII scope for render timing
  */
 class RenderScope {
-public:
+   public:
     explicit RenderScope(PerformanceMonitor& monitor) : m_monitor(monitor) {
         m_monitor.beginFrame();
     }
@@ -173,12 +181,12 @@ public:
         m_monitor.endFrame();
     }
 
-private:
+   private:
     PerformanceMonitor& m_monitor;
 };
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse
 
 // Convenience macro for scoped timing
 #define QUANTUMVERSE_SCOPED_TIMER(monitor, name) \

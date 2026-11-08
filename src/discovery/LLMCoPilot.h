@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <QObject>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QObject>
 #include <QString>
-#include <QJsonObject>
 
 namespace quantumverse {
 
@@ -27,7 +27,7 @@ namespace quantumverse {
 class LLMCoPilot : public QObject {
     Q_OBJECT
 
-public:
+   public:
     explicit LLMCoPilot(QObject* parent = nullptr);
 
     /// Send raw anomaly/veto data to the LLM for explanation.
@@ -36,7 +36,7 @@ public:
     /// Send discovery scan data to the LLM for a paper abstract.
     Q_INVOKABLE void generatePaperAbstract(const QJsonObject& scanData);
 
-signals:
+   signals:
     /// Emitted when the LLM returns an explanation string.
     void analysisReady(const QString& explanation);
 
@@ -46,7 +46,7 @@ signals:
     /// Emitted when the abstract request fails.
     void abstractFailed(const QString& error);
 
-private:
+   private:
     QNetworkAccessManager* m_network = nullptr;
 
     // Tracks which signal the in-flight request should emit on completion.
@@ -54,4 +54,4 @@ private:
     void (LLMCoPilot::*m_pendingFailure)(const QString&) = nullptr;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

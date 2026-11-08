@@ -16,9 +16,9 @@
 #ifndef QUANTUMVERSE_MERGING_BINARY_INSPIRAL_ANALYZER_H
 #define QUANTUMVERSE_MERGING_BINARY_INSPIRAL_ANALYZER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -34,32 +34,35 @@ namespace quantumverse {
  * frequency via short-time Fourier analysis, fits to the chirp model,
  * and reports the recovered M_c, mass ratio q, and confidence.
  */
-class MergingBinaryInspiralAnalyzer : public DiscoveryInstrument
-{
-public:
+class MergingBinaryInspiralAnalyzer : public DiscoveryInstrument {
+   public:
     MergingBinaryInspiralAnalyzer();
     ~MergingBinaryInspiralAnalyzer() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "MergingBinaryInspiralAnalyzer"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "MergingBinaryInspiralAnalyzer";
+    }
+    std::string getDescription() const override {
         return "Merging binary inspiral analyzer. Detects GW chirp signals from "
                "inspiralling compact binaries, extracts chirp mass and mass ratio "
                "via TaylorF2 template fitting.";
     }
-    std::string getCategory() const override { return "Gravitational Waves"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Gravitational Waves";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
     /// @brief TaylorF2 chirp frequency at time-to-coalescence tau (geometric units).
     static double taylorF2Frequency(double chirpMass, double tau);
 
-private:
+   private:
     static constexpr size_t kMinSamples = 32;
 
     struct ChirpFit {
@@ -70,12 +73,12 @@ private:
         double coalescenceTime = 0.0;
     };
 
-    static std::vector<std::pair<double, double>> trackInstantaneousFrequency(
-        const std::vector<Event4D>& trajectory, size_t windowSize);
+    static std::vector<std::pair<double, double>>
+    trackInstantaneousFrequency(const std::vector<Event4D>& trajectory, size_t windowSize);
 
     static ChirpFit fitTaylorF2(const std::vector<std::pair<double, double>>& freqTrack);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_MERGING_BINARY_INSPIRAL_ANALYZER_H
+#endif  // QUANTUMVERSE_MERGING_BINARY_INSPIRAL_ANALYZER_H

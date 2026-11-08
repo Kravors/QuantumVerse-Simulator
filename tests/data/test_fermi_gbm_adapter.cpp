@@ -15,8 +15,7 @@
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     (void)argc;
     (void)argv;
 
@@ -24,9 +23,7 @@ int main(int argc, char** argv)
     {
         FermiGBMAdapter adapter;
         std::vector<FermiGBMAlert> received;
-        adapter.setCallback([&received](const FermiGBMAlert& alert) {
-            received.push_back(alert);
-        });
+        adapter.setCallback([&received](const FermiGBMAlert& alert) { received.push_back(alert); });
 
         FermiGBMAlert grb;
         grb.trigger_id = "bn240512001";
@@ -67,8 +64,12 @@ int main(int argc, char** argv)
         int count = 0;
         adapter.setCallback([&count](const FermiGBMAlert&) { ++count; });
 
-        FermiGBMAlert g1; g1.trigger_id = "evt1"; adapter.simulateAlert(g1);
-        FermiGBMAlert g2; g2.trigger_id = "evt2"; adapter.simulateAlert(g2);
+        FermiGBMAlert g1;
+        g1.trigger_id = "evt1";
+        adapter.simulateAlert(g1);
+        FermiGBMAlert g2;
+        g2.trigger_id = "evt2";
+        adapter.simulateAlert(g2);
 
         QV_CHECK(adapter.receivedAlerts().size() == 2u);
         QV_CHECK(count == 2);

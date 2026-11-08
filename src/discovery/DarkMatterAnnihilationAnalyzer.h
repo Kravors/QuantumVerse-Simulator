@@ -29,9 +29,9 @@
 #ifndef QUANTUMVERSE_DARK_MATTER_ANNIHILATION_ANALYZER_H
 #define QUANTUMVERSE_DARK_MATTER_ANNIHILATION_ANALYZER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -44,12 +44,12 @@ namespace quantumverse {
  * candidate.
  */
 class DarkMatterAnnihilationAnalyzer : public DiscoveryInstrument {
-public:
+   public:
     DarkMatterAnnihilationAnalyzer();
     ~DarkMatterAnnihilationAnalyzer() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location, const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
     /**
      * @brief Search for a monochromatic line at @p lineEnergy in the spectrum.
@@ -58,12 +58,13 @@ public:
      * @param lineEnergy Candidate line energy to test.
      * @return Findings (non-empty when excess significance exceeds threshold).
      */
-    std::vector<InstrumentFinding> analyzeSpectrum(
-        const std::vector<double>& energies,
-        const std::vector<double>& counts,
-        double lineEnergy);
+    std::vector<InstrumentFinding> analyzeSpectrum(const std::vector<double>& energies,
+                                                   const std::vector<double>& counts,
+                                                   double lineEnergy);
 
-    std::string getName() const override { return "DarkMatterAnnihilationAnalyzer"; }
+    std::string getName() const override {
+        return "DarkMatterAnnihilationAnalyzer";
+    }
     std::string getDescription() const override {
         return "Dark Matter Annihilation Signal analyzer. Searches a photon/"
                "gamma-ray energy spectrum for the monochromatic line (or "
@@ -71,19 +72,24 @@ public:
                "fitting a smooth power-law background and flagging a localized "
                "count excess whose significance exceeds the threshold.";
     }
-    std::string getCategory() const override { return "Particle Astrophysics"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::MEDIUM; }
+    std::string getCategory() const override {
+        return "Particle Astrophysics";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::MEDIUM;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
-private:
+   private:
     /// Significance (excess / sqrt(bg)) of a line at @p lineEnergy, or 0.
     double computeLineSignificance(const std::vector<double>& energies,
-        const std::vector<double>& counts, double lineEnergy, double widthFrac) const;
+                                   const std::vector<double>& counts, double lineEnergy,
+                                   double widthFrac) const;
 
     static constexpr size_t kMinBins = 16;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_DARK_MATTER_ANNIHILATION_ANALYZER_H
+#endif  // QUANTUMVERSE_DARK_MATTER_ANNIHILATION_ANALYZER_H

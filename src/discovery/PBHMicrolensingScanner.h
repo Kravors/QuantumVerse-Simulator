@@ -25,9 +25,9 @@
 #ifndef QUANTUMVERSE_PBH_MICROLENSING_SCANNER_H
 #define QUANTUMVERSE_PBH_MICROLENSING_SCANNER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -39,24 +39,28 @@ namespace quantumverse {
  * with a PBH is reported as a candidate event, with fitted parameters
  * (t0, tE, u0, peak magnification) recorded.
  */
-class PBHMicrolensingScanner : public DiscoveryInstrument
-{
-public:
+class PBHMicrolensingScanner : public DiscoveryInstrument {
+   public:
     PBHMicrolensingScanner();
     ~PBHMicrolensingScanner() override = default;
 
     std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "PBHMicrolensingScanner"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "PBHMicrolensingScanner";
+    }
+    std::string getDescription() const override {
         return "Primordial black-hole microlensing scanner. Searches stellar "
                "light curves for a symmetric, achromatic Paczynski magnification "
                "bump (a dark, compact lens), flagging candidate PBH events.";
     }
-    std::string getCategory() const override { return "Gravitational Lensing"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Gravitational Lensing";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
@@ -64,12 +68,12 @@ public:
      * @brief Physical estimate of the lensing object derived from a microlensing fit.
      */
     struct PBHEstimate {
-        double mass_solar = 0.0;          ///< Lens mass in solar masses
-        double velocity_kms = 0.0;        ///< Assumed lens transverse velocity (km/s)
-        double einstein_radius_au = 0.0;  ///< Physical Einstein radius (AU)
-        double lens_distance_kpc = 0.0;   ///< Lens (PBH) distance from observer (kpc)
-        double source_distance_kpc = 0.0; ///< Source distance from observer (kpc)
-        double confidence = 0.0;          ///< Fit quality (0-1)
+        double mass_solar = 0.0;           ///< Lens mass in solar masses
+        double velocity_kms = 0.0;         ///< Assumed lens transverse velocity (km/s)
+        double einstein_radius_au = 0.0;   ///< Physical Einstein radius (AU)
+        double lens_distance_kpc = 0.0;    ///< Lens (PBH) distance from observer (kpc)
+        double source_distance_kpc = 0.0;  ///< Source distance from observer (kpc)
+        double confidence = 0.0;           ///< Fit quality (0-1)
     };
 
     /**
@@ -88,15 +92,15 @@ public:
      * degeneracy; supplying a prior on v_t is the standard Galactic practice.
      */
     static PBHEstimate estimatePBH(double tE, double u0, double lensDistanceKpc,
-        double sourceDistanceKpc = 8.0, double lensVelocityKms = 220.0,
-        double confidence = 0.0);
+                                   double sourceDistanceKpc = 8.0, double lensVelocityKms = 220.0,
+                                   double confidence = 0.0);
 
-private:
+   private:
     static constexpr double kMinTrajectorySize = 24;
 
     static double paczynskiMagnification(double u);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_PBH_MICROLENSING_SCANNER_H
+#endif  // QUANTUMVERSE_PBH_MICROLENSING_SCANNER_H

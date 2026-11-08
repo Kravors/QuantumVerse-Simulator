@@ -7,9 +7,9 @@
 #if defined __cplusplus
 /* Add C++ includes here */
 
-# include <iostream>
-# include <QApplication>
-# include <QPushButton>
-# include <QLabel>
+#include <QApplication>
+#include <QLabel>
+#include <QPushButton>
+#include <iostream>
 #endif
 //! [0]

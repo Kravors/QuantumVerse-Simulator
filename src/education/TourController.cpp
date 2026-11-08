@@ -29,7 +29,8 @@ double TourController::shortestAzimuthDelta(double from, double to) {
     // back to (0, 360); subtracting 180 lands it in (-180, 180].
     double d = std::fmod(to - from + 540.0, 360.0) - 180.0;
     // fmod can return -0.0; normalise to a plain 0.0 for stable comparisons.
-    if (std::abs(d) < 1e-12) d = 0.0;
+    if (std::abs(d) < 1e-12)
+        d = 0.0;
     // Antipodal boundary: when from and to are exactly 180 deg apart, the
     // shortest path is not unique -- +180 and -180 both traverse a
     // hemisphere and reach the same endpoint.  The sign here is an
@@ -40,16 +41,15 @@ double TourController::shortestAzimuthDelta(double from, double to) {
 }
 
 TourCameraState TourController::interpolateCamera(const TourCameraState& from,
-                                              const TourCameraState& to,
-                                              double t) {
+                                                  const TourCameraState& to, double t) {
     t = std::clamp(t, 0.0, 1.0);
     // Smoothstep for eased motion (ease-in-out).
     double smooth = t * t * (3.0 - 2.0 * t);
 
     TourCameraState out;
-    out.azimuth   = from.azimuth   + shortestAzimuthDelta(from.azimuth, to.azimuth) * smooth;
+    out.azimuth = from.azimuth + shortestAzimuthDelta(from.azimuth, to.azimuth) * smooth;
     out.elevation = from.elevation + (to.elevation - from.elevation) * smooth;
-    out.distance  = from.distance  + (to.distance  - from.distance)  * smooth;
+    out.distance = from.distance + (to.distance - from.distance) * smooth;
     for (int i = 0; i < 3; i++) {
         out.target[i] = from.target[i] + (to.target[i] - from.target[i]) * smooth;
     }
@@ -60,8 +60,7 @@ TourCameraState TourController::interpolateCamera(const TourCameraState& from,
 // Construction / providers
 // ============================================================================
 
-TourController::TourController(QObject* parent)
-    : QObject(parent) {
+TourController::TourController(QObject* parent) : QObject(parent) {
     m_timer = new QTimer(this);
     m_timer->setSingleShot(true);
     connect(m_timer, &QTimer::timeout, this, &TourController::advance);
@@ -72,7 +71,8 @@ TourController& TourController::setCameraGetter(std::function<TourCameraState()>
     return *this;
 }
 
-TourController& TourController::setCameraSetter(std::function<void(const TourCameraState&)> setter) {
+TourController&
+TourController::setCameraSetter(std::function<void(const TourCameraState&)> setter) {
     m_cameraSetter = std::move(setter);
     return *this;
 }
@@ -103,7 +103,8 @@ bool TourController::loadTour(const EducationalTour& tour) {
     }
     m_tour = std::make_shared<EducationalTour>(tour);
     m_tourId = tour.id;
-    if (m_state == TourState::Running || m_state == TourState::Paused) stop();
+    if (m_state == TourState::Running || m_state == TourState::Paused)
+        stop();
     m_stepIndex = -1;
     m_stepElapsed = 0.0;
     m_stepDuration = 0.0;
@@ -120,8 +121,7 @@ Q_INVOKABLE bool TourController::loadTourFromFile(const QString& filepath) {
 }
 
 const TourStep* TourController::currentStep() const {
-    if (!m_tour || m_stepIndex < 0 ||
-        static_cast<size_t>(m_stepIndex) >= m_tour->steps.size()) {
+    if (!m_tour || m_stepIndex < 0 || static_cast<size_t>(m_stepIndex) >= m_tour->steps.size()) {
         return nullptr;
     }
     return &m_tour->steps[m_stepIndex];
@@ -132,18 +132,21 @@ const TourStep* TourController::currentStep() const {
 // ============================================================================
 
 void TourController::applyStepActions(const TourStep& step) {
-    if (!m_actionHandler) return;
+    if (!m_actionHandler)
+        return;
     for (const auto& a : step.actions) {
         m_actionHandler(a);
     }
 }
 
 void TourController::gotoStep(int index) {
-    if (!m_tour) return;
+    if (!m_tour)
+        return;
     if (index < 0 || static_cast<size_t>(index) >= m_tour->steps.size()) {
         // Past the end -> complete.
         stop();
-        if (m_onComplete) m_onComplete();
+        if (m_onComplete)
+            m_onComplete();
         return;
     }
 
@@ -153,10 +156,10 @@ void TourController::gotoStep(int index) {
     // Move the camera to the step's target.
     if (m_cameraSetter) {
         TourCameraState target;
-        target.azimuth   = step.camera.azimuth;
+        target.azimuth = step.camera.azimuth;
         target.elevation = step.camera.elevation;
-        target.distance  = step.camera.distance;
-        target.target    = step.camera.target;
+        target.distance = step.camera.distance;
+        target.target = step.camera.target;
         m_cameraSetter(target);
     }
 
@@ -185,7 +188,8 @@ void TourController::start() {
 }
 
 void TourController::next() {
-    if (m_state == TourState::Stopped) return;
+    if (m_state == TourState::Stopped)
+        return;
     if (m_state == TourState::Paused) {
         m_state = TourState::Running;
         emit stateChanged();
@@ -195,7 +199,8 @@ void TourController::next() {
 }
 
 void TourController::prev() {
-    if (m_state == TourState::Stopped) return;
+    if (m_state == TourState::Stopped)
+        return;
     if (m_state == TourState::Paused) {
         m_state = TourState::Running;
         emit stateChanged();
@@ -203,20 +208,24 @@ void TourController::prev() {
     m_timer->stop();
     // Clamp at the first step: going before step 0 is a no-op, not a
     // completion.  The tour is a linear script; there is nowhere to go.
-    if (m_stepIndex <= 0) return;
+    if (m_stepIndex <= 0)
+        return;
     gotoStep(m_stepIndex - 1);
 }
 
 void TourController::pause() {
-    if (m_state != TourState::Running) return;
+    if (m_state != TourState::Running)
+        return;
     m_state = TourState::Paused;
     emit stateChanged();
     m_timer->stop();
-    if (m_onUserInput) m_onUserInput();
+    if (m_onUserInput)
+        m_onUserInput();
 }
 
 void TourController::resume() {
-    if (m_state != TourState::Paused) return;
+    if (m_state != TourState::Paused)
+        return;
     m_state = TourState::Running;
     emit stateChanged();
     if (m_stepDuration > 0.0) {
@@ -244,8 +253,9 @@ void TourController::onUserInput() {
 }
 
 void TourController::advance() {
-    if (m_state != TourState::Running) return;
+    if (m_state != TourState::Running)
+        return;
     next();
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -4,20 +4,18 @@
  */
 
 #include "GWMemoryDetector.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace quantumverse {
 
-GWMemoryDetector::GWMemoryDetector()
-{
+GWMemoryDetector::GWMemoryDetector() {
     setParameter("sigma_threshold", kSigmaThreshold);
 }
 
-std::vector<InstrumentFinding> GWMemoryDetector::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding> GWMemoryDetector::analyze(const MetricTensor& metric,
+                                                         const Event4D& location,
+                                                         const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
@@ -27,22 +25,24 @@ std::vector<InstrumentFinding> GWMemoryDetector::analyze(
 
     double maxDeviation = 0.0;
     for (const auto& pt : trajectory) {
-        double time     = pt.t;  // time (s)
+        double time = pt.t;      // time (s)
         double observed = pt.x;  // observed strain memory
-        double err      = pt.y;  // uncertainty
-        double theory   = pt.z;  // predicted memory amplitude
+        double err = pt.y;       // uncertainty
+        double theory = pt.z;    // predicted memory amplitude
 
         (void)time;
 
-        if (std::isnan(observed) || std::isnan(theory) || std::isnan(err) ||
-            std::isinf(observed) || std::isinf(theory) || std::isinf(err)) {
+        if (std::isnan(observed) || std::isnan(theory) || std::isnan(err) || std::isinf(observed) ||
+            std::isinf(theory) || std::isinf(err)) {
             return findings;
         }
 
-        if (err <= 0.0) continue;
+        if (err <= 0.0)
+            continue;
 
         double deviation = std::abs(observed - theory) / err;
-        if (deviation > maxDeviation) maxDeviation = deviation;
+        if (deviation > maxDeviation)
+            maxDeviation = deviation;
     }
 
     double threshold = getParameter("sigma_threshold");
@@ -51,11 +51,12 @@ std::vector<InstrumentFinding> GWMemoryDetector::analyze(
         InstrumentFinding finding;
         finding.id = "GWMEM_" + std::to_string(getTotalFindings());
         finding.instrumentName = getName();
-        finding.severity = confidenceToSeverity(std::min(1.0, (maxDeviation - threshold) / (2.0 * threshold)));
+        finding.severity =
+            confidenceToSeverity(std::min(1.0, (maxDeviation - threshold) / (2.0 * threshold)));
         finding.confidence = std::min(1.0, (maxDeviation - threshold) / (2.0 * threshold));
         finding.isAnomaly = true;
         finding.description = "GW memory anomaly: excess permanent displacement of " +
-                             std::to_string(maxDeviation) + " sigma detected.";
+                              std::to_string(maxDeviation) + " sigma detected.";
         finding.location = location;
         finding.timestamp = trajectory.back().t;
         finding.parameters["max_deviation_sigma"] = maxDeviation;
@@ -67,4 +68,4 @@ std::vector<InstrumentFinding> GWMemoryDetector::analyze(
     return findings;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

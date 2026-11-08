@@ -11,14 +11,15 @@ namespace {
 
 int g_failures = 0;
 
-#define CHECK(cond) do {                                                     \
-    if (!(cond)) {                                                           \
-        ++g_failures;                                                        \
-        std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); \
-    }                                                                        \
-} while (0)
+#define CHECK(cond)                                                              \
+    do {                                                                         \
+        if (!(cond)) {                                                           \
+            ++g_failures;                                                        \
+            std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); \
+        }                                                                        \
+    } while (0)
 
-} // namespace
+}  // namespace
 
 int main() {
     TourManager& m = TourManager::instance();
@@ -26,7 +27,8 @@ int main() {
 
     const auto names = m.listTours();
     std::printf("TourManager: found %zu tour(s)\n", names.size());
-    for (const auto& n : names) std::printf("  - %s\n", n.c_str());
+    for (const auto& n : names)
+        std::printf("  - %s\n", n.c_str());
 
     CHECK(m.hasTour("black_hole_basics"));
     CHECK(m.count() >= 1);
@@ -34,8 +36,8 @@ int main() {
     auto tour = m.getTour("black_hole_basics");
     CHECK(tour != nullptr);
     if (tour) {
-        std::printf("Loaded tour: %s (%s), %zu steps\n",
-                    tour->id.c_str(), tour->title.c_str(), tour->steps.size());
+        std::printf("Loaded tour: %s (%s), %zu steps\n", tour->id.c_str(), tour->title.c_str(),
+                    tour->steps.size());
         CHECK(tour->validate());
         CHECK(!tour->steps.empty());
     }

@@ -4,8 +4,8 @@
  */
 
 #include "PrimordialLithiumCrisisSolver.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,36 +13,39 @@
 
 namespace quantumverse {
 
-PrimordialLithiumCrisisSolver::PrimordialLithiumCrisisSolver()
-{
+PrimordialLithiumCrisisSolver::PrimordialLithiumCrisisSolver() {
     setParameter("expected_abundance", 5.0e-10);
     setParameter("deviation_threshold", 0.04);
 }
 
-std::vector<InstrumentFinding> PrimordialLithiumCrisisSolver::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+PrimordialLithiumCrisisSolver::analyze(const MetricTensor& metric, const Event4D& location,
+                                       const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
-    if (trajectory.size() < 5) return findings;
+    if (trajectory.size() < 5)
+        return findings;
 
     double expected = getParameter("expected_abundance");
     double devThreshold = getParameter("deviation_threshold");
-    if (expected == 0.0) return findings;
+    if (expected == 0.0)
+        return findings;
 
     // Extract the measured Li-7 abundance series. Convention: x = Li/H, t = time.
     double sum = 0.0;
-    for (const auto& ev : trajectory) sum += ev.x;
+    for (const auto& ev : trajectory)
+        sum += ev.x;
     double measured = sum / static_cast<double>(trajectory.size());
 
     double relDev = (measured - expected) / expected;
-    if (std::abs(relDev) <= devThreshold) return findings;
+    if (std::abs(relDev) <= devThreshold)
+        return findings;
 
     // Suggest a resolution based on the sign of the deviation.
-    std::string resolution = (measured < expected)
-        ? "lower baryon-to-photon ratio (eta) or varying fine-structure constant"
-        : "higher baryon-to-photon ratio or extra relativistic degrees of freedom";
+    std::string resolution =
+        (measured < expected)
+            ? "lower baryon-to-photon ratio (eta) or varying fine-structure constant"
+            : "higher baryon-to-photon ratio or extra relativistic degrees of freedom";
 
     double confidence = std::min(1.0, std::abs(relDev) / (2.0 * devThreshold));
 
@@ -51,10 +54,10 @@ std::vector<InstrumentFinding> PrimordialLithiumCrisisSolver::analyze(
     finding.instrumentName = getName();
     finding.severity = confidenceToSeverity(confidence);
     finding.confidence = confidence;
-    finding.description = "Primordial lithium-7 crisis detected: measured Li-7/H = " +
-        std::to_string(measured) + " vs BBN prediction " + std::to_string(expected) +
-        " (rel deviation " + std::to_string(relDev * 100.0) + "%). Possible resolution: " +
-        resolution + ".";
+    finding.description =
+        "Primordial lithium-7 crisis detected: measured Li-7/H = " + std::to_string(measured) +
+        " vs BBN prediction " + std::to_string(expected) + " (rel deviation " +
+        std::to_string(relDev * 100.0) + "%). Possible resolution: " + resolution + ".";
     finding.location = location;
     finding.timestamp = location.t;
     finding.parameters["measured_abundance"] = measured;
@@ -66,4 +69,4 @@ std::vector<InstrumentFinding> PrimordialLithiumCrisisSolver::analyze(
     return findings;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

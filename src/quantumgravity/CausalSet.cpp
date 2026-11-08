@@ -4,8 +4,8 @@
  */
 
 #include "CausalSet.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 #include <queue>
 
@@ -41,10 +41,12 @@ bool CausalSet::precedes(int x, int y) const {
     // Check if x < y (x precedes y)
     // Direct check: x in past of y
     auto it_y = id_to_index.find(y);
-    if (it_y == id_to_index.end()) return false;
+    if (it_y == id_to_index.end())
+        return false;
 
     const CausalElement& ey = elements[it_y->second];
-    if (ey.past.find(x) != ey.past.end()) return true;
+    if (ey.past.find(x) != ey.past.end())
+        return true;
 
     // Transitive closure: check if there's a path x -> ... -> y
     // BFS from x to see if y is reachable
@@ -58,11 +60,13 @@ bool CausalSet::precedes(int x, int y) const {
         queue.pop();
 
         auto it = id_to_index.find(current);
-        if (it == id_to_index.end()) continue;
+        if (it == id_to_index.end())
+            continue;
 
         const CausalElement& ec = elements[it->second];
         for (int neighbor : ec.future) {
-            if (neighbor == y) return true;
+            if (neighbor == y)
+                return true;
             if (visited.find(neighbor) == visited.end()) {
                 visited.insert(neighbor);
                 queue.push(neighbor);
@@ -75,13 +79,15 @@ bool CausalSet::precedes(int x, int y) const {
 
 std::set<int> CausalSet::getPast(int id) const {
     auto it = id_to_index.find(id);
-    if (it == id_to_index.end()) return {};
+    if (it == id_to_index.end())
+        return {};
     return elements[it->second].past;
 }
 
 std::set<int> CausalSet::getFuture(int id) const {
     auto it = id_to_index.find(id);
-    if (it == id_to_index.end()) return {};
+    if (it == id_to_index.end())
+        return {};
     return elements[it->second].future;
 }
 
@@ -103,7 +109,8 @@ std::vector<int> CausalSet::getAllIDs() const {
 
 int CausalSet::intervalSize(int x, int y) const {
     // Number of elements z such that x < z < y
-    if (!precedes(x, y)) return 0;
+    if (!precedes(x, y))
+        return 0;
 
     auto past_y = getPast(y);
     auto future_x = getFuture(x);
@@ -130,15 +137,18 @@ bool CausalSet::isTree() const {
                     break;
                 }
             }
-            if (is_minimal) parent_count++;
+            if (is_minimal)
+                parent_count++;
         }
-        if (parent_count > 1) return false;  // Not a tree (branching)
+        if (parent_count > 1)
+            return false;  // Not a tree (branching)
     }
     return true;
 }
 
 double CausalSet::density() const {
-    if (elements.empty()) return 0.0;
+    if (elements.empty())
+        return 0.0;
 
     // Compute bounding box of birth times
     double min_t = elements[0].birth_time;
@@ -149,7 +159,8 @@ double CausalSet::density() const {
     }
 
     double time_span = max_t - min_t;
-    if (time_span < 1e-10) return static_cast<double>(elements.size());
+    if (time_span < 1e-10)
+        return static_cast<double>(elements.size());
 
     // Density = elements per unit "volume" (here just time for 1D)
     return elements.size() / time_span;
@@ -172,7 +183,11 @@ std::vector<std::vector<int>> CausalSet::adjacencyMatrix() const {
 // ========== CausalSetDynamics implementation ==========
 
 CausalSetDynamics::CausalSetDynamics(CausalSet& cs_, double alpha_, double beta_)
-    : cs(cs_), rng(std::random_device{}()), uniformDist(0.0, 1.0), alpha(alpha_), beta(beta_) {}
+    : cs(cs_),
+      rng(std::random_device{}()),
+      uniformDist(0.0, 1.0),
+      alpha(alpha_),
+      beta(beta_) {}
 
 double CausalSetDynamics::birthProbability(const std::set<int>& past, double current_time) const {
     (void)current_time;
@@ -235,22 +250,18 @@ void CausalSetDynamics::grow(int n, double max_time) {
 
 // ========== CausalSetEngine implementation ==========
 
-CausalSetEngine::CausalSetEngine(
-    double alpha_,
-    double beta_,
-    double planck_vol_,
-    int initial_elements_
-) : causal_set(),
-    dynamics(),
-    alpha(alpha_),
-    beta(beta_),
-    planck_volume(planck_vol_),
-    num_elements(initial_elements_),
-    spectralDimension(2.0),
-    dimensionality(4.0),
-    sprinkling_density(0.0),
-    rng(std::random_device{}())
-{
+CausalSetEngine::CausalSetEngine(double alpha_, double beta_, double planck_vol_,
+                                 int initial_elements_)
+    : causal_set(),
+      dynamics(),
+      alpha(alpha_),
+      beta(beta_),
+      planck_volume(planck_vol_),
+      num_elements(initial_elements_),
+      spectralDimension(2.0),
+      dimensionality(4.0),
+      sprinkling_density(0.0),
+      rng(std::random_device{}()) {
     causal_set = std::make_unique<CausalSet>();
     dynamics = std::make_unique<CausalSetDynamics>(*causal_set, alpha, beta);
 
@@ -265,7 +276,9 @@ std::string CausalSetEngine::getName() const {
 }
 
 std::string CausalSetEngine::getDescription() const {
-    return "Quantum gravity via discrete spacetime posets. Spacetime is a causal set where order encodes causality. Emergent continuum via coarse-graining. Predicts finite spacetime discreteness at Planck scale.";
+    return "Quantum gravity via discrete spacetime posets. Spacetime is a causal set where order "
+           "encodes causality. Emergent continuum via coarse-graining. Predicts finite spacetime "
+           "discreteness at Planck scale.";
 }
 
 std::string CausalSetEngine::getFieldEquation() const {
@@ -274,17 +287,16 @@ std::string CausalSetEngine::getFieldEquation() const {
            "Continuum limit: n → ∞, λ → 0 with nλ⁴ = constant (4D)";
 }
 
-MetricTensor CausalSetEngine::computeMetric(
-    const Event4D& location,
-    const std::map<std::string, double>& parameters
-) const {
+MetricTensor CausalSetEngine::computeMetric(const Event4D& location,
+                                            const std::map<std::string, double>& parameters) const {
     (void)location;
     (void)parameters;
     // Causal set metric is fundamentally discrete
     // For visualization, return a coarse-grained effective metric
     // Approximate as Minkowski or FLRW depending on growth
 
-    double r = std::sqrt(location.x*location.x + location.y*location.y + location.z*location.z);
+    double r =
+        std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
     double t = location.t;
     (void)r;
     (void)t;
@@ -301,17 +313,16 @@ MetricTensor CausalSetEngine::computeMetric(
 
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-            if (i != j) metric.g[i][j] = 0.0;
+            if (i != j)
+                metric.g[i][j] = 0.0;
         }
     }
 
     return metric;
 }
 
-std::array<std::array<double, 4>, 4> CausalSetEngine::computeChristoffel(
-    const Event4D& location,
-    int rho, int mu, int nu
-) const {
+std::array<std::array<double, 4>, 4>
+CausalSetEngine::computeChristoffel(const Event4D& location, int rho, int mu, int nu) const {
     (void)location;
     (void)rho;
     (void)mu;
@@ -347,21 +358,19 @@ double CausalSetEngine::computeKretschmannScalar(const Event4D& location) const 
     return 0.0;  // Flat
 }
 
-double CausalSetEngine::computeAmplitude(
-    const Event4D& from,
-    const Event4D& to
-) const {
+double CausalSetEngine::computeAmplitude(const Event4D& from, const Event4D& to) const {
     // Causal set amplitude: probability that to is in the future of from
     // In a random causal set, this is proportional to the number of paths
     // Simplified: use exponential decay with proper time
 
     double dt = to.t - from.t;
-    if (dt < 0) return 0.0;  // Cannot go backward in time
+    if (dt < 0)
+        return 0.0;  // Cannot go backward in time
 
     double dx = to.x - from.x;
     double dy = to.y - from.y;
     double dz = to.z - from.z;
-    double ds2 = -Event4D::C2 * dt*dt + dx*dx + dy*dy + dz*dz;
+    double ds2 = -Event4D::C2 * dt * dt + dx * dx + dy * dy + dz * dz;
 
     if (ds2 < 0) {
         // Spacelike separation: probability very small
@@ -443,10 +452,10 @@ std::vector<double> CausalSetEngine::getGeometryColors() const {
         const CausalElement& elem = causal_set->getElement(id);
         double t_norm = (max_t > min_t) ? (elem.birth_time - min_t) / (max_t - min_t) : 0.5;
         // Gradient from blue (0) to red (1)
-        colors.push_back(t_norm);      // R
-        colors.push_back(0.2);         // G
-        colors.push_back(1.0 - t_norm); // B
-        colors.push_back(0.8);         // A
+        colors.push_back(t_norm);        // R
+        colors.push_back(0.2);           // G
+        colors.push_back(1.0 - t_norm);  // B
+        colors.push_back(0.8);           // A
     }
 
     return colors;
@@ -466,8 +475,10 @@ std::unique_ptr<TheoryPlugin> CausalSetEngine::clone() const {
 }
 
 std::string CausalSetEngine::getPlanckScaleEffects() const {
-    return "Spacetime is fundamentally discrete at Planck scale. Each element represents a Planck-volume atom. "
-           "Causal order encodes lightcone structure. Classical continuum emerges via coarse-graining. "
+    return "Spacetime is fundamentally discrete at Planck scale. Each element represents a "
+           "Planck-volume atom. "
+           "Causal order encodes lightcone structure. Classical continuum emerges via "
+           "coarse-graining. "
            "Spectral dimension runs from 4 to 2 at Planck scale.";
 }
 
@@ -482,7 +493,8 @@ double CausalSetEngine::estimateDimensionality() const {
     // In d-dimensional spacetime, average interval size ~ r^d
     // Use a simple estimator from the causal set
 
-    if (causal_set->size() < 10) return 4.0;
+    if (causal_set->size() < 10)
+        return 4.0;
 
     // Compute average number of elements in intervals of various "radii"
     // Here just return current estimate
@@ -495,11 +507,12 @@ double CausalSetEngine::randomWalkSpectralDimension(int num_walks, int steps) co
     // Estimate spectral dimension via random walks on the causal set
     // d_s = 2 * (mean squared displacement) / log(steps)  (for diffusion on fractals)
 
-    if (causal_set->size() == 0) return 2.0;
+    if (causal_set->size() == 0)
+        return 2.0;
 
     // Simplified: return stored value
     return spectralDimension;
 }
 
-} // namespace quantumgravity
-} // namespace quantumverse
+}  // namespace quantumgravity
+}  // namespace quantumverse

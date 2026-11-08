@@ -46,16 +46,12 @@ int main() {
 
     const std::string goodLog =
         "Some preamble\nAverage frame time: 16.2 ms, Max: 31.5 ms, Frames: 50\nDone\n";
-    const std::string badAvgLog =
-        "Average frame time: 75.0 ms, Max: 31.5 ms, Frames: 50\n";
-    const std::string badMaxLog =
-        "Average frame time: 16.2 ms, Max: 95.0 ms, Frames: 50\n";
+    const std::string badAvgLog = "Average frame time: 75.0 ms, Max: 31.5 ms, Frames: 50\n";
+    const std::string badMaxLog = "Average frame time: 16.2 ms, Max: 95.0 ms, Frames: 50\n";
     const std::string malformedLog = "no statistics here\n";
-    const std::string nanLog =
-        "Average frame time: nan ms, Max: 31.5 ms, Frames: 50\n";
+    const std::string nanLog = "Average frame time: nan ms, Max: 31.5 ms, Frames: 50\n";
 
-    check(perf_gate::evaluate(goodLog, avgTh, maxTh) == perf_gate::Eval::Pass,
-          "good log passes");
+    check(perf_gate::evaluate(goodLog, avgTh, maxTh) == perf_gate::Eval::Pass, "good log passes");
     check(perf_gate::evaluate(badAvgLog, avgTh, maxTh) == perf_gate::Eval::AvgExceeded,
           "avg over threshold fails");
     check(perf_gate::evaluate(badMaxLog, avgTh, maxTh) == perf_gate::Eval::MaxExceeded,
@@ -66,18 +62,18 @@ int main() {
           "non-finite value is rejected");
 
     // Boundary: exactly at threshold must fail (>= comparison).
-    const std::string boundaryLog =
-        "Average frame time: 60.0 ms, Max: 80.0 ms, Frames: 50\n";
+    const std::string boundaryLog = "Average frame time: 60.0 ms, Max: 80.0 ms, Frames: 50\n";
     check(perf_gate::evaluate(boundaryLog, avgTh, maxTh) == perf_gate::Eval::AvgExceeded,
           "value exactly at threshold fails");
 
     // Environment override tightens the gate.
     setEnv("QUANTUMVERSE_PERF_AVG_THRESHOLD_MS", "10");
     setEnv("QUANTUMVERSE_PERF_MAX_THRESHOLD_MS", "40");
-    const double tightAvg = perf_gate::thresholdFromEnv("QUANTUMVERSE_PERF_AVG_THRESHOLD_MS", avgTh);
-    const double tightMax = perf_gate::thresholdFromEnv("QUANTUMVERSE_PERF_MAX_THRESHOLD_MS", maxTh);
-    check(tightAvg == 10.0 && tightMax == 40.0,
-          "env vars override thresholds");
+    const double tightAvg =
+        perf_gate::thresholdFromEnv("QUANTUMVERSE_PERF_AVG_THRESHOLD_MS", avgTh);
+    const double tightMax =
+        perf_gate::thresholdFromEnv("QUANTUMVERSE_PERF_MAX_THRESHOLD_MS", maxTh);
+    check(tightAvg == 10.0 && tightMax == 40.0, "env vars override thresholds");
     check(perf_gate::evaluate(goodLog, tightAvg, tightMax) == perf_gate::Eval::AvgExceeded,
           "good log fails under tighter env threshold");
     // Restore defaults for any subsequent logic.
@@ -122,7 +118,7 @@ int main() {
         {
             std::ifstream stats("headless_performance.log");
             std::string content((std::istreambuf_iterator<char>(stats)),
-                              std::istreambuf_iterator<char>());
+                                std::istreambuf_iterator<char>());
             parsed = perf_gate::parseLog(content, avg, max);
         }
         check(parsed, "headless_performance.log parsed");
@@ -137,7 +133,8 @@ int main() {
             // asserted (a hard threshold would be flaky). The regression
             // guard remains the 80 ms gate ceiling.
             std::cout << "    measured avg=" << avg << " ms, max=" << max
-                      << " ms (cold-start variance is expected; gate ceiling is 80 ms)" << std::endl;
+                      << " ms (cold-start variance is expected; gate ceiling is 80 ms)"
+                      << std::endl;
         }
 
         // P3-2 contract: no shader recompilation warning emitted.

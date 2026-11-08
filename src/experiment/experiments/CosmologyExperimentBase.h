@@ -14,8 +14,8 @@
 
 #include "../Experiment.h"
 #include "../cosmology/CosmologyProvider.h"
-#include "../cosmology/LambdaCDMReferenceProvider.h"
 #include "../cosmology/CosmologyReferences.h"
+#include "../cosmology/LambdaCDMReferenceProvider.h"
 
 #include <memory>
 
@@ -25,17 +25,17 @@ namespace quantumverse {
  * @brief One parameter check: computed vs reference vs observed.
  */
 struct CosmologyCheck {
-    QString parameter;           // e.g. "age_universe_Gyr"
-    double projectValue = 0;     // project's cosmology
-    double referenceValue = 0;   // reference impl, same parameters as project
-    double observedValue = 0;    // Planck / SH0ES / SNe Ia / analytic
-    double observedSigma = 0;    // 1σ (0 = exact / analytic)
-    QString source;              // "Planck2018", ...
-    QString unit;                // "Gyr", "Mpc", ...
+    QString parameter;          // e.g. "age_universe_Gyr"
+    double projectValue = 0;    // project's cosmology
+    double referenceValue = 0;  // reference impl, same parameters as project
+    double observedValue = 0;   // Planck / SH0ES / SNe Ia / analytic
+    double observedSigma = 0;   // 1σ (0 = exact / analytic)
+    QString source;             // "Planck2018", ...
+    QString unit;               // "Gyr", "Mpc", ...
     // derived, filled by makeCheck:
-    double relErrorPct = 0;      // (project − reference) / reference · 100
-    double tensionSigma = 0;     // (project − observed) / σ
-    bool   pass = false;         // per-experiment tolerance
+    double relErrorPct = 0;   // (project − reference) / reference · 100
+    double tensionSigma = 0;  // (project − observed) / σ
+    bool pass = false;        // per-experiment tolerance
 };
 
 /**
@@ -45,11 +45,11 @@ struct CosmologyCheck {
  * ExperimentResult::scalars with prefixed keys and append a log line.
  */
 class CosmologyExperimentBase : public Experiment {
-public:
+   public:
     explicit CosmologyExperimentBase(std::shared_ptr<CosmologyProvider> project)
         : m_project(std::move(project)) {}
 
-protected:
+   protected:
     /**
      * @brief Build a validated check.
      * @param param        stable key, e.g. "age_universe_Gyr"
@@ -59,27 +59,24 @@ protected:
      * @param passRelativePct tolerance for exact/analytic references (σ = 0)
      * @param passSigma     tolerance in σ for references with uncertainty
      */
-    CosmologyCheck makeCheck(const QString& param, double projectVal,
-                             double referenceVal,
-                             const CosmologyReference& ref,
-                             double passRelativePct = 1.0,
+    CosmologyCheck makeCheck(const QString& param, double projectVal, double referenceVal,
+                             const CosmologyReference& ref, double passRelativePct = 1.0,
                              double passSigma = 3.0) const;
 
     /** Flatten a check into the result's scalars with prefixed keys. */
     void recordCheck(ExperimentResult& out, const CosmologyCheck& c) const;
 
-public:
+   public:
     /** Reconfigure the reference provider (e.g. to match the project's parameters). */
     void setReferenceProvider(std::shared_ptr<CosmologyProvider> ref);
 
     std::shared_ptr<CosmologyProvider> m_project;
-    std::shared_ptr<CosmologyProvider> m_reference =
-        std::make_shared<LambdaCDMReferenceProvider>();
+    std::shared_ptr<CosmologyProvider> m_reference = std::make_shared<LambdaCDMReferenceProvider>();
 
-protected:
+   protected:
     // No additional state.
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_COSMOLOGY_EXPERIMENT_BASE_H
+#endif  // QUANTUMVERSE_COSMOLOGY_EXPERIMENT_BASE_H

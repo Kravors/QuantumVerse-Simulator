@@ -11,11 +11,11 @@
 #ifndef QUANTUMVERSE_OPENXR_BACKEND_H
 #define QUANTUMVERSE_OPENXR_BACKEND_H
 
-#include "../vr/VRCommon.h"
+#include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
-#include <cstdint>
+#include "../vr/VRCommon.h"
 
 namespace quantumverse {
 namespace vr {
@@ -32,7 +32,7 @@ namespace vr {
  * compatibility.
  */
 class OpenXRBackend {
-public:
+   public:
     using PoseCallback = std::function<void(const HeadPose& leftEye, const HeadPose& rightEye)>;
     using ButtonCallback = std::function<void(int controllerIndex, int button, bool pressed)>;
 
@@ -60,12 +60,16 @@ public:
     /**
      * @brief Check if OpenXR is active and a headset is connected
      */
-    bool isActive() const { return m_isActive; }
+    bool isActive() const {
+        return m_isActive;
+    }
 
     /**
      * @brief Check if the backend is in stub mode (no real OpenXR)
      */
-    bool isStub() const { return m_isStub; }
+    bool isStub() const {
+        return m_isStub;
+    }
 
     /**
      * @brief Begin a VR frame
@@ -97,42 +101,56 @@ public:
      * @brief Set the pose callback for head tracking
      * @param callback Function to call when head pose updates
      */
-    void setPoseCallback(PoseCallback callback) { m_poseCallback = std::move(callback); }
+    void setPoseCallback(PoseCallback callback) {
+        m_poseCallback = std::move(callback);
+    }
 
     /**
      * @brief Set the button callback for controller input
      * @param callback Function to call when controller button state changes
      */
-    void setButtonCallback(ButtonCallback callback) { m_buttonCallback = std::move(callback); }
+    void setButtonCallback(ButtonCallback callback) {
+        m_buttonCallback = std::move(callback);
+    }
 
     /**
      * @brief Get VR configuration
      */
-    const VRConfig& getConfig() const { return m_config; }
+    const VRConfig& getConfig() const {
+        return m_config;
+    }
 
     /**
      * @brief Set VR configuration
      */
-    void setConfig(const VRConfig& config) { m_config = config; }
+    void setConfig(const VRConfig& config) {
+        m_config = config;
+    }
 
 #ifdef QUANTUMVERSE_USE_OPENXR_SDK
     /**
      * @brief Check if the real OpenXR runtime is available
      */
-    bool hasOpenXR() const { return m_hasOpenXR; }
+    bool hasOpenXR() const {
+        return m_hasOpenXR;
+    }
 
     /**
      * @brief Get the OpenXR instance handle
      */
-    void* xrInstance() const { return m_xrInstance; }
+    void* xrInstance() const {
+        return m_xrInstance;
+    }
 
     /**
      * @brief Get the OpenXR session handle
      */
-    void* xrSession() const { return m_xrSession; }
+    void* xrSession() const {
+        return m_xrSession;
+    }
 #endif
 
-private:
+   private:
     bool m_isActive = false;
     bool m_isStub = true;
     VRConfig m_config;
@@ -167,7 +185,7 @@ private:
 #endif
 };
 
-} // namespace vr
-} // namespace quantumverse
+}  // namespace vr
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_OPENXR_BACKEND_H
+#endif  // QUANTUMVERSE_OPENXR_BACKEND_H

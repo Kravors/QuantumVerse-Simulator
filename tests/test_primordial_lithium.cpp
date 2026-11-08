@@ -8,21 +8,21 @@
 #include <vector>
 
 #include "discovery/PrimordialLithiumCrisisSolver.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
     std::cout << "=== PrimordialLithiumCrisisSolver Test ===" << std::endl;
 
     const double expected_li = 5.0e-10;
-    const double observed_li = 4.5e-10; // 10% lower than BBN
+    const double observed_li = 4.5e-10;  // 10% lower than BBN
 
     // --- Synthetic Li-7 abundance drifting below BBN prediction ----------
     std::vector<quantumverse::Event4D> trajectory;
     for (double t = 0.0; t < 10.0; t += 0.1) {
         double li = expected_li - (expected_li - observed_li) * (t / 10.0);
-        trajectory.emplace_back(t, li, 0.0, 0.0); // x = Li/H, t = time
+        trajectory.emplace_back(t, li, 0.0, 0.0);  // x = Li/H, t = time
     }
 
     quantumverse::MetricTensor metric;
@@ -42,8 +42,8 @@ int main() {
     QV_CHECK(mit != f.parameters.end());
     QV_CHECK_NEAR(mit->second, 4.75e-10, 1e-10);
 
-    std::cout << "Detected lithium-7 crisis: measured " << mit->second
-              << " vs expected " << expected_li << std::endl;
+    std::cout << "Detected lithium-7 crisis: measured " << mit->second << " vs expected "
+              << expected_li << std::endl;
 
     // --- Negative case: constant expected abundance -> no finding --------
     std::vector<quantumverse::Event4D> constant;

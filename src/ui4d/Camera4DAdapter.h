@@ -13,15 +13,15 @@
 #ifndef CAMERA4DADAPTER_H
 #define CAMERA4DADAPTER_H
 
-#include <string>
-#include <memory>
 #include <array>
 #include <cmath>
+#include <memory>
+#include <string>
 
 #ifdef QUANTUMVERSE_USE_QML
+#include <QMatrix4x4>
 #include <QObject>
 #include <QVector3D>
-#include <QMatrix4x4>
 #endif
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
@@ -32,7 +32,7 @@
 namespace quantumverse {
 class Camera4D;
 class Event4D;
-}
+}  // namespace quantumverse
 
 namespace quantumverse {
 
@@ -64,20 +64,25 @@ enum class RotationPlane {
  */
 struct CameraState {
     double distance;
-    double azimuth;    // radians
-    double elevation;  // radians
-    double tx, ty, tz; // 4D translation offsets
+    double azimuth;     // radians
+    double elevation;   // radians
+    double tx, ty, tz;  // 4D translation offsets
 
-    CameraState() : distance(50.0), azimuth(0.0), elevation(M_PI / 2.0),
-                    tx(0.0), ty(0.0), tz(0.0) {}
+    CameraState()
+        : distance(50.0),
+          azimuth(0.0),
+          elevation(M_PI / 2.0),
+          tx(0.0),
+          ty(0.0),
+          tz(0.0) {}
 
     static CameraState lerp(const CameraState& a, const CameraState& b, double t) {
         CameraState result;
         result.distance = a.distance + (b.distance - a.distance) * t;
         // Slerp for azimuth/elevation
         double dot = std::cos(a.azimuth) * std::cos(b.azimuth) +
-                     std::sin(a.azimuth) * std::sin(b.azimuth) *
-                     std::cos(a.elevation) * std::cos(b.elevation) +
+                     std::sin(a.azimuth) * std::sin(b.azimuth) * std::cos(a.elevation) *
+                         std::cos(b.elevation) +
                      std::sin(a.elevation) * std::sin(b.elevation);
         dot = std::max(-1.0, std::min(1.0, dot));
         double omega = std::acos(dot);
@@ -110,38 +115,50 @@ struct CameraState {
  * - 4D slice advance via keyboard/mouse wheel modifiers
  * - Double-speed modifier (Shift) for fast navigation
  */
-class Camera4DAdapter : public QObject
-{
+class Camera4DAdapter : public QObject {
     Q_OBJECT
     Q_PROPERTY(float distance READ distance WRITE setDistance NOTIFY distanceChanged)
     Q_PROPERTY(float azimuth READ azimuth WRITE setAzimuth NOTIFY azimuthChanged)
     Q_PROPERTY(float elevation READ elevation WRITE setElevation NOTIFY elevationChanged)
     Q_PROPERTY(int activePlane READ activePlane WRITE setActivePlane NOTIFY activePlaneChanged)
     Q_PROPERTY(bool isAnimating READ isAnimating NOTIFY isAnimatingChanged)
-    Q_PROPERTY(double animationSpeed READ animationSpeed WRITE setAnimationSpeed NOTIFY animationSpeedChanged)
+    Q_PROPERTY(double animationSpeed READ animationSpeed WRITE setAnimationSpeed NOTIFY
+                   animationSpeedChanged)
     Q_PROPERTY(float fieldOfView READ fieldOfView WRITE setFieldOfView NOTIFY fieldOfViewChanged)
     Q_PROPERTY(QVector3D target READ target WRITE setTarget NOTIFY targetChanged)
 
-public:
+   public:
     explicit Camera4DAdapter(QObject* parent = nullptr);
     ~Camera4DAdapter() override;
 
     // Current camera state
-    float distance() const { return static_cast<float>(m_state.distance); }
-    float azimuth() const { return static_cast<float>(m_state.azimuth); }
-    float elevation() const { return static_cast<float>(m_state.elevation); }
-    int activePlane() const { return static_cast<int>(m_activePlane); }
-    bool isAnimating() const { return m_isAnimating; }
-    double animationSpeed() const { return m_animationSpeed; }
-    float fieldOfView() const { return m_fieldOfView; }
+    float distance() const {
+        return static_cast<float>(m_state.distance);
+    }
+    float azimuth() const {
+        return static_cast<float>(m_state.azimuth);
+    }
+    float elevation() const {
+        return static_cast<float>(m_state.elevation);
+    }
+    int activePlane() const {
+        return static_cast<int>(m_activePlane);
+    }
+    bool isAnimating() const {
+        return m_isAnimating;
+    }
+    double animationSpeed() const {
+        return m_animationSpeed;
+    }
+    float fieldOfView() const {
+        return m_fieldOfView;
+    }
 
     /**
      * @brief Current orbit target (look-at point) in world coordinates
      */
-    QVector3D target() const
-    {
-        return QVector3D(static_cast<float>(m_state.tx),
-                         static_cast<float>(m_state.ty),
+    QVector3D target() const {
+        return QVector3D(static_cast<float>(m_state.tx), static_cast<float>(m_state.ty),
                          static_cast<float>(m_state.tz));
     }
 
@@ -178,19 +195,19 @@ public:
     // Advance 4D slice (time or spatial)
     Q_INVOKABLE void advanceSlice(double delta);
 
-signals:
-     void distanceChanged();
-     void azimuthChanged();
-     void elevationChanged();
-     void activePlaneChanged();
-     void isAnimatingChanged();
-     void animationSpeedChanged();
-     void fieldOfViewChanged();
-     void targetChanged();
-     void viewChanged();
+   signals:
+    void distanceChanged();
+    void azimuthChanged();
+    void elevationChanged();
+    void activePlaneChanged();
+    void isAnimatingChanged();
+    void animationSpeedChanged();
+    void fieldOfViewChanged();
+    void targetChanged();
+    void viewChanged();
 
-public slots:
-     void setDistance(float dist);
+   public slots:
+    void setDistance(float dist);
     void setAzimuth(float az);
     void setElevation(float el);
     void setTx(double tx);
@@ -199,14 +216,14 @@ public slots:
     double tx() const;
     double ty() const;
     double tz() const;
-     void setActivePlane(int planeIndex);
-     void setAnimationSpeed(double speed);
-     void setFieldOfView(float fov);
+    void setActivePlane(int planeIndex);
+    void setAnimationSpeed(double speed);
+    void setFieldOfView(float fov);
 
-     // Cycle through rotation planes (Q key)
-     Q_INVOKABLE void cyclePlane();
+    // Cycle through rotation planes (Q key)
+    Q_INVOKABLE void cyclePlane();
 
-     // Input handlers called from QML
+    // Input handlers called from QML
     Q_INVOKABLE void onMousePressed(float x, float y, int button, int modifiers);
     Q_INVOKABLE void onMouseMoved(float x, float y, int buttons, int modifiers);
     Q_INVOKABLE void onMouseReleased(float x, float y, int button);
@@ -214,10 +231,10 @@ public slots:
     Q_INVOKABLE void onKeyPressed(int key, int modifiers);
     Q_INVOKABLE void onPinchDelta(float scale);
 
-     // Animation tick (call from QML Timer or render loop)
+    // Animation tick (call from QML Timer or render loop)
     void onFrame(double deltaTime);
 
-private:
+   private:
     // Apply current state to Camera4D
     void applyState();
 
@@ -235,9 +252,9 @@ private:
     float m_lastMouseX;
     float m_lastMouseY;
     int m_activeButton;
-    double m_animationSpeed;  ///< Multiplier for all animations
-    double m_transitionTime;  ///< Remaining transition time in ms
-    double m_transitionDuration; ///< Total transition duration in ms
+    double m_animationSpeed;      ///< Multiplier for all animations
+    double m_transitionTime;      ///< Remaining transition time in ms
+    double m_transitionDuration;  ///< Total transition duration in ms
 
     // Field of view (perspective projection)
     float m_fieldOfView = 45.0f;
@@ -248,43 +265,57 @@ private:
     static constexpr double ZOOM_SPEED = 0.001;
     static constexpr double SLICE_SPEED = 0.1;
     static constexpr double DOLLY_SPEED = 0.5;
-    static constexpr double TRANSITION_SPEED = 3.0; // units per second
+    static constexpr double TRANSITION_SPEED = 3.0;  // units per second
 };
 
-#else // QUANTUMVERSE_USE_QML not defined - stub version
+#else  // QUANTUMVERSE_USE_QML not defined - stub version
 
 /**
  * @brief Stub Camera4DAdapter (Qt unavailable)
  *
  * Minimal stub providing the same public interface when Qt6 is not available.
  */
-class Camera4DAdapter
-{
-public:
+class Camera4DAdapter {
+   public:
     explicit Camera4DAdapter(void* parent = nullptr)
-        : m_activePlane(RotationPlane::XY)
-        , m_isDragging(false)
-        , m_isAnimating(false)
-        , m_lastMouseX(0.0f)
-        , m_lastMouseY(0.0f)
-        , m_activeButton(0)
-        , m_animationSpeed(1.0)
-        , m_transitionTime(0.0)
-        , m_transitionDuration(0.0)
-        , m_fieldOfView(45.0f)
-    {}
+        : m_activePlane(RotationPlane::XY),
+          m_isDragging(false),
+          m_isAnimating(false),
+          m_lastMouseX(0.0f),
+          m_lastMouseY(0.0f),
+          m_activeButton(0),
+          m_animationSpeed(1.0),
+          m_transitionTime(0.0),
+          m_transitionDuration(0.0),
+          m_fieldOfView(45.0f) {}
 
     ~Camera4DAdapter() = default;
 
-    float distance() const { return static_cast<float>(m_state.distance); }
-    float azimuth() const { return static_cast<float>(m_state.azimuth); }
-    float elevation() const { return static_cast<float>(m_state.elevation); }
-    int activePlane() const { return static_cast<int>(m_activePlane); }
-    bool isAnimating() const { return m_isAnimating; }
-    double animationSpeed() const { return m_animationSpeed; }
-    float fieldOfView() const { return m_fieldOfView; }
+    float distance() const {
+        return static_cast<float>(m_state.distance);
+    }
+    float azimuth() const {
+        return static_cast<float>(m_state.azimuth);
+    }
+    float elevation() const {
+        return static_cast<float>(m_state.elevation);
+    }
+    int activePlane() const {
+        return static_cast<int>(m_activePlane);
+    }
+    bool isAnimating() const {
+        return m_isAnimating;
+    }
+    double animationSpeed() const {
+        return m_animationSpeed;
+    }
+    float fieldOfView() const {
+        return m_fieldOfView;
+    }
 
-    void reset() { transitionTo(CameraState()); }
+    void reset() {
+        transitionTo(CameraState());
+    }
     void transitionTo(const CameraState& target, double durationMs = 500.0) {
         m_targetState = target;
         m_transitionDuration = durationMs;
@@ -293,22 +324,47 @@ public:
     }
     void rotateInPlane(double /*angle*/) {}
     void advanceSlice(double /*delta*/) {}
-    void setDistance(float dist) { m_state.distance = std::max(0.1, std::min(static_cast<double>(dist), 10000.0)); }
-    void setAzimuth(float az) { m_state.azimuth = az; }
-    void setElevation(float el) { m_state.elevation = el; clampElevation(); }
-    void setTx(double tx) { m_state.tx = tx; }
-    void setTy(double ty) { m_state.ty = ty; }
-    void setTz(double tz) { m_state.tz = tz; }
-    double tx() const { return m_state.tx; }
-    double ty() const { return m_state.ty; }
-    double tz() const { return m_state.tz; }
+    void setDistance(float dist) {
+        m_state.distance = std::max(0.1, std::min(static_cast<double>(dist), 10000.0));
+    }
+    void setAzimuth(float az) {
+        m_state.azimuth = az;
+    }
+    void setElevation(float el) {
+        m_state.elevation = el;
+        clampElevation();
+    }
+    void setTx(double tx) {
+        m_state.tx = tx;
+    }
+    void setTy(double ty) {
+        m_state.ty = ty;
+    }
+    void setTz(double tz) {
+        m_state.tz = tz;
+    }
+    double tx() const {
+        return m_state.tx;
+    }
+    double ty() const {
+        return m_state.ty;
+    }
+    double tz() const {
+        return m_state.tz;
+    }
     void setActivePlane(int planeIndex) {
         if (planeIndex >= 0 && planeIndex <= 5)
             m_activePlane = static_cast<RotationPlane>(planeIndex);
     }
-    void setAnimationSpeed(double speed) { m_animationSpeed = std::max(0.1, std::min(speed, 10.0)); }
-    void setFieldOfView(float fov) { m_fieldOfView = std::max(10.0f, std::min(fov, 120.0f)); }
-    void cyclePlane() { setActivePlane((activePlane() + 1) % 6); }
+    void setAnimationSpeed(double speed) {
+        m_animationSpeed = std::max(0.1, std::min(speed, 10.0));
+    }
+    void setFieldOfView(float fov) {
+        m_fieldOfView = std::max(10.0f, std::min(fov, 120.0f));
+    }
+    void cyclePlane() {
+        setActivePlane((activePlane() + 1) % 6);
+    }
     void onMousePressed(float, float, int, int) {}
     void onMouseMoved(float, float, int, int) {}
     void onMouseReleased(float, float, int) {}
@@ -317,7 +373,7 @@ public:
     void onPinchDelta(float) {}
     void onFrame(double) {}
 
-private:
+   private:
     void applyState() {}
     void clampElevation() {
         const double halfPi = 1.57079632679;
@@ -338,8 +394,8 @@ private:
     float m_fieldOfView;
 };
 
-#endif // QUANTUMVERSE_USE_QML
+#endif  // QUANTUMVERSE_USE_QML
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // CAMERA4DADAPTER_H
+#endif  // CAMERA4DADAPTER_H

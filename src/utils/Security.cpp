@@ -11,51 +11,49 @@ namespace quantumverse {
 namespace utils {
 
 // Allowed file extensions for loading/saving
-const std::vector<std::string> Security::s_allowedExtensions = {
-    ".spc", ".json", ".ini", ".txt", ".csv", ".dat"
-};
+const std::vector<std::string> Security::s_allowedExtensions = {".spc", ".json", ".ini",
+                                                                ".txt", ".csv",  ".dat"};
 
 std::filesystem::path Security::validatePath(const std::string& path) {
     // Convert to absolute path
     std::filesystem::path p = std::filesystem::absolute(path);
-    
+
     // Check for path traversal attempts
     std::string pathStr = p.string();
     if (pathStr.find("..") != std::string::npos) {
         throw std::invalid_argument("Path traversal detected: " + path);
     }
-    
+
     // Check for null bytes (potential security issue)
     if (pathStr.find('\0') != std::string::npos) {
         throw std::invalid_argument("Null byte in path detected: " + path);
     }
-    
+
     // Check file extension
     if (!isAllowedExtension(path)) {
         throw std::invalid_argument("File extension not allowed: " + path);
     }
-    
+
     return p;
 }
 
 std::string Security::sanitizeString(const std::string& input, size_t maxLength) {
     std::string result;
     result.reserve(input.length());
-    
+
     // Copy only safe characters (alphanumeric, space, and common punctuation)
     for (char c : input) {
-        if (std::isalnum(static_cast<unsigned char>(c)) || 
-            c == ' ' || c == '-' || c == '_' || c == '.' || 
-            c == '/' || c == '\\' || c == ':' || c == ',') {
+        if (std::isalnum(static_cast<unsigned char>(c)) || c == ' ' || c == '-' || c == '_' ||
+            c == '.' || c == '/' || c == '\\' || c == ':' || c == ',') {
             result += c;
         }
     }
-    
+
     // Truncate if max length specified
     if (maxLength > 0 && result.length() > maxLength) {
         result = result.substr(0, maxLength);
     }
-    
+
     return result;
 }
 
@@ -73,9 +71,9 @@ bool Security::validateSpin(double spin) {
 bool Security::isAllowedExtension(const std::string& path) {
     std::string ext = std::filesystem::path(path).extension().string();
     // Convert to lowercase for comparison
-    std::transform(ext.begin(), ext.end(), ext.begin(), 
-                   [](unsigned char c){ return std::tolower(c); });
-    
+    std::transform(ext.begin(), ext.end(), ext.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
     for (const auto& allowed : s_allowedExtensions) {
         if (ext == allowed) {
             return true;
@@ -88,5 +86,5 @@ const std::vector<std::string>& Security::getAllowedExtensions() {
     return s_allowedExtensions;
 }
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <filesystem>
 
 namespace quantumverse {
 namespace utils {
@@ -20,7 +20,7 @@ namespace utils {
  * @brief Security validation utilities
  */
 class Security {
-public:
+   public:
     /**
      * @brief Validate a file path for security
      * @param path The path to validate
@@ -63,9 +63,9 @@ public:
      */
     static const std::vector<std::string>& getAllowedExtensions();
 
-private:
+   private:
     static const std::vector<std::string> s_allowedExtensions;
 };
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

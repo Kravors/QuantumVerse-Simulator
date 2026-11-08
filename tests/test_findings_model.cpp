@@ -9,13 +9,12 @@
 #include <iostream>
 #include <vector>
 
-#include "discovery/FindingsModel.h"
 #include "discovery/DiscoveryInstrument.h"
+#include "discovery/FindingsModel.h"
 #include "spacetime/Event4D.h"
 #include "test_assert.h"
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== FindingsModel Test ===" << std::endl;
 
@@ -37,18 +36,19 @@ int main(int argc, char** argv)
     QV_CHECK(model.count() == 1);
 
     QModelIndex idx = model.index(0, 0);
-    QV_CHECK(model.data(idx, quantumverse::FindingsModel::InstrumentNameRole)
-               .toString().toStdString() == "ExoplanetaryTTVFifthForceHunter");
-    QV_CHECK(model.data(idx, quantumverse::FindingsModel::DescriptionRole)
-               .toString().toStdString() == "Anomalous TTV residuals detected");
-    QV_CHECK(model.data(idx, quantumverse::FindingsModel::SeverityRole)
-               .toString().toStdString() == "HIGH");
-    QV_CHECK_NEAR(model.data(idx, quantumverse::FindingsModel::ConfidenceRole)
-                        .toDouble() - 0.97, 0.0, 1e-9);
-    QV_CHECK_NEAR(model.data(idx, quantumverse::FindingsModel::TimestampRole)
-                        .toDouble() - 12.5, 0.0, 1e-9);
-    QV_CHECK_NEAR(model.data(idx, quantumverse::FindingsModel::XRole)
-                        .toDouble() - 1.0, 0.0, 1e-9);
+    QV_CHECK(
+        model.data(idx, quantumverse::FindingsModel::InstrumentNameRole).toString().toStdString() ==
+        "ExoplanetaryTTVFifthForceHunter");
+    QV_CHECK(
+        model.data(idx, quantumverse::FindingsModel::DescriptionRole).toString().toStdString() ==
+        "Anomalous TTV residuals detected");
+    QV_CHECK(model.data(idx, quantumverse::FindingsModel::SeverityRole).toString().toStdString() ==
+             "HIGH");
+    QV_CHECK_NEAR(model.data(idx, quantumverse::FindingsModel::ConfidenceRole).toDouble() - 0.97,
+                  0.0, 1e-9);
+    QV_CHECK_NEAR(model.data(idx, quantumverse::FindingsModel::TimestampRole).toDouble() - 12.5,
+                  0.0, 1e-9);
+    QV_CHECK_NEAR(model.data(idx, quantumverse::FindingsModel::XRole).toDouble() - 1.0, 0.0, 1e-9);
 
     quantumverse::InstrumentFinding f2;
     f2.id = "F2";
@@ -58,14 +58,16 @@ int main(int argc, char** argv)
     model.addFinding(f2);
     QV_CHECK(model.rowCount() == 2);
     QV_CHECK(model.data(model.index(1, 0), quantumverse::FindingsModel::SeverityRole)
-               .toString().toStdString() == "CRITICAL");
+                 .toString()
+                 .toStdString() == "CRITICAL");
 
     // setFindings() replaces the whole list
-    std::vector<quantumverse::InstrumentFinding> list = { f1 };
+    std::vector<quantumverse::InstrumentFinding> list = {f1};
     model.setFindings(list);
     QV_CHECK(model.rowCount() == 1);
     QV_CHECK(model.data(model.index(0, 0), quantumverse::FindingsModel::InstrumentNameRole)
-               .toString().toStdString() == "ExoplanetaryTTVFifthForceHunter");
+                 .toString()
+                 .toStdString() == "ExoplanetaryTTVFifthForceHunter");
 
     model.clear();
     QV_CHECK(model.rowCount() == 0);

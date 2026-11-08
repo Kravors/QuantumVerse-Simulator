@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <vector>
 #include <array>
+#include <vector>
 #include "../spacetime/Event4D.h"
 #include "../spacetime/MetricTensor.h"
 
@@ -24,26 +24,27 @@ namespace quantumverse {
  * @brief Jacobi field (geodesic deviation vector).
  */
 class JacobiField {
-public:
-    Event4D xi;                           ///< Deviation vector
-    Event4D dxi_dtau;                     ///< Derivative with respect to proper time
-    
+   public:
+    Event4D xi;        ///< Deviation vector
+    Event4D dxi_dtau;  ///< Derivative with respect to proper time
+
     /**
      * @brief Construct a Jacobi field.
      */
     JacobiField() = default;
-    
+
     /**
      * @brief Construct with given values.
      */
     JacobiField(const Event4D& deviation, const Event4D& derivative)
-        : xi(deviation), dxi_dtau(derivative) {}
-    
+        : xi(deviation),
+          dxi_dtau(derivative) {}
+
     /**
      * @brief Normalize the deviation vector.
      */
     void normalize();
-    
+
     /**
      * @brief Compute magnitude squared.
      */
@@ -59,7 +60,7 @@ public:
  * where u is the tangent vector to the reference geodesic.
  */
 class GeodesicDeviation {
-public:
+   public:
     /**
      * @brief Solve geodesic deviation along a geodesic.
      * @param metric The spacetime metric
@@ -71,15 +72,11 @@ public:
      * @param num_steps Number of integration steps
      * @return Vector of Jacobi field values along the geodesic
      */
-    static std::vector<JacobiField> solve(
-        const MetricTensor& metric,
-        const Event4D& initial_position,
-        const Event4D& initial_velocity,
-        const Event4D& initial_deviation,
-        const Event4D& initial_derivative,
-        double tau_max,
-        int num_steps = 100);
-    
+    static std::vector<JacobiField>
+    solve(const MetricTensor& metric, const Event4D& initial_position,
+          const Event4D& initial_velocity, const Event4D& initial_deviation,
+          const Event4D& initial_derivative, double tau_max, int num_steps = 100);
+
     /**
      * @brief Compute tidal tensor (electric part of Weyl tensor).
      * @param metric The spacetime metric
@@ -87,11 +84,9 @@ public:
      * @param velocity 4-velocity direction
      * @return 3x3 tidal tensor
      */
-    static std::array<std::array<double, 3>, 3> tidalTensor(
-        const MetricTensor& metric,
-        const Event4D& position,
-        const Event4D& velocity);
-    
+    static std::array<std::array<double, 3>, 3>
+    tidalTensor(const MetricTensor& metric, const Event4D& position, const Event4D& velocity);
+
     /**
      * @brief Compute geodesic focusing using Raychaudhuri equation.
      * @param metric The spacetime metric
@@ -100,19 +95,15 @@ public:
      * @param tau_max Maximum proper time
      * @return Expansion scalar along geodesic
      */
-    static double raychaudhuriExpansion(
-        const MetricTensor& metric,
-        double initial_separation,
-        double initial_expansion,
-        double tau_max);
-    
+    static double raychaudhuriExpansion(const MetricTensor& metric, double initial_separation,
+                                        double initial_expansion, double tau_max);
+
     /**
      * @brief Find conjugate points along geodesic.
      * @param jacobi_fields Jacobi field values
      * @return Proper time values where conjugate points occur
      */
-    static std::vector<double> findConjugatePoints(
-        const std::vector<JacobiField>& jacobi_fields);
+    static std::vector<double> findConjugatePoints(const std::vector<JacobiField>& jacobi_fields);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

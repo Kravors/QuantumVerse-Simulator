@@ -30,13 +30,9 @@ struct GCNBrokerConfig {
     static GCNBrokerConfig testStream() {
         GCNBrokerConfig cfg;
         cfg.brokers = QStringLiteral("test.gcn.nasa.gov:9092");
-        cfg.topics = {
-            QStringLiteral("gcn.notices.LVC"),
-            QStringLiteral("gcn.notices.ICECUBE"),
-            QStringLiteral("gcn.notices.TESS"),
-            QStringLiteral("gcn.notices.FERMI_GBM"),
-            QStringLiteral("gcn.notices.SWIFT_BAT")
-        };
+        cfg.topics = {QStringLiteral("gcn.notices.LVC"), QStringLiteral("gcn.notices.ICECUBE"),
+                      QStringLiteral("gcn.notices.TESS"), QStringLiteral("gcn.notices.FERMI_GBM"),
+                      QStringLiteral("gcn.notices.SWIFT_BAT")};
         cfg.groupId = QStringLiteral("quantumverse_test");
         cfg.securityProtocol = QStringLiteral("plaintext");
         cfg.autoOffsetResetLatest = true;
@@ -46,13 +42,9 @@ struct GCNBrokerConfig {
     static GCNBrokerConfig production() {
         GCNBrokerConfig cfg;
         cfg.brokers = QStringLiteral("gcn-kafka.nasa.gov:9092");
-        cfg.topics = {
-            QStringLiteral("gcn.notices.LVC"),
-            QStringLiteral("gcn.notices.ICECUBE"),
-            QStringLiteral("gcn.notices.TESS"),
-            QStringLiteral("gcn.notices.FERMI_GBM"),
-            QStringLiteral("gcn.notices.SWIFT_BAT")
-        };
+        cfg.topics = {QStringLiteral("gcn.notices.LVC"), QStringLiteral("gcn.notices.ICECUBE"),
+                      QStringLiteral("gcn.notices.TESS"), QStringLiteral("gcn.notices.FERMI_GBM"),
+                      QStringLiteral("gcn.notices.SWIFT_BAT")};
         cfg.groupId = QStringLiteral("quantumverse_ingest");
         cfg.securityProtocol = QStringLiteral("sasl_ssl");
         cfg.saslMechanism = QStringLiteral("scram-sha-512");
@@ -61,6 +53,6 @@ struct GCNBrokerConfig {
     }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GCN_BROKER_CONFIG_H
+#endif  // QUANTUMVERSE_GCN_BROKER_CONFIG_H

@@ -13,33 +13,33 @@
 
 #include "ChargeSweepExperiment.h"
 
+#include <QDateTime>
+#include <QDir>
 #include <cmath>
 #include <memory>
-#include <QDir>
-#include <QDateTime>
 
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
 QVector<ExperimentParameter> ChargeSweepExperiment::parameters() const {
     QVector<ExperimentParameter> p;
-    p.append({QStringLiteral("mass"),       QStringLiteral("Mass M (M\u2299)"),
-              QStringLiteral("double"), QVariant(1.0),  QVariant(0.1), QVariant(1000.0),
-              QStringList(), QStringLiteral("M\u2299"), QStringLiteral("Black hole mass.")});
-    p.append({QStringLiteral("charge_min"), QStringLiteral("Q/M min"),
-              QStringLiteral("double"), QVariant(0.0),  QVariant(0.0), QVariant(0.99),
-              QStringList(), QStringLiteral(""),       QStringLiteral("Charge ratio lower bound.")});
-    p.append({QStringLiteral("charge_max"), QStringLiteral("Q/M max"),
-              QStringLiteral("double"), QVariant(0.99), QVariant(0.0), QVariant(0.99),
-              QStringList(), QStringLiteral(""),       QStringLiteral("Upper bound; 1.0 is extremal.")});
-    p.append({QStringLiteral("steps"),     QStringLiteral("Steps"),
-              QStringLiteral("int"),    QVariant(50),   QVariant(2),   QVariant(10000),
-              QStringList(), QStringLiteral(""),       QStringLiteral("Number of samples.")});
-    p.append({QStringLiteral("probe_r"),   QStringLiteral("Probe radius (m)"),
-              QStringLiteral("double"), QVariant(1.0e5),QVariant(1.0e3), QVariant(1.0e12),
-              QStringList(), QStringLiteral("m"),      QStringLiteral("Curvature probe distance.")});
+    p.append({QStringLiteral("mass"), QStringLiteral("Mass M (M\u2299)"), QStringLiteral("double"),
+              QVariant(1.0), QVariant(0.1), QVariant(1000.0), QStringList(),
+              QStringLiteral("M\u2299"), QStringLiteral("Black hole mass.")});
+    p.append({QStringLiteral("charge_min"), QStringLiteral("Q/M min"), QStringLiteral("double"),
+              QVariant(0.0), QVariant(0.0), QVariant(0.99), QStringList(), QStringLiteral(""),
+              QStringLiteral("Charge ratio lower bound.")});
+    p.append({QStringLiteral("charge_max"), QStringLiteral("Q/M max"), QStringLiteral("double"),
+              QVariant(0.99), QVariant(0.0), QVariant(0.99), QStringList(), QStringLiteral(""),
+              QStringLiteral("Upper bound; 1.0 is extremal.")});
+    p.append({QStringLiteral("steps"), QStringLiteral("Steps"), QStringLiteral("int"), QVariant(50),
+              QVariant(2), QVariant(10000), QStringList(), QStringLiteral(""),
+              QStringLiteral("Number of samples.")});
+    p.append({QStringLiteral("probe_r"), QStringLiteral("Probe radius (m)"),
+              QStringLiteral("double"), QVariant(1.0e5), QVariant(1.0e3), QVariant(1.0e12),
+              QStringList(), QStringLiteral("m"), QStringLiteral("Curvature probe distance.")});
     return p;
 }
 
@@ -59,7 +59,10 @@ ExperimentResult ChargeSweepExperiment::run(const QVariantMap& params,
     out.scalars[QStringLiteral("steps")] = steps;
     out.scalars[QStringLiteral("probe_r")] = probeR;
 
-    if (steps < 2) { out.success = false; return out; }
+    if (steps < 2) {
+        out.success = false;
+        return out;
+    }
 
     const double massKg = massMsun * 1.989e30;
     const double G = quantumverse::Event4D::G;
@@ -74,33 +77,39 @@ ExperimentResult ChargeSweepExperiment::run(const QVariantMap& params,
 
     const int n = std::max(1, steps);
     for (int i = 0; i < n; ++i) {
-        if (shouldAbort()) { out.success = false; return out; }
+        if (shouldAbort()) {
+            out.success = false;
+            return out;
+        }
 
         const double t = (n > 1) ? static_cast<double>(i) / static_cast<double>(n - 1) : 0.0;
         const double qm = qMin + (qMax - qMin) * t;
 
         // RN horizons (geometric units, meters).
         double disc = M * M * (1.0 - qm * qm);
-        if (disc < 0.0) disc = 0.0;
+        if (disc < 0.0)
+            disc = 0.0;
         const double sqrtDisc = std::sqrt(disc);
-        const double rPlus  = M + sqrtDisc;
+        const double rPlus = M + sqrtDisc;
         const double rMinus = M - sqrtDisc;
 
-        if (qm >= 1.0 - 1e-9) rPlusAtExtremal = rPlus;
+        if (qm >= 1.0 - 1e-9)
+            rPlusAtExtremal = rPlus;
 
         // Curvature probe (Schwarzschild; charge not modeled in K here).
         auto cs = metric->curvatureScalars(probe);
         double K = cs.valid ? cs.kretschmann : 0.0;
-        if (!std::isfinite(K)) K = 0.0;
+        if (!std::isfinite(K))
+            K = 0.0;
 
         out.curve.append(QPointF(qm, rPlus));
         out.logLines << QString("Q/M=%1  r₊=%2 m  r₋=%3 m  K=%4")
-                          .arg(qm, 0, 'g', 5)
-                          .arg(rPlus, 0, 'g', 5)
-                          .arg(rMinus, 0, 'g', 5)
-                          .arg(K, 0, 'e', 4);
+                            .arg(qm, 0, 'g', 5)
+                            .arg(rPlus, 0, 'g', 5)
+                            .arg(rMinus, 0, 'g', 5)
+                            .arg(K, 0, 'e', 4);
 
-        out.scalars[QStringLiteral("last_r_plus")]  = rPlus;
+        out.scalars[QStringLiteral("last_r_plus")] = rPlus;
         out.scalars[QStringLiteral("last_r_minus")] = rMinus;
         progress(static_cast<double>(i + 1) / static_cast<double>(n));
     }
@@ -110,4 +119,4 @@ ExperimentResult ChargeSweepExperiment::run(const QVariantMap& params,
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

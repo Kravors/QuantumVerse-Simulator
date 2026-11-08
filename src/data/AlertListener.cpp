@@ -10,9 +10,6 @@
 
 namespace quantumverse {
 
-AlertListener::AlertListener(QObject* parent)
-    : QObject(parent)
-{
-}
+AlertListener::AlertListener(QObject* parent) : QObject(parent) {}
 
-} // namespace quantumverse
+}  // namespace quantumverse

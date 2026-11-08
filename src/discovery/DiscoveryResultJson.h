@@ -1,6 +1,6 @@
 #pragma once
-#include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonObject>
 #include "discovery/DiscoveryEngine.h"
 
 namespace quantumverse {
@@ -35,8 +35,8 @@ inline DiscoveryResult discoveryResultFromJson(const QJsonObject& obj) {
     r.description = obj["description"].toString().toStdString();
     r.confidence = obj["confidence"].toDouble();
     QJsonObject loc = obj["location"].toObject();
-    r.location = Event4D(loc["t"].toDouble(), loc["x"].toDouble(),
-                         loc["y"].toDouble(), loc["z"].toDouble());
+    r.location =
+        Event4D(loc["t"].toDouble(), loc["x"].toDouble(), loc["y"].toDouble(), loc["z"].toDouble());
     QJsonObject params = obj["parameters"].toObject();
     for (auto it = params.begin(); it != params.end(); ++it) {
         r.parameters[it.key().toStdString()] = it.value().toDouble();
@@ -47,4 +47,4 @@ inline DiscoveryResult discoveryResultFromJson(const QJsonObject& obj) {
     return r;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -1,13 +1,13 @@
 #include "WasmBridge.h"
+#include <cstring>
+#include <emscripten/bind.h>
+#include <functional>
+#include <iomanip>
+#include <memory>
+#include <sstream>
+#include <string>
 #include "../discovery/RLDiscoveryAgent.h"
 #include "WasmLLMCoPilot.h"
-#include <sstream>
-#include <iomanip>
-#include <cstring>
-#include <memory>
-#include <functional>
-#include <string>
-#include <emscripten/bind.h>
 
 using namespace quantumverse;
 
@@ -30,17 +30,16 @@ static LLMCallback g_llmCallback = nullptr;
 
 extern "C" {
 
-WasmBridge* qv_bridge_create(void)
-{
+WasmBridge* qv_bridge_create(void) {
     auto* b = new WasmBridge();
     b->metric = std::make_shared<KerrMetric>(1.0, 0.0);
     b->validator = std::make_shared<PhysicsValidator>(b->metric);
-    b->agent = std::make_shared<discovery::RLDiscoveryAgent>(
-        3, std::vector<std::pair<double, double>>{
-            {0.1, 100.0},
-            {0.0, 1.5},
-            {0.0, 1.5},
-        });
+    b->agent =
+        std::make_shared<discovery::RLDiscoveryAgent>(3, std::vector<std::pair<double, double>>{
+                                                             {0.1, 100.0},
+                                                             {0.0, 1.5},
+                                                             {0.0, 1.5},
+                                                         });
     b->llmCoPilot = std::make_unique<WasmLLMCoPilot>();
     b->policy = discovery::PolicyNetwork(8, 3);
 
@@ -56,30 +55,25 @@ WasmBridge* qv_bridge_create(void)
     return b;
 }
 
-void qv_bridge_destroy(WasmBridge* bridge)
-{
+void qv_bridge_destroy(WasmBridge* bridge) {
     delete bridge;
 }
 
-const char* qv_bridge_create_metric(WasmBridge* bridge, double mass, double spin)
-{
+const char* qv_bridge_create_metric(WasmBridge* bridge, double mass, double spin) {
     (void)bridge;
     auto metric = std::make_shared<KerrMetric>(mass, spin);
     static thread_local std::string result;
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(6);
-    oss << "{\"mass\":" << metric->mass()
-        << ",\"spin\":" << metric->spin()
+    oss << "{\"mass\":" << metric->mass() << ",\"spin\":" << metric->spin()
         << ",\"outerHorizonRadius\":" << metric->outerHorizonRadius()
         << ",\"innerHorizonRadius\":" << metric->innerHorizonRadius()
-        << ",\"schwarzschildRadius\":" << metric->schwarzschildRadius()
-        << "}";
+        << ",\"schwarzschildRadius\":" << metric->schwarzschildRadius() << "}";
     result = oss.str();
     return result.c_str();
 }
 
-const char* qv_bridge_validate_state(WasmBridge* bridge, double mass, double spin, double charge)
-{
+const char* qv_bridge_validate_state(WasmBridge* bridge, double mass, double spin, double charge) {
     bridge->metric = std::make_shared<KerrMetric>(mass, spin);
     bridge->validator->setMetric(bridge->metric);
 
@@ -100,8 +94,8 @@ const char* qv_bridge_validate_state(WasmBridge* bridge, double mass, double spi
     if (valid) {
         oss << "Spacetime valid — all physics checks passed.";
     } else {
-        oss << "Physics validation failed: " << report.failedChecks
-            << " of " << report.totalChecks << " checks failed.";
+        oss << "Physics validation failed: " << report.failedChecks << " of " << report.totalChecks
+            << " checks failed.";
         for (const auto& f : report.failures) {
             oss << " [" << f.name << ": " << f.message << "]";
         }
@@ -111,13 +105,12 @@ const char* qv_bridge_validate_state(WasmBridge* bridge, double mass, double spi
     return result.c_str();
 }
 
-int qv_bridge_physics_warning(WasmBridge* bridge)
-{
+int qv_bridge_physics_warning(WasmBridge* bridge) {
     return bridge->physicsWarning ? 1 : 0;
 }
 
-const char* qv_bridge_run_discovery_step(WasmBridge* bridge, double mass, double spin, double charge)
-{
+const char* qv_bridge_run_discovery_step(WasmBridge* bridge, double mass, double spin,
+                                         double charge) {
     std::vector<double> state(8, 0.0);
     state[0] = mass;
     state[1] = spin;
@@ -141,8 +134,7 @@ const char* qv_bridge_run_discovery_step(WasmBridge* bridge, double mass, double
     double deltaA = newSpin - spin;
     double deltaQ = newCharge - charge;
 
-    double extremality = (newSpin * newSpin + newCharge * newCharge) /
-        (newMass * newMass);
+    double extremality = (newSpin * newSpin + newCharge * newCharge) / (newMass * newMass);
 
     auto testMetric = std::make_shared<KerrMetric>(newMass, newSpin);
     bridge->validator->setMetric(testMetric);
@@ -156,12 +148,9 @@ const char* qv_bridge_run_discovery_step(WasmBridge* bridge, double mass, double
 
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(4);
-        oss << "VETO: Proposed state M=" << newMass
-            << ", a=" << newSpin
-            << ", Q=" << newCharge
+        oss << "VETO: Proposed state M=" << newMass << ", a=" << newSpin << ", Q=" << newCharge
             << ". Violates cosmic censorship (naked singularity). "
-            << "PhysicsValidator reported " << report.failedChecks
-            << " failed checks.";
+            << "PhysicsValidator reported " << report.failedChecks << " failed checks.";
         bridge->llmCoPilot->analyzeAnomaly(oss.str());
 
         result.clear();
@@ -188,49 +177,41 @@ const char* qv_bridge_run_discovery_step(WasmBridge* bridge, double mass, double
     return result.c_str();
 }
 
-void qv_bridge_analyze_anomaly(WasmBridge* bridge, const char* anomalyData)
-{
+void qv_bridge_analyze_anomaly(WasmBridge* bridge, const char* anomalyData) {
     bridge->llmCoPilot->analyzeAnomaly(anomalyData ? anomalyData : "");
 }
 
-void qv_bridge_set_llm_callback(WasmBridge* bridge, LLMCallback callback)
-{
+void qv_bridge_set_llm_callback(WasmBridge* bridge, LLMCallback callback) {
     bridge->llmCallback = callback;
 }
 
-void qv_bridge_set_mass(WasmBridge* bridge, double mass)
-{
+void qv_bridge_set_mass(WasmBridge* bridge, double mass) {
     bridge->mass = mass;
     bridge->metric = std::make_shared<KerrMetric>(mass, bridge->spin);
 }
 
-void qv_bridge_set_spin(WasmBridge* bridge, double spin)
-{
+void qv_bridge_set_spin(WasmBridge* bridge, double spin) {
     bridge->spin = spin;
     bridge->metric = std::make_shared<KerrMetric>(bridge->mass, spin);
 }
 
-void qv_bridge_set_charge(WasmBridge* bridge, double charge)
-{
+void qv_bridge_set_charge(WasmBridge* bridge, double charge) {
     bridge->charge = charge;
 }
 
-double qv_bridge_get_mass(WasmBridge* bridge)
-{
+double qv_bridge_get_mass(WasmBridge* bridge) {
     return bridge->mass;
 }
 
-double qv_bridge_get_spin(WasmBridge* bridge)
-{
+double qv_bridge_get_spin(WasmBridge* bridge) {
     return bridge->spin;
 }
 
-double qv_bridge_get_charge(WasmBridge* bridge)
-{
+double qv_bridge_get_charge(WasmBridge* bridge) {
     return bridge->charge;
 }
 
-} // extern "C"
+}  // extern "C"
 
 // ---------------------------------------------------------------------------
 // Embind bindings: expose a JS-friendly WasmBridge class so app.js can use
@@ -241,87 +222,75 @@ namespace {
 
 std::function<void(const std::string&)> g_llmCallbackBinding;
 
-void llmCallbackTrampoline(const char* explanation)
-{
+void llmCallbackTrampoline(const char* explanation) {
     if (g_llmCallbackBinding && explanation) {
         g_llmCallbackBinding(explanation);
     }
 }
 
-} // namespace
+}  // namespace
 
 class WasmBridgeJS {
-public:
+   public:
     WasmBridgeJS() : bridge_(qv_bridge_create()) {}
-    ~WasmBridgeJS() { qv_bridge_destroy(bridge_); }
+    ~WasmBridgeJS() {
+        qv_bridge_destroy(bridge_);
+    }
 
-    std::string createMetric(double mass, double spin)
-    {
+    std::string createMetric(double mass, double spin) {
         return qv_bridge_create_metric(bridge_, mass, spin);
     }
 
-    std::string validateState(double mass, double spin, double charge)
-    {
+    std::string validateState(double mass, double spin, double charge) {
         return qv_bridge_validate_state(bridge_, mass, spin, charge);
     }
 
-    int physicsWarning() const
-    {
+    int physicsWarning() const {
         return qv_bridge_physics_warning(bridge_);
     }
 
-    std::string runDiscoveryStep(double mass, double spin, double charge)
-    {
+    std::string runDiscoveryStep(double mass, double spin, double charge) {
         return qv_bridge_run_discovery_step(bridge_, mass, spin, charge);
     }
 
-    void analyzeAnomaly(const std::string& anomalyData)
-    {
+    void analyzeAnomaly(const std::string& anomalyData) {
         qv_bridge_analyze_anomaly(bridge_, anomalyData.c_str());
     }
 
-    void setLLMCallback(std::function<void(const std::string&)> cb)
-    {
+    void setLLMCallback(std::function<void(const std::string&)> cb) {
         g_llmCallbackBinding = std::move(cb);
         qv_bridge_set_llm_callback(bridge_, llmCallbackTrampoline);
     }
 
-    void setMass(double m)
-    {
+    void setMass(double m) {
         qv_bridge_set_mass(bridge_, m);
     }
 
-    void setSpin(double s)
-    {
+    void setSpin(double s) {
         qv_bridge_set_spin(bridge_, s);
     }
 
-    void setCharge(double c)
-    {
+    void setCharge(double c) {
         qv_bridge_set_charge(bridge_, c);
     }
 
-    double getMass() const
-    {
+    double getMass() const {
         return qv_bridge_get_mass(bridge_);
     }
 
-    double getSpin() const
-    {
+    double getSpin() const {
         return qv_bridge_get_spin(bridge_);
     }
 
-    double getCharge() const
-    {
+    double getCharge() const {
         return qv_bridge_get_charge(bridge_);
     }
 
-private:
+   private:
     WasmBridge* bridge_;
 };
 
-EMSCRIPTEN_BINDINGS(quantumverse_wasm)
-{
+EMSCRIPTEN_BINDINGS(quantumverse_wasm) {
     using namespace emscripten;
 
     class_<WasmBridgeJS>("WasmBridge")

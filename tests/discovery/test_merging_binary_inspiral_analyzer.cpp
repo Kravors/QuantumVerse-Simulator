@@ -12,12 +12,12 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "discovery/MergingBinaryInspiralAnalyzer.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -38,15 +38,15 @@ MetricTensor makeFlatMetric() {
 
 double chirpFrequency(double t, double tc, double mc) {
     double tau = tc - t;
-    if (tau <= 0.0) return 0.0;
+    if (tau <= 0.0)
+        return 0.0;
     double mc58 = std::pow(mc, -5.0 / 8.0);
     double tau38 = std::pow(tau, -3.0 / 8.0);
     return (1.0 / (8.0 * kPi)) * mc58 * tau38;
 }
 
-std::vector<Event4D> makeInspiralWaveform(double chirpMass, double tc,
-                                            double dt, size_t n,
-                                            double noiseLevel = 0.0) {
+std::vector<Event4D> makeInspiralWaveform(double chirpMass, double tc, double dt, size_t n,
+                                          double noiseLevel = 0.0) {
     std::vector<Event4D> data;
     data.reserve(n);
     double phase = 0.0;
@@ -66,7 +66,7 @@ std::vector<Event4D> makeInspiralWaveform(double chirpMass, double tc,
     }
     return data;
 }
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== MergingBinaryInspiralAnalyzerTest ===" << std::endl;
@@ -181,8 +181,8 @@ int main() {
         QV_CHECK(ok);
         for ([[maybe_unused]] const auto& kv : ranges) {
             [[maybe_unused]] bool okRange = std::isfinite(kv.second.first) &&
-                                           std::isfinite(kv.second.second) &&
-                                           kv.second.first < kv.second.second;
+                                            std::isfinite(kv.second.second) &&
+                                            kv.second.first < kv.second.second;
             QV_CHECK(okRange);
         }
         std::cout << "  Parameter ranges valid: OK." << std::endl;

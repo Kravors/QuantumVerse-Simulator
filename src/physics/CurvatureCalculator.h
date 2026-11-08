@@ -15,14 +15,14 @@
  * Signature: (-, +, +, +) East Coast convention
  */
 
-#include "../spacetime/Event4D.h"
-#include "../spacetime/MetricTensor.h"
-#include "../physics/GeodesicIntegrator.h"
 #include <array>
 #include <cmath>
-#include <memory>
 #include <functional>
+#include <memory>
 #include <stdexcept>
+#include "../physics/GeodesicIntegrator.h"
+#include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
@@ -65,10 +65,11 @@ struct CurvatureResult {
  * h ~ 1e-6 converge to machine precision for curvature invariants.
  */
 class CurvatureCalculator {
-public:
+   public:
     /**
      * @brief Construct a curvature calculator for the given metric.
-     * @param metric Shared pointer to the metric tensor (can be position-dependent via setMetricField).
+     * @param metric Shared pointer to the metric tensor (can be position-dependent via
+     * setMetricField).
      */
     explicit CurvatureCalculator(std::shared_ptr<MetricTensor> metric = nullptr);
 
@@ -188,7 +189,7 @@ public:
      */
     bool isNearSingularity(const Event4D& position) const;
 
-private:
+   private:
     // Metric and field function
     std::shared_ptr<MetricTensor> currentMetric_;
     std::function<MetricTensor(const Event4D&)> metricField_;
@@ -231,6 +232,6 @@ private:
     MetricTensor metricAt(const Event4D& position, int mu, double delta) const;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_CURVATURE_CALCULATOR_H
+#endif  // QUANTUMVERSE_CURVATURE_CALCULATOR_H

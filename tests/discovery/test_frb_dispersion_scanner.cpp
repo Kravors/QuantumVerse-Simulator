@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/FRBDispersionScanner.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -44,11 +44,11 @@ std::vector<Event4D> makeCleanDMTrajectory() {
 std::vector<Event4D> makeAnomalousDMTrajectory() {
     auto traj = makeCleanDMTrajectory();
     for (size_t i = 10; i < traj.size(); ++i) {
-        traj[i].x += 40.0; // 8-sigma excess
+        traj[i].x += 40.0;  // 8-sigma excess
     }
     return traj;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== FRBDispersionScannerTest ===" << std::endl;
@@ -63,7 +63,8 @@ int main() {
         auto traj = makeCleanDMTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
         QV_CHECK(findings.empty());
-        std::cout << "  Clean DM trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  Clean DM trajectory: no anomaly (findings=" << findings.size() << ")"
+                  << std::endl;
     }
 
     // --- 2. Anomalous excess DM: should be flagged ------------------------------

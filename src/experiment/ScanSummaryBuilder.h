@@ -16,13 +16,13 @@
 
 #include <QString>
 
-#include "experiment/Experiment.h"
 #include "discovery/ScanSummary.h"
+#include "experiment/Experiment.h"
 
 namespace quantumverse {
 
 class ScanSummaryBuilder {
-public:
+   public:
     /** True only for experiments that populate BH observables in scalars. */
     static bool canBuildFrom(const QString& experimentId);
 
@@ -33,14 +33,12 @@ public:
      *         experiment failed or a required scalar is missing — never a
      *         plausible-but-wrong summary.
      */
-    static ScanSummary fromExperiment(const QString& experimentId,
-                                      const ExperimentResult& result);
+    static ScanSummary fromExperiment(const QString& experimentId, const ExperimentResult& result);
 
-private:
+   private:
     /** Returns scalars[keys[0]] if present and finite, else tries keys[1]...;
      *  sets *ok=false if none found or none finite. */
-    static double requireScalarAny(const ExperimentResult& r,
-                                   const QStringList& keys, bool* ok);
+    static double requireScalarAny(const ExperimentResult& r, const QStringList& keys, bool* ok);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

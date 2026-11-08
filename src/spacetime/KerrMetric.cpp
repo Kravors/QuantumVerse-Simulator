@@ -7,9 +7,8 @@
 namespace quantumverse {
 
 KerrMetric::KerrMetric(double massKg, double spinDimensionless)
-    : m_mass(massKg)
-    , m_spin(spinDimensionless)
-{
+    : m_mass(massKg),
+      m_spin(spinDimensionless) {
     m_M = PHYS_G() * massKg / (PHYS_C() * PHYS_C());
     m_a = spinDimensionless * m_M;
     m_rs = 2.0 * m_M;
@@ -36,20 +35,23 @@ void KerrMetric::setSpin(double spinDimensionless) noexcept {
 
 double KerrMetric::outerHorizonRadius() const {
     double disc = m_M * m_M - m_a * m_a;
-    if (disc < 0.0) disc = 0.0;
+    if (disc < 0.0)
+        disc = 0.0;
     return m_M + std::sqrt(disc);
 }
 
 double KerrMetric::innerHorizonRadius() const {
     double disc = m_M * m_M - m_a * m_a;
-    if (disc < 0.0) disc = 0.0;
+    if (disc < 0.0)
+        disc = 0.0;
     return m_M - std::sqrt(disc);
 }
 
 double KerrMetric::ergosphereRadius(double theta) const {
     double cosT = std::cos(theta);
     double disc = m_M * m_M - m_a * m_a * cosT * cosT;
-    if (disc < 0.0) disc = 0.0;
+    if (disc < 0.0)
+        disc = 0.0;
     return m_M + std::sqrt(disc);
 }
 
@@ -62,7 +64,8 @@ double KerrMetric::frameDraggingOmega(double r, double theta) const {
     double g_tphi_numerator = -m_rs * r * m_a * sin2T / sigma;
     double g_phiphi = (r * r + a2 + m_rs * r * a2 * sin2T / sigma) * sin2T;
 
-    if (std::abs(g_phiphi) < 1e-30) return 0.0;
+    if (std::abs(g_phiphi) < 1e-30)
+        return 0.0;
     return -g_tphi_numerator / g_phiphi;
 }
 
@@ -70,17 +73,18 @@ double KerrMetric::cartesianToBLRadial(double x, double y, double z) const {
     double a2 = m_a * m_a;
     double rho2 = x * x + y * y + z * z;
     double discriminant = (rho2 - a2) * (rho2 - a2) + 4.0 * a2 * z * z;
-    if (discriminant < 0.0) discriminant = 0.0;
+    if (discriminant < 0.0)
+        discriminant = 0.0;
     double r2 = (rho2 - a2 + std::sqrt(discriminant)) / 2.0;
-    if (r2 < 0.0) r2 = 0.0;
+    if (r2 < 0.0)
+        r2 = 0.0;
     return std::sqrt(r2);
 }
 
-void KerrMetric::transformBLToCartesian(
-    double g_tt, double g_tphi, double g_rr, double g_thth, double g_pp,
-    double x, double y, double z, double rBL, double theta, double phi,
-    std::array<std::array<double, 4>, 4>& out
-) const {
+void KerrMetric::transformBLToCartesian(double g_tt, double g_tphi, double g_rr, double g_thth,
+                                        double g_pp, double x, double y, double z, double rBL,
+                                        double theta, double phi,
+                                        std::array<std::array<double, 4>, 4>& out) const {
     (void)x;
     (void)y;
     (void)z;
@@ -105,22 +109,23 @@ void KerrMetric::transformBLToCartesian(
     j3[2][2] = 0.0;
 
     // Invert 3x3 Jacobian to get ∂(r,θ,φ)/∂(x,y,z)
-    double det = j3[0][0]*(j3[1][1]*j3[2][2]-j3[1][2]*j3[2][1])
-               - j3[0][1]*(j3[1][0]*j3[2][2]-j3[1][2]*j3[2][0])
-               + j3[0][2]*(j3[1][0]*j3[2][1]-j3[1][1]*j3[2][0]);
-    if (std::abs(det) < 1e-30) det = (det >= 0.0) ? 1e-30 : -1e-30;
+    double det = j3[0][0] * (j3[1][1] * j3[2][2] - j3[1][2] * j3[2][1]) -
+                 j3[0][1] * (j3[1][0] * j3[2][2] - j3[1][2] * j3[2][0]) +
+                 j3[0][2] * (j3[1][0] * j3[2][1] - j3[1][1] * j3[2][0]);
+    if (std::abs(det) < 1e-30)
+        det = (det >= 0.0) ? 1e-30 : -1e-30;
 
     double invDet = 1.0 / det;
     double inv_j3[3][3];
-    inv_j3[0][0] =  (j3[1][1]*j3[2][2]-j3[1][2]*j3[2][1]) * invDet;
-    inv_j3[0][1] = -(j3[0][1]*j3[2][2]-j3[0][2]*j3[2][1]) * invDet;
-    inv_j3[0][2] =  (j3[0][1]*j3[1][2]-j3[0][2]*j3[1][1]) * invDet;
-    inv_j3[1][0] = -(j3[1][0]*j3[2][2]-j3[1][2]*j3[2][0]) * invDet;
-    inv_j3[1][1] =  (j3[0][0]*j3[2][2]-j3[0][2]*j3[2][0]) * invDet;
-    inv_j3[1][2] = -(j3[0][0]*j3[1][2]-j3[0][2]*j3[1][0]) * invDet;
-    inv_j3[2][0] =  (j3[1][0]*j3[2][1]-j3[1][1]*j3[2][0]) * invDet;
-    inv_j3[2][1] = -(j3[0][0]*j3[2][1]-j3[0][1]*j3[2][0]) * invDet;
-    inv_j3[2][2] =  (j3[0][0]*j3[1][1]-j3[0][1]*j3[1][0]) * invDet;
+    inv_j3[0][0] = (j3[1][1] * j3[2][2] - j3[1][2] * j3[2][1]) * invDet;
+    inv_j3[0][1] = -(j3[0][1] * j3[2][2] - j3[0][2] * j3[2][1]) * invDet;
+    inv_j3[0][2] = (j3[0][1] * j3[1][2] - j3[0][2] * j3[1][1]) * invDet;
+    inv_j3[1][0] = -(j3[1][0] * j3[2][2] - j3[1][2] * j3[2][0]) * invDet;
+    inv_j3[1][1] = (j3[0][0] * j3[2][2] - j3[0][2] * j3[2][0]) * invDet;
+    inv_j3[1][2] = -(j3[0][0] * j3[1][2] - j3[0][2] * j3[1][0]) * invDet;
+    inv_j3[2][0] = (j3[1][0] * j3[2][1] - j3[1][1] * j3[2][0]) * invDet;
+    inv_j3[2][1] = -(j3[0][0] * j3[2][1] - j3[0][1] * j3[2][0]) * invDet;
+    inv_j3[2][2] = (j3[0][0] * j3[1][1] - j3[0][1] * j3[1][0]) * invDet;
 
     // Full 4D Jacobian: jacT[ν][μ'] = ∂x^ν/∂x^μ'
     // ν = (t, r, θ, φ), μ' = (t, x, y, z)
@@ -128,7 +133,7 @@ void KerrMetric::transformBLToCartesian(
     jacT[0][0] = 1.0;
     for (int nu = 1; nu <= 3; nu++)
         for (int mu = 1; mu <= 3; mu++)
-            jacT[nu][mu] = inv_j3[nu-1][mu-1];
+            jacT[nu][mu] = inv_j3[nu - 1][mu - 1];
 
     // BL metric tensor
     double g_BL[4][4] = {};
@@ -160,20 +165,24 @@ std::array<std::array<double, 4>, 4> KerrMetric::evaluate(const Event4D& event) 
     double rho2 = x * x + y * y + z * z;
     double rCart = std::sqrt(rho2);
     const double minR = 1e-9;
-    if (rCart < minR) rCart = minR;
+    if (rCart < minR)
+        rCart = minR;
 
     double theta = (rCart > minR) ? std::acos(std::max(-1.0, std::min(1.0, z / rCart))) : 0.0;
     double phi = std::atan2(y, x);
 
     double rBL = cartesianToBLRadial(x, y, z);
-    if (rBL < minR) rBL = minR;
+    if (rBL < minR)
+        rBL = minR;
 
     double a2 = m_a * m_a;
     double sigma = rBL * rBL + a2 * std::cos(theta) * std::cos(theta);
     double delta = rBL * rBL - m_rs * rBL + a2;
 
-    if (std::abs(sigma) < 1e-30) sigma = 1e-30;
-    if (std::abs(delta) < 1e-20) delta = (delta >= 0.0) ? 1e-20 : -1e-20;
+    if (std::abs(sigma) < 1e-30)
+        sigma = 1e-30;
+    if (std::abs(delta) < 1e-20)
+        delta = (delta >= 0.0) ? 1e-20 : -1e-20;
 
     double sin2T = std::sin(theta) * std::sin(theta);
 
@@ -184,8 +193,7 @@ std::array<std::array<double, 4>, 4> KerrMetric::evaluate(const Event4D& event) 
     double g_pp = (rBL * rBL + a2 + m_rs * rBL * a2 * sin2T / sigma) * sin2T;
 
     std::array<std::array<double, 4>, 4> result{};
-    transformBLToCartesian(g_tt, g_tphi, g_rr, g_thth, g_pp,
-                           x, y, z, rBL, theta, phi, result);
+    transformBLToCartesian(g_tt, g_tphi, g_rr, g_thth, g_pp, x, y, z, rBL, theta, phi, result);
     return result;
 }
 
@@ -198,7 +206,7 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     // Phase 5 guard: r at/inside the outer horizon — undefined physics.
     // At r=0 (coordinate singularity), clamp to just outside horizon and
     // return valid=true. For 0 < r < r_horizon, return invalid.
-    const double r_horizon = outerHorizonRadius();   // r_+ = M + sqrt(M² - a²)
+    const double r_horizon = outerHorizonRadius();  // r_+ = M + sqrt(M² - a²)
     if (r == 0.0) {
         r = r_horizon * 1.01;  // clamp to just outside horizon
     } else if (r < r_horizon) {
@@ -223,7 +231,8 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     double cos2 = std::cos(theta) * std::cos(theta);
     double cos4 = cos2 * cos2;
     double cos6 = cos4 * cos2;
-    double numerator = r6 - 15.0 * a2 * r4 * cos2 + 15.0 * a2 * a2 * r2 * cos4 - a2 * a2 * a2 * cos6;
+    double numerator =
+        r6 - 15.0 * a2 * r4 * cos2 + 15.0 * a2 * a2 * r2 * cos4 - a2 * a2 * a2 * cos6;
     double denominator = std::pow(sigmaBL, 6);
     double K = 48.0 * m_M * m_M * numerator / denominator;
     // Kretschmann scalar K = R_{abcd} R^{abcd} is a sum of squares and must
@@ -231,7 +240,8 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     // Boyer-Lindquist coordinates are singular and the closed-form expression
     // can yield negative values for certain r (e.g. r ~ 3M at a* = 0.9).
     // Clamp to the non-negative physical range.
-    if (K < 0.0) K = 0.0;
+    if (K < 0.0)
+        K = 0.0;
 
     CurvatureScalars s;
     s.kretschmann = K;
@@ -242,9 +252,8 @@ CurvatureScalars KerrMetric::curvatureScalars(const Event4D& event) const {
     return s;
 }
 
-std::array<std::array<std::array<double, 4>, 4>, 4> KerrMetric::computeFullChristoffel(
-    const Event4D& event
-) const {
+std::array<std::array<std::array<double, 4>, 4>, 4>
+KerrMetric::computeFullChristoffel(const Event4D& event) const {
     // Compute Christoffel symbols numerically via finite differences
     // using the analytic metric evaluation
     auto gLocal = [&](double x, double y, double z) -> std::array<std::array<double, 4>, 4> {
@@ -291,10 +300,8 @@ std::array<std::array<std::array<double, 4>, 4>, 4> KerrMetric::computeFullChris
     return Gamma;
 }
 
-std::array<std::array<RVar, 4>, 4> KerrMetric::evaluateAD(
-    const std::array<RVar, 4>& pos,
-    const std::vector<RVar>& params
-) const {
+std::array<std::array<RVar, 4>, 4> KerrMetric::evaluateAD(const std::array<RVar, 4>& pos,
+                                                          const std::vector<RVar>& params) const {
     (void)params;
     // Use spherical coordinates for AD: pos = [t, r, theta, phi]
     RVar r = pos[1];
@@ -316,13 +323,16 @@ std::array<std::array<RVar, 4>, 4> KerrMetric::evaluateAD(
     RVar delta = math::add(math::sub(r2, math::mul(rs, r)), a2);
     RVar delta_inv = math::div(math::ADTape::record(1.0, nullptr), delta);
 
-    RVar g_tt = math::neg(math::sub(math::ADTape::record(1.0, nullptr),
-                                     math::mul(rs, math::mul(r, sigma_inv))));
+    RVar g_tt = math::neg(
+        math::sub(math::ADTape::record(1.0, nullptr), math::mul(rs, math::mul(r, sigma_inv))));
     RVar g_tphi = math::neg(math::mul(rs, math::mul(r, math::mul(a, math::mul(sin2, sigma_inv)))));
     RVar g_rr = math::mul(sigma, delta_inv);
     RVar g_thth = sigma;
-    RVar g_pp = math::mul(math::add(r2, math::add(a2, math::mul(rs, math::mul(r, math::mul(a2, math::mul(sin2, sigma_inv)))))),
-                          sin2);
+    RVar g_pp = math::mul(
+        math::add(
+            r2,
+            math::add(a2, math::mul(rs, math::mul(r, math::mul(a2, math::mul(sin2, sigma_inv)))))),
+        sin2);
 
     std::array<std::array<RVar, 4>, 4> result{};
     for (int i = 0; i < 4; ++i)
@@ -338,14 +348,13 @@ std::array<std::array<RVar, 4>, 4> KerrMetric::evaluateAD(
     return result;
 }
 
-std::array<std::array<std::array<RVar, 4>, 4>, 4> KerrMetric::computeChristoffelAD(
-    const std::array<RVar, 4>& pos,
-    const std::vector<RVar>& params
-) const {
+std::array<std::array<std::array<RVar, 4>, 4>, 4>
+KerrMetric::computeChristoffelAD(const std::array<RVar, 4>& pos,
+                                 const std::vector<RVar>& params) const {
     // Fall back to finite-difference based Christoffel for now
     (void)pos;
     (void)params;
     return std::array<std::array<std::array<RVar, 4>, 4>, 4>{};
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

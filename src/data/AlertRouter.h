@@ -11,59 +11,68 @@
 #ifndef QUANTUMVERSE_ALERT_ROUTER_H
 #define QUANTUMVERSE_ALERT_ROUTER_H
 
-#include <QObject>
 #include <QJsonObject>
+#include <QObject>
 
-#include "data/LIGOAdapter.h"
-#include "data/IceCubeAdapter.h"
-#include "data/GCNNoticeParser.h"
 #include "data/FermiGBMAdapter.h"
+#include "data/GCNNoticeParser.h"
+#include "data/IceCubeAdapter.h"
+#include "data/LIGOAdapter.h"
 #include "data/SwiftBATAdapter.h"
 
 namespace quantumverse {
 
-class TESSAlertAdapter; // forward declaration
-class FermiGBMAdapter;  // forward declaration
-class SwiftBATAdapter;  // forward declaration
+class TESSAlertAdapter;  // forward declaration
+class FermiGBMAdapter;   // forward declaration
+class SwiftBATAdapter;   // forward declaration
 
 /**
  * @brief Dispatches incoming alerts to the matching multi-messenger adapter.
  */
-class AlertRouter : public QObject
-{
+class AlertRouter : public QObject {
     Q_OBJECT
-public:
+   public:
     explicit AlertRouter(QObject* parent = nullptr);
     ~AlertRouter() override = default;
 
     /** @brief Register the LIGO adapter for gravitational-wave alerts. */
-    void setLIGOAdapter(LIGOAdapter* adapter) { m_ligo = adapter; }
+    void setLIGOAdapter(LIGOAdapter* adapter) {
+        m_ligo = adapter;
+    }
 
     /** @brief Register the IceCube adapter for neutrino alerts. */
-    void setIceCubeAdapter(IceCubeAdapter* adapter) { m_icecube = adapter; }
+    void setIceCubeAdapter(IceCubeAdapter* adapter) {
+        m_icecube = adapter;
+    }
 
     /** @brief Register the TESS adapter for exoplanet transit alerts. */
-    void setTESSAdapter(TESSAlertAdapter* adapter) { m_tess = adapter; }
+    void setTESSAdapter(TESSAlertAdapter* adapter) {
+        m_tess = adapter;
+    }
 
     /** @brief Register the Fermi GBM adapter for gamma-ray burst alerts. */
-    void setFermiGBMAdapter(FermiGBMAdapter* adapter) { m_fermi_gbm = adapter; }
+    void setFermiGBMAdapter(FermiGBMAdapter* adapter) {
+        m_fermi_gbm = adapter;
+    }
 
     /** @brief Register the Swift BAT adapter for X-ray transient alerts. */
-    void setSwiftBATAdapter(SwiftBATAdapter* adapter) { m_swift_bat = adapter; }
+    void setSwiftBATAdapter(SwiftBATAdapter* adapter) {
+        m_swift_bat = adapter;
+    }
 
-public slots:
+   public slots:
     /**
      * @brief Parse and route a raw GCN Kafka JSON payload.
      * @param alert Parsed JSON object from the Kafka listener.
      */
     void routeAlert(const QJsonObject& alert);
 
-signals:
+   signals:
     void alertRouted(const QString& destination);
     void routingError(const QString& reason);
     void parsedAlertReady(const QJsonObject& alert, AlertOrigin origin);
 
-private:
+   private:
     LIGOAdapter* m_ligo = nullptr;
     IceCubeAdapter* m_icecube = nullptr;
     TESSAlertAdapter* m_tess = nullptr;
@@ -71,6 +80,6 @@ private:
     SwiftBATAdapter* m_swift_bat = nullptr;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_ALERT_ROUTER_H
+#endif  // QUANTUMVERSE_ALERT_ROUTER_H

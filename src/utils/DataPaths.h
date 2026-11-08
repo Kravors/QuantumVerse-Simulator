@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <string>
+#include <QCoreApplication>
+#include <QDir>
 #include <QString>
 #include <QStringList>
-#include <QDir>
-#include <QCoreApplication>
+#include <string>
 
 namespace quantumverse {
 namespace utils {
@@ -32,11 +32,7 @@ namespace utils {
 inline std::string repoRoot() {
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList candidates = {
-        appDir + "/../../../..",
-        appDir + "/../../..",
-        appDir + "/../..",
-        appDir + "/..",
-        appDir,
+        appDir + "/../../../..", appDir + "/../../..", appDir + "/../..", appDir + "/..", appDir,
     };
     for (const auto& c : candidates) {
         const QString normalized = QDir::cleanPath(c);
@@ -62,11 +58,8 @@ inline std::string repoRoot() {
 inline std::string dataRoot() {
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList candidates = {
-        appDir + "/../../../../data",
-        appDir + "/../../../data",
-        appDir + "/../../data",
-        appDir + "/../data",
-        appDir + "/data",
+        appDir + "/../../../../data", appDir + "/../../../data", appDir + "/../../data",
+        appDir + "/../data",          appDir + "/data",
     };
     for (const auto& c : candidates) {
         const QString normalized = QDir::cleanPath(c);
@@ -88,5 +81,5 @@ inline std::string dataPath(const std::string& relativePath) {
     return root.filePath(QString::fromStdString(relativePath)).toStdString();
 }
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

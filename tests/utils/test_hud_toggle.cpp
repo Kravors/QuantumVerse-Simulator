@@ -2,18 +2,17 @@
 // Validates showHUD property getter/setter and signal emission without
 // requiring a full QML scene or OpenGL context.
 
+#include <QDebug>
 #include <QGuiApplication>
 #include <QSignalSpy>
-#include <QDebug>
 
 #include "qmlglviewport.h"
-#include "ui4d/UI4D.h"
 #include "test_assert.h"
+#include "ui4d/UI4D.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     qDebug() << "=== HUDToggleTest ===";
 

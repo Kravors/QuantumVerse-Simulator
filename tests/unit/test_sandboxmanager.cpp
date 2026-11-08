@@ -19,8 +19,7 @@
 
 using namespace quantumverse;
 
-int main(int /*argc*/, char* /*argv*/[])
-{
+int main(int /*argc*/, char* /*argv*/[]) {
     int argc = 0;
     QCoreApplication app(argc, nullptr);
 
@@ -70,7 +69,7 @@ int main(int /*argc*/, char* /*argv*/[])
 
     // --- save / load round-trip (the V1 invariant) ---------------------------
     QString tmpPath = QDir::tempPath() + "/sandboxmanager_test.json";
-    QFile::remove(tmpPath); // ensure clean start
+    QFile::remove(tmpPath);  // ensure clean start
 
     mgr.addBody("black_hole", "Sgr A*");
     mgr.addBody("star", "Sun");

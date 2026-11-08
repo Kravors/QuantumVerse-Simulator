@@ -21,7 +21,8 @@
 using namespace quantumverse;
 
 static bool nearEqual(double a, double b, double tol = 1e-6) {
-    if (a == b) return true;
+    if (a == b)
+        return true;
     double diff = std::fabs(a - b);
     double scale = std::fmax(std::fabs(a), std::fabs(b));
     return scale > 0.0 ? diff / scale < tol : diff < tol;
@@ -56,8 +57,8 @@ int main() {
             const double h_lcdm = lcdm.H(z);
             QV_CHECK(nearEqual(h_hs, h_lcdm, 1e-6));
             if (!nearEqual(h_hs, h_lcdm, 1e-6)) {
-                std::cout << "FAIL H(" << z << "): f(R) f_R0=0 = " << h_hs
-                          << ", ΛCDM = " << h_lcdm << std::endl;
+                std::cout << "FAIL H(" << z << "): f(R) f_R0=0 = " << h_hs << ", ΛCDM = " << h_lcdm
+                          << std::endl;
             }
         }
 
@@ -87,16 +88,16 @@ int main() {
             const double h_hs = hs1e4.H(z);
             const double h_lcdm = lcdm.H(z);
             const double relDiff = std::fabs(h_hs - h_lcdm) / h_lcdm;
-            std::cout << "  z=" << z << ": H_fR=" << h_hs
-                      << " H_lCDM=" << h_lcdm
+            std::cout << "  z=" << z << ": H_fR=" << h_hs << " H_lCDM=" << h_lcdm
                       << " relDiff=" << (relDiff * 100.0) << "%" << std::endl;
-            if (relDiff > 0.01) differsAtHighZ = true;
+            if (relDiff > 0.01)
+                differsAtHighZ = true;
         }
-        QV_CHECK(differsAtHighZ)
-            << "f(R) f_R0=1e-4 must differ from ΛCDM by >1% at some high z";
+        QV_CHECK(differsAtHighZ) << "f(R) f_R0=1e-4 must differ from ΛCDM by >1% at some high z";
 
         // Derived quantities must differ too
-        const double diffDM = std::fabs(hs1e4.distanceModulus(1059.94) - lcdm.distanceModulus(1059.94));
+        const double diffDM =
+            std::fabs(hs1e4.distanceModulus(1059.94) - lcdm.distanceModulus(1059.94));
         QV_CHECK(diffDM > 0.01)
             << "distanceModulus at z_drag must differ by >0.01 mag for f_R0=1e-4";
 
@@ -111,11 +112,9 @@ int main() {
         const double h_hs = hs1e5.H(1059.94);
         const double h_lcdm = lcdm.H(1059.94);
         const double relDiff = std::fabs(h_hs - h_lcdm) / h_lcdm;
-        std::cout << "  z=1059.94: H_fR(f_R0=1e-5)=" << h_hs
-                  << " H_lCDM=" << h_lcdm
+        std::cout << "  z=1059.94: H_fR(f_R0=1e-5)=" << h_hs << " H_lCDM=" << h_lcdm
                   << " relDiff=" << (relDiff * 100.0) << "%" << std::endl;
-        QV_CHECK(relDiff > 0.01)
-            << "f(R) f_R0=1e-5 must differ from ΛCDM by >1% at z_drag";
+        QV_CHECK(relDiff > 0.01) << "f(R) f_R0=1e-5 must differ from ΛCDM by >1% at z_drag";
 
         std::cout << "Test 3 PASS: f_R0=1e-5 differs from ΛCDM by >1% at z_drag" << std::endl;
     }

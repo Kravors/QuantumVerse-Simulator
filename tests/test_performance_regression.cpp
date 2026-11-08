@@ -1,12 +1,12 @@
-#include "physics/GeodesicIntegrator.h"
-#include "quantumgravity/CDTEngine.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include <cmath>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include "physics/GeodesicIntegrator.h"
+#include "quantumgravity/CDTEngine.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -41,8 +41,8 @@ int main() {
 
         if (ms > baselineGeodesicMs * 1.3) {
             std::fprintf(stderr,
-                "[FAIL] Geodesic throughput exceeded threshold: %.2f ms > %.2f ms\n",
-                ms, baselineGeodesicMs * 1.3);
+                         "[FAIL] Geodesic throughput exceeded threshold: %.2f ms > %.2f ms\n", ms,
+                         baselineGeodesicMs * 1.3);
             ++failures;
         } else {
             std::printf("[PASS] Geodesic throughput within threshold\n");
@@ -62,9 +62,8 @@ int main() {
         std::printf("  Measured: %.2f ms (threshold: %.2f ms)\n", ms, baselineCDTMs * 1.3);
 
         if (ms > baselineCDTMs * 1.3) {
-            std::fprintf(stderr,
-                "[FAIL] CDT MC sweep exceeded threshold: %.2f ms > %.2f ms\n",
-                ms, baselineCDTMs * 1.3);
+            std::fprintf(stderr, "[FAIL] CDT MC sweep exceeded threshold: %.2f ms > %.2f ms\n", ms,
+                         baselineCDTMs * 1.3);
             ++failures;
         } else {
             std::printf("[PASS] CDT MC sweep within threshold\n");

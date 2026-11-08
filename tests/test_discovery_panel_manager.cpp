@@ -10,15 +10,14 @@
 #include <QSignalSpy>
 #include <iostream>
 
-#include "discovery/DiscoveryPanelManager.h"
-#include "discovery/DiscoveryEngine.h"
 #include "data/GCNNoticeParser.h"
+#include "discovery/DiscoveryEngine.h"
+#include "discovery/DiscoveryPanelManager.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== DiscoveryPanelManager IngestAlert Test ===" << std::endl;
 

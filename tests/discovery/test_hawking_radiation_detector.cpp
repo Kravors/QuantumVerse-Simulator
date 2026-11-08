@@ -19,19 +19,19 @@
 #include <vector>
 
 #include "discovery/HawkingRadiationDetector.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
 
 namespace {
 constexpr double kPi = 3.14159265358979323846;
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== HawkingRadiationDetectorTest ===" << std::endl;
-    MetricTensor metric;                 // placeholder; detector is driven by the "mass" parameter
+    MetricTensor metric;  // placeholder; detector is driven by the "mass" parameter
     Event4D location(0.0, 0.0, 0.0, 0.0);
 
     // 1. Analytic temperature  T = 1/(8πM)
@@ -90,7 +90,8 @@ int main() {
             double expected = 1.0 / (8.0 * kPi * 2.0);
             [[maybe_unused]] bool okT = f.isAnomaly && std::abs(T - expected) < 1e-9;
             QV_CHECK(okT);
-            [[maybe_unused]] bool okS = std::abs(f.parameters.at("entropy") - 4.0 * kPi * 4.0) < 1e-9;
+            [[maybe_unused]] bool okS =
+                std::abs(f.parameters.at("entropy") - 4.0 * kPi * 4.0) < 1e-9;
             QV_CHECK(okS);
             [[maybe_unused]] bool okC = f.confidence > 0.9;
             QV_CHECK(okC);
@@ -113,8 +114,8 @@ int main() {
         [[maybe_unused]] bool ok = !ranges.empty();
         QV_CHECK(ok);
         for ([[maybe_unused]] const auto& kv : ranges) {
-            [[maybe_unused]] bool okkv = std::isfinite(kv.second.first) &&
-                                        std::isfinite(kv.second.second);
+            [[maybe_unused]] bool okkv =
+                std::isfinite(kv.second.first) && std::isfinite(kv.second.second);
             QV_CHECK(okkv);
         }
     }

@@ -1,10 +1,10 @@
 #ifndef QUANTUMVERSE_THEORY_PARAMETER_SPACE_H
 #define QUANTUMVERSE_THEORY_PARAMETER_SPACE_H
 
-#include <vector>
-#include <string>
 #include <map>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace quantumverse {
 namespace discovery {
@@ -20,10 +20,14 @@ struct TheoryParameter {
     std::string description;
     std::string unit;
 
-    TheoryParameter(std::string n, double lo, double hi, double def = 0.0,
-                    std::string desc = "", std::string u = "")
-        : name(std::move(n)), min(lo), max(hi), default_value(def),
-          description(std::move(desc)), unit(std::move(u)) {}
+    TheoryParameter(std::string n, double lo, double hi, double def = 0.0, std::string desc = "",
+                    std::string u = "")
+        : name(std::move(n)),
+          min(lo),
+          max(hi),
+          default_value(def),
+          description(std::move(desc)),
+          unit(std::move(u)) {}
 };
 
 /**
@@ -39,7 +43,7 @@ struct TheoryParameter {
  *   - Yukawa fifth-force: coupling alpha, range lambda, central mass M
  */
 class TheoryParameterSpace {
-public:
+   public:
     enum class TheoryType {
         FR_GRAVITY,
         BRANS_DICKE,
@@ -55,22 +59,18 @@ public:
 
     std::vector<TheoryParameter> getParameters() const;
     int getParameterDimension() const;
-    std::map<std::string, double> parameterVectorToMap(
-        const std::vector<double>& vec
-    ) const;
-    std::vector<double> mapToParameterVector(
-        const std::map<std::string, double>& map
-    ) const;
+    std::map<std::string, double> parameterVectorToMap(const std::vector<double>& vec) const;
+    std::vector<double> mapToParameterVector(const std::map<std::string, double>& map) const;
     std::string getTheoryName() const;
     TheoryType getTheoryType() const;
 
-private:
+   private:
     TheoryType type_;
     std::vector<TheoryParameter> parameters_;
     std::vector<std::string> param_names_;
 };
 
-} // namespace discovery
-} // namespace quantumverse
+}  // namespace discovery
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_THEORY_PARAMETER_SPACE_H
+#endif  // QUANTUMVERSE_THEORY_PARAMETER_SPACE_H

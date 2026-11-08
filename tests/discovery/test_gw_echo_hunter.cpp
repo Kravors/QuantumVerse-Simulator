@@ -5,12 +5,12 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "discovery/GWEchoHunter.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -60,14 +60,16 @@ std::vector<Event4D> makeNoisyRingdown() {
     }
     return data;
 }
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== GWEchoHunter Test ===" << std::endl;
 
     MetricTensor metric;
-    metric.g[0][0] = -1.0; metric.g[1][1] = 1.0;
-    metric.g[2][2] = 1.0; metric.g[3][3] = 1.0;
+    metric.g[0][0] = -1.0;
+    metric.g[1][1] = 1.0;
+    metric.g[2][2] = 1.0;
+    metric.g[3][3] = 1.0;
     Event4D location(0.0, 0.0, 0.0, 0.0);
 
     // --- 1. GR-consistent ringdown: no echo expected -----------------------
@@ -103,7 +105,8 @@ int main() {
     {
         GWEchoHunter hunter;
         std::vector<Event4D> small;
-        for (int i = 0; i < 5; ++i) small.emplace_back(i * 0.05, 0.1, 0.0, 0.0);
+        for (int i = 0; i < 5; ++i)
+            small.emplace_back(i * 0.05, 0.1, 0.0, 0.0);
         auto findings = hunter.analyze(metric, location, small);
         QV_CHECK(findings.empty());
         std::cout << "  Small trajectory handled safely." << std::endl;

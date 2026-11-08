@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/BlackHoleJetAnomalyRecogniser.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
@@ -17,13 +17,13 @@ int main() {
 
     const double pi = 3.14159265358979323846;
     const double tAnomaly = 50.0;
-    const double slope = std::tan(20.0 * pi / 180.0); // ~0.364 -> 20 deg bend
+    const double slope = std::tan(20.0 * pi / 180.0);  // ~0.364 -> 20 deg bend
 
     // --- Synthetic jet with a deflection (kink) at tAnomaly ---------------
     std::vector<quantumverse::Event4D> trajectory;
     for (double t = 0.0; t <= 100.0; t += 1.0) {
         double y = (t >= tAnomaly) ? ((t - tAnomaly) * slope) : 0.0;
-        trajectory.emplace_back(t, t, y, 0.0); // x=t advancing, y=deflection, z=0
+        trajectory.emplace_back(t, t, y, 0.0);  // x=t advancing, y=deflection, z=0
     }
 
     quantumverse::MetricTensor metric;

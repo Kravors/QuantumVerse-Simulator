@@ -24,7 +24,7 @@
 namespace quantumverse {
 
 class BransDickeProvider : public CosmologyProvider {
-public:
+   public:
     struct Params {
         double H0 = 67.66;     // km/s/Mpc
         double Om = 0.3111;    // matter
@@ -43,35 +43,54 @@ public:
     explicit BransDickeProvider(Params p);
 
     /** Arbitrary cosmology, all quantities in CosmologyProvider units. */
-    BransDickeProvider(double H0, double OmegaM, double OmegaB, double OmegaR,
-                       double OmegaLambda, double OmegaK, double Tcmb0,
-                       double omega);
+    BransDickeProvider(double H0, double OmegaM, double OmegaB, double OmegaR, double OmegaLambda,
+                       double OmegaK, double Tcmb0, double omega);
 
-    QString name()             const override { return QStringLiteral("Brans-Dicke"); }
-    QString parametersSource() const override { return m_parametersSource; }
+    QString name() const override {
+        return QStringLiteral("Brans-Dicke");
+    }
+    QString parametersSource() const override {
+        return m_parametersSource;
+    }
 
-    double H0()          const override { return m_H0; }
-    double OmegaM()      const override { return m_Om; }
-    double OmegaB()      const override { return m_Ob; }
-    double OmegaR()      const override { return m_Or; }
-    double OmegaLambda() const override { return m_OL; }
-    double OmegaK()      const override { return m_Ok; }
-    double Tcmb0()       const override { return m_Tcmb; }
-    double omega()       const { return m_omega; }   // Brans-Dicke coupling
+    double H0() const override {
+        return m_H0;
+    }
+    double OmegaM() const override {
+        return m_Om;
+    }
+    double OmegaB() const override {
+        return m_Ob;
+    }
+    double OmegaR() const override {
+        return m_Or;
+    }
+    double OmegaLambda() const override {
+        return m_OL;
+    }
+    double OmegaK() const override {
+        return m_Ok;
+    }
+    double Tcmb0() const override {
+        return m_Tcmb;
+    }
+    double omega() const {
+        return m_omega;
+    }  // Brans-Dicke coupling
 
-    double H(double z)                        const override;
-    double comovingDistance(double z)         const override;
-    double luminosityDistance(double z)       const override;
-    double angularDiameterDistance(double z)  const override;
-    double distanceModulus(double z)          const override;
-    double ageAtRedshift(double z)            const override;
-    double lookbackTime(double z)             const override;
-    double decelerationParameter(double z)    const override;
-    double soundHorizon()                     const override;
-    double growthFactor(double z)             const override;
-    double criticalDensity()                  const override;
+    double H(double z) const override;
+    double comovingDistance(double z) const override;
+    double luminosityDistance(double z) const override;
+    double angularDiameterDistance(double z) const override;
+    double distanceModulus(double z) const override;
+    double ageAtRedshift(double z) const override;
+    double lookbackTime(double z) const override;
+    double decelerationParameter(double z) const override;
+    double soundHorizon() const override;
+    double growthFactor(double z) const override;
+    double criticalDensity() const override;
 
-private:
+   private:
     /** GR/ΛCDM growth factor (Carroll-Press-Turner fit, D(0)=1). */
     double grGrowthFactor(double z) const;
     double integrateHInv(double z1, double z2, int steps = 4096) const;
@@ -87,6 +106,6 @@ private:
     double m_omega = 50.0;   // Brans-Dicke coupling
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_BRANS_DICKE_PROVIDER_H
+#endif  // QUANTUMVERSE_BRANS_DICKE_PROVIDER_H

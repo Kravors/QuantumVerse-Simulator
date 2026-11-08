@@ -1,15 +1,15 @@
 /**
  * @file SpinNetwork.h
  * @brief Spin Network data structure for Loop Quantum Gravity
- * 
+ *
  * A spin network is a graph with:
  * - Edges labeled by SU(2) spins (half-integers j = 0, 1/2, 1, ...)
  * - Vertices labeled by intertwiners (gauge-invariant tensors)
- * 
+ *
  * Spin networks represent quantum states of 3D geometry in LQG.
  * The spin foam formalism describes dynamics as a superposition of
  * 2-complexes (histories of spin networks).
- * 
+ *
  * References:
  * - Perez (2013): "The Spin Foam Approach to Quantum Gravity"
  * - Rovelli (2004): "Quantum Gravity"
@@ -19,11 +19,11 @@
 #ifndef QUANTUMVERSE_SPINNETWORK_H
 #define QUANTUMVERSE_SPINNETWORK_H
 
-#include <vector>
 #include <array>
-#include <memory>
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
+#include <memory>
+#include <vector>
 
 // GSL header for Wigner 3j/6j symbols - optional for spin network amplitudes
 // If GSL is not available, spin coupling functions fall back to direct computation
@@ -35,7 +35,7 @@ namespace quantumverse {
 
 /**
  * @brief Spin quantum number (half-integer representation)
- * 
+ *
  * Stores spin j as integer = 2*j to avoid floating point.
  * Example: j=0 -> 0, j=1/2 -> 1, j=1 -> 2, j=3/2 -> 3
  */
@@ -43,12 +43,12 @@ using Spin = int;
 
 /**
  * @brief Intertwiner index (for multiple intertwiners at a vertex)
- * 
+ *
  * In SU(2) theory, an intertwiner is an invariant tensor contracting
  * the representations on incident edges. For a vertex with n edges,
  * the space of intertwiners is equivalent to the space of SU(2)
  * invariant tensors with n indices.
- * 
+ *
  * For simplicity, we use an integer index to select a particular
  * intertwiner basis state (e.g., via Clebsch-Gordan decomposition).
  */
@@ -63,9 +63,13 @@ struct Edge {
     Spin spin;            // SU(2) spin label (2*j)
     IntertwinerIndex i1;  // Intertwiner index at vertex1 (for half-edge)
     IntertwinerIndex i2;  // Intertwiner index at vertex2
-    
+
     Edge(int v1, int v2, Spin s, IntertwinerIndex i1_ = 0, IntertwinerIndex i2_ = 0)
-        : vertex1(v1), vertex2(v2), spin(s), i1(i1_), i2(i2_) {}
+        : vertex1(v1),
+          vertex2(v2),
+          spin(s),
+          i1(i1_),
+          i2(i2_) {}
 };
 
 /**
@@ -74,49 +78,60 @@ struct Edge {
 struct Vertex {
     std::vector<int> incident_edges;  // Indices into SpinNetwork::edges
     IntertwinerIndex intertwiner;     // Gauge-invariant label
-    
+
     Vertex() : intertwiner(0) {}
 };
 
 /**
  * @class SpinNetwork
  * @brief Quantum state of 3D geometry (spin network graph)
- * 
+ *
  * Encodes a discrete quantum geometry state according to LQG.
  * Each edge carries a spin j ~ area, each vertex carries an
  * intertwiner i ~ volume.
- * 
+ *
  * The network can be:
  * - Closed (no boundary) - represents a closed 3-manifold
  * - Open (with boundary) - represents a region with boundary
- * 
+ *
  * The total Hilbert space dimension grows rapidly with spins.
  */
 class SpinNetwork {
-private:
+   private:
     std::vector<Vertex> vertices;
     std::vector<Edge> edges;
-    
+
     // Boundary spins (for open networks)
     std::vector<int> boundary_edges;  // Indices of edges with open ends
-    
-public:
+
+   public:
     SpinNetwork() = default;
-    
+
     /**
      * @brief Construct a simple spin network from edge list
      */
     SpinNetwork(const std::vector<Edge>& edges_, const std::vector<Vertex>& vertices_)
-        : vertices(vertices_), edges(edges_) {}
-    
+        : vertices(vertices_),
+          edges(edges_) {}
+
     // Accessors
-    const std::vector<Edge>& getEdges() const { return edges; }
-    const std::vector<Vertex>& getVertices() const { return vertices; }
-    const std::vector<int>& getBoundaryEdges() const { return boundary_edges; }
-    
-    int numVertices() const { return static_cast<int>(vertices.size()); }
-    int numEdges() const { return static_cast<int>(edges.size()); }
-    
+    const std::vector<Edge>& getEdges() const {
+        return edges;
+    }
+    const std::vector<Vertex>& getVertices() const {
+        return vertices;
+    }
+    const std::vector<int>& getBoundaryEdges() const {
+        return boundary_edges;
+    }
+
+    int numVertices() const {
+        return static_cast<int>(vertices.size());
+    }
+    int numEdges() const {
+        return static_cast<int>(edges.size());
+    }
+
     /**
      * @brief Add a vertex with given incident edges
      */
@@ -128,7 +143,7 @@ public:
         vertices.push_back(v);
         return static_cast<int>(vertices.size() - 1);
     }
-    
+
     /**
      * @brief Add an edge between two vertices
      */
@@ -138,14 +153,14 @@ public:
         vertices[v2].incident_edges.push_back(static_cast<int>(edges.size() - 1));
         return static_cast<int>(edges.size() - 1);
     }
-    
+
     /**
      * @brief Mark an edge as boundary (open end)
      */
     void markBoundary(int edge_index) {
         boundary_edges.push_back(edge_index);
     }
-    
+
     /**
      * @brief Compute total quantum number (sum of spins) - used for normalization
      */
@@ -156,28 +171,28 @@ public:
         }
         return sum;
     }
-    
+
     /**
      * @brief Check if network is closed (no boundary)
      */
     bool isClosed() const {
         return boundary_edges.empty();
     }
-    
+
     /**
      * @brief Clone the spin network (deep copy)
      */
     std::unique_ptr<SpinNetwork> clone() const {
         return std::make_unique<SpinNetwork>(edges, vertices);
     }
-    
+
     /**
      * @brief Compute the dimension of the intertwiner space at a vertex
-     * 
+     *
      * For a vertex with n incident edges of spins j1, ..., jn,
      * the intertwiner space dimension is given by the number of
      * ways to couple the spins to total J=0.
-     * 
+     *
      * For n=3: dim = 1 if triangle inequality satisfied, else 0
      * For n=4: dim = min(2j1,2j2,2j3,2j4) + 1 (roughly)
      */
@@ -196,31 +211,31 @@ public:
         // For higher valency, would need to compute CG coefficients
         return 1;  // Placeholder
     }
-    
+
     /**
      * @brief Compute the amplitude of this spin network state
-     * 
+     *
      * In the kinematical Hilbert space, each spin network state
      * |Γ, j, i⟩ is an orthonormal basis state. Its "amplitude"
      * is just 1 (normalized).
-     * 
+     *
      * However, in a spin foam (dynamical) context, we assign
      * weights to edges and vertices. This method computes the
      * product of vertex and edge weights for a given state.
-     * 
+     *
      * @param edge_weight Function: spin -> weight (e.g., (2j+1) for dimension)
      * @param vertex_weight Function: (spins, intertwiner) -> weight
      * @return Total amplitude (real number)
      */
-    template<typename EdgeWeight, typename VertexWeight>
+    template <typename EdgeWeight, typename VertexWeight>
     double computeAmplitude(EdgeWeight edge_weight, VertexWeight vertex_weight) const {
         double amp = 1.0;
-        
+
         // Edge contributions
         for (const auto& e : edges) {
             amp *= edge_weight(e.spin);
         }
-        
+
         // Vertex contributions
         for (const auto& v : vertices) {
             std::vector<Spin> incident_spins;
@@ -229,36 +244,34 @@ public:
             }
             amp *= vertex_weight(incident_spins, v.intertwiner);
         }
-        
+
         return amp;
     }
-    
+
     /**
      * @brief Default amplitude: product of (2j+1) for edges, 1 for vertices
      * (This gives the dimension of the representation space)
      */
     double defaultAmplitude() const {
-        return computeAmplitude(
-            [](Spin j) { return 2.0 * (j / 2.0) + 1.0; },  // dim = 2j+1
-            [](const std::vector<Spin>&, IntertwinerIndex) { return 1.0; }
-        );
+        return computeAmplitude([](Spin j) { return 2.0 * (j / 2.0) + 1.0; },  // dim = 2j+1
+                                [](const std::vector<Spin>&, IntertwinerIndex) { return 1.0; });
     }
 };
 
 /**
  * @brief Generate a random spin network with given number of vertices
- * 
+ *
  * Used for Monte Carlo sampling in spin foam models.
  */
 SpinNetwork generateRandomSpinNetwork(int num_vertices, int max_spin, double connectivity);
 
 /**
  * @brief Compute the 15j symbol for a closed spin foam vertex
- * 
+ *
  * The 15j symbol is a high-order Wigner symbol that appears in
  * the vertex amplitude of the Lorentzian EPRL spin foam model.
  * It couples 4 tetrahedra (4-valent vertices) in a 4-simplex.
- * 
+ *
  * @param spins Array of 10 spins (j_ab for 10 edges of 4-simplex)
  * @return The 15j symbol value (real number)
  */
@@ -266,16 +279,16 @@ double compute15jSymbol(const std::array<Spin, 10>& spins);
 
 /**
  * @brief Compute the vertex amplitude for a 4-valent vertex in EPRL model
- * 
+ *
  * The EPRL vertex amplitude is:
  * A_v = ∏_e (2j_e + 1) * ∫_{SL(2,C)} dg ∏_e D^{j_e, γ j_e}(g)
- * 
+ *
  * where γ is the Immirzi parameter, and the representation is the
  * unitary irreducible representation of SL(2,C) with spin j and
  * "electric" part γj.
- * 
+ *
  * In the large-spin limit, this reduces to the Regge action.
- * 
+ *
  * @param spins Array of 4 incident edge spins
  * @param gamma Immirzi parameter (typically ~0.274)
  * @return Vertex amplitude (real part)
@@ -284,15 +297,15 @@ double computeEPRLVertexAmplitude(const std::array<Spin, 4>& spins, double gamma
 
 /**
  * @brief Compute the 6j symbol (for simpler SU(2) spin networks)
- * 
+ *
  * The 6j symbol appears in the vertex amplitude of the Riemannian
  * spin foam model (e.g., FK model).
- * 
+ *
  * @param j1, j2, j3, j4, j5, j6 Six spins coupling in a tetrahedral graph
  * @return The 6j symbol value
  */
 double compute6jSymbol(Spin j1, Spin j2, Spin j3, Spin j4, Spin j5, Spin j6);
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_SPINNETWORK_H
+#endif  // QUANTUMVERSE_SPINNETWORK_H

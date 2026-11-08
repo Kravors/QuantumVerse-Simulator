@@ -1,6 +1,6 @@
 #include "Framebuffer.h"
-#include "glad.h"
 #include <cstdint>
+#include "glad.h"
 
 namespace ui4d {
 
@@ -21,9 +21,12 @@ Framebuffer::Framebuffer(int w, int h) : width(w), height(h) {
 }
 
 Framebuffer::~Framebuffer() {
-    if (fboId) glDeleteFramebuffers(1, &fboId);
-    if (textureId) glDeleteTextures(1, &textureId);
-    if (rboId) glDeleteRenderbuffers(1, &rboId);
+    if (fboId)
+        glDeleteFramebuffers(1, &fboId);
+    if (textureId)
+        glDeleteTextures(1, &textureId);
+    if (rboId)
+        glDeleteRenderbuffers(1, &rboId);
 }
 
 void Framebuffer::bind() {
@@ -36,7 +39,8 @@ void Framebuffer::unbind() {
 }
 
 void Framebuffer::resize(int w, int h) {
-    if (w <= 0 || h <= 0) return;
+    if (w <= 0 || h <= 0)
+        return;
     width = w;
     height = h;
     glBindTexture(GL_TEXTURE_2D, textureId);
@@ -45,4 +49,4 @@ void Framebuffer::resize(int w, int h) {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
 }
 
-} // namespace ui4d
+}  // namespace ui4d

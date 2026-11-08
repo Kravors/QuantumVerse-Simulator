@@ -1,12 +1,12 @@
 // QuantumVerse Test: GeodesicNeuralODE Accuracy
 // Tests C++ ONNX Runtime inference pipeline
 
-#include <iostream>
-#include <cmath>
-#include <vector>
 #include <array>
-#include <string>
+#include <cmath>
 #include <cstdlib>
+#include <iostream>
+#include <string>
+#include <vector>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -68,16 +68,11 @@ int main() {
 
     // Test 4: predictBundle parallel integration
     {
-        std::vector<Event4D> events = {
-            Event4D(0.0, 100.0, PI_2, 0.0),
-            Event4D(0.0, 200.0, PI_2, 0.0),
-            Event4D(0.0, 300.0, PI_2, 0.0)
-        };
+        std::vector<Event4D> events = {Event4D(0.0, 100.0, PI_2, 0.0),
+                                       Event4D(0.0, 200.0, PI_2, 0.0),
+                                       Event4D(0.0, 300.0, PI_2, 0.0)};
         std::vector<std::array<double, 4>> velocities = {
-            {1.0, 0.0, 0.0, 0.0},
-            {1.0, 0.0, 0.0, 0.0},
-            {1.0, 0.0, 0.0, 0.0}
-        };
+            {1.0, 0.0, 0.0, 0.0}, {1.0, 0.0, 0.0, 0.0}, {1.0, 0.0, 0.0, 0.0}};
         std::vector<double> metric_params = {27.5};
         double tau = 0.1;
 

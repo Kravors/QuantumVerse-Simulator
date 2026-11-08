@@ -11,8 +11,8 @@
 #ifndef QUANTUMVERSE_ALERT_LISTENER_H
 #define QUANTUMVERSE_ALERT_LISTENER_H
 
-#include <QObject>
 #include <QJsonObject>
+#include <QObject>
 #include <QStringList>
 
 namespace quantumverse {
@@ -20,10 +20,9 @@ namespace quantumverse {
 /**
  * @brief Abstract base for alert stream listeners
  */
-class AlertListener : public QObject
-{
+class AlertListener : public QObject {
     Q_OBJECT
-public:
+   public:
     explicit AlertListener(QObject* parent = nullptr);
     virtual ~AlertListener() = default;
 
@@ -34,20 +33,24 @@ public:
     virtual void stop() = 0;
 
     /** @brief Configure the alert topics/channels to subscribe to. */
-    void setTopics(const QStringList& topics) { m_topics = topics; }
-    QStringList topics() const { return m_topics; }
+    void setTopics(const QStringList& topics) {
+        m_topics = topics;
+    }
+    QStringList topics() const {
+        return m_topics;
+    }
 
-signals:
+   signals:
     /**
      * @brief Emitted when a new alert has been parsed from the stream.
      * @param alert Parsed alert payload as a JSON object.
      */
     void alertReceived(const QJsonObject& alert);
 
-protected:
+   protected:
     QStringList m_topics;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_ALERT_LISTENER_H
+#endif  // QUANTUMVERSE_ALERT_LISTENER_H

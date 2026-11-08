@@ -24,21 +24,27 @@ namespace quantumverse {
  */
 
 class GWRingdownExperiment : public Experiment {
-public:
-    QString id()          const override { return QStringLiteral("gw_ringdown"); }
-    QString name()        const override { return QStringLiteral("GW Ringdown QNMs (l=m=2, n=0)"); }
-    QString category()    const override { return QStringLiteral("Gravitational Waves"); }
+   public:
+    QString id() const override {
+        return QStringLiteral("gw_ringdown");
+    }
+    QString name() const override {
+        return QStringLiteral("GW Ringdown QNMs (l=m=2, n=0)");
+    }
+    QString category() const override {
+        return QStringLiteral("Gravitational Waves");
+    }
     QString description() const override {
-        return QStringLiteral("Berti table VIII QNM ringdown waveform: damped sinusoid "
-                              "h(t) = A * exp(-t/tau) * cos(2*pi*f_R*t) with table-based "
-                              "f_R and tau interpolation over spin a*.");
+        return QStringLiteral(
+            "Berti table VIII QNM ringdown waveform: damped sinusoid "
+            "h(t) = A * exp(-t/tau) * cos(2*pi*f_R*t) with table-based "
+            "f_R and tau interpolation over spin a*.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GW_RINGDOWN_EXPERIMENT_H
+#endif  // QUANTUMVERSE_GW_RINGDOWN_EXPERIMENT_H

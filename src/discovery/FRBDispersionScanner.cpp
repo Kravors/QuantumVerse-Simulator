@@ -4,8 +4,8 @@
  */
 
 #include "FRBDispersionScanner.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,21 +13,20 @@
 
 namespace quantumverse {
 
-FRBDispersionScanner::FRBDispersionScanner()
-{
+FRBDispersionScanner::FRBDispersionScanner() {
     setParameter("chi2_threshold", 4.0);
     setParameter("min_points", 3.0);
 }
 
-std::vector<InstrumentFinding> FRBDispersionScanner::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+FRBDispersionScanner::analyze(const MetricTensor& metric, const Event4D& location,
+                              const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
     double minPoints = getParameter("min_points");
-    if (trajectory.size() < static_cast<size_t>(minPoints)) return findings;
+    if (trajectory.size() < static_cast<size_t>(minPoints))
+        return findings;
 
     double threshold = getParameter("chi2_threshold");
 
@@ -45,7 +44,8 @@ std::vector<InstrumentFinding> FRBDispersionScanner::analyze(
             return findings;
         }
 
-        if (uncertainty <= 0.0) continue;
+        if (uncertainty <= 0.0)
+            continue;
 
         double residual = observedDM - expectedDM;
         double sigma = residual / uncertainty;
@@ -54,7 +54,8 @@ std::vector<InstrumentFinding> FRBDispersionScanner::analyze(
         valid++;
     }
 
-    if (valid < static_cast<int>(minPoints)) return findings;
+    if (valid < static_cast<int>(minPoints))
+        return findings;
 
     double reducedChi2 = chi2 / valid;
 
@@ -66,8 +67,8 @@ std::vector<InstrumentFinding> FRBDispersionScanner::analyze(
         finding.instrumentName = getName();
         finding.severity = confidenceToSeverity(confidence);
         finding.confidence = confidence;
-        finding.description = "FRB dispersion anomaly: reduced chi-squared = "
-            + std::to_string(reducedChi2) +
+        finding.description =
+            "FRB dispersion anomaly: reduced chi-squared = " + std::to_string(reducedChi2) +
             " (threshold = " + std::to_string(threshold) +
             "). Max DM excess = " + std::to_string(maxExcess) +
             " sigma. Possible new plasma structure or modified dispersion physics.";
@@ -85,8 +86,7 @@ std::vector<InstrumentFinding> FRBDispersionScanner::analyze(
     return findings;
 }
 
-double FRBDispersionScanner::expectedGalacticDM(double gl, double gb)
-{
+double FRBDispersionScanner::expectedGalacticDM(double gl, double gb) {
     if (std::isnan(gl) || std::isnan(gb) || std::isinf(gl) || std::isinf(gb)) {
         return 0.0;
     }
@@ -97,4 +97,4 @@ double FRBDispersionScanner::expectedGalacticDM(double gl, double gb)
     return std::max(0.0, baseDM * lonFactor);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

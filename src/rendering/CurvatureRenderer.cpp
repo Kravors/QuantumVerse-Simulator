@@ -11,19 +11,18 @@
 // before any system <GL/gl.h> is pulled in by other headers
 #include "glad.h"
 
-#include "CurvatureRenderer.h"
-#include "../physics/CurvatureCalculator.h"
-#include <cstdlib>
-#include <string>
-#include <QVector4D>
 #include <QDebug>
-#include <cmath>
+#include <QVector4D>
 #include <algorithm>
-#include <cstdlib>
+#include <cmath>
 #include <cstdio>
-#include <iostream>
+#include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <sstream>
+#include <string>
+#include "../physics/CurvatureCalculator.h"
+#include "CurvatureRenderer.h"
 #ifdef _WIN32
 #include <windows.h>  // Required for GetEnvironmentVariableA in isTruthyEnvironmentFlag
 #endif
@@ -60,98 +59,108 @@ static unsigned int fallbackShaderId = 0;
 // ShaderProgram Implementation
 // ============================================================================
 
-void ShaderProgram::use() const
-{
+void ShaderProgram::use() const {
     glUseProgram(id);
 }
 
-void ShaderProgram::release() const
-{
+void ShaderProgram::release() const {
     glUseProgram(0);
 }
 
-void ShaderProgram::setUniform(const char* name, float value) const
-{
+void ShaderProgram::setUniform(const char* name, float value) const {
     GLint loc = glGetUniformLocation(id, name);
-    if (loc >= 0) glUniform1f(loc, value);
+    if (loc >= 0)
+        glUniform1f(loc, value);
 }
 
-void ShaderProgram::setUniform(const char* name, int value) const
-{
+void ShaderProgram::setUniform(const char* name, int value) const {
     GLint loc = glGetUniformLocation(id, name);
-    if (loc >= 0) glUniform1i(loc, value);
+    if (loc >= 0)
+        glUniform1i(loc, value);
 }
 
-void ShaderProgram::setUniform(const char* name, const float* matrix) const
-{
+void ShaderProgram::setUniform(const char* name, const float* matrix) const {
     GLint loc = glGetUniformLocation(id, name);
-    if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, matrix);
+    if (loc >= 0)
+        glUniformMatrix4fv(loc, 1, GL_FALSE, matrix);
 }
 
-void ShaderProgram::setUniform(const char* name, const double* matrix) const
-{
+void ShaderProgram::setUniform(const char* name, const double* matrix) const {
     // Convert double array to float array for OpenGL
     static thread_local float floatMatrix[16];
     for (int i = 0; i < 16; i++) {
         floatMatrix[i] = static_cast<float>(matrix[i]);
     }
     GLint loc = glGetUniformLocation(id, name);
-    if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, floatMatrix);
+    if (loc >= 0)
+        glUniformMatrix4fv(loc, 1, GL_FALSE, floatMatrix);
 }
 
-void ShaderProgram::setUniform(const char* name, const QVector4D& color) const
-{
+void ShaderProgram::setUniform(const char* name, const QVector4D& color) const {
     GLint loc = glGetUniformLocation(id, name);
-    if (loc >= 0) glUniform4f(loc, color.x(), color.y(), color.z(), color.w());
+    if (loc >= 0)
+        glUniform4f(loc, color.x(), color.y(), color.z(), color.w());
 }
 
 // ============================================================================
 // CurvatureRenderer Implementation
 // ============================================================================
 
-CurvatureRenderer::CurvatureRenderer(
-    int resolution,
-    float size,
-    CurvatureMode initialMode
-) : gridResolution(resolution), gridSize(size), mode(initialMode),
-     wireframe(false), showGrid(true), showLightCones(false),
-     vao(0), vbo(0), ebo(0), time(0.0f), animationSpeed(1.0f),
-      m_initialized(false), lodLevel(0), cacheValid(false),
-     lightConeVao(0), lightConeVbo(0), lightConeEbo(0),
-     lightConeBuffersInitialized(false),
-     fallbackVao(0), fallbackVbo(0),
-     cellsPerDimension(4),
-     m_planeMode(true), m_planeResolution(500),
-     m_deformationScale(1.0f),
-     gridSSBO(0), gridWidth(500), gridHeight(500),
-     computeBuffersInitialized(false), m_computeDirty(false),
-     m_gridZMin(0.0f), m_gridZMax(0.0f),
+CurvatureRenderer::CurvatureRenderer(int resolution, float size, CurvatureMode initialMode)
+    : gridResolution(resolution),
+      gridSize(size),
+      mode(initialMode),
+      wireframe(false),
+      showGrid(true),
+      showLightCones(false),
+      vao(0),
+      vbo(0),
+      ebo(0),
+      time(0.0f),
+      animationSpeed(1.0f),
+      m_initialized(false),
+      lodLevel(0),
+      cacheValid(false),
+      lightConeVao(0),
+      lightConeVbo(0),
+      lightConeEbo(0),
+      lightConeBuffersInitialized(false),
+      fallbackVao(0),
+      fallbackVbo(0),
+      cellsPerDimension(4),
+      m_planeMode(true),
+      m_planeResolution(500),
+      m_deformationScale(1.0f),
+      gridSSBO(0),
+      gridWidth(500),
+      gridHeight(500),
+      computeBuffersInitialized(false),
+      m_computeDirty(false),
+      m_gridZMin(0.0f),
+      m_gridZMax(0.0f),
       m_lastEpoch(uint64_t(-1)),
-     neuralODE(nullptr), neuralPool(nullptr),
-     neuralGeoVao(0), neuralGeoVbo(0), neuralGeoVertexCount(0),
-     neuralGeoBuffersInitialized(false), m_showNeuralGeodesics(false)
-{
-     // Only initialize non-OpenGL data in constructor
-     // OpenGL resources (VBOs, VAOs, shaders) are initialized lazily in initializeGL()
-     initializeGrid();
-     initializeSpatialPartitioning();
+      neuralODE(nullptr),
+      neuralPool(nullptr),
+      neuralGeoVao(0),
+      neuralGeoVbo(0),
+      neuralGeoVertexCount(0),
+      neuralGeoBuffersInitialized(false),
+      m_showNeuralGeodesics(false) {
+    // Only initialize non-OpenGL data in constructor
+    // OpenGL resources (VBOs, VAOs, shaders) are initialized lazily in initializeGL()
+    initializeGrid();
+    initializeSpatialPartitioning();
 }
 
-CurvatureRenderer::~CurvatureRenderer()
-{
+CurvatureRenderer::~CurvatureRenderer() {
     // Cleanup is handled externally when GL context is active
 }
 
-void CurvatureRenderer::initializeFallbackGeometry()
-{
+void CurvatureRenderer::initializeFallbackGeometry() {
     // Create a simple quad for fallback rendering (magenta warning square)
-    float quadVertices[] = {
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-         0.5f,  0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f
-    };
-    
+    float quadVertices[] = {-0.5f, -0.5f, 0.0f, 0.5f,  -0.5f, 0.0f,
+                            0.5f,  0.5f,  0.0f, -0.5f, 0.5f,  0.0f};
+
     glGenVertexArrays(1, &fallbackVao);
     glGenBuffers(1, &fallbackVbo);
     glBindVertexArray(fallbackVao);
@@ -162,9 +171,9 @@ void CurvatureRenderer::initializeFallbackGeometry()
     glBindVertexArray(0);
 }
 
-void CurvatureRenderer::initializeGL()
-{
-    if (m_initialized) return;
+void CurvatureRenderer::initializeGL() {
+    if (m_initialized)
+        return;
 
     // Initialize fallback geometry first
     initializeFallbackGeometry();
@@ -176,17 +185,13 @@ void CurvatureRenderer::initializeGL()
     // Generate VBO
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER,
-                 vertices.size() * sizeof(CurvatureVertex),
-                 vertices.data(),
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(CurvatureVertex), vertices.data(),
                  GL_DYNAMIC_DRAW);
 
     // Generate EBO
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 indices.size() * sizeof(unsigned int),
-                 indices.data(),
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
                  GL_STATIC_DRAW);
 
     // Vertex attributes layout matches CurvatureVertex struct:
@@ -197,24 +202,23 @@ void CurvatureRenderer::initializeGL()
     //   location 4: time_dilation (1 float) offset 44
     // Total stride = 48 bytes (12 floats)
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                        sizeof(CurvatureVertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CurvatureVertex), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                        sizeof(CurvatureVertex), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(CurvatureVertex),
+                          (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
-                        sizeof(CurvatureVertex), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(CurvatureVertex),
+                          (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE,
-                        sizeof(CurvatureVertex), (void*)(10 * sizeof(float)));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(CurvatureVertex),
+                          (void*)(10 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE,
-                        sizeof(CurvatureVertex), (void*)(11 * sizeof(float)));
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(CurvatureVertex),
+                          (void*)(11 * sizeof(float)));
     glEnableVertexAttribArray(4);
 
     glBindVertexArray(0);
@@ -472,7 +476,8 @@ void CurvatureRenderer::initializeGL()
         if (!success) {
             char infoLog[512];
             glGetShaderInfoLog(computeShaderId, 512, nullptr, infoLog);
-            std::cerr << "[CurvatureRenderer] Compute shader compilation failed:\n" << infoLog << std::endl;
+            std::cerr << "[CurvatureRenderer] Compute shader compilation failed:\n"
+                      << infoLog << std::endl;
         } else {
             computeShader.id = glCreateProgram();
             glAttachShader(computeShader.id, computeShaderId);
@@ -481,19 +486,23 @@ void CurvatureRenderer::initializeGL()
             if (!success) {
                 char infoLog[512];
                 glGetProgramInfoLog(computeShader.id, 512, nullptr, infoLog);
-                std::cerr << "[CurvatureRenderer] Compute program linking failed:\n" << infoLog << std::endl;
+                std::cerr << "[CurvatureRenderer] Compute program linking failed:\n"
+                          << infoLog << std::endl;
             }
             glDeleteShader(computeShaderId);
-            std::cout << "[CurvatureRenderer] Compute shader compiled successfully (id=" << computeShader.id << ")" << std::endl;
+            std::cout << "[CurvatureRenderer] Compute shader compiled successfully (id="
+                      << computeShader.id << ")" << std::endl;
         }
     } else {
-        std::cerr << "[CurvatureRenderer] WARNING: Could not load curvature_compute.comp" << std::endl;
+        std::cerr << "[CurvatureRenderer] WARNING: Could not load curvature_compute.comp"
+                  << std::endl;
     }
 
     // Initialize grid SSBO for compute shader
     glGenBuffers(1, &gridSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gridSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, vertices.size() * sizeof(float) * 4, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, vertices.size() * sizeof(float) * 4, nullptr,
+                 GL_DYNAMIC_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     computeBuffersInitialized = true;
@@ -502,18 +511,18 @@ void CurvatureRenderer::initializeGL()
     neuralODE = std::make_unique<quantumverse::ml::GeodesicNeuralODE>(1);
     neuralPool = std::make_unique<utils::ThreadPool>(4);
     if (neuralODE->loadONNXModel("rl_discovery_agent.onnx")) {
-        std::cout << "[CurvatureRenderer] Neural ODE model loaded for geodesic tracing" << std::endl;
+        std::cout << "[CurvatureRenderer] Neural ODE model loaded for geodesic tracing"
+                  << std::endl;
     } else {
-        std::cerr << "[CurvatureRenderer] WARNING: Could not load Neural ODE model for geodesics" << std::endl;
+        std::cerr << "[CurvatureRenderer] WARNING: Could not load Neural ODE model for geodesics"
+                  << std::endl;
     }
 
     m_initialized = true;
 }
 
-bool CurvatureRenderer::compileShader(unsigned int& program,
-                                        const char* vertexSource,
-                                        const char* fragmentSource)
-{
+bool CurvatureRenderer::compileShader(unsigned int& program, const char* vertexSource,
+                                      const char* fragmentSource) {
     // Delete prior program if present to avoid resource leak on recompile
     if (program != 0) {
         glDeleteProgram(program);
@@ -523,7 +532,8 @@ bool CurvatureRenderer::compileShader(unsigned int& program,
     // Log shader source for debugging (only in debug builds)
     if (isTruthyEnvironmentFlag("QUANTUMVERSE_DEBUG_SHADERS")) {
         std::fprintf(stderr, "[CurvatureRenderer] Compiling vertex shader:\n%s\n", vertexSource);
-        std::fprintf(stderr, "[CurvatureRenderer] Compiling fragment shader:\n%s\n", fragmentSource);
+        std::fprintf(stderr, "[CurvatureRenderer] Compiling fragment shader:\n%s\n",
+                     fragmentSource);
     }
 
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -574,9 +584,10 @@ bool CurvatureRenderer::compileShader(unsigned int& program,
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    
+
     if (success != 0) {
-        std::fprintf(stderr, "[CurvatureRenderer] Shader program compiled successfully (id=%u)\n", program);
+        std::fprintf(stderr, "[CurvatureRenderer] Shader program compiled successfully (id=%u)\n",
+                     program);
     }
     return success != 0;
 }
@@ -587,13 +598,14 @@ static bool isTruthyEnvironmentFlag(const char* name) {
     char value[32]{};
     const DWORD length = GetEnvironmentVariableA(name, value, sizeof(value));
     return length > 0 && length < sizeof(value) &&
-           (value[0] == '1' || value[0] == 't' || value[0] == 'T' ||
-            value[0] == 'y' || value[0] == 'Y');
+           (value[0] == '1' || value[0] == 't' || value[0] == 'T' || value[0] == 'y' ||
+            value[0] == 'Y');
 #else
     const char* value = std::getenv(name);
-    if (!value || value[0] == '\0') return false;
-    return (value[0] == '1' || value[0] == 't' || value[0] == 'T' ||
-            value[0] == 'y' || value[0] == 'Y');
+    if (!value || value[0] == '\0')
+        return false;
+    return (value[0] == '1' || value[0] == 't' || value[0] == 'T' || value[0] == 'y' ||
+            value[0] == 'Y');
 #endif
 }
 
@@ -609,9 +621,7 @@ static std::string loadShaderFromFile(const std::string& path) {
     return ss.str();
 }
 
-
-void CurvatureRenderer::initializeLightConeBuffers()
-{
+void CurvatureRenderer::initializeLightConeBuffers() {
     // Generate VAO
     glGenVertexArrays(1, &lightConeVao);
     glBindVertexArray(lightConeVao);
@@ -628,48 +638,46 @@ void CurvatureRenderer::initializeLightConeBuffers()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                        sizeof(LightConeVertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(LightConeVertex), (void*)0);
     glEnableVertexAttribArray(0);
 
     // Color attribute (overlay shader expects aColor at location 1)
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE,
-                        sizeof(LightConeVertex), (void*)(sizeof(float) * 3));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(LightConeVertex),
+                          (void*)(sizeof(float) * 3));
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
     lightConeBuffersInitialized = true;
 }
 
-void CurvatureRenderer::initializeSpatialPartitioning()
-{
+void CurvatureRenderer::initializeSpatialPartitioning() {
     // Create spatial partitioning grid for LOD updates
-    cellsPerDimension = 4; // 4x4x4 = 64 cells
+    cellsPerDimension = 4;  // 4x4x4 = 64 cells
     int totalCells = cellsPerDimension * cellsPerDimension * cellsPerDimension;
     gridCells.resize(totalCells);
 
-    int verticesPerCell = (gridResolution / cellsPerDimension) * 
-                         (gridResolution / cellsPerDimension) * 
-                         (gridResolution / cellsPerDimension);
+    int verticesPerCell = (gridResolution / cellsPerDimension) *
+                          (gridResolution / cellsPerDimension) *
+                          (gridResolution / cellsPerDimension);
 
     for (int i = 0; i < cellsPerDimension; i++) {
         for (int j = 0; j < cellsPerDimension; j++) {
             for (int k = 0; k < cellsPerDimension; k++) {
-                int cellIndex = i * cellsPerDimension * cellsPerDimension + 
-                               j * cellsPerDimension + k;
-                gridCells[cellIndex].startIndex = 
+                int cellIndex =
+                    i * cellsPerDimension * cellsPerDimension + j * cellsPerDimension + k;
+                gridCells[cellIndex].startIndex =
                     (i * (gridResolution / cellsPerDimension) * gridResolution * gridResolution) +
                     (j * (gridResolution / cellsPerDimension) * gridResolution) +
                     (k * (gridResolution / cellsPerDimension));
-                gridCells[cellIndex].endIndex = gridCells[cellIndex].startIndex + verticesPerCell - 1;
+                gridCells[cellIndex].endIndex =
+                    gridCells[cellIndex].startIndex + verticesPerCell - 1;
                 gridCells[cellIndex].needsUpdate = true;
             }
         }
     }
 }
 
-void CurvatureRenderer::render(const float* viewMatrix, const float* projectionMatrix)
-{
+void CurvatureRenderer::render(const float* viewMatrix, const float* projectionMatrix) {
     static int s_callCount = 0;
     if (s_callCount++ < 5) {
         std::cout << "[CurvatureRenderer] render() ENTERED, call #" << s_callCount << std::endl;
@@ -684,20 +692,16 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
         glUseProgram(fallbackShaderId);
         glBindVertexArray(fallbackVao);
         // Simple orthographic projection for fallback
-        float mvp[16] = {
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-        };
+        float mvp[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
         GLint loc = glGetUniformLocation(fallbackShaderId, "mvp");
-        if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, mvp);
+        if (loc >= 0)
+            glUniformMatrix4fv(loc, 1, GL_FALSE, mvp);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         glBindVertexArray(0);
         glUseProgram(0);
         return;
     }
-    
+
     if (!showGrid) {
         static int s_showGridCount = 0;
         if (s_showGridCount++ < 5) {
@@ -705,13 +709,14 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
         }
         return;
     }
-    
+
     static int s_renderCount = 0;
     if (s_renderCount++ < 5) {
-        std::cout << "[CurvatureRenderer] render() called, showGrid=true, mode=" << static_cast<int>(mode)
-                  << ", planeMode=" << m_planeMode << ", vertices=" << vertices.size() << std::endl;
+        std::cout << "[CurvatureRenderer] render() called, showGrid=true, mode="
+                  << static_cast<int>(mode) << ", planeMode=" << m_planeMode
+                  << ", vertices=" << vertices.size() << std::endl;
     }
-    
+
     // [DIAG] Save the current FBO so we can restore it after drawing.
     // This prevents state leakage that could cause the QML FBO screenshot
     // to capture the wrong buffer (black screen bug).
@@ -763,37 +768,37 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
     if (m_computeDirty && computeBuffersInitialized && computeShader.id != 0) {
         // Bind VAO first (required for vertex attribute state)
         glBindVertexArray(vao);
-        
+
         // Bind SSBO as the vertex buffer source for position attribute
         glBindBuffer(GL_ARRAY_BUFFER, gridSSBO);
-        
+
         // Position attribute: read vec4(x, y, z, displacement) from SSBO
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-        
+
         // Disable other attributes (color computed in fragment shader from displacement)
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
         glDisableVertexAttribArray(3);
         glDisableVertexAttribArray(4);
 
-    shader->use();
-    shader->setUniform("viewMatrix", viewMatrix);
-    shader->setUniform("projectionMatrix", projectionMatrix);
-    shader->setUniform("time", time);
-    shader->setUniform("curvatureScale", m_deformationScale);
-    shader->setUniform("curvatureMode", static_cast<int>(mode));
-    shader->setUniform("useSSBO", 1);
-    shader->setUniform("u_global_alpha", m_globalAlpha);
+        shader->use();
+        shader->setUniform("viewMatrix", viewMatrix);
+        shader->setUniform("projectionMatrix", projectionMatrix);
+        shader->setUniform("time", time);
+        shader->setUniform("curvatureScale", m_deformationScale);
+        shader->setUniform("curvatureMode", static_cast<int>(mode));
+        shader->setUniform("useSSBO", 1);
+        shader->setUniform("u_global_alpha", m_globalAlpha);
 
         glDisable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES,
-                       static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+        glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES, static_cast<GLsizei>(indices.size()),
+                       GL_UNSIGNED_INT, 0);
         glDisable(GL_DEPTH_TEST);
-        
+
         if (wireframe)
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -806,8 +811,8 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES,
-                       static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+        glDrawElements(wireframe ? GL_LINES : GL_TRIANGLES, static_cast<GLsizei>(indices.size()),
+                       GL_UNSIGNED_INT, 0);
         glDisable(GL_DEPTH_TEST);
         glBindVertexArray(0);
         if (wireframe)
@@ -834,9 +839,9 @@ void CurvatureRenderer::render(const float* viewMatrix, const float* projectionM
         renderNeuralGeodesics(viewMatrix, projectionMatrix);
 }
 
-void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* projectionMatrix)
-{
-    if (!m_initialized || !m_showErgosphere) return;
+void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* projectionMatrix) {
+    if (!m_initialized || !m_showErgosphere)
+        return;
 
     // (Re)generate ergosphere mesh if spin/mass changed
     if (!ergoBuffersInitialized || m_ergoSpin != m_lastErgoSpin || m_ergoMass != m_lastErgoMass) {
@@ -845,7 +850,8 @@ void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* p
         m_lastErgoMass = m_ergoMass;
     }
 
-    if (ergoVertexCount == 0) return;
+    if (ergoVertexCount == 0)
+        return;
 
     ergoShader.use();
     ergoShader.setUniform("viewMatrix", viewMatrix);
@@ -858,7 +864,7 @@ void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* p
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE); // Don't write depth so horizon shows through
+    glDepthMask(GL_FALSE);  // Don't write depth so horizon shows through
 
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ergoVertexCount), GL_UNSIGNED_INT, 0);
 
@@ -867,8 +873,7 @@ void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* p
     ergoShader.release();
 }
 
-void CurvatureRenderer::generateErgosphereMesh()
-{
+void CurvatureRenderer::generateErgosphereMesh() {
     // Clean up old buffers
     if (ergoBuffersInitialized) {
         glDeleteBuffers(1, &ergoVbo);
@@ -885,7 +890,7 @@ void CurvatureRenderer::generateErgosphereMesh()
     std::vector<unsigned int> indices;
 
     for (int i = 0; i <= latRes; ++i) {
-        double theta = 3.141592653589793 * i / latRes; // 0 to pi
+        double theta = 3.141592653589793 * i / latRes;  // 0 to pi
         double cosT = cos(theta);
         double sinT = sin(theta);
 
@@ -894,7 +899,7 @@ void CurvatureRenderer::generateErgosphereMesh()
         double rE = M + sqrt((disc > 0.0) ? disc : 0.0);
 
         for (int j = 0; j <= lonRes; ++j) {
-            double phi = 2.0 * 3.141592653589793 * j / lonRes; // 0 to 2pi
+            double phi = 2.0 * 3.141592653589793 * j / lonRes;  // 0 to 2pi
 
             // Spherical coordinates: x = r sinθ cosφ, y = r cosθ, z = r sinθ sinφ
             // Note: Y is up in our coordinate system
@@ -907,7 +912,7 @@ void CurvatureRenderer::generateErgosphereMesh()
             positions.push_back(static_cast<float>(z));
 
             // Normal is radial from origin (approximate for ergosphere)
-            double len = sqrt(x*x + y*y + z*z);
+            double len = sqrt(x * x + y * y + z * z);
             normals.push_back(static_cast<float>(x / len));
             normals.push_back(static_cast<float>(y / len));
             normals.push_back(static_cast<float>(z / len));
@@ -934,50 +939,52 @@ void CurvatureRenderer::generateErgosphereMesh()
 
     glGenBuffers(1, &ergoVbo);
     glBindBuffer(GL_ARRAY_BUFFER, ergoVbo);
-    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(float), positions.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(float), positions.data(),
+                 GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glEnableVertexAttribArray(0);
 
     glGenBuffers(1, &ergoEbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ergoEbo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
+                 GL_STATIC_DRAW);
 
     glBindVertexArray(0);
     ergoBuffersInitialized = true;
 
-    std::cout << "[CurvatureRenderer] Ergosphere mesh generated: "
-              << ergoVertexCount << " indices, M=" << M << ", a=" << a << std::endl;
+    std::cout << "[CurvatureRenderer] Ergosphere mesh generated: " << ergoVertexCount
+              << " indices, M=" << M << ", a=" << a << std::endl;
 }
 
-void CurvatureRenderer::setShowNeuralGeodesics(bool show)
-{
+void CurvatureRenderer::setShowNeuralGeodesics(bool show) {
     m_showNeuralGeodesics = show;
 }
 
-bool CurvatureRenderer::loadNeuralODEModel(const std::string& onnxPath)
-{
-    if (!neuralODE) return false;
+bool CurvatureRenderer::loadNeuralODEModel(const std::string& onnxPath) {
+    if (!neuralODE)
+        return false;
     return neuralODE->loadONNXModel(onnxPath);
 }
 
-void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const float* projectionMatrix)
-{
-    if (!m_initialized || !m_showNeuralGeodesics || !neuralODE || !neuralPool) return;
+void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix,
+                                              const float* projectionMatrix) {
+    if (!m_initialized || !m_showNeuralGeodesics || !neuralODE || !neuralPool)
+        return;
 
     // Generate photon bundle: grid of starting positions far from black hole
-    const int gridSize = 16; // 16x16 = 256 rays
+    const int gridSize = 16;  // 16x16 = 256 rays
     const float startZ = -60.0f;
     const float span = 20.0f;
 
     static std::vector<Event4D> initialEvents;
-    static std::vector<std::array<double,4>> initialVelocities;
+    static std::vector<std::array<double, 4>> initialVelocities;
     static bool eventsGenerated = false;
 
     if (!eventsGenerated) {
         for (int i = 0; i < gridSize; i++) {
             for (int j = 0; j < gridSize; j++) {
-                float x = -span/2.0f + (float)i * span / (gridSize - 1);
-                float y = -span/2.0f + (float)j * span / (gridSize - 1);
+                float x = -span / 2.0f + (float)i * span / (gridSize - 1);
+                float y = -span / 2.0f + (float)j * span / (gridSize - 1);
                 initialEvents.emplace_back(0.0, x, y, startZ);
                 // Null-like velocity pointing toward +Z (and slightly toward center)
                 initialVelocities.push_back({1.0, 0.0, 0.0, 1.0});
@@ -989,7 +996,7 @@ void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const flo
     // Trace trajectories by stepping the Neural ODE
     const int numSteps = 8;
     const double tau = 0.5;
-    const double rs = 2.95; // Schwarzschild radius for visualization scale
+    const double rs = 2.95;  // Schwarzschild radius for visualization scale
     const double mMass = m_ergoMass;
 
     // Current states (start from initial events)
@@ -1012,17 +1019,20 @@ void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const flo
     }
 
     // Step through the Neural ODE
-    std::vector<double> metricParams = {mMass, 0.0}; // mass, spin
+    std::vector<double> metricParams = {mMass, 0.0};  // mass, spin
     for (int step = 0; step < numSteps; step++) {
-        auto nextStates = neuralODE->predictBundle(currentStates, initialVelocities, metricParams, tau, *neuralPool);
-        
+        auto nextStates = neuralODE->predictBundle(currentStates, initialVelocities, metricParams,
+                                                   tau, *neuralPool);
+
         bool allEscaped = true;
         for (size_t i = 0; i < nextStates.size(); i++) {
-            if (nextStates[i].empty()) continue;
+            if (nextStates[i].empty())
+                continue;
             const auto& finalEvent = nextStates[i].back();
-            
+
             // Check if photon fell into black hole
-            double r = sqrt(finalEvent.x*finalEvent.x + finalEvent.y*finalEvent.y + finalEvent.z*finalEvent.z);
+            double r = sqrt(finalEvent.x * finalEvent.x + finalEvent.y * finalEvent.y +
+                            finalEvent.z * finalEvent.z);
             if (r > rs * 1.01 && r < 100.0) {
                 currentStates[i] = finalEvent;
                 trajectories[i].push_back(finalEvent);
@@ -1032,7 +1042,8 @@ void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const flo
             // If r > 100, photon escaped to infinity - stop tracing it
         }
 
-        if (allEscaped) break;
+        if (allEscaped)
+            break;
     }
 
     // Upload trajectories to GPU and render
@@ -1042,16 +1053,17 @@ void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const flo
     unsigned int currentOffset = 0;
 
     for (const auto& traj : trajectories) {
-        if (traj.size() < 2) continue;
+        if (traj.size() < 2)
+            continue;
 
         for (const auto& pt : traj) {
             allVertexData.push_back(static_cast<float>(pt.x));
             allVertexData.push_back(static_cast<float>(pt.y));
             allVertexData.push_back(static_cast<float>(pt.z));
-            allVertexData.push_back(0.0f);   // R (cyan)
-            allVertexData.push_back(0.9f);   // G
-            allVertexData.push_back(1.0f);   // B
-            allVertexData.push_back(0.6f);   // A
+            allVertexData.push_back(0.0f);  // R (cyan)
+            allVertexData.push_back(0.9f);  // G
+            allVertexData.push_back(1.0f);  // B
+            allVertexData.push_back(0.6f);  // A
         }
 
         // Indices for this line strip
@@ -1061,7 +1073,8 @@ void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const flo
         currentOffset += static_cast<unsigned int>(traj.size());
     }
 
-    if (allVertexData.empty()) return;
+    if (allVertexData.empty())
+        return;
 
     // Initialize neural geodesic buffers if needed
     if (!neuralGeoBuffersInitialized) {
@@ -1072,8 +1085,8 @@ void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const flo
 
     glBindVertexArray(neuralGeoVao);
     glBindBuffer(GL_ARRAY_BUFFER, neuralGeoVbo);
-    glBufferData(GL_ARRAY_BUFFER, allVertexData.size() * sizeof(float),
-                 allVertexData.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, allVertexData.size() * sizeof(float), allVertexData.data(),
+                 GL_DYNAMIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -1096,9 +1109,9 @@ void CurvatureRenderer::renderNeuralGeodesics(const float* viewMatrix, const flo
 }
 
 void CurvatureRenderer::renderGeodesics(const std::vector<std::vector<Event4D>>& geodesics,
-                                        const float* viewMatrix, const float* projectionMatrix)
-{
-    if (!m_initialized || !geodesicBuffersInitialized) return;
+                                        const float* viewMatrix, const float* projectionMatrix) {
+    if (!m_initialized || !geodesicBuffersInitialized)
+        return;
 
     geodesicShader.use();
     geodesicShader.setUniform("viewMatrix", viewMatrix);
@@ -1109,7 +1122,8 @@ void CurvatureRenderer::renderGeodesics(const std::vector<std::vector<Event4D>>&
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     for (const auto& geodesic : geodesics) {
-        if (geodesic.size() < 2) continue;
+        if (geodesic.size() < 2)
+            continue;
 
         std::vector<float> vertexData;
         vertexData.reserve(geodesic.size() * 7);
@@ -1117,21 +1131,20 @@ void CurvatureRenderer::renderGeodesics(const std::vector<std::vector<Event4D>>&
             vertexData.push_back(static_cast<float>(pt.x));
             vertexData.push_back(static_cast<float>(pt.y));
             vertexData.push_back(static_cast<float>(pt.z));
-            vertexData.push_back(0.0f);   // R
-            vertexData.push_back(0.9f);   // G
-            vertexData.push_back(0.2f);   // B
-            vertexData.push_back(1.0f);   // A
+            vertexData.push_back(0.0f);  // R
+            vertexData.push_back(0.9f);  // G
+            vertexData.push_back(0.2f);  // B
+            vertexData.push_back(1.0f);  // A
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, geodesicVbo);
-        glBufferData(GL_ARRAY_BUFFER,
-                     vertexData.size() * sizeof(float),
-                     vertexData.data(),
+        glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(),
                      GL_DYNAMIC_DRAW);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+                              (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(1);
 
         glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(geodesic.size()));
@@ -1142,66 +1155,62 @@ void CurvatureRenderer::renderGeodesics(const std::vector<std::vector<Event4D>>&
     geodesicShader.release();
 }
 
-void CurvatureRenderer::updateGLBuffers()
-{
-    if (!m_initialized || vertices.empty()) return;
+void CurvatureRenderer::updateGLBuffers() {
+    if (!m_initialized || vertices.empty())
+        return;
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     // Use glBufferData (not SubData) to reallocate when grid size changes
     // (e.g., switching between 2D plane and 3D cube modes)
-    glBufferData(GL_ARRAY_BUFFER,
-                 vertices.size() * sizeof(CurvatureVertex),
-                 vertices.data(),
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(CurvatureVertex), vertices.data(),
                  GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Also reallocate index buffer if needed
     if (!indices.empty()) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     indices.size() * sizeof(unsigned int),
-                     indices.data(),
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
                      GL_STATIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 }
 
-void CurvatureRenderer::updateAllColors()
-{
+void CurvatureRenderer::updateAllColors() {
     for (auto& vertex : vertices)
         updateVertexColor(vertex);
     updateGLBuffers();
 }
 
-void CurvatureRenderer::setMode(CurvatureMode newMode)
-{
+void CurvatureRenderer::setMode(CurvatureMode newMode) {
     mode = newMode;
     updateAllColors();
 }
 
-void CurvatureRenderer::setWireframe(bool enable) { wireframe = enable; }
-void CurvatureRenderer::toggleGrid(bool show) { showGrid = show; }
-void CurvatureRenderer::toggleLightCones(bool show) { showLightCones = show; }
-
-void CurvatureRenderer::setMetric(std::shared_ptr<MetricTensor> metric)
-{
-     currentMetric = metric;
-     m_metricDirty = true;
+void CurvatureRenderer::setWireframe(bool enable) {
+    wireframe = enable;
+}
+void CurvatureRenderer::toggleGrid(bool show) {
+    showGrid = show;
+}
+void CurvatureRenderer::toggleLightCones(bool show) {
+    showLightCones = show;
 }
 
-void CurvatureRenderer::setLightCone(std::shared_ptr<class LightCone> cone)
-{
-     lightCone = std::move(cone);
+void CurvatureRenderer::setMetric(std::shared_ptr<MetricTensor> metric) {
+    currentMetric = metric;
+    m_metricDirty = true;
 }
 
-void CurvatureRenderer::addSingularity(std::shared_ptr<class SingularityHandler> singularity)
-{
+void CurvatureRenderer::setLightCone(std::shared_ptr<class LightCone> cone) {
+    lightCone = std::move(cone);
+}
+
+void CurvatureRenderer::addSingularity(std::shared_ptr<class SingularityHandler> singularity) {
     singularities.push_back(singularity);
     m_metricDirty = true;
 }
 
-void CurvatureRenderer::removeSingularity(std::shared_ptr<class SingularityHandler> singularity)
-{
+void CurvatureRenderer::removeSingularity(std::shared_ptr<class SingularityHandler> singularity) {
     auto it = std::find(singularities.begin(), singularities.end(), singularity);
     if (it != singularities.end()) {
         singularities.erase(it);
@@ -1209,67 +1218,63 @@ void CurvatureRenderer::removeSingularity(std::shared_ptr<class SingularityHandl
     }
 }
 
-void CurvatureRenderer::setErgosphereSpin(double spin)
-{
+void CurvatureRenderer::setErgosphereSpin(double spin) {
     m_ergoSpin = std::clamp(spin, 0.0, 0.999);
 }
 
-void CurvatureRenderer::setErgosphereMass(double mass)
-{
+void CurvatureRenderer::setErgosphereMass(double mass) {
     m_ergoMass = std::max(mass, 0.1);
 }
 
-void CurvatureRenderer::setErgosphereCharge(double charge)
-{
+void CurvatureRenderer::setErgosphereCharge(double charge) {
     m_ergoCharge = std::max(charge, 0.0);
 }
 
-void CurvatureRenderer::setShowErgosphere(bool show)
-{
+void CurvatureRenderer::setShowErgosphere(bool show) {
     m_showErgosphere = show;
 }
 
-void CurvatureRenderer::setGlobalAlpha(float alpha)
-{
+void CurvatureRenderer::setGlobalAlpha(float alpha) {
     m_globalAlpha = std::clamp(alpha, 0.0f, 1.0f);
 }
 
-void CurvatureRenderer::updateTime(float deltaTime)
-{
-     time += deltaTime * animationSpeed;
-     // Time does not affect the static Schwarzschild spatial metric, so no
-     // re-deformation is needed here. The render() loop handles dirty flags.
+void CurvatureRenderer::updateTime(float deltaTime) {
+    time += deltaTime * animationSpeed;
+    // Time does not affect the static Schwarzschild spatial metric, so no
+    // re-deformation is needed here. The render() loop handles dirty flags.
 }
 
-void CurvatureRenderer::regenerateGrid()
-{
-     initializeGrid();
-     m_metricDirty = true;
-     if (m_initialized) {
-         updateGLBuffers();
-     }
+void CurvatureRenderer::regenerateGrid() {
+    initializeGrid();
+    m_metricDirty = true;
+    if (m_initialized) {
+        updateGLBuffers();
+    }
 }
 
-void CurvatureRenderer::setAnimationSpeed(float speed)
-{
-     animationSpeed = speed;
+void CurvatureRenderer::setAnimationSpeed(float speed) {
+    animationSpeed = speed;
 }
 
-void CurvatureRenderer::setPlaneMode(bool enable)
-{
-    std::cout << "[CurvatureRenderer] setPlaneMode(" << enable << ") called, current=" << m_planeMode << std::endl;
-    if (m_planeMode == enable) return;
+void CurvatureRenderer::setPlaneMode(bool enable) {
+    std::cout << "[CurvatureRenderer] setPlaneMode(" << enable
+              << ") called, current=" << m_planeMode << std::endl;
+    if (m_planeMode == enable)
+        return;
     m_planeMode = enable;
     initializeGrid();
     m_metricDirty = true;
-    std::cout << "[CurvatureRenderer] setPlaneMode done, vertices=" << vertices.size() << ", indices=" << indices.size() << std::endl;
+    std::cout << "[CurvatureRenderer] setPlaneMode done, vertices=" << vertices.size()
+              << ", indices=" << indices.size() << std::endl;
 }
 
-void CurvatureRenderer::setPlaneResolution(int resolution)
-{
-    if (resolution < 4) resolution = 4;
-    if (resolution > 500) resolution = 500;
-    if (m_planeResolution == resolution) return;
+void CurvatureRenderer::setPlaneResolution(int resolution) {
+    if (resolution < 4)
+        resolution = 4;
+    if (resolution > 500)
+        resolution = 500;
+    if (m_planeResolution == resolution)
+        return;
     m_planeResolution = resolution;
     gridWidth = resolution;
     gridHeight = resolution;
@@ -1279,24 +1284,31 @@ void CurvatureRenderer::setPlaneResolution(int resolution)
     }
 }
 
-const std::vector<CurvatureVertex>& CurvatureRenderer::getVertices() const { return vertices; }
-int CurvatureRenderer::getResolution() const { return gridResolution; }
-float CurvatureRenderer::getSize() const { return gridSize; }
+const std::vector<CurvatureVertex>& CurvatureRenderer::getVertices() const {
+    return vertices;
+}
+int CurvatureRenderer::getResolution() const {
+    return gridResolution;
+}
+float CurvatureRenderer::getSize() const {
+    return gridSize;
+}
 
-void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* projectionMatrix)
-{
-     if (!lightCone || !lightCone->isValid()) return;
-  
-     // Simple wireframe rendering of light cone using GL_LINES
-     // Full mesh rendering would use a dedicated shader with lighting
-     glUseProgram(overlayShader.id);
-     overlayShader.setUniform("projectionMatrix", projectionMatrix);
-     overlayShader.setUniform("viewMatrix", viewMatrix);
+void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* projectionMatrix) {
+    if (!lightCone || !lightCone->isValid())
+        return;
+
+    // Simple wireframe rendering of light cone using GL_LINES
+    // Full mesh rendering would use a dedicated shader with lighting
+    glUseProgram(overlayShader.id);
+    overlayShader.setUniform("projectionMatrix", projectionMatrix);
+    overlayShader.setUniform("viewMatrix", viewMatrix);
 
     const auto& lightConeVertices = lightCone->getVertices();
     const auto& lightConeIndices = lightCone->getIndices();
 
-    if (lightConeVertices.empty() || lightConeIndices.empty()) return;
+    if (lightConeVertices.empty() || lightConeIndices.empty())
+        return;
 
     // Initialize light cone buffers if not already done
     if (!lightConeBuffersInitialized) {
@@ -1305,32 +1317,28 @@ void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* p
 
     // Update vertex data
     glBindBuffer(GL_ARRAY_BUFFER, lightConeVbo);
-    glBufferData(GL_ARRAY_BUFFER,
-                 lightConeVertices.size() * sizeof(LightConeVertex),
+    glBufferData(GL_ARRAY_BUFFER, lightConeVertices.size() * sizeof(LightConeVertex),
                  lightConeVertices.data(), GL_DYNAMIC_DRAW);
 
     // Update index data
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lightConeEbo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 lightConeIndices.size() * sizeof(unsigned int),
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, lightConeIndices.size() * sizeof(unsigned int),
                  lightConeIndices.data(), GL_DYNAMIC_DRAW);
 
     glBindVertexArray(lightConeVao);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                        sizeof(LightConeVertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(LightConeVertex), (void*)0);
     glEnableVertexAttribArray(0);
 
     // Color attribute (overlay shader expects aColor at location 1)
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE,
-                        sizeof(LightConeVertex), (void*)(sizeof(float) * 3));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(LightConeVertex),
+                          (void*)(sizeof(float) * 3));
     glEnableVertexAttribArray(1);
 
     // Render as wireframe lines
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(lightConeIndices.size()),
-                  GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(lightConeIndices.size()), GL_UNSIGNED_INT, 0);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     glBindVertexArray(0);
@@ -1341,8 +1349,7 @@ void CurvatureRenderer::renderLightCones(const float* viewMatrix, const float* p
 // Private helper implementations
 // ============================================================================
 
-void CurvatureRenderer::initializeGrid()
-{
+void CurvatureRenderer::initializeGrid() {
     vertices.clear();
     indices.clear();
     metricCache.clear();
@@ -1451,64 +1458,64 @@ void CurvatureRenderer::initializeGrid()
             for (int j = 0; j < gridResolution - 1; j++) {
                 for (int k = 0; k < gridResolution - 1; k++) {
                     int base = i * gridResolution * gridResolution + j * gridResolution + k;
-                int baseX = base + 1;
-                int baseY = base + gridResolution;
-                int baseZ = base + gridResolution * gridResolution;
-                int baseXY = base + gridResolution + 1;
-                int baseXZ = base + gridResolution * gridResolution + 1;
-                int baseYZ = base + gridResolution * gridResolution + gridResolution;
-                int baseXYZ = base + gridResolution * gridResolution + gridResolution + 1;
-                
-                // XY plane quad (2 triangles)
-                indices.push_back(base);
-                indices.push_back(baseX);
-                indices.push_back(baseY);
-                indices.push_back(baseX);
-                indices.push_back(baseXY);
-                indices.push_back(baseY);
-                
-                // XZ plane quad (2 triangles)
-                indices.push_back(base);
-                indices.push_back(baseX);
-                indices.push_back(baseZ);
-                indices.push_back(baseX);
-                indices.push_back(baseXZ);
-                indices.push_back(baseZ);
-                
-                // YZ plane quad (2 triangles)
-                indices.push_back(base);
-                indices.push_back(baseY);
-                indices.push_back(baseZ);
-                indices.push_back(baseY);
-                indices.push_back(baseYZ);
-                indices.push_back(baseZ);
-                
-                // Back face (2 triangles)
-                indices.push_back(baseX);
-                indices.push_back(baseXY);
-                indices.push_back(baseXZ);
-                indices.push_back(baseXY);
-                indices.push_back(baseXYZ);
-                indices.push_back(baseXZ);
-                
-                // Top face (2 triangles)
-                indices.push_back(baseY);
-                indices.push_back(baseXY);
-                indices.push_back(baseYZ);
-                indices.push_back(baseXY);
-                indices.push_back(baseXYZ);
-                indices.push_back(baseYZ);
-                
-                // Right face (2 triangles)
-                indices.push_back(baseZ);
-                indices.push_back(baseXZ);
-                indices.push_back(baseYZ);
-                indices.push_back(baseXZ);
-                indices.push_back(baseXYZ);
-                indices.push_back(baseYZ);
+                    int baseX = base + 1;
+                    int baseY = base + gridResolution;
+                    int baseZ = base + gridResolution * gridResolution;
+                    int baseXY = base + gridResolution + 1;
+                    int baseXZ = base + gridResolution * gridResolution + 1;
+                    int baseYZ = base + gridResolution * gridResolution + gridResolution;
+                    int baseXYZ = base + gridResolution * gridResolution + gridResolution + 1;
+
+                    // XY plane quad (2 triangles)
+                    indices.push_back(base);
+                    indices.push_back(baseX);
+                    indices.push_back(baseY);
+                    indices.push_back(baseX);
+                    indices.push_back(baseXY);
+                    indices.push_back(baseY);
+
+                    // XZ plane quad (2 triangles)
+                    indices.push_back(base);
+                    indices.push_back(baseX);
+                    indices.push_back(baseZ);
+                    indices.push_back(baseX);
+                    indices.push_back(baseXZ);
+                    indices.push_back(baseZ);
+
+                    // YZ plane quad (2 triangles)
+                    indices.push_back(base);
+                    indices.push_back(baseY);
+                    indices.push_back(baseZ);
+                    indices.push_back(baseY);
+                    indices.push_back(baseYZ);
+                    indices.push_back(baseZ);
+
+                    // Back face (2 triangles)
+                    indices.push_back(baseX);
+                    indices.push_back(baseXY);
+                    indices.push_back(baseXZ);
+                    indices.push_back(baseXY);
+                    indices.push_back(baseXYZ);
+                    indices.push_back(baseXZ);
+
+                    // Top face (2 triangles)
+                    indices.push_back(baseY);
+                    indices.push_back(baseXY);
+                    indices.push_back(baseYZ);
+                    indices.push_back(baseXY);
+                    indices.push_back(baseXYZ);
+                    indices.push_back(baseYZ);
+
+                    // Right face (2 triangles)
+                    indices.push_back(baseZ);
+                    indices.push_back(baseXZ);
+                    indices.push_back(baseYZ);
+                    indices.push_back(baseXZ);
+                    indices.push_back(baseXYZ);
+                    indices.push_back(baseYZ);
+                }
             }
         }
-    }
     }
 
     cacheValid = false;
@@ -1518,9 +1525,9 @@ void CurvatureRenderer::initializeGrid()
 // Private helper implementations
 // ============================================================================
 
-void CurvatureRenderer::deformGrid()
-{
-    if (vertices.empty()) return;
+void CurvatureRenderer::deformGrid() {
+    if (vertices.empty())
+        return;
 
     float cx = m_blackHoleCenter[0];
     float cy = m_blackHoleCenter[1];
@@ -1581,25 +1588,23 @@ void CurvatureRenderer::deformGrid()
     }
     if (std::getenv("GRID_DEBUG")) {
         std::cout << "[GRID] rawZ=" << rawZMin << ".." << rawZMax
-                  << " scaledZ=" << (rawZMin * m_deformationScale) << ".." << (rawZMax * m_deformationScale)
-                  << " unitRange=" << gridSize
-                  << " wellCenter=" << m_blackHoleCenter[0] << "," << m_blackHoleCenter[1]
-                  << "," << m_blackHoleCenter[2]
-                  << " haveMetric=" << (haveMetric ? 1 : 0)
-                  << std::endl;
+                  << " scaledZ=" << (rawZMin * m_deformationScale) << ".."
+                  << (rawZMax * m_deformationScale) << " unitRange=" << gridSize
+                  << " wellCenter=" << m_blackHoleCenter[0] << "," << m_blackHoleCenter[1] << ","
+                  << m_blackHoleCenter[2] << " haveMetric=" << (haveMetric ? 1 : 0) << std::endl;
     }
     m_gridZMin = rawZMin * m_deformationScale;
     m_gridZMax = rawZMax * m_deformationScale;
     m_metricDirty = false;
 }
 
-void CurvatureRenderer::deformGridGPU()
-{
-    if (!computeBuffersInitialized || computeShader.id == 0 || vertices.empty()) return;
+void CurvatureRenderer::deformGridGPU() {
+    if (!computeBuffersInitialized || computeShader.id == 0 || vertices.empty())
+        return;
 
     // Upload current vertex positions to SSBO
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gridSSBO);
-    
+
     // Build position array: vec4(x, y, z, displacement)
     std::vector<float> posData;
     posData.reserve(vertices.size() * 4);
@@ -1607,11 +1612,11 @@ void CurvatureRenderer::deformGridGPU()
         posData.push_back(v.position[0]);
         posData.push_back(v.position[1]);
         posData.push_back(v.position[2]);
-        posData.push_back(0.0f); // displacement (will be overwritten by compute shader)
+        posData.push_back(0.0f);  // displacement (will be overwritten by compute shader)
     }
-    
-    glBufferData(GL_SHADER_STORAGE_BUFFER, posData.size() * sizeof(float),
-                 posData.data(), GL_DYNAMIC_DRAW);
+
+    glBufferData(GL_SHADER_STORAGE_BUFFER, posData.size() * sizeof(float), posData.data(),
+                 GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gridSSBO);
 
     // Set uniforms
@@ -1642,12 +1647,12 @@ void CurvatureRenderer::deformGridGPU()
     float zMin = 0.0f, zMax = 0.0f;
     bool first = true;
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gridSSBO);
-    float* mapped = static_cast<float*>(glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0,
-        posData.size() * sizeof(float), GL_MAP_READ_BIT));
-    
+    float* mapped = static_cast<float*>(glMapBufferRange(
+        GL_SHADER_STORAGE_BUFFER, 0, posData.size() * sizeof(float), GL_MAP_READ_BIT));
+
     if (mapped) {
         for (size_t i = 0; i < vertices.size(); i++) {
-            float displacement = mapped[i * 4 + 3]; // w component
+            float displacement = mapped[i * 4 + 3];  // w component
             vertices[i].position[2] = displacement * m_deformationScale;
             if (first) {
                 zMin = zMax = vertices[i].position[2];
@@ -1658,35 +1663,34 @@ void CurvatureRenderer::deformGridGPU()
             }
         }
         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        
+
         // Cache the range for gridZRange()
         m_gridZMin = zMin;
         m_gridZMax = zMax;
     } else {
         glGetError();
     }
-    
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     m_metricDirty = false;
-    m_computeDirty = true; // Signal render() to use SSBO as VBO source
+    m_computeDirty = true;  // Signal render() to use SSBO as VBO source
     if (std::getenv("GRID_DEBUG")) {
-        std::cout << "[GRID] wellCenter=" << m_blackHoleCenter[0] << ","
-                  << m_blackHoleCenter[1] << "," << m_blackHoleCenter[2]
-                  << std::endl;
+        std::cout << "[GRID] wellCenter=" << m_blackHoleCenter[0] << "," << m_blackHoleCenter[1]
+                  << "," << m_blackHoleCenter[2] << std::endl;
     }
 }
 
-std::pair<float, float> CurvatureRenderer::gridZRange() const
-{
-    if (vertices.empty()) return {0.0f, 0.0f};
+std::pair<float, float> CurvatureRenderer::gridZRange() const {
+    if (vertices.empty())
+        return {0.0f, 0.0f};
     return {m_gridZMin, m_gridZMax};
 }
 
-void CurvatureRenderer::recomputeGridZRange()
-{
+void CurvatureRenderer::recomputeGridZRange() {
     // Guard: don't recompute before grid vertices exist. The GL context is
     // guaranteed ready because this is only called from render().
-    if (vertices.empty()) return;
+    if (vertices.empty())
+        return;
 
     if (computeShader.id != 0 && computeBuffersInitialized) {
         deformGridGPU();
@@ -1697,8 +1701,7 @@ void CurvatureRenderer::recomputeGridZRange()
     m_lastEpoch = currentMetric ? currentMetric->epoch() : 0;
 }
 
-void CurvatureRenderer::updateVertexColor(CurvatureVertex& vertex)
-{
+void CurvatureRenderer::updateVertexColor(CurvatureVertex& vertex) {
     // Color based on curvature mode
     switch (mode) {
         case CurvatureMode::GRID_DEFORMATION: {
@@ -1716,7 +1719,7 @@ void CurvatureRenderer::updateVertexColor(CurvatureVertex& vertex)
             float logK = std::log10(std::max(std::abs(K), 1e-10f));
             float hue = (logK + 10.0f) / 20.0f;
             hue = std::max(0.0f, std::min(1.0f, hue));
-            
+
             if (hue < 0.25f) {
                 vertex.color[0] = 0.0f;
                 vertex.color[1] = hue * 4.0f;
@@ -1770,42 +1773,42 @@ void CurvatureRenderer::updateVertexColor(CurvatureVertex& vertex)
     vertex.color[3] = 0.8f;
 }
 
-double CurvatureRenderer::computeKretschmannScalar(const Event4D& event) const
-{
-    if (!currentMetric) return 0.0;
-    
+double CurvatureRenderer::computeKretschmannScalar(const Event4D& event) const {
+    if (!currentMetric)
+        return 0.0;
+
     CurvatureCalculator calculator(currentMetric);
     calculator.computeKretschmann(event);
     return calculator.getKretschmann();
 }
 
-double CurvatureRenderer::computeRicciScalar(const Event4D& event) const
-{
-    if (!currentMetric) return 0.0;
-    
+double CurvatureRenderer::computeRicciScalar(const Event4D& event) const {
+    if (!currentMetric)
+        return 0.0;
+
     CurvatureCalculator calculator(currentMetric);
     calculator.computeRicciScalar(event);
     return calculator.getRicciScalar();
 }
 
-double CurvatureRenderer::computeRiemannComponent(int rho, int sigma, int mu, int nu, const Event4D& event) const
-{
-    if (!currentMetric) return 0.0;
-    if (rho < 0 || rho > 3 || sigma < 0 || sigma > 3 || mu < 0 || mu > 3 || nu < 0 || nu > 3) return 0.0;
-    
+double CurvatureRenderer::computeRiemannComponent(int rho, int sigma, int mu, int nu,
+                                                  const Event4D& event) const {
+    if (!currentMetric)
+        return 0.0;
+    if (rho < 0 || rho > 3 || sigma < 0 || sigma > 3 || mu < 0 || mu > 3 || nu < 0 || nu > 3)
+        return 0.0;
+
     CurvatureCalculator calculator(currentMetric);
     calculator.computeRiemann(event);
     return calculator.getRiemann()[rho][sigma][mu][nu];
 }
 
-void CurvatureRenderer::updateLodLevel()
-{
+void CurvatureRenderer::updateLodLevel() {
     // LOD is updated based on camera distance
     // This is a placeholder - full implementation would use view matrix
 }
 
-void CurvatureRenderer::updateVerticesByLod()
-{
+void CurvatureRenderer::updateVerticesByLod() {
     // Update only vertices in visible cells
     for (auto& cell : gridCells) {
         if (cell.needsUpdate) {
@@ -1820,17 +1823,16 @@ void CurvatureRenderer::updateVerticesByLod()
     }
 }
 
-void CurvatureRenderer::updateAllVertices()
-{
+void CurvatureRenderer::updateAllVertices() {
     for (auto& vertex : vertices) {
         updateVertexColor(vertex);
     }
 }
 
-void CurvatureRenderer::updateCellVertices(int cellIndex)
-{
-    if (cellIndex < 0 || cellIndex >= static_cast<int>(gridCells.size())) return;
-    
+void CurvatureRenderer::updateCellVertices(int cellIndex) {
+    if (cellIndex < 0 || cellIndex >= static_cast<int>(gridCells.size()))
+        return;
+
     const auto& cell = gridCells[cellIndex];
     for (int i = cell.startIndex; i <= cell.endIndex; i++) {
         if (i < static_cast<int>(vertices.size())) {
@@ -1839,19 +1841,19 @@ void CurvatureRenderer::updateCellVertices(int cellIndex)
     }
 }
 
-void CurvatureRenderer::updateSingleVertex(int vertexIndex)
-{
-    if (vertexIndex < 0 || vertexIndex >= static_cast<int>(vertices.size())) return;
-    
+void CurvatureRenderer::updateSingleVertex(int vertexIndex) {
+    if (vertexIndex < 0 || vertexIndex >= static_cast<int>(vertices.size()))
+        return;
+
     auto& vertex = vertices[vertexIndex];
     Event4D event(time, vertex.position[0], vertex.position[1], vertex.position[2]);
-    
+
     if (currentMetric) {
         vertex.curvature = static_cast<float>(computeKretschmannScalar(event));
         vertex.time_dilation = static_cast<float>(computeRicciScalar(event));
     }
-    
+
     updateVertexColor(vertex);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

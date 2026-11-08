@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/PTAScanner.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -31,18 +31,18 @@ std::vector<Event4D> makeHellingsDownsTrajectory(bool injectAnomaly = false) {
     std::vector<Event4D> traj;
     traj.reserve(20);
     for (int i = 0; i < 20; ++i) {
-        double angle = 0.01 + i * 0.15; // avoid exact 0/pi
+        double angle = 0.01 + i * 0.15;  // avoid exact 0/pi
         double hd = 0.5 * (1.0 - std::cos(angle)) / 2.0 *
                     (3.0 * std::log(0.5 * (1.0 - std::cos(angle))) + 1.0);
         double observed = hd + 0.02 * hd * (0.5 - std::sin(i));
         if (injectAnomaly && i == 10) {
-            observed += 5.0; // 5-sigma outlier
+            observed += 5.0;  // 5-sigma outlier
         }
         traj.emplace_back(static_cast<double>(i), observed, 0.1, hd);
     }
     return traj;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== PTAScannerTest ===" << std::endl;
@@ -57,7 +57,8 @@ int main() {
         auto traj = makeHellingsDownsTrajectory(false);
         auto findings = scanner.analyze(metric, location, traj);
         QV_CHECK(findings.empty());
-        std::cout << "  Clean GR trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  Clean GR trajectory: no anomaly (findings=" << findings.size() << ")"
+                  << std::endl;
     }
 
     // --- 2. Injected GW anomaly: should be flagged ------------------------------

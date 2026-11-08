@@ -1,14 +1,14 @@
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "spacetime/FRWMetric.h"
-#include "physics/GeodesicIntegrator.h"
-#include "physics/CurvatureCalculator.h"
-#include "physics/SingularityHandler.h"
-#include "physics/GeodesicDeviation.h"
-#include "coord_helpers.h"
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include "coord_helpers.h"
+#include "physics/CurvatureCalculator.h"
+#include "physics/GeodesicDeviation.h"
+#include "physics/GeodesicIntegrator.h"
+#include "physics/SingularityHandler.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/FRWMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse::test_helpers;
@@ -19,7 +19,7 @@ using namespace quantumverse::test_helpers;
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4189)
+#pragma warning(disable : 4189)
 #endif
 
 using namespace quantumverse;
@@ -36,13 +36,9 @@ void test_bianchi_schwarzschild() {
     auto sch = std::make_shared<SchwarzschildMetric>(M);
     CurvatureCalculator calc(sch);
 
-    std::vector<Event4D> points = {
-        Event4D(0.0, 1e5, 0.0, 0.0),
-        Event4D(0.0, 1e8, 0.0, 0.0),
-        Event4D(0.0, 1e11, 1e10, -5e9),
-        Event4D(0.0, 5e10, 3e10, -2e10),
-        Event4D(0.0, 1e7, M_PI / 3.0, M_PI / 4.0)
-    };
+    std::vector<Event4D> points = {Event4D(0.0, 1e5, 0.0, 0.0), Event4D(0.0, 1e8, 0.0, 0.0),
+                                   Event4D(0.0, 1e11, 1e10, -5e9), Event4D(0.0, 5e10, 3e10, -2e10),
+                                   Event4D(0.0, 1e7, M_PI / 3.0, M_PI / 4.0)};
 
     for (const auto& ev : points) {
         [[maybe_unused]] auto result = calc.computeAll(ev);
@@ -103,7 +99,8 @@ void test_geodesic_constraint_timelike() {
         for (int j = 0; j < 4; j++)
             norm0 += g0[i][j] * vel[i] * vel[j];
     double scale = std::sqrt(-1.0 / norm0);
-    for (int i = 0; i < 4; i++) vel[i] *= scale;
+    for (int i = 0; i < 4; i++)
+        vel[i] *= scale;
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);
     QV_CHECK(!traj.empty() && traj.size() > 5);
@@ -138,8 +135,7 @@ void test_raychaudhuri_vacuum() {
     [[maybe_unused]] std::array<double, 4> vel = {0.95, 0.0, 0.0, 0.0};
 
     // Use GeodesicDeviation to compute expansion
-    auto expansion = GeodesicDeviation::raychaudhuriExpansion(
-        *sch, 1.0, 0.1, 2.0);
+    auto expansion = GeodesicDeviation::raychaudhuriExpansion(*sch, 1.0, 0.1, 2.0);
 
     QV_CHECK(std::isfinite(expansion));
     std::cout << "[PASS] Raychaudhuri expansion computed: " << expansion << std::endl;
@@ -183,7 +179,8 @@ void test_riemann_first_bianchi() {
             for (int mu = 0; mu < 4; mu++)
                 for (int nu = 0; nu < 4; nu++)
                     for (int lam = 0; lam < 4; lam++) {
-                        double sum = R[rho][sigma][mu][nu] + R[rho][sigma][nu][lam] + R[rho][sigma][lam][mu];
+                        double sum =
+                            R[rho][sigma][mu][nu] + R[rho][sigma][nu][lam] + R[rho][sigma][lam][mu];
                         if (std::abs(sum) > 1e-3) {
                             // Only check non-trivial cycles
                         }
@@ -246,10 +243,12 @@ void test_einstein_tensor_formula() {
     // Manual Einstein: G_μν = R_μν - 0.5 g_μν R
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            [[maybe_unused]] double G_manual = result.ricci[i][j] - 0.5 * result.einstein[i][j] * result.ricciScalar;
+            [[maybe_unused]] double G_manual =
+                result.ricci[i][j] - 0.5 * result.einstein[i][j] * result.ricciScalar;
             // Wait, einstein IS G_μν. So check that G_μν = R_μν - 0.5 g_μν R
             auto g = sch->evaluate(ev);
-            [[maybe_unused]] double G_check = result.ricci[i][j] - 0.5 * g[i][j] * result.ricciScalar;
+            [[maybe_unused]] double G_check =
+                result.ricci[i][j] - 0.5 * g[i][j] * result.ricciScalar;
             QV_CHECK_NEAR(result.einstein[i][j] - G_check, 0.0, 1e-3);
         }
     }
@@ -267,11 +266,11 @@ void test_kretschmann_full_contraction() {
     auto result = calc.computeAll(ev);
 
     // Exact value
-    double K_exact = 48.0 * Event4D::G * Event4D::G * M * M /
-                     std::pow(Event4D::C, 4) / std::pow(1e8, 6);
+    double K_exact =
+        48.0 * Event4D::G * Event4D::G * M * M / std::pow(Event4D::C, 4) / std::pow(1e8, 6);
     QV_CHECK_NEAR(result.kretschmann - K_exact, 0.0, 1e-6);
-    std::cout << "[PASS] Kretschmann full contraction: " << result.kretschmann
-              << " == " << K_exact << std::endl;
+    std::cout << "[PASS] Kretschmann full contraction: " << result.kretschmann << " == " << K_exact
+              << std::endl;
 }
 
 // ============================================================================
@@ -293,7 +292,8 @@ void test_timelike_norm_preservation() {
         for (int j = 0; j < 4; j++)
             norm0 += g0[i][j] * vel[i] * vel[j];
     double scale = std::sqrt(-1.0 / norm0);
-    for (int i = 0; i < 4; i++) vel[i] *= scale;
+    for (int i = 0; i < 4; i++)
+        vel[i] *= scale;
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 3.0, true);
     QV_CHECK(!traj.empty());
@@ -464,8 +464,8 @@ void test_frw_metric_determinant() {
     double det = g_metric.g[0][0] * g_metric.g[1][1] * g_metric.g[2][2] * g_metric.g[3][3];
     double a = frw.scaleFactor(ev.t);
     double r = ev.x;
-    double det_expected = -Event4D::C * Event4D::C * a * a * a * a * a * a *
-                          r * r * r * r * std::sin(ev.y) * std::sin(ev.y);
+    double det_expected = -Event4D::C * Event4D::C * a * a * a * a * a * a * r * r * r * r *
+                          std::sin(ev.y) * std::sin(ev.y);
     QV_CHECK_NEAR(det, det_expected, 1e-6 * std::fabs(det_expected));
     (void)det;
     (void)det_expected;
@@ -528,7 +528,8 @@ void test_jacobi_field() {
         QV_CHECK(std::isfinite(j.xi.t));
         (void)j;
     }
-    std::cout << "[PASS] Jacobi field geodesic deviation: " << jacobi.size() << " points" << std::endl;
+    std::cout << "[PASS] Jacobi field geodesic deviation: " << jacobi.size() << " points"
+              << std::endl;
 }
 
 // ============================================================================
@@ -555,12 +556,13 @@ void test_redshift_finite_outside_horizon() {
     double M = 1.0;
     double rs = 2.0 * M;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     std::vector<double> r_factors = {3.0, 5.0, 10.0, 20.0, 100.0, 1000.0, 1e5};
     for (double f : r_factors) {
         double r = f * M;
-        if (r <= rs) continue;
+        if (r <= rs)
+            continue;
         Event4D ev(0.0, r, 0.0, 0.0);
         double z = handler.getGravitationalRedshift(ev);
         QV_CHECK(std::isfinite(z) && z > 0.0);
@@ -665,7 +667,8 @@ void test_long_timelike_norm_drift() {
         for (int j = 0; j < 4; j++)
             norm0 += g0[i][j] * vel[i] * vel[j];
     double scale = std::sqrt(-1.0 / norm0);
-    for (int i = 0; i < 4; i++) vel[i] *= scale;
+    for (int i = 0; i < 4; i++)
+        vel[i] *= scale;
 
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 2.0, true);
     QV_CHECK(!traj.empty() && traj.size() > 20);
@@ -698,7 +701,8 @@ void test_conjugate_points() {
     QV_CHECK(!jacobi.empty());
     auto conj = GeodesicDeviation::findConjugatePoints(jacobi);
     (void)conj;
-    std::cout << "[PASS] Conjugate points computed: " << jacobi.size() << " Jacobi steps" << std::endl;
+    std::cout << "[PASS] Conjugate points computed: " << jacobi.size() << " Jacobi steps"
+              << std::endl;
 }
 
 // ============================================================================
@@ -731,7 +735,8 @@ void test_kretschmann_positive() {
     for (double ri : r) {
         Event4D ev(0.0, ri, 0.0, 0.0);
         [[maybe_unused]] auto s = sch.curvatureScalars(ev);
-        if (!s.valid) continue;  // inside horizon → K=0
+        if (!s.valid)
+            continue;  // inside horizon → K=0
         QV_CHECK(s.kretschmann > 0.0);
     }
     std::cout << "[PASS] Kretschmann positive definite" << std::endl;

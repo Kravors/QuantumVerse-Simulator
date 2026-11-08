@@ -10,15 +10,13 @@
 namespace quantumverse {
 namespace utils {
 
-FrameDiagnostics::FrameDiagnostics()
-    : start_time_(std::chrono::steady_clock::now())
-{
-}
+FrameDiagnostics::FrameDiagnostics() : start_time_(std::chrono::steady_clock::now()) {}
 
 FrameDiagnostics::~FrameDiagnostics() = default;
 
 void FrameDiagnostics::recordFrame(const FrameSnapshot& snapshot) {
-    if (!enabled_) return;
+    if (!enabled_)
+        return;
     std::lock_guard<std::mutex> lock(mutex_);
     frames_.push_back(snapshot);
 }
@@ -87,8 +85,10 @@ bool FrameDiagnostics::writeJson(const std::string& filepath) const {
             avg_frame_ms += f.frame_time_ms;
             total_physics_ms += f.physics_time_ms;
             total_render_ms += f.render_time_ms;
-            if (f.frame_time_ms > max_frame_ms) max_frame_ms = f.frame_time_ms;
-            if (f.frame_time_ms < min_frame_ms) min_frame_ms = f.frame_time_ms;
+            if (f.frame_time_ms > max_frame_ms)
+                max_frame_ms = f.frame_time_ms;
+            if (f.frame_time_ms < min_frame_ms)
+                min_frame_ms = f.frame_time_ms;
         }
         avg_frame_ms /= frames_.size();
     }
@@ -110,5 +110,5 @@ bool FrameDiagnostics::writeJson(const std::string& filepath) const {
     return true;
 }
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

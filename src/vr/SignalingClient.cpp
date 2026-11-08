@@ -7,30 +7,27 @@
  */
 
 #include "SignalingClient.h"
-#include <QUrl>
-#include <QUuid>
 #include <QDateTime>
 #include <QJsonArray>
+#include <QUrl>
+#include <QUuid>
 
 namespace quantumverse {
 namespace vr {
 
 SignalingClient::SignalingClient(QObject* parent)
-    : QObject(parent)
-    , m_socket(new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this))
-    , m_reconnectTimer(new QTimer(this))
-{
+    : QObject(parent),
+      m_socket(new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this)),
+      m_reconnectTimer(new QTimer(this)) {
     m_reconnectTimer->setSingleShot(true);
     m_reconnectTimer->setInterval(kReconnectDelayMs);
 
-    connect(m_socket, &QWebSocket::connected,
-            this, &SignalingClient::onConnected);
-    connect(m_socket, &QWebSocket::disconnected,
-            this, &SignalingClient::onDisconnected);
-    connect(m_socket, &QWebSocket::textMessageReceived,
-            this, &SignalingClient::onTextMessageReceived);
-    connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::errorOccurred),
-            this, &SignalingClient::onSocketError);
+    connect(m_socket, &QWebSocket::connected, this, &SignalingClient::onConnected);
+    connect(m_socket, &QWebSocket::disconnected, this, &SignalingClient::onDisconnected);
+    connect(m_socket, &QWebSocket::textMessageReceived, this,
+            &SignalingClient::onTextMessageReceived);
+    connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::errorOccurred), this,
+            &SignalingClient::onSocketError);
     connect(m_reconnectTimer, &QTimer::timeout, this, [this]() {
         if (!m_connected && m_reconnectAttempts < kMaxReconnectAttempts) {
             m_socket->abort();
@@ -40,16 +37,12 @@ SignalingClient::SignalingClient(QObject* parent)
     });
 }
 
-SignalingClient::~SignalingClient()
-{
+SignalingClient::~SignalingClient() {
     disconnectFromServer();
 }
 
-bool SignalingClient::connectToServer(const QString& url,
-                                      const QString& sessionId,
-                                      const QString& clientId,
-                                      const QString& clientName)
-{
+bool SignalingClient::connectToServer(const QString& url, const QString& sessionId,
+                                      const QString& clientId, const QString& clientName) {
     if (m_socket->state() == QAbstractSocket::ConnectedState) {
         m_socket->close();
     }
@@ -71,8 +64,7 @@ bool SignalingClient::connectToServer(const QString& url,
     return true;
 }
 
-void SignalingClient::disconnectFromServer()
-{
+void SignalingClient::disconnectFromServer() {
     m_reconnectTimer->stop();
     if (m_socket->state() == QAbstractSocket::ConnectedState) {
         QJsonObject leaveMsg;
@@ -86,9 +78,9 @@ void SignalingClient::disconnectFromServer()
     m_peerIds.clear();
 }
 
-void SignalingClient::broadcastState(const QJsonObject& stateJson)
-{
-    if (!m_connected) return;
+void SignalingClient::broadcastState(const QJsonObject& stateJson) {
+    if (!m_connected)
+        return;
 
     QJsonObject msg;
     msg["type"] = "state_update";
@@ -100,8 +92,7 @@ void SignalingClient::broadcastState(const QJsonObject& stateJson)
     sendJson(msg);
 }
 
-void SignalingClient::onConnected()
-{
+void SignalingClient::onConnected() {
     m_connected = true;
     m_reconnectAttempts = 0;
 
@@ -117,8 +108,7 @@ void SignalingClient::onConnected()
     emit isConnectedChanged();
 }
 
-void SignalingClient::onDisconnected()
-{
+void SignalingClient::onDisconnected() {
     bool wasConnected = m_connected;
     m_connected = false;
     m_peerIds.clear();
@@ -133,8 +123,7 @@ void SignalingClient::onDisconnected()
     }
 }
 
-void SignalingClient::onTextMessageReceived(const QString& message)
-{
+void SignalingClient::onTextMessageReceived(const QString& message) {
     QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8());
     if (doc.isNull() || !doc.isObject()) {
         emit connectionError("Invalid JSON received from server");
@@ -144,21 +133,18 @@ void SignalingClient::onTextMessageReceived(const QString& message)
     handleServerMessage(doc.object());
 }
 
-void SignalingClient::onSocketError(QAbstractSocket::SocketError error)
-{
+void SignalingClient::onSocketError(QAbstractSocket::SocketError error) {
     Q_UNUSED(error);
     emit connectionError("WebSocket error: " + m_socket->errorString());
 }
 
-void SignalingClient::sendJson(const QJsonObject& obj)
-{
+void SignalingClient::sendJson(const QJsonObject& obj) {
     if (m_socket->state() == QAbstractSocket::ConnectedState) {
         m_socket->sendTextMessage(QJsonDocument(obj).toJson(QJsonDocument::Compact));
     }
 }
 
-void SignalingClient::handleServerMessage(const QJsonObject& obj)
-{
+void SignalingClient::handleServerMessage(const QJsonObject& obj) {
     QString type = obj.value("type").toString();
 
     if (type == "peer_joined") {
@@ -202,5 +188,5 @@ void SignalingClient::handleServerMessage(const QJsonObject& obj)
     }
 }
 
-} // namespace vr
-} // namespace quantumverse
+}  // namespace vr
+}  // namespace quantumverse

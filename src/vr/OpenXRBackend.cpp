@@ -9,9 +9,9 @@
 
 #include "OpenXRBackend.h"
 #include <QSize>
+#include <algorithm>
 #include <array>
 #include <cmath>
-#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -22,13 +22,11 @@ namespace vr {
 
 OpenXRBackend::OpenXRBackend() = default;
 
-OpenXRBackend::~OpenXRBackend()
-{
+OpenXRBackend::~OpenXRBackend() {
     shutdown();
 }
 
-bool OpenXRBackend::initialize(const std::string& applicationName)
-{
+bool OpenXRBackend::initialize(const std::string& applicationName) {
     (void)applicationName;
     m_isStub = true;
     m_isActive = false;
@@ -37,35 +35,37 @@ bool OpenXRBackend::initialize(const std::string& applicationName)
     // Attempt to load OpenXR runtime dynamically
     // This allows the code to compile without the SDK and only load it at runtime
     struct XRLoader {
-        using xrCreateInstance_t = int(*)(void*, void*);
-        using xrDestroyInstance_t = int(*)(void*);
-        using xrEnumerateInstanceExtensionProperties_t = int(*)(const char*, uint32_t, uint32_t*, void*);
-        using xrCreateSession_t = int(*)(void*, const void*, void*, void*);
-        using xrDestroySession_t = int(*)(void*);
-        using xrBeginSession_t = int(*)(void*, const void*);
-        using xrEndSession_t = int(*)(void*);
-        using xrWaitFrame_t = int(*)(void*, const void*, void*, void*);
-        using xrBeginFrame_t = int(*)(void*, const void*);
-        using xrEndFrame_t = int(*)(void*, const void*, const void*);
-        using xrLocateViews_t = int(*)(void*, uint64_t, const void*, uint32_t*, uint32_t*, void*, void*);
-        using xrEnumerateSwapchainFormats_t = int(*)(void*, uint32_t, uint32_t*, int64_t*);
-        using xrCreateSwapchain_t = int(*)(void*, const void*, void*);
-        using xrDestroySwapchain_t = int(*)(void*);
-        using xrAcquireSwapchainImage_t = int(*)(void*, const void*, uint32_t*, uint32_t*);
-        using xrWaitSwapchainImage_t = int(*)(void*, const void*);
-        using xrReleaseSwapchainImage_t = int(*)(void*, const void*);
-        using xrCreateActionSet_t = int(*)(void*, const void*, void*);
-        using xrDestroyActionSet_t = int(*)(void*);
-        using xrCreateAction_t = int(*)(void*, const void*, void*);
-        using xrDestroyAction_t = int(*)(void*);
-        using xrSuggestInteractionProfileBindings_t = int(*)(void*, const char*, const void*);
-        using xrAttachSessionActionSets_t = int(*)(void*, const void*, const void*);
-        using xrSyncActions_t = int(*)(void*, const void*);
-        using xrGetActionStatePose_t = int(*)(void*, const void*, void*, void*);
-        using xrGetActionStateFloat_t = int(*)(void*, const void*, void*, void*);
-        using xrCreateReferenceSpace_t = int(*)(void*, const void*, void*, void*);
-        using xrDestroySpace_t = int(*)(void*);
-        using xrCreateActionSpace_t = int(*)(void*, const void*, const void*, void*);
+        using xrCreateInstance_t = int (*)(void*, void*);
+        using xrDestroyInstance_t = int (*)(void*);
+        using xrEnumerateInstanceExtensionProperties_t = int (*)(const char*, uint32_t, uint32_t*,
+                                                                 void*);
+        using xrCreateSession_t = int (*)(void*, const void*, void*, void*);
+        using xrDestroySession_t = int (*)(void*);
+        using xrBeginSession_t = int (*)(void*, const void*);
+        using xrEndSession_t = int (*)(void*);
+        using xrWaitFrame_t = int (*)(void*, const void*, void*, void*);
+        using xrBeginFrame_t = int (*)(void*, const void*);
+        using xrEndFrame_t = int (*)(void*, const void*, const void*);
+        using xrLocateViews_t = int (*)(void*, uint64_t, const void*, uint32_t*, uint32_t*, void*,
+                                        void*);
+        using xrEnumerateSwapchainFormats_t = int (*)(void*, uint32_t, uint32_t*, int64_t*);
+        using xrCreateSwapchain_t = int (*)(void*, const void*, void*);
+        using xrDestroySwapchain_t = int (*)(void*);
+        using xrAcquireSwapchainImage_t = int (*)(void*, const void*, uint32_t*, uint32_t*);
+        using xrWaitSwapchainImage_t = int (*)(void*, const void*);
+        using xrReleaseSwapchainImage_t = int (*)(void*, const void*);
+        using xrCreateActionSet_t = int (*)(void*, const void*, void*);
+        using xrDestroyActionSet_t = int (*)(void*);
+        using xrCreateAction_t = int (*)(void*, const void*, void*);
+        using xrDestroyAction_t = int (*)(void*);
+        using xrSuggestInteractionProfileBindings_t = int (*)(void*, const char*, const void*);
+        using xrAttachSessionActionSets_t = int (*)(void*, const void*, const void*);
+        using xrSyncActions_t = int (*)(void*, const void*);
+        using xrGetActionStatePose_t = int (*)(void*, const void*, void*, void*);
+        using xrGetActionStateFloat_t = int (*)(void*, const void*, void*, void*);
+        using xrCreateReferenceSpace_t = int (*)(void*, const void*, void*, void*);
+        using xrDestroySpace_t = int (*)(void*);
+        using xrCreateActionSpace_t = int (*)(void*, const void*, const void*, void*);
 
         HMODULE lib = nullptr;
         xrCreateInstance_t xrCreateInstance = nullptr;
@@ -95,37 +95,58 @@ bool OpenXRBackend::initialize(const std::string& applicationName)
 
         bool load() {
             lib = LoadLibraryA("openxr_loader.dll");
-            if (!lib) lib = LoadLibraryA("openxr_runtime.dll");
+            if (!lib)
+                lib = LoadLibraryA("openxr_runtime.dll");
             if (!lib) {
                 // Try common installation paths
                 lib = LoadLibraryA("C:/Windows/System32/openxr_loader.dll");
             }
-            if (!lib) return false;
+            if (!lib)
+                return false;
 
-            xrCreateInstance = reinterpret_cast<xrCreateInstance_t>(GetProcAddress(lib, "xrCreateInstance"));
-            xrDestroyInstance = reinterpret_cast<xrDestroyInstance_t>(GetProcAddress(lib, "xrDestroyInstance"));
-            xrCreateSession = reinterpret_cast<xrCreateSession_t>(GetProcAddress(lib, "xrCreateSession"));
-            xrDestroySession = reinterpret_cast<xrDestroySession_t>(GetProcAddress(lib, "xrDestroySession"));
-            xrBeginSession = reinterpret_cast<xrBeginSession_t>(GetProcAddress(lib, "xrBeginSession"));
+            xrCreateInstance =
+                reinterpret_cast<xrCreateInstance_t>(GetProcAddress(lib, "xrCreateInstance"));
+            xrDestroyInstance =
+                reinterpret_cast<xrDestroyInstance_t>(GetProcAddress(lib, "xrDestroyInstance"));
+            xrCreateSession =
+                reinterpret_cast<xrCreateSession_t>(GetProcAddress(lib, "xrCreateSession"));
+            xrDestroySession =
+                reinterpret_cast<xrDestroySession_t>(GetProcAddress(lib, "xrDestroySession"));
+            xrBeginSession =
+                reinterpret_cast<xrBeginSession_t>(GetProcAddress(lib, "xrBeginSession"));
             xrEndSession = reinterpret_cast<xrEndSession_t>(GetProcAddress(lib, "xrEndSession"));
             xrWaitFrame = reinterpret_cast<xrWaitFrame_t>(GetProcAddress(lib, "xrWaitFrame"));
             xrBeginFrame = reinterpret_cast<xrBeginFrame_t>(GetProcAddress(lib, "xrBeginFrame"));
             xrEndFrame = reinterpret_cast<xrEndFrame_t>(GetProcAddress(lib, "xrEndFrame"));
             xrLocateViews = reinterpret_cast<xrLocateViews_t>(GetProcAddress(lib, "xrLocateViews"));
-            xrCreateSwapchain = reinterpret_cast<xrCreateSwapchain_t>(GetProcAddress(lib, "xrCreateSwapchain"));
-            xrDestroySwapchain = reinterpret_cast<xrDestroySwapchain_t>(GetProcAddress(lib, "xrDestroySwapchain"));
-            xrAcquireSwapchainImage = reinterpret_cast<xrAcquireSwapchainImage_t>(GetProcAddress(lib, "xrAcquireSwapchainImage"));
-            xrWaitSwapchainImage = reinterpret_cast<xrWaitSwapchainImage_t>(GetProcAddress(lib, "xrWaitSwapchainImage"));
-            xrReleaseSwapchainImage = reinterpret_cast<xrReleaseSwapchainImage_t>(GetProcAddress(lib, "xrReleaseSwapchainImage"));
-            xrCreateReferenceSpace = reinterpret_cast<xrCreateReferenceSpace_t>(GetProcAddress(lib, "xrCreateReferenceSpace"));
-            xrDestroySpace = reinterpret_cast<xrDestroySpace_t>(GetProcAddress(lib, "xrDestroySpace"));
-            xrCreateActionSpace = reinterpret_cast<xrCreateActionSpace_t>(GetProcAddress(lib, "xrCreateActionSpace"));
-            xrCreateActionSet = reinterpret_cast<xrCreateActionSet_t>(GetProcAddress(lib, "xrCreateActionSet"));
-            xrSuggestInteractionProfileBindings = reinterpret_cast<xrSuggestInteractionProfileBindings_t>(GetProcAddress(lib, "xrSuggestInteractionProfileBindings"));
-            xrAttachSessionActionSets = reinterpret_cast<xrAttachSessionActionSets_t>(GetProcAddress(lib, "xrAttachSessionActionSets"));
+            xrCreateSwapchain =
+                reinterpret_cast<xrCreateSwapchain_t>(GetProcAddress(lib, "xrCreateSwapchain"));
+            xrDestroySwapchain =
+                reinterpret_cast<xrDestroySwapchain_t>(GetProcAddress(lib, "xrDestroySwapchain"));
+            xrAcquireSwapchainImage = reinterpret_cast<xrAcquireSwapchainImage_t>(
+                GetProcAddress(lib, "xrAcquireSwapchainImage"));
+            xrWaitSwapchainImage = reinterpret_cast<xrWaitSwapchainImage_t>(
+                GetProcAddress(lib, "xrWaitSwapchainImage"));
+            xrReleaseSwapchainImage = reinterpret_cast<xrReleaseSwapchainImage_t>(
+                GetProcAddress(lib, "xrReleaseSwapchainImage"));
+            xrCreateReferenceSpace = reinterpret_cast<xrCreateReferenceSpace_t>(
+                GetProcAddress(lib, "xrCreateReferenceSpace"));
+            xrDestroySpace =
+                reinterpret_cast<xrDestroySpace_t>(GetProcAddress(lib, "xrDestroySpace"));
+            xrCreateActionSpace =
+                reinterpret_cast<xrCreateActionSpace_t>(GetProcAddress(lib, "xrCreateActionSpace"));
+            xrCreateActionSet =
+                reinterpret_cast<xrCreateActionSet_t>(GetProcAddress(lib, "xrCreateActionSet"));
+            xrSuggestInteractionProfileBindings =
+                reinterpret_cast<xrSuggestInteractionProfileBindings_t>(
+                    GetProcAddress(lib, "xrSuggestInteractionProfileBindings"));
+            xrAttachSessionActionSets = reinterpret_cast<xrAttachSessionActionSets_t>(
+                GetProcAddress(lib, "xrAttachSessionActionSets"));
             xrSyncActions = reinterpret_cast<xrSyncActions_t>(GetProcAddress(lib, "xrSyncActions"));
-            xrGetActionStatePose = reinterpret_cast<xrGetActionStatePose_t>(GetProcAddress(lib, "xrGetActionStatePose"));
-            xrGetActionStateFloat = reinterpret_cast<xrGetActionStateFloat_t>(GetProcAddress(lib, "xrGetActionStateFloat"));
+            xrGetActionStatePose = reinterpret_cast<xrGetActionStatePose_t>(
+                GetProcAddress(lib, "xrGetActionStatePose"));
+            xrGetActionStateFloat = reinterpret_cast<xrGetActionStateFloat_t>(
+                GetProcAddress(lib, "xrGetActionStateFloat"));
 
             return xrCreateInstance && xrCreateSession && xrWaitFrame && xrEndFrame;
         }
@@ -175,8 +196,7 @@ bool OpenXRBackend::initialize(const std::string& applicationName)
     return true;
 }
 
-void OpenXRBackend::shutdown()
-{
+void OpenXRBackend::shutdown() {
 #ifdef QUANTUMVERSE_USE_OPENXR_SDK
     if (m_hasOpenXR) {
         // Destroy OpenXR resources
@@ -189,9 +209,9 @@ void OpenXRBackend::shutdown()
     m_isStub = true;
 }
 
-bool OpenXRBackend::beginFrame()
-{
-    if (!m_isActive) return false;
+bool OpenXRBackend::beginFrame() {
+    if (!m_isActive)
+        return false;
 
 #ifdef QUANTUMVERSE_USE_OPENXR_SDK
     if (m_hasOpenXR) {
@@ -209,8 +229,7 @@ bool OpenXRBackend::beginFrame()
     return true;
 }
 
-void OpenXRBackend::endFrame()
-{
+void OpenXRBackend::endFrame() {
 #ifdef QUANTUMVERSE_USE_OPENXR_SDK
     if (m_hasOpenXR) {
         // Real OpenXR frame end with view submission
@@ -222,9 +241,9 @@ void OpenXRBackend::endFrame()
     // Stub: no-op
 }
 
-bool OpenXRBackend::getControllerState(ControllerState& left, ControllerState& right)
-{
-    if (!m_isActive) return false;
+bool OpenXRBackend::getControllerState(ControllerState& left, ControllerState& right) {
+    if (!m_isActive)
+        return false;
 
 #ifdef QUANTUMVERSE_USE_OPENXR_SDK
     if (m_hasOpenXR) {
@@ -242,8 +261,7 @@ bool OpenXRBackend::getControllerState(ControllerState& left, ControllerState& r
     return m_isActive;
 }
 
-std::array<float, 16> OpenXRBackend::getViewMatrix(StereoEye eye) const
-{
+std::array<float, 16> OpenXRBackend::getViewMatrix(StereoEye eye) const {
     std::array<float, 16> matrix = {};
 
 #ifdef QUANTUMVERSE_USE_OPENXR_SDK
@@ -283,9 +301,12 @@ std::array<float, 16> OpenXRBackend::getViewMatrix(StereoEye eye) const
         matrix[9] = yz - wx;
         matrix[10] = 1.0f - (xx + yy);
         matrix[11] = 0.0f;
-        matrix[12] = -(matrix[0] * pose.position.x + matrix[4] * pose.position.y + matrix[8] * pose.position.z);
-        matrix[13] = -(matrix[1] * pose.position.x + matrix[5] * pose.position.y + matrix[9] * pose.position.z);
-        matrix[14] = -(matrix[2] * pose.position.x + matrix[6] * pose.position.y + matrix[10] * pose.position.z);
+        matrix[12] = -(matrix[0] * pose.position.x + matrix[4] * pose.position.y +
+                       matrix[8] * pose.position.z);
+        matrix[13] = -(matrix[1] * pose.position.x + matrix[5] * pose.position.y +
+                       matrix[9] * pose.position.z);
+        matrix[14] = -(matrix[2] * pose.position.x + matrix[6] * pose.position.y +
+                       matrix[10] * pose.position.z);
         matrix[15] = 1.0f;
 
         return matrix;
@@ -308,5 +329,5 @@ std::array<float, 16> OpenXRBackend::getViewMatrix(StereoEye eye) const
     return matrix;
 }
 
-} // namespace vr
-} // namespace quantumverse
+}  // namespace vr
+}  // namespace quantumverse

@@ -11,8 +11,8 @@
 #ifndef QUANTUMVERSE_GCN_REPLAY_STREAM_H
 #define QUANTUMVERSE_GCN_REPLAY_STREAM_H
 
-#include <QObject>
 #include <QJsonObject>
+#include <QObject>
 #include <QStringList>
 #include <QTimer>
 
@@ -21,15 +21,14 @@ namespace quantumverse {
 /**
  * @brief Streams archived GCN JSON files in chronological order
  */
-class GCNReplayStream : public QObject
-{
+class GCNReplayStream : public QObject {
     Q_OBJECT
     Q_PROPERTY(double speed READ speed WRITE setSpeed NOTIFY speedChanged)
     Q_PROPERTY(int currentIndex READ currentIndex NOTIFY currentIndexChanged)
     Q_PROPERTY(int totalFiles READ totalFiles NOTIFY totalFilesChanged)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
 
-public:
+   public:
     explicit GCNReplayStream(QObject* parent = nullptr);
     ~GCNReplayStream() override = default;
 
@@ -40,19 +39,29 @@ public:
     void setSpeed(double multiplier);
 
     /** @brief Current speed multiplier. */
-    double speed() const { return m_speed; }
+    double speed() const {
+        return m_speed;
+    }
 
     /** @brief Index of the currently playing file. */
-    int currentIndex() const { return m_currentIndex; }
+    int currentIndex() const {
+        return m_currentIndex;
+    }
 
     /** @brief Total number of files loaded for replay. */
-    int totalFiles() const { return m_files.size(); }
+    int totalFiles() const {
+        return m_files.size();
+    }
 
     /** @brief Whether the replay is currently running. */
-    bool running() const { return m_timer->isActive(); }
+    bool running() const {
+        return m_timer->isActive();
+    }
 
     /** @brief List of loaded file paths (sorted by timestamp). */
-    QStringList files() const { return m_files; }
+    QStringList files() const {
+        return m_files;
+    }
 
     /** @brief Start replay from the beginning. */
     Q_INVOKABLE void start();
@@ -66,7 +75,7 @@ public:
     /** @brief Resume a paused replay. */
     Q_INVOKABLE void resume();
 
-signals:
+   signals:
     void speedChanged();
     void currentIndexChanged();
     void totalFilesChanged();
@@ -76,10 +85,10 @@ signals:
     /** @brief Emitted when all archived alerts have been replayed. */
     void replayFinished();
 
-private slots:
+   private slots:
     void onTimerTick();
 
-private:
+   private:
     /** @brief Scan @p dirPath for JSON files and sort by embedded timestamp. */
     void loadAndSortFiles(const QString& dirPath);
 
@@ -93,6 +102,6 @@ private:
     qint64 m_lastEmitMs = 0;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GCN_REPLAY_STREAM_H
+#endif  // QUANTUMVERSE_GCN_REPLAY_STREAM_H

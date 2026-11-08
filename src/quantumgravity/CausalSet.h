@@ -18,13 +18,13 @@
 #ifndef QUANTUMVERSE_CAUSAL_SET_H
 #define QUANTUMVERSE_CAUSAL_SET_H
 
-#include "discovery/DiscoveryEngine.h"
-#include <vector>
-#include <set>
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <random>
-#include <algorithm>
+#include <set>
+#include <vector>
+#include "discovery/DiscoveryEngine.h"
 
 namespace quantumverse {
 namespace quantumgravity {
@@ -34,11 +34,11 @@ namespace quantumgravity {
  * @brief A single element in the causal set (an atom of spacetime)
  */
 struct CausalElement {
-    int id;                 // Unique identifier
-    double birth_time;      // "Time" of birth (Alexandrov coordinate)
-    std::set<int> past;     // Set of element IDs that are in the past
-    std::set<int> future;   // Set of element IDs that are in the future
-    double volume;          // Volume assigned to this element (typically Planck volume)
+    int id;                // Unique identifier
+    double birth_time;     // "Time" of birth (Alexandrov coordinate)
+    std::set<int> past;    // Set of element IDs that are in the past
+    std::set<int> future;  // Set of element IDs that are in the future
+    double volume;         // Volume assigned to this element (typically Planck volume)
 
     CausalElement(int id_, double t_) : id(id_), birth_time(t_), volume(1.0) {}
 };
@@ -48,7 +48,7 @@ struct CausalElement {
  * @brief Represents a causal set (partially ordered set of spacetime atoms)
  */
 class CausalSet {
-private:
+   private:
     std::vector<CausalElement> elements;
     std::map<int, int> id_to_index;  // Fast lookup
     int next_id;
@@ -56,7 +56,7 @@ private:
     // Internal: check if relation x < y is transitive (should be)
     bool isTransitive(int x, int y) const;
 
-public:
+   public:
     CausalSet();
 
     // Add a new element born at time t, with specified past set
@@ -72,7 +72,9 @@ public:
     std::set<int> getFuture(int id) const;
 
     // Get the number of elements (cardinality)
-    size_t size() const { return elements.size(); }
+    size_t size() const {
+        return elements.size();
+    }
 
     // Get element by ID
     const CausalElement& getElement(int id) const;
@@ -105,14 +107,14 @@ public:
  * References: Rideout & Sorkin (1999, 2000)
  */
 class CausalSetDynamics {
-private:
+   private:
     CausalSet& cs;
     std::mt19937 rng;
     std::uniform_real_distribution<double> uniformDist;
 
     // Dynamics parameters
-    double alpha;   // Tendency to include past elements
-    double beta;    // Tendency to exclude (anti-correlation)
+    double alpha;  // Tendency to include past elements
+    double beta;   // Tendency to exclude (anti-correlation)
 
     // History
     std::vector<double> volume_history;  // Volume vs. "time"
@@ -121,7 +123,7 @@ private:
     // Internal: probability of adding new element with given past set
     double birthProbability(const std::set<int>& past, double current_time) const;
 
-public:
+   public:
     CausalSetDynamics(CausalSet& cs_, double alpha_ = 0.5, double beta_ = 0.1);
 
     // Perform one growth step: add a new element
@@ -131,17 +133,31 @@ public:
     void grow(int n, double max_time);
 
     // Get the current causal set
-    const CausalSet& getCausalSet() const { return cs; }
+    const CausalSet& getCausalSet() const {
+        return cs;
+    }
 
     // Get volume history
-    const std::vector<double>& getVolumeHistory() const { return volume_history; }
-    const std::vector<int>& getElementCountHistory() const { return element_count_history; }
+    const std::vector<double>& getVolumeHistory() const {
+        return volume_history;
+    }
+    const std::vector<int>& getElementCountHistory() const {
+        return element_count_history;
+    }
 
     // Set dynamics parameters
-    void setAlpha(double a) { alpha = a; }
-    void setBeta(double b) { beta = b; }
-    double getAlpha() const { return alpha; }
-    double getBeta() const { return beta; }
+    void setAlpha(double a) {
+        alpha = a;
+    }
+    void setBeta(double b) {
+        beta = b;
+    }
+    double getAlpha() const {
+        return alpha;
+    }
+    double getBeta() const {
+        return beta;
+    }
 };
 
 /**
@@ -156,7 +172,7 @@ public:
  * - Visualization data (Hasse diagram)
  */
 class CausalSetEngine : public QuantumGravityPlugin {
-private:
+   private:
     std::unique_ptr<CausalSet> causal_set;
     std::unique_ptr<CausalSetDynamics> dynamics;
 
@@ -178,13 +194,9 @@ private:
     double estimateDimensionality() const;  // via box-counting on poset
     double randomWalkSpectralDimension(int num_walks, int steps) const;
 
-public:
-    CausalSetEngine(
-        double alpha_ = 0.5,
-        double beta_ = 0.1,
-        double planck_vol_ = 1.0,
-        int initial_elements_ = 100
-    );
+   public:
+    CausalSetEngine(double alpha_ = 0.5, double beta_ = 0.1, double planck_vol_ = 1.0,
+                    int initial_elements_ = 100);
 
     ~CausalSetEngine() override = default;
 
@@ -193,40 +205,45 @@ public:
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
 
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
 
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
 
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
 
     // Phenomenology
-    bool predictsWormholes() const override { return false; }
-    bool predictsNakedSingularities() const override { return false; }
-    bool violatesEnergyConditions() const override { return false; }
-    bool allowsTimeTravel() const override { return false; }
+    bool predictsWormholes() const override {
+        return false;
+    }
+    bool predictsNakedSingularities() const override {
+        return false;
+    }
+    bool violatesEnergyConditions() const override {
+        return false;
+    }
+    bool allowsTimeTravel() const override {
+        return false;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
     std::unique_ptr<TheoryPlugin> clone() const override;
 
     // QuantumGravityPlugin interface
-    QuantumGeometryType getQuantumGeometryType() const override { return QUANTUM_CAUSAL_SET; }
+    QuantumGeometryType getQuantumGeometryType() const override {
+        return QUANTUM_CAUSAL_SET;
+    }
 
     std::string getPlanckScaleEffects() const override;
 
-    bool isDiscrete() const override { return true; }
+    bool isDiscrete() const override {
+        return true;
+    }
 
-    double computeAmplitude(
-        const Event4D& from,
-        const Event4D& to
-    ) const override;
+    double computeAmplitude(const Event4D& from, const Event4D& to) const override;
 
     double computeSpectralDimension(double mu) const override;
     /**
@@ -243,15 +260,32 @@ public:
 
     // Causal set specific operations
     void grow(int n, double max_time);
-    void setParameters(double a, double b) { alpha = a; beta = b; if(dynamics) dynamics->setAlpha(a), dynamics->setBeta(b); }
-    int getNumElements() const { return num_elements; }
-    double getSprinklingDensity() const { return sprinkling_density; }
-    const CausalSet& getCausalSet() const { return *causal_set; }
+    void setParameters(double a, double b) {
+        alpha = a;
+        beta = b;
+        if (dynamics)
+            dynamics->setAlpha(a), dynamics->setBeta(b);
+    }
+    int getNumElements() const {
+        return num_elements;
+    }
+    double getSprinklingDensity() const {
+        return sprinkling_density;
+    }
+    const CausalSet& getCausalSet() const {
+        return *causal_set;
+    }
 
     // Accessor methods for private parameters (needed by tests and UI)
-    double getAlpha() const { return alpha; }
-    double getBeta() const { return beta; }
-    double getPlanckVolume() const { return planck_volume; }
+    double getAlpha() const {
+        return alpha;
+    }
+    double getBeta() const {
+        return beta;
+    }
+    double getPlanckVolume() const {
+        return planck_volume;
+    }
 };
 
 /**
@@ -259,28 +293,33 @@ public:
  * @brief Concrete plugin for DiscoveryEngine registration
  */
 class CausalSetPlugin : public CausalSetEngine {
-private:
+   private:
     std::string name;
     std::string description;
 
-public:
-    CausalSetPlugin(
-        double alpha = 0.5,
-        double beta = 0.1,
-        double planck_vol = 1.0,
-        int initial = 100
-    ) : CausalSetEngine(alpha, beta, planck_vol, initial),
-        name("Causal Set Theory"),
-        description("Quantum gravity via discrete spacetime posets. Spacetime is a causal set where order encodes causality. Emergent continuum via coarse-graining. Predicts finite spacetime discreteness at Planck scale.") {}
+   public:
+    CausalSetPlugin(double alpha = 0.5, double beta = 0.1, double planck_vol = 1.0,
+                    int initial = 100)
+        : CausalSetEngine(alpha, beta, planck_vol, initial),
+          name("Causal Set Theory"),
+          description(
+              "Quantum gravity via discrete spacetime posets. Spacetime is a causal set where "
+              "order encodes causality. Emergent continuum via coarse-graining. Predicts finite "
+              "spacetime discreteness at Planck scale.") {}
 
-    std::string getName() const override { return name; }
-    std::string getDescription() const override { return description; }
+    std::string getName() const override {
+        return name;
+    }
+    std::string getDescription() const override {
+        return description;
+    }
     std::unique_ptr<TheoryPlugin> clone() const override {
-        return std::make_unique<CausalSetPlugin>(getAlpha(), getBeta(), getPlanckVolume(), getNumElements());
+        return std::make_unique<CausalSetPlugin>(getAlpha(), getBeta(), getPlanckVolume(),
+                                                 getNumElements());
     }
 };
 
-} // namespace quantumgravity
-} // namespace quantumverse
+}  // namespace quantumgravity
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_CAUSAL_SET_H
+#endif  // QUANTUMVERSE_CAUSAL_SET_H

@@ -4,20 +4,18 @@
  */
 
 #include "NBodySimulator.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 namespace quantumverse {
 
 NBodySimulator::NBodySimulator()
     : m_dt(3600.0)  // 1 hour default time step
-    , m_time(0.0)
-{
-}
+      ,
+      m_time(0.0) {}
 
-void NBodySimulator::addBody(const std::string& id, double mass,
-                             const double position[3], const double velocity[3])
-{
+void NBodySimulator::addBody(const std::string& id, double mass, const double position[3],
+                             const double velocity[3]) {
     NBody body;
     body.id = id;
     body.mass = mass;
@@ -29,10 +27,9 @@ void NBodySimulator::addBody(const std::string& id, double mass,
     m_bodies.push_back(body);
 }
 
-bool NBodySimulator::removeBody(const std::string& id)
-{
+bool NBodySimulator::removeBody(const std::string& id) {
     auto it = std::find_if(m_bodies.begin(), m_bodies.end(),
-        [&id](const NBody& b) { return b.id == id; });
+                           [&id](const NBody& b) { return b.id == id; });
     if (it != m_bodies.end()) {
         m_bodies.erase(it);
         return true;
@@ -40,15 +37,13 @@ bool NBodySimulator::removeBody(const std::string& id)
     return false;
 }
 
-NBody* NBodySimulator::getBody(const std::string& id)
-{
+NBody* NBodySimulator::getBody(const std::string& id) {
     auto it = std::find_if(m_bodies.begin(), m_bodies.end(),
-        [&id](const NBody& b) { return b.id == id; });
+                           [&id](const NBody& b) { return b.id == id; });
     return (it != m_bodies.end()) ? &(*it) : nullptr;
 }
 
-void NBodySimulator::resetAccelerations()
-{
+void NBodySimulator::resetAccelerations() {
     for (auto& body : m_bodies) {
         body.acceleration[0] = 0.0;
         body.acceleration[1] = 0.0;
@@ -56,8 +51,7 @@ void NBodySimulator::resetAccelerations()
     }
 }
 
-void NBodySimulator::computeForces()
-{
+void NBodySimulator::computeForces() {
     resetAccelerations();
 
     // Compute pairwise gravitational forces
@@ -73,7 +67,8 @@ void NBodySimulator::computeForces()
             double r = std::sqrt(r2);
 
             // Avoid division by zero
-            if (r < 1e-10) continue;
+            if (r < 1e-10)
+                continue;
 
             // Gravitational force magnitude: F = G * m1 * m2 / r^2
             double F = G * m_bodies[i].mass * m_bodies[j].mass / r2;
@@ -99,8 +94,7 @@ void NBodySimulator::computeForces()
     }
 }
 
-void NBodySimulator::integrate()
-{
+void NBodySimulator::integrate() {
     // Euler integration: v += a * dt, x += v * dt
     for (auto& body : m_bodies) {
         for (int k = 0; k < 3; ++k) {
@@ -110,11 +104,10 @@ void NBodySimulator::integrate()
     }
 }
 
-void NBodySimulator::update()
-{
+void NBodySimulator::update() {
     computeForces();
     integrate();
     m_time += m_dt;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

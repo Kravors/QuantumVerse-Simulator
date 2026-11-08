@@ -4,8 +4,8 @@
  */
 
 #include "ScenarioManager.h"
-#include <filesystem>
 #include <algorithm>
+#include <filesystem>
 #include <iostream>
 
 namespace quantumverse {
@@ -66,10 +66,12 @@ bool ScenarioManager::hasScenario(const std::string& name) const {
 std::shared_ptr<Scenario> ScenarioManager::getScenario(const std::string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = name_to_filename_.find(name);
-    if (it == name_to_filename_.end()) return nullptr;
+    if (it == name_to_filename_.end())
+        return nullptr;
 
     auto sit = scenarios_.find(it->second);
-    if (sit != scenarios_.end()) return sit->second;
+    if (sit != scenarios_.end())
+        return sit->second;
 
     return nullptr;
 }
@@ -77,7 +79,8 @@ std::shared_ptr<Scenario> ScenarioManager::getScenario(const std::string& name) 
 std::shared_ptr<Scenario> ScenarioManager::getScenarioByFilename(const std::string& filename) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = scenarios_.find(filename);
-    if (it != scenarios_.end()) return it->second;
+    if (it != scenarios_.end())
+        return it->second;
 
     std::string full_path = scenario_dir_ + "/" + filename;
     auto scenario = std::make_shared<Scenario>();
@@ -106,16 +109,16 @@ bool ScenarioManager::loadScenario(const std::string& filename) {
 
     std::string error;
     if (!scenario->validate(&error)) {
-        std::cerr << "[ScenarioManager] Validation failed for " << filename
-                  << ": " << error << std::endl;
+        std::cerr << "[ScenarioManager] Validation failed for " << filename << ": " << error
+                  << std::endl;
         return false;
     }
 
     scenarios_[filename] = scenario;
     name_to_filename_[scenario->name] = filename;
 
-    std::cout << "[ScenarioManager] Loaded: " << scenario->name
-              << " from " << filename << std::endl;
+    std::cout << "[ScenarioManager] Loaded: " << scenario->name << " from " << filename
+              << std::endl;
     return true;
 }
 
@@ -140,9 +143,11 @@ bool ScenarioManager::doLoadAllScenarios() {
     int loaded = 0;
 
     for (const auto& entry : fs::directory_iterator(scenario_dir_)) {
-        if (!entry.is_regular_file()) continue;
+        if (!entry.is_regular_file())
+            continue;
         auto ext = entry.path().extension().string();
-        if (ext != ".json") continue;
+        if (ext != ".json")
+            continue;
 
         std::string filename = entry.path().filename().string();
         std::string full_path = scenario_dir_ + "/" + filename;
@@ -155,8 +160,8 @@ bool ScenarioManager::doLoadAllScenarios() {
 
         std::string error;
         if (!scenario->validate(&error)) {
-            std::cerr << "[ScenarioManager] Validation failed for " << filename
-                      << ": " << error << std::endl;
+            std::cerr << "[ScenarioManager] Validation failed for " << filename << ": " << error
+                      << std::endl;
             continue;
         }
 
@@ -165,8 +170,8 @@ bool ScenarioManager::doLoadAllScenarios() {
         loaded++;
     }
 
-    std::cout << "[ScenarioManager] Loaded " << loaded << " scenarios from "
-              << scenario_dir_ << std::endl;
+    std::cout << "[ScenarioManager] Loaded " << loaded << " scenarios from " << scenario_dir_
+              << std::endl;
     return loaded > 0;
 }
 
@@ -203,4 +208,4 @@ void ScenarioManager::clear() {
     name_to_filename_.clear();
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

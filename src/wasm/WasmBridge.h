@@ -12,8 +12,8 @@
 #include <memory>
 #include <string>
 
-#include "../spacetime/KerrMetric.h"
 #include "../physics/PhysicsValidator.h"
+#include "../spacetime/KerrMetric.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,7 +61,8 @@ void qv_bridge_set_charge(WasmBridge* bridge, double charge);
 // --- RL Discovery -----------------------------------------------------------
 
 /// Run one RL discovery step. Returns JSON string with deltas and veto flag.
-const char* qv_bridge_run_discovery_step(WasmBridge* bridge, double mass, double spin, double charge);
+const char* qv_bridge_run_discovery_step(WasmBridge* bridge, double mass, double spin,
+                                         double charge);
 
 // --- LLM Co-Pilot -----------------------------------------------------------
 
@@ -74,5 +75,5 @@ typedef void (*LLMCallback)(const char* explanation);
 void qv_bridge_set_llm_callback(WasmBridge* bridge, LLMCallback callback);
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif

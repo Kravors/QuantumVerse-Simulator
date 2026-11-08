@@ -4,8 +4,8 @@
  */
 
 #include "BosonStarCollisionPredictor.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,19 +13,18 @@
 
 namespace quantumverse {
 
-BosonStarCollisionPredictor::BosonStarCollisionPredictor()
-{
+BosonStarCollisionPredictor::BosonStarCollisionPredictor() {
     setParameter("strain_threshold", 1e-7);
     setParameter("boson_mass_ev", 1e-12);
 }
 
-std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+BosonStarCollisionPredictor::analyze(const MetricTensor& metric, const Event4D& location,
+                                     const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
-    if (trajectory.size() < 10) return findings;
+    if (trajectory.size() < 10)
+        return findings;
 
     double strainThreshold = getParameter("strain_threshold");
     double bosonMass = getParameter("boson_mass_ev");
@@ -37,7 +36,8 @@ std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
         strains.push_back(ev.z);
     }
     size_t n = times.size();
-    if (n < 10) return findings;
+    if (n < 10)
+        return findings;
 
     // Locate the merger: time of peak strain amplitude.
     double peakStrain = 0.0;
@@ -49,7 +49,8 @@ std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
             mergerTime = times[i];
         }
     }
-    if (peakStrain <= strainThreshold) return findings;
+    if (peakStrain <= strainThreshold)
+        return findings;
 
     // Estimate the ringdown frequency from the post-merger segment via a DFT.
     double ringdownFreq = 0.0;
@@ -66,8 +67,7 @@ std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
         if (m >= 4) {
             double bestMag = 0.0;
             for (size_t k = 1; k <= m / 2; ++k) {
-                double freq = static_cast<double>(k) /
-                              (static_cast<double>(m) * dt); // Hz
+                double freq = static_cast<double>(k) / (static_cast<double>(m) * dt);  // Hz
                 double re = 0.0, im = 0.0;
                 for (size_t i = 0; i < m; ++i) {
                     double ph = 2.0 * M_PI * freq * rt[i];
@@ -90,10 +90,10 @@ std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
     finding.instrumentName = getName();
     finding.severity = confidenceToSeverity(confidence);
     finding.confidence = confidence;
-    finding.description = "Boson star merger detected at t = " +
-        std::to_string(mergerTime) + " with peak strain " + std::to_string(peakStrain) +
-        " and ringdown frequency " + std::to_string(ringdownFreq) +
-        " Hz, indicating a boson star collision signature.";
+    finding.description = "Boson star merger detected at t = " + std::to_string(mergerTime) +
+                          " with peak strain " + std::to_string(peakStrain) +
+                          " and ringdown frequency " + std::to_string(ringdownFreq) +
+                          " Hz, indicating a boson star collision signature.";
     finding.location = location;
     finding.timestamp = mergerTime;
     finding.parameters["merger_time"] = mergerTime;
@@ -106,4 +106,4 @@ std::vector<InstrumentFinding> BosonStarCollisionPredictor::analyze(
     return findings;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

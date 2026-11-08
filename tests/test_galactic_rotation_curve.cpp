@@ -9,22 +9,22 @@
 #include <vector>
 
 #include "discovery/GalacticRotationCurveScanner.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
     std::cout << "=== GalacticRotationCurveScanner Test ===" << std::endl;
 
     // --- Synthetic rotation curve ------------------------------------------
-    const double rFlat = 20.0;       // radius where flattening begins
-    const double aKepler = 10.0;     // inner Keplerian scale: v = aKepler / sqrt(r)
-    const double vFlat = 8.0;        // outer flat velocity
+    const double rFlat = 20.0;    // radius where flattening begins
+    const double aKepler = 10.0;  // inner Keplerian scale: v = aKepler / sqrt(r)
+    const double vFlat = 8.0;     // outer flat velocity
 
     std::vector<quantumverse::Event4D> trajectory;
     for (double r = 1.0; r <= 100.0; r += 1.0) {
         double v = (r < rFlat) ? (aKepler / std::sqrt(r)) : vFlat;
-        trajectory.emplace_back(r, r, 0.0, v); // x=r, y=0, z=v
+        trajectory.emplace_back(r, r, 0.0, v);  // x=r, y=0, z=v
     }
 
     quantumverse::MetricTensor metric;
@@ -44,8 +44,8 @@ int main() {
     QV_CHECK(rit != f.parameters.end());
     QV_CHECK_NEAR(rit->second, rFlat, 2.0);
 
-    std::cout << "Detected dark matter halo: flatten_radius=" << rit->second
-              << " (expected ~" << rFlat << ")" << std::endl;
+    std::cout << "Detected dark matter halo: flatten_radius=" << rit->second << " (expected ~"
+              << rFlat << ")" << std::endl;
 
     // --- Negative case: pure Keplerian curve (no flattening) ---------------
     std::vector<quantumverse::Event4D> kepler;

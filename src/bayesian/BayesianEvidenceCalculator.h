@@ -24,33 +24,32 @@ namespace quantumverse {
  */
 
 struct BICInputs {
-    int     k       = 0;    // number of free parameters
-    int     n       = 0;    // number of data points
-    double  logLik  = 0.0;  // maximum log-likelihood at best-fit parameters
+    int k = 0;            // number of free parameters
+    int n = 0;            // number of data points
+    double logLik = 0.0;  // maximum log-likelihood at best-fit parameters
 };
 
 struct ModelEvidence {
-    std::string  name;
-    BICInputs    inputs;
-    double       bic        = 0.0;
-    double       logEvidence = 0.0;   // −BIC/2 (up to model-independent constant)
+    std::string name;
+    BICInputs inputs;
+    double bic = 0.0;
+    double logEvidence = 0.0;  // −BIC/2 (up to model-independent constant)
 };
 
 struct BayesFactorResult {
-    std::string  reference;
-    std::string  candidate;
-    double       logBF_natural = 0.0; // ln BF; >0 → candidate favored
-    double       logBF_base10  = 0.0; // log10 BF = logBF_natural / ln(10)
-    std::string  interpretation;      // "inconclusive" | "positive" | "strong" | "very strong"
+    std::string reference;
+    std::string candidate;
+    double logBF_natural = 0.0;  // ln BF; >0 → candidate favored
+    double logBF_base10 = 0.0;   // log10 BF = logBF_natural / ln(10)
+    std::string interpretation;  // "inconclusive" | "positive" | "strong" | "very strong"
 };
 
 class BayesianEvidenceCalculator {
-public:
+   public:
     // Compute a single model's BIC-based evidence.
     // Invalid inputs (k<0, n<=0, non-finite logLik) → NaN bic/logEvidence.
     // k=0 is valid (e.g. GR baseline with no free parameters).
-    static ModelEvidence computeModelEvidence(const std::string& name,
-                                              const BICInputs& inputs);
+    static ModelEvidence computeModelEvidence(const std::string& name, const BICInputs& inputs);
 
     // Compare reference vs candidate models.
     // Convention: logBF_natural > 0 means CANDIDATE is favored.
@@ -67,6 +66,6 @@ public:
     static std::string interpret(double logBF_natural);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_BAYESIAN_EVIDENCE_CALCULATOR_H
+#endif  // QUANTUMVERSE_BAYESIAN_EVIDENCE_CALCULATOR_H

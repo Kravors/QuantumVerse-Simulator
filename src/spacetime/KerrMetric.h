@@ -4,10 +4,10 @@
 #include <array>
 #include <cmath>
 #include <memory>
-#include "MetricTensor.h"
-#include "Event4D.h"
 #include "../math/AutoDiff.h"
 #include "../physics/PhysicsConstants.h"
+#include "Event4D.h"
+#include "MetricTensor.h"
 
 namespace quantumverse {
 
@@ -24,7 +24,7 @@ namespace quantumverse {
  * where Σ = r² + a²cos²θ, Δ = r² - 2Mr + a², a = J/M.
  */
 class KerrMetric : public MetricTensor {
-public:
+   public:
     /**
      * @brief Construct a Kerr metric.
      * @param massKg Black hole mass in kilograms.
@@ -32,11 +32,21 @@ public:
      */
     KerrMetric(double massKg, double spinDimensionless);
 
-    double mass() const noexcept override { return m_mass; }
-    double spin() const noexcept override { return m_spin; }
-    double geometricMass() const { return m_M; }
-    double specificAngularMomentum() const { return m_a; }
-    double schwarzschildRadius() const { return m_rs; }
+    double mass() const noexcept override {
+        return m_mass;
+    }
+    double spin() const noexcept override {
+        return m_spin;
+    }
+    double geometricMass() const {
+        return m_M;
+    }
+    double specificAngularMomentum() const {
+        return m_a;
+    }
+    double schwarzschildRadius() const {
+        return m_rs;
+    }
 
     /// @brief In-place mass update; bumps the metric epoch for cache invalidation.
     void setMass(double massKg) noexcept;
@@ -65,7 +75,9 @@ public:
     /**
      * @brief Equatorial ergosphere radius (= rs, the Schwarzschild radius).
      */
-    double ergosphereRadiusEquatorial() const { return m_rs; }
+    double ergosphereRadiusEquatorial() const {
+        return m_rs;
+    }
 
     /**
      * @brief Frame-dragging angular velocity ω(r, θ) in rad/s.
@@ -86,21 +98,17 @@ public:
      */
     CurvatureScalars curvatureScalars(const Event4D& event) const override;
 
-    std::array<std::array<std::array<double, 4>, 4>, 4> computeFullChristoffel(
-        const Event4D& event
-    ) const override;
+    std::array<std::array<std::array<double, 4>, 4>, 4>
+    computeFullChristoffel(const Event4D& event) const override;
 
-    std::array<std::array<RVar, 4>, 4> evaluateAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const override;
+    std::array<std::array<RVar, 4>, 4> evaluateAD(const std::array<RVar, 4>& pos,
+                                                  const std::vector<RVar>& params) const override;
 
-    std::array<std::array<std::array<RVar, 4>, 4>, 4> computeChristoffelAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const override;
+    std::array<std::array<std::array<RVar, 4>, 4>, 4>
+    computeChristoffelAD(const std::array<RVar, 4>& pos,
+                         const std::vector<RVar>& params) const override;
 
-private:
+   private:
     double m_mass;  ///< Mass in kg
     double m_M;     ///< Geometric mass M = GM/c²
     double m_a;     ///< Specific angular momentum a = spin * M
@@ -120,13 +128,11 @@ private:
      * Given BL metric g_BL(t,r,θ,φ) and Cartesian position, compute
      * the equivalent metric in (t,x,y,z) coordinates.
      */
-    void transformBLToCartesian(
-        double g_tt, double g_tphi, double g_rr, double g_thth, double g_pp,
-        double x, double y, double z, double rBL, double theta, double phi,
-        std::array<std::array<double, 4>, 4>& out
-    ) const;
+    void transformBLToCartesian(double g_tt, double g_tphi, double g_rr, double g_thth, double g_pp,
+                                double x, double y, double z, double rBL, double theta, double phi,
+                                std::array<std::array<double, 4>, 4>& out) const;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_KERR_METRIC_H
+#endif  // QUANTUMVERSE_KERR_METRIC_H

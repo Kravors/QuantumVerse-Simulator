@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <string>
 #include <functional>
+#include <string>
 
 namespace quantumverse {
 
@@ -28,7 +28,7 @@ using GLDEBUG_ENUM = unsigned int;
  * - Other messages (GL_DEBUG_TYPE_OTHER)
  */
 class GLDebug {
-public:
+   public:
     /**
      * @brief Get singleton instance
      */
@@ -43,7 +43,9 @@ public:
     /**
      * @brief Check if debug callback is active
      */
-    bool isEnabled() const { return m_enabled; }
+    bool isEnabled() const {
+        return m_enabled;
+    }
 
     /**
      * @brief Set custom log callback
@@ -54,12 +56,16 @@ public:
     /**
      * @brief Get error count since last reset
      */
-    int getErrorCount() const { return m_errorCount; }
+    int getErrorCount() const {
+        return m_errorCount;
+    }
 
     /**
      * @brief Get warning count since last reset
      */
-    int getWarningCount() const { return m_warningCount; }
+    int getWarningCount() const {
+        return m_warningCount;
+    }
 
     /**
      * @brief Reset counters
@@ -69,28 +75,26 @@ public:
     /**
      * @brief Enable strict mode: any GL error causes failure
      */
-    void setStrictMode(bool strict) { m_strictMode = strict; }
-    bool strictMode() const { return m_strictMode; }
+    void setStrictMode(bool strict) {
+        m_strictMode = strict;
+    }
+    bool strictMode() const {
+        return m_strictMode;
+    }
 
     /**
      * @brief Log a GL error (for use with CHECK_GL_ERROR macro)
      */
     static void logGLError(GLDEBUG_ENUM error, const char* file, int line, const char* context);
 
-private:
+   private:
     GLDebug() = default;
     ~GLDebug() = default;
 
     // GL debug callback function (C-style for GL API)
-    static void debugCallback(
-        GLDEBUG_ENUM source,
-        GLDEBUG_ENUM type,
-        GLDEBUG_ENUM id,
-        GLDEBUG_ENUM severity,
-        int length,
-        const char* message,
-        const void* userParam
-    );
+    static void debugCallback(GLDEBUG_ENUM source, GLDEBUG_ENUM type, GLDEBUG_ENUM id,
+                              GLDEBUG_ENUM severity, int length, const char* message,
+                              const void* userParam);
 
     bool m_enabled = false;
     int m_errorCount = 0;
@@ -99,4 +103,4 @@ private:
     std::function<void(const std::string&)> m_logCallback;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

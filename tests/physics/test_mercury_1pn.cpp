@@ -31,50 +31,53 @@
 
 namespace {
 
-constexpr double kG    = 6.67430e-11;
-constexpr double kC    = 2.99792458e8;
+constexpr double kG = 6.67430e-11;
+constexpr double kC = 2.99792458e8;
 constexpr double kMsun = 1.989e30;
-constexpr double kGM   = kG * kMsun;    // ~1.327e20 m^3/s^2
+constexpr double kGM = kG * kMsun;  // ~1.327e20 m^3/s^2
 
-constexpr double kAU   = 1.495978707e11;
+constexpr double kAU = 1.495978707e11;
 constexpr double kA_merc = 0.387 * kAU;  // semi-major axis, m (matches config)
 constexpr double kE_merc = 0.205630;
 constexpr double kR_peri = kA_merc * (1.0 - kE_merc);
-constexpr double kT_merc = 7.6006e6;    // orbital period, s (matches config)
+constexpr double kT_merc = 7.6006e6;  // orbital period, s (matches config)
 
-constexpr double kDt     = 1.0;         // integration step, s
-constexpr int    kOrbits = 24;
+constexpr double kDt = 1.0;  // integration step, s
+constexpr int kOrbits = 24;
 
 // Expected perihelion advance over kOrbits orbits:
 //   43 arcsec/century / 415 orbits/century * 24 orbits = 2.49 arcsec
-constexpr double kExpectedAdvance_rad =
-    (43.0 / 3600.0) * (M_PI / 180.0) / 415.0 * kOrbits;
-constexpr double kTolerance_rad = 5.0e-6;   // ~1 arcsec absolute tolerance
+constexpr double kExpectedAdvance_rad = (43.0 / 3600.0) * (M_PI / 180.0) / 415.0 * kOrbits;
+constexpr double kTolerance_rad = 5.0e-6;  // ~1 arcsec absolute tolerance
 
 double visViva(double r, double a) {
     return std::sqrt(kGM * (2.0 / r - 1.0 / a));
 }
 
 // Eccentricity vector and its argument (angle from +X in the XY plane).
-struct EccState { double e; double arg; };
+struct EccState {
+    double e;
+    double arg;
+};
 
 EccState eccentricityArgument(double x, double y, double vx, double vy) {
-    const double r  = std::sqrt(x*x + y*y);
-    const double L  = x*vy - y*vx;              // specific angular momentum (z)
-    const double ex =  vy * L / kGM - x / r;    // e_vec = (v x L)/GM - r_hat
+    const double r = std::sqrt(x * x + y * y);
+    const double L = x * vy - y * vx;        // specific angular momentum (z)
+    const double ex = vy * L / kGM - x / r;  // e_vec = (v x L)/GM - r_hat
     const double ey = -vx * L / kGM - y / r;
-    return { std::sqrt(ex*ex + ey*ey), std::atan2(ey, ex) };
+    return {std::sqrt(ex * ex + ey * ey), std::atan2(ey, ex)};
 }
 
 // Build a fresh UI4D with only Sun + Mercury, Mercury at perihelion moving
 // in +Y. Returns the Mercury body reference for the caller to integrate.
-quantumverse::UI4D::SolarSystemBody& setupSunMercury(quantumverse::UI4D& ui, bool grCorrections = true) {
+quantumverse::UI4D::SolarSystemBody& setupSunMercury(quantumverse::UI4D& ui,
+                                                     bool grCorrections = true) {
     ui.setGrCorrections(grCorrections);
 
     // Isolate the two-body problem: drop every planet except the Sun so that
     // Newtonian planet-planet perturbations cannot mask the 1PN signal.
     auto& bodies = ui.getSolarSystem().bodies;
-    for (auto it = bodies.begin(); it != bodies.end(); ) {
+    for (auto it = bodies.begin(); it != bodies.end();) {
         if (it->first != "Sun" && it->first != "Mercury") {
             it = bodies.erase(it);
         } else {
@@ -85,25 +88,28 @@ quantumverse::UI4D::SolarSystemBody& setupSunMercury(quantumverse::UI4D& ui, boo
     auto& m = bodies.at("Mercury");
 
     const double v_peri = visViva(kR_peri, kA_merc);
-    m.position.x = kR_peri; m.position.y = 0.0;   m.position.z = 0.0;
-    m.velocity.x = 0.0;     m.velocity.y = v_peri; m.velocity.z = 0.0;
+    m.position.x = kR_peri;
+    m.position.y = 0.0;
+    m.position.z = 0.0;
+    m.velocity.x = 0.0;
+    m.velocity.y = v_peri;
+    m.velocity.z = 0.0;
     m.position.t = 0.0;
     m.velocity.t = 0.0;
 
     return m;
 }
 
-} // namespace
+}  // namespace
 
 class TestMercury1PN : public QObject {
     Q_OBJECT
 
-private slots:
+   private slots:
 
     // Sanity: the arithmetic that produces 43"/century is correct.
     void testAnalyticAdvance() {
-        const double per_orbit_rad =
-            (43.0 / 3600.0) * (M_PI / 180.0) / 415.0;
+        const double per_orbit_rad = (43.0 / 3600.0) * (M_PI / 180.0) / 415.0;
         QVERIFY(std::abs(per_orbit_rad - 5.02e-7) < 1e-9);
     }
 
@@ -113,22 +119,23 @@ private slots:
         auto& m = setupSunMercury(*ui);
 
         // ---- Prime the phase tracker ----
-        auto s0 = eccentricityArgument(m.position.x, m.position.y,
-                                       m.velocity.x, m.velocity.y);
+        auto s0 = eccentricityArgument(m.position.x, m.position.y, m.velocity.x, m.velocity.y);
         double prev_arg = s0.arg;
         double total_rotation = 0.0;
 
         // ---- Integrate ----
         const int64_t steps = static_cast<int64_t>(kOrbits * kT_merc / kDt);
-        const int     sample_every = 100;
+        const int sample_every = 100;
         for (int64_t i = 0; i < steps; ++i) {
-            ui->stepSimulationCPURaw(kDt);            // raw leapfrog step, dt=1s
+            ui->stepSimulationCPURaw(kDt);  // raw leapfrog step, dt=1s
             if ((i + 1) % sample_every == 0) {
-                auto s = eccentricityArgument(m.position.x, m.position.y,
-                                              m.velocity.x, m.velocity.y);
+                auto s =
+                    eccentricityArgument(m.position.x, m.position.y, m.velocity.x, m.velocity.y);
                 double d = s.arg - prev_arg;
-                while (d >  M_PI) d -= 2.0 * M_PI;
-                while (d < -M_PI) d += 2.0 * M_PI;
+                while (d > M_PI)
+                    d -= 2.0 * M_PI;
+                while (d < -M_PI)
+                    d += 2.0 * M_PI;
                 total_rotation += d;
                 prev_arg = s.arg;
             }
@@ -142,26 +149,26 @@ private slots:
 
         qInfo() << "[1PN] total rotation =" << total_rotation << " rad";
         qInfo() << "[1PN] precession (turns) =" << total_rotation / (2.0 * M_PI);
-        qInfo() << "[1PN] residual advance = "
-                << residual_arcsec << " arcsec (expected ~2.49\")";
+        qInfo() << "[1PN] residual advance = " << residual_arcsec << " arcsec (expected ~2.49\")";
 
         // Diagnostic failure messages distinguish the three cases:
         if (std::abs(residual_arcsec) < 0.5) {
-            QFAIL("1PN correction appears NOT IMPLEMENTED: residual ~0 "
-                  "means the integrator is Newtonian. Implement "
-                  "a_1PN in stepSimulationCPU, then rerun.");
+            QFAIL(
+                "1PN correction appears NOT IMPLEMENTED: residual ~0 "
+                "means the integrator is Newtonian. Implement "
+                "a_1PN in stepSimulationCPU, then rerun.");
         }
         if (residual_rad < 0) {
             QFAIL(qPrintable(QString("1PN correction has the WRONG SIGN: "
-                    "advance %1\" is retrograde; expected prograde ~+2.49\".")
-                    .arg(residual_arcsec)));
+                                     "advance %1\" is retrograde; expected prograde ~+2.49\".")
+                                 .arg(residual_arcsec)));
         }
 
         QVERIFY2(std::abs(residual_rad - kExpectedAdvance_rad) < kTolerance_rad,
                  qPrintable(QString("1PN advance = %1\" (expected %2 +/- %3\")")
-                    .arg(residual_arcsec)
-                    .arg(kExpectedAdvance_rad * 206264.806, 0, 'f', 3)
-                    .arg(kTolerance_rad * 206264.806, 0, 'f', 3)));
+                                .arg(residual_arcsec)
+                                .arg(kExpectedAdvance_rad * 206264.806, 0, 'f', 3)
+                                .arg(kTolerance_rad * 206264.806, 0, 'f', 3)));
     }
 
     // Newtonian control: perihelion should NOT advance without 1PN correction.
@@ -170,21 +177,22 @@ private slots:
         auto ui = std::make_unique<quantumverse::UI4D>();
         auto& m = setupSunMercury(*ui, false);  // 1PN disabled
 
-        auto s0 = eccentricityArgument(m.position.x, m.position.y,
-                                       m.velocity.x, m.velocity.y);
+        auto s0 = eccentricityArgument(m.position.x, m.position.y, m.velocity.x, m.velocity.y);
         double prev_arg = s0.arg;
         double total_rotation = 0.0;
 
         const int64_t steps = static_cast<int64_t>(5 * kT_merc / kDt);
-        const int     sample_every = 1000;
+        const int sample_every = 1000;
         for (int64_t i = 0; i < steps; ++i) {
             ui->stepSimulationCPURaw(kDt);
             if ((i + 1) % sample_every == 0) {
-                auto s = eccentricityArgument(m.position.x, m.position.y,
-                                              m.velocity.x, m.velocity.y);
+                auto s =
+                    eccentricityArgument(m.position.x, m.position.y, m.velocity.x, m.velocity.y);
                 double d = s.arg - prev_arg;
-                while (d >  M_PI) d -= 2.0 * M_PI;
-                while (d < -M_PI) d += 2.0 * M_PI;
+                while (d > M_PI)
+                    d -= 2.0 * M_PI;
+                while (d < -M_PI)
+                    d += 2.0 * M_PI;
                 total_rotation += d;
                 prev_arg = s.arg;
             }
@@ -193,8 +201,9 @@ private slots:
         const double residual_arcsec = total_rotation * 206264.806;
         qInfo() << "[Newtonian] total rotation =" << total_rotation << " rad";
         qInfo() << "[Newtonian] residual advance = " << residual_arcsec << " arcsec";
-        QVERIFY2(std::abs(total_rotation) < 1e-6,
-                 qPrintable(QString("Newtonian precession %1\" should be ~0").arg(residual_arcsec)));
+        QVERIFY2(
+            std::abs(total_rotation) < 1e-6,
+            qPrintable(QString("Newtonian precession %1\" should be ~0").arg(residual_arcsec)));
     }
 
     // Energy drift over the 1PN run.
@@ -205,18 +214,17 @@ private slots:
         auto& m = setupSunMercury(*ui);
 
         auto E = [&]() {
-            const double r  = std::sqrt(m.position.x*m.position.x +
-                                        m.position.y*m.position.y +
-                                        m.position.z*m.position.z);
-            const double v2 = m.velocity.x*m.velocity.x +
-                              m.velocity.y*m.velocity.y +
-                              m.velocity.z*m.velocity.z;
-            return 0.5 * v2 - kGM / r;   // specific orbital energy
+            const double r = std::sqrt(m.position.x * m.position.x + m.position.y * m.position.y +
+                                       m.position.z * m.position.z);
+            const double v2 = m.velocity.x * m.velocity.x + m.velocity.y * m.velocity.y +
+                              m.velocity.z * m.velocity.z;
+            return 0.5 * v2 - kGM / r;  // specific orbital energy
         };
 
         const double E0 = E();
         const int64_t steps = static_cast<int64_t>(10 * kT_merc / kDt);
-        for (int64_t i = 0; i < steps; ++i) ui->stepSimulationCPURaw(kDt);
+        for (int64_t i = 0; i < steps; ++i)
+            ui->stepSimulationCPURaw(kDt);
         const double drift = std::abs((E() - E0) / E0);
 
         qInfo() << "[1PN] energy drift over 10 orbits = " << drift;
@@ -229,8 +237,7 @@ private slots:
         const double r_E = 1.496e11;
         const double v_E = std::sqrt(kGM / r_E);
         const double a_N = kGM / (r_E * r_E);
-        const double a_1PN = (kGM / (kC*kC * r_E * r_E)) *
-                             (4.0*kGM/r_E - v_E*v_E);
+        const double a_1PN = (kGM / (kC * kC * r_E * r_E)) * (4.0 * kGM / r_E - v_E * v_E);
         const double ratio = std::abs(a_1PN / a_N);
 
         qInfo() << "[1PN] |a_1PN/a_N| at Earth =" << ratio;

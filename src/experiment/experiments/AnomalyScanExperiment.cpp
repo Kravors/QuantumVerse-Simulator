@@ -10,33 +10,33 @@
 
 #include "AnomalyScanExperiment.h"
 
-#include <cmath>
-#include <algorithm>
-#include <QDir>
 #include <QDateTime>
+#include <QDir>
+#include <algorithm>
+#include <cmath>
 
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
 QVector<ExperimentParameter> AnomalyScanExperiment::parameters() const {
     QVector<ExperimentParameter> p;
-    p.append({QStringLiteral("mass"),      QStringLiteral("Mass M (M☉)"),
-              QStringLiteral("double"), QVariant(10.0), QVariant(0.1), QVariant(1e6),
-              QStringList(), QStringLiteral("M☉"),  QStringLiteral("Black hole mass.")});
-    p.append({QStringLiteral("r_min"),     QStringLiteral("Inner radius (m)"),
-              QStringLiteral("double"), QVariant(3000.0), QVariant(100.0), QVariant(1e9),
-              QStringList(), QStringLiteral("m"),  QStringLiteral("Grid inner radius.")});
-    p.append({QStringLiteral("r_max"),     QStringLiteral("Outer radius (m)"),
-              QStringLiteral("double"), QVariant(1.0e5), QVariant(1.0e3), QVariant(1e12),
-              QStringList(), QStringLiteral("m"),  QStringLiteral("Grid outer radius.")});
-    p.append({QStringLiteral("grid_n"),    QStringLiteral("Grid cells per axis"),
-              QStringLiteral("int"),    QVariant(25),   QVariant(4), QVariant(200),
-              QStringList(), QStringLiteral(""),     QStringLiteral("Cells per axis (total = n²).")});
-    p.append({QStringLiteral("sigma"),     QStringLiteral("Anomaly threshold (σ)"),
-              QStringLiteral("double"), QVariant(5.0),  QVariant(1.0), QVariant(20.0),
-              QStringList(), QStringLiteral("σ"),   QStringLiteral("Flag threshold above median.")});
+    p.append({QStringLiteral("mass"), QStringLiteral("Mass M (M☉)"), QStringLiteral("double"),
+              QVariant(10.0), QVariant(0.1), QVariant(1e6), QStringList(), QStringLiteral("M☉"),
+              QStringLiteral("Black hole mass.")});
+    p.append({QStringLiteral("r_min"), QStringLiteral("Inner radius (m)"), QStringLiteral("double"),
+              QVariant(3000.0), QVariant(100.0), QVariant(1e9), QStringList(), QStringLiteral("m"),
+              QStringLiteral("Grid inner radius.")});
+    p.append({QStringLiteral("r_max"), QStringLiteral("Outer radius (m)"), QStringLiteral("double"),
+              QVariant(1.0e5), QVariant(1.0e3), QVariant(1e12), QStringList(), QStringLiteral("m"),
+              QStringLiteral("Grid outer radius.")});
+    p.append({QStringLiteral("grid_n"), QStringLiteral("Grid cells per axis"),
+              QStringLiteral("int"), QVariant(25), QVariant(4), QVariant(200), QStringList(),
+              QStringLiteral(""), QStringLiteral("Cells per axis (total = n²).")});
+    p.append({QStringLiteral("sigma"), QStringLiteral("Anomaly threshold (σ)"),
+              QStringLiteral("double"), QVariant(5.0), QVariant(1.0), QVariant(20.0), QStringList(),
+              QStringLiteral("σ"), QStringLiteral("Flag threshold above median.")});
     return p;
 }
 
@@ -82,18 +82,23 @@ ExperimentResult AnomalyScanExperiment::run(const QVariantMap& params,
     std::sort(sorted.begin(), sorted.end());
     const double median = sorted[sorted.size() / 2];
     double mad = 0.0;
-    for (double k : ks) mad += std::abs(k - median);
+    for (double k : ks)
+        mad += std::abs(k - median);
     mad /= static_cast<double>(ks.size());
     const double threshold = median + sigma * mad;
 
     int anomalyCount = 0;
     const int n = gridN * gridN;
     for (int idx = 0; idx < n; ++idx) {
-        if (shouldAbort()) { out.success = false; return out; }
+        if (shouldAbort()) {
+            out.success = false;
+            return out;
+        }
 
         const double k = ks[idx];
         const bool isAnomaly = k > threshold && mad > 0.0;
-        if (isAnomaly) anomalyCount++;
+        if (isAnomaly)
+            anomalyCount++;
 
         const int i = idx / gridN;
         const int j = idx % gridN;
@@ -102,12 +107,15 @@ ExperimentResult AnomalyScanExperiment::run(const QVariantMap& params,
 
         if (isAnomaly) {
             out.logLines << QString("ANOMALY r=%1 m θ=%2  K=%3  (threshold %4)")
-                            .arg(r, 0, 'e', 3).arg(theta, 0, 'g', 3)
-                            .arg(k, 0, 'e', 3).arg(threshold, 0, 'e', 3);
+                                .arg(r, 0, 'e', 3)
+                                .arg(theta, 0, 'g', 3)
+                                .arg(k, 0, 'e', 3)
+                                .arg(threshold, 0, 'e', 3);
         }
 
         // Curve: max K per radius ring (for the plot).
-        if (j == 0) out.curve.append(QPointF(r, k));
+        if (j == 0)
+            out.curve.append(QPointF(r, k));
         else {
             // keep running max per radius — approximate by appending last seen
             out.curve.append(QPointF(r, k));
@@ -123,4 +131,4 @@ ExperimentResult AnomalyScanExperiment::run(const QVariantMap& params,
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

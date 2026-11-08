@@ -6,11 +6,11 @@
  * handling without requiring a live WebSocket server.
  */
 
-#include "vr/SignalingClient.h"
 #include <QCoreApplication>
+#include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <algorithm>
+#include "vr/SignalingClient.h"
 
 using namespace quantumverse;
 using namespace quantumverse::vr;
@@ -28,8 +28,7 @@ static bool approxEqual(double a, double b, double eps = 1e-9) {
     return std::abs(a - b) < eps;
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     // A QCoreApplication is required: SignalingClient owns a QWebSocket and a
     // QTimer, both of which spin up event-driven background activity. Without a
     // Q*Application the websocket's network thread is not owned by an event
@@ -91,8 +90,12 @@ int main(int argc, char** argv)
         QJsonDocument parsed = QJsonDocument::fromJson(jsonStr.toUtf8());
         check(parsed.isObject(), "State JSON parse success");
         QJsonObject restored = parsed.object();
-        check(restored["activeTheory"].toObject()["name"].toString() == "Schwarzschild", "State JSON theory name");
-        check(approxEqual(restored["activeTheory"].toObject()["parameters"].toObject()["mass"].toDouble(), 1.989e30), "State JSON theory mass");
+        check(restored["activeTheory"].toObject()["name"].toString() == "Schwarzschild",
+              "State JSON theory name");
+        check(approxEqual(
+                  restored["activeTheory"].toObject()["parameters"].toObject()["mass"].toDouble(),
+                  1.989e30),
+              "State JSON theory mass");
         std::cout << "[PASS] State JSON round-trip" << std::endl;
     }
 

@@ -41,12 +41,14 @@ class MetricTensor;
 class SpacetimeGPS : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(bool trackingEnabled READ trackingEnabled WRITE setTrackingEnabled NOTIFY trackingEnabledChanged)
+    Q_PROPERTY(bool trackingEnabled READ trackingEnabled WRITE setTrackingEnabled NOTIFY
+                   trackingEnabledChanged)
     Q_PROPERTY(int updateHz READ updateHz WRITE setUpdateHz NOTIFY updateHzChanged)
     Q_PROPERTY(QString selectedId READ selectedId WRITE setSelectedId NOTIFY selectedIdChanged)
-    Q_PROPERTY(double viewportScale READ viewportScale WRITE setViewportScale NOTIFY viewportScaleChanged)
+    Q_PROPERTY(
+        double viewportScale READ viewportScale WRITE setViewportScale NOTIFY viewportScaleChanged)
 
-public:
+   public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
         NameRole,
@@ -78,19 +80,19 @@ public:
         QString name;
         QString type;
         QColor color;
-        Event4D pos;      // world 4-position (t, x, y, z)
-        Event4D vel;      // world velocity (vx, vy, vz), spatial part
+        Event4D pos;  // world 4-position (t, x, y, z)
+        Event4D vel;  // world velocity (vx, vy, vz), spatial part
         double spinX = 0.0;
         double spinY = 0.0;
         double spinZ = 0.0;
-        double spinRate = 0.0; // rad/s
+        double spinRate = 0.0;  // rad/s
         double r = 0.0;
         double theta = 0.0;
         double phi = 0.0;
         double redshift = 0.0;
         double properTime = 0.0;
         bool pinned = false;
-        std::deque<QPointF> trackXY; // scaled (x, y) trail for plotting
+        std::deque<QPointF> trackXY;  // scaled (x, y) trail for plotting
     };
 
     explicit SpacetimeGPS(QObject* parent = nullptr);
@@ -108,11 +110,21 @@ public:
     Q_INVOKABLE QVariantList track(const QString& id, int maxSamples = 500) const;
     Q_INVOKABLE QStringList types() const;
 
-    int count() const { return static_cast<int>(m_objects.size()); }
-    bool trackingEnabled() const { return m_trackingEnabled; }
-    int updateHz() const { return m_updateHz; }
-    QString selectedId() const { return m_selectedId; }
-    double viewportScale() const { return m_viewportScale; }
+    int count() const {
+        return static_cast<int>(m_objects.size());
+    }
+    bool trackingEnabled() const {
+        return m_trackingEnabled;
+    }
+    int updateHz() const {
+        return m_updateHz;
+    }
+    QString selectedId() const {
+        return m_selectedId;
+    }
+    double viewportScale() const {
+        return m_viewportScale;
+    }
 
     Q_INVOKABLE void setTrackingEnabled(bool enabled);
     Q_INVOKABLE void setUpdateHz(int hz);
@@ -133,12 +145,12 @@ public:
      *
      * Throttled to m_updateHz. Safe to call every frame.
      */
-    void updateFromSimulation(UI4D* ui4d, MetricTensor* metric,
-                              double simTime = 0.0, double dt = 0.0);
+    void updateFromSimulation(UI4D* ui4d, MetricTensor* metric, double simTime = 0.0,
+                              double dt = 0.0);
 
     const Tracked* objectById(const QString& id) const;
 
-signals:
+   signals:
     void countChanged();
     void trackingEnabledChanged();
     void updateHzChanged();
@@ -146,9 +158,9 @@ signals:
     void viewportScaleChanged();
     void focusRequested(const QString& id, double x, double y, double z);
 
-private:
+   private:
     QVector<Tracked> m_objects;
-    QHash<QString, int> m_indexById; // id -> row in m_objects
+    QHash<QString, int> m_indexById;  // id -> row in m_objects
     QString m_selectedId;
     bool m_trackingEnabled = true;
     int m_updateHz = 10;
@@ -159,6 +171,6 @@ private:
     void refreshTracked(Tracked& tr, UI4D* ui4d, MetricTensor* metric, double dt);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_SPACETIME_GPS_H
+#endif  // QUANTUMVERSE_SPACETIME_GPS_H

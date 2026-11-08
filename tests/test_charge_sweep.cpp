@@ -13,8 +13,7 @@
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== ChargeSweepExperiment Test ===" << std::endl;
 
@@ -29,8 +28,8 @@ int main(int argc, char** argv)
         p["steps"] = 2;
         auto r = e.run(p, [](double) {}, []() { return false; });
         QV_CHECK(r.success);
-        QV_CHECK_NEAR(r.scalars["last_r_plus"].toDouble(),
-                      r.scalars["last_r_minus"].toDouble(), 1e-6);
+        QV_CHECK_NEAR(r.scalars["last_r_plus"].toDouble(), r.scalars["last_r_minus"].toDouble(),
+                      1e-6);
         std::cout << "[PASS] extremal r+ == r-" << std::endl;
     }
 

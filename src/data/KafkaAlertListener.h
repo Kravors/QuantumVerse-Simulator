@@ -13,12 +13,12 @@
 #include "AlertListener.h"
 #include "GCNBrokerConfig.h"
 
+#include <QByteArray>
+#include <QJsonObject>
+#include <QMutex>
 #include <QObject>
 #include <QStringList>
 #include <QThread>
-#include <QMutex>
-#include <QJsonObject>
-#include <QByteArray>
 
 #ifdef HAVE_LIBRDKAFKA
 #include <rdkafka.h>
@@ -32,29 +32,29 @@ namespace quantumverse {
  * Requires librdkafka at link time.  When HAVE_LIBRDKAFKA is not defined
  * the class is declared but start() will emit an error and return.
  */
-class KafkaAlertListener : public AlertListener
-{
+class KafkaAlertListener : public AlertListener {
     Q_OBJECT
-public:
-    explicit KafkaAlertListener(const GCNBrokerConfig& config,
-                                QObject* parent = nullptr);
+   public:
+    explicit KafkaAlertListener(const GCNBrokerConfig& config, QObject* parent = nullptr);
     ~KafkaAlertListener() override;
 
     void start() override;
     void stop() override;
 
     /** @brief Current broker list (e.g. "gcn-kafka.nasa.gov:9092"). */
-    QString brokers() const { return m_brokers; }
+    QString brokers() const {
+        return m_brokers;
+    }
 
-signals:
+   signals:
     void consumerError(const QString& message);
     void consumerStopped();
 
-private slots:
+   private slots:
     void consumeLoop();
     void onRawMessage(const QByteArray& payload);
 
-private:
+   private:
     Q_DISABLE_COPY(KafkaAlertListener)
 
     QString m_brokers;
@@ -76,6 +76,6 @@ private:
 #endif
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_KAFKA_ALERT_LISTENER_H
+#endif  // QUANTUMVERSE_KAFKA_ALERT_LISTENER_H

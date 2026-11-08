@@ -2,12 +2,11 @@
 // Initializes the QuantumVerse crash handler and deliberately crashes
 // so the test can verify a dump file is produced.
 
-#include "utils/CrashHandler.h"
 #include <cstdlib>
 #include <windows.h>
+#include "utils/CrashHandler.h"
 
-int main()
-{
+int main() {
     // Write crash dumps next to the executable so the test can find them.
     char exePath[MAX_PATH] = {0};
     GetModuleFileNameA(nullptr, exePath, MAX_PATH);

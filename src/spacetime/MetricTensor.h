@@ -3,10 +3,10 @@
 
 /**
  * QuantumVerse Simulator - Metric Tensor
- * 
+ *
  * Represents the metric tensor g_μν for spacetime geometry
  * Supports Minkowski (flat) and curved spacetime metrics
- * 
+ *
  * Based on: Spacetime.md, Curved_spacetime.md
  * Signature: (-, +, +, +) - East Coast convention
  */
@@ -14,9 +14,9 @@
 #include <array>
 #include <cmath>
 #include <memory>
-#include "Event4D.h"
 #include "../math/AutoDiff.h"
 #include "../physics/PhysicsConstants.h"
+#include "Event4D.h"
 
 namespace quantumverse {
 
@@ -34,14 +34,14 @@ using RVar = math::ADVar*;  ///< Tape-based scalar for reverse-mode AD
  * differentiation.
  */
 struct CurvatureScalars {
-    double kretschmann = 0.0;   ///< K = R_{ρσμν} R^{ρσμν}
-    double ricciScalar = 0.0;   ///< R = g^{μν} R_{μν}
-    double weylSquared = 0.0;   ///< C_{abcd} C^{abcd}
-    bool valid = false;         ///< false => use numerical fallback
+    double kretschmann = 0.0;  ///< K = R_{ρσμν} R^{ρσμν}
+    double ricciScalar = 0.0;  ///< R = g^{μν} R_{μν}
+    double weylSquared = 0.0;  ///< C_{abcd} C^{abcd}
+    bool valid = false;        ///< false => use numerical fallback
 };
 
 class MetricTensor {
-public:
+   public:
     // 4x4 metric tensor components
     // Using row-major storage: g[μ][ν] where μ,ν ∈ {0,1,2,3}
     // Index 0 = time, 1 = x, 2 = y, 3 = z
@@ -50,10 +50,22 @@ public:
     // Constructor - creates Minkowski metric by default
     MetricTensor() {
         // Minkowski metric: diag(-1, 1, 1, 1) in units where c=1
-        g[0][0] = -1.0;  g[0][1] = 0.0;   g[0][2] = 0.0;   g[0][3] = 0.0;
-        g[1][0] = 0.0;   g[1][1] = 1.0;   g[1][2] = 0.0;   g[1][3] = 0.0;
-        g[2][0] = 0.0;   g[2][1] = 0.0;   g[2][2] = 1.0;   g[2][3] = 0.0;
-        g[3][0] = 0.0;   g[3][1] = 0.0;   g[3][2] = 0.0;   g[3][3] = 1.0;
+        g[0][0] = -1.0;
+        g[0][1] = 0.0;
+        g[0][2] = 0.0;
+        g[0][3] = 0.0;
+        g[1][0] = 0.0;
+        g[1][1] = 1.0;
+        g[1][2] = 0.0;
+        g[1][3] = 0.0;
+        g[2][0] = 0.0;
+        g[2][1] = 0.0;
+        g[2][2] = 1.0;
+        g[2][3] = 0.0;
+        g[3][0] = 0.0;
+        g[3][1] = 0.0;
+        g[3][2] = 0.0;
+        g[3][3] = 1.0;
     }
 
     /**
@@ -73,7 +85,7 @@ public:
         // Schwarzschild radius: rs = 2GM/c²
         double rs = 2.0 * PHYS_G() * mass / (PHYS_C() * PHYS_C());
         double factor = 1.0 - rs / r;
-        
+
         if (r <= rs) {
             // Inside event horizon - metric signature flips
             // g[0][0] becomes positive (time becomes space-like)
@@ -85,12 +97,12 @@ public:
             metric.g[0][0] = -factor;
             metric.g[1][1] = 1.0 / factor;
         }
-        
+
         metric.g[2][2] = r * r;
         metric.g[3][3] = r * r * std::sin(theta) * std::sin(theta);
-        
+
         // Off-diagonal terms for Kerr metric would go here
-        
+
         return metric;
     }
 
@@ -104,16 +116,17 @@ public:
         double a = angular_momentum / (mass * PHYS_C());  // Dimensionless spin parameter
         double sigma = r * r + a * a * std::cos(theta) * std::cos(theta);
         double delta = r * r - rs * r + a * a;
-        
+
         // Kerr metric components
         metric.g[0][0] = -(1.0 - rs * r / sigma);
         metric.g[0][3] = -rs * r * a * std::sin(theta) * std::sin(theta) / sigma;  // g_tφ
-        metric.g[3][0] = metric.g[0][3];  // Symmetric
+        metric.g[3][0] = metric.g[0][3];                                           // Symmetric
         metric.g[1][1] = sigma / delta;
         metric.g[2][2] = sigma;
-        metric.g[3][3] = (r * r + a * a + rs * r * a * a * std::sin(theta) * std::sin(theta) / sigma) * 
-                         std::sin(theta) * std::sin(theta);
-        
+        metric.g[3][3] =
+            (r * r + a * a + rs * r * a * a * std::sin(theta) * std::sin(theta) / sigma) *
+            std::sin(theta) * std::sin(theta);
+
         return metric;
     }
 
@@ -151,10 +164,8 @@ public:
      * @param params Differentiable parameters as tape variables.
      * @return 4x4 metric tensor with AD-typed components g_μν.
      */
-    virtual std::array<std::array<RVar, 4>, 4> evaluateAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const {
+    virtual std::array<std::array<RVar, 4>, 4> evaluateAD(const std::array<RVar, 4>& pos,
+                                                          const std::vector<RVar>& params) const {
         (void)params;
         Event4D event(pos[0]->value, pos[1]->value, pos[2]->value, pos[3]->value);
         auto g_double = evaluate(event);
@@ -175,10 +186,8 @@ public:
      * @param params Differentiable parameters as tape variables.
      * @return Christoffel symbols Γ^rho_mu_nu with AD-typed components.
      */
-    virtual std::array<std::array<std::array<RVar, 4>, 4>, 4> computeChristoffelAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const {
+    virtual std::array<std::array<std::array<RVar, 4>, 4>, 4>
+    computeChristoffelAD(const std::array<RVar, 4>& pos, const std::vector<RVar>& params) const {
         (void)params;
         Event4D event(pos[0]->value, pos[1]->value, pos[2]->value, pos[3]->value);
         auto Gamma = computeFullChristoffel(event);
@@ -195,9 +204,8 @@ public:
      *
      * Used as fallback for AD computation when analytic override is absent.
      */
-    virtual std::array<std::array<std::array<double, 4>, 4>, 4> computeFullChristoffel(
-        const Event4D&
-    ) const {
+    virtual std::array<std::array<std::array<double, 4>, 4>, 4>
+    computeFullChristoffel(const Event4D&) const {
         return {{{{{0.0}}}}};
     }
 
@@ -248,11 +256,15 @@ public:
 
     /// @brief Black hole mass in kilograms. Default returns 0.0; subclasses
     /// that model a black hole override.
-    virtual double mass() const noexcept { return 0.0; }
+    virtual double mass() const noexcept {
+        return 0.0;
+    }
 
     /// @brief Dimensionless spin parameter a*. Default returns 0.0; KerrMetric
     /// overrides.
-    virtual double spin() const noexcept { return 0.0; }
+    virtual double spin() const noexcept {
+        return 0.0;
+    }
 
     /// @brief In-place charge update.
     /// Default does nothing.
@@ -265,7 +277,9 @@ public:
     /// doesn't return stale values.
     ///
     /// @return Current epoch value.
-    virtual uint64_t epoch() const noexcept { return m_epoch; }
+    virtual uint64_t epoch() const noexcept {
+        return m_epoch;
+    }
 
     // Virtual destructor for proper polymorphic cleanup
     virtual ~MetricTensor() = default;
@@ -289,7 +303,7 @@ public:
         // Simplified: linearized gravity approximation
         // g_μν = η_μν + h_μν where h_μν is small perturbation
         MetricTensor metric;
-        
+
         // In weak field limit: h_00 ≈ -2Φ/c² where Φ is gravitational potential
         // For now, return Minkowski metric (full implementation requires solving EFE)
         return metric;
@@ -324,16 +338,16 @@ public:
         double dx = event2.x - event1.x;
         double dy = event2.y - event1.y;
         double dz = event2.z - event1.z;
-        
+
         double coords[4] = {dt, dx, dy, dz};
-        
+
         double ds2 = 0.0;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 ds2 += g[i][j] * coords[i] * coords[j];
             }
         }
-        
+
         return ds2;
     }
 
@@ -368,9 +382,9 @@ public:
         double D2 = g[0][0] * g[1][1] - g[0][1] * g[1][0];
 
         // 3x3 leading principal minor (Laplace expansion along first row)
-        double D3 = g[0][0] * (g[1][1] * g[2][2] - g[1][2] * g[2][1])
-                - g[0][1] * (g[1][0] * g[2][2] - g[1][2] * g[2][0])
-                + g[0][2] * (g[1][0] * g[2][1] - g[1][1] * g[2][0]);
+        double D3 = g[0][0] * (g[1][1] * g[2][2] - g[1][2] * g[2][1]) -
+                    g[0][1] * (g[1][0] * g[2][2] - g[1][2] * g[2][0]) +
+                    g[0][2] * (g[1][0] * g[2][1] - g[1][1] * g[2][0]);
 
         // 4x4 full determinant
         double D4 = determinant();
@@ -379,7 +393,8 @@ public:
         double seq[5] = {1.0, D1, D2, D3, D4};
         int signChanges = 0;
         for (int i = 0; i < 4; i++) {
-            if (seq[i] * seq[i + 1] < 0.0) signChanges++;
+            if (seq[i] * seq[i + 1] < 0.0)
+                signChanges++;
         }
 
         return (signChanges == 1);
@@ -389,12 +404,12 @@ public:
     double determinant() const {
         // 4x4 determinant calculation
         double det = 0.0;
-        
+
         // Laplace expansion along first row
         for (int j = 0; j < 4; j++) {
             det += g[0][j] * cofactor(0, j);
         }
-        
+
         return det;
     }
 
@@ -402,19 +417,19 @@ public:
     virtual MetricTensor inverse() const {
         MetricTensor inv;
         double det = determinant();
-        
+
         if (std::abs(det) < 1e-10) {
             // Singular metric - return Minkowski as fallback
             return MetricTensor();
         }
-        
+
         // Compute inverse using adjugate matrix
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 inv.g[i][j] = cofactor(j, i) / det;  // Transpose of cofactor matrix
             }
         }
-        
+
         return inv;
     }
 
@@ -441,36 +456,40 @@ public:
         return result;
     }
 
-private:
+   private:
     // Compute cofactor for determinant
     double cofactor(int row, int col) const {
         // Create 3x3 submatrix
         std::array<std::array<double, 3>, 3> sub;
         int sub_i = 0, sub_j;
-        
+
         for (int i = 0; i < 4; i++) {
-            if (i == row) continue;
+            if (i == row)
+                continue;
             sub_j = 0;
             for (int j = 0; j < 4; j++) {
-                if (j == col) continue;
+                if (j == col)
+                    continue;
                 sub[sub_i][sub_j] = g[i][j];
                 sub_j++;
             }
             sub_i++;
         }
-        
+
         // Compute 3x3 determinant
-        double det = sub[0][0] * (sub[1][1] * sub[2][2] - sub[1][2] * sub[2][1])
-                   - sub[0][1] * (sub[1][0] * sub[2][2] - sub[1][2] * sub[2][0])
-                   + sub[0][2] * (sub[1][0] * sub[2][1] - sub[1][1] * sub[2][0]);
-        
+        double det = sub[0][0] * (sub[1][1] * sub[2][2] - sub[1][2] * sub[2][1]) -
+                     sub[0][1] * (sub[1][0] * sub[2][2] - sub[1][2] * sub[2][0]) +
+                     sub[0][2] * (sub[1][0] * sub[2][1] - sub[1][1] * sub[2][0]);
+
         // Apply sign: (-1)^(row+col)
         return ((row + col) % 2 == 0 ? 1 : -1) * det;
     }
 
-protected:
+   protected:
     /// Bump the monotonic epoch; call from every in-place setter.
-    void bumpEpoch() noexcept { ++m_epoch; }
+    void bumpEpoch() noexcept {
+        ++m_epoch;
+    }
 
     uint64_t m_epoch = 0;
 };
@@ -485,11 +504,13 @@ protected:
  * instead of a single flat point metric.
  */
 class SchwarzschildMetric : public MetricTensor {
-public:
+   public:
     explicit SchwarzschildMetric(double massKg) : m_mass(massKg) {}
 
     /// @brief Black hole mass in kilograms.
-    double mass() const noexcept override { return m_mass; }
+    double mass() const noexcept override {
+        return m_mass;
+    }
 
     /// @brief In-place mass update with epoch bump for cache invalidation.
     ///
@@ -526,9 +547,10 @@ public:
         // Clamp r to just outside the horizon to avoid the singularity at r=0
         // and ensure g_tt stays negative (Lorentzian signature preserved).
         const double minR = rs * 1.01;
-        if (r < minR) r = minR;
+        if (r < minR)
+            r = minR;
 
-        double factor = 1.0 - rs / r;                 // g_tt = -factor (negative outside horizon)
+        double factor = 1.0 - rs / r;  // g_tt = -factor (negative outside horizon)
 
         // Spatial correction coefficient; clamp inside the horizon to avoid
         // the singular blow-up (geometric view is degenerate there anyway).
@@ -572,32 +594,33 @@ public:
 
         // Clamp r to just outside the horizon to avoid singularity at r=0
         const double minR = rs * 1.01;
-        if (r < minR) r = minR;
+        if (r < minR)
+            r = minR;
 
         // Clamp r to a floor just outside the horizon so K = 48 G² M² / (c⁴ r⁶)
         // stays finite even when the probe lands very close to the horizon.
         const double r_eps = 0.01 * rs;
-        if (r < r_eps) r = r_eps;
+        if (r < r_eps)
+            r = r_eps;
 
         double K = 48.0 * G * G * m_mass * m_mass / (c4 * std::pow(r, 6));
 
         CurvatureScalars s;
         s.kretschmann = K;
-        s.ricciScalar = 0.0;    // vacuum
-        s.weylSquared = K;      // vacuum: Riemann == Weyl
+        s.ricciScalar = 0.0;  // vacuum
+        s.weylSquared = K;    // vacuum: Riemann == Weyl
         s.valid = true;
         return s;
     }
 
-    std::array<std::array<RVar, 4>, 4> evaluateAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const override {
+    std::array<std::array<RVar, 4>, 4> evaluateAD(const std::array<RVar, 4>& pos,
+                                                  const std::vector<RVar>& params) const override {
         RVar r = pos[1];
         RVar theta = pos[2];
 
         RVar M = params.empty() ? math::ADTape::record(m_mass, nullptr) : params[0];
-        RVar rs = math::mul(M, math::ADTape::record(2.0 * PHYS_G() / (PHYS_C() * PHYS_C()), nullptr));
+        RVar rs =
+            math::mul(M, math::ADTape::record(2.0 * PHYS_G() / (PHYS_C() * PHYS_C()), nullptr));
         RVar factor = math::sub(math::ADTape::record(1.0, nullptr), math::div(rs, r));
         RVar g_tt = math::neg(factor);
         RVar g_rr = math::div(math::ADTape::record(1.0, nullptr), factor);
@@ -617,15 +640,15 @@ public:
         return result;
     }
 
-    std::array<std::array<std::array<RVar, 4>, 4>, 4> computeChristoffelAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const override {
+    std::array<std::array<std::array<RVar, 4>, 4>, 4>
+    computeChristoffelAD(const std::array<RVar, 4>& pos,
+                         const std::vector<RVar>& params) const override {
         RVar r = pos[1];
         RVar theta = pos[2];
 
         RVar M = params.empty() ? math::ADTape::record(m_mass, nullptr) : params[0];
-        RVar rs = math::mul(M, math::ADTape::record(2.0 * PHYS_G() / (PHYS_C() * PHYS_C()), nullptr));
+        RVar rs =
+            math::mul(M, math::ADTape::record(2.0 * PHYS_G() / (PHYS_C() * PHYS_C()), nullptr));
         RVar r_minus_rs = math::sub(r, rs);
         RVar r_inv = math::div(math::ADTape::record(1.0, nullptr), r);
         RVar r2 = math::mul(r, r);
@@ -636,7 +659,8 @@ public:
 
         RVar two_r = math::mul(math::ADTape::record(2.0, nullptr), r);
         RVar Gamma_t_tr = math::div(rs, math::mul(two_r, r_minus_rs));
-        RVar Gamma_r_tt = math::div(math::mul(rs, r_minus_rs), math::mul(r3, math::ADTape::record(2.0, nullptr)));
+        RVar Gamma_r_tt =
+            math::div(math::mul(rs, r_minus_rs), math::mul(r3, math::ADTape::record(2.0, nullptr)));
         RVar Gamma_r_rr = math::neg(Gamma_t_tr);
         RVar Gamma_r_thetatheta = math::neg(r_minus_rs);
         RVar Gamma_r_phiphi = math::neg(math::mul(r_minus_rs, sin2));
@@ -664,9 +688,8 @@ public:
         return Gamma;
     }
 
-    std::array<std::array<std::array<double, 4>, 4>, 4> computeFullChristoffel(
-        const Event4D& event
-    ) const override {
+    std::array<std::array<std::array<double, 4>, 4>, 4>
+    computeFullChristoffel(const Event4D& event) const override {
         double x = event.x, y = event.y, z = event.z;
         double r = std::sqrt(x * x + y * y + z * z);
 
@@ -675,7 +698,8 @@ public:
 
         // Clamp r to just outside the horizon
         const double minR = rs * 1.01;
-        if (r < minR) r = minR;
+        if (r < minR)
+            r = minR;
 
         double r_minus_rs = r - rs;
         double r_inv = 1.0 / r;
@@ -714,13 +738,13 @@ public:
         return Gamma;
     }
 
-private:
+   private:
     double m_mass;
 };
 
 // Stress-energy tensor (source of spacetime curvature)
 class StressEnergyTensor {
-public:
+   public:
     std::array<std::array<double, 4>, 4> T;
 
     StressEnergyTensor() {
@@ -733,18 +757,19 @@ public:
     }
 
     // Create from perfect fluid: T_μν = (ρ + p/c²)u_μ u_ν + p g_μν
-    static StressEnergyTensor perfectFluid(double density, double pressure, 
+    static StressEnergyTensor perfectFluid(double density, double pressure,
                                            const std::array<double, 4>& four_velocity,
                                            const MetricTensor& metric) {
         StressEnergyTensor tensor;
-        
+
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                tensor.T[i][j] = (density + pressure / PHYS_C2()) * four_velocity[i] * four_velocity[j]
-                               + pressure * metric.g[i][j];
+                tensor.T[i][j] =
+                    (density + pressure / PHYS_C2()) * four_velocity[i] * four_velocity[j] +
+                    pressure * metric.g[i][j];
             }
         }
-        
+
         return tensor;
     }
 
@@ -752,17 +777,17 @@ public:
     double trace(const MetricTensor& metric) const {
         MetricTensor inv = metric.inverse();
         double trace = 0.0;
-        
+
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 trace += inv.g[i][j] * T[i][j];
             }
         }
-        
+
         return trace;
     }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_METRIC_TENSOR_H
+#endif  // QUANTUMVERSE_METRIC_TENSOR_H

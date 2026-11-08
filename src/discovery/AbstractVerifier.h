@@ -23,15 +23,14 @@ struct VerificationResult {
 };
 
 class AbstractVerifier {
-public:
+   public:
     /// Verify that all numeric claims in the abstract are consistent with summary.
-    static VerificationResult verifyAbstract(const QString& abstract,
-                                             const ScanSummary& summary,
+    static VerificationResult verifyAbstract(const QString& abstract, const ScanSummary& summary,
                                              double relativeTolerance = 0.01);
 
-private:
+   private:
     /// True for values that are legitimately structural (percentages, unity, etc.).
     static bool isStructuralNumber(double v);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

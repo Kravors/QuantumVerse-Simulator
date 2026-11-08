@@ -11,7 +11,8 @@ namespace quantumverse {
 bool AbstractVerifier::isStructuralNumber(double v) {
     static const double kAllowlist[] = {0.0, 1.0, 50.0, 100.0};
     for (double allowed : kAllowlist) {
-        if (std::abs(v - allowed) < 1e-9) return true;
+        if (std::abs(v - allowed) < 1e-9)
+            return true;
     }
     return false;
 }
@@ -24,8 +25,7 @@ VerificationResult AbstractVerifier::verifyAbstract(const QString& abstract,
     QRegularExpression re(R"((\d+\.\d+))");
     QRegularExpressionMatchIterator it = re.globalMatch(abstract);
 
-    const double known[] = {summary.mass, summary.spin, summary.charge,
-                            summary.confidence};
+    const double known[] = {summary.mass, summary.spin, summary.charge, summary.confidence};
 
     while (it.hasNext()) {
         QRegularExpressionMatch match = it.next();
@@ -45,8 +45,7 @@ VerificationResult AbstractVerifier::verifyAbstract(const QString& abstract,
         }
 
         if (!matched && !isStructuralNumber(v)) {
-            result.mismatches << QStringLiteral("abstract cites %1, not in scan")
-                                  .arg(v);
+            result.mismatches << QStringLiteral("abstract cites %1, not in scan").arg(v);
         }
     }
 
@@ -54,4 +53,4 @@ VerificationResult AbstractVerifier::verifyAbstract(const QString& abstract,
     return result;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

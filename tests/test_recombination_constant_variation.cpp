@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "discovery/RecombinationConstantVariationImager.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
@@ -24,7 +24,7 @@ int main() {
     for (int l = 2; l <= 2000; l += 10) {
         double clStandard = 1000.0 / (l * (l + 1));
         double clModified = clStandard * (1.0 + deltaAlpha);
-        trajectory.emplace_back(l, clModified, 0.0, 0.0); // t=ℓ, x=C_l
+        trajectory.emplace_back(l, clModified, 0.0, 0.0);  // t=ℓ, x=C_l
     }
 
     quantumverse::MetricTensor metric;
@@ -42,8 +42,8 @@ int main() {
             auto it = f.parameters.find("delta_alpha_over_alpha");
             QV_CHECK(it != f.parameters.end());
             QV_CHECK_NEAR(it->second, deltaAlpha, 1e-9);
-            std::cout << "Recovered Δα/α = " << it->second
-                      << " (injected " << deltaAlpha << ")" << std::endl;
+            std::cout << "Recovered Δα/α = " << it->second << " (injected " << deltaAlpha << ")"
+                      << std::endl;
             break;
         }
     }

@@ -32,7 +32,7 @@ struct DiagnosticResult {
  * Checks deployment integrity and reports issues
  */
 class DiagnosticMode {
-public:
+   public:
     /**
      * @brief Run all diagnostic tests
      * @return Vector of diagnostic results
@@ -79,8 +79,8 @@ public:
      */
     static bool s_diagnosticMode;
 
-private:
+   private:
 };
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

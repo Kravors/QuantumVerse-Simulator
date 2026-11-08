@@ -8,9 +8,9 @@
  */
 #pragma once
 
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
-#include <QJsonObject>
 
 #include "discovery/ScanSummary.h"
 
@@ -27,19 +27,17 @@ namespace quantumverse {
 class PaperGenerator : public QObject {
     Q_OBJECT
 
-public:
+   public:
     explicit PaperGenerator(QObject* parent = nullptr);
 
     /// Generate a LaTeX paper and compile to PDF from validated discovery data.
-    Q_INVOKABLE void generatePaper(double mass, double spin, double charge,
-                                   double kretch, double redshift,
-                                   const QString& llmAbstract,
+    Q_INVOKABLE void generatePaper(double mass, double spin, double charge, double kretch,
+                                   double redshift, const QString& llmAbstract,
                                    const QString& bhType = QStringLiteral("unknown"),
                                    const QString& outputPath = QString());
 
     /// Generate a LaTeX paper and compile to PDF from a ScanSummary + LLM abstract.
-    Q_INVOKABLE void generatePaper(const ScanSummary& summary,
-                                   const QString& llmAbstract,
+    Q_INVOKABLE void generatePaper(const ScanSummary& summary, const QString& llmAbstract,
                                    const QString& outputPath = QString());
 
     /// Generate a theory-sensitivity narrative paper from a matrix of
@@ -49,17 +47,17 @@ public:
                                                     const QString& llmAbstract,
                                                     const QString& outputPath = QString());
 
-signals:
+   signals:
     /// Emitted with the path to the generated PDF on success.
     void paperGenerated(const QString& pdfPath);
 
-public:
+   public:
     /// @brief Escape LaTeX special characters in a string.
     /// Pure string manipulation — no QProcess, no pdflatex. Safe to unit test.
     static QString escapeLatex(const QString& input);
 
-private:
+   private:
     QString loadTemplate();
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

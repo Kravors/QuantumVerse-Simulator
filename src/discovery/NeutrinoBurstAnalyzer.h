@@ -16,9 +16,9 @@
 #ifndef QUANTUMVERSE_NEUTRINO_BURST_ANALYZER_H
 #define QUANTUMVERSE_NEUTRINO_BURST_ANALYZER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -38,25 +38,28 @@ namespace quantumverse {
  *   2. Temporal coincidence within time_window of GW trigger
  *   3. Consistent with astrophysical neutrino spectrum (power-law Gamma ~ 2-3)
  */
-class NeutrinoBurstAnalyzer : public DiscoveryInstrument
-{
-public:
+class NeutrinoBurstAnalyzer : public DiscoveryInstrument {
+   public:
     NeutrinoBurstAnalyzer();
     ~NeutrinoBurstAnalyzer() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "NeutrinoBurstAnalyzer"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "NeutrinoBurstAnalyzer";
+    }
+    std::string getDescription() const override {
         return "Multi-messenger neutrino-GW coincidence detector. Identifies "
                "neutrino burst signatures in temporal coincidence with GW "
                "triggers from compact binary mergers.";
     }
-    std::string getCategory() const override { return "Multi-Messenger"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Multi-Messenger";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
@@ -66,7 +69,7 @@ public:
     /// @brief Neutrino energy flux at distance d (erg/s/cm^2).
     static double neutrinoFlux(double luminosity, double distanceMpc);
 
-private:
+   private:
     static constexpr size_t kMinSamples = 32;
 
     struct CoincidenceResult {
@@ -78,15 +81,12 @@ private:
         double diskMass = 0.0;
     };
 
-    static CoincidenceResult computeCoincidence(
-        const std::vector<Event4D>& trajectory,
-        double gwTriggerTime,
-        double diskMassMsun,
-        double distanceMpc,
-        double timeWindowSec,
-        double energyThreshold);
+    static CoincidenceResult computeCoincidence(const std::vector<Event4D>& trajectory,
+                                                double gwTriggerTime, double diskMassMsun,
+                                                double distanceMpc, double timeWindowSec,
+                                                double energyThreshold);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_NEUTRINO_BURST_ANALYZER_H
+#endif  // QUANTUMVERSE_NEUTRINO_BURST_ANALYZER_H

@@ -14,28 +14,28 @@
 
 #pragma once
 
-#include <QObject>
-#include <QVariant>
 #include <QColor>
-#include <QString>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QJsonArray>
-#include <QStandardPaths>
 #include <QDir>
 #include <QFile>
-#include <vector>
-#include <string>
-#include <random>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QObject>
 #include <QPointer>
+#include <QStandardPaths>
+#include <QString>
+#include <QVariant>
+#include <random>
+#include <string>
+#include <vector>
 
 namespace quantumverse {
 
 class QmlGlViewport;
 struct BodyDescriptor {
-    QString id;            // uuid
-    QString type;          // "star" | "planet" | "black_hole"
-    QString name;          // display label
+    QString id;    // uuid
+    QString type;  // "star" | "planet" | "black_hole"
+    QString name;  // display label
     double mass_kg = 0.0;
     double radius_m = 0.0;
     double x = 0.0, y = 0.0, z = 0.0;
@@ -51,13 +51,17 @@ class SandboxManager : public QObject {
     Q_PROPERTY(QString currentFilePath READ currentFilePath NOTIFY currentFilePathChanged)
     Q_PROPERTY(bool isActive READ isActive NOTIFY isActiveChanged)
 
-public:
+   public:
     explicit SandboxManager(QObject* parent = nullptr);
     ~SandboxManager() override = default;
 
     QVariantList bodies() const;
-    QString currentFilePath() const { return m_currentFilePath; }
-    bool isActive() const { return m_isActive; }
+    QString currentFilePath() const {
+        return m_currentFilePath;
+    }
+    bool isActive() const {
+        return m_isActive;
+    }
 
     Q_INVOKABLE QString addBody(const QString& type, const QString& name = QString());
     Q_INVOKABLE void updateBody(const QString& id, const QVariantMap& changes);
@@ -71,7 +75,7 @@ public:
 
     void setViewport(QmlGlViewport* viewport);
 
-signals:
+   signals:
     void bodiesChanged();
     void bodyAdded(const QString& id);
     void bodyUpdated(const QString& id);
@@ -80,7 +84,7 @@ signals:
     void isActiveChanged();
     void errorOccurred(const QString& message);
 
-private:
+   private:
     std::vector<BodyDescriptor> m_bodies;
     QString m_currentFilePath;
     bool m_isActive = false;
@@ -92,4 +96,4 @@ private:
     QString generateId();
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -5,14 +5,14 @@
 
 #include "TraceLogger.h"
 #include <iostream>
-#include <thread>
 #include <memory>
+#include <thread>
 
 // Include GL header for error codes - must be after glad if used
 #ifdef _WIN32
-    #include <windows.h>
-    #include <dbghelp.h>
-    #pragma comment(lib, "dbghelp.lib")
+#include <dbghelp.h>
+#include <windows.h>
+#pragma comment(lib, "dbghelp.lib")
 #endif
 
 // For OpenGL error codes
@@ -47,13 +47,18 @@ void TraceLogger::initialize(const std::string& logPath) {
     // Open file first without locking (no other threads can access yet)
     m_logFile.open(logPath, std::ios::out | std::ios::trunc);
     m_initialized = m_logFile.is_open();
-    
+
     if (m_initialized) {
         // Log without locking - we're the only thread at this point
-        std::string jsonLine = "{\"timestamp\":\"" + getTimestamp() + "\","
-                               "\"category\":\"INIT\","
-                               "\"thread\":\"" + std::to_string(std::hash<std::thread::id>{}(std::this_thread::get_id())) + "\","
-                               "\"message\":\"TraceLogger initialized\",\"data\":{\"logPath\":\"" + logPath + "\"}}\n";
+        std::string jsonLine =
+            "{\"timestamp\":\"" + getTimestamp() +
+            "\","
+            "\"category\":\"INIT\","
+            "\"thread\":\"" +
+            std::to_string(std::hash<std::thread::id>{}(std::this_thread::get_id())) +
+            "\","
+            "\"message\":\"TraceLogger initialized\",\"data\":{\"logPath\":\"" +
+            logPath + "\"}}\n";
         m_logFile << jsonLine;
         m_logFile.flush();
         std::cerr << jsonLine;
@@ -62,40 +67,58 @@ void TraceLogger::initialize(const std::string& logPath) {
 
 void TraceLogger::log(LogCategory category, const std::string& message, const std::string& data) {
     std::lock_guard<std::mutex> lock(getMutex());
-    
+
     std::string categoryStr;
     switch (category) {
-        case LogCategory::INIT: categoryStr = "INIT"; break;
-        case LogCategory::RENDER: categoryStr = "RENDER"; break;
-        case LogCategory::GL: categoryStr = "GL"; break;
-        case LogCategory::THREAD: categoryStr = "THREAD"; break;
-        case LogCategory::ERR: categoryStr = "ERROR"; break;
-        case LogCategory::CRASH: categoryStr = "CRASH"; break;
+        case LogCategory::INIT:
+            categoryStr = "INIT";
+            break;
+        case LogCategory::RENDER:
+            categoryStr = "RENDER";
+            break;
+        case LogCategory::GL:
+            categoryStr = "GL";
+            break;
+        case LogCategory::THREAD:
+            categoryStr = "THREAD";
+            break;
+        case LogCategory::ERR:
+            categoryStr = "ERROR";
+            break;
+        case LogCategory::CRASH:
+            categoryStr = "CRASH";
+            break;
     }
-    
+
     std::string threadId;
     {
         std::ostringstream oss;
         oss << std::this_thread::get_id();
         threadId = oss.str();
     }
-    
-    std::string jsonLine = "{\"timestamp\":\"" + getTimestamp() + "\","
-                           "\"category\":\"" + categoryStr + "\","
-                           "\"thread\":\"" + threadId + "\","
-                           "\"message\":\"" + escapeJson(message) + "\"";
-    
+
+    std::string jsonLine = "{\"timestamp\":\"" + getTimestamp() +
+                           "\","
+                           "\"category\":\"" +
+                           categoryStr +
+                           "\","
+                           "\"thread\":\"" +
+                           threadId +
+                           "\","
+                           "\"message\":\"" +
+                           escapeJson(message) + "\"";
+
     if (!data.empty()) {
         jsonLine += ",\"data\":" + data;
     }
     jsonLine += "}\n";
-    
+
     // Write to file
     if (m_initialized && m_logFile.good()) {
         m_logFile << jsonLine;
         m_logFile.flush();
     }
-    
+
     // Also write to stderr for immediate visibility
     std::cerr << jsonLine;
 }
@@ -103,19 +126,37 @@ void TraceLogger::log(LogCategory category, const std::string& message, const st
 void TraceLogger::logGLError(const char* file, int line, unsigned int glError) {
     std::string errorName;
     switch (glError) {
-        case GL_INVALID_ENUM: errorName = "GL_INVALID_ENUM"; break;
-        case GL_INVALID_VALUE: errorName = "GL_INVALID_VALUE"; break;
-        case GL_INVALID_OPERATION: errorName = "GL_INVALID_OPERATION"; break;
-        case GL_OUT_OF_MEMORY: errorName = "GL_OUT_OF_MEMORY"; break;
-        case GL_STACK_UNDERFLOW: errorName = "GL_STACK_UNDERFLOW"; break;
-        case GL_STACK_OVERFLOW: errorName = "GL_STACK_OVERFLOW"; break;
-        default: errorName = "UNKNOWN(" + std::to_string(glError) + ")"; break;
+        case GL_INVALID_ENUM:
+            errorName = "GL_INVALID_ENUM";
+            break;
+        case GL_INVALID_VALUE:
+            errorName = "GL_INVALID_VALUE";
+            break;
+        case GL_INVALID_OPERATION:
+            errorName = "GL_INVALID_OPERATION";
+            break;
+        case GL_OUT_OF_MEMORY:
+            errorName = "GL_OUT_OF_MEMORY";
+            break;
+        case GL_STACK_UNDERFLOW:
+            errorName = "GL_STACK_UNDERFLOW";
+            break;
+        case GL_STACK_OVERFLOW:
+            errorName = "GL_STACK_OVERFLOW";
+            break;
+        default:
+            errorName = "UNKNOWN(" + std::to_string(glError) + ")";
+            break;
     }
-    
-    std::string data = "{\"file\":\"" + std::string(file) + "\","
-                       "\"line\":" + std::to_string(line) + ","
-                       "\"errorCode\":\"" + errorName + "\"}";
-    
+
+    std::string data = "{\"file\":\"" + std::string(file) +
+                       "\","
+                       "\"line\":" +
+                       std::to_string(line) +
+                       ","
+                       "\"errorCode\":\"" +
+                       errorName + "\"}";
+
     log(LogCategory::GL, "OpenGL error detected", data);
 }
 
@@ -126,10 +167,12 @@ void TraceLogger::logThread(const std::string& context) {
         oss << std::this_thread::get_id();
         threadId = oss.str();
     }
-    
-    std::string data = "{\"context\":\"" + escapeJson(context) + "\","
-                       "\"threadId\":\"" + threadId + "\"}";
-    
+
+    std::string data = "{\"context\":\"" + escapeJson(context) +
+                       "\","
+                       "\"threadId\":\"" +
+                       threadId + "\"}";
+
     log(LogCategory::THREAD, "Thread context", data);
 }
 
@@ -152,9 +195,8 @@ void TraceLogger::shutdown() {
 std::string TraceLogger::getTimestamp() {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()) % 1000;
-    
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
     std::ostringstream oss;
     std::tm tm_buf;
 #ifdef _WIN32
@@ -172,16 +214,28 @@ std::string TraceLogger::escapeJson(const std::string& str) {
     result.reserve(str.size());
     for (char c : str) {
         switch (c) {
-            case '"': result += "\\\""; break;
-            case '\\': result += "\\\\"; break;
-            case '\n': result += "\\n"; break;
-            case '\r': result += "\\r"; break;
-            case '\t': result += "\\t"; break;
-            default: result += c; break;
+            case '"':
+                result += "\\\"";
+                break;
+            case '\\':
+                result += "\\\\";
+                break;
+            case '\n':
+                result += "\\n";
+                break;
+            case '\r':
+                result += "\\r";
+                break;
+            case '\t':
+                result += "\\t";
+                break;
+            default:
+                result += c;
+                break;
         }
     }
     return result;
 }
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

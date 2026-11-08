@@ -25,12 +25,13 @@
  * Active in Debug builds and when `QUANTUMVERSE_GL_DEBUG` is set.
  * No-op (expands to `((void)0)`) in Release builds.
  */
-#define GL_CHECK() do { \
-    GLenum err = glad_glGetError(); \
-    if (err != GL_NO_ERROR) { \
-        qWarning() << "GL Error:" << err << " at " << __FILE__ << ":" << __LINE__; \
-    } \
-} while(0)
+#define GL_CHECK()                                                                     \
+    do {                                                                               \
+        GLenum err = glad_glGetError();                                                \
+        if (err != GL_NO_ERROR) {                                                      \
+            qWarning() << "GL Error:" << err << " at " << __FILE__ << ":" << __LINE__; \
+        }                                                                              \
+    } while (0)
 #else
 /**
  * @brief No-op GL error check in Release builds.

@@ -1,12 +1,12 @@
 #ifndef QUANTUMVERSE_THEORY_SURROGATE_H
 #define QUANTUMVERSE_THEORY_SURROGATE_H
 
-#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include <memory>
 #include <utility>
-#include <cmath>
-#include <algorithm>
-#include <limits>
+#include <vector>
 
 namespace quantumverse {
 namespace discovery {
@@ -23,7 +23,7 @@ namespace discovery {
  * TheoryDiscoveryAgent.
  */
 class TheorySurrogate {
-public:
+   public:
     using DataPoint = std::pair<std::vector<double>, double>;
 
     TheorySurrogate();
@@ -45,13 +45,20 @@ public:
      */
     double predictiveVariance(const std::vector<double>& x) const;
 
-    size_t getTrainingSize() const { return training_data_.size(); }
-    void clear() { training_data_.clear(); K_.clear(); alpha_.clear(); cached_ = false; }
+    size_t getTrainingSize() const {
+        return training_data_.size();
+    }
+    void clear() {
+        training_data_.clear();
+        K_.clear();
+        alpha_.clear();
+        cached_ = false;
+    }
 
-private:
+   private:
     std::vector<DataPoint> training_data_;
-    mutable std::vector<std::vector<double>> K_;      // cached kernel matrix
-    mutable std::vector<double> alpha_;               // cached (K + lambda I)^{-1} y
+    mutable std::vector<std::vector<double>> K_;  // cached kernel matrix
+    mutable std::vector<double> alpha_;           // cached (K + lambda I)^{-1} y
 
     double length_scale_;
     double sigma_f_;
@@ -59,15 +66,13 @@ private:
 
     mutable bool cached_;
 
-    static double rbfKernel(const std::vector<double>& a,
-                            const std::vector<double>& b,
-                            double length_scale,
-                            double sigma_f);
+    static double rbfKernel(const std::vector<double>& a, const std::vector<double>& b,
+                            double length_scale, double sigma_f);
 
     void rebuildCache() const;
 };
 
-} // namespace discovery
-} // namespace quantumverse
+}  // namespace discovery
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_THEORY_SURROGATE_H
+#endif  // QUANTUMVERSE_THEORY_SURROGATE_H

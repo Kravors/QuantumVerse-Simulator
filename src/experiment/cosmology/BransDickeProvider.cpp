@@ -20,31 +20,33 @@
 namespace quantumverse {
 
 namespace {
-constexpr double C_KMS       = 299792.458;   // km/s
-constexpr double C_SI        = 299792458.0;  // m/s
-constexpr double MPC_M       = 3.0856775814913673e22; // metres per Mpc
-constexpr double SECONDS_PER_GYR = 1e9 * 365.25 * 86400.0; // 3.15576e16 s
-constexpr double G_SI        = 6.67430e-11;  // m³ kg⁻¹ s⁻²
-constexpr double A_RAD       = 7.5657e-16;   // J m⁻³ K⁻⁴ (radiation constant)
-constexpr double Z_DRAG      = 1059.94;      // Planck 2018 drag epoch
-} // namespace
+constexpr double C_KMS = 299792.458;                        // km/s
+constexpr double C_SI = 299792458.0;                        // m/s
+constexpr double MPC_M = 3.0856775814913673e22;             // metres per Mpc
+constexpr double SECONDS_PER_GYR = 1e9 * 365.25 * 86400.0;  // 3.15576e16 s
+constexpr double G_SI = 6.67430e-11;                        // m³ kg⁻¹ s⁻²
+constexpr double A_RAD = 7.5657e-16;                        // J m⁻³ K⁻⁴ (radiation constant)
+constexpr double Z_DRAG = 1059.94;                          // Planck 2018 drag epoch
+}  // namespace
 
-BransDickeProvider::BransDickeProvider()
-    : BransDickeProvider(Params{}) {}
+BransDickeProvider::BransDickeProvider() : BransDickeProvider(Params{}) {}
 
 BransDickeProvider::BransDickeProvider(Params p)
-    : m_H0(p.H0), m_Om(p.Om), m_Ob(p.Ob), m_Or(p.Or),
-      m_OL(p.OL), m_Ok(p.Ok), m_Tcmb(p.Tcmb), m_omega(p.omega)
-{
+    : m_H0(p.H0),
+      m_Om(p.Om),
+      m_Ob(p.Ob),
+      m_Or(p.Or),
+      m_OL(p.OL),
+      m_Ok(p.Ok),
+      m_Tcmb(p.Tcmb),
+      m_omega(p.omega) {
     m_parametersSource = QStringLiteral("user");
 }
 
-BransDickeProvider::BransDickeProvider(double H0, double OmegaM, double OmegaB,
-                                        double OmegaR, double OmegaLambda,
-                                        double OmegaK, double Tcmb0, double omega)
-    : BransDickeProvider(Params{H0, OmegaM, OmegaB, OmegaR,
-                                OmegaLambda, OmegaK, Tcmb0, omega})
-{
+BransDickeProvider::BransDickeProvider(double H0, double OmegaM, double OmegaB, double OmegaR,
+                                       double OmegaLambda, double OmegaK, double Tcmb0,
+                                       double omega)
+    : BransDickeProvider(Params{H0, OmegaM, OmegaB, OmegaR, OmegaLambda, OmegaK, Tcmb0, omega}) {
     m_parametersSource = QStringLiteral("user");
 }
 
@@ -58,8 +60,10 @@ double BransDickeProvider::H(double z) const {
 }
 
 double BransDickeProvider::integrateHInv(double z1, double z2, int steps) const {
-    if (steps < 2) steps = 2;
-    if (steps % 2 == 1) ++steps;
+    if (steps < 2)
+        steps = 2;
+    if (steps % 2 == 1)
+        ++steps;
     const double h = (z2 - z1) / steps;
     auto f = [this](double z) { return 1.0 / H(z); };
     double s = f(z1) + f(z2);
@@ -111,7 +115,8 @@ double BransDickeProvider::decelerationParameter(double z) const {
     const double Om_z = m_Om * p1 * p1 * p1;
     const double Or_z = m_Or * p1 * p1 * p1 * p1;
     const double denom = Om_z + Or_z + m_Ok * p1 * p1 + m_OL;
-    if (denom <= 0.0) return 0.0;
+    if (denom <= 0.0)
+        return 0.0;
     return (0.5 * Om_z + Or_z - m_OL) / denom;
 }
 
@@ -135,9 +140,8 @@ double BransDickeProvider::soundHorizon() const {
         s += (i & 1 ? 4.0 : 2.0) * integrand(Z_DRAG + i * h);
     double rd = s * h / 3.0;
 
-    const double tail = (m_Or > 0.0)
-        ? (C_KMS / std::sqrt(3.0)) / (m_H0 * std::sqrt(m_Or)) / (1.0 + zmax)
-        : 0.0;
+    const double tail =
+        (m_Or > 0.0) ? (C_KMS / std::sqrt(3.0)) / (m_H0 * std::sqrt(m_Or)) / (1.0 + zmax) : 0.0;
     return rd + tail;
 }
 
@@ -150,9 +154,10 @@ double BransDickeProvider::growthFactor(double z) const {
     const double OL_z = m_OL;
     const double a = 1.0 / p1;
     const double numerator = a * (5.0 * Om_z / 2.0);
-    const double denom = std::pow(Om_z, 4.0 / 7.0) - OL_z
-        + (1.0 + Om_z / 2.0) * (1.0 + OL_z / 70.0);
-    if (denom == 0.0) return 0.0;
+    const double denom =
+        std::pow(Om_z, 4.0 / 7.0) - OL_z + (1.0 + Om_z / 2.0) * (1.0 + OL_z / 70.0);
+    if (denom == 0.0)
+        return 0.0;
     const double d_gr = numerator / denom;
     const double bd_enhancement = 1.0 + 1.0 / (2.0 * m_omega + 3.0);
     return d_gr * bd_enhancement;
@@ -163,4 +168,4 @@ double BransDickeProvider::criticalDensity() const {
     return 3.0 * H0_si * H0_si / (8.0 * M_PI * G_SI);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

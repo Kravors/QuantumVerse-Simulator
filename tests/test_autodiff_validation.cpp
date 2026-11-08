@@ -1,10 +1,10 @@
+#include <cmath>
+#include <iostream>
 #include "math/AutoDiff.h"
 #include "physics/DifferentiableCurvature.h"
 #include "physics/DifferentiableGeodesicIntegrator.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
-#include <cmath>
-#include <iostream>
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -68,7 +68,8 @@ void test_ad_gradient_computation() {
     double expected_dfdx = 3.0 * 1.5 * 1.5 + std::cos(1.5);
     QV_CHECK_NEAR(grad[0] - expected_dfdx, 0.0, 1e-6);
 
-    std::cout << "[PASS] AD gradient: computed=" << grad[0] << ", expected=" << expected_dfdx << std::endl;
+    std::cout << "[PASS] AD gradient: computed=" << grad[0] << ", expected=" << expected_dfdx
+              << std::endl;
 }
 
 // ============================================================================
@@ -79,9 +80,7 @@ void test_ad_chain_rule() {
         return vars[0] * vars[0];
     };
 
-    auto f = [](const std::vector<ADVariable<1>>& vars) -> ADVariable<1> {
-        return exp(vars[0]);
-    };
+    auto f = [](const std::vector<ADVariable<1>>& vars) -> ADVariable<1> { return exp(vars[0]); };
 
     auto composite = [&](const std::vector<ADVariable<1>>& vars) -> ADVariable<1> {
         auto gv = g(vars);
@@ -94,7 +93,8 @@ void test_ad_chain_rule() {
     double expected = std::exp(4.0) * 2.0 * 2.0;
     QV_CHECK_NEAR(grad[0] - expected, 0.0, 1e-5);
 
-    std::cout << "[PASS] AD chain rule: computed=" << grad[0] << ", expected=" << expected << std::endl;
+    std::cout << "[PASS] AD chain rule: computed=" << grad[0] << ", expected=" << expected
+              << std::endl;
 }
 
 // ============================================================================
@@ -171,7 +171,8 @@ void test_ad_multiparameter_gradient() {
     QV_CHECK_NEAR(grad[0] - 6.0, 0.0, 1e-6);
     QV_CHECK_NEAR(grad[1] - 8.0, 0.0, 1e-6);
 
-    std::cout << "[PASS] AD multi-parameter gradient: [df/dx, df/dy] = [" << grad[0] << ", " << grad[1] << "]" << std::endl;
+    std::cout << "[PASS] AD multi-parameter gradient: [df/dx, df/dy] = [" << grad[0] << ", "
+              << grad[1] << "]" << std::endl;
 }
 
 // ============================================================================
@@ -274,7 +275,8 @@ void test_differentiable_curvature_adjoint_gradient() {
 
     double dKdM = 0.0;
     for (const auto& [v, g] : grads) {
-        if (v->value == M) dKdM = g;
+        if (v->value == M)
+            dKdM = g;
     }
 
     QV_CHECK(std::isfinite(dKdM));
@@ -304,7 +306,8 @@ void test_differentiable_geodesic_adjoint() {
     double M = params[0];
     double dM = 0.0;
     for (const auto& [v, g] : grads) {
-        if (std::abs(v->value - M) < 1e-6) dM = g;
+        if (std::abs(v->value - M) < 1e-6)
+            dM = g;
     }
 
     QV_CHECK(std::isfinite(dM));

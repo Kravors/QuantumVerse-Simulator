@@ -8,21 +8,27 @@
 namespace quantumverse {
 
 class FRBGeneratorExperiment : public Experiment {
-public:
-    QString id()          const override { return QStringLiteral("frb_generator"); }
-    QString name()        const override { return QStringLiteral("FRB Dispersion Measure Generator"); }
-    QString category()    const override { return QStringLiteral("Cosmology"); }
+   public:
+    QString id() const override {
+        return QStringLiteral("frb_generator");
+    }
+    QString name() const override {
+        return QStringLiteral("FRB Dispersion Measure Generator");
+    }
+    QString category() const override {
+        return QStringLiteral("Cosmology");
+    }
     QString description() const override {
-        return QStringLiteral("Dispersion measure of FRB-like sources vs source redshift, "
-                              "computed from the cosmic IGM electron column using the Macquart "
-                              "2020 formula. Fixed Planck 2018 parameters.");
+        return QStringLiteral(
+            "Dispersion measure of FRB-like sources vs source redshift, "
+            "computed from the cosmic IGM electron column using the Macquart "
+            "2020 formula. Fixed Planck 2018 parameters.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_FRB_GENERATOR_EXPERIMENT_H
+#endif  // QUANTUMVERSE_FRB_GENERATOR_EXPERIMENT_H

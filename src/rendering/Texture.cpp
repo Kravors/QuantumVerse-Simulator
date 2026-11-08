@@ -21,9 +21,9 @@
 #include "../../third_party/stb_image.h"
 #pragma warning(pop)
 
+#include <algorithm>
 #include <cstring>
 #include <iostream>
-#include <algorithm>
 
 namespace quantumverse {
 
@@ -31,16 +31,9 @@ namespace quantumverse {
 // Texture
 // ============================================================================
 
-Texture::Texture()
-    : m_id(0)
-    , m_width(0)
-    , m_height(0)
-    , m_channels(0)
-{
-}
+Texture::Texture() : m_id(0), m_width(0), m_height(0), m_channels(0) {}
 
-Texture::~Texture()
-{
+Texture::~Texture() {
     if (m_id) {
         glDeleteTextures(1, &m_id);
         m_id = 0;
@@ -48,21 +41,20 @@ Texture::~Texture()
 }
 
 Texture::Texture(Texture&& other) noexcept
-    : m_id(other.m_id)
-    , m_width(other.m_width)
-    , m_height(other.m_height)
-    , m_channels(other.m_channels)
-{
+    : m_id(other.m_id),
+      m_width(other.m_width),
+      m_height(other.m_height),
+      m_channels(other.m_channels) {
     other.m_id = 0;
     other.m_width = 0;
     other.m_height = 0;
     other.m_channels = 0;
 }
 
-Texture& Texture::operator=(Texture&& other) noexcept
-{
+Texture& Texture::operator=(Texture&& other) noexcept {
     if (this != &other) {
-        if (m_id) glDeleteTextures(1, &m_id);
+        if (m_id)
+            glDeleteTextures(1, &m_id);
         m_id = other.m_id;
         m_width = other.m_width;
         m_height = other.m_height;
@@ -75,10 +67,7 @@ Texture& Texture::operator=(Texture&& other) noexcept
     return *this;
 }
 
-bool Texture::loadFromFile(const std::string& filepath,
-                            Channels channels,
-                            bool generateMipmaps)
-{
+bool Texture::loadFromFile(const std::string& filepath, Channels channels, bool generateMipmaps) {
     int reqComp = static_cast<int>(channels);
     int w = 0, h = 0, comp = 0;
 
@@ -98,13 +87,11 @@ bool Texture::loadFromFile(const std::string& filepath,
     return success;
 }
 
-bool Texture::loadFromMemory(const unsigned char* data,
-                              int width, int height, int channels,
-                              bool generateMipmaps)
-{
+bool Texture::loadFromMemory(const unsigned char* data, int width, int height, int channels,
+                             bool generateMipmaps) {
     if (!data || width <= 0 || height <= 0 || channels < 1 || channels > 4) {
-        std::cerr << "Texture: Invalid image data (" << width << "x" << height
-                  << ", " << channels << " channels)" << std::endl;
+        std::cerr << "Texture: Invalid image data (" << width << "x" << height << ", " << channels
+                  << " channels)" << std::endl;
         createFallbackTexture();
         return false;
     }
@@ -133,8 +120,8 @@ bool Texture::loadFromMemory(const unsigned char* data,
     unsigned int format = channelsToGLFormat(channels);
     unsigned int type = channelsToGLType(channels);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format),
-                 width, height, 0, format, type, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, type,
+                 data);
 
     if (generateMipmaps) {
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -144,51 +131,55 @@ bool Texture::loadFromMemory(const unsigned char* data,
     return true;
 }
 
-void Texture::bind(unsigned int unit) const
-{
+void Texture::bind(unsigned int unit) const {
     if (m_id) {
         glActiveTexture(GL_TEXTURE0 + unit);
         glBindTexture(GL_TEXTURE_2D, m_id);
     }
 }
 
-void Texture::unbind(unsigned int unit)
-{
+void Texture::unbind(unsigned int unit) {
     glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-unsigned int Texture::getGLFormat(int channels)
-{
+unsigned int Texture::getGLFormat(int channels) {
     switch (channels) {
-        case 1: return GL_RED;
-        case 2: return GL_RG;
-        case 3: return GL_RGB;
-        case 4: return GL_RGBA;
-        default: return GL_RGB;
+        case 1:
+            return GL_RED;
+        case 2:
+            return GL_RG;
+        case 3:
+            return GL_RGB;
+        case 4:
+            return GL_RGBA;
+        default:
+            return GL_RGB;
     }
 }
 
-void Texture::createFallbackTexture()
-{
+void Texture::createFallbackTexture() {
     // 1x1 magenta pixel - clearly indicates a missing texture
     unsigned char fallback[4] = {255, 0, 255, 255};
     loadFromMemory(fallback, 1, 1, 4, false);
 }
 
-unsigned int Texture::channelsToGLFormat(int channels)
-{
+unsigned int Texture::channelsToGLFormat(int channels) {
     switch (channels) {
-        case 1: return GL_RED;
-        case 2: return GL_RG;
-        case 3: return GL_RGB;
-        case 4: return GL_RGBA;
-        default: return GL_RGB;
+        case 1:
+            return GL_RED;
+        case 2:
+            return GL_RG;
+        case 3:
+            return GL_RGB;
+        case 4:
+            return GL_RGBA;
+        default:
+            return GL_RGB;
     }
 }
 
-unsigned int Texture::channelsToGLType(int channels)
-{
+unsigned int Texture::channelsToGLType(int channels) {
     (void)channels;
     return GL_UNSIGNED_BYTE;
 }
@@ -198,17 +189,14 @@ unsigned int Texture::channelsToGLType(int channels)
 // ============================================================================
 
 TextureArray::TextureArray()
-    : m_id(0)
-    , m_width(0)
-    , m_height(0)
-    , m_maxLayers(0)
-    , m_layerCount(0)
-    , m_channels(0)
-{
-}
+    : m_id(0),
+      m_width(0),
+      m_height(0),
+      m_maxLayers(0),
+      m_layerCount(0),
+      m_channels(0) {}
 
-TextureArray::~TextureArray()
-{
+TextureArray::~TextureArray() {
     if (m_id) {
         glDeleteTextures(1, &m_id);
         m_id = 0;
@@ -216,22 +204,21 @@ TextureArray::~TextureArray()
 }
 
 TextureArray::TextureArray(TextureArray&& other) noexcept
-    : m_id(other.m_id)
-    , m_width(other.m_width)
-    , m_height(other.m_height)
-    , m_maxLayers(other.m_maxLayers)
-    , m_layerCount(other.m_layerCount)
-    , m_channels(other.m_channels)
-{
+    : m_id(other.m_id),
+      m_width(other.m_width),
+      m_height(other.m_height),
+      m_maxLayers(other.m_maxLayers),
+      m_layerCount(other.m_layerCount),
+      m_channels(other.m_channels) {
     other.m_id = 0;
     other.m_maxLayers = 0;
     other.m_layerCount = 0;
 }
 
-TextureArray& TextureArray::operator=(TextureArray&& other) noexcept
-{
+TextureArray& TextureArray::operator=(TextureArray&& other) noexcept {
     if (this != &other) {
-        if (m_id) glDeleteTextures(1, &m_id);
+        if (m_id)
+            glDeleteTextures(1, &m_id);
         m_id = other.m_id;
         m_width = other.m_width;
         m_height = other.m_height;
@@ -245,11 +232,10 @@ TextureArray& TextureArray::operator=(TextureArray&& other) noexcept
     return *this;
 }
 
-bool TextureArray::initialize(int maxLayers, int width, int height)
-{
+bool TextureArray::initialize(int maxLayers, int width, int height) {
     if (maxLayers <= 0 || width <= 0 || height <= 0) {
-        std::cerr << "TextureArray: Invalid parameters (layers="
-                  << maxLayers << ", " << width << "x" << height << ")" << std::endl;
+        std::cerr << "TextureArray: Invalid parameters (layers=" << maxLayers << ", " << width
+                  << "x" << height << ")" << std::endl;
         return false;
     }
 
@@ -262,7 +248,7 @@ bool TextureArray::initialize(int maxLayers, int width, int height)
     m_height = height;
     m_maxLayers = maxLayers;
     m_layerCount = 0;
-    m_channels = 4; // Default to RGBA
+    m_channels = 4;  // Default to RGBA
 
     glGenTextures(1, &m_id);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_id);
@@ -271,7 +257,8 @@ bool TextureArray::initialize(int maxLayers, int width, int height)
     glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, maxLayers);
     GLenum allocErr = glGetError();
     if (allocErr != GL_NO_ERROR) {
-        std::cerr << "[TextureArray] GL error after glTexStorage3D: 0x" << std::hex << allocErr << std::dec << std::endl;
+        std::cerr << "[TextureArray] GL error after glTexStorage3D: 0x" << std::hex << allocErr
+                  << std::dec << std::endl;
     }
 
     // Set texture parameters
@@ -285,11 +272,10 @@ bool TextureArray::initialize(int maxLayers, int width, int height)
     return true;
 }
 
-int TextureArray::addLayerFromFile(const std::string& filepath)
-{
+int TextureArray::addLayerFromFile(const std::string& filepath) {
     if (m_layerCount >= m_maxLayers) {
-        std::cerr << "TextureArray: Maximum layer count (" << m_maxLayers
-                  << ") reached" << std::endl;
+        std::cerr << "TextureArray: Maximum layer count (" << m_maxLayers << ") reached"
+                  << std::endl;
         return -1;
     }
 
@@ -303,18 +289,16 @@ int TextureArray::addLayerFromFile(const std::string& filepath)
 
     // Resize to match array dimensions if needed
     if (w != m_width || h != m_height) {
-        std::cerr << "TextureArray: Layer size mismatch (" << w << "x" << h
-                  << " vs array " << m_width << "x" << m_height << ")" << std::endl;
+        std::cerr << "TextureArray: Layer size mismatch (" << w << "x" << h << " vs array "
+                  << m_width << "x" << m_height << ")" << std::endl;
         stbi_image_free(data);
         return -1;
     }
 
     int layerIndex = m_layerCount++;
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_id);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                    0, 0, layerIndex,
-                    m_width, m_height, 1,
-                    GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerIndex, m_width, m_height, 1, GL_RGBA,
+                    GL_UNSIGNED_BYTE, data);
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
@@ -322,12 +306,11 @@ int TextureArray::addLayerFromFile(const std::string& filepath)
     return layerIndex;
 }
 
-int TextureArray::addLayerFromMemory(const unsigned char* data,
-                                      int width, int height, int channels)
-{
+int TextureArray::addLayerFromMemory(const unsigned char* data, int width, int height,
+                                     int channels) {
     if (m_layerCount >= m_maxLayers) {
-        std::cerr << "TextureArray: Maximum layer count (" << m_maxLayers
-                  << ") reached" << std::endl;
+        std::cerr << "TextureArray: Maximum layer count (" << m_maxLayers << ") reached"
+                  << std::endl;
         return -1;
     }
 
@@ -344,36 +327,34 @@ int TextureArray::addLayerFromMemory(const unsigned char* data,
         size_t pixelCount = static_cast<size_t>(width) * height;
         rgbaData.resize(pixelCount * 4);
         for (size_t i = 0; i < pixelCount; ++i) {
-            rgbaData[i * 4 + 0] = data[i * channels + 0]; // R
-            rgbaData[i * 4 + 1] = (channels >= 2) ? data[i * channels + 1] : data[i * channels + 0]; // G or R
-            rgbaData[i * 4 + 2] = (channels >= 3) ? data[i * channels + 2] : data[i * channels + 0]; // B or R
-            rgbaData[i * 4 + 3] = (channels >= 4) ? data[i * channels + 3] : 255; // A
+            rgbaData[i * 4 + 0] = data[i * channels + 0];  // R
+            rgbaData[i * 4 + 1] =
+                (channels >= 2) ? data[i * channels + 1] : data[i * channels + 0];  // G or R
+            rgbaData[i * 4 + 2] =
+                (channels >= 3) ? data[i * channels + 2] : data[i * channels + 0];  // B or R
+            rgbaData[i * 4 + 3] = (channels >= 4) ? data[i * channels + 3] : 255;   // A
         }
         srcData = rgbaData.data();
     }
 
     int layerIndex = m_layerCount++;
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_id);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                    0, 0, layerIndex,
-                    m_width, m_height, 1,
-                    GL_RGBA, GL_UNSIGNED_BYTE, srcData);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerIndex, m_width, m_height, 1, GL_RGBA,
+                    GL_UNSIGNED_BYTE, srcData);
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     return layerIndex;
 }
 
-void TextureArray::bind(unsigned int unit) const
-{
+void TextureArray::bind(unsigned int unit) const {
     if (m_id) {
         glActiveTexture(GL_TEXTURE0 + unit);
         glBindTexture(GL_TEXTURE_2D_ARRAY, m_id);
     }
 }
 
-void TextureArray::unbind(unsigned int unit)
-{
+void TextureArray::unbind(unsigned int unit) {
     glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
@@ -383,21 +364,17 @@ void TextureArray::unbind(unsigned int unit)
 // ============================================================================
 
 TextureCache::TextureCache()
-    : m_maxSizeBytes(512 * 1024 * 1024) // 512 MB default
-    , m_currentSizeBytes(0)
-    , m_accessCounter(0)
-{
-}
+    : m_maxSizeBytes(512 * 1024 * 1024)  // 512 MB default
+      ,
+      m_currentSizeBytes(0),
+      m_accessCounter(0) {}
 
-TextureCache::~TextureCache()
-{
+TextureCache::~TextureCache() {
     clear();
 }
 
-std::vector<uint8_t> TextureCache::getOrGenerate(
-    const std::string& key,
-    std::function<std::vector<uint8_t>()> generator)
-{
+std::vector<uint8_t> TextureCache::getOrGenerate(const std::string& key,
+                                                 std::function<std::vector<uint8_t>()> generator) {
     auto it = m_cache.find(key);
     if (it != m_cache.end()) {
         // Cache hit - update access time
@@ -407,35 +384,34 @@ std::vector<uint8_t> TextureCache::getOrGenerate(
 
     // Cache miss - generate texture
     auto data = generator();
-    
+
     // Add to cache
     CachedTexture cached;
     cached.data = std::move(data);
     cached.lastAccess = ++m_accessCounter;
     cached.size = cached.data.size();
-    
+
     m_cache[key] = std::move(cached);
     m_currentSizeBytes += m_cache[key].size;
-    
+
     // Evict if over limit
     if (m_currentSizeBytes > m_maxSizeBytes) {
         evictLRU();
     }
-    
+
     return m_cache[key].data;
 }
 
-void TextureCache::clear()
-{
+void TextureCache::clear() {
     m_cache.clear();
     m_currentSizeBytes = 0;
     m_accessCounter = 0;
 }
 
-void TextureCache::evictLRU()
-{
-    if (m_cache.empty()) return;
-    
+void TextureCache::evictLRU() {
+    if (m_cache.empty())
+        return;
+
     // Find least recently used entry
     auto lruIt = m_cache.begin();
     for (auto it = m_cache.begin(); it != m_cache.end(); ++it) {
@@ -443,9 +419,9 @@ void TextureCache::evictLRU()
             lruIt = it;
         }
     }
-    
+
     m_currentSizeBytes -= lruIt->second.size;
     m_cache.erase(lruIt);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -1,11 +1,11 @@
 // QuantumVerse Test: PBR Rendering (Cook-Torrance BRDF)
 // Validates the physically-based rendering math for celestial bodies
 
-#include <iostream>
-#include <cmath>
-#include <vector>
-#include <cstdint>
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <iostream>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -49,8 +49,7 @@ float fresnelSchlick(float cosTheta, float F0) {
 // ============================================================================
 
 // Test 1: PBR material struct defaults are valid
-void testPBRMaterialDefaults()
-{
+void testPBRMaterialDefaults() {
     std::cout << "Test: PBR material struct defaults... ";
 
     // Verify the PBRMaterial struct exists with correct defaults
@@ -76,8 +75,7 @@ void testPBRMaterialDefaults()
 }
 
 // Test 2: Energy conservation — BRDF never creates energy
-void testEnergyConservation()
-{
+void testEnergyConservation() {
     std::cout << "Test: Energy conservation (Cook-Torrance BRDF)... ";
 
     struct TestCase {
@@ -88,12 +86,8 @@ void testEnergyConservation()
     };
 
     TestCase cases[] = {
-        {0.9f, 0.9f, 0.1f, 0.0f},
-        {0.5f, 0.5f, 0.5f, 0.0f},
-        {0.1f, 0.1f, 0.9f, 0.0f},
-        {0.9f, 0.9f, 0.3f, 1.0f},
-        {0.5f, 0.5f, 0.5f, 1.0f},
-        {0.01f, 0.9f, 0.5f, 0.0f},
+        {0.9f, 0.9f, 0.1f, 0.0f},    {0.5f, 0.5f, 0.5f, 0.0f}, {0.1f, 0.1f, 0.9f, 0.0f},
+        {0.9f, 0.9f, 0.3f, 1.0f},    {0.5f, 0.5f, 0.5f, 1.0f}, {0.01f, 0.9f, 0.5f, 0.0f},
         {0.99f, 0.99f, 0.04f, 0.0f},
     };
 
@@ -123,8 +117,7 @@ void testEnergyConservation()
 }
 
 // Test 3: Fresnel effect at grazing angles
-void testFresnelGrazingAngles()
-{
+void testFresnelGrazingAngles() {
     std::cout << "Test: Fresnel effect at grazing angles... ";
 
     float F0_dielectric = 0.04f;
@@ -156,21 +149,16 @@ void testFresnelGrazingAngles()
 }
 
 // Test 4: Roughness/metallic parameter validation
-void testRoughnessMetallicParameters()
-{
+void testRoughnessMetallicParameters() {
     std::cout << "Test: Roughness/metallic parameter ranges... ";
 
-    auto clampSafe = [](float v) -> float {
-        return std::min(std::max(v, 0.0f), 1.0f);
-    };
+    auto clampSafe = [](float v) -> float { return std::min(std::max(v, 0.0f), 1.0f); };
 
     QV_CHECK(clampSafe(-0.5f) == 0.0f);
     QV_CHECK(clampSafe(1.5f) == 1.0f);
     QV_CHECK(clampSafe(0.5f) == 0.5f);
 
-    auto clampRoughness = [](float v) -> float {
-        return std::min(std::max(v, 0.04f), 1.0f);
-    };
+    auto clampRoughness = [](float v) -> float { return std::min(std::max(v, 0.04f), 1.0f); };
     QV_CHECK(clampRoughness(0.0f) == 0.04f);
     QV_CHECK(clampRoughness(2.0f) == 1.0f);
 
@@ -188,8 +176,7 @@ void testRoughnessMetallicParameters()
 }
 
 // Test 5: PBR texture map generation produces valid data
-void testPBRMapGeneration()
-{
+void testPBRMapGeneration() {
     std::cout << "Test: PBR texture map generation... ";
 
     ProceduralTextureGenerator generator;
@@ -208,20 +195,20 @@ void testPBRMapGeneration()
 }
 
 // Test 6: Instance data layout is correct size (36 floats)
-void testInstanceDataLayout()
-{
+void testInstanceDataLayout() {
     std::cout << "Test: Instance data layout (36 floats)... ";
 
     // Verify the expected instance data layout:
-    // model(16) + modelIT(9) + color(3) + emissive(3) + radius(1) + texLayer(1) + metallic(1) + roughness(1) + ao(1) = 36 floats
+    // model(16) + modelIT(9) + color(3) + emissive(3) + radius(1) + texLayer(1) + metallic(1) +
+    // roughness(1) + ao(1) = 36 floats
     int expectedFloats = 16 + 9 + 3 + 3 + 1 + 1 + 1 + 1 + 1;
 
-    std::cout << "PASS (" << expectedFloats << " floats = " << expectedFloats * sizeof(float) << " bytes)" << std::endl;
+    std::cout << "PASS (" << expectedFloats << " floats = " << expectedFloats * sizeof(float)
+              << " bytes)" << std::endl;
 }
 
 // Test 7: Distribution function properties
-void testGGXDistributionProperties()
-{
+void testGGXDistributionProperties() {
     std::cout << "Test: GGX distribution function properties... ";
 
     // Property 1: D is always positive
@@ -229,7 +216,8 @@ void testGGXDistributionProperties()
     for (float roughness = 0.1f; roughness <= 1.0f; roughness += 0.1f) {
         for (float NdotH = 0.0f; NdotH <= 1.0f; NdotH += 0.1f) {
             float D_val = distributionGGX(NdotH, roughness);
-            if (D_val < 0.0f) allPositive = false;
+            if (D_val < 0.0f)
+                allPositive = false;
         }
     }
     QV_CHECK(allPositive);
@@ -248,8 +236,7 @@ void testGGXDistributionProperties()
 }
 
 // Test 8: Smith geometry function properties
-void testSmithGeometryProperties()
-{
+void testSmithGeometryProperties() {
     std::cout << "Test: Smith geometry function properties... ";
 
     // Property 1: G is always in [0, 1]
@@ -258,7 +245,8 @@ void testSmithGeometryProperties()
         for (float NdotV = 0.01f; NdotV <= 1.0f; NdotV += 0.1f) {
             for (float NdotL = 0.01f; NdotL <= 1.0f; NdotL += 0.1f) {
                 float G_val = geometrySmith(NdotV, NdotL, roughness);
-                if (G_val < 0.0f || G_val > 1.001f) allValid = false;
+                if (G_val < 0.0f || G_val > 1.001f)
+                    allValid = false;
             }
         }
     }
@@ -280,8 +268,7 @@ void testSmithGeometryProperties()
 // Main
 // ============================================================================
 
-int main()
-{
+int main() {
     std::cout << "=== PBR Rendering Tests ===" << std::endl;
 
     testPBRMaterialDefaults();

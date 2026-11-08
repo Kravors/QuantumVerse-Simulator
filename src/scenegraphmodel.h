@@ -28,13 +28,13 @@ namespace quantumverse {
  * Wraps SceneGraphManager's object registry into a Qt model that
  * QML views can bind to for the object browser sidebar.
  */
-class SceneGraphModel : public QAbstractListModel
-{
+class SceneGraphModel : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
-    Q_PROPERTY(QString selectedObjectId READ selectedObjectId WRITE setSelectedObjectId NOTIFY selectedObjectIdChanged)
+    Q_PROPERTY(QString selectedObjectId READ selectedObjectId WRITE setSelectedObjectId NOTIFY
+                   selectedObjectIdChanged)
 
-public:
+   public:
     enum ObjectRoles {
         NameRole = Qt::UserRole + 1,
         TypeRole,
@@ -66,8 +66,8 @@ public:
     void setSelectedObjectId(const QString& id);
 
     // Add/remove objects via model
-    Q_INVOKABLE void addObject(const QString& type, const QString& name,
-                               double x, double y, double z);
+    Q_INVOKABLE void addObject(const QString& type, const QString& name, double x, double y,
+                               double z);
     Q_INVOKABLE void removeObject(const QString& id);
     Q_INVOKABLE void selectObject(const QString& id);
     Q_INVOKABLE void clearSelection();
@@ -84,14 +84,14 @@ public:
     // Focus camera on object
     Q_INVOKABLE void focusCameraOn(const QString& objectId);
 
-signals:
+   signals:
     void countChanged();
     void selectedObjectIdChanged();
     void objectAdded(const QString& id, const QString& name);
     void objectRemoved(const QString& id);
     void selectionChanged(const QString& id);
 
-private:
+   private:
     std::shared_ptr<SceneGraphManager> m_manager;
     QString m_selectedObjectId;
 
@@ -99,6 +99,6 @@ private:
     static QString objectTypeToString(ObjectType type);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // SCENEGRAPHMODEL_H
+#endif  // SCENEGRAPHMODEL_H

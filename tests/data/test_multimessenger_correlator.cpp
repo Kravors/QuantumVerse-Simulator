@@ -16,8 +16,7 @@
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== MultiMessengerCorrelator Test ===" << std::endl;
 
@@ -99,7 +98,8 @@ int main(int argc, char** argv)
         correlator.addAlert(fermi);
 
         QV_CHECK(followUpSpy.count() == 1);
-        const CorrelationEvent followUpEv = qvariant_cast<CorrelationEvent>(followUpSpy.value(0).at(0));
+        const CorrelationEvent followUpEv =
+            qvariant_cast<CorrelationEvent>(followUpSpy.value(0).at(0));
         QV_CHECK(followUpEv.messengers.contains("LIGO"));
         QV_CHECK(followUpEv.messengers.contains("Fermi"));
     }

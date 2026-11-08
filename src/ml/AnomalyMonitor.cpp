@@ -10,50 +10,44 @@
 namespace quantumverse {
 
 AnomalyMonitor::AnomalyMonitor(QObject* parent)
-    : QObject(parent)
-    , m_timer(new QTimer(this))
-    , m_enabled(false)
-    , m_thresholdMultiplier(1.0)
-    , m_lastScore(0.0)
-    , m_runningMax(0.0)
-    , m_modelLoaded(false)
-    , m_sampleCount(0)
-{
+    : QObject(parent),
+      m_timer(new QTimer(this)),
+      m_enabled(false),
+      m_thresholdMultiplier(1.0),
+      m_lastScore(0.0),
+      m_runningMax(0.0),
+      m_modelLoaded(false),
+      m_sampleCount(0) {
     m_timer->setInterval(1000);
     m_timer->setSingleShot(false);
     connect(m_timer, &QTimer::timeout, this, &AnomalyMonitor::onSamplingTimeout);
 }
 
-AnomalyMonitor::~AnomalyMonitor()
-{
+AnomalyMonitor::~AnomalyMonitor() {
     stop();
 }
 
-void AnomalyMonitor::setUI4D(std::shared_ptr<UI4D> ui4d)
-{
+void AnomalyMonitor::setUI4D(std::shared_ptr<UI4D> ui4d) {
     m_ui4d = std::move(ui4d);
 }
 
-void AnomalyMonitor::setAnomalyDetector(std::shared_ptr<AnomalyDetector> detector)
-{
+void AnomalyMonitor::setAnomalyDetector(std::shared_ptr<AnomalyDetector> detector) {
     m_detector = std::move(detector);
     bool loaded = m_detector && m_detector->isLoaded();
     setModelLoaded(loaded);
 }
 
-void AnomalyMonitor::setFindingsProvider(FindingsProvider provider)
-{
+void AnomalyMonitor::setFindingsProvider(FindingsProvider provider) {
     m_findingsProvider = std::move(provider);
 }
 
-void AnomalyMonitor::setTelemetryProvider(TelemetryProvider provider)
-{
+void AnomalyMonitor::setTelemetryProvider(TelemetryProvider provider) {
     m_telemetryProvider = std::move(provider);
 }
 
-void AnomalyMonitor::setEnabled(bool e)
-{
-    if (m_enabled == e) return;
+void AnomalyMonitor::setEnabled(bool e) {
+    if (m_enabled == e)
+        return;
     m_enabled = e;
     emit enabledChanged();
     if (m_enabled) {
@@ -63,16 +57,16 @@ void AnomalyMonitor::setEnabled(bool e)
     }
 }
 
-void AnomalyMonitor::setThresholdMultiplier(double m)
-{
-    if (qFuzzyCompare(m_thresholdMultiplier, m)) return;
+void AnomalyMonitor::setThresholdMultiplier(double m) {
+    if (qFuzzyCompare(m_thresholdMultiplier, m))
+        return;
     m_thresholdMultiplier = m;
     emit thresholdMultiplierChanged();
 }
 
-void AnomalyMonitor::setModelLoaded(bool loaded)
-{
-    if (m_modelLoaded == loaded) return;
+void AnomalyMonitor::setModelLoaded(bool loaded) {
+    if (m_modelLoaded == loaded)
+        return;
     m_modelLoaded = loaded;
     emit modelLoadedChanged();
     if (!loaded) {
@@ -81,15 +75,14 @@ void AnomalyMonitor::setModelLoaded(bool loaded)
     }
 }
 
-void AnomalyMonitor::setSampleIntervalMs(int ms)
-{
-    if (ms < 100) ms = 100;
+void AnomalyMonitor::setSampleIntervalMs(int ms) {
+    if (ms < 100)
+        ms = 100;
     m_timer->setInterval(ms);
     emit sampleIntervalMsChanged();
 }
 
-void AnomalyMonitor::start()
-{
+void AnomalyMonitor::start() {
     if (!m_enabled) {
         m_enabled = true;
         emit enabledChanged();
@@ -99,8 +92,7 @@ void AnomalyMonitor::start()
     }
 }
 
-void AnomalyMonitor::stop()
-{
+void AnomalyMonitor::stop() {
     if (m_enabled) {
         m_enabled = false;
         emit enabledChanged();
@@ -110,14 +102,13 @@ void AnomalyMonitor::stop()
     }
 }
 
-void AnomalyMonitor::onSamplingTimeout()
-{
-    if (!m_enabled) return;
+void AnomalyMonitor::onSamplingTimeout() {
+    if (!m_enabled)
+        return;
     processSample();
 }
 
-void AnomalyMonitor::processSample()
-{
+void AnomalyMonitor::processSample() {
     if (!m_modelLoaded || !m_detector) {
         if (m_lastScore != -1.0) {
             m_lastScore = -1.0;
@@ -148,12 +139,8 @@ void AnomalyMonitor::processSample()
             findings = m_findingsProvider();
         }
 
-        FeatureVector fv = FeatureVector::extract(
-            telemetry,
-            telemetry.blackHoleMass,
-            bodies,
-            findings
-        );
+        FeatureVector fv =
+            FeatureVector::extract(telemetry, telemetry.blackHoleMass, bodies, findings);
 
         double score = m_detector->score(fv);
 
@@ -183,7 +170,9 @@ void AnomalyMonitor::processSample()
             anomaly["timestamp"] = QDateTime::currentMSecsSinceEpoch() / 1000.0;
             anomaly["score"] = score;
             anomaly["threshold"] = threshold;
-            anomaly["description"] = QStringLiteral("ML anomaly detected (score=%1, threshold=%2)").arg(score).arg(threshold);
+            anomaly["description"] = QStringLiteral("ML anomaly detected (score=%1, threshold=%2)")
+                                         .arg(score)
+                                         .arg(threshold);
             emit anomalyDetected(anomaly);
         }
     } catch (const std::exception& e) {
@@ -195,4 +184,4 @@ void AnomalyMonitor::processSample()
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

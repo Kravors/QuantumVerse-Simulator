@@ -8,11 +8,11 @@
 // generateDiscoveryPaper -> pdflatex -> PDF file) without needing a display.
 
 #include <QCoreApplication>
-#include <QProcess>
-#include <QFileInfo>
 #include <QDir>
-#include <QStandardPaths>
 #include <QElapsedTimer>
+#include <QFileInfo>
+#include <QProcess>
+#include <QStandardPaths>
 #include <iostream>
 
 #include "test_assert.h"
@@ -46,10 +46,11 @@ static QString resolvePdftotext() {
 }
 
 static bool waitForPdf(const QString& outputDir, const QString& id, int timeoutMs) {
-    QElapsedTimer timer; timer.start();
+    QElapsedTimer timer;
+    timer.start();
     while (timer.elapsed() < timeoutMs) {
         QDir dir(outputDir);
-        const QStringList pattern = { QStringLiteral("%1_discovery_*.pdf").arg(id) };
+        const QStringList pattern = {QStringLiteral("%1_discovery_*.pdf").arg(id)};
         const auto entries = dir.entryList(pattern, QDir::Files, QDir::Time);
         if (!entries.isEmpty()) {
             const QString candidate = dir.absoluteFilePath(entries.first());
@@ -73,30 +74,31 @@ int main() {
     QV_CHECK(!qmlBinary.isEmpty());
     std::cout << "Using QML binary: " << qmlBinary.toStdString() << std::endl;
 
-    const QString outputDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
-                            + "/QuantumVerse/output";
+    const QString outputDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                              "/QuantumVerse/output";
 
     QVector<PaperCase> cases = {
-        { QStringLiteral("photon_sphere"),
-          {QStringLiteral("Kerr"), QStringLiteral("10"), QStringLiteral("0.9"), QStringLiteral("e-")},
-          QStringLiteral("NaN") },
-        { QStringLiteral("redshift_profile"),
-          {QStringLiteral("Schwarzschild"), QStringLiteral("10"), QStringLiteral("e-")},
-          QStringLiteral("NaN") },
-        { QStringLiteral("frame_dragging"),
-          {QStringLiteral("Kerr"), QStringLiteral("1"), QStringLiteral("0.9"), QStringLiteral("e-")},
-          QStringLiteral("NaN") },
-        { QStringLiteral("gw_ringdown"),
-          {QStringLiteral("Kerr"), QStringLiteral("10"), QStringLiteral("0.9"), QStringLiteral("e-"),
-           QStringLiteral("f R"), QStringLiteral("quasinormal")},
-          QStringLiteral("NaN") },
+        {QStringLiteral("photon_sphere"),
+         {QStringLiteral("Kerr"), QStringLiteral("10"), QStringLiteral("0.9"),
+          QStringLiteral("e-")},
+         QStringLiteral("NaN")},
+        {QStringLiteral("redshift_profile"),
+         {QStringLiteral("Schwarzschild"), QStringLiteral("10"), QStringLiteral("e-")},
+         QStringLiteral("NaN")},
+        {QStringLiteral("frame_dragging"),
+         {QStringLiteral("Kerr"), QStringLiteral("1"), QStringLiteral("0.9"), QStringLiteral("e-")},
+         QStringLiteral("NaN")},
+        {QStringLiteral("gw_ringdown"),
+         {QStringLiteral("Kerr"), QStringLiteral("10"), QStringLiteral("0.9"), QStringLiteral("e-"),
+          QStringLiteral("f R"), QStringLiteral("quasinormal")},
+         QStringLiteral("NaN")},
     };
 
     for (const auto& c : cases) {
         // Clean up old discovery PDFs for this experiment id.
         {
             QDir cleanupDir(outputDir);
-            const QStringList pattern = { QStringLiteral("%1_discovery_*.pdf").arg(c.id) };
+            const QStringList pattern = {QStringLiteral("%1_discovery_*.pdf").arg(c.id)};
             const auto oldEntries = cleanupDir.entryList(pattern, QDir::Files);
             for (const auto& e : oldEntries) {
                 QFile::remove(cleanupDir.absoluteFilePath(e));
@@ -115,26 +117,26 @@ int main() {
         });
         proc.setProcessChannelMode(QProcess::MergedChannels);
         proc.start();
-        const bool finished = proc.waitForFinished(180000); // 3 minutes max
+        const bool finished = proc.waitForFinished(180000);  // 3 minutes max
         QV_CHECK(finished);
         std::cout << "QML paper pipeline exit code: " << proc.exitCode() << std::endl;
 
         // QML/QPDF toolchain may not be available on CI runners. If the QML
         // process exits non-zero, skip PDF generation and content checks.
         if (proc.exitCode() != 0) {
-            std::cerr << "WARNING: QML paper pipeline exited with code "
-                      << proc.exitCode() << ", skipping PDF checks for "
-                      << c.id.toStdString() << std::endl;
+            std::cerr << "WARNING: QML paper pipeline exited with code " << proc.exitCode()
+                      << ", skipping PDF checks for " << c.id.toStdString() << std::endl;
             continue;
         }
 
         // Poll for the compiled PDF.
         bool pdfDone = waitForPdf(outputDir, c.id, 120000);
         if (!pdfDone) {
-            std::cerr << "WARNING: QML paper pipeline PDF not produced, skipping content checks" << std::endl;
+            std::cerr << "WARNING: QML paper pipeline PDF not produced, skipping content checks"
+                      << std::endl;
         } else {
             QDir dir(outputDir);
-            const QStringList pattern = { QStringLiteral("%1_discovery_*.pdf").arg(c.id) };
+            const QStringList pattern = {QStringLiteral("%1_discovery_*.pdf").arg(c.id)};
             const auto entries = dir.entryList(pattern, QDir::Files, QDir::Time);
             QV_CHECK(!entries.isEmpty());
             const QString pdfPath = dir.absoluteFilePath(entries.first());
@@ -173,8 +175,8 @@ int main() {
         const bool finished = proc.waitForFinished(30000);
         QV_CHECK(finished);
         QV_CHECK(proc.exitCode() != 0);
-        std::cout << "Unsupported experiment correctly exited with code "
-                  << proc.exitCode() << std::endl;
+        std::cout << "Unsupported experiment correctly exited with code " << proc.exitCode()
+                  << std::endl;
     }
 
     std::cout << "=== QML Paper Pipeline Test: ALL PASS ===" << std::endl;

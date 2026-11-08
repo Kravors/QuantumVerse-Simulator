@@ -2,12 +2,12 @@
 // Exercises camera controls, slicing, probe, and causal-graph logic
 // without any Qt or OpenGL dependency.
 
-#include "ui4d/UI4D.h"
-#include "spacetime/Event4D.h"
-#include "spacetime/MetricTensor.h"
 #include <cmath>
 #include <iostream>
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
+#include "ui4d/UI4D.h"
 
 using namespace quantumverse;
 
@@ -15,8 +15,7 @@ using namespace quantumverse;
 #define M_PI 3.14159265358979323846
 #endif
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     bool mock = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--mock") == 0) {
@@ -89,7 +88,9 @@ int main(int argc, char* argv[])
         int idx1 = ui4d.addEvent(e1);
         int idx2 = ui4d.addEvent(e2);
         int idx3 = ui4d.addEvent(e3);
-        (void)idx1; (void)idx2; (void)idx3;
+        (void)idx1;
+        (void)idx2;
+        (void)idx3;
         QV_CHECK(ui4d.getCausalGraph().getNodes().size() == 3u);
     }
 

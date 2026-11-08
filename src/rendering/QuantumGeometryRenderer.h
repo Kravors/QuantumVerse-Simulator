@@ -22,11 +22,11 @@
 #ifndef QUANTUMVERSE_QUANTUM_GEOMETRY_RENDERER_H
 #define QUANTUMVERSE_QUANTUM_GEOMETRY_RENDERER_H
 
-#include "CurvatureRenderer.h"
+#include <cmath>
+#include <map>
 #include <memory>
 #include <vector>
-#include <map>
-#include <cmath>
+#include "CurvatureRenderer.h"
 
 namespace quantumverse {
 
@@ -36,7 +36,7 @@ class CDTEngine;
 class SpinFoamEngine;
 class GFTEngine;
 class CausalSetEngine;
-} // namespace quantumgravity
+}  // namespace quantumgravity
 
 // Forward declarations from UI4D.h to avoid circular inclusion
 class Camera4D;
@@ -48,24 +48,24 @@ class CDTEngine;
 class SpinFoamEngine;
 class GFTEngine;
 class CausalSetEngine;
-} // namespace quantumgravity
+}  // namespace quantumgravity
 
 // Import commonly used classes into quantumverse namespace
-using quantumgravity::CDTEngine;
-using quantumgravity::SpinFoamEngine;
-using quantumgravity::GFTEngine;
 using quantumgravity::CausalSetEngine;
+using quantumgravity::CDTEngine;
+using quantumgravity::GFTEngine;
+using quantumgravity::SpinFoamEngine;
 
 /**
  * @enum QuantumGeometryType
  * @brief Type of quantum geometry to render
  */
 enum class QuantumGeometryType {
-    NONE,           // No quantum geometry (classical GR)
-    CDT,            // Causal Dynamical Triangulations
-    SPIN_FOAM,      // Loop Quantum Gravity spin foam
-    GFT,            // Group Field Theory
-    CAUSAL_SET      // Causal set theory
+    NONE,       // No quantum geometry (classical GR)
+    CDT,        // Causal Dynamical Triangulations
+    SPIN_FOAM,  // Loop Quantum Gravity spin foam
+    GFT,        // Group Field Theory
+    CAUSAL_SET  // Causal set theory
 };
 
 /**
@@ -75,9 +75,8 @@ enum class QuantumGeometryType {
  * This class extends CurvatureRenderer with specialized rendering
  * for discrete quantum geometries from various quantum gravity approaches.
  */
-class QuantumGeometryRenderer : public CurvatureRenderer
-{
-private:
+class QuantumGeometryRenderer : public CurvatureRenderer {
+   private:
     // Active quantum geometry source
     QuantumGeometryType currentType;
     std::shared_ptr<void> quantumSource;  // Typed pointer to active engine
@@ -94,10 +93,10 @@ private:
 
     // Vertex buffer objects (VBOs) for different geometry types
     struct GeometryBuffers {
-        unsigned int vao = 0;              // Vertex Array Object
-        unsigned int vertexVBO = 0;        // Vertex positions (4D)
-        unsigned int colorVBO = 0;         // Vertex colors (RGBA)
-        unsigned int indexVBO = 0;         // Edge/face indices
+        unsigned int vao = 0;        // Vertex Array Object
+        unsigned int vertexVBO = 0;  // Vertex positions (4D)
+        unsigned int colorVBO = 0;   // Vertex colors (RGBA)
+        unsigned int indexVBO = 0;   // Edge/face indices
         size_t numVertices = 0;
         size_t numIndices = 0;
         bool isValid = false;
@@ -107,16 +106,16 @@ private:
 
     // Animation state
     double animationTime;
-    int currentFrame;                // For time-evolved geometries
+    int currentFrame;  // For time-evolved geometries
 
     // LOD parameters
-    double currentScale;             // Current zoom scale (meters)
-    int targetLOD;                   // Target level of detail
+    double currentScale;  // Current zoom scale (meters)
+    int targetLOD;        // Target level of detail
     struct LODConfig {
-        int maxVertices;             // Maximum vertices to render
-        float pointSize;             // Point size for vertices
-        float lineWidth;             // Line width for edges
-        bool showSimplices;          // Show filled simplices (CDT)
+        int maxVertices;     // Maximum vertices to render
+        float pointSize;     // Point size for vertices
+        float lineWidth;     // Line width for edges
+        bool showSimplices;  // Show filled simplices (CDT)
     };
     std::vector<LODConfig> lodLevels;  // Indexed by LOD level (0=low, 3=high)
 
@@ -124,23 +123,18 @@ private:
     void generateCDTGeometry(const std::vector<double>& vertices,
                              const std::vector<int>& simplices);
     void generateSpinFoamGeometry(const std::vector<double>& vertices,
-                                   const std::vector<int>& edges,
-                                   const std::vector<double>& spins);
-    void generateGFTGeometry(const std::vector<double>& field,
-                              int gridSize);
+                                  const std::vector<int>& edges, const std::vector<double>& spins);
+    void generateGFTGeometry(const std::vector<double>& field, int gridSize);
     void generateCausalSetGeometry(const std::vector<double>& vertices,
-                                    const std::vector<int>& edges,
-                                    const std::vector<double>& times);
+                                   const std::vector<int>& edges, const std::vector<double>& times);
 
     void updateColorScheme();
     void updateLODFromScale();
     void animateGeometry(double deltaTime);
-    void uploadGeometryToGPU(GeometryBuffers& buffers,
-                             const std::vector<double>& vertices,
-                             const std::vector<int>& indices,
-                             const std::vector<double>& colors);
+    void uploadGeometryToGPU(GeometryBuffers& buffers, const std::vector<double>& vertices,
+                             const std::vector<int>& indices, const std::vector<double>& colors);
 
-public:
+   public:
     QuantumGeometryRenderer();
     virtual ~QuantumGeometryRenderer() = default;  // virtual for proper inheritance
 
@@ -157,30 +151,38 @@ public:
     void setViewScale(double scale_meters);
 
     // Set color scheme
-    void setColorScheme(ColorScheme scheme) { currentColorScheme = scheme; updateColorScheme(); }
+    void setColorScheme(ColorScheme scheme) {
+        currentColorScheme = scheme;
+        updateColorScheme();
+    }
 
     // Rendering modes
-    void setWireframeMode(bool enabled) { showWireframe = enabled; }
-    void setVolumeMode(bool enabled) { showVolumes = enabled; }
-    void setLabelMode(bool enabled) { showLabels = enabled; }
-    void setAnimationEnabled(bool enabled) { animateEvolution = enabled; }
+    void setWireframeMode(bool enabled) {
+        showWireframe = enabled;
+    }
+    void setVolumeMode(bool enabled) {
+        showVolumes = enabled;
+    }
+    void setLabelMode(bool enabled) {
+        showLabels = enabled;
+    }
+    void setAnimationEnabled(bool enabled) {
+        animateEvolution = enabled;
+    }
 
     // Render method with quantum geometry specific parameters
     // Note: This is NOT an override - it has a different signature than CurvatureRenderer::render()
-    void render(const Camera4D& camera,
-                const std::vector<SliceView>& slices,
+    void render(const Camera4D& camera, const std::vector<SliceView>& slices,
                 const MetricTensor& metric);
 
     // Render quantum geometry (called from render())
     void renderQuantumGeometry(const Camera4D& camera);
 
     // Render a single simplex (tetrahedron in 4D projected to 3D)
-    void renderSimplex(const std::array<Event4D, 4>& vertices,
-                     const std::array<double, 4>& colors);
+    void renderSimplex(const std::array<Event4D, 4>& vertices, const std::array<double, 4>& colors);
 
     // Render spin network edge
-    void renderSpinEdge(const Event4D& v1, const Event4D& v2,
-                       double spin, const double color[4]);
+    void renderSpinEdge(const Event4D& v1, const Event4D& v2, double spin, const double color[4]);
 
     // Get info about current geometry
     struct GeometryInfo {
@@ -194,36 +196,40 @@ public:
 
     // LOD control
     void setLODLevel(int level);  // 0-3
-    int getCurrentLOD() const { return targetLOD; }
+    int getCurrentLOD() const {
+        return targetLOD;
+    }
 
     // Get/set current geometry type
-    QuantumGeometryType getCurrentType() const { return currentType; }
-    void setCurrentType(QuantumGeometryType type) { currentType = type; }
+    QuantumGeometryType getCurrentType() const {
+        return currentType;
+    }
+    void setCurrentType(QuantumGeometryType type) {
+        currentType = type;
+    }
 
     // Global alpha for fade transitions (Planck Microscope)
     void setGlobalAlpha(float alpha);
-    float globalAlpha() const { return m_globalAlpha; }
+    float globalAlpha() const {
+        return m_globalAlpha;
+    }
 
     // Animation
-    void stepAnimation();         // Advance one frame
+    void stepAnimation();  // Advance one frame
     void resetAnimation();
 
-private:
+   private:
     // Global alpha for fade transitions (Planck Microscope)
     float m_globalAlpha = 1.0f;
 
-private:
+   private:
     // Helper: project 4D point to 3D screen coordinates
-    std::array<float, 3> projectToScreen(const Event4D& point,
-                                           const Camera4D& camera,
-                                           int viewportWidth,
-                                           int viewportHeight) const;
+    std::array<float, 3> projectToScreen(const Event4D& point, const Camera4D& camera,
+                                         int viewportWidth, int viewportHeight) const;
 
     // Helper: compute color from value (curvature, spin, age)
-    std::array<float, 4> colorFromValue(double value,
-                                       double minVal,
-                                       double maxVal,
-                                       ColorScheme scheme) const;
+    std::array<float, 4> colorFromValue(double value, double minVal, double maxVal,
+                                        ColorScheme scheme) const;
 
     // Private rendering helpers for each quantum geometry type
     void renderCDTGeometry(const std::array<double, 16>& viewMatrix,
@@ -233,9 +239,9 @@ private:
     void renderGFTGeometry(const std::array<double, 16>& viewMatrix,
                            const std::array<double, 16>& projMatrix);
     void renderCausalSetGeometry(const std::array<double, 16>& viewMatrix,
-                                  const std::array<double, 16>& projMatrix);
+                                 const std::array<double, 16>& projMatrix);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_QUANTUM_GEOMETRY_RENDERER_H
+#endif  // QUANTUMVERSE_QUANTUM_GEOMETRY_RENDERER_H

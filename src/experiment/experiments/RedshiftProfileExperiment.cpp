@@ -5,30 +5,30 @@
 
 #include "RedshiftProfileExperiment.h"
 
-#include <cmath>
-#include <QDir>
 #include <QDateTime>
+#include <QDir>
+#include <cmath>
 
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/KerrMetric.h"
+#include "spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
 QVector<ExperimentParameter> RedshiftProfileExperiment::parameters() const {
     QVector<ExperimentParameter> p;
-    p.append({QStringLiteral("mass"),      QStringLiteral("Mass M (M☉)"),
-              QStringLiteral("double"), QVariant(10.0), QVariant(0.1), QVariant(1e6),
-              QStringList(), QStringLiteral("M☉"),  QStringLiteral("Black hole mass.")});
-    p.append({QStringLiteral("r_min"),     QStringLiteral("Inner radius (m)"),
-              QStringLiteral("double"), QVariant(3000.0), QVariant(1.0), QVariant(1e9),
-              QStringList(), QStringLiteral("m"),  QStringLiteral("Start just outside r_s.")});
-    p.append({QStringLiteral("r_max"),     QStringLiteral("Outer radius (m)"),
-              QStringLiteral("double"), QVariant(1.0e6), QVariant(1.0e3), QVariant(1e12),
-              QStringList(), QStringLiteral("m"),  QStringLiteral("Far-field radius.")});
-    p.append({QStringLiteral("steps"),     QStringLiteral("Steps"),
-              QStringLiteral("int"),    QVariant(50),   QVariant(2), QVariant(10000),
-              QStringList(), QStringLiteral(""),     QStringLiteral("Number of radius samples.")});
+    p.append({QStringLiteral("mass"), QStringLiteral("Mass M (M☉)"), QStringLiteral("double"),
+              QVariant(10.0), QVariant(0.1), QVariant(1e6), QStringList(), QStringLiteral("M☉"),
+              QStringLiteral("Black hole mass.")});
+    p.append({QStringLiteral("r_min"), QStringLiteral("Inner radius (m)"), QStringLiteral("double"),
+              QVariant(3000.0), QVariant(1.0), QVariant(1e9), QStringList(), QStringLiteral("m"),
+              QStringLiteral("Start just outside r_s.")});
+    p.append({QStringLiteral("r_max"), QStringLiteral("Outer radius (m)"), QStringLiteral("double"),
+              QVariant(1.0e6), QVariant(1.0e3), QVariant(1e12), QStringList(), QStringLiteral("m"),
+              QStringLiteral("Far-field radius.")});
+    p.append({QStringLiteral("steps"), QStringLiteral("Steps"), QStringLiteral("int"), QVariant(50),
+              QVariant(2), QVariant(10000), QStringList(), QStringLiteral(""),
+              QStringLiteral("Number of radius samples.")});
     return p;
 }
 
@@ -58,7 +58,10 @@ ExperimentResult RedshiftProfileExperiment::run(const QVariantMap& params,
 
     const int n = std::max(1, steps);
     for (int i = 0; i < n; ++i) {
-        if (shouldAbort()) { out.success = false; return out; }
+        if (shouldAbort()) {
+            out.success = false;
+            return out;
+        }
 
         const double t = (n > 1) ? static_cast<double>(i) / static_cast<double>(n - 1) : 0.0;
         const double r = rMin + (rMax - rMin) * t;
@@ -69,13 +72,17 @@ ExperimentResult RedshiftProfileExperiment::run(const QVariantMap& params,
         double z = 0.0;
         if (gtt < 0.0 && std::isfinite(gtt)) {
             z = 1.0 / std::sqrt(-gtt) - 1.0;
-            if (!std::isfinite(z)) z = 0.0;
+            if (!std::isfinite(z))
+                z = 0.0;
         }
 
-        if (i == 0) zAtRmin = z;
+        if (i == 0)
+            zAtRmin = z;
         out.curve.append(QPointF(r, z));
         out.logLines << QString("r=%1 m  g_tt=%2  z=%3")
-                          .arg(r, 0, 'e', 4).arg(gtt, 0, 'e', 4).arg(z, 0, 'g', 5);
+                            .arg(r, 0, 'e', 4)
+                            .arg(gtt, 0, 'e', 4)
+                            .arg(z, 0, 'g', 5);
         progress(static_cast<double>(i + 1) / static_cast<double>(n));
     }
 
@@ -83,7 +90,7 @@ ExperimentResult RedshiftProfileExperiment::run(const QVariantMap& params,
 
     // Kretschmann scalar at r_min — Schwarzschild (spin = 0).
     KerrMetric km(massKg, 0.0);
-    const double r_min_geo = rMin; // r_min already in meters
+    const double r_min_geo = rMin;  // r_min already in meters
     const auto curv = km.curvatureScalars(Event4D(0.0, r_min_geo, 0.0, 0.0));
     if (curv.valid) {
         out.scalars[QStringLiteral("kretschmann_at_r_min")] = curv.kretschmann;
@@ -93,4 +100,4 @@ ExperimentResult RedshiftProfileExperiment::run(const QVariantMap& params,
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

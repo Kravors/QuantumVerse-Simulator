@@ -45,7 +45,7 @@ namespace quantumverse {
  * null geodesics. All quantities in geometric units (G = c = 1).
  */
 class KerrGeodesic {
-public:
+   public:
     /**
      * @brief Construct equatorial Kerr null geodesic solver.
      * @param M Geometric mass M = GM/c^2 (in meters).
@@ -92,8 +92,8 @@ public:
      * @param dup du/dphi.
      * @return {du/dphi, d^2u/dphi^2}.
      */
-    static std::array<double, 2> orbitRhs(double u, double dup,
-                                          double M, double a, double b) noexcept;
+    static std::array<double, 2> orbitRhs(double u, double dup, double M, double a,
+                                          double b) noexcept;
 
     /**
      * @brief Compute photon sphere radius for equatorial Kerr.
@@ -132,8 +132,9 @@ public:
      * @param dPhi Angular step size (radians).
      * @return Vector of (phi, r) pairs along the orbit.
      */
-    std::vector<std::pair<double, double>> integrateOrbit(
-        double b, double rStart, double phiStart, double phiMax, double dPhi) const noexcept;
+    std::vector<std::pair<double, double>> integrateOrbit(double b, double rStart, double phiStart,
+                                                          double phiMax,
+                                                          double dPhi) const noexcept;
 
     /**
      * @brief Trace a null geodesic from r=30M to escape, computing deflection.
@@ -149,12 +150,20 @@ public:
     double traceRay(double b) const noexcept;
 
     // Accessors
-    double mass() const noexcept { return M_; }
-    double spin() const noexcept { return aDimless_; }
-    double specificAngularMomentum() const noexcept { return a_; }
-    double horizonRadius() const noexcept { return M_ + std::sqrt(M_ * M_ - a_ * a_); }
+    double mass() const noexcept {
+        return M_;
+    }
+    double spin() const noexcept {
+        return aDimless_;
+    }
+    double specificAngularMomentum() const noexcept {
+        return a_;
+    }
+    double horizonRadius() const noexcept {
+        return M_ + std::sqrt(M_ * M_ - a_ * a_);
+    }
 
-private:
+   private:
     double M_;         ///< Geometric mass M = GM/c^2 (meters)
     double aDimless_;  ///< Dimensionless spin a* = a/M
     double a_;         ///< Specific angular momentum a = a*M (meters)
@@ -174,6 +183,6 @@ private:
     }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_KERR_GEODESIC_H
+#endif  // QUANTUMVERSE_KERR_GEODESIC_H

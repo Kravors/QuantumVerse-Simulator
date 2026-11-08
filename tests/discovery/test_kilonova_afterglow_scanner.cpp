@@ -13,12 +13,12 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "discovery/KilonovaAfterglowScanner.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -38,10 +38,8 @@ MetricTensor makeFlatMetric() {
 }
 
 // Generate a GW signal with post-merger kilonova afterglow signature
-std::vector<Event4D> makeMergerWithKilonova(
-    double duration, double dt, double gwTriggerTime,
-    double afterglowAmplitude, double afterglowStart)
-{
+std::vector<Event4D> makeMergerWithKilonova(double duration, double dt, double gwTriggerTime,
+                                            double afterglowAmplitude, double afterglowStart) {
     size_t n = static_cast<size_t>(duration / dt);
     std::vector<Event4D> signal;
     signal.reserve(n);
@@ -64,7 +62,7 @@ std::vector<Event4D> makeMergerWithKilonova(
             if (tDay < 1.0) {
                 env = std::pow(tDay / 1.0, 1.5);  // rise
             } else {
-                env = std::pow(tDay / 1.0, -1.3); // decay
+                env = std::pow(tDay / 1.0, -1.3);  // decay
             }
             h += afterglowAmplitude * env * std::sin(2.0 * kPi * 10.0 * t);
         }
@@ -84,7 +82,7 @@ std::vector<Event4D> makePureNoise(size_t n, double noiseLevel) {
     }
     return noise;
 }
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== KilonovaAfterglowScannerTest ===" << std::endl;
@@ -224,9 +222,8 @@ int main() {
         QV_CHECK(ranges.size() >= 6);
 
         for (const auto& kv : ranges) {
-            QV_CHECK(std::isfinite(kv.second.first) &&
-                   std::isfinite(kv.second.second) &&
-                   kv.second.first < kv.second.second);
+            QV_CHECK(std::isfinite(kv.second.first) && std::isfinite(kv.second.second) &&
+                     kv.second.first < kv.second.second);
         }
         std::cout << "  Parameter ranges valid." << std::endl;
     }

@@ -1,9 +1,9 @@
-#include "test_assert.h"
 #include "experiment/ScanSummaryBuilder.h"
-#include "experiment/experiments/PhotonSphereExperiment.h"
-#include "experiment/experiments/RedshiftProfileExperiment.h"
 #include "experiment/experiments/FrameDraggingExperiment.h"
 #include "experiment/experiments/GWRingdownExperiment.h"
+#include "experiment/experiments/PhotonSphereExperiment.h"
+#include "experiment/experiments/RedshiftProfileExperiment.h"
+#include "test_assert.h"
 
 using namespace quantumverse;
 
@@ -11,40 +11,40 @@ static ExperimentResult makePhotonSphereResult(double spin = 0.99, double mass =
     PhotonSphereExperiment e;
     QVariantMap p;
     p["spin_a_max"] = spin;
-    p["mass_Msun"]  = mass;
-    p["n_steps"]    = 20;
-    return e.run(p, [](double){}, [](){ return false; });
+    p["mass_Msun"] = mass;
+    p["n_steps"] = 20;
+    return e.run(p, [](double) {}, []() { return false; });
 }
 
 static ExperimentResult makeRedshiftProfileResult(double mass = 42.0) {
     RedshiftProfileExperiment e;
     QVariantMap p;
-    p["mass"]   = mass;
-    p["r_min"]  = 3000.0;
-    p["r_max"]  = 1.0e6;
-    p["steps"]  = 20;
-    return e.run(p, [](double){}, [](){ return false; });
+    p["mass"] = mass;
+    p["r_min"] = 3000.0;
+    p["r_max"] = 1.0e6;
+    p["steps"] = 20;
+    return e.run(p, [](double) {}, []() { return false; });
 }
 
 static ExperimentResult makeFrameDraggingResult(double mass = 42.0, double spin = 0.5) {
     FrameDraggingExperiment e;
     QVariantMap p;
-    p["mass_Msun"]     = mass;
-    p["spin_a_star"]   = spin;
+    p["mass_Msun"] = mass;
+    p["spin_a_star"] = spin;
     p["orbit_radius_m"] = 7.0e6;
-    p["steps"]         = 20;
-    return e.run(p, [](double){}, [](){ return false; });
+    p["steps"] = 20;
+    return e.run(p, [](double) {}, []() { return false; });
 }
 
 static ExperimentResult makeGWRingdownResult(double mass = 42.0, double spin = 0.5) {
     GWRingdownExperiment e;
     QVariantMap p;
-    p["mass_Msun"]   = mass;
-    p["spin_a"]      = spin;
-    p["amplitude"]   = 1.0;
+    p["mass_Msun"] = mass;
+    p["spin_a"] = spin;
+    p["amplitude"] = 1.0;
     p["duration_ms"] = 5.0;
-    p["n_steps"]     = 50;
-    return e.run(p, [](double){}, [](){ return false; });
+    p["n_steps"] = 50;
+    return e.run(p, [](double) {}, []() { return false; });
 }
 
 int main() {
@@ -75,10 +75,10 @@ int main() {
     {
         auto r = makePhotonSphereResult(/*spin=*/0.5, /*mass=*/42.0);
         auto s = ScanSummaryBuilder::fromExperiment(QStringLiteral("photon_sphere"), r);
-        QV_CHECK_NEAR(s.mass,   42.0, 1e-9);   // NOT the default 10.0
-        QV_CHECK_NEAR(s.spin,   0.5,  1e-9);   // NOT 0.99
+        QV_CHECK_NEAR(s.mass, 42.0, 1e-9);  // NOT the default 10.0
+        QV_CHECK_NEAR(s.spin, 0.5, 1e-9);   // NOT 0.99
         QV_CHECK(std::isfinite(s.kretschmann));
-        QV_CHECK(s.kretschmann > 0.0);         // Kerr Kretschmann > 0 everywhere
+        QV_CHECK(s.kretschmann > 0.0);                 // Kerr Kretschmann > 0 everywhere
         QV_CHECK(s.bhType == QStringLiteral("Kerr"));  // spin > 0 → Kerr
     }
 
@@ -86,8 +86,8 @@ int main() {
     {
         auto r = makeRedshiftProfileResult();
         auto s = ScanSummaryBuilder::fromExperiment(QStringLiteral("redshift_profile"), r);
-        QV_CHECK(s.mass >= 0.0);   // redshift_profile: mass key found
-        QV_CHECK_NEAR(s.spin,   0.0,  1e-12);  // Schwarzschild → spin=0
+        QV_CHECK(s.mass >= 0.0);            // redshift_profile: mass key found
+        QV_CHECK_NEAR(s.spin, 0.0, 1e-12);  // Schwarzschild → spin=0
         // redshift_profile doesn't compute Kretschmann; only check if present
         if (std::isfinite(s.kretschmann)) {
             QV_CHECK(s.kretschmann > 0.0);
@@ -99,8 +99,8 @@ int main() {
     {
         auto r = makeFrameDraggingResult(/*mass=*/42.0, /*spin=*/0.5);
         auto s = ScanSummaryBuilder::fromExperiment(QStringLiteral("frame_dragging"), r);
-        QV_CHECK_NEAR(s.mass,   42.0, 1e-9);   // NOT default 10.0
-        QV_CHECK_NEAR(s.spin,   0.5,  1e-9);   // from spin_a_star key
+        QV_CHECK_NEAR(s.mass, 42.0, 1e-9);  // NOT default 10.0
+        QV_CHECK_NEAR(s.spin, 0.5, 1e-9);   // from spin_a_star key
         QV_CHECK(std::isfinite(s.kretschmann));
         QV_CHECK(s.kretschmann > 0.0);
         QV_CHECK(s.bhType == QStringLiteral("Kerr"));  // spin > 0 → Kerr
@@ -110,8 +110,8 @@ int main() {
     {
         auto r = makeGWRingdownResult(/*mass=*/42.0, /*spin=*/0.5);
         auto s = ScanSummaryBuilder::fromExperiment(QStringLiteral("gw_ringdown"), r);
-        QV_CHECK_NEAR(s.mass,   42.0, 1e-9);   // from mass_Msun key
-        QV_CHECK_NEAR(s.spin,   0.5,  1e-9);   // from spin_a key
+        QV_CHECK_NEAR(s.mass, 42.0, 1e-9);  // from mass_Msun key
+        QV_CHECK_NEAR(s.spin, 0.5, 1e-9);   // from spin_a key
         QV_CHECK(std::isfinite(s.kretschmann));
         QV_CHECK(s.kretschmann > 0.0);
         QV_CHECK(s.bhType == QStringLiteral("Kerr"));  // spin > 0 → Kerr
@@ -122,7 +122,7 @@ int main() {
         auto r = makePhotonSphereResult();
         r.scalars.remove(QStringLiteral("kretschmann_at_r_ph_pro"));
         auto s = ScanSummaryBuilder::fromExperiment(QStringLiteral("photon_sphere"), r);
-        QV_CHECK_NEAR(s.mass, 0.0, 1e-12);   // builder refuses to guess
+        QV_CHECK_NEAR(s.mass, 0.0, 1e-12);  // builder refuses to guess
     }
 
     return 0;

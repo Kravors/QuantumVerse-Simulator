@@ -1,8 +1,8 @@
 #pragma once
 
-#include "spacetime/DilatonMetric.h"
-#include <memory>
 #include <cmath>
+#include <memory>
+#include "spacetime/DilatonMetric.h"
 
 namespace quantumverse {
 
@@ -20,7 +20,7 @@ namespace quantumverse {
  * The flux is constant along x⁻ outside the horizon.
  */
 class HawkingCalculator {
-public:
+   public:
     /**
      * @brief Construct with a reference to the black hole metric.
      * @param blackHole The dilaton black hole metric (shared ownership).
@@ -69,8 +69,8 @@ public:
      */
     double temperature() const noexcept;
 
-private:
+   private:
     std::shared_ptr<DilatonMetric> blackHole;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

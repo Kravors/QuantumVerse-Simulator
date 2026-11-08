@@ -7,28 +7,27 @@
  */
 
 #include "MultiUserServer.h"
-#include <QWebSocketServer>
-#include <QWebSocket>
+#include <QAbstractSocket>
+#include <QDebug>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>
 #include <QTimer>
 #include <QUuid>
-#include <QDebug>
-#include <QAbstractSocket>
+#include <QWebSocket>
+#include <QWebSocketServer>
 
 namespace quantumverse {
 namespace vr {
 
 MultiUserServer::MultiUserServer(QObject* parent)
-    : QObject(parent)
-    , m_server(new QWebSocketServer("QuantumVerse VR Server", QWebSocketServer::NonSecureMode, this))
-    , m_cleanupTimer(new QTimer(this))
-{
-    connect(m_server, &QWebSocketServer::newConnection,
-            this, &MultiUserServer::onNewConnection);
-    connect(m_server, &QWebSocketServer::serverError,
-            this, [this](QWebSocketProtocol::CloseCode code) {
+    : QObject(parent),
+      m_server(
+          new QWebSocketServer("QuantumVerse VR Server", QWebSocketServer::NonSecureMode, this)),
+      m_cleanupTimer(new QTimer(this)) {
+    connect(m_server, &QWebSocketServer::newConnection, this, &MultiUserServer::onNewConnection);
+    connect(m_server, &QWebSocketServer::serverError, this,
+            [this](QWebSocketProtocol::CloseCode code) {
                 qWarning() << "WebSocket server error:" << code;
             });
     connect(m_cleanupTimer, &QTimer::timeout, this, &MultiUserServer::cleanupStaleParticipants);
@@ -36,18 +35,17 @@ MultiUserServer::MultiUserServer(QObject* parent)
     m_cleanupTimer->setSingleShot(false);
 }
 
-MultiUserServer::~MultiUserServer()
-{
+MultiUserServer::~MultiUserServer() {
     stop();
 }
 
-bool MultiUserServer::start(uint16_t port)
-{
-    if (m_isRunning) return true;
+bool MultiUserServer::start(uint16_t port) {
+    if (m_isRunning)
+        return true;
 
     if (!m_server->listen(QHostAddress::Any, port)) {
-        qWarning() << "Failed to start WebSocket server on port" << port
-                   << ":" << m_server->errorString();
+        qWarning() << "Failed to start WebSocket server on port" << port << ":"
+                   << m_server->errorString();
         return false;
     }
 
@@ -59,9 +57,9 @@ bool MultiUserServer::start(uint16_t port)
     return true;
 }
 
-void MultiUserServer::stop()
-{
-    if (!m_isRunning) return;
+void MultiUserServer::stop() {
+    if (!m_isRunning)
+        return;
 
     m_cleanupTimer->stop();
 
@@ -85,8 +83,7 @@ void MultiUserServer::stop()
     qInfo() << "MultiUserServer stopped";
 }
 
-std::vector<Participant> MultiUserServer::getParticipants() const
-{
+std::vector<Participant> MultiUserServer::getParticipants() const {
     std::vector<Participant> result;
     result.reserve(m_clients.size());
 
@@ -99,8 +96,7 @@ std::vector<Participant> MultiUserServer::getParticipants() const
     return result;
 }
 
-void MultiUserServer::broadcastMessage(const Message& message)
-{
+void MultiUserServer::broadcastMessage(const Message& message) {
     QJsonObject msg = serializeMessage(message);
     QByteArray data = QJsonDocument(msg).toJson(QJsonDocument::Compact);
 
@@ -111,21 +107,20 @@ void MultiUserServer::broadcastMessage(const Message& message)
     }
 }
 
-void MultiUserServer::onNewConnection()
-{
+void MultiUserServer::onNewConnection() {
     QWebSocket* socket = m_server->nextPendingConnection();
-    if (!socket) return;
+    if (!socket)
+        return;
 
-    connect(socket, &QWebSocket::textMessageReceived,
-            this, &MultiUserServer::onTextMessageReceived);
-    connect(socket, &QWebSocket::disconnected,
-            this, &MultiUserServer::onClientDisconnected);
-    connect(socket, &QWebSocket::errorOccurred,
-            this, [this, socket](QAbstractSocket::SocketError error) {
+    connect(socket, &QWebSocket::textMessageReceived, this,
+            &MultiUserServer::onTextMessageReceived);
+    connect(socket, &QWebSocket::disconnected, this, &MultiUserServer::onClientDisconnected);
+    connect(socket, &QWebSocket::errorOccurred, this,
+            [this, socket](QAbstractSocket::SocketError error) {
                 Q_UNUSED(error);
                 qWarning() << "WebSocket error for client"
-                           << socket->property("clientId").toString()
-                           << ":" << socket->errorString();
+                           << socket->property("clientId").toString() << ":"
+                           << socket->errorString();
             });
 
     // Create client entry
@@ -151,19 +146,17 @@ void MultiUserServer::onNewConnection()
     qInfo() << "New client connected:" << client.id;
 }
 
-void MultiUserServer::onClientDisconnected()
-{
+void MultiUserServer::onClientDisconnected() {
     QWebSocket* socket = qobject_cast<QWebSocket*>(sender());
-    if (!socket) return;
+    if (!socket)
+        return;
 
     QString clientId = socket->property("clientId").toString();
     std::string clientIdStr = clientId.toStdString();
 
     // Find and remove client
     auto it = std::find_if(m_clients.begin(), m_clients.end(),
-                           [&clientIdStr](const ClientEntry& c) {
-                               return c.id == clientIdStr;
-                           });
+                           [&clientIdStr](const ClientEntry& c) { return c.id == clientIdStr; });
 
     if (it != m_clients.end()) {
         std::string sessionId = it->sessionId;
@@ -190,10 +183,10 @@ void MultiUserServer::onClientDisconnected()
     socket->deleteLater();
 }
 
-void MultiUserServer::onTextMessageReceived(const QString& message)
-{
+void MultiUserServer::onTextMessageReceived(const QString& message) {
     QWebSocket* socket = qobject_cast<QWebSocket*>(sender());
-    if (!socket) return;
+    if (!socket)
+        return;
 
     QString clientId = socket->property("clientId").toString();
 
@@ -214,26 +207,27 @@ void MultiUserServer::onTextMessageReceived(const QString& message)
         handleStateUpdate(clientId, obj);
     } else if (type == "head_pose_update") {
         handleHeadPoseUpdate(clientId, obj);
-        } else if (type == "controller_update") {
-            handleControllerUpdate(clientId, obj);
-        } else if (type == "camera_pose") {
-            handleCameraPoseUpdate(clientId, obj);
-        } else {
+    } else if (type == "controller_update") {
+        handleControllerUpdate(clientId, obj);
+    } else if (type == "camera_pose") {
+        handleCameraPoseUpdate(clientId, obj);
+    } else {
         qWarning() << "Unknown message type:" << type << "from" << clientId;
     }
 }
 
-void MultiUserServer::handleJoin(const QString& clientId, const QJsonObject& obj)
-{
+void MultiUserServer::handleJoin(const QString& clientId, const QJsonObject& obj) {
     auto clientIt = findClient(clientId.toStdString());
-    if (clientIt == m_clients.end()) return;
+    if (clientIt == m_clients.end())
+        return;
 
     QString sessionId = obj.value("sessionId").toString();
     QString clientName = obj.value("clientName").toString();
 
     // Leave previous session if any
     if (!clientIt->sessionId.empty() && clientIt->sessionId != sessionId.toStdString()) {
-        handleLeave(clientId, QJsonObject{{"sessionId", QString::fromStdString(clientIt->sessionId)}});
+        handleLeave(clientId,
+                    QJsonObject{{"sessionId", QString::fromStdString(clientIt->sessionId)}});
     }
 
     // Join new session
@@ -278,21 +272,21 @@ void MultiUserServer::handleJoin(const QString& clientId, const QJsonObject& obj
     peers["peers"] = peerList;
     clientIt->socket->sendTextMessage(QJsonDocument(peers).toJson(QJsonDocument::Compact));
 
-    qInfo() << "Client" << clientIt->id << "joined session" << sessionId
-            << "as" << clientIt->name;
+    qInfo() << "Client" << clientIt->id << "joined session" << sessionId << "as" << clientIt->name;
 }
 
-void MultiUserServer::handleLeave(const QString& clientId, const QJsonObject& obj)
-{
+void MultiUserServer::handleLeave(const QString& clientId, const QJsonObject& obj) {
     auto clientIt = findClient(clientId.toStdString());
-    if (clientIt == m_clients.end()) return;
+    if (clientIt == m_clients.end())
+        return;
 
     QString sessionId = obj.value("sessionId").toString();
     if (sessionId.isEmpty()) {
         sessionId = QString::fromStdString(clientIt->sessionId);
     }
 
-    if (clientIt->sessionId.empty()) return;
+    if (clientIt->sessionId.empty())
+        return;
 
     // Notify session peers
     QJsonObject leaveMsg;
@@ -313,10 +307,10 @@ void MultiUserServer::handleLeave(const QString& clientId, const QJsonObject& ob
     qInfo() << "Client" << clientIt->id << "left session" << sessionId;
 }
 
-void MultiUserServer::handleStateUpdate(const QString& clientId, const QJsonObject& obj)
-{
+void MultiUserServer::handleStateUpdate(const QString& clientId, const QJsonObject& obj) {
     auto clientIt = findClient(clientId.toStdString());
-    if (clientIt == m_clients.end() || clientIt->sessionId.empty()) return;
+    if (clientIt == m_clients.end() || clientIt->sessionId.empty())
+        return;
 
     clientIt->lastUpdateTime = QDateTime::currentSecsSinceEpoch();
 
@@ -329,10 +323,10 @@ void MultiUserServer::handleStateUpdate(const QString& clientId, const QJsonObje
     broadcastToSession(clientIt->sessionId, forward, clientIt->id);
 }
 
-void MultiUserServer::handleHeadPoseUpdate(const QString& clientId, const QJsonObject& obj)
-{
+void MultiUserServer::handleHeadPoseUpdate(const QString& clientId, const QJsonObject& obj) {
     auto clientIt = findClient(clientId.toStdString());
-    if (clientIt == m_clients.end() || clientIt->sessionId.empty()) return;
+    if (clientIt == m_clients.end() || clientIt->sessionId.empty())
+        return;
 
     clientIt->lastUpdateTime = QDateTime::currentSecsSinceEpoch();
 
@@ -348,10 +342,10 @@ void MultiUserServer::handleHeadPoseUpdate(const QString& clientId, const QJsonO
     broadcastToSession(clientIt->sessionId, forward, clientIt->id);
 }
 
-void MultiUserServer::handleControllerUpdate(const QString& clientId, const QJsonObject& obj)
-{
+void MultiUserServer::handleControllerUpdate(const QString& clientId, const QJsonObject& obj) {
     auto clientIt = findClient(clientId.toStdString());
-    if (clientIt == m_clients.end() || clientIt->sessionId.empty()) return;
+    if (clientIt == m_clients.end() || clientIt->sessionId.empty())
+        return;
 
     clientIt->lastUpdateTime = QDateTime::currentSecsSinceEpoch();
 
@@ -367,10 +361,10 @@ void MultiUserServer::handleControllerUpdate(const QString& clientId, const QJso
     broadcastToSession(clientIt->sessionId, forward, clientIt->id);
 }
 
-void MultiUserServer::handleCameraPoseUpdate(const QString& clientId, const QJsonObject& obj)
-{
+void MultiUserServer::handleCameraPoseUpdate(const QString& clientId, const QJsonObject& obj) {
     auto clientIt = findClient(clientId.toStdString());
-    if (clientIt == m_clients.end() || clientIt->sessionId.empty()) return;
+    if (clientIt == m_clients.end() || clientIt->sessionId.empty())
+        return;
 
     clientIt->lastUpdateTime = QDateTime::currentSecsSinceEpoch();
 
@@ -385,10 +379,8 @@ void MultiUserServer::handleCameraPoseUpdate(const QString& clientId, const QJso
     broadcastToSession(clientIt->sessionId, forward, clientIt->id);
 }
 
-void MultiUserServer::broadcastToSession(const std::string& sessionId,
-                                         const QJsonObject& message,
-                                         const std::string& excludeClientId)
-{
+void MultiUserServer::broadcastToSession(const std::string& sessionId, const QJsonObject& message,
+                                         const std::string& excludeClientId) {
     QByteArray data = QJsonDocument(message).toJson(QJsonDocument::Compact);
 
     for (auto& client : m_clients) {
@@ -400,8 +392,7 @@ void MultiUserServer::broadcastToSession(const std::string& sessionId,
     }
 }
 
-void MultiUserServer::cleanupStaleParticipants()
-{
+void MultiUserServer::cleanupStaleParticipants() {
     qint64 now = QDateTime::currentSecsSinceEpoch();
     const qint64 staleTimeout = 60;  // 60 seconds without update = stale
 
@@ -435,16 +426,13 @@ void MultiUserServer::cleanupStaleParticipants()
     }
 }
 
-std::vector<MultiUserServer::ClientEntry>::iterator MultiUserServer::findClient(const std::string& clientId)
-{
+std::vector<MultiUserServer::ClientEntry>::iterator
+MultiUserServer::findClient(const std::string& clientId) {
     return std::find_if(m_clients.begin(), m_clients.end(),
-                        [&clientId](const ClientEntry& c) {
-                            return c.id == clientId;
-                        });
+                        [&clientId](const ClientEntry& c) { return c.id == clientId; });
 }
 
-QJsonObject MultiUserServer::serializeMessage(const Message& message) const
-{
+QJsonObject MultiUserServer::serializeMessage(const Message& message) const {
     QJsonObject obj;
     obj["type"] = static_cast<int>(message.type);
     obj["senderId"] = QString::fromStdString(message.senderId);
@@ -452,5 +440,5 @@ QJsonObject MultiUserServer::serializeMessage(const Message& message) const
     return obj;
 }
 
-} // namespace vr
-} // namespace quantumverse
+}  // namespace vr
+}  // namespace quantumverse

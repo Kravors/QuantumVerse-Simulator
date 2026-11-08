@@ -9,8 +9,8 @@
 
 #include "discovery/CMBLensingScanner.h"
 #include "discovery/DiscoveryPanelManager.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -33,9 +33,9 @@ std::vector<Event4D> makeLambdaCDMTrajectory() {
     std::vector<Event4D> traj;
     traj.reserve(20);
     for (int i = 0; i < 20; ++i) {
-        double ell = 10.0 + i * 100.0;              // multipole
+        double ell = 10.0 + i * 100.0;  // multipole
         double predictedCl = 1000.0 * 200.0 * 201.0 / (ell * (ell + 1.0));
-        double noise = 0.01 * predictedCl * (0.5 - std::sin(i)); // small noise
+        double noise = 0.01 * predictedCl * (0.5 - std::sin(i));  // small noise
         traj.emplace_back(ell, predictedCl + noise, 0.0, 0.0);
     }
     return traj;
@@ -47,12 +47,12 @@ std::vector<Event4D> makeAnomalousTrajectory() {
     for (int i = 0; i < 20; ++i) {
         double ell = 10.0 + i * 100.0;
         double predictedCl = 1000.0 * 200.0 * 201.0 / (ell * (ell + 1.0));
-        double anomalous = predictedCl * 10.0;     // 900% excess power -> strong anomaly
+        double anomalous = predictedCl * 10.0;  // 900% excess power -> strong anomaly
         traj.emplace_back(ell, anomalous, 0.0, 0.0);
     }
     return traj;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== CMBLensingScannerTest ===" << std::endl;
@@ -67,13 +67,14 @@ int main() {
         auto traj = makeLambdaCDMTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
         QV_CHECK(findings.empty());
-        std::cout << "  Clean ΛCDM trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  Clean ΛCDM trajectory: no anomaly (findings=" << findings.size() << ")"
+                  << std::endl;
     }
 
     // --- 2. Anomalous trajectory: excess power should be flagged -----------------
     {
         CMBLensingScanner scanner;
-        scanner.setParameter("cl_threshold_sigma", 4.0); // Lower threshold for test
+        scanner.setParameter("cl_threshold_sigma", 4.0);  // Lower threshold for test
         auto traj = makeAnomalousTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
         QV_CHECK(!findings.empty());

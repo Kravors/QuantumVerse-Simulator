@@ -19,16 +19,16 @@
 
 #include "glad.h"
 
-#include <memory>
-#include <array>
-#include <vector>
-#include <cmath>
-#include <random>
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstdint>
+#include <memory>
+#include <random>
+#include <vector>
 
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
@@ -36,22 +36,26 @@ namespace quantumverse {
  * @brief Parameters controlling the gravitational lensing effect.
  */
 struct LensingParams {
-    float mass = 1.0f;              ///< Black hole mass in geometric units (M)
-    float spin = 0.0f;              ///< Dimensionless spin a* = a/M in [0, 1)
-    float cameraDistance = 10.0f;   ///< Camera distance in units of M (ignored if hasCameraPos)
-    float cameraTheta = 1.5708f;    ///< Camera polar angle (pi/2 = equatorial, ignored if hasCameraPos)
-    float cameraPhi = 0.0f;         ///< Camera azimuthal angle (ignored if hasCameraPos)
-    std::array<float,3> cameraPos = {0.0f, 0.0f, 0.0f}; ///< Camera world position (overrides spherical reconstruction when hasCameraPos)
-    bool hasCameraPos = false;      ///< If true, use cameraPos directly instead of spherical cameraDistance/Theta/Phi
-    int raySteps = 256;             ///< Number of ray-marching steps
-    float maxDistance = 50.0f;      ///< Maximum ray distance in units of M
-    float shadowIntensity = 1.0f;   ///< Shadow darkness (0.0 = gray, 1.0 = black)
-    float starFieldIntensity = 1.0f; ///< Brightness of background stars
-    float photonRingIntensity = 1.0f; ///< Brightness of photon ring glow
-    float accretionDiskIntensity = 0.8f; ///< Accretion disk brightness
-    bool enablePhotonRing = true;   ///< Render photon ring
-    bool enableAccretionDisk = true; ///< Render accretion disk
-    bool enableStarField = true;    ///< Render background star field
+    float mass = 1.0f;             ///< Black hole mass in geometric units (M)
+    float spin = 0.0f;             ///< Dimensionless spin a* = a/M in [0, 1)
+    float cameraDistance = 10.0f;  ///< Camera distance in units of M (ignored if hasCameraPos)
+    float cameraTheta =
+        1.5708f;             ///< Camera polar angle (pi/2 = equatorial, ignored if hasCameraPos)
+    float cameraPhi = 0.0f;  ///< Camera azimuthal angle (ignored if hasCameraPos)
+    std::array<float, 3> cameraPos = {
+        0.0f, 0.0f,
+        0.0f};  ///< Camera world position (overrides spherical reconstruction when hasCameraPos)
+    bool hasCameraPos =
+        false;  ///< If true, use cameraPos directly instead of spherical cameraDistance/Theta/Phi
+    int raySteps = 256;                   ///< Number of ray-marching steps
+    float maxDistance = 50.0f;            ///< Maximum ray distance in units of M
+    float shadowIntensity = 1.0f;         ///< Shadow darkness (0.0 = gray, 1.0 = black)
+    float starFieldIntensity = 1.0f;      ///< Brightness of background stars
+    float photonRingIntensity = 1.0f;     ///< Brightness of photon ring glow
+    float accretionDiskIntensity = 0.8f;  ///< Accretion disk brightness
+    bool enablePhotonRing = true;         ///< Render photon ring
+    bool enableAccretionDisk = true;      ///< Render accretion disk
+    bool enableStarField = true;          ///< Render background star field
 };
 
 /**
@@ -62,7 +66,7 @@ struct LensingParams {
  * Uses GPU-accelerated ray-marching through curved spacetime.
  */
 class GravitationalLensing {
-public:
+   public:
     /// @brief Lensing parameters struct.
     using LensingParams = ::quantumverse::LensingParams;
 
@@ -94,7 +98,9 @@ public:
      * @brief Check if OpenGL resources are initialized.
      * @return true if initialize() has been called successfully
      */
-    bool isInitialized() const { return m_initialized; }
+    bool isInitialized() const {
+        return m_initialized;
+    }
 
     /**
      * @brief Resize the rendering buffers.
@@ -136,7 +142,9 @@ public:
      * @brief Get the current lensing parameters.
      * @return Current lensing parameters
      */
-    const LensingParams& params() const { return m_params; }
+    const LensingParams& params() const {
+        return m_params;
+    }
 
     /**
      * @brief Set the metric tensor.
@@ -148,57 +156,73 @@ public:
      * @brief Get the current metric tensor.
      * @return Shared pointer to the current metric
      */
-    std::shared_ptr<MetricTensor> metric() const { return m_metric; }
+    std::shared_ptr<MetricTensor> metric() const {
+        return m_metric;
+    }
 
     /**
      * @brief Set the ray-marching step count.
      * @param steps Number of steps (higher = more accurate, slower)
      */
-    void setRaySteps(int steps) { m_params.raySteps = std::clamp(steps, 32, 1024); }
+    void setRaySteps(int steps) {
+        m_params.raySteps = std::clamp(steps, 32, 1024);
+    }
 
     /**
      * @brief Get the current ray-marching step count.
      * @return Current step count
      */
-    int raySteps() const { return m_params.raySteps; }
+    int raySteps() const {
+        return m_params.raySteps;
+    }
 
     /**
      * @brief Set the shadow intensity.
      * @param intensity Shadow darkness (0.0 = gray, 1.0 = fully black)
      */
-    void setShadowIntensity(float intensity) { m_params.shadowIntensity = std::clamp(intensity, 0.0f, 1.0f); }
+    void setShadowIntensity(float intensity) {
+        m_params.shadowIntensity = std::clamp(intensity, 0.0f, 1.0f);
+    }
 
     /**
      * @brief Get the current shadow intensity.
      * @return Current shadow intensity
      */
-    float shadowIntensity() const { return m_params.shadowIntensity; }
+    float shadowIntensity() const {
+        return m_params.shadowIntensity;
+    }
 
     /**
      * @brief Enable or disable the lensing effect.
      * @param enabled true to enable, false to disable
      */
-    void setEnabled(bool enabled) { m_enabled = enabled; }
+    void setEnabled(bool enabled) {
+        m_enabled = enabled;
+    }
 
     /**
      * @brief Enable or disable the background star-field/nebula skybox.
      * @param enabled true to render the skybox, false for a black background
      */
-    void setStarFieldEnabled(bool enabled) { m_params.enableStarField = enabled; }
+    void setStarFieldEnabled(bool enabled) {
+        m_params.enableStarField = enabled;
+    }
 
     /**
      * @brief Set the black hole position in world space.
      * @param pos Black hole position {x, y, z}
      */
-    void setBlackHolePosition(const std::array<float,3>& pos) { m_bhPos = pos; }
+    void setBlackHolePosition(const std::array<float, 3>& pos) {
+        m_bhPos = pos;
+    }
 
     /**
      * @brief Set the camera world position override.
      * @param pos Camera position in world space
      * @param useIfSet if true, cameraPos is used directly instead of spherical reconstruction
      */
-    void setLensingCameraPos(const std::array<float,3>& pos, bool useIfSet = true) { 
-        m_cameraPos = pos; 
+    void setLensingCameraPos(const std::array<float, 3>& pos, bool useIfSet = true) {
+        m_cameraPos = pos;
         m_hasCameraPos = useIfSet;
         m_params.cameraPos = pos;
         m_params.hasCameraPos = useIfSet;
@@ -208,25 +232,33 @@ public:
      * @brief Get the current camera world position override.
      * @return Camera position {x, y, z}
      */
-    const std::array<float,3>& lensingCameraPos() const { return m_cameraPos; }
+    const std::array<float, 3>& lensingCameraPos() const {
+        return m_cameraPos;
+    }
 
     /**
      * @brief Check if camera world position override is active.
      * @return true if cameraPos overrides spherical reconstruction
      */
-    bool hasLensingCameraPos() const { return m_hasCameraPos; }
+    bool hasLensingCameraPos() const {
+        return m_hasCameraPos;
+    }
 
     /**
      * @brief Get the current black hole position.
      * @return Black hole position {x, y, z}
      */
-    const std::array<float,3>& blackHolePosition() const { return m_bhPos; }
+    const std::array<float, 3>& blackHolePosition() const {
+        return m_bhPos;
+    }
 
     /**
      * @brief Check if lensing is enabled.
      * @return true if enabled
      */
-    bool isEnabled() const { return m_enabled; }
+    bool isEnabled() const {
+        return m_enabled;
+    }
 
     /**
      * @brief Generate a procedural star field texture.
@@ -278,16 +310,17 @@ public:
      * delta = 1 / (1 - v . n).
      */
     struct VolumetricDiskParams {
-        bool enableVolumetricDisk = false; ///< Ray-march the disk volume
+        bool enableVolumetricDisk = false;  ///< Ray-march the disk volume
         float diskDensity = 1.0f;           ///< Normalised density at rInner
         float diskTemperature = 1.0f;       ///< Normalised temperature at rInner
         float diskScaleHeight = 0.1f;       ///< H/r at rInner (disk thickness)
         float diskInnerRadius = 0.0f;       ///< Inner edge (0 = use ISCO)
         float diskOuterRadius = 20.0f;      ///< Outer edge in units of M
         int diskRaySteps = 64;              ///< Steps per ray through the volume
-        float diskOpacity = 1.0f;          ///< Tau per unit density (optical depth)
+        float diskOpacity = 1.0f;           ///< Tau per unit density (optical depth)
         float diskDopplerBoost = 1.0f;      ///< Global Doppler beaming gain
-        float diskInnerEdgeFade = 0.5f;     ///< Smooth transition width (in M) from rInner to full density
+        float diskInnerEdgeFade =
+            0.5f;  ///< Smooth transition width (in M) from rInner to full density
     };
 
     /**
@@ -300,19 +333,25 @@ public:
      * @brief Get the current volumetric disk parameters.
      * @return Current volumetric disk parameters
      */
-    const VolumetricDiskParams& volumetricDiskParams() const { return m_volumetricDisk; }
+    const VolumetricDiskParams& volumetricDiskParams() const {
+        return m_volumetricDisk;
+    }
 
     /**
      * @brief Enable or disable the volumetric disk.
      * @param enabled true to enable, false to disable
      */
-    void setEnabledVolumetricDisk(bool enabled) { m_volumetricDisk.enableVolumetricDisk = enabled; }
+    void setEnabledVolumetricDisk(bool enabled) {
+        m_volumetricDisk.enableVolumetricDisk = enabled;
+    }
 
     /**
      * @brief Check if the volumetric disk is enabled.
      * @return true if enabled
      */
-    bool isVolumetricDiskEnabled() const { return m_volumetricDisk.enableVolumetricDisk; }
+    bool isVolumetricDiskEnabled() const {
+        return m_volumetricDisk.enableVolumetricDisk;
+    }
 
     /**
      * @brief Result of CPU ray-march through a volumetric slab.
@@ -347,11 +386,9 @@ public:
      * @param mass Black hole mass in geometric units
      * @param spin Dimensionless spin a/M (default 0 = Schwarzschild ISCO)
      */
-    static std::array<float, 3> computeVolumetricDiskEmissivity(
-        const std::array<float, 3>& pos,
-        const VolumetricDiskParams& params,
-        float mass,
-        float spin = 0.0f);
+    static std::array<float, 3> computeVolumetricDiskEmissivity(const std::array<float, 3>& pos,
+                                                                const VolumetricDiskParams& params,
+                                                                float mass, float spin = 0.0f);
 
     /**
      * @brief Compute the total disk luminosity by integrating the volume.
@@ -379,7 +416,7 @@ public:
      */
     static std::array<float, 3> blackbodyColor(float T);
 
-private:
+   private:
     /**
      * @brief Compile and link the lensing shader program.
      */
@@ -435,10 +472,10 @@ private:
     GLuint m_quadVbo = 0;
 
     // Black hole position in world space (default origin)
-    std::array<float,3> m_bhPos = {0.0f, 0.0f, 0.0f};
+    std::array<float, 3> m_bhPos = {0.0f, 0.0f, 0.0f};
 
     // Camera world position override (if set, bypasses spherical reconstruction)
-    std::array<float,3> m_cameraPos = {0.0f, 0.0f, 0.0f};
+    std::array<float, 3> m_cameraPos = {0.0f, 0.0f, 0.0f};
     bool m_hasCameraPos = false;
 
     // Star field generation state
@@ -447,6 +484,6 @@ private:
     int m_starCount = 2000;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GRAVITATIONAL_LENSING_H
+#endif  // QUANTUMVERSE_GRAVITATIONAL_LENSING_H

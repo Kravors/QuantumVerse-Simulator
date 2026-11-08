@@ -21,12 +21,12 @@ namespace quantumverse {
  * @brief Identifies the originating observatory / alert class.
  */
 enum class AlertOrigin {
-    LIGO,          ///< LIGO/Virgo/KAGRA gravitational-wave candidate
-    IceCube,       ///< IceCube high-energy neutrino alert
-    TESS,          ///< TESS Objects of Interest (exoplanet transit)
-    FermiGBM,      ///< Fermi Gamma-ray Burst Monitor
-    Swift,         ///< Swift BAT/XRT/UVOT alert
-    Unknown        ///< Unrecognised / unsupported notice type
+    LIGO,      ///< LIGO/Virgo/KAGRA gravitational-wave candidate
+    IceCube,   ///< IceCube high-energy neutrino alert
+    TESS,      ///< TESS Objects of Interest (exoplanet transit)
+    FermiGBM,  ///< Fermi Gamma-ray Burst Monitor
+    Swift,     ///< Swift BAT/XRT/UVOT alert
+    Unknown    ///< Unrecognised / unsupported notice type
 };
 
 /**
@@ -102,16 +102,16 @@ struct SwiftBATAlertFields {
  */
 struct ParsedGCNNotice {
     AlertOrigin origin = AlertOrigin::Unknown;
-    QString raw_type;                ///< Original "alert_type" string from GCN
+    QString raw_type;  ///< Original "alert_type" string from GCN
     GWAlertFields gw;
     NeutrinoAlertFields neutrino;
     TESSAlertFields tess;
     FermiGBMAlertFields fermi_gbm;
     SwiftBATAlertFields swift_bat;
-    bool isValid = false;            ///< True when the notice contains usable cosmology data
-    double luminosityDistance = 0.0; ///< Mpc, from GW host-galaxy association
-    double redshift = 0.0;           ///< Spectroscopic redshift of the host
-    double distanceError = 0.0;      ///< 1-sigma uncertainty on luminosity distance (Mpc)
+    bool isValid = false;             ///< True when the notice contains usable cosmology data
+    double luminosityDistance = 0.0;  ///< Mpc, from GW host-galaxy association
+    double redshift = 0.0;            ///< Spectroscopic redshift of the host
+    double distanceError = 0.0;       ///< 1-sigma uncertainty on luminosity distance (Mpc)
 };
 
 /**
@@ -122,14 +122,13 @@ struct ParsedGCNNotice {
  * at their default values; origin is set to Unknown when the notice
  * cannot be classified.
  */
-class GCNNoticeParser
-{
-public:
+class GCNNoticeParser {
+   public:
     static ParsedGCNNotice parse(const QJsonObject& json);
     static QStringList supportedTypes();
     static AlertOrigin classify(const QJsonObject& json);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GCN_NOTICE_PARSER_H
+#endif  // QUANTUMVERSE_GCN_NOTICE_PARSER_H

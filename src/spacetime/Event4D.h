@@ -3,10 +3,10 @@
 
 /**
  * QuantumVerse Simulator - 4D Spacetime Event
- * 
+ *
  * Represents an event in 4-dimensional Lorentzian manifold (spacetime)
  * Coordinates: (t, x, y, z) where t is temporal and (x,y,z) are spatial
- * 
+ *
  * Based on: Spacetime.md - Fundamentals of Spacetime
  * Reference: Minkowski space formulation
  */
@@ -16,14 +16,14 @@
 #define _USE_MATH_DEFINES
 #endif
 
-#include <cmath>
 #include <array>
+#include <cmath>
 #include <ostream>
 
 namespace quantumverse {
 
 class Event4D {
-public:
+   public:
     // Coordinates: (t, x, y, z)
     double t;  ///< Time coordinate (seconds)
     double x;  ///< X spatial coordinate (meters)
@@ -33,7 +33,7 @@ public:
     // Speed of light in vacuum (m/s)
     static constexpr double C = 299792458.0;
     static constexpr double C2 = C * C;
-    
+
     // Gravitational constant (m³ kg⁻¹ s⁻²)
     static constexpr double G = 6.67430e-11;
 
@@ -41,15 +41,14 @@ public:
     Event4D() : t(0.0), x(0.0), y(0.0), z(0.0) {}
 
     // Parameterized constructor
-    Event4D(double t_, double x_, double y_, double z_) 
-        : t(t_), x(x_), y(y_), z(z_) {}
+    Event4D(double t_, double x_, double y_, double z_) : t(t_), x(x_), y(y_), z(z_) {}
 
     // Copy constructor
     Event4D(const Event4D&) = default;
-    
+
     // Copy assignment
     Event4D& operator=(const Event4D&) = default;
-    
+
     // Move constructor
     Event4D(Event4D&&) = default;
 
@@ -92,7 +91,8 @@ public:
     // Polar angle θ (from z-axis), range [0, π]
     double theta() const {
         double r = spatialLength();
-        if (r < 1e-15) return 0.0;
+        if (r < 1e-15)
+            return 0.0;
         return std::acos(z / r);
     }
 
@@ -122,10 +122,10 @@ public:
     Event4D lorentzTransform(double boostVelocity) const {
         double beta = boostVelocity / C;
         double gamma = 1.0 / std::sqrt(1.0 - beta * beta);
-        
+
         double t_prime = gamma * (t - boostVelocity * x / C2);
         double x_prime = gamma * (x - boostVelocity * t);
-        
+
         return Event4D(t_prime, x_prime, y, z);
     }
 
@@ -152,33 +152,43 @@ public:
 
     // Array access
     double& operator[](int i) {
-        switch(i) {
-            case 0: return t;
-            case 1: return x;
-            case 2: return y;
-            case 3: return z;
-            default: return t;  // Should throw exception
+        switch (i) {
+            case 0:
+                return t;
+            case 1:
+                return x;
+            case 2:
+                return y;
+            case 3:
+                return z;
+            default:
+                return t;  // Should throw exception
         }
     }
 
     const double& operator[](int i) const {
-        switch(i) {
-            case 0: return t;
-            case 1: return x;
-            case 2: return y;
-            case 3: return z;
-            default: return t;  // Should throw exception
+        switch (i) {
+            case 0:
+                return t;
+            case 1:
+                return x;
+            case 2:
+                return y;
+            case 3:
+                return z;
+            default:
+                return t;  // Should throw exception
         }
     }
 };
 
 // Output stream operator
 inline std::ostream& operator<<(std::ostream& os, const Event4D& event) {
-    os << "Event4D(t=" << event.t << ", x=" << event.x 
-       << ", y=" << event.y << ", z=" << event.z << ")";
+    os << "Event4D(t=" << event.t << ", x=" << event.x << ", y=" << event.y << ", z=" << event.z
+       << ")";
     return os;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_EVENT4D_H
+#endif  // QUANTUMVERSE_EVENT4D_H

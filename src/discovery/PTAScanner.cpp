@@ -4,8 +4,8 @@
  */
 
 #include "PTAScanner.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,21 +13,20 @@
 
 namespace quantumverse {
 
-PTAScanner::PTAScanner()
-{
+PTAScanner::PTAScanner() {
     setParameter("sigma_threshold", 3.0);
     setParameter("min_points", 2.0);
 }
 
-std::vector<InstrumentFinding> PTAScanner::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding> PTAScanner::analyze(const MetricTensor& metric,
+                                                   const Event4D& location,
+                                                   const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
     double minPoints = getParameter("min_points");
-    if (trajectory.size() < static_cast<size_t>(minPoints)) return findings;
+    if (trajectory.size() < static_cast<size_t>(minPoints))
+        return findings;
 
     double threshold = getParameter("sigma_threshold");
 
@@ -42,7 +41,8 @@ std::vector<InstrumentFinding> PTAScanner::analyze(
             return findings;
         }
 
-        if (uncertainty <= 0.0) continue;
+        if (uncertainty <= 0.0)
+            continue;
 
         double residual = std::abs(observed - expected) / uncertainty;
         maxAbsResidual = std::max(maxAbsResidual, residual);
@@ -56,9 +56,10 @@ std::vector<InstrumentFinding> PTAScanner::analyze(
         finding.instrumentName = getName();
         finding.severity = confidenceToSeverity(confidence);
         finding.confidence = confidence;
-        finding.description = "PTA anomaly detected: correlation deviates from "
-            "Hellings–Downs by " + std::to_string(maxAbsResidual) +
-            " sigma (threshold = " + std::to_string(threshold) +
+        finding.description =
+            "PTA anomaly detected: correlation deviates from "
+            "Hellings–Downs by " +
+            std::to_string(maxAbsResidual) + " sigma (threshold = " + std::to_string(threshold) +
             "). Potential nanohertz GW signal from supermassive black-hole binaries.";
         finding.location = location;
         finding.timestamp = location.t;
@@ -72,10 +73,11 @@ std::vector<InstrumentFinding> PTAScanner::analyze(
     return findings;
 }
 
-double PTAScanner::hellingsDowns(double theta)
-{
-    if (theta <= 0.0) return 0.5;
-    if (theta >= M_PI) return 0.0;
+double PTAScanner::hellingsDowns(double theta) {
+    if (theta <= 0.0)
+        return 0.5;
+    if (theta >= M_PI)
+        return 0.0;
 
     double x = 0.5 * (1.0 - std::cos(theta));
     double term1 = x * std::log(x);
@@ -83,4 +85,4 @@ double PTAScanner::hellingsDowns(double theta)
     return 0.5 * (term1 + term2) - 0.25;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

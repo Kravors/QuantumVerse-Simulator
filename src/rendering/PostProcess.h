@@ -25,9 +25,8 @@ namespace quantumverse {
  * Manages all framebuffer objects, shader programs, and render passes
  * needed to apply bloom and tone mapping to the rendered scene.
  */
-class PostProcess
-{
-public:
+class PostProcess {
+   public:
     /**
      * @brief Construct a PostProcess pipeline (no GL initialization)
      */
@@ -55,7 +54,9 @@ public:
      * @brief Check if OpenGL resources are initialized
      * @return true if initialize() has been called successfully
      */
-    bool isInitialized() const { return m_initialized; }
+    bool isInitialized() const {
+        return m_initialized;
+    }
 
     /**
      * @brief Resize all FBOs to match new viewport dimensions
@@ -84,63 +85,83 @@ public:
      * @brief Enable or disable the bloom effect
      * @param enabled true to enable bloom, false to pass through
      */
-    void setBloomEnabled(bool enabled) { m_bloomEnabled = enabled; }
+    void setBloomEnabled(bool enabled) {
+        m_bloomEnabled = enabled;
+    }
 
     /**
      * @brief Check if bloom is enabled
      * @return true if bloom is enabled
      */
-    bool isBloomEnabled() const { return m_bloomEnabled; }
+    bool isBloomEnabled() const {
+        return m_bloomEnabled;
+    }
 
     /**
      * @brief Set the bloom intensity
      * @param intensity Bloom multiplier (0.0 = no bloom, 1.0 = default, >1.0 = strong)
      */
-    void setBloomIntensity(float intensity) { m_bloomIntensity = intensity; }
+    void setBloomIntensity(float intensity) {
+        m_bloomIntensity = intensity;
+    }
 
     /**
      * @brief Get the current bloom intensity
      * @return Current bloom intensity multiplier
      */
-    float bloomIntensity() const { return m_bloomIntensity; }
+    float bloomIntensity() const {
+        return m_bloomIntensity;
+    }
 
     /**
      * @brief Set the bright-pass threshold
      * @param threshold Luminance threshold for bloom extraction (default 1.0)
      */
-    void setBloomThreshold(float threshold) { m_bloomThreshold = threshold; }
+    void setBloomThreshold(float threshold) {
+        m_bloomThreshold = threshold;
+    }
 
     /**
      * @brief Get the current bright-pass threshold
      * @return Current bloom threshold
      */
-    float bloomThreshold() const { return m_bloomThreshold; }
+    float bloomThreshold() const {
+        return m_bloomThreshold;
+    }
 
     /**
      * @brief Set the tone mapping mode
      * @param mode 0 = ACES, 1 = Reinhard, 2 = Uncharted2
      */
-    void setToneMappingMode(int mode) { m_toneMappingMode = mode; }
+    void setToneMappingMode(int mode) {
+        m_toneMappingMode = mode;
+    }
 
     /**
      * @brief Get the current tone mapping mode
      * @return Current tone mapping mode (0=ACES, 1=Reinhard, 2=Uncharted2)
      */
-    int toneMappingMode() const { return m_toneMappingMode; }
+    int toneMappingMode() const {
+        return m_toneMappingMode;
+    }
 
     /**
      * @brief Set the exposure value for tone mapping
      * @param exposure Exposure multiplier (1.0 = neutral)
      */
-    void setExposure(float exposure) { m_exposure = exposure; }
+    void setExposure(float exposure) {
+        m_exposure = exposure;
+    }
 
     /**
      * @brief Get the current exposure value
      * @return Current exposure multiplier
      */
-    float exposure() const { return m_exposure; }
+    float exposure() const {
+        return m_exposure;
+    }
 
-private:
+   private:
     /**
      * @brief Create or recreate an FBO with the given size and format
      * @param fbo Output FBO handle
@@ -204,6 +225,6 @@ private:
     float m_exposure;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_POST_PROCESS_H
+#endif  // QUANTUMVERSE_POST_PROCESS_H

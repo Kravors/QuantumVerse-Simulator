@@ -10,14 +10,14 @@
 #ifndef QUANTUMVERSE_ANOMALY_MONITOR_H
 #define QUANTUMVERSE_ANOMALY_MONITOR_H
 
+#include <QJsonObject>
 #include <QObject>
 #include <QTimer>
-#include <QJsonObject>
 #include <functional>
 #include <memory>
 
-#include "ml/FeatureVector.h"
 #include "ml/AnomalyDetector.h"
+#include "ml/FeatureVector.h"
 
 namespace quantumverse {
 
@@ -32,19 +32,21 @@ class DiscoveryPanelManager;
  *
  * Exposed to QML for user control (enable/disable, sensitivity).
  */
-class AnomalyMonitor : public QObject
-{
+class AnomalyMonitor : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
-    Q_PROPERTY(double thresholdMultiplier READ thresholdMultiplier WRITE setThresholdMultiplier NOTIFY thresholdMultiplierChanged)
+    Q_PROPERTY(double thresholdMultiplier READ thresholdMultiplier WRITE setThresholdMultiplier
+                   NOTIFY thresholdMultiplierChanged)
     Q_PROPERTY(double lastScore READ lastScore NOTIFY scoreUpdated)
     Q_PROPERTY(bool modelLoaded READ isModelLoaded NOTIFY modelLoadedChanged)
-    Q_PROPERTY(int sampleIntervalMs READ sampleIntervalMs WRITE setSampleIntervalMs NOTIFY sampleIntervalMsChanged)
+    Q_PROPERTY(int sampleIntervalMs READ sampleIntervalMs WRITE setSampleIntervalMs NOTIFY
+                   sampleIntervalMsChanged)
     Q_PROPERTY(int sampleCount READ sampleCount NOTIFY sampleCountChanged)
 
-public:
+   public:
     using FindingsProvider = std::function<std::vector<InstrumentFinding>()>;
-    using TelemetryProvider = std::function<std::pair<UI4D::PhysicsTelemetry, std::vector<UI4D::SolarSystemBody>>()>;
+    using TelemetryProvider =
+        std::function<std::pair<UI4D::PhysicsTelemetry, std::vector<UI4D::SolarSystemBody>>()>;
 
     /**
      * @brief Construct a new AnomalyMonitor
@@ -81,20 +83,32 @@ public:
 
     // --- Properties ---
 
-    bool enabled() const { return m_enabled; }
+    bool enabled() const {
+        return m_enabled;
+    }
     void setEnabled(bool e);
 
-    double thresholdMultiplier() const { return m_thresholdMultiplier; }
+    double thresholdMultiplier() const {
+        return m_thresholdMultiplier;
+    }
     void setThresholdMultiplier(double m);
 
-    double lastScore() const { return m_lastScore; }
-    bool isModelLoaded() const { return m_modelLoaded; }
+    double lastScore() const {
+        return m_lastScore;
+    }
+    bool isModelLoaded() const {
+        return m_modelLoaded;
+    }
     void setModelLoaded(bool loaded);
 
-    int sampleIntervalMs() const { return m_timer->interval(); }
+    int sampleIntervalMs() const {
+        return m_timer->interval();
+    }
     void setSampleIntervalMs(int ms);
 
-    int sampleCount() const { return m_sampleCount; }
+    int sampleCount() const {
+        return m_sampleCount;
+    }
 
     // --- Control ---
 
@@ -113,7 +127,7 @@ public:
      */
     Q_INVOKABLE void processSample();
 
-signals:
+   signals:
     void enabledChanged();
     void thresholdMultiplierChanged();
     void scoreUpdated(double score);
@@ -127,7 +141,7 @@ signals:
      */
     void anomalyDetected(const QJsonObject& anomaly);
 
-private:
+   private:
     /**
      * @brief Extract features and run inference for the current frame
      */
@@ -147,6 +161,6 @@ private:
     int m_sampleCount;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_ANOMALY_MONITOR_H
+#endif  // QUANTUMVERSE_ANOMALY_MONITOR_H

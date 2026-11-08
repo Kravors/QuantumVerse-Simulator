@@ -44,9 +44,11 @@ int main() {
     QV_CHECK(std::abs(quantumverse::PhysicsConstants::instance().get_G() - 6.67430e-11) < 1e-20);
 
     std::cout << "ConfigLoader tests passed!" << std::endl;
-    std::cout << "  Black hole: " << config.config().black_hole.mass_solar_masses << " solar masses" << std::endl;
+    std::cout << "  Black hole: " << config.config().black_hole.mass_solar_masses << " solar masses"
+              << std::endl;
     std::cout << "  Bodies: " << config.config().bodies.size() << std::endl;
-    std::cout << "  Grid: " << config.config().grid.resolution << "x" << config.config().grid.resolution << std::endl;
+    std::cout << "  Grid: " << config.config().grid.resolution << "x"
+              << config.config().grid.resolution << std::endl;
 
     return 0;
 }

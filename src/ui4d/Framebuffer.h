@@ -3,7 +3,7 @@
 namespace ui4d {
 
 class Framebuffer {
-public:
+   public:
     Framebuffer() = default;
     Framebuffer(int width, int height);
     ~Framebuffer();
@@ -12,11 +12,17 @@ public:
     void unbind();
     void resize(int width, int height);
 
-    unsigned int getTexture() const { return textureId; }
-    int getWidth() const { return width; }
-    int getHeight() const { return height; }
+    unsigned int getTexture() const {
+        return textureId;
+    }
+    int getWidth() const {
+        return width;
+    }
+    int getHeight() const {
+        return height;
+    }
 
-private:
+   private:
     unsigned int fboId = 0;
     unsigned int textureId = 0;
     unsigned int rboId = 0;
@@ -24,4 +30,4 @@ private:
     int height = 0;
 };
 
-} // namespace ui4d
+}  // namespace ui4d

@@ -4,8 +4,8 @@
  */
 
 #include "KerrNoHairViolationAnalyzer.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 #ifndef M_PI
@@ -14,8 +14,7 @@
 
 namespace quantumverse {
 
-KerrNoHairViolationAnalyzer::KerrNoHairViolationAnalyzer()
-{
+KerrNoHairViolationAnalyzer::KerrNoHairViolationAnalyzer() {
     setParameter("sigma_threshold", 2.0);
     setParameter("mass_solar", 10.0);
     setParameter("spin", 0.0);
@@ -23,52 +22,46 @@ KerrNoHairViolationAnalyzer::KerrNoHairViolationAnalyzer()
 }
 
 std::map<std::string, std::pair<double, double>>
-KerrNoHairViolationAnalyzer::getParameterRanges() const
-{
-    return {
-        {"sigma_threshold", {1.0, 5.0}},
-        {"mass_solar", {1.0, 100.0}},
-        {"spin", {0.0, 0.99}},
-        {"min_samples", {8.0, 256.0}}
-    };
+KerrNoHairViolationAnalyzer::getParameterRanges() const {
+    return {{"sigma_threshold", {1.0, 5.0}},
+            {"mass_solar", {1.0, 100.0}},
+            {"spin", {0.0, 0.99}},
+            {"min_samples", {8.0, 256.0}}};
 }
 
-double KerrNoHairViolationAnalyzer::kerrQNM220Real(double spin)
-{
+double KerrNoHairViolationAnalyzer::kerrQNM220Real(double spin) {
     double a = spin;
     double a2 = a * a;
     return 1.0 - 0.63 * (1.0 - a) + 0.3 * a2;
 }
 
-double KerrNoHairViolationAnalyzer::kerrQNM220Imag(double spin)
-{
+double KerrNoHairViolationAnalyzer::kerrQNM220Imag(double spin) {
     double a = spin;
     return (1.0 - 0.63 * (1.0 - a - 0.6 * a * a));
 }
 
-double KerrNoHairViolationAnalyzer::kerrQNM221Real(double spin)
-{
+double KerrNoHairViolationAnalyzer::kerrQNM221Real(double spin) {
     double a = spin;
     double a2 = a * a;
     return 1.0 - 0.63 * (1.0 - a) + 0.2 * a2 - 0.5 * a2 * a;
 }
 
-double KerrNoHairViolationAnalyzer::kerrQNM221Imag(double spin)
-{
+double KerrNoHairViolationAnalyzer::kerrQNM221Imag(double spin) {
     double a = spin;
     return (1.0 - 0.63 * (1.0 - a - 0.4 * a * a));
 }
 
 KerrNoHairViolationAnalyzer::QNMResult
 KerrNoHairViolationAnalyzer::extractDominantMode(const std::vector<Event4D>& trajectory,
-                                                  double dt)
-{
+                                                 double dt) {
     QNMResult result;
     size_t n = trajectory.size();
-    if (n < 2 || dt <= 0.0) return result;
+    if (n < 2 || dt <= 0.0)
+        return result;
 
     std::vector<double> h(n);
-    for (size_t i = 0; i < n; ++i) h[i] = trajectory[i].x;
+    for (size_t i = 0; i < n; ++i)
+        h[i] = trajectory[i].x;
 
     double bestMag = 0.0;
     size_t bestK = 1;
@@ -125,16 +118,15 @@ KerrNoHairViolationAnalyzer::extractDominantMode(const std::vector<Event4D>& tra
         }
     }
     if (env.size() >= 2) {
-        double logRatio = std::log(env.back() / env.front()) /
-                          (trajectory.back().t - trajectory.front().t);
+        double logRatio =
+            std::log(env.back() / env.front()) / (trajectory.back().t - trajectory.front().t);
         result.freqImag = -logRatio / (2.0 * M_PI);
     }
 
     return result;
 }
 
-double KerrNoHairViolationAnalyzer::inferSpinFrom220(double mOmegaReal)
-{
+double KerrNoHairViolationAnalyzer::inferSpinFrom220(double mOmegaReal) {
     double bestSpin = 0.0;
     double bestErr = 1e30;
     for (double a = 0.0; a <= 0.99; a += 0.01) {
@@ -149,34 +141,38 @@ double KerrNoHairViolationAnalyzer::inferSpinFrom220(double mOmegaReal)
 }
 
 double KerrNoHairViolationAnalyzer::inferMassFromQNM(double mOmegaReal, double spin,
-                                                     double (*qnmRealFunc)(double))
-{
+                                                     double (*qnmRealFunc)(double)) {
     double mOmegaPred = qnmRealFunc(spin);
-    if (mOmegaPred <= 0.0) return 0.0;
+    if (mOmegaPred <= 0.0)
+        return 0.0;
     return mOmegaPred / (mOmegaReal > 0.0 ? mOmegaReal : 1e-30);
 }
 
-std::vector<InstrumentFinding> KerrNoHairViolationAnalyzer::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+KerrNoHairViolationAnalyzer::analyze(const MetricTensor& metric, const Event4D& location,
+                                     const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
     size_t n = trajectory.size();
     size_t minSamples = static_cast<size_t>(getParameter("min_samples"));
-    if (n < minSamples) return findings;
+    if (n < minSamples)
+        return findings;
 
     double dt = trajectory[1].t - trajectory[0].t;
-    if (dt <= 0.0) return findings;
+    if (dt <= 0.0)
+        return findings;
 
     for (size_t i = 0; i < n; ++i) {
-        if (std::isnan(trajectory[i].x) || std::isinf(trajectory[i].x)) return findings;
+        if (std::isnan(trajectory[i].x) || std::isinf(trajectory[i].x))
+            return findings;
     }
 
     size_t half = n / 2;
-    std::vector<Event4D> firstHalf(trajectory.begin(), trajectory.begin() + static_cast<ptrdiff_t>(half));
-    std::vector<Event4D> secondHalf(trajectory.begin() + static_cast<ptrdiff_t>(half), trajectory.end());
+    std::vector<Event4D> firstHalf(trajectory.begin(),
+                                   trajectory.begin() + static_cast<ptrdiff_t>(half));
+    std::vector<Event4D> secondHalf(trajectory.begin() + static_cast<ptrdiff_t>(half),
+                                    trajectory.end());
 
     QNMResult mode220 = extractDominantMode(firstHalf, dt);
     QNMResult mode221 = extractDominantMode(secondHalf, dt);
@@ -186,8 +182,10 @@ std::vector<InstrumentFinding> KerrNoHairViolationAnalyzer::analyze(
               << " mode221.freqReal=" << mode221.freqReal
               << " mode221.amplitude=" << mode221.amplitude << std::endl;
 
-    if (mode220.amplitude <= 0.0 || mode221.amplitude <= 0.0) return findings;
-    if (mode220.freqReal <= 0.0 || mode221.freqReal <= 0.0) return findings;
+    if (mode220.amplitude <= 0.0 || mode221.amplitude <= 0.0)
+        return findings;
+    if (mode220.freqReal <= 0.0 || mode221.freqReal <= 0.0)
+        return findings;
 
     double spin220 = inferSpinFrom220(mode220.freqReal);
     double spin221 = inferSpinFrom220(mode221.freqReal);
@@ -207,9 +205,10 @@ std::vector<InstrumentFinding> KerrNoHairViolationAnalyzer::analyze(
         finding.severity = confidenceToSeverity(confidence);
         finding.confidence = confidence;
         finding.isAnomaly = true;
-        finding.description = "Kerr no-hair violation: QNM modes imply inconsistent "
-            "spin values (a*_220=" + std::to_string(spin220) +
-            ", a*_221=" + std::to_string(spin221) +
+        finding.description =
+            "Kerr no-hair violation: QNM modes imply inconsistent "
+            "spin values (a*_220=" +
+            std::to_string(spin220) + ", a*_221=" + std::to_string(spin221) +
             "), deviation=" + std::to_string(deviationSigma) + " sigma.";
         finding.location = location;
         finding.timestamp = trajectory.back().t;
@@ -229,4 +228,4 @@ std::vector<InstrumentFinding> KerrNoHairViolationAnalyzer::analyze(
     return findings;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

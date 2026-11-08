@@ -26,43 +26,61 @@
 namespace quantumverse {
 
 class ProjectCosmologyAdapter : public CosmologyProvider {
-public:
+   public:
     /** Build from user-supplied cosmological parameters (units per CosmologyProvider). */
     ProjectCosmologyAdapter(double H0, double OmegaM, double OmegaB, double OmegaR,
                             double OmegaLambda, double OmegaK, double Tcmb0);
 
-    QString name()             const override { return QStringLiteral("project-FLRW"); }
-    QString parametersSource() const override { return QStringLiteral("user"); }
+    QString name() const override {
+        return QStringLiteral("project-FLRW");
+    }
+    QString parametersSource() const override {
+        return QStringLiteral("user");
+    }
 
     /** Delegated to FRWMetric — bit-exact (SI→km/s/Mpc conversion applied). */
-    double H0()          const override { return m_H0; }
-    double OmegaM()      const override { return m_frw ? m_frw->omegaM()      : m_Om; }
-    double OmegaB()      const override { return m_Ob; }
-    double OmegaR()      const override { return m_Or; }
-    double OmegaLambda() const override { return m_frw ? m_frw->omegaLambda() : m_OL; }
-    double OmegaK()      const override { return m_Ok; }
-    double Tcmb0()       const override { return m_Tcmb; }
+    double H0() const override {
+        return m_H0;
+    }
+    double OmegaM() const override {
+        return m_frw ? m_frw->omegaM() : m_Om;
+    }
+    double OmegaB() const override {
+        return m_Ob;
+    }
+    double OmegaR() const override {
+        return m_Or;
+    }
+    double OmegaLambda() const override {
+        return m_frw ? m_frw->omegaLambda() : m_OL;
+    }
+    double OmegaK() const override {
+        return m_Ok;
+    }
+    double Tcmb0() const override {
+        return m_Tcmb;
+    }
 
     /** First-principles; reads Ω from FRWMetric when available.
      *  At z=0, delegates to FRWMetric::ageOfUniverse() (bisection) for bit-exact agreement. */
-    double H(double z)                        const override;
-    double comovingDistance(double z)         const override;
-    double luminosityDistance(double z)       const override;
-    double angularDiameterDistance(double z)  const override;
-    double distanceModulus(double z)          const override;
-    double ageAtRedshift(double z)            const override;
-    double lookbackTime(double z)             const override;
-    double decelerationParameter(double z)    const override;
-    double soundHorizon()                     const override;
-    double growthFactor(double z)             const override;
-    double criticalDensity()                  const override;
+    double H(double z) const override;
+    double comovingDistance(double z) const override;
+    double luminosityDistance(double z) const override;
+    double angularDiameterDistance(double z) const override;
+    double distanceModulus(double z) const override;
+    double ageAtRedshift(double z) const override;
+    double lookbackTime(double z) const override;
+    double decelerationParameter(double z) const override;
+    double soundHorizon() const override;
+    double growthFactor(double z) const override;
+    double criticalDensity() const override;
 
-private:
+   private:
     /** Adapter-specific state not tracked by FRWMetric. */
     double m_H0, m_Om, m_Ob, m_Or, m_OL, m_Ok, m_Tcmb;
-    std::shared_ptr<FRWMetric> m_frw; // linkage to the project's FLRW code
+    std::shared_ptr<FRWMetric> m_frw;  // linkage to the project's FLRW code
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_PROJECT_COSMOLOGY_ADAPTER_H
+#endif  // QUANTUMVERSE_PROJECT_COSMOLOGY_ADAPTER_H

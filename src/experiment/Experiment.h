@@ -13,12 +13,12 @@
 #ifndef QUANTUMVERSE_EXPERIMENT_H
 #define QUANTUMVERSE_EXPERIMENT_H
 
+#include <QPointF>
 #include <QString>
+#include <QStringList>
 #include <QVariant>
 #include <QVariantMap>
 #include <QVector>
-#include <QPointF>
-#include <QStringList>
 #include <functional>
 
 namespace quantumverse {
@@ -28,25 +28,25 @@ namespace quantumverse {
  * QML parameter form dynamically.
  */
 struct ExperimentParameter {
-    QString name;          // parameter key, e.g. "mass_min"
-    QString label;         // human-readable label, e.g. "Mass min (M\u2299)"
-    QString type;          // "double" | "int" | "bool" | "enum" | "string"
-    QVariant defaultValue; // default / current value
-    QVariant min;          // inclusive lower bound (numeric)
-    QVariant max;          // inclusive upper bound (numeric)
-    QStringList options;   // enum options
-    QString unit;          // "M\u2299", "arcsec", "m", ...
-    QString help;          // tooltip text
+    QString name;           // parameter key, e.g. "mass_min"
+    QString label;          // human-readable label, e.g. "Mass min (M\u2299)"
+    QString type;           // "double" | "int" | "bool" | "enum" | "string"
+    QVariant defaultValue;  // default / current value
+    QVariant min;           // inclusive lower bound (numeric)
+    QVariant max;           // inclusive upper bound (numeric)
+    QStringList options;    // enum options
+    QString unit;           // "M\u2299", "arcsec", "m", ...
+    QString help;           // tooltip text
 };
 
 /**
  * @brief Output of an experiment run.
  */
 struct ExperimentResult {
-    QVariantMap scalars;        // named scalar results, e.g. {"kretschmann": 1.2e-5}
-    QVector<QPointF> curve;     // (x, y) samples for plotting
-    QStringList logLines;       // human-readable progress log
-    QString outputDir;          // directory where exports were written
+    QVariantMap scalars;     // named scalar results, e.g. {"kretschmann": 1.2e-5}
+    QVector<QPointF> curve;  // (x, y) samples for plotting
+    QStringList logLines;    // human-readable progress log
+    QString outputDir;       // directory where exports were written
     bool success = true;
 };
 
@@ -59,7 +59,7 @@ struct ExperimentResult {
  * @return ExperimentResult
  */
 class Experiment {
-public:
+   public:
     virtual ~Experiment() = default;
 
     /** Stable machine id, e.g. "mass_sweep". */
@@ -77,11 +77,10 @@ public:
      * Run the experiment. Must not touch QML or the viewport.
      * Long-running work should check shouldAbort() and report progress.
      */
-    virtual ExperimentResult run(const QVariantMap& params,
-                                 std::function<void(double)> progress,
+    virtual ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                                  std::function<bool()> shouldAbort) = 0;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_EXPERIMENT_H
+#endif  // QUANTUMVERSE_EXPERIMENT_H

@@ -16,6 +16,6 @@ struct PlanetaryGridResult {
     std::vector<Event4D> trajectory;
 };
 
-}
+}  // namespace quantumverse
 
 #endif

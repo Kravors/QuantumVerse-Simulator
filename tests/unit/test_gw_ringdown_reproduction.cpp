@@ -18,12 +18,12 @@
 
 #include "test_assert.h"
 
-#include <iostream>
 #include <QVariantMap>
+#include <iostream>
 
-#include "experiment/experiments/GWRingdownExperiment.h"
-#include "experiment/ScanSummaryBuilder.h"
 #include "discovery/ScanSummary.h"
+#include "experiment/ScanSummaryBuilder.h"
+#include "experiment/experiments/GWRingdownExperiment.h"
 
 using namespace quantumverse;
 
@@ -31,11 +31,11 @@ int main() {
     // Run gw_ringdown with GW150914 parameters and comparison enabled
     GWRingdownExperiment exp;
     QVariantMap p;
-    p["mass_Msun"]        = 62.1;
-    p["spin_a"]           = 0.68;
+    p["mass_Msun"] = 62.1;
+    p["spin_a"] = 0.68;
     p["compareToPublished"] = true;
-    p["n_steps"]          = 50;
-    ExperimentResult r = exp.run(p, [](double){}, [](){ return false; });
+    p["n_steps"] = 50;
+    ExperimentResult r = exp.run(p, [](double) {}, []() { return false; });
 
     QV_CHECK(r.success);
     QV_CHECK(r.scalars.contains(QStringLiteral("f_R_Hz")));

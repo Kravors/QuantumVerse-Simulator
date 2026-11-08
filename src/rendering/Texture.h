@@ -9,30 +9,29 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <memory>
 #include <cstdint>
-#include <unordered_map>
 #include <functional>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace quantumverse {
 
 /**
  * @brief RAII wrapper for an OpenGL 2D texture
  */
-class Texture
-{
-public:
+class Texture {
+   public:
     /**
      * @brief Desired number of color channels when loading
      */
     enum class Channels {
-        Auto = 0,   ///< Original number of channels in file
-        Grey = 1,   ///< Force 1-channel (grayscale)
-        GreyAlpha = 2, ///< Force 2-channel (grayscale + alpha)
-        Rgb = 3,    ///< Force 3-channel (RGB)
-        Rgba = 4    ///< Force 4-channel (RGBA)
+        Auto = 0,       ///< Original number of channels in file
+        Grey = 1,       ///< Force 1-channel (grayscale)
+        GreyAlpha = 2,  ///< Force 2-channel (grayscale + alpha)
+        Rgb = 3,        ///< Force 3-channel (RGB)
+        Rgba = 4        ///< Force 4-channel (RGBA)
     };
 
     /**
@@ -63,8 +62,7 @@ public:
      * If the file cannot be opened or decoded, a 1x1 magenta fallback
      * texture is created so that missing textures are visually obvious.
      */
-    bool loadFromFile(const std::string& filepath,
-                      Channels channels = Channels::Auto,
+    bool loadFromFile(const std::string& filepath, Channels channels = Channels::Auto,
                       bool generateMipmaps = true);
 
     /**
@@ -76,8 +74,7 @@ public:
      * @param generateMipmaps Whether to generate mipmaps
      * @return true on success
      */
-    bool loadFromMemory(const unsigned char* data,
-                        int width, int height, int channels,
+    bool loadFromMemory(const unsigned char* data, int width, int height, int channels,
                         bool generateMipmaps = true);
 
     /**
@@ -95,27 +92,37 @@ public:
     /**
      * @brief Get the OpenGL texture ID
      */
-    unsigned int getId() const noexcept { return m_id; }
+    unsigned int getId() const noexcept {
+        return m_id;
+    }
 
     /**
      * @brief Get the texture width in pixels
      */
-    int getWidth() const noexcept { return m_width; }
+    int getWidth() const noexcept {
+        return m_width;
+    }
 
     /**
      * @brief Get the texture height in pixels
      */
-    int getHeight() const noexcept { return m_height; }
+    int getHeight() const noexcept {
+        return m_height;
+    }
 
     /**
      * @brief Get the number of channels
      */
-    int getChannels() const noexcept { return m_channels; }
+    int getChannels() const noexcept {
+        return m_channels;
+    }
 
     /**
      * @brief Check if the texture is valid (loaded)
      */
-    bool isValid() const noexcept { return m_id != 0; }
+    bool isValid() const noexcept {
+        return m_id != 0;
+    }
 
     /**
      * @brief Get the OpenGL internal format
@@ -124,11 +131,11 @@ public:
      */
     static unsigned int getGLFormat(int channels);
 
-private:
-    unsigned int m_id;       ///< OpenGL texture name
-    int m_width;             ///< Texture width in pixels
-    int m_height;            ///< Texture height in pixels
-    int m_channels;          ///< Number of color channels
+   private:
+    unsigned int m_id;  ///< OpenGL texture name
+    int m_width;        ///< Texture width in pixels
+    int m_height;       ///< Texture height in pixels
+    int m_channels;     ///< Number of color channels
 
     /**
      * @brief Create a 1x1 magenta fallback texture
@@ -153,9 +160,8 @@ private:
  * allowing per-instance layer indexing in the vertex shader.
  * All textures in the array must have the same dimensions.
  */
-class TextureArray
-{
-public:
+class TextureArray {
+   public:
     TextureArray();
     ~TextureArray();
 
@@ -191,8 +197,7 @@ public:
      * @param channels Number of channels (1-4)
      * @return Layer index, or -1 on failure
      */
-    int addLayerFromMemory(const unsigned char* data,
-                           int width, int height, int channels);
+    int addLayerFromMemory(const unsigned char* data, int width, int height, int channels);
 
     /**
      * @brief Bind the texture array to a texture unit
@@ -206,14 +211,26 @@ public:
      */
     static void unbind(unsigned int unit = 0);
 
-    unsigned int getId() const noexcept { return m_id; }
-    int getWidth() const noexcept { return m_width; }
-    int getHeight() const noexcept { return m_height; }
-    int getLayerCount() const noexcept { return m_layerCount; }
-    int getMaxLayers() const noexcept { return m_maxLayers; }
-    bool isValid() const noexcept { return m_id != 0; }
+    unsigned int getId() const noexcept {
+        return m_id;
+    }
+    int getWidth() const noexcept {
+        return m_width;
+    }
+    int getHeight() const noexcept {
+        return m_height;
+    }
+    int getLayerCount() const noexcept {
+        return m_layerCount;
+    }
+    int getMaxLayers() const noexcept {
+        return m_maxLayers;
+    }
+    bool isValid() const noexcept {
+        return m_id != 0;
+    }
 
-private:
+   private:
     unsigned int m_id;
     int m_width;
     int m_height;
@@ -229,7 +246,7 @@ private:
  * Uses LRU eviction policy for memory management.
  */
 class TextureCache {
-public:
+   public:
     TextureCache();
     ~TextureCache();
 
@@ -243,10 +260,8 @@ public:
      * @param generator Function to generate texture if not cached
      * @return Texture data
      */
-    std::vector<uint8_t> getOrGenerate(
-        const std::string& key,
-        std::function<std::vector<uint8_t>()> generator
-    );
+    std::vector<uint8_t> getOrGenerate(const std::string& key,
+                                       std::function<std::vector<uint8_t>()> generator);
 
     /**
      * @brief Clear the cache
@@ -256,14 +271,18 @@ public:
     /**
      * @brief Get cache size
      */
-    size_t size() const { return m_cache.size(); }
+    size_t size() const {
+        return m_cache.size();
+    }
 
     /**
      * @brief Set maximum cache size (in bytes)
      */
-    void setMaxSize(size_t bytes) { m_maxSizeBytes = bytes; }
+    void setMaxSize(size_t bytes) {
+        m_maxSizeBytes = bytes;
+    }
 
-private:
+   private:
     struct CachedTexture {
         std::vector<uint8_t> data;
         size_t lastAccess = 0;
@@ -278,4 +297,4 @@ private:
     void evictLRU();
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

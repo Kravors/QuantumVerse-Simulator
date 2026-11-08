@@ -9,13 +9,13 @@
 #ifndef QUANTUMVERSE_COMPUTE_SHADER_H
 #define QUANTUMVERSE_COMPUTE_SHADER_H
 
-#include <string>
 #include <cstdint>
+#include <string>
 
 namespace quantumverse {
 
 class ComputeShader {
-public:
+   public:
     ComputeShader();
     ~ComputeShader();
 
@@ -33,18 +33,22 @@ public:
     void setUniform(const char* name, int value) const;
     void setUniform(const char* name, uint32_t value) const;
 
-    bool isLoaded() const { return m_programId != 0; }
-    uint32_t programId() const { return m_programId; }
+    bool isLoaded() const {
+        return m_programId != 0;
+    }
+    uint32_t programId() const {
+        return m_programId;
+    }
 
     static bool isComputeSupported();
 
-private:
+   private:
     bool compileComputeShader(const std::string& source);
     bool getShaderStage(uint32_t& shaderId, uint32_t type, const char* source);
 
     uint32_t m_programId;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_COMPUTE_SHADER_H
+#endif  // QUANTUMVERSE_COMPUTE_SHADER_H

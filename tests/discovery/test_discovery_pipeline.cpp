@@ -11,11 +11,11 @@
 
 #include "discovery/DiscoveryEngine.h"
 #include "discovery/DiscoveryPanelManager.h"
-#include "discovery/GalacticRotationCurveScanner.h"
-#include "discovery/FineStructureConstantDriftObservatory.h"
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
-#include "spacetime/MetricTensor.h"
+#include "discovery/FineStructureConstantDriftObservatory.h"
+#include "discovery/GalacticRotationCurveScanner.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -47,7 +47,7 @@ std::vector<Event4D> makeOrbitTrajectory() {
     }
     return traj;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== DiscoveryPipelineIntegrationTest ===" << std::endl;
@@ -101,10 +101,7 @@ int main() {
     {
         DiscoveryEngine engine;
         std::string hid = engine.proposeHypothesis(
-            "ModifiedGR",
-            "R_uv - 1/2 R g_uv + lambda * f(R) = 8 pi T_uv",
-            {{"lambda", 1.0e-5}}
-        );
+            "ModifiedGR", "R_uv - 1/2 R g_uv + lambda * f(R) = 8 pi T_uv", {{"lambda", 1.0e-5}});
         QV_CHECK(!hid.empty());
         QV_CHECK(engine.getHypothesisCount() == 1);
 
@@ -175,9 +172,7 @@ int main() {
         synthetic.id = "cb_test";
         synthetic.confidence = 0.75;
         synthetic.type = "test";
-        engine.registerDiscoveryCallback([&](const DiscoveryResult&) {
-            (void)synthetic;
-        });
+        engine.registerDiscoveryCallback([&](const DiscoveryResult&) { (void)synthetic; });
         std::cout << "  Callback registration verified." << std::endl;
     }
 
@@ -230,7 +225,8 @@ int main() {
         manager.runScan(schwarzschild, location);
         auto findings = manager.findings();
         QV_CHECK(findings.size() >= 0);
-        std::cout << "  Panel manager batch scan completed. Findings: " << findings.size() << std::endl;
+        std::cout << "  Panel manager batch scan completed. Findings: " << findings.size()
+                  << std::endl;
     }
 
     std::cout << "All DiscoveryPipelineIntegrationTest checks passed." << std::endl;

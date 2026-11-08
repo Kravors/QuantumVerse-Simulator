@@ -53,37 +53,44 @@ bool Scenario::loadFromFile(const std::string& filepath) {
 
 bool Scenario::validate(std::string* error_msg) const {
     if (name.empty()) {
-        if (error_msg) *error_msg = "Scenario name is empty";
+        if (error_msg)
+            *error_msg = "Scenario name is empty";
         return false;
     }
     if (duration <= 0.0) {
-        if (error_msg) *error_msg = "Duration must be positive";
+        if (error_msg)
+            *error_msg = "Duration must be positive";
         return false;
     }
     if (time_scale <= 0.0) {
-        if (error_msg) *error_msg = "Time scale must be positive";
+        if (error_msg)
+            *error_msg = "Time scale must be positive";
         return false;
     }
     if (central_body.mass_kg <= 0.0) {
-        if (error_msg) *error_msg = "Central body mass must be positive";
+        if (error_msg)
+            *error_msg = "Central body mass must be positive";
         return false;
     }
 
     for (size_t i = 0; i < events.size(); i++) {
         if (events[i].time < 0.0 || events[i].time > duration) {
-            if (error_msg) *error_msg = "Event " + std::to_string(i) + " time out of range";
+            if (error_msg)
+                *error_msg = "Event " + std::to_string(i) + " time out of range";
             return false;
         }
     }
 
     for (size_t i = 0; i < camera_path.size(); i++) {
         if (camera_path[i].time < 0.0 || camera_path[i].time > duration) {
-            if (error_msg) *error_msg = "Camera keyframe " + std::to_string(i) + " time out of range";
+            if (error_msg)
+                *error_msg = "Camera keyframe " + std::to_string(i) + " time out of range";
             return false;
         }
     }
 
-    if (error_msg) *error_msg = "";
+    if (error_msg)
+        *error_msg = "";
     return true;
 }
 
@@ -111,4 +118,4 @@ std::vector<ScenarioEvent> Scenario::getEventsOfType(ScenarioEventType type) con
     return result;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

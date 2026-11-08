@@ -16,9 +16,9 @@
 #ifndef QUANTUMVERSE_GW_RINGDOWN_SCANNER_H
 #define QUANTUMVERSE_GW_RINGDOWN_SCANNER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -42,29 +42,33 @@ namespace quantumverse {
  * deviate from the GR prediction by more than the configured sigma
  * threshold.
  */
-class GWRingdownScanner : public DiscoveryInstrument
-{
-public:
+class GWRingdownScanner : public DiscoveryInstrument {
+   public:
     GWRingdownScanner();
     ~GWRingdownScanner() override = default;
 
     std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "GWRingdownScanner"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "GWRingdownScanner";
+    }
+    std::string getDescription() const override {
         return "GW ringdown scanner. Tests the black hole no-hair theorem by "
                "comparing observed ringdown quasi-normal mode frequencies to "
                "the GR-predicted Kerr spectrum. Flags deviations as potential "
                "exotic compact objects or modified gravity.";
     }
-    std::string getCategory() const override { return "Gravitational Waves"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Gravitational Waves";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
-private:
+   private:
     static constexpr double kSigmaThreshold = 3.0;
     static constexpr double kMinTrajectorySize = 2;
 
@@ -73,6 +77,6 @@ private:
     static double predictedFrequency(double mass, double spin);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GW_RINGDOWN_SCANNER_H
+#endif  // QUANTUMVERSE_GW_RINGDOWN_SCANNER_H

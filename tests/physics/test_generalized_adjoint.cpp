@@ -8,10 +8,10 @@
 #include <memory>
 #include <vector>
 
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "physics/AdjointGeodesicIntegrator.h"
 #include "discovery/DiscoveryEngine.h"
+#include "physics/AdjointGeodesicIntegrator.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -20,7 +20,7 @@ using namespace quantumverse::physics;
 namespace {
 constexpr double kEps = 1e-9;
 constexpr double kPi = 3.14159265358979323846;
-}
+}  // namespace
 
 // ---------------------------------------------------------------------------
 // Mock metric with known analytic AD: g_tt = -(1 - a/r), g_rr = 1/(1 - a/r)
@@ -28,14 +28,15 @@ constexpr double kPi = 3.14159265358979323846;
 // Schwarzschild-like ones with rs replaced by a.
 // ---------------------------------------------------------------------------
 class MockParametricMetric : public MetricTensor {
-public:
+   public:
     explicit MockParametricMetric(double a) : m_a(a) {}
 
     std::array<std::array<double, 4>, 4> evaluate(const Event4D& event) const override {
         double x = event.x, y = event.y, z = event.z;
         double r = std::sqrt(x * x + y * y + z * z);
         const double minR = 1e-9;
-        if (r < minR) r = minR;
+        if (r < minR)
+            r = minR;
 
         double factor = 1.0 - m_a / r;
         std::array<std::array<double, 4>, 4> g4{};
@@ -46,10 +47,8 @@ public:
         return g4;
     }
 
-    std::array<std::array<RVar, 4>, 4> evaluateAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const override {
+    std::array<std::array<RVar, 4>, 4> evaluateAD(const std::array<RVar, 4>& pos,
+                                                  const std::vector<RVar>& params) const override {
         RVar r = pos[1];
         RVar theta = pos[2];
 
@@ -73,10 +72,9 @@ public:
         return result;
     }
 
-    std::array<std::array<std::array<RVar, 4>, 4>, 4> computeChristoffelAD(
-        const std::array<RVar, 4>& pos,
-        const std::vector<RVar>& params
-    ) const override {
+    std::array<std::array<std::array<RVar, 4>, 4>, 4>
+    computeChristoffelAD(const std::array<RVar, 4>& pos,
+                         const std::vector<RVar>& params) const override {
         RVar r = pos[1];
         RVar theta = pos[2];
 
@@ -91,7 +89,8 @@ public:
 
         RVar two_r = math::mul(math::ADTape::record(2.0, nullptr), r);
         RVar Gamma_t_tr = math::div(a, math::mul(two_r, r_minus_a));
-        RVar Gamma_r_tt = math::div(math::mul(a, r_minus_a), math::mul(r3, math::ADTape::record(2.0, nullptr)));
+        RVar Gamma_r_tt =
+            math::div(math::mul(a, r_minus_a), math::mul(r3, math::ADTape::record(2.0, nullptr)));
         RVar Gamma_r_rr = math::neg(Gamma_t_tr);
         RVar Gamma_r_thetatheta = math::neg(r_minus_a);
         RVar Gamma_r_phiphi = math::neg(math::mul(r_minus_a, sin2));
@@ -119,13 +118,13 @@ public:
         return Gamma;
     }
 
-    std::array<std::array<std::array<double, 4>, 4>, 4> computeFullChristoffel(
-        const Event4D& event
-    ) const override {
+    std::array<std::array<std::array<double, 4>, 4>, 4>
+    computeFullChristoffel(const Event4D& event) const override {
         double x = event.x, y = event.y, z = event.z;
         double r = std::sqrt(x * x + y * y + z * z);
         const double minR = 1e-9;
-        if (r < minR) r = minR;
+        if (r < minR)
+            r = minR;
 
         double r_minus_a = r - m_a;
         double r_inv = 1.0 / r;
@@ -164,7 +163,7 @@ public:
         return Gamma;
     }
 
-private:
+   private:
     double m_a;
 };
 

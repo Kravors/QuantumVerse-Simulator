@@ -9,20 +9,20 @@
 #include <string>
 #include <vector>
 
-#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
-#include "discovery/GalacticRotationCurveScanner.h"
-#include "discovery/FineStructureConstantDriftObservatory.h"
-#include "discovery/BosonStarCollisionPredictor.h"
-#include "discovery/NeutronStarGlitchPhaseDetector.h"
-#include "discovery/UltralightDMWaveInterferometer.h"
 #include "discovery/BlackHoleJetAnomalyRecogniser.h"
-#include "discovery/PrimordialLithiumCrisisSolver.h"
-#include "discovery/GalacticTidalStreamCartographer.h"
-#include "discovery/RecombinationConstantVariationImager.h"
-#include "discovery/ECORingdownAnalyzer.h"
+#include "discovery/BosonStarCollisionPredictor.h"
 #include "discovery/DiscoveryPanelManager.h"
-#include "spacetime/MetricTensor.h"
+#include "discovery/ECORingdownAnalyzer.h"
+#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
+#include "discovery/FineStructureConstantDriftObservatory.h"
+#include "discovery/GalacticRotationCurveScanner.h"
+#include "discovery/GalacticTidalStreamCartographer.h"
+#include "discovery/NeutronStarGlitchPhaseDetector.h"
+#include "discovery/PrimordialLithiumCrisisSolver.h"
+#include "discovery/RecombinationConstantVariationImager.h"
+#include "discovery/UltralightDMWaveInterferometer.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -73,7 +73,7 @@ std::vector<Event4D> makeGenericTrajectory() {
     }
     return traj;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== InstrumentAuditTest ===" << std::endl;
@@ -96,7 +96,8 @@ int main() {
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
             QV_CHECK(f.severity >= AlertSeverity::INFO && f.severity <= AlertSeverity::CRITICAL);
         }
-        std::cout << "  ExoplanetaryTTVFifthForceHunter: " << findings.size() << " findings" << std::endl;
+        std::cout << "  ExoplanetaryTTVFifthForceHunter: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- GalacticRotationCurveScanner -----------------------------------------
@@ -112,7 +113,8 @@ int main() {
                 QV_CHECK(it->second > 0.0);
             }
         }
-        std::cout << "  GalacticRotationCurveScanner: " << findings.size() << " findings" << std::endl;
+        std::cout << "  GalacticRotationCurveScanner: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- FineStructureConstantDriftObservatory ---------------------------------
@@ -124,7 +126,8 @@ int main() {
             assertFinite("FineStructure confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  FineStructureConstantDriftObservatory: " << findings.size() << " findings" << std::endl;
+        std::cout << "  FineStructureConstantDriftObservatory: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- BosonStarCollisionPredictor ------------------------------------------
@@ -139,7 +142,8 @@ int main() {
             assertFinite("BosonStar confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  BosonStarCollisionPredictor: " << findings.size() << " findings" << std::endl;
+        std::cout << "  BosonStarCollisionPredictor: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- NeutronStarGlitchPhaseDetector ----------------------------------------
@@ -150,7 +154,8 @@ int main() {
             assertFinite("NeutronStar confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  NeutronStarGlitchPhaseDetector: " << findings.size() << " findings" << std::endl;
+        std::cout << "  NeutronStarGlitchPhaseDetector: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- ECORingdownAnalyzer ---------------------------------------------------
@@ -184,7 +189,8 @@ int main() {
             assertFinite("UltralightDM confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  UltralightDMWaveInterferometer: " << findings.size() << " findings" << std::endl;
+        std::cout << "  UltralightDMWaveInterferometer: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- BlackHoleJetAnomalyRecogniser -----------------------------------------
@@ -197,7 +203,8 @@ int main() {
             assertFinite("BlackHoleJet confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  BlackHoleJetAnomalyRecogniser: " << findings.size() << " findings" << std::endl;
+        std::cout << "  BlackHoleJetAnomalyRecogniser: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- PrimordialLithiumCrisisSolver -----------------------------------------
@@ -208,7 +215,8 @@ int main() {
             assertFinite("Lithium confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  PrimordialLithiumCrisisSolver: " << findings.size() << " findings" << std::endl;
+        std::cout << "  PrimordialLithiumCrisisSolver: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- GalacticTidalStreamCartographer ---------------------------------------
@@ -219,7 +227,8 @@ int main() {
             assertFinite("TidalStream confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  GalacticTidalStreamCartographer: " << findings.size() << " findings" << std::endl;
+        std::cout << "  GalacticTidalStreamCartographer: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- RecombinationConstantVariationImager ----------------------------------
@@ -231,7 +240,8 @@ int main() {
             assertFinite("Recombination confidence", f.confidence);
             QV_CHECK(f.confidence >= 0.0 && f.confidence <= 1.0);
         }
-        std::cout << "  RecombinationConstantVariationImager: " << findings.size() << " findings" << std::endl;
+        std::cout << "  RecombinationConstantVariationImager: " << findings.size() << " findings"
+                  << std::endl;
     }
 
     // --- DiscoveryPanelManager batch scan --------------------------------------

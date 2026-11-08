@@ -6,9 +6,9 @@
 #ifndef QUANTUMVERSE_FRB_DISPERSION_SCANNER_H
 #define QUANTUMVERSE_FRB_DISPERSION_SCANNER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -26,28 +26,33 @@ namespace quantumverse {
  * instrument threshold.
  */
 class FRBDispersionScanner : public DiscoveryInstrument {
-public:
+   public:
     FRBDispersionScanner();
     ~FRBDispersionScanner() override = default;
 
     std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "FRBDispersionScanner"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "FRBDispersionScanner";
+    }
+    std::string getDescription() const override {
         return "Fast Radio Burst dispersion-measure scanner. "
                "Compares observed FRB DM to the Galactic electron-density "
                "model and flags excess scatter as potential new plasma "
                "structures or modified dispersion physics.";
     }
-    std::string getCategory() const override { return "Multi-Messenger"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Multi-Messenger";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
-private:
+   private:
     static double expectedGalacticDM(double gl, double gb);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_FRB_DISPERSION_SCANNER_H
+#endif  // QUANTUMVERSE_FRB_DISPERSION_SCANNER_H

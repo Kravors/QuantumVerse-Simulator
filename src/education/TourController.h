@@ -23,14 +23,14 @@
 #ifndef QUANTUMVERSE_TOUR_CONTROLLER_H
 #define QUANTUMVERSE_TOUR_CONTROLLER_H
 
-#include <string>
-#include <vector>
+#include <chrono>
 #include <functional>
 #include <memory>
-#include <chrono>
+#include <string>
+#include <vector>
 
-#include <QObject>
 #include <QMetaType>
+#include <QObject>
 #include <QTimer>
 #include <QVariant>
 
@@ -48,9 +48,9 @@ Q_NAMESPACE
  * Azimuth/elevation are in degrees, distance in geometric units.
  */
 struct TourCameraState {
-    double azimuth = 45.0;      ///< Degrees, about the vertical axis
-    double elevation = 20.0;    ///< Degrees, above the equatorial plane
-    double distance = 200.0;    ///< Geometric units from the look-at point
+    double azimuth = 45.0;    ///< Degrees, about the vertical axis
+    double elevation = 20.0;  ///< Degrees, above the equatorial plane
+    double distance = 200.0;  ///< Geometric units from the look-at point
     std::array<double, 3> target = {0.0, 0.0, 0.0};
 };
 
@@ -58,9 +58,9 @@ struct TourCameraState {
  * @brief States of the tour state machine.
  */
 enum class TourState {
-    Stopped,    ///< No tour active; camera is the user's
-    Running,    ///< Tour active; controller drives the camera
-    Paused,     ///< User input interrupted; waiting for Resume
+    Stopped,  ///< No tour active; camera is the user's
+    Running,  ///< Tour active; controller drives the camera
+    Paused,   ///< User input interrupted; waiting for Resume
 };
 Q_ENUM_NS(TourState)
 
@@ -80,10 +80,10 @@ Q_ENUM_NS(TourState)
  */
 class TourController : public QObject {
     Q_OBJECT
-    Q_PROPERTY(TourState state          READ state          NOTIFY stateChanged)
-    Q_PROPERTY(int        currentStep    READ currentStepIndex  NOTIFY currentStepChanged)
-    Q_PROPERTY(QVariant   currentTour    READ currentTourVar    NOTIFY tourLoaded)
-public:
+    Q_PROPERTY(TourState state READ state NOTIFY stateChanged)
+    Q_PROPERTY(int currentStep READ currentStepIndex NOTIFY currentStepChanged)
+    Q_PROPERTY(QVariant currentTour READ currentTourVar NOTIFY tourLoaded)
+   public:
     explicit TourController(QObject* parent = nullptr);
 
     // ----------------------------------------------------------------------
@@ -122,28 +122,44 @@ public:
 
     bool loadTour(const EducationalTour& tour);
     Q_INVOKABLE bool loadTourFromFile(const QString& filepath);
-    const EducationalTour* currentTour() const { return m_tour.get(); }
-    const std::string& currentTourId() const { return m_tourId; }
-    QVariant currentTourVar() const { return m_tour ? QVariant::fromValue(*m_tour) : QVariant(); }
+    const EducationalTour* currentTour() const {
+        return m_tour.get();
+    }
+    const std::string& currentTourId() const {
+        return m_tourId;
+    }
+    QVariant currentTourVar() const {
+        return m_tour ? QVariant::fromValue(*m_tour) : QVariant();
+    }
 
     // ----------------------------------------------------------------------
     // State machine
     // ----------------------------------------------------------------------
 
-    TourState state() const { return m_state; }
-    bool isRunning() const { return m_state == TourState::Running; }
-    bool isPaused()  const { return m_state == TourState::Paused; }
-    bool isStopped()  const { return m_state == TourState::Stopped; }
+    TourState state() const {
+        return m_state;
+    }
+    bool isRunning() const {
+        return m_state == TourState::Running;
+    }
+    bool isPaused() const {
+        return m_state == TourState::Paused;
+    }
+    bool isStopped() const {
+        return m_state == TourState::Stopped;
+    }
 
-    int currentStepIndex() const { return m_stepIndex; }
+    int currentStepIndex() const {
+        return m_stepIndex;
+    }
     const TourStep* currentStep() const;
 
-    Q_INVOKABLE void start();        ///< Begin the tour at step 0
-    Q_INVOKABLE void next();         ///< Advance to the next step (or complete)
-    Q_INVOKABLE void prev();         ///< Go back to the previous step
-    Q_INVOKABLE void pause();        ///< Pause due to user input (camera no longer driven)
-    Q_INVOKABLE void resume();       ///< Resume from Paused at the current step
-    Q_INVOKABLE void stop();         ///< End the tour; camera is left where it is
+    Q_INVOKABLE void start();   ///< Begin the tour at step 0
+    Q_INVOKABLE void next();    ///< Advance to the next step (or complete)
+    Q_INVOKABLE void prev();    ///< Go back to the previous step
+    Q_INVOKABLE void pause();   ///< Pause due to user input (camera no longer driven)
+    Q_INVOKABLE void resume();  ///< Resume from Paused at the current step
+    Q_INVOKABLE void stop();    ///< End the tour; camera is left where it is
 
     /**
      * @brief Called by the viewport when the user drags / scrolls.
@@ -168,9 +184,8 @@ public:
      *
      * Pure function -- exposed as static so tests can assert on exact values.
      */
-    static TourCameraState interpolateCamera(const TourCameraState& from,
-                                         const TourCameraState& to,
-                                         double t);
+    static TourCameraState interpolateCamera(const TourCameraState& from, const TourCameraState& to,
+                                             double t);
 
     /**
      * @brief Shortest signed angular delta from -> to, in degrees.
@@ -180,12 +195,12 @@ public:
      */
     static double shortestAzimuthDelta(double from, double to);
 
-signals:
+   signals:
     void stateChanged();
     void currentStepChanged();
     void tourLoaded();
 
-private:
+   private:
     void applyStepActions(const TourStep& step);
     void gotoStep(int index);
 
@@ -209,6 +224,6 @@ private:
     QTimer* m_timer = nullptr;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_TOUR_CONTROLLER_H
+#endif  // QUANTUMVERSE_TOUR_CONTROLLER_H

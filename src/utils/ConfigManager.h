@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include <string>
-#include <map>
-#include <vector>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace quantumverse {
 namespace utils {
@@ -21,15 +21,7 @@ namespace utils {
 /**
  * @brief Configuration value types
  */
-enum class ConfigType {
-    INT,
-    FLOAT,
-    BOOL,
-    STRING,
-    VECTOR2,
-    VECTOR3,
-    VECTOR4
-};
+enum class ConfigType { INT, FLOAT, BOOL, STRING, VECTOR2, VECTOR3, VECTOR4 };
 
 /**
  * @brief Configuration value storage - uses unique_ptr for string to ensure RAII
@@ -42,10 +34,10 @@ struct ConfigValue {
     float vec2[2]{0.0f, 0.0f};
     float vec3[3]{0.0f, 0.0f, 0.0f};
     float vec4[4]{0.0f, 0.0f, 0.0f, 0.0f};
-    
+
     // Default constructor
     ConfigValue() = default;
-    
+
     // Copy constructor
     ConfigValue(const ConfigValue& other) {
         intVal = other.intVal;
@@ -54,11 +46,14 @@ struct ConfigValue {
         if (other.stringVal) {
             stringVal = std::make_unique<std::string>(*other.stringVal);
         }
-        for (int i = 0; i < 2; ++i) vec2[i] = other.vec2[i];
-        for (int i = 0; i < 3; ++i) vec3[i] = other.vec3[i];
-        for (int i = 0; i < 4; ++i) vec4[i] = other.vec4[i];
+        for (int i = 0; i < 2; ++i)
+            vec2[i] = other.vec2[i];
+        for (int i = 0; i < 3; ++i)
+            vec3[i] = other.vec3[i];
+        for (int i = 0; i < 4; ++i)
+            vec4[i] = other.vec4[i];
     }
-    
+
     // Copy assignment
     ConfigValue& operator=(const ConfigValue& other) {
         if (this != &other) {
@@ -70,16 +65,19 @@ struct ConfigValue {
             } else {
                 stringVal.reset();
             }
-            for (int i = 0; i < 2; ++i) vec2[i] = other.vec2[i];
-            for (int i = 0; i < 3; ++i) vec3[i] = other.vec3[i];
-            for (int i = 0; i < 4; ++i) vec4[i] = other.vec4[i];
+            for (int i = 0; i < 2; ++i)
+                vec2[i] = other.vec2[i];
+            for (int i = 0; i < 3; ++i)
+                vec3[i] = other.vec3[i];
+            for (int i = 0; i < 4; ++i)
+                vec4[i] = other.vec4[i];
         }
         return *this;
     }
-    
+
     // Move constructor
     ConfigValue(ConfigValue&&) noexcept = default;
-    
+
     // Move assignment
     ConfigValue& operator=(ConfigValue&&) noexcept = default;
 };
@@ -98,7 +96,7 @@ struct ConfigEntry {
  * @brief Central configuration manager
  */
 class ConfigManager {
-public:
+   public:
     static ConfigManager& instance();
 
     /**
@@ -161,7 +159,7 @@ public:
      */
     std::vector<std::string> getKeys() const;
 
-private:
+   private:
     ConfigManager() = default;
     ~ConfigManager();
 
@@ -174,5 +172,5 @@ private:
 #define CONFIG_BOOL(key, default) ConfigManager::instance().getBool(key, default)
 #define CONFIG_STRING(key, default) ConfigManager::instance().getString(key, default)
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

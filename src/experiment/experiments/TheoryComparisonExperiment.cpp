@@ -9,27 +9,27 @@
 
 #include "TheoryComparisonExperiment.h"
 
-#include <cmath>
-#include <QDir>
 #include <QDateTime>
+#include <QDir>
+#include <cmath>
 
-#include "spacetime/MetricTensor.h"
-#include "spacetime/KerrMetric.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/KerrMetric.h"
+#include "spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
 QVector<ExperimentParameter> TheoryComparisonExperiment::parameters() const {
     QVector<ExperimentParameter> p;
-    p.append({QStringLiteral("mass"),      QStringLiteral("Mass M (M☉)"),
-              QStringLiteral("double"), QVariant(10.0), QVariant(0.1), QVariant(1e6),
-              QStringList(), QStringLiteral("M☉"),  QStringLiteral("Black hole mass.")});
-    p.append({QStringLiteral("spin"),      QStringLiteral("Dimensionless spin a*"),
-              QStringLiteral("double"), QVariant(0.9),  QVariant(0.0), QVariant(0.999),
-              QStringList(), QStringLiteral(""),     QStringLiteral("Kerr spin.")});
-    p.append({QStringLiteral("probe_r"),   QStringLiteral("Probe radius (m)"),
+    p.append({QStringLiteral("mass"), QStringLiteral("Mass M (M☉)"), QStringLiteral("double"),
+              QVariant(10.0), QVariant(0.1), QVariant(1e6), QStringList(), QStringLiteral("M☉"),
+              QStringLiteral("Black hole mass.")});
+    p.append({QStringLiteral("spin"), QStringLiteral("Dimensionless spin a*"),
+              QStringLiteral("double"), QVariant(0.9), QVariant(0.0), QVariant(0.999),
+              QStringList(), QStringLiteral(""), QStringLiteral("Kerr spin.")});
+    p.append({QStringLiteral("probe_r"), QStringLiteral("Probe radius (m)"),
               QStringLiteral("double"), QVariant(1.0e5), QVariant(1.0e3), QVariant(1.0e12),
-              QStringList(), QStringLiteral("m"),   QStringLiteral("Probe distance.")});
+              QStringList(), QStringLiteral("m"), QStringLiteral("Probe distance.")});
     return p;
 }
 
@@ -88,4 +88,4 @@ ExperimentResult TheoryComparisonExperiment::run(const QVariantMap& params,
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

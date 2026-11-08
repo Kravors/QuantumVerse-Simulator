@@ -6,10 +6,10 @@
 
 #include "sandbox/SandboxManager.h"
 
-#include <QUuid>
-#include <QGuiApplication>
-#include <QCoreApplication>
 #include <QColor>
+#include <QCoreApplication>
+#include <QGuiApplication>
+#include <QUuid>
 
 #include "qmlglviewport.h"
 
@@ -26,11 +26,10 @@ QJsonObject BodyDescriptor::toJson() const {
     obj["name"] = name;
     obj["mass_kg"] = mass_kg;
     obj["radius_m"] = radius_m;
-    QJsonArray pos{ x, y, z };
+    QJsonArray pos{x, y, z};
     obj["position"] = pos;
-    QJsonArray col{ static_cast<double>(color.redF()),
-                    static_cast<double>(color.greenF()),
-                    static_cast<double>(color.blueF()) };
+    QJsonArray col{static_cast<double>(color.redF()), static_cast<double>(color.greenF()),
+                   static_cast<double>(color.blueF())};
     obj["color"] = col;
     return obj;
 }
@@ -44,9 +43,12 @@ BodyDescriptor BodyDescriptor::fromJson(const QJsonObject& obj) {
     b.radius_m = obj.value("radius_m").toDouble();
     if (obj.value("position").isArray()) {
         QJsonArray pos = obj.value("position").toArray();
-        if (pos.size() >= 1) b.x = pos[0].toDouble();
-        if (pos.size() >= 2) b.y = pos[1].toDouble();
-        if (pos.size() >= 3) b.z = pos[2].toDouble();
+        if (pos.size() >= 1)
+            b.x = pos[0].toDouble();
+        if (pos.size() >= 2)
+            b.y = pos[1].toDouble();
+        if (pos.size() >= 3)
+            b.z = pos[2].toDouble();
     }
     if (obj.value("color").isArray()) {
         QJsonArray col = obj.value("color").toArray();
@@ -64,8 +66,7 @@ BodyDescriptor BodyDescriptor::fromJson(const QJsonObject& obj) {
 // SandboxManager
 // ---------------------------------------------------------------------------
 
-SandboxManager::SandboxManager(QObject* parent)
-    : QObject(parent) {}
+SandboxManager::SandboxManager(QObject* parent) : QObject(parent) {}
 
 QString SandboxManager::generateId() {
     return QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -73,7 +74,8 @@ QString SandboxManager::generateId() {
 
 BodyDescriptor* SandboxManager::findBody(const QString& id) {
     for (auto& b : m_bodies) {
-        if (b.id == id) return &b;
+        if (b.id == id)
+            return &b;
     }
     return nullptr;
 }
@@ -91,7 +93,7 @@ QVariantList SandboxManager::bodiesAsVariants() const {
         m["x"] = b.x;
         m["y"] = b.y;
         m["z"] = b.z;
-        m["color"] = b.color; // QColor as QVariant -> QML handles it
+        m["color"] = b.color;  // QColor as QVariant -> QML handles it
         list.append(m);
     }
     return list;
@@ -126,12 +128,18 @@ void SandboxManager::updateBody(const QString& id, const QVariantMap& changes) {
         emit errorOccurred(QString("updateBody: no body with id %1").arg(id));
         return;
     }
-    if (changes.contains("name")) b->name = changes.value("name").toString();
-    if (changes.contains("mass_kg")) b->mass_kg = changes.value("mass_kg").toDouble();
-    if (changes.contains("radius_m")) b->radius_m = changes.value("radius_m").toDouble();
-    if (changes.contains("x")) b->x = changes.value("x").toDouble();
-    if (changes.contains("y")) b->y = changes.value("y").toDouble();
-    if (changes.contains("z")) b->z = changes.value("z").toDouble();
+    if (changes.contains("name"))
+        b->name = changes.value("name").toString();
+    if (changes.contains("mass_kg"))
+        b->mass_kg = changes.value("mass_kg").toDouble();
+    if (changes.contains("radius_m"))
+        b->radius_m = changes.value("radius_m").toDouble();
+    if (changes.contains("x"))
+        b->x = changes.value("x").toDouble();
+    if (changes.contains("y"))
+        b->y = changes.value("y").toDouble();
+    if (changes.contains("z"))
+        b->z = changes.value("z").toDouble();
     if (changes.contains("color")) {
         QVariant v = changes.value("color");
         if (v.userType() == QMetaType::QColor) {
@@ -147,7 +155,7 @@ void SandboxManager::updateBody(const QString& id, const QVariantMap& changes) {
 
 void SandboxManager::removeBody(const QString& id) {
     auto it = std::find_if(m_bodies.begin(), m_bodies.end(),
-        [&](const BodyDescriptor& b) { return b.id == id; });
+                           [&](const BodyDescriptor& b) { return b.id == id; });
     if (it == m_bodies.end()) {
         emit errorOccurred(QString("removeBody: no body with id %1").arg(id));
         return;
@@ -167,7 +175,8 @@ void SandboxManager::clear() {
 }
 
 void SandboxManager::setActive(bool active) {
-    if (m_isActive == active) return;
+    if (m_isActive == active)
+        return;
     m_isActive = active;
     emit isActiveChanged();
 }
@@ -257,4 +266,4 @@ QString SandboxManager::defaultSaveDir() const {
     return dir;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

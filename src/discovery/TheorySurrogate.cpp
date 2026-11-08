@@ -1,7 +1,7 @@
 #include "TheorySurrogate.h"
-#include <stdexcept>
 #include <numeric>
 #include <random>
+#include <stdexcept>
 
 namespace quantumverse {
 namespace discovery {
@@ -10,19 +10,19 @@ TheorySurrogate::TheorySurrogate()
     : length_scale_(1.0),
       sigma_f_(1.0),
       noise_lambda_(1e-3),
-      cached_(false)
-{
-}
+      cached_(false) {}
 
 TheorySurrogate::TheorySurrogate(double length_scale, double sigma_f, double noise_lambda)
     : length_scale_(length_scale),
       sigma_f_(sigma_f),
       noise_lambda_(noise_lambda),
-      cached_(false)
-{
-    if (length_scale <= 0.0) throw std::invalid_argument("length_scale must be positive");
-    if (sigma_f <= 0.0) throw std::invalid_argument("sigma_f must be positive");
-    if (noise_lambda < 0.0) throw std::invalid_argument("noise_lambda must be non-negative");
+      cached_(false) {
+    if (length_scale <= 0.0)
+        throw std::invalid_argument("length_scale must be positive");
+    if (sigma_f <= 0.0)
+        throw std::invalid_argument("sigma_f must be positive");
+    if (noise_lambda < 0.0)
+        throw std::invalid_argument("noise_lambda must be non-negative");
 }
 
 void TheorySurrogate::addTrainingPoint(const std::vector<double>& params, double reward) {
@@ -35,11 +35,10 @@ void TheorySurrogate::setTrainingData(const std::vector<DataPoint>& data) {
     cached_ = false;
 }
 
-double TheorySurrogate::rbfKernel(const std::vector<double>& a,
-                                   const std::vector<double>& b,
-                                   double length_scale,
-                                   double sigma_f) {
-    if (a.size() != b.size()) return 0.0;
+double TheorySurrogate::rbfKernel(const std::vector<double>& a, const std::vector<double>& b,
+                                  double length_scale, double sigma_f) {
+    if (a.size() != b.size())
+        return 0.0;
     double sq_dist = 0.0;
     for (size_t i = 0; i < a.size(); ++i) {
         double d = a[i] - b[i];
@@ -60,11 +59,12 @@ void TheorySurrogate::rebuildCache() const {
     // Build kernel matrix K_{ij} = k(x_i, x_j)
     K_.assign(n, std::vector<double>(n, 0.0));
     for (size_t i = 0; i < n; ++i) {
-        K_[i][i] = rbfKernel(training_data_[i].first, training_data_[i].first,
-                             length_scale_, sigma_f_) + noise_lambda_;
+        K_[i][i] =
+            rbfKernel(training_data_[i].first, training_data_[i].first, length_scale_, sigma_f_) +
+            noise_lambda_;
         for (size_t j = i + 1; j < n; ++j) {
-            double k = rbfKernel(training_data_[i].first, training_data_[j].first,
-                                 length_scale_, sigma_f_);
+            double k = rbfKernel(training_data_[i].first, training_data_[j].first, length_scale_,
+                                 sigma_f_);
             K_[i][j] = k;
             K_[j][i] = k;
         }
@@ -117,14 +117,16 @@ void TheorySurrogate::rebuildCache() const {
     cached_ = true;
 }
 
-void TheorySurrogate::predict(const std::vector<double>& x, double& out_mean, double& out_std) const {
+void TheorySurrogate::predict(const std::vector<double>& x, double& out_mean,
+                              double& out_std) const {
     if (training_data_.empty()) {
         out_mean = 0.0;
         out_std = 1.0;
         return;
     }
 
-    if (!cached_) rebuildCache();
+    if (!cached_)
+        rebuildCache();
 
     size_t n = training_data_.size();
     std::vector<double> k_star(n);
@@ -155,17 +157,18 @@ void TheorySurrogate::predict(const std::vector<double>& x, double& out_mean, do
     // L was built in rebuildCache; we need to extract it
     // Since K_ is stored but L isn't, let's just do another forward/back solve
     // For efficiency, we can use the fact that we already have K_
-    
+
     // Simple approach: compute var = k_xx - sum_i sum_j k_i * (K^{-1})_{ij} * k_j
     // We already have alpha for the full solve, but we need k* inverse here
     // For simplicity, use a small-scale direct solve approach
-    
+
     // Use the cached K_ and a simple solve
     std::vector<std::vector<double>> A = K_;
     std::vector<double> b = k_star;
-    
+
     const double jitter = 1e-6;
-    for (size_t i = 0; i < n; ++i) A[i][i] += jitter;
+    for (size_t i = 0; i < n; ++i)
+        A[i][i] += jitter;
 
     // Cholesky
     std::vector<std::vector<double>> Lmat(n, std::vector<double>(n, 0.0));
@@ -211,8 +214,10 @@ void TheorySurrogate::predict(const std::vector<double>& x, double& out_mean, do
 }
 
 double TheorySurrogate::predictiveVariance(const std::vector<double>& x) const {
-    if (training_data_.empty()) return 1.0;
-    if (!cached_) rebuildCache();
+    if (training_data_.empty())
+        return 1.0;
+    if (!cached_)
+        rebuildCache();
 
     size_t n = training_data_.size();
     std::vector<double> k_star(n);
@@ -231,7 +236,8 @@ double TheorySurrogate::predictiveVariance(const std::vector<double>& x) const {
     std::vector<std::vector<double>> A = K_;
     std::vector<double> b = k_star;
     const double jitter = 1e-6;
-    for (size_t i = 0; i < n; ++i) A[i][i] += jitter;
+    for (size_t i = 0; i < n; ++i)
+        A[i][i] += jitter;
 
     std::vector<std::vector<double>> Lmat(n, std::vector<double>(n, 0.0));
     for (size_t i = 0; i < n; ++i) {
@@ -271,5 +277,5 @@ double TheorySurrogate::predictiveVariance(const std::vector<double>& x) const {
     return std::max(0.0, k_xx - kTv);
 }
 
-} // namespace discovery
-} // namespace quantumverse
+}  // namespace discovery
+}  // namespace quantumverse

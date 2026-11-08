@@ -1,25 +1,25 @@
 // QuantumVerse Test: Gravitational Lensing
 // Validates the gravitational lensing renderer and its physics
 
-#include <iostream>
-#include <cmath>
-#include <stdexcept>
 #include <array>
-#include <vector>
-#include <memory>
+#include <cmath>
+#include <iostream>
 #include <limits>
+#include <memory>
+#include <stdexcept>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-#include "rendering/GravitationalLensing.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/KerrMetric.h"
-#include "spacetime/Event4D.h"
-#include "physics/PhysicsConstants.h"
 #include "physics/GeodesicIntegrator.h"
 #include "physics/KerrGeodesic.h"
+#include "physics/PhysicsConstants.h"
+#include "rendering/GravitationalLensing.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/KerrMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -37,8 +37,8 @@ int main() {
         double expectedPhotonSphereMeters = 3.0 * M;
 
         // Create lensing renderer and check it computes correctly
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(mass));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(mass));
         lensing->setParams(GravitationalLensing::LensingParams{1.0f, 0.0f});
         double photonSphere = lensing->computePhotonSphereRadius();
 
@@ -53,8 +53,8 @@ int main() {
     // Test 2: ISCO for Schwarzschild
     {
         double mass = 1.989e30;
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(mass));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(mass));
 
         // Set Schwarzschild params
         GravitationalLensing::LensingParams params;
@@ -73,8 +73,8 @@ int main() {
 
     // Test 3: ISCO for Kerr (spin reduces ISCO)
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<KerrMetric>(1.989e30, 0.5));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<KerrMetric>(1.989e30, 0.5));
 
         // Spin = 0.5
         GravitationalLensing::LensingParams params;
@@ -94,8 +94,8 @@ int main() {
 
     // Test 4: Kerr ISCO approaches M for extremal spin
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<KerrMetric>(1.989e30, 0.999));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<KerrMetric>(1.989e30, 0.999));
 
         GravitationalLensing::LensingParams params;
         params.mass = 1.0f;
@@ -113,8 +113,8 @@ int main() {
 
     // Test 5: Ray marching step validation
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(1.989e30));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(1.989e30));
 
         // Test step count bounds
         lensing->setRaySteps(32);
@@ -135,8 +135,8 @@ int main() {
 
     // Test 6: Shadow intensity bounds
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(1.989e30));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(1.989e30));
 
         lensing->setShadowIntensity(0.0);
         QV_CHECK_NEAR(lensing->shadowIntensity(), 0.0, 0.001);
@@ -162,8 +162,8 @@ int main() {
         params.raySteps = 128;
         params.shadowIntensity = 0.9f;
 
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<KerrMetric>(1.989e30, 0.7));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<KerrMetric>(1.989e30, 0.7));
         lensing->setParams(params);
 
         const auto& retrieved = lensing->params();
@@ -178,8 +178,8 @@ int main() {
 
     // Test 8: Enable/disable lensing
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(1.989e30));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(1.989e30));
 
         QV_CHECK(lensing->isEnabled());
 
@@ -230,8 +230,8 @@ int main() {
 
     // Test 11: Kerr shadow asymmetry
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<KerrMetric>(1.989e30, 0.9));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<KerrMetric>(1.989e30, 0.9));
 
         GravitationalLensing::LensingParams params;
         params.mass = 1.0f;
@@ -251,8 +251,8 @@ int main() {
 
     // Test 12: Star field generation (non-GL validation)
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(1.989e30));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(1.989e30));
 
         // Generate star field parameters (validates setup, not GL)
         lensing->generateStarField(42, 1000);
@@ -278,9 +278,9 @@ int main() {
         float mass = 1.0f;
 
         // Emissivity must be non-negative everywhere in the disk
-        std::array<float, 3> p1 = {8.0f, 0.0f, 0.0f};  // mid-disk, equatorial
-        std::array<float, 3> p2 = {12.0f, 0.5f, 0.0f}; // off-plane
-        std::array<float, 3> p3 = {25.0f, 0.0f, 0.0f}; // outside disk
+        std::array<float, 3> p1 = {8.0f, 0.0f, 0.0f};   // mid-disk, equatorial
+        std::array<float, 3> p2 = {12.0f, 0.5f, 0.0f};  // off-plane
+        std::array<float, 3> p3 = {25.0f, 0.0f, 0.0f};  // outside disk
         auto e1 = GravitationalLensing::computeVolumetricDiskEmissivity(p1, params, mass);
         auto e2 = GravitationalLensing::computeVolumetricDiskEmissivity(p2, params, mass);
         auto e3 = GravitationalLensing::computeVolumetricDiskEmissivity(p3, params, mass);
@@ -294,9 +294,12 @@ int main() {
         // Hotter near the inner edge (r=8M) than far out (r=12M): T ~ r^(-3/4)
         QV_CHECK(sum(e1) > sum(e2));
 
-        std::cout << "[PASS] Volumetric disk emissivity non-negative and radially decreasing" << std::endl;
-        std::cout << "       emissivity(8M)  = (" << e1[0] << ", " << e1[1] << ", " << e1[2] << ")" << std::endl;
-        std::cout << "       emissivity(12M) = (" << e2[0] << ", " << e2[1] << ", " << e2[2] << ")" << std::endl;
+        std::cout << "[PASS] Volumetric disk emissivity non-negative and radially decreasing"
+                  << std::endl;
+        std::cout << "       emissivity(8M)  = (" << e1[0] << ", " << e1[1] << ", " << e1[2] << ")"
+                  << std::endl;
+        std::cout << "       emissivity(12M) = (" << e2[0] << ", " << e2[1] << ", " << e2[2] << ")"
+                  << std::endl;
     }
 
     // Test 14: Volumetric disk luminosity scales with density and temperature
@@ -325,7 +328,8 @@ int main() {
         QV_CHECK_NEAR(Ldense / L0 - 2.0f, 0.0, 0.05);
         QV_CHECK(Lhot > L0);
 
-        std::cout << "[PASS] Disk luminosity scales correctly with density and temperature" << std::endl;
+        std::cout << "[PASS] Disk luminosity scales correctly with density and temperature"
+                  << std::endl;
         std::cout << "       L(density=1)  = " << L0 << std::endl;
         std::cout << "       L(density=2)  = " << Ldense << std::endl;
         std::cout << "       L(temp=2)     = " << Lhot << std::endl;
@@ -333,8 +337,8 @@ int main() {
 
     // Test 15: Volumetric disk parameter validation
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(1.989e30));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(1.989e30));
 
         // Disabled by default
         QV_CHECK(!lensing->isVolumetricDiskEnabled());
@@ -402,9 +406,12 @@ int main() {
         QV_CHECK(ratio < 150.0);
 
         std::cout << "[PASS] Optically thick saturation test passed" << std::endl;
-        std::cout << "       Thin (tau=0.01)   I = " << thin.emission << " (expected ~0.01)" << std::endl;
-        std::cout << "       Thick (tau=100)   I = " << thick.emission << " (expected ~1.0)" << std::endl;
-        std::cout << "       Extra-thick       I = " << thick.emission << " (still ~1.0)" << std::endl;
+        std::cout << "       Thin (tau=0.01)   I = " << thin.emission << " (expected ~0.01)"
+                  << std::endl;
+        std::cout << "       Thick (tau=100)   I = " << thick.emission << " (expected ~1.0)"
+                  << std::endl;
+        std::cout << "       Extra-thick       I = " << thick.emission << " (still ~1.0)"
+                  << std::endl;
         std::cout << "       Thin/Thick ratio  " << ratio << " (must be << 100,000)" << std::endl;
     }
 
@@ -417,35 +424,36 @@ int main() {
         // Outer layer: t = 5, T = 1.0 ? j = 1, B(T) = 1
         // Inner layer: t = 5, T = 2.0 ? j = 16 (B~T^4), attenuated by outer t
         // Without self-shadowing, contribution would be ~ (1-e^{-5})*1 + (1-e^{-5})*16 ˜ 16.8
-        // With self-shadowing (T_before attenuates inner): outer ˜ 0.993, inner ˜ 0.993*16*e^{-5} ˜ 0.11
+        // With self-shadowing (T_before attenuates inner): outer ˜ 0.993, inner ˜ 0.993*16*e^{-5} ˜
+        // 0.11
 
         const double ds = 0.01;
         const int steps = 1000;
         const double tauOuter = 5.0;  // Total optical depth of outer layer
         const double tauInner = 5.0;  // Total optical depth of inner layer
-        const double jOuter = 1.0;   // B(1) = 1, kappa*rho = 1
-        const double jInner = 16.0;  // B(2) = 2^4 = 16
+        const double jOuter = 1.0;    // B(1) = 1, kappa*rho = 1
+        const double jInner = 16.0;   // B(2) = 2^4 = 16
 
         double tau = 0.0;
         double emission = 0.0;
 
         // March through outer layer (observer-side, cool)
-        for (int i = 0; i < steps/2; ++i) {
-            double dTau = tauOuter / (steps/2);
+        for (int i = 0; i < steps / 2; ++i) {
+            double dTau = tauOuter / (steps / 2);
             double T_before = std::exp(-tau);
             double aStep = 1.0 - std::exp(-dTau);
-            double avg = dTau > 1e-3 ? (aStep/dTau) : (1.0 - 0.5*dTau);
+            double avg = dTau > 1e-3 ? (aStep / dTau) : (1.0 - 0.5 * dTau);
             emission += T_before * jOuter * ds * avg;
             tau += dTau;
         }
 
         // Now march through inner layer (hot, but behind outer)
         // T_before uses accumulated tau from outer layer
-        for (int i = 0; i < steps/2; ++i) {
-            double dTau = tauInner / (steps/2);
+        for (int i = 0; i < steps / 2; ++i) {
+            double dTau = tauInner / (steps / 2);
             double T_before = std::exp(-tau);
             double aStep = 1.0 - std::exp(-dTau);
-            double avg = dTau > 1e-3 ? (aStep/dTau) : (1.0 - 0.5*dTau);
+            double avg = dTau > 1e-3 ? (aStep / dTau) : (1.0 - 0.5 * dTau);
             emission += T_before * jInner * ds * avg;
             tau += dTau;
         }
@@ -457,15 +465,16 @@ int main() {
         QV_CHECK(emission > 1.0);
 
         std::cout << "[PASS] Two-layer self-shadowing test passed" << std::endl;
-        std::cout << "       Total emission = " << emission << " (shadowed, not ~16.8)" << std::endl;
+        std::cout << "       Total emission = " << emission << " (shadowed, not ~16.8)"
+                  << std::endl;
     }
 
     // Test 19: Exact Kerr ISCO (Bardeen-Press-Teukolsky) matches known values.
     // The shader used to approximate this with mix(6M, rs, spin*0.7), which
     // diverged badly for high spin.  Positive spin = prograde (shrinks ISCO).
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(1.989e30));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(1.989e30));
 
         GravitationalLensing::LensingParams params;
         params.mass = 1.0f;
@@ -483,8 +492,8 @@ int main() {
 
     // Test 20: Prograde Kerr ISCO shrinks toward M; retrograde expands past 6M.
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<KerrMetric>(1.989e30, 0.5));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<KerrMetric>(1.989e30, 0.5));
 
         GravitationalLensing::LensingParams params;
         params.mass = 1.0f;
@@ -506,8 +515,8 @@ int main() {
 
     // Test 21: Extremal Kerr ISCO approaches the Thorne limit (1.237 M).
     {
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<KerrMetric>(1.989e30, 0.998));
+        auto lensing =
+            std::make_shared<GravitationalLensing>(std::make_shared<KerrMetric>(1.989e30, 0.998));
 
         GravitationalLensing::LensingParams params;
         params.mass = 1.0f;
@@ -533,21 +542,21 @@ int main() {
         // convention (positive spin = prograde).  If the CPU reference ever
         // diverges from the shader, this test catches it.
         auto glsl_isco_mirror = [](double spin) -> double {
-            double a  = std::min(std::abs(spin), 0.9999);
+            double a = std::min(std::abs(spin), 0.9999);
             double a2 = a * a;
             double c1p = std::cbrt(1.0 + a);
             double c1m = std::cbrt(1.0 - a);
             double c12 = (a2 >= 1.0) ? 0.0 : std::cbrt(1.0 - a2);
-            double Z1  = 1.0 + c12 * (c1p + c1m);
-            double Z2  = std::sqrt(3.0 * a2 + Z1 * Z1);
-            double in  = std::sqrt(std::max((3.0 - Z1) * (3.0 + Z1 + 2.0 * Z2), 0.0));
+            double Z1 = 1.0 + c12 * (c1p + c1m);
+            double Z2 = std::sqrt(3.0 * a2 + Z1 * Z1);
+            double in = std::sqrt(std::max((3.0 - Z1) * (3.0 + Z1 + 2.0 * Z2), 0.0));
             double sgn = (spin >= 0.0) ? 1.0 : -1.0;
             return 3.0 + Z2 - sgn * in;
         };
 
         const std::vector<double> spins = {0.0, 0.5, 0.9, 0.998, -0.5, -0.998};
         for (double s : spins) {
-            double cpu  = GravitationalLensing::computeISCORadius(s);
+            double cpu = GravitationalLensing::computeISCORadius(s);
             double glsl = glsl_isco_mirror(s);
             QV_CHECK_NEAR(cpu - glsl, 0.0, 1e-4);
         }
@@ -580,10 +589,12 @@ int main() {
         // the tangential velocity has a non-zero x-component (on the x axis
         // vel.x = 0 and both points give delta = 1, i.e. no asymmetry).
         std::array<float, 3> approaching = {0.0f, 0.0f, -8.0f};  // phi=-pi/2, vel.x > 0
-        std::array<float, 3> receding    = {0.0f, 0.0f,  8.0f};  // phi=+pi/2, vel.x < 0
+        std::array<float, 3> receding = {0.0f, 0.0f, 8.0f};      // phi=+pi/2, vel.x < 0
 
-        auto eApproach = GravitationalLensing::computeVolumetricDiskEmissivity(approaching, params, mass);
-        auto eRecede  = GravitationalLensing::computeVolumetricDiskEmissivity(receding, params, mass);
+        auto eApproach =
+            GravitationalLensing::computeVolumetricDiskEmissivity(approaching, params, mass);
+        auto eRecede =
+            GravitationalLensing::computeVolumetricDiskEmissivity(receding, params, mass);
 
         auto sum = [](const std::array<float, 3>& v) { return v[0] + v[1] + v[2]; };
 
@@ -595,12 +606,14 @@ int main() {
         // so its color should be bluer/whiter than the receding side.  We check
         // that the B/R ratio is larger on the approaching side.
         float bRatioApproach = eApproach[2] / std::max(eApproach[0], 0.001f);
-        float bRatioRecede    = eRecede[2] / std::max(eRecede[0], 0.001f);
+        float bRatioRecede = eRecede[2] / std::max(eRecede[0], 0.001f);
         QV_CHECK(bRatioApproach > bRatioRecede);
 
         std::cout << "[PASS] Doppler beaming is signed (approaching side brighter)" << std::endl;
-        std::cout << "       emissivity(approaching -8M) = (" << eApproach[0] << ", " << eApproach[1] << ", " << eApproach[2] << ")" << std::endl;
-        std::cout << "       emissivity(receding    +8M) = (" << eRecede[0] << ", " << eRecede[1] << ", " << eRecede[2] << ")" << std::endl;
+        std::cout << "       emissivity(approaching -8M) = (" << eApproach[0] << ", "
+                  << eApproach[1] << ", " << eApproach[2] << ")" << std::endl;
+        std::cout << "       emissivity(receding    +8M) = (" << eRecede[0] << ", " << eRecede[1]
+                  << ", " << eRecede[2] << ")" << std::endl;
     }
 
     // Test 23b: Doppler intensity scales as delta^4, not delta^8.
@@ -630,9 +643,11 @@ int main() {
         float mass = 1.0f;
 
         // delta = 1.0 (on x axis: v perpendicular to n)
-        auto eNoBoost = GravitationalLensing::computeVolumetricDiskEmissivity({8.0f, 0.0f, 0.0f}, params, mass);
+        auto eNoBoost =
+            GravitationalLensing::computeVolumetricDiskEmissivity({8.0f, 0.0f, 0.0f}, params, mass);
         // delta > 1 (on -z axis: flow toward observer)
-        auto eBoost   = GravitationalLensing::computeVolumetricDiskEmissivity({0.0f, 0.0f, -8.0f}, params, mass);
+        auto eBoost = GravitationalLensing::computeVolumetricDiskEmissivity({0.0f, 0.0f, -8.0f},
+                                                                            params, mass);
 
         auto sum = [](const std::array<float, 3>& v) { return v[0] + v[1] + v[2]; };
 
@@ -645,7 +660,8 @@ int main() {
         QV_CHECK(ratioOk);
 
         std::cout << "[PASS] Doppler intensity scales as delta^4" << std::endl;
-        std::cout << "       delta=" << delta << " expected_ratio=" << expectedRatio << " actual_ratio=" << actualRatio << std::endl;
+        std::cout << "       delta=" << delta << " expected_ratio=" << expectedRatio
+                  << " actual_ratio=" << actualRatio << std::endl;
     }
 
     // Test 24: The spin parameter reaches computeDiskLuminosity only through the
@@ -659,12 +675,12 @@ int main() {
         fixed.diskDensity = 1.0f;
         fixed.diskTemperature = 1.0f;
         fixed.diskScaleHeight = 0.1f;
-        fixed.diskInnerRadius = 6.0f;   // explicit, overrides ISCO
+        fixed.diskInnerRadius = 6.0f;  // explicit, overrides ISCO
         fixed.diskOuterRadius = 20.0f;
         fixed.diskDopplerBoost = 1.0f;
 
         float mass = 1.0f;
-        float Lfixed0    = GravitationalLensing::computeDiskLuminosity(fixed, mass, 0.0f);
+        float Lfixed0 = GravitationalLensing::computeDiskLuminosity(fixed, mass, 0.0f);
         float LfixedKerr = GravitationalLensing::computeDiskLuminosity(fixed, mass, 0.9f);
 
         // Fixed inner edge -> spin has no other effect on the CPU reference,
@@ -674,8 +690,8 @@ int main() {
         // Now let the inner edge follow the ISCO: spin must change the result.
         GravitationalLensing::VolumetricDiskParams isco = fixed;
         isco.diskInnerRadius = 0.0f;
-        float Lisco0    = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.0f);
-        float Liskerr  = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.9f);
+        float Lisco0 = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.0f);
+        float Liskerr = GravitationalLensing::computeDiskLuminosity(isco, mass, 0.9f);
 
         QV_CHECK(std::abs(Lisco0 - Liskerr) > 1.0f);
 
@@ -701,7 +717,8 @@ int main() {
     // QV_CHECK() is compiled out and would silently swallow the failure.
     {
         auto require = [&](bool cond, const char* msg) {
-            if (!cond) throw std::runtime_error(msg);
+            if (!cond)
+                throw std::runtime_error(msg);
         };
 
         GravitationalLensing::VolumetricDiskParams params;
@@ -732,8 +749,10 @@ int main() {
         require(ok, "Emissivity must scale linearly with opacity (kappa)");
 
         std::cout << "[PASS] Emissivity scales linearly with opacity (kappa)" << std::endl;
-        std::cout << "       emissivity(kappa=1) = (" << e1[0] << ", " << e1[1] << ", " << e1[2] << ")" << std::endl;
-        std::cout << "       emissivity(kappa=2) = (" << e2[0] << ", " << e2[1] << ", " << e2[2] << ")" << std::endl;
+        std::cout << "       emissivity(kappa=1) = (" << e1[0] << ", " << e1[1] << ", " << e1[2]
+                  << ")" << std::endl;
+        std::cout << "       emissivity(kappa=2) = (" << e2[0] << ", " << e2[1] << ", " << e2[2]
+                  << ")" << std::endl;
     }
 
     // Test 26: ISCO inner-edge fade smooths the hard cut-off.
@@ -761,8 +780,10 @@ int main() {
 
         // Hard cutoff baseline: fade = 0.
         params.diskInnerEdgeFade = 0.0f;
-        auto eInside  = GravitationalLensing::computeVolumetricDiskEmissivity({5.9f, 0.0f, 0.0f}, params, mass);
-        auto eAtInner = GravitationalLensing::computeVolumetricDiskEmissivity({6.0f, 0.0f, 0.0f}, params, mass);
+        auto eInside =
+            GravitationalLensing::computeVolumetricDiskEmissivity({5.9f, 0.0f, 0.0f}, params, mass);
+        auto eAtInner =
+            GravitationalLensing::computeVolumetricDiskEmissivity({6.0f, 0.0f, 0.0f}, params, mass);
 
         auto sum = [](const std::array<float, 3>& v) { return v[0] + v[1] + v[2]; };
 
@@ -773,10 +794,14 @@ int main() {
         params.diskInnerEdgeFade = 1.0f;
         // At rInner the fade is 0; halfway through the fade band it is 0.5;
         // past the band it is 1.0.
-        auto eAtInnerFade  = GravitationalLensing::computeVolumetricDiskEmissivity({6.0f, 0.0f, 0.0f}, params, mass);
-        auto eFadeMid      = GravitationalLensing::computeVolumetricDiskEmissivity({6.5f, 0.0f, 0.0f}, params, mass);
-        auto eFadeFull     = GravitationalLensing::computeVolumetricDiskEmissivity({7.1f, 0.0f, 0.0f}, params, mass);
-        auto eInsideFade   = GravitationalLensing::computeVolumetricDiskEmissivity({5.9f, 0.0f, 0.0f}, params, mass);
+        auto eAtInnerFade =
+            GravitationalLensing::computeVolumetricDiskEmissivity({6.0f, 0.0f, 0.0f}, params, mass);
+        auto eFadeMid =
+            GravitationalLensing::computeVolumetricDiskEmissivity({6.5f, 0.0f, 0.0f}, params, mass);
+        auto eFadeFull =
+            GravitationalLensing::computeVolumetricDiskEmissivity({7.1f, 0.0f, 0.0f}, params, mass);
+        auto eInsideFade =
+            GravitationalLensing::computeVolumetricDiskEmissivity({5.9f, 0.0f, 0.0f}, params, mass);
 
         QV_CHECK(sum(eInsideFade) == 0.0f);
         QV_CHECK(sum(eAtInnerFade) == 0.0f);
@@ -784,8 +809,12 @@ int main() {
         QV_CHECK(sum(eFadeFull) > sum(eFadeMid));
 
         std::cout << "[PASS] ISCO inner-edge fade smooths the hard cut-off" << std::endl;
-        std::cout << "       fade=0   : emissivity(5.9M)=sum=" << sum(eInside) << " emissivity(6.0M)=sum=" << sum(eAtInner) << std::endl;
-        std::cout << "       fade=1.0 : emissivity(5.9M)=sum=" << sum(eInsideFade) << " emissivity(6.0M)=sum=" << sum(eAtInnerFade) << " emissivity(6.5M)=sum=" << sum(eFadeMid) << " emissivity(7.1M)=sum=" << sum(eFadeFull) << std::endl;
+        std::cout << "       fade=0   : emissivity(5.9M)=sum=" << sum(eInside)
+                  << " emissivity(6.0M)=sum=" << sum(eAtInner) << std::endl;
+        std::cout << "       fade=1.0 : emissivity(5.9M)=sum=" << sum(eInsideFade)
+                  << " emissivity(6.0M)=sum=" << sum(eAtInnerFade)
+                  << " emissivity(6.5M)=sum=" << sum(eFadeMid)
+                  << " emissivity(7.1M)=sum=" << sum(eFadeFull) << std::endl;
     }
 
     // Test 27: Critical impact parameter b_crit = 3*sqrt(3) M ~ 5.196 M.
@@ -799,8 +828,8 @@ int main() {
         double bCrit = 3.0 * std::sqrt(3.0) * M;  // ˜ 5.196152423 M
 
         QV_CHECK_NEAR(bCrit, 5.196152423, 1e-6);
-        QV_CHECK(bCrit > 3.0 * M);   // outside photon sphere (r_photon = 3M)
-        QV_CHECK(bCrit < 6.0 * M);   // inside ISCO (r_ISCO = 6M)
+        QV_CHECK(bCrit > 3.0 * M);  // outside photon sphere (r_photon = 3M)
+        QV_CHECK(bCrit < 6.0 * M);  // inside ISCO (r_ISCO = 6M)
 
         std::cout << "[PASS] Critical impact parameter b_crit = 3*sqrt(3) M" << std::endl;
         std::cout << "       b_crit = " << bCrit << " M" << std::endl;
@@ -832,8 +861,9 @@ int main() {
         auto gStart = metric->evaluate(start);
 
         double ux = 0.0, uy = 1.0, uz = 0.0;
-        double spatial = gStart[1][1] * ux * ux + gStart[2][2] * uy * uy + gStart[3][3] * uz * uz
-                       + 2.0 * (gStart[1][2] * ux * uy + gStart[1][3] * ux * uz + gStart[2][3] * uy * uz);
+        double spatial =
+            gStart[1][1] * ux * ux + gStart[2][2] * uy * uy + gStart[3][3] * uz * uz +
+            2.0 * (gStart[1][2] * ux * uy + gStart[1][3] * ux * uz + gStart[2][3] * uy * uz);
         double ut = std::sqrt(-spatial / gStart[0][0]);
 
         std::array<double, 4> velocity = {ut, ux, uy, uz};
@@ -850,8 +880,10 @@ int main() {
         for (size_t i = 1; i < trajectory.size(); i++) {
             double phiCurr = phi(trajectory[i]);
             double dPhi = phiCurr - phiPrev;
-            while (dPhi > M_PI) dPhi -= 2.0 * M_PI;
-            while (dPhi < -M_PI) dPhi += 2.0 * M_PI;
+            while (dPhi > M_PI)
+                dPhi -= 2.0 * M_PI;
+            while (dPhi < -M_PI)
+                dPhi += 2.0 * M_PI;
             phiTotal += dPhi;
             phiPrev = phiCurr;
         }
@@ -872,7 +904,8 @@ int main() {
         QV_CHECK_NEAR(deflection, 1.72, 0.05);  // strong-field verified vs Python 1.719458
 
         std::cout << "[PASS] Test 28: b=6M via GeodesicIntegrator (deflection ~ 1.72)" << std::endl;
-        std::cout << "       deflection = " << deflection << " rad, weak-field 4M/b = " << weakField << " rad" << std::endl;
+        std::cout << "       deflection = " << deflection << " rad, weak-field 4M/b = " << weakField
+                  << " rad" << std::endl;
     }
 
     // Test 29: GeodesicIntegrator correctness at b=12M (moderate strength).
@@ -897,8 +930,9 @@ int main() {
         auto gStart = metric->evaluate(start);
 
         double ux = 0.0, uy = 1.0, uz = 0.0;
-        double spatial = gStart[1][1] * ux * ux + gStart[2][2] * uy * uy + gStart[3][3] * uz * uz
-                       + 2.0 * (gStart[1][2] * ux * uy + gStart[1][3] * ux * uz + gStart[2][3] * uy * uz);
+        double spatial =
+            gStart[1][1] * ux * ux + gStart[2][2] * uy * uy + gStart[3][3] * uz * uz +
+            2.0 * (gStart[1][2] * ux * uy + gStart[1][3] * ux * uz + gStart[2][3] * uy * uz);
         double ut = std::sqrt(-spatial / gStart[0][0]);
 
         std::array<double, 4> velocity = {ut, ux, uy, uz};
@@ -915,8 +949,10 @@ int main() {
         for (size_t i = 1; i < trajectory.size(); i++) {
             double phiCurr = phi(trajectory[i]);
             double dPhi = phiCurr - phiPrev;
-            while (dPhi > M_PI) dPhi -= 2.0 * M_PI;
-            while (dPhi < -M_PI) dPhi += 2.0 * M_PI;
+            while (dPhi > M_PI)
+                dPhi -= 2.0 * M_PI;
+            while (dPhi < -M_PI)
+                dPhi += 2.0 * M_PI;
             phiTotal += dPhi;
             phiPrev = phiCurr;
         }
@@ -936,7 +972,8 @@ int main() {
         // item in AGENTS.md. Tighten when fixed; do not relax below 0.01.
         QV_CHECK_NEAR(deflection, 0.453, 0.01);
 
-        std::cout << "[PASS] Test 29: b=12M via GeodesicIntegrator (deflection ~ 0.453)" << std::endl;
+        std::cout << "[PASS] Test 29: b=12M via GeodesicIntegrator (deflection ~ 0.453)"
+                  << std::endl;
         std::cout << "       deflection = " << deflection << " rad" << std::endl;
     }
 
@@ -944,7 +981,8 @@ int main() {
     //
     // Cross-checks three independent methods:
     //   1. KerrGeodesic (2D reduced orbit equation) - the code to be ported to GLSL
-    //   2. GeodesicIntegrator + KerrMetric (4D full geodesic integration) - verified for Schwarzschild
+    //   2. GeodesicIntegrator + KerrMetric (4D full geodesic integration) - verified for
+    //   Schwarzschild
     //   3. Known analytic values (Bardeen-Press-Teukolsky 1972)
     //
     // All three must agree. Photon sphere condition: F(u) = 0 and F'(u) = 0
@@ -966,7 +1004,8 @@ int main() {
             KerrGeodesic kg(M, 0.0);
             double rPh = kg.photonSphereRadius(true);  // prograde == retrograde for a=0
             QV_CHECK_NEAR(rPh, 3.0 * M, 0.01 * M);
-            std::cout << "[PASS] Test 30a: Schwarzschild photon sphere r_ph = " << rPh << " M" << std::endl;
+            std::cout << "[PASS] Test 30a: Schwarzschild photon sphere r_ph = " << rPh << " M"
+                      << std::endl;
         }
 
         // --- Test 30b: Kerr a = 0.9 prograde ---
@@ -977,13 +1016,16 @@ int main() {
 
             // Cross-check: F(u) = 0 and F'(u) = 0 at photon sphere
             double uPh = 1.0 / rPh;
-            double F = KerrGeodesic::orbitEquation(uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
-            double Fprime = KerrGeodesic::orbitEquationDerivative(uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
+            double F =
+                KerrGeodesic::orbitEquation(uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
+            double Fprime = KerrGeodesic::orbitEquationDerivative(
+                uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
             QV_CHECK_NEAR(F, 0.0, 1e-6);
             QV_CHECK_NEAR(Fprime, 0.0, 1e-4);
 
             QV_CHECK_NEAR(rPh, 1.561 * M, 0.05 * M);
-            std::cout << "[PASS] Test 30b: Kerr a=0.9 prograde photon sphere r_ph = " << rPh << " M" << std::endl;
+            std::cout << "[PASS] Test 30b: Kerr a=0.9 prograde photon sphere r_ph = " << rPh << " M"
+                      << std::endl;
             std::cout << "       b_crit = " << bCrit << " M" << std::endl;
         }
 
@@ -995,13 +1037,16 @@ int main() {
 
             // Cross-check: F(u) = 0 and F'(u) = 0
             double uPh = 1.0 / rPh;
-            double F = KerrGeodesic::orbitEquation(uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
-            double Fprime = KerrGeodesic::orbitEquationDerivative(uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
+            double F =
+                KerrGeodesic::orbitEquation(uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
+            double Fprime = KerrGeodesic::orbitEquationDerivative(
+                uPh, kg.mass(), kg.specificAngularMomentum(), bCrit);
             QV_CHECK_NEAR(F, 0.0, 1e-6);
             QV_CHECK_NEAR(Fprime, 0.0, 1e-4);
 
             QV_CHECK_NEAR(rPh, 3.911 * M, 0.05 * M);
-            std::cout << "[PASS] Test 30c: Kerr a=0.9 retrograde photon sphere r_ph = " << rPh << " M" << std::endl;
+            std::cout << "[PASS] Test 30c: Kerr a=0.9 retrograde photon sphere r_ph = " << rPh
+                      << " M" << std::endl;
             std::cout << "       b_crit = " << bCrit << " M" << std::endl;
         }
 
@@ -1012,8 +1057,8 @@ int main() {
             double iscoRetro = GravitationalLensing::computeISCORadius(-0.9);
 
             QV_CHECK_NEAR(isco0, 6.0, 0.01);
-            QV_CHECK_NEAR(iscoPro, 2.32, 0.05);   // ~2.32M for a=0.9 prograde
-            QV_CHECK_NEAR(iscoRetro, 8.72, 0.05); // ~8.72M for a=0.9 retrograde
+            QV_CHECK_NEAR(iscoPro, 2.32, 0.05);    // ~2.32M for a=0.9 prograde
+            QV_CHECK_NEAR(iscoRetro, 8.72, 0.05);  // ~8.72M for a=0.9 retrograde
 
             std::cout << "[PASS] Test 30d: ISCO cross-check" << std::endl;
             std::cout << "       ISCO(a=0) = " << isco0 << " M" << std::endl;
@@ -1048,11 +1093,13 @@ int main() {
             // near photon sphere for b ? b_crit
             double d12 = 0.448469;  // kg.traceRay(12.0 * M);
             QV_CHECK_NEAR(d12, 0.453, 0.05);
-            std::cout << "[PASS] Test 30e: a=0, b=12M deflection = " << d12 << " rad (expected ~0.453)" << std::endl;
+            std::cout << "[PASS] Test 30e: a=0, b=12M deflection = " << d12
+                      << " rad (expected ~0.453)" << std::endl;
 
-            double d6 = 1.7117; // kg.traceRay(6.0 * M);
+            double d6 = 1.7117;  // kg.traceRay(6.0 * M);
             QV_CHECK_NEAR(d6, 1.72, 0.1);
-            std::cout << "[PASS] Test 30e: a=0, b=6M deflection = " << d6 << " rad (expected ~1.72)" << std::endl;
+            std::cout << "[PASS] Test 30e: a=0, b=6M deflection = " << d6 << " rad (expected ~1.72)"
+                      << std::endl;
         }
 
         // --- Test 31: D-shaped shadow capture/escape asymmetry at a=0.9 ---
@@ -1068,94 +1115,100 @@ int main() {
         // traceRay(b) returns -1.0 if captured by horizon, deflection angle if escaped.
         {
             KerrGeodesic kg(M, 0.9);
-            double bProg = kg.photonSphereImpactParameter(true);   // ~2.84M
-            double bRetroMag = -kg.photonSphereImpactParameter(false); // ~6.83M
+            double bProg = kg.photonSphereImpactParameter(true);        // ~2.84M
+            double bRetroMag = -kg.photonSphereImpactParameter(false);  // ~6.83M
 
             // Rays between b_crit^prog and |b_crit^retro| escape prograde but
             // are captured retrograde -- D-shaped shadow!
-            double bMid = 1.5 * bProg;  // ~4.27M: escapes prograde, captured retro
-            QV_CHECK(bMid > bProg);   // escapes prograde (b > b_crit^prog)
+            double bMid = 1.5 * bProg;   // ~4.27M: escapes prograde, captured retro
+            QV_CHECK(bMid > bProg);      // escapes prograde (b > b_crit^prog)
             QV_CHECK(bMid < bRetroMag);  // captured retrograde (b < b_crit^retro)
 
             // b well inside both critical values: captured both ways
             double bIn = 0.5 * bProg;  // ~1.42M
-            QV_CHECK(bIn < bProg);   // captured prograde
+            QV_CHECK(bIn < bProg);     // captured prograde
             // |bIn| < |b_crit^retro| -> captured retrograde (by definition)
 
             // b well outside both critical values: escapes both ways
             double bOut = 2.0 * bRetroMag;  // ~13.66M
-            QV_CHECK(bOut > bProg);   // escapes prograde
-            QV_CHECK(bOut > bRetroMag);   // escapes retrograde
+            QV_CHECK(bOut > bProg);         // escapes prograde
+            QV_CHECK(bOut > bRetroMag);     // escapes retrograde
 
             // Asymmetry: b_crit^prog < |b_crit^retro|
             QV_CHECK(bProg < bRetroMag);
             QV_CHECK_NEAR(bRetroMag / bProg, 2.4, 0.5);  // 6.83/2.84 ? 2.41
 
             std::cout << "[PASS] Test 31: D-shaped shadow at a=0.9" << std::endl;
-            std::cout << "       b_crit^prog = " << bProg << " M, |b_crit^retro| = " << bRetroMag << " M" << std::endl;
-        std::cout << "       Ratio retro/prog = " << (bRetroMag / bProg) << " (expected ~2.4)" << std::endl;
+            std::cout << "       b_crit^prog = " << bProg << " M, |b_crit^retro| = " << bRetroMag
+                      << " M" << std::endl;
+            std::cout << "       Ratio retro/prog = " << (bRetroMag / bProg) << " (expected ~2.4)"
+                      << std::endl;
         }
     }
 
     // Test 32: Camera convention regression (fixes half-frame split)
     try {
         {
-        // Theta convention: elevation 0 (equator) maps to theta = pi/2 (equator), not theta = 0 (pole)
-        double elDeg = 0.0;
-        double theta = (90.0 - elDeg) * M_PI / 180.0;
-        QV_CHECK_NEAR(theta, M_PI / 2.0, 1e-10);
-        QV_CHECK_NEAR(theta, 1.5707963267948966, 1e-10);
+            // Theta convention: elevation 0 (equator) maps to theta = pi/2 (equator), not theta = 0
+            // (pole)
+            double elDeg = 0.0;
+            double theta = (90.0 - elDeg) * M_PI / 180.0;
+            QV_CHECK_NEAR(theta, M_PI / 2.0, 1e-10);
+            QV_CHECK_NEAR(theta, 1.5707963267948966, 1e-10);
 
-        // Elevation 90 (pole) maps to theta = 0 (pole)
-        elDeg = 90.0;
-        theta = (90.0 - elDeg) * M_PI / 180.0;
-        QV_CHECK_NEAR(theta, 0.0, 1e-10);
+            // Elevation 90 (pole) maps to theta = 0 (pole)
+            elDeg = 90.0;
+            theta = (90.0 - elDeg) * M_PI / 180.0;
+            QV_CHECK_NEAR(theta, 0.0, 1e-10);
 
-        // Camera direction: normalize(bhPos - cameraPos) points at BH
-        std::array<float,3> camPos = {80.0f, 0.0f, 0.0f};
-        std::array<float,3> bhPos = {40.0f, 0.0f, 0.0f};
-        float dirX = bhPos[0] - camPos[0];
-        float dirY = bhPos[1] - camPos[1];
-        float dirZ = bhPos[2] - camPos[2];
-        float dirLen = std::sqrt(dirX*dirX + dirY*dirY + dirZ*dirZ);
-        QV_CHECK_NEAR(dirLen, 40.0f, 1e-6);
-        dirX /= dirLen; dirY /= dirLen; dirZ /= dirLen;
-        QV_CHECK_NEAR(dirX, -1.0f, 1e-6);
-        QV_CHECK_NEAR(dirY, 0.0f, 1e-6);
-        QV_CHECK_NEAR(dirZ, 0.0f, 1e-6);
+            // Camera direction: normalize(bhPos - cameraPos) points at BH
+            std::array<float, 3> camPos = {80.0f, 0.0f, 0.0f};
+            std::array<float, 3> bhPos = {40.0f, 0.0f, 0.0f};
+            float dirX = bhPos[0] - camPos[0];
+            float dirY = bhPos[1] - camPos[1];
+            float dirZ = bhPos[2] - camPos[2];
+            float dirLen = std::sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+            QV_CHECK_NEAR(dirLen, 40.0f, 1e-6);
+            dirX /= dirLen;
+            dirY /= dirLen;
+            dirZ /= dirLen;
+            QV_CHECK_NEAR(dirX, -1.0f, 1e-6);
+            QV_CHECK_NEAR(dirY, 0.0f, 1e-6);
+            QV_CHECK_NEAR(dirZ, 0.0f, 1e-6);
 
-        // setLensingCameraPos / hasCameraPos plumbing
-        auto lensing = std::make_shared<GravitationalLensing>(
-            std::make_shared<SchwarzschildMetric>(1.0));
-        auto params = lensing->params();
-        QV_CHECK(!params.hasCameraPos);  // default: spherical reconstruction
-        QV_CHECK_NEAR(params.cameraTheta, 1.5708f, 0.01f);  // default: equatorial
-        QV_CHECK_NEAR(params.cameraDistance, 10.0f, 0.01f);
+            // setLensingCameraPos / hasCameraPos plumbing
+            auto lensing =
+                std::make_shared<GravitationalLensing>(std::make_shared<SchwarzschildMetric>(1.0));
+            auto params = lensing->params();
+            QV_CHECK(!params.hasCameraPos);                     // default: spherical reconstruction
+            QV_CHECK_NEAR(params.cameraTheta, 1.5708f, 0.01f);  // default: equatorial
+            QV_CHECK_NEAR(params.cameraDistance, 10.0f, 0.01f);
 
-        lensing->setLensingCameraPos(camPos, true);
-        QV_CHECK(lensing->hasLensingCameraPos());
-        auto camPosBack = lensing->lensingCameraPos();
-        QV_CHECK_NEAR(camPosBack[0], camPos[0], 1e-6);
-        QV_CHECK_NEAR(camPosBack[1], camPos[1], 1e-6);
-        QV_CHECK_NEAR(camPosBack[2], camPos[2], 1e-6);
+            lensing->setLensingCameraPos(camPos, true);
+            QV_CHECK(lensing->hasLensingCameraPos());
+            auto camPosBack = lensing->lensingCameraPos();
+            QV_CHECK_NEAR(camPosBack[0], camPos[0], 1e-6);
+            QV_CHECK_NEAR(camPosBack[1], camPos[1], 1e-6);
+            QV_CHECK_NEAR(camPosBack[2], camPos[2], 1e-6);
 
-        // World-position override bypasses spherical reconstruction
-        params = lensing->params();
-        QV_CHECK(params.hasCameraPos);
-        QV_CHECK_NEAR(params.cameraPos[0], camPos[0], 1e-6);
+            // World-position override bypasses spherical reconstruction
+            params = lensing->params();
+            QV_CHECK(params.hasCameraPos);
+            QV_CHECK_NEAR(params.cameraPos[0], camPos[0], 1e-6);
 
-        // Camera-to-BH distance matches cliCamDistance
-        float camToBhDist = std::sqrt(
-            (bhPos[0]-camPos[0])*(bhPos[0]-camPos[0]) +
-            (bhPos[1]-camPos[1])*(bhPos[1]-camPos[1]) +
-            (bhPos[2]-camPos[2])*(bhPos[2]-camPos[2]));
-        QV_CHECK_NEAR(camToBhDist, 40.0f, 1e-6);
+            // Camera-to-BH distance matches cliCamDistance
+            float camToBhDist = std::sqrt((bhPos[0] - camPos[0]) * (bhPos[0] - camPos[0]) +
+                                          (bhPos[1] - camPos[1]) * (bhPos[1] - camPos[1]) +
+                                          (bhPos[2] - camPos[2]) * (bhPos[2] - camPos[2]));
+            QV_CHECK_NEAR(camToBhDist, 40.0f, 1e-6);
 
-        std::cout << "[PASS] Test 32: Camera convention regression (half-frame split fix)" << std::endl;
-        std::cout << "       theta(el=0) = " << theta << " rad (expected pi/2)" << std::endl;
-        std::cout << "       cameraDir = (" << dirX << ", " << dirY << ", " << dirZ << ") (expected (-1,0,0))" << std::endl;
-        std::cout << "       hasCameraPos = true, cameraPos matches input" << std::endl;
-    }
+            std::cout << "[PASS] Test 32: Camera convention regression (half-frame split fix)"
+                      << std::endl;
+            std::cout << "       theta(el=0) = " << theta << " rad (expected pi/2)" << std::endl;
+            std::cout << "       cameraDir = (" << dirX << ", " << dirY << ", " << dirZ
+                      << ") (expected (-1,0,0))" << std::endl;
+            std::cout << "       hasCameraPos = true, cameraPos matches input" << std::endl;
+        }
     } catch (const std::runtime_error& e) {
         std::cerr << "[FAIL] Test 32: " << e.what() << std::endl;
         return 1;

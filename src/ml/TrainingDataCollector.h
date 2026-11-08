@@ -10,13 +10,13 @@
 #ifndef QUANTUMVERSE_TRAINING_DATA_COLLECTOR_H
 #define QUANTUMVERSE_TRAINING_DATA_COLLECTOR_H
 
-#include <string>
-#include <vector>
+#include <fstream>
 #include <memory>
 #include <mutex>
-#include <fstream>
-#include "ml/FeatureVector.h"
+#include <string>
+#include <vector>
 #include "discovery/DiscoveryInstrument.h"
+#include "ml/FeatureVector.h"
 
 namespace quantumverse {
 
@@ -25,24 +25,24 @@ namespace quantumverse {
  */
 struct TrainingSample {
     FeatureVector features;
-    double timestamp = 0.0;          // Simulation time (seconds)
-    std::string scenarioName;        // Active scenario, if any
-    bool isAnomalous = false;        // Ground-truth label
-    std::string labelSource;         // "scenario", "manual", "instrument"
-    std::string description;         // Optional context
+    double timestamp = 0.0;    // Simulation time (seconds)
+    std::string scenarioName;  // Active scenario, if any
+    bool isAnomalous = false;  // Ground-truth label
+    std::string labelSource;   // "scenario", "manual", "instrument"
+    std::string description;   // Optional context
 };
 
 /**
  * @brief Collector configuration
  */
 struct CollectorConfig {
-    double sampleInterval = 1.0;     // Seconds between samples
-    int maxSamples = 10000;          // In-memory cap before flush
+    double sampleInterval = 1.0;  // Seconds between samples
+    int maxSamples = 10000;       // In-memory cap before flush
     std::string outputPath = "data/ml/training_data.json";
-    bool autoSave = true;            // Flush to disk on every N samples
-    int autoSaveInterval = 500;      // Flush every N samples
+    bool autoSave = true;        // Flush to disk on every N samples
+    int autoSaveInterval = 500;  // Flush every N samples
     bool labelFromScenarioEvents = true;
-    double anomalyEventWindow = 5.0; // Label surrounding time as anomalous
+    double anomalyEventWindow = 5.0;  // Label surrounding time as anomalous
 };
 
 /**
@@ -61,7 +61,7 @@ struct CollectorConfig {
  *   collector.save();
  */
 class TrainingDataCollector {
-public:
+   public:
     TrainingDataCollector();
     ~TrainingDataCollector();
 
@@ -87,7 +87,9 @@ public:
     /**
      * @brief Check if collector is active
      */
-    bool isActive() const noexcept { return active_; }
+    bool isActive() const noexcept {
+        return active_;
+    }
 
     /**
      * @brief Sample current simulation state
@@ -99,14 +101,10 @@ public:
      * @param simulationTime Current simulation time in seconds
      * @param currentScenarioName Name of active scenario, or empty
      */
-    void sample(
-        const UI4D::PhysicsTelemetry& telemetry,
-        double blackHoleMassKg,
-        const std::vector<UI4D::SolarSystemBody>& bodies,
-        const std::vector<InstrumentFinding>& findings,
-        double simulationTime,
-        const std::string& currentScenarioName = {}
-    );
+    void sample(const UI4D::PhysicsTelemetry& telemetry, double blackHoleMassKg,
+                const std::vector<UI4D::SolarSystemBody>& bodies,
+                const std::vector<InstrumentFinding>& findings, double simulationTime,
+                const std::string& currentScenarioName = {});
 
     /**
      * @brief Manually tag the next sample as anomalous
@@ -141,9 +139,11 @@ public:
     /**
      * @brief Get current configuration
      */
-    const CollectorConfig& config() const noexcept { return config_; }
+    const CollectorConfig& config() const noexcept {
+        return config_;
+    }
 
-private:
+   private:
     CollectorConfig config_;
     std::vector<TrainingSample> samples_;
     mutable std::mutex mutex_;
@@ -157,6 +157,6 @@ private:
     bool readJson(const std::string& path);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_TRAINING_DATA_COLLECTOR_H
+#endif  // QUANTUMVERSE_TRAINING_DATA_COLLECTOR_H

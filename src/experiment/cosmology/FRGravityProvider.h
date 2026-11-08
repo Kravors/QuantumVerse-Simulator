@@ -22,7 +22,7 @@
 namespace quantumverse {
 
 class FRGravityProvider : public CosmologyProvider {
-public:
+   public:
     /** Parameter bundle: makes broken-provider tests write the actual member
      *  vars, not just override accessors that the computation bypasses. */
     struct Params {
@@ -43,36 +43,56 @@ public:
     explicit FRGravityProvider(Params p);
 
     /** Arbitrary cosmology, all quantities in the units listed in CosmologyProvider. */
-    FRGravityProvider(double H0, double OmegaM, double OmegaB, double OmegaR,
-                      double OmegaLambda, double OmegaK, double Tcmb0, double b);
+    FRGravityProvider(double H0, double OmegaM, double OmegaB, double OmegaR, double OmegaLambda,
+                      double OmegaK, double Tcmb0, double b);
 
-    QString name()             const override { return QStringLiteral("f(R) gravity"); }
-    QString parametersSource() const override { return m_parametersSource; }
+    QString name() const override {
+        return QStringLiteral("f(R) gravity");
+    }
+    QString parametersSource() const override {
+        return m_parametersSource;
+    }
 
-    double H0()          const override { return m_H0; }
-    double OmegaM()      const override { return m_Om; }
-    double OmegaB()      const override { return m_Ob; }
-    double OmegaR()      const override { return m_Or; }
-    double OmegaLambda() const override { return m_OL; }
-    double OmegaK()      const override { return m_Ok; }
-    double Tcmb0()       const override { return m_Tcmb; }
-    double fR()          const { return m_b; }  // f(R) parameter, not in base interface
+    double H0() const override {
+        return m_H0;
+    }
+    double OmegaM() const override {
+        return m_Om;
+    }
+    double OmegaB() const override {
+        return m_Ob;
+    }
+    double OmegaR() const override {
+        return m_Or;
+    }
+    double OmegaLambda() const override {
+        return m_OL;
+    }
+    double OmegaK() const override {
+        return m_Ok;
+    }
+    double Tcmb0() const override {
+        return m_Tcmb;
+    }
+    double fR() const {
+        return m_b;
+    }  // f(R) parameter, not in base interface
 
-    double H(double z)                        const override;
-    double comovingDistance(double z)         const override;
-    double luminosityDistance(double z)       const override;
-    double angularDiameterDistance(double z)  const override;
-    double distanceModulus(double z)          const override;
-    double ageAtRedshift(double z)            const override;
-    double lookbackTime(double z)             const override;
-    double decelerationParameter(double z)    const override;
-    double soundHorizon()                     const override;
-    double growthFactor(double z)             const override;
-    double criticalDensity()                  const override;
+    double H(double z) const override;
+    double comovingDistance(double z) const override;
+    double luminosityDistance(double z) const override;
+    double angularDiameterDistance(double z) const override;
+    double distanceModulus(double z) const override;
+    double ageAtRedshift(double z) const override;
+    double lookbackTime(double z) const override;
+    double decelerationParameter(double z) const override;
+    double soundHorizon() const override;
+    double growthFactor(double z) const override;
+    double criticalDensity() const override;
 
-private:
+   private:
     double E(double z) const;
-    template<typename F>
+    template <typename F>
     double integrateSimpson(double z1, double z2, int steps, F f) const;
     double integrateHInv(double z1, double z2, int steps = 4096) const;
 
@@ -87,6 +107,6 @@ private:
     double m_b = 0.0;        // f(R) modification parameter
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_FRGRAVITY_PROVIDER_H
+#endif  // QUANTUMVERSE_FRGRAVITY_PROVIDER_H

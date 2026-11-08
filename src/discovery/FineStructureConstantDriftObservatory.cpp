@@ -4,8 +4,8 @@
  */
 
 #include "FineStructureConstantDriftObservatory.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,22 +13,21 @@
 
 namespace quantumverse {
 
-FineStructureConstantDriftObservatory::FineStructureConstantDriftObservatory()
-{
+FineStructureConstantDriftObservatory::FineStructureConstantDriftObservatory() {
     setParameter("drift_significance_threshold", 3.0);
     setParameter("min_points", 4.0);
 }
 
-std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+FineStructureConstantDriftObservatory::analyze(const MetricTensor& metric, const Event4D& location,
+                                               const std::vector<Event4D>& trajectory) {
     (void)metric;
     (void)location;
     std::vector<InstrumentFinding> findings;
 
     double minPoints = getParameter("min_points");
-    if (trajectory.size() < static_cast<size_t>(minPoints)) return findings;
+    if (trajectory.size() < static_cast<size_t>(minPoints))
+        return findings;
 
     double sigThreshold = getParameter("drift_significance_threshold");
 
@@ -39,7 +38,8 @@ std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
         alphas.push_back(ev.z);
     }
     size_t n = times.size();
-    if (n < 3) return findings;
+    if (n < 3)
+        return findings;
 
     // Least-squares linear fit: alpha = a0 + slope * t.
     double sumT = 0.0, sumA = 0.0, sumT2 = 0.0, sumTA = 0.0;
@@ -50,7 +50,8 @@ std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
         sumTA += times[i] * alphas[i];
     }
     double denom = static_cast<double>(n) * sumT2 - sumT * sumT;
-    if (std::abs(denom) < 1e-30) return findings;
+    if (std::abs(denom) < 1e-30)
+        return findings;
 
     double slope = (static_cast<double>(n) * sumTA - sumT * sumA) / denom;
     double a0 = (sumA - slope * sumT) / static_cast<double>(n);
@@ -64,7 +65,8 @@ std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
         rss += res * res;
     }
     double dof = static_cast<double>(n) - 2.0;
-    if (dof < 1.0) return findings;
+    if (dof < 1.0)
+        return findings;
 
     double sigmaRes = std::sqrt(rss / dof + 1e-30);
     double sigmaSlope = sigmaRes / std::sqrt(sxx + 1e-30);
@@ -78,8 +80,9 @@ std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
         finding.instrumentName = getName();
         finding.severity = confidenceToSeverity(confidence);
         finding.confidence = confidence;
-        finding.description = "Fine-structure constant drift detected: dα/dt = " +
-            std::to_string(slope) + " with significance " + std::to_string(significance) +
+        finding.description =
+            "Fine-structure constant drift detected: dα/dt = " + std::to_string(slope) +
+            " with significance " + std::to_string(significance) +
             " sigma, suggesting a varying fundamental coupling (scalar-tensor / string).";
         finding.location = location;
         finding.timestamp = location.t;
@@ -93,4 +96,4 @@ std::vector<InstrumentFinding> FineStructureConstantDriftObservatory::analyze(
     return findings;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

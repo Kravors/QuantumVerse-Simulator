@@ -6,9 +6,9 @@
 #ifndef QUANTUMVERSE_PRIMORDIAL_LITHIUM_CRISIS_SOLVER_H
 #define QUANTUMVERSE_PRIMORDIAL_LITHIUM_CRISIS_SOLVER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -19,29 +19,33 @@ namespace quantumverse {
  * dark matter interactions, varying constants, and non-standard
  * neutrino physics to resolve the 7Li problem.
  */
-class PrimordialLithiumCrisisSolver : public DiscoveryInstrument
-{
-public:
+class PrimordialLithiumCrisisSolver : public DiscoveryInstrument {
+   public:
     PrimordialLithiumCrisisSolver();
     ~PrimordialLithiumCrisisSolver() override = default;
 
     std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "PrimordialLithiumCrisisSolver"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "PrimordialLithiumCrisisSolver";
+    }
+    std::string getDescription() const override {
         return "Exotic BBN nucleosynthesis explorer. Searches for solutions to "
                "the primordial lithium-7 problem through dark matter interactions, "
                "varying fundamental constants, and non-standard neutrino physics.";
     }
-    std::string getCategory() const override { return "Cosmology"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::MEDIUM; }
+    std::string getCategory() const override {
+        return "Cosmology";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::MEDIUM;
+    }
 
-private:
+   private:
     // (no private helpers; detection is performed inline in analyze)
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_PRIMORDIAL_LITHIUM_CRISIS_SOLVER_H
+#endif  // QUANTUMVERSE_PRIMORDIAL_LITHIUM_CRISIS_SOLVER_H

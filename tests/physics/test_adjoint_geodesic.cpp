@@ -1,10 +1,10 @@
 // Phase 33: Adjoint Geodesic Integrator Test
 // Validates reverse-mode AD tape recording for Schwarzschild geodesics.
 
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <vector>
-#include <array>
 
 #include "physics/AdjointGeodesicIntegrator.h"
 #include "spacetime/Event4D.h"
@@ -18,7 +18,7 @@ namespace {
 constexpr double kEps = 1e-9;
 constexpr double kRelTol = 1e-3;
 constexpr double kPi = 3.14159265358979323846;
-}
+}  // namespace
 
 void test_adjoint_geodesic_basic() {
     std::cout << "  Starting adjoint geodesic basic test...\n";
@@ -37,8 +37,8 @@ void test_adjoint_geodesic_basic() {
     QV_CHECK(result.finalState[1] > 0.0);
     QV_CHECK(result.finalState[1] < 10.0);
 
-    std::cout << "  Adjoint geodesic: r_final=" << result.finalState[1]
-              << " steps=" << result.steps << "\n";
+    std::cout << "  Adjoint geodesic: r_final=" << result.finalState[1] << " steps=" << result.steps
+              << "\n";
 }
 
 void test_adjoint_gradient_nonzero() {
@@ -63,7 +63,8 @@ void test_adjoint_vs_finite_difference() {
     std::array<double, 4> vel = {1.0, -0.1, 0.0, 0.0};
 
     auto adjoint_result = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 0.5);
-    auto fd_grad = integrator.computePositionGradientFD(start, vel, GeodesicType::TIMELIKE, 0.5, 1e-6);
+    auto fd_grad =
+        integrator.computePositionGradientFD(start, vel, GeodesicType::TIMELIKE, 0.5, 1e-6);
 
     // Compare dr/dM from adjoint vs finite difference
     double adjoint_dr_dM = adjoint_result.dState_dParams[1][0];
@@ -74,8 +75,7 @@ void test_adjoint_vs_finite_difference() {
     double rel_error = std::abs(adjoint_dr_dM - fd_dr_dM) / (std::abs(fd_dr_dM) + 1e-12);
     QV_CHECK(rel_error < kRelTol);
 
-    std::cout << "  Adjoint dr/dM = " << adjoint_dr_dM
-              << ", FD dr/dM = " << fd_dr_dM
+    std::cout << "  Adjoint dr/dM = " << adjoint_dr_dM << ", FD dr/dM = " << fd_dr_dM
               << ", rel error = " << rel_error << "\n";
 }
 

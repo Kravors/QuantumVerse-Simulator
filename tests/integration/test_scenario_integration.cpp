@@ -1,13 +1,13 @@
-#include "ui4d/SceneGraphManager.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "physics/GeodesicIntegrator.h"
-#include "physics/SingularityHandler.h"
-#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
-#include "discovery/GalacticRotationCurveScanner.h"
 #include <cmath>
 #include <iostream>
+#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
+#include "discovery/GalacticRotationCurveScanner.h"
+#include "physics/GeodesicIntegrator.h"
+#include "physics/SingularityHandler.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
+#include "ui4d/SceneGraphManager.h"
 
 using namespace quantumverse;
 
@@ -29,7 +29,7 @@ int main() {
     std::cout << "[PASS] Curvature non-zero: K = " << scalar.kretschmann << std::endl;
 
     Event4D start(0, 1e10, 0, 0);
-    std::array<double,4> vel = {0, 0, 0, 0.1};
+    std::array<double, 4> vel = {0, 0, 0, 0.1};
     GeodesicIntegrator integrator;
     integrator.setMetric(metric);
     auto trajectory = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 100.0, true);
@@ -40,12 +40,8 @@ int main() {
     GalacticRotationCurveScanner rotScanner;
     std::vector<Event4D> scanTrajectory;
     for (int i = 0; i < 100; i++) {
-        scanTrajectory.push_back(Event4D(
-            static_cast<double>(i) * 1e5,
-            1e10 + static_cast<double>(i) * 1e6,
-            0.0,
-            0.0
-        ));
+        scanTrajectory.push_back(
+            Event4D(static_cast<double>(i) * 1e5, 1e10 + static_cast<double>(i) * 1e6, 0.0, 0.0));
     }
 
     auto ttvFindings = ttvHunter.analyze(*metric, Event4D(0, 0, 0, 0), scanTrajectory);

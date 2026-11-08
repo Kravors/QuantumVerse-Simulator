@@ -22,7 +22,8 @@ double HawkingCalculator::asymptoticFlux() const noexcept {
 
 double HawkingCalculator::bogoliubovBetaSquared(double omega) const noexcept {
     double T = blackHole->hawkingTemperature();
-    if (T <= 0.0) return 0.0;
+    if (T <= 0.0)
+        return 0.0;
     return 1.0 / (std::exp(omega / T) - 1.0);
 }
 
@@ -30,4 +31,4 @@ double HawkingCalculator::temperature() const noexcept {
     return blackHole->hawkingTemperature();
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

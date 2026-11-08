@@ -16,9 +16,9 @@
 #ifndef QUANTUMVERSE_GRAVITATIONAL_WAVE_MEMORY_ANALYZER_H
 #define QUANTUMVERSE_GRAVITATIONAL_WAVE_MEMORY_ANALYZER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -31,32 +31,35 @@ namespace quantumverse {
  * observed offset exceeds the expected noise level by a configurable
  * threshold (in sigma).
  */
-class GravitationalWaveMemoryAnalyzer : public DiscoveryInstrument
-{
-public:
+class GravitationalWaveMemoryAnalyzer : public DiscoveryInstrument {
+   public:
     GravitationalWaveMemoryAnalyzer();
     ~GravitationalWaveMemoryAnalyzer() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "GravitationalWaveMemoryAnalyzer"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "GravitationalWaveMemoryAnalyzer";
+    }
+    std::string getDescription() const override {
         return "Christodoulou GW memory analyzer. Detects non-oscillatory memory "
                "offsets in strain data from compact binary mergers using the "
                "Christodoulou formula.";
     }
-    std::string getCategory() const override { return "Gravitational Waves"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Gravitational Waves";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
     /// @brief Christodoulou memory amplitude (simplified isotropic).
     static double christodoulouMemory(double energyRadiated, double distanceMpc);
 
-private:
+   private:
     static constexpr size_t kMinSamples = 32;
 
     struct MemoryResult {
@@ -68,17 +71,14 @@ private:
         double postMean = 0.0;
     };
 
-    static MemoryResult computeMemoryOffset(
-        const std::vector<Event4D>& trajectory,
-        double baselineDuration,
-        double energyRadiated,
-        double distanceMpc);
+    static MemoryResult computeMemoryOffset(const std::vector<Event4D>& trajectory,
+                                            double baselineDuration, double energyRadiated,
+                                            double distanceMpc);
 
-    static double estimateNoiseSigma(const std::vector<Event4D>& trajectory,
-                                     double baselineMean,
+    static double estimateNoiseSigma(const std::vector<Event4D>& trajectory, double baselineMean,
                                      size_t baselineSamples);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GRAVITATIONAL_WAVE_MEMORY_ANALYZER_H
+#endif  // QUANTUMVERSE_GRAVITATIONAL_WAVE_MEMORY_ANALYZER_H

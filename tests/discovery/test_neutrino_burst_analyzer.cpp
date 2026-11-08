@@ -13,12 +13,12 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "discovery/NeutrinoBurstAnalyzer.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -38,10 +38,9 @@ MetricTensor makeFlatMetric() {
 }
 
 // Generate a GW signal with post-merger neutrino-heated ejecta signature
-std::vector<Event4D> makeMergerWithNeutrinoSignal(
-    double duration, double dt, double gwTriggerTime,
-    double postMergerAmplitude, double postMergerStart)
-{
+std::vector<Event4D> makeMergerWithNeutrinoSignal(double duration, double dt, double gwTriggerTime,
+                                                  double postMergerAmplitude,
+                                                  double postMergerStart) {
     size_t n = static_cast<size_t>(duration / dt);
     std::vector<Event4D> signal;
     signal.reserve(n);
@@ -78,7 +77,7 @@ std::vector<Event4D> makePureNoise(size_t n, double noiseLevel) {
     }
     return noise;
 }
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== NeutrinoBurstAnalyzerTest ===" << std::endl;
@@ -219,9 +218,8 @@ int main() {
         QV_CHECK(ranges.size() >= 6);
 
         for (const auto& kv : ranges) {
-            QV_CHECK(std::isfinite(kv.second.first) &&
-                   std::isfinite(kv.second.second) &&
-                   kv.second.first < kv.second.second);
+            QV_CHECK(std::isfinite(kv.second.first) && std::isfinite(kv.second.second) &&
+                     kv.second.first < kv.second.second);
         }
         std::cout << "  Parameter ranges valid." << std::endl;
     }

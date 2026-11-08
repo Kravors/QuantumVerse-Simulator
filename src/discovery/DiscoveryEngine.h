@@ -1,23 +1,23 @@
 #ifndef QUANTUMVERSE_DISCOVERY_ENGINE_H
 #define QUANTUMVERSE_DISCOVERY_ENGINE_H
 
-#include <vector>
+#include <functional>
+#include <map>
 #include <memory>
 #include <string>
-#include <map>
-#include <functional>
+#include <vector>
+#include "ml/CurvatureNormalizingFlow.h"
+#include "physics/GeodesicIntegrator.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/MetricTensor.h"
-#include "physics/GeodesicIntegrator.h"
-#include "ml/CurvatureNormalizingFlow.h"
 
 namespace quantumverse {
 
 // Forward declarations for quantum gravity namespaces
 namespace quantumgravity {
-    class SimplicialManifold;
-    class GFTField;
-}
+class SimplicialManifold;
+class GFTField;
+}  // namespace quantumgravity
 
 // Forward declarations for LQG types (defined in quantumverse namespace)
 class SpinNetwork;
@@ -29,47 +29,37 @@ class CausalSet;
  * Base class for all gravity theory plugins (GR, f(R), Brans-Dicke, LQG, etc.)
  */
 class TheoryPlugin {
-public:
+   public:
     virtual ~TheoryPlugin() = default;
-    
+
     virtual std::string getName() const = 0;
     virtual std::string getDescription() const = 0;
     virtual std::string getFieldEquation() const = 0;
-    
+
     // Compute metric for given conditions
-    virtual MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const = 0;
-    
+    virtual MetricTensor computeMetric(const Event4D& location,
+                                       const std::map<std::string, double>& parameters) const = 0;
+
     // Compute Christoffel symbols
-    virtual std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const = 0;
-    
+    virtual std::array<std::array<double, 4>, 4>
+    computeChristoffel(const Event4D& location, int rho, int mu, int nu) const = 0;
+
     // Compute curvature tensors
-    virtual MetricTensor computeRicciTensor(
-        const Event4D& location
-    ) const = 0;
-    
-    virtual double computeRicciScalar(
-        const Event4D& location
-    ) const = 0;
-    
-    virtual double computeKretschmannScalar(
-        const Event4D& location
-    ) const = 0;
-    
+    virtual MetricTensor computeRicciTensor(const Event4D& location) const = 0;
+
+    virtual double computeRicciScalar(const Event4D& location) const = 0;
+
+    virtual double computeKretschmannScalar(const Event4D& location) const = 0;
+
     // Check if theory predicts new phenomena
     virtual bool predictsWormholes() const = 0;
     virtual bool predictsNakedSingularities() const = 0;
     virtual bool violatesEnergyConditions() const = 0;
     virtual bool allowsTimeTravel() const = 0;
-    
+
     // Parameter ranges
     virtual std::map<std::string, std::pair<double, double>> getParameterRanges() const = 0;
-    
+
     // Clone
     virtual std::unique_ptr<TheoryPlugin> clone() const = 0;
 };
@@ -79,13 +69,13 @@ public:
  * Extends TheoryPlugin with quantum-specific functionality
  */
 class QuantumGravityPlugin : public TheoryPlugin {
-public:
+   public:
     enum QuantumGeometryType {
-        QUANTUM_CDT,           // Causal Dynamical Triangulations
-        QUANTUM_SPIN_FOAM,     // Loop Quantum Gravity (EPRL/FK)
-        QUANTUM_GFT,           // Group Field Theory
-        QUANTUM_CAUSAL_SET,    // Causal Set Theory
-        QUANTUM_REGULAR_BH     // Regular/Quantum-corrected black holes
+        QUANTUM_CDT,         // Causal Dynamical Triangulations
+        QUANTUM_SPIN_FOAM,   // Loop Quantum Gravity (EPRL/FK)
+        QUANTUM_GFT,         // Group Field Theory
+        QUANTUM_CAUSAL_SET,  // Causal Set Theory
+        QUANTUM_REGULAR_BH   // Regular/Quantum-corrected black holes
     };
 
     virtual ~QuantumGravityPlugin() = default;
@@ -100,10 +90,7 @@ public:
     virtual bool isDiscrete() const = 0;
 
     // Path integral amplitude (for quantum theories)
-    virtual double computeAmplitude(
-        const Event4D& from,
-        const Event4D& to
-    ) const = 0;
+    virtual double computeAmplitude(const Event4D& from, const Event4D& to) const = 0;
 
     // Spectral dimension at scale μ
     virtual double computeSpectralDimension(double mu) const = 0;
@@ -149,61 +136,53 @@ struct Hypothesis {
 
 /**
  * DiscoveryEngine - AI-driven autonomous discovery system
- * 
+ *
  * Implements symbolic regression, anomaly detection, and hypothesis
  * lifecycle management for discovering new physics beyond GR.
  */
 class DiscoveryEngine {
-private:
+   private:
     std::vector<DiscoveryResult> discoveries;
     std::vector<Hypothesis> hypotheses;
-    
+
     // AI/ML model handles
     bool symbolicRegressionEnabled;
     bool anomalyDetectionEnabled;
     bool hypothesisTestingEnabled;
-    
+
     // Validation thresholds
     double maxAnomalyScore;
-    
+
     // Callbacks for discovery notifications
     std::vector<std::function<void(const DiscoveryResult&)>> discoveryCallbacks;
-    
+
     // Task 2.5: Curvature Normalizing Flow for anomaly detection
     std::unique_ptr<CurvatureNormalizingFlow> curvatureFlow_;
     std::string curvatureModelPath_;
     double flowAnomalyThreshold_;  // e.g., 50.0 = anomalous
-    
-    public:
-     // Helper: Compute 15 curvature features from metric at location
-     std::vector<double> computeCurvatureFeatures(
-         const Event4D& location,
-         const MetricTensor& metric
-     ) const;
+
+   public:
+    // Helper: Compute 15 curvature features from metric at location
+    std::vector<double> computeCurvatureFeatures(const Event4D& location,
+                                                 const MetricTensor& metric) const;
     DiscoveryEngine();
-    
+
     // Enable/disable AI subsystems
     void enableSymbolicRegression(bool enable);
     void enableAnomalyDetection(bool enable);
     void enableHypothesisTesting(bool enable);
-    
+
     // Symbolic regression for field equation generation
-    std::string generateFieldEquation(
-        const std::vector<Event4D>& trajectory,
-        const MetricTensor& metric,
-        double tolerance = 1e-6
-    );
-    
+    std::string generateFieldEquation(const std::vector<Event4D>& trajectory,
+                                      const MetricTensor& metric, double tolerance = 1e-6);
+
     // Anomaly detection in curvature evolution
-    DiscoveryResult detectAnomaly(
-        const Event4D& location,
-        const MetricTensor& metric,
-        const std::vector<Event4D>& geodesicTrajectory
-    );
-    
+    DiscoveryResult detectAnomaly(const Event4D& location, const MetricTensor& metric,
+                                  const std::vector<Event4D>& geodesicTrajectory);
+
     // Classify anomaly type
     std::string classifyAnomaly(const DiscoveryResult& result);
-    
+
     /**
      * @brief Propose a new physics hypothesis.
      * @param name Human-readable name for the hypothesis.
@@ -211,20 +190,15 @@ private:
      * @param parameters Initial parameter values for the hypothesis.
      * @return Unique hypothesis ID.
      */
-    std::string proposeHypothesis(
-        const std::string& name,
-        const std::string& fieldEquation,
-        const std::map<std::string, double>& parameters
-    );
-    
-    bool testHypothesis(
-        const std::string& hypothesisId,
-        const std::vector<Event4D>& testTrajectories
-    );
-    
+    std::string proposeHypothesis(const std::string& name, const std::string& fieldEquation,
+                                  const std::map<std::string, double>& parameters);
+
+    bool testHypothesis(const std::string& hypothesisId,
+                        const std::vector<Event4D>& testTrajectories);
+
     bool validateHypothesis(const std::string& hypothesisId);
     bool refuteHypothesis(const std::string& hypothesisId);
-    
+
     // Discovery queries
     const std::vector<DiscoveryResult>& getDiscoveries() const;
     std::vector<DiscoveryResult> getDiscoveriesByType(const std::string& type) const;
@@ -232,58 +206,47 @@ private:
     std::vector<Hypothesis> getActiveHypotheses() const;
     std::vector<DiscoveryResult> getParetoFront() const;
     std::vector<double> getModelWeights() const;
-    
+
     // Validation against known physics
     bool validateAgainstGR(const DiscoveryResult& result);
     bool validateAgainstMercuryPrecession(const MetricTensor& metric);
     bool validateAgainstLightDeflection(const MetricTensor& metric);
     bool validateAgainstFrameDragging(const MetricTensor& metric);
-    
+
     // Statistical analysis
-    double calculateAnomalyScore(
-        const Event4D& location,
-        const MetricTensor& metric
-    );
-    
-    double calculateDeviationFromGR(
-        const MetricTensor& metric,
-        const Event4D& location
-    );
-    
+    double calculateAnomalyScore(const Event4D& location, const MetricTensor& metric);
+
+    double calculateDeviationFromGR(const MetricTensor& metric, const Event4D& location);
+
     // Bayesian model comparison
-    double calculateBayesFactor(
-        const Hypothesis& h1,
-        const Hypothesis& h2,
-        const std::vector<Event4D>& data
-    );
-    
+    double calculateBayesFactor(const Hypothesis& h1, const Hypothesis& h2,
+                                const std::vector<Event4D>& data);
+
     // Callback registration
-    void registerDiscoveryCallback(
-        std::function<void(const DiscoveryResult&)> callback
-    );
-    
+    void registerDiscoveryCallback(std::function<void(const DiscoveryResult&)> callback);
+
     // Export/import
     std::string exportDiscovery(const DiscoveryResult& result) const;
     std::string exportHypothesis(const Hypothesis& hypothesis) const;
-    
+
     // Auto-generated reports
     std::string generateDiscoveryReport(const DiscoveryResult& result) const;
     std::string generateHypothesisReport(const Hypothesis& hypothesis) const;
     std::string generateLaTeXPaper(const DiscoveryResult& result) const;
-    
+
     // Reproducibility
     void saveState(const std::string& filename) const;
     void loadState(const std::string& filename);
-    
+
     // Clear
     void clearDiscoveries();
     void clearHypotheses();
-    
+
     // Statistics
     size_t getDiscoveryCount() const;
     size_t getHypothesisCount() const;
     double getAverageConfidence() const;
-    
+
     // Task 2.5: Curvature flow integration
     /**
      * Load the curvature normalizing flow model for anomaly detection.
@@ -292,7 +255,7 @@ private:
      * @return true if model loaded successfully, false otherwise
      */
     bool loadCurvatureModel(const std::string& modelPath);
-    
+
     /**
      * Check if curvature flow model is loaded and ready for inference.
      */
@@ -305,214 +268,190 @@ private:
 
 class FRLGravityPlugin : public TheoryPlugin {
     // f(R) gravity with chameleon screening
-private:
+   private:
     double alpha;  // Coupling constant
     double n;      // Power law index
-    
-public:
+
+   public:
     FRLGravityPlugin(double alpha = 1.0, double n = 1.0);
-    
+
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
-    
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
-    
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
-    
+
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
+
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
+
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
-    
+
     bool predictsWormholes() const override;
     bool predictsNakedSingularities() const override;
     bool violatesEnergyConditions() const override;
     bool allowsTimeTravel() const override;
-    
+
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
-    
+
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
 class BransDickePlugin : public TheoryPlugin {
     // Brans-Dicke scalar-tensor theory
-private:
+   private:
     double omega;  // Brans-Dicke parameter
     double phi0;   // Scalar field background value
-    
-public:
+
+   public:
     BransDickePlugin(double omega = 40000.0, double phi0 = 1.0);
-    
+
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
-    
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
-    
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
-    
+
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
+
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
+
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
-    
+
     bool predictsWormholes() const override;
     bool predictsNakedSingularities() const override;
     bool violatesEnergyConditions() const override;
     bool allowsTimeTravel() const override;
-    
+
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
-    
+
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
 class LQGPlugin : public TheoryPlugin {
     // Loop Quantum Gravity - effective polymer-corrected metric
-private:
-    double gamma;  // Immirzi parameter
-    double lambda; // Polymer length scale (Planck length)
-    
-public:
+   private:
+    double gamma;   // Immirzi parameter
+    double lambda;  // Polymer length scale (Planck length)
+
+   public:
     LQGPlugin(double gamma = 0.2375, double lambda = 1.616e-35);
-    
+
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
-    
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
-    
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
-    
+
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
+
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
+
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
-    
+
     bool predictsWormholes() const override;
     bool predictsNakedSingularities() const override;
     bool violatesEnergyConditions() const override;
     bool allowsTimeTravel() const override;
-    
+
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
-    
+
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
 class TeVeSPlugin : public TheoryPlugin {
     // Tensor-Vector-Scalar gravity (Bekenstein)
-private:
+   private:
     double K;      // Vector-tensor coupling
     double mu;     // Vector field mass scale
     double sigma;  // Scalar coupling
-    
-public:
+
+   public:
     TeVeSPlugin(double K = 0.3, double mu = 1e-55, double sigma = 1.0);
-    
+
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
-    
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
-    
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
-    
+
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
+
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
+
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
-    
+
     bool predictsWormholes() const override;
     bool predictsNakedSingularities() const override;
     bool violatesEnergyConditions() const override;
     bool allowsTimeTravel() const override;
-    
+
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
-    
+
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
 class EinsteinAetherPlugin : public TheoryPlugin {
     // Einstein-Aether theory with preferred timelike vector field
-private:
-    double c1; // Aether coupling c1
-    double c2; // Aether coupling c2
-    double c3; // Aether coupling c3
-    
-public:
+   private:
+    double c1;  // Aether coupling c1
+    double c2;  // Aether coupling c2
+    double c3;  // Aether coupling c3
+
+   public:
     EinsteinAetherPlugin(double c1 = 0.0, double c2 = 0.0, double c3 = 0.0);
-    
+
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
-    
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
-    
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
-    
+
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
+
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
+
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
-    
+
     bool predictsWormholes() const override;
     bool predictsNakedSingularities() const override;
     bool violatesEnergyConditions() const override;
     bool allowsTimeTravel() const override;
-    
+
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
-    
+
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
 class HorndeskiPlugin : public TheoryPlugin {
     // Horndeski scalar-tensor theory
-private:
-    double c_G;    // PPN deviation parameter
-    double alpha_K; // Kinetic braiding
-    double alpha_B; // Braiding parameter
+   private:
+    double c_G;      // PPN deviation parameter
+    double alpha_K;  // Kinetic braiding
+    double alpha_B;  // Braiding parameter
 
-public:
+   public:
     HorndeskiPlugin(double c_G = 0.0, double alpha_K = 0.0, double alpha_B = 0.0);
 
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
 
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
 
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
 
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
@@ -533,27 +472,23 @@ class YukawaFifthForcePlugin : public TheoryPlugin {
     // Newtonian potential:  Phi(r) = -(G M / r) (1 + alpha * exp(-r / lambda))
     // Effective Schwarzschild radius becomes radially dependent:
     //   r_s(r) = (2 G M / c^2) (1 + alpha * exp(-r / lambda))
-private:
+   private:
     double alpha;   // Coupling strength (dimensionless)
     double lambda;  // Range of the fifth force (meters)
     double mass;    // Central mass (kilograms)
 
-public:
+   public:
     YukawaFifthForcePlugin(double alpha = 0.0, double lambda = 1.0, double mass = 1.0);
 
     std::string getName() const override;
     std::string getDescription() const override;
     std::string getFieldEquation() const override;
 
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
 
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
 
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
@@ -573,46 +508,40 @@ public:
  * TheoryManager - Manages collection of theory plugins
  */
 class TheoryManager {
-private:
+   private:
     std::map<std::string, std::unique_ptr<TheoryPlugin>> plugins;
     std::string activeTheory;
-    
-public:
+
+   public:
     TheoryManager();
-    
+
     // Plugin management
     bool registerPlugin(std::unique_ptr<TheoryPlugin> plugin);
     bool unregisterPlugin(const std::string& name);
     TheoryPlugin* getPlugin(const std::string& name);
     const TheoryPlugin* getPlugin(const std::string& name) const;
-    
+
     // Active theory
     bool setActiveTheory(const std::string& name);
     const std::string& getActiveTheory() const;
-    
+
     // Compute with active theory
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const;
-    
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const;
+
     // List available theories
     std::vector<std::string> getAvailableTheories() const;
     std::string getTheoryDescription(const std::string& name) const;
-    
+
     // Compare theories
-    std::map<std::string, double> compareTheories(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const;
-    
+    std::map<std::string, double>
+    compareTheories(const Event4D& location, const std::map<std::string, double>& parameters) const;
+
     // Export theory comparison
-    std::string exportComparison(
-        const std::vector<std::string>& theoryNames,
-        const Event4D& location
-    ) const;
+    std::string exportComparison(const std::vector<std::string>& theoryNames,
+                                 const Event4D& location) const;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_DISCOVERY_ENGINE_H
+#endif  // QUANTUMVERSE_DISCOVERY_ENGINE_H

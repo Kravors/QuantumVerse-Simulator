@@ -4,10 +4,10 @@
  */
 
 #include "FileIO.h"
-#include <fstream>
-#include <sstream>
-#include <iostream>
 #include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 namespace quantumverse {
 namespace utils {
@@ -17,45 +17,45 @@ FileIO::FileIO() {
 }
 
 std::filesystem::path FileIO::getUserDataDir() {
-    // Get user data directory based on platform
-    #ifdef _WIN32
-        const char* appData = std::getenv("APPDATA");
-        if (appData) {
-            return std::filesystem::path(appData) / "QuantumVerse";
-        }
-        return std::filesystem::path("~/.quantumverse");
-    #elif __APPLE__
-        const char* home = std::getenv("HOME");
-        if (home) {
-            return std::filesystem::path(home) / "Library" / "Application Support" / "QuantumVerse";
-        }
-        return std::filesystem::path("~/.quantumverse");
-    #else
-        const char* home = std::getenv("HOME");
-        if (home) {
-            return std::filesystem::path(home) / ".quantumverse";
-        }
-        return std::filesystem::path("~/.quantumverse");
-    #endif
+// Get user data directory based on platform
+#ifdef _WIN32
+    const char* appData = std::getenv("APPDATA");
+    if (appData) {
+        return std::filesystem::path(appData) / "QuantumVerse";
+    }
+    return std::filesystem::path("~/.quantumverse");
+#elif __APPLE__
+    const char* home = std::getenv("HOME");
+    if (home) {
+        return std::filesystem::path(home) / "Library" / "Application Support" / "QuantumVerse";
+    }
+    return std::filesystem::path("~/.quantumverse");
+#else
+    const char* home = std::getenv("HOME");
+    if (home) {
+        return std::filesystem::path(home) / ".quantumverse";
+    }
+    return std::filesystem::path("~/.quantumverse");
+#endif
 }
 
 std::filesystem::path FileIO::getUserDocumentsDir() {
-    #ifdef _WIN32
-        const char* docs = std::getenv("USERPROFILE");
-        if (docs) {
-            return std::filesystem::path(docs) / "Documents";
-        }
-    #elif __APPLE__
-        const char* home = std::getenv("HOME");
-        if (home) {
-            return std::filesystem::path(home) / "Documents";
-        }
-    #else
-        const char* home = std::getenv("HOME");
-        if (home) {
-            return std::filesystem::path(home) / "Documents";
-        }
-    #endif
+#ifdef _WIN32
+    const char* docs = std::getenv("USERPROFILE");
+    if (docs) {
+        return std::filesystem::path(docs) / "Documents";
+    }
+#elif __APPLE__
+    const char* home = std::getenv("HOME");
+    if (home) {
+        return std::filesystem::path(home) / "Documents";
+    }
+#else
+    const char* home = std::getenv("HOME");
+    if (home) {
+        return std::filesystem::path(home) / "Documents";
+    }
+#endif
     return std::filesystem::path(".");
 }
 
@@ -104,7 +104,7 @@ FileResult FileIO::loadSpacetimeConfig(const std::string& path, SpacetimeConfig&
     }
 
     std::filesystem::path fsPath = std::filesystem::absolute(path);
-    
+
     // Check if file exists
     if (!std::filesystem::exists(fsPath)) {
         return FileResult::FileNotFound;
@@ -116,13 +116,14 @@ FileResult FileIO::loadSpacetimeConfig(const std::string& path, SpacetimeConfig&
     }
 
     std::string ext = fsPath.extension().string();
-    
+
     if (ext == ".spc") {
         // Parse .spc format (custom format)
         std::string line;
         while (std::getline(file, line)) {
             size_t eqPos = line.find('=');
-            if (eqPos == std::string::npos) continue;
+            if (eqPos == std::string::npos)
+                continue;
 
             std::string key = line.substr(0, eqPos);
             std::string value = line.substr(eqPos + 1);
@@ -144,8 +145,8 @@ FileResult FileIO::loadSpacetimeConfig(const std::string& path, SpacetimeConfig&
     } else if (ext == ".json") {
         // Simple JSON parsing (in production, use a proper JSON library)
         std::string content((std::istreambuf_iterator<char>(file)),
-                           std::istreambuf_iterator<char>());
-        
+                            std::istreambuf_iterator<char>());
+
         // Basic JSON parsing for known keys
         // In production, use nlohmann/json or similar
         size_t pos;
@@ -174,7 +175,7 @@ FileResult FileIO::saveSpacetimeConfig(const std::string& path, const SpacetimeC
     }
 
     std::filesystem::path fsPath = std::filesystem::absolute(path);
-    
+
     // Create parent directories if needed
     std::filesystem::create_directories(fsPath.parent_path());
 
@@ -184,7 +185,7 @@ FileResult FileIO::saveSpacetimeConfig(const std::string& path, const SpacetimeC
     }
 
     std::string ext = fsPath.extension().string();
-    
+
     if (ext == ".spc") {
         // Write .spc format
         file << "# QuantumVerse Spacetime Configuration\n";
@@ -209,5 +210,5 @@ FileResult FileIO::saveSpacetimeConfig(const std::string& path, const SpacetimeC
     return FileResult::Success;
 }
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

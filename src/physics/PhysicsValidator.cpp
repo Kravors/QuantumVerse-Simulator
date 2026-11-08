@@ -25,17 +25,16 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
     if (!m_metric) {
         report.totalChecks = 1;
         report.failedChecks = 1;
-        report.failures.push_back({"metric_available", false, 0.0, 1.0, 0.0,
-                                   "Metric tensor pointer is null"});
+        report.failures.push_back(
+            {"metric_available", false, 0.0, 1.0, 0.0, "Metric tensor pointer is null"});
         m_lastReport = report;
         return report;
     }
 
     // Evaluate metric at probe position
     auto g = m_metric->evaluate(probePos);
-    double r = std::sqrt(probePos.x * probePos.x +
-                         probePos.y * probePos.y +
-                         probePos.z * probePos.z);
+    double r =
+        std::sqrt(probePos.x * probePos.x + probePos.y * probePos.y + probePos.z * probePos.z);
 
     // -----------------------------------------------------------------------
     // Check 1: Lorentzian signature (-,+,+,+)
@@ -45,8 +44,10 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
         c.name = "lorentzian_signature";
         bool ok = checkLorentzianSignature(g, c);
         report.totalChecks++;
-        if (!ok) report.failedChecks++;
-        if (!ok) report.failures.push_back(c);
+        if (!ok)
+            report.failedChecks++;
+        if (!ok)
+            report.failures.push_back(c);
     }
 
     // -----------------------------------------------------------------------
@@ -62,19 +63,21 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
             std::array<std::array<double, 3>, 3> sub{};
             int si = 0;
             for (int i = 0; i < 4; ++i) {
-                if (i == j) continue;
+                if (i == j)
+                    continue;
                 int sj = 0;
                 for (int jj = 0; jj < 4; ++jj) {
-                    if (jj == 0) continue;
+                    if (jj == 0)
+                        continue;
                     sub[si][sj] = g[i][jj];
                     sj++;
                 }
                 si++;
             }
             // 3x3 determinant
-            double subDet = sub[0][0] * (sub[1][1] * sub[2][2] - sub[1][2] * sub[2][1])
-                          - sub[0][1] * (sub[1][0] * sub[2][2] - sub[1][2] * sub[2][0])
-                          + sub[0][2] * (sub[1][0] * sub[2][1] - sub[1][1] * sub[2][0]);
+            double subDet = sub[0][0] * (sub[1][1] * sub[2][2] - sub[1][2] * sub[2][1]) -
+                            sub[0][1] * (sub[1][0] * sub[2][2] - sub[1][2] * sub[2][0]) +
+                            sub[0][2] * (sub[1][0] * sub[2][1] - sub[1][1] * sub[2][0]);
             double cofactor = ((0 + j) % 2 == 0 ? 1.0 : -1.0) * subDet;
             det += g[0][j] * cofactor;
         }
@@ -86,8 +89,10 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
                         ? "det(g) < 0 (Lorentzian)"
                         : "det(g) >= 0 or NaN/Inf (signature violation)";
         report.totalChecks++;
-        if (!c.passed) report.failedChecks++;
-        if (!c.passed) report.failures.push_back(c);
+        if (!c.passed)
+            report.failedChecks++;
+        if (!c.passed)
+            report.failures.push_back(c);
     }
 
     // -----------------------------------------------------------------------
@@ -97,8 +102,10 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
         PhysicsCheck c;
         bool ok = checkAsymptoticFlatness(r, g, c);
         report.totalChecks++;
-        if (!ok) report.failedChecks++;
-        if (!ok) report.failures.push_back(c);
+        if (!ok)
+            report.failedChecks++;
+        if (!ok)
+            report.failures.push_back(c);
     }
 
     // -----------------------------------------------------------------------
@@ -110,8 +117,10 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
             PhysicsCheck c;
             bool ok = checkKretschmannScaling(r, scalars.kretschmann, c);
             report.totalChecks++;
-            if (!ok) report.failedChecks++;
-            if (!ok) report.failures.push_back(c);
+            if (!ok)
+                report.failedChecks++;
+            if (!ok)
+                report.failures.push_back(c);
         }
     }
 
@@ -123,8 +132,10 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
         PhysicsCheck c;
         bool ok = validateRenderer(c);
         report.totalChecks++;
-        if (!ok) report.failedChecks++;
-        if (!ok) report.failures.push_back(c);
+        if (!ok)
+            report.failedChecks++;
+        if (!ok)
+            report.failures.push_back(c);
     }
 #endif
 
@@ -135,8 +146,7 @@ PhysicsReport PhysicsValidator::validate(const Event4D& probePos) {
 // ---------------------------------------------------------------------------
 // Kretschmann scaling check: K ~ 1/r^6
 // ---------------------------------------------------------------------------
-bool PhysicsValidator::checkKretschmannScaling(double r, double kretch,
-                                               PhysicsCheck& out) const {
+bool PhysicsValidator::checkKretschmannScaling(double r, double kretch, PhysicsCheck& out) const {
     if (!std::isfinite(kretch) || kretch <= 0.0 || r <= m_rs) {
         out.passed = true;  // skip if inside horizon or invalid
         out.value = kretch;
@@ -151,7 +161,7 @@ bool PhysicsValidator::checkKretschmannScaling(double r, double kretch,
     const double c2 = 8.9875517873681764e16;  // c^2
     const double c4 = c2 * c2;                // c^4
     const double G = 6.67430e-11;             // gravitational constant
-    const double M = m_massKg;   // already in kg
+    const double M = m_massKg;                // already in kg
     const double expectedK = 48.0 * G * G * M * M / (c4 * std::pow(r, 6));
 
     double relErr = std::fabs(kretch - expectedK) / expectedK;
@@ -159,19 +169,19 @@ bool PhysicsValidator::checkKretschmannScaling(double r, double kretch,
     out.expected = expectedK;
     out.tolerance = 0.5;  // 50% tolerance
     out.passed = relErr < 0.5 && std::isfinite(kretch);
-    out.message = out.passed
-                      ? "K ~ 1/r^6 within 50%"
-                      : "Kretschmann scaling violation (rel_err=" +
-                            std::to_string(relErr * 100.0) + "%)";
+    out.message =
+        out.passed
+            ? "K ~ 1/r^6 within 50%"
+            : "Kretschmann scaling violation (rel_err=" + std::to_string(relErr * 100.0) + "%)";
     return out.passed;
 }
 
 // ---------------------------------------------------------------------------
 // Asymptotic flatness check: at large r, g -> diag(-1,1,1,1)
 // ---------------------------------------------------------------------------
-bool PhysicsValidator::checkAsymptoticFlatness(
-    double r, const std::array<std::array<double, 4>, 4>& g,
-    PhysicsCheck& out) const {
+bool PhysicsValidator::checkAsymptoticFlatness(double r,
+                                               const std::array<std::array<double, 4>, 4>& g,
+                                               PhysicsCheck& out) const {
     // Only check at large r (> 10 * rs)
     if (r < 10.0 * m_rs) {
         out.passed = true;
@@ -192,10 +202,8 @@ bool PhysicsValidator::checkAsymptoticFlatness(
     out.expected = 0.0;
     out.tolerance = 0.1;  // 10% deviation tolerance
     out.passed = maxErr < 0.1 && std::isfinite(maxErr);
-    out.message = out.passed
-                      ? "asymptotically flat"
-                      : "not asymptotically flat (max err=" +
-                            std::to_string(maxErr) + ")";
+    out.message = out.passed ? "asymptotically flat"
+                             : "not asymptotically flat (max err=" + std::to_string(maxErr) + ")";
     return out.passed;
 }
 
@@ -227,11 +235,10 @@ bool PhysicsValidator::validateRenderer(PhysicsCheck& out) const {
     out.expected = 0.0;  // any non-zero deformation
     out.tolerance = 0.0;
     out.passed = !(mass > 0.1 && flat);
-    out.message = out.passed
-                      ? "grid deforms with metric mass"
-                      : "grid is flat but metric has mass (render pipeline disconnected)";
+    out.message = out.passed ? "grid deforms with metric mass"
+                             : "grid is flat but metric has mass (render pipeline disconnected)";
     return out.passed;
 }
 #endif
 
-} // namespace quantumverse
+}  // namespace quantumverse

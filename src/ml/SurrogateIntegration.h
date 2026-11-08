@@ -1,14 +1,14 @@
 #pragma once
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
-#include <array>
 #include "spacetime/Event4D.h"
 
 namespace quantumverse {
 namespace utils {
 class ThreadPool;
-} // namespace utils
+}  // namespace utils
 
 namespace ml {
 
@@ -22,40 +22,36 @@ struct SurrogateConfig {
 };
 
 class SurrogateIntegration {
-public:
+   public:
     explicit SurrogateIntegration(SurrogateConfig cfg);
     ~SurrogateIntegration();
 
     bool loadSurrogates(const std::string& model_dir);
 
-    bool predictGeodesicIfReady(
-        const Event4D& initial_event,
-        const std::array<double,4>& initial_velocity,
-        const std::vector<double>& metric_params,
-        double tau,
-        Event4D& out_event) const;
+    bool predictGeodesicIfReady(const Event4D& initial_event,
+                                const std::array<double, 4>& initial_velocity,
+                                const std::vector<double>& metric_params, double tau,
+                                Event4D& out_event) const;
 
     // Parallel geodesic bundle integration
-    std::vector<std::vector<Event4D>> predictGeodesicBundleIfReady(
-        const std::vector<Event4D>& initial_events,
-        const std::vector<std::array<double,4>>& initial_velocities,
-        const std::vector<double>& metric_params,
-        double tau,
-        utils::ThreadPool& pool) const;
+    std::vector<std::vector<Event4D>>
+    predictGeodesicBundleIfReady(const std::vector<Event4D>& initial_events,
+                                 const std::vector<std::array<double, 4>>& initial_velocities,
+                                 const std::vector<double>& metric_params, double tau,
+                                 utils::ThreadPool& pool) const;
 
-    bool predictMetricIfReady(
-        const std::vector<std::array<double,3>>& mass_positions,
-        const std::vector<double>& mass_values,
-        const std::vector<std::array<double,3>>& query_points,
-        MetricTensorField& out_metric) const;
+    bool predictMetricIfReady(const std::vector<std::array<double, 3>>& mass_positions,
+                              const std::vector<double>& mass_values,
+                              const std::vector<std::array<double, 3>>& query_points,
+                              MetricTensorField& out_metric) const;
 
     bool isGeodesicSurrogateReady() const noexcept;
     bool isMetricSurrogateReady() const noexcept;
 
-private:
+   private:
     struct Impl;
     std::unique_ptr<Impl> pImpl_;
 };
 
-} // namespace ml
-} // namespace quantumverse
+}  // namespace ml
+}  // namespace quantumverse

@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include <vector>
-#include <queue>
-#include <thread>
-#include <mutex>
+#include <atomic>
 #include <condition_variable>
 #include <functional>
-#include <atomic>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <vector>
 
 namespace quantumverse {
 namespace physics {
@@ -23,7 +23,7 @@ namespace physics {
  * @brief Simple thread pool for parallel task execution
  */
 class ThreadPool {
-public:
+   public:
     /**
      * @brief Construct thread pool with specified number of threads
      */
@@ -42,14 +42,18 @@ public:
     /**
      * @brief Get number of threads
      */
-    size_t size() const { return threads_.size(); }
+    size_t size() const {
+        return threads_.size();
+    }
 
     /**
      * @brief Check if pool is running
      */
-    bool isRunning() const { return running_; }
+    bool isRunning() const {
+        return running_;
+    }
 
-private:
+   private:
     std::vector<std::thread> threads_;
     std::queue<std::function<void()>> tasks_;
     std::mutex queueMutex_;
@@ -62,5 +66,5 @@ private:
  */
 ThreadPool& getThreadPool();
 
-} // namespace physics
-} // namespace quantumverse
+}  // namespace physics
+}  // namespace quantumverse

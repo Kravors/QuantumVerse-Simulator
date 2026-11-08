@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/CosmicShearScanner.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -31,9 +31,9 @@ std::vector<Event4D> makeLambdaCDMShearTrajectory() {
     std::vector<Event4D> traj;
     traj.reserve(20);
     for (int i = 0; i < 20; ++i) {
-        double theta = 1.0 + i * 0.5;                            // arcmin
-        double theory = 1e-4 / (theta * theta);                  // simple power law
-        double observed = theory + 0.01 * theory * (0.5 - std::sin(i)); // small noise
+        double theta = 1.0 + i * 0.5;                                    // arcmin
+        double theory = 1e-4 / (theta * theta);                          // simple power law
+        double observed = theory + 0.01 * theory * (0.5 - std::sin(i));  // small noise
         traj.emplace_back(theta, observed, 0.05 * theory, theory);
     }
     return traj;
@@ -42,11 +42,11 @@ std::vector<Event4D> makeLambdaCDMShearTrajectory() {
 std::vector<Event4D> makeAnomalousShearTrajectory() {
     auto traj = makeLambdaCDMShearTrajectory();
     for (size_t i = 10; i < traj.size(); ++i) {
-        traj[i].x *= 1.5; // clear (50%) excess shear, well above the 5% errors
+        traj[i].x *= 1.5;  // clear (50%) excess shear, well above the 5% errors
     }
     return traj;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== CosmicShearScannerTest ===" << std::endl;
@@ -61,7 +61,8 @@ int main() {
         auto traj = makeLambdaCDMShearTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
         QV_CHECK(findings.empty());
-        std::cout << "  Clean ΛCDM shear trajectory: no anomaly (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  Clean ΛCDM shear trajectory: no anomaly (findings=" << findings.size()
+                  << ")" << std::endl;
     }
 
     // --- 2. Anomalous excess shear: should be flagged ------------------------------
@@ -90,7 +91,8 @@ int main() {
         CosmicShearScanner scanner;
         std::vector<Event4D> nanTraj;
         for (int i = 0; i < 10; ++i) {
-            nanTraj.emplace_back(1.0 + i * 0.5, kNaN, 0.01, 1e-4 / ((1.0 + i * 0.5) * (1.0 + i * 0.5)));
+            nanTraj.emplace_back(1.0 + i * 0.5, kNaN, 0.01,
+                                 1e-4 / ((1.0 + i * 0.5) * (1.0 + i * 0.5)));
         }
         auto findings = scanner.analyze(metric, location, nanTraj);
         QV_CHECK(findings.empty());
@@ -98,7 +100,8 @@ int main() {
 
         std::vector<Event4D> infTraj;
         for (int i = 0; i < 10; ++i) {
-            infTraj.emplace_back(1.0 + i * 0.5, 1e-4 / ((1.0 + i * 0.5) * (1.0 + i * 0.5)), kInf, 0.01);
+            infTraj.emplace_back(1.0 + i * 0.5, 1e-4 / ((1.0 + i * 0.5) * (1.0 + i * 0.5)), kInf,
+                                 0.01);
         }
         auto findings2 = scanner.analyze(metric, location, infTraj);
         QV_CHECK(findings2.empty());

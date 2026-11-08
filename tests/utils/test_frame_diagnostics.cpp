@@ -1,25 +1,23 @@
 // Phase 9.1: Frame Diagnostics JSON Output Test
 // Validates FrameDiagnostics produces valid JSON with expected keys.
 
-#include <QTest>
+#include <QCoreApplication>
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>
 #include <QTemporaryDir>
-#include <QCoreApplication>
+#include <QTest>
 
 #include "../../src/utils/FrameDiagnostics.h"
 
 using namespace quantumverse::utils;
 
-class DiagnosticsOutputTest : public QObject
-{
+class DiagnosticsOutputTest : public QObject {
     Q_OBJECT
 
-private slots:
-    void test_empty_diagnostics_writes_valid_json()
-    {
+   private slots:
+    void test_empty_diagnostics_writes_valid_json() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
 
@@ -44,8 +42,7 @@ private slots:
         QVERIFY(root["total_frames"].toInt() == 0);
     }
 
-    void test_recorded_frames_appear_in_json()
-    {
+    void test_recorded_frames_appear_in_json() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
 
@@ -102,8 +99,7 @@ private slots:
         QCOMPARE(summary["total_frames"].toInt(), 5);
     }
 
-    void test_disabled_diagnostics_does_not_write()
-    {
+    void test_disabled_diagnostics_does_not_write() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
 

@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "discovery/ExoplanetaryTTVFifthForceHunter.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -21,13 +21,13 @@
 int main() {
     std::cout << "=== ExoplanetaryTTVFifthForceHunter Test ===" << std::endl;
 
-    const double P = 10.0; // orbital period
+    const double P = 10.0;  // orbital period
     const double a = 0.1;   // semi-major axis (also used as host-planet separation)
     const int N = 50;
 
     // --- Injected fifth-force TTV signal ------------------------------------
     {
-        const double amp = 1e-2; // timing perturbation amplitude
+        const double amp = 1e-2;  // timing perturbation amplitude
         std::vector<quantumverse::Event4D> transits;
         for (int n = 0; n < N; ++n) {
             double t = n * P + amp * std::sin(2.0 * M_PI * static_cast<double>(n) / 12.0);
@@ -47,8 +47,8 @@ int main() {
         auto sit = f.parameters.find("fifth_force_strength");
         QV_CHECK(sit != f.parameters.end());
         QV_CHECK(sit->second > 0.0);
-        std::cout << "Detected fifth force: alpha=" << sit->second
-                  << " confidence=" << f.confidence << std::endl;
+        std::cout << "Detected fifth force: alpha=" << sit->second << " confidence=" << f.confidence
+                  << std::endl;
     }
 
     // --- Clean Keplerian signal (no fifth force) ----------------------------

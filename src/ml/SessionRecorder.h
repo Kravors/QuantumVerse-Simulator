@@ -27,17 +27,17 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
 #include <array>
+#include <chrono>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <mutex>
-#include <fstream>
-#include <filesystem>
 #include <optional>
 #include <random>
-#include <chrono>
+#include <string>
+#include <vector>
 #include "spacetime/Event4D.h"
 #include "ui4d/UI4D.h"
 
@@ -59,14 +59,13 @@ struct SessionHeader {
     std::uint64_t frameCount;       // written at stop(), 0 until then
     std::uint64_t createdAtUnix;    // seconds since epoch
     std::uint64_t gitCommitPrefix;  // first 8 hex chars of commit, parsed to uint64
-    std::uint8_t  reserved[24];     // future flags, zero-filled
+    std::uint8_t reserved[24];      // future flags, zero-filled
 };
-static_assert(sizeof(SessionHeader) == 64,
-              "SessionHeader must be 64 bytes");
+static_assert(sizeof(SessionHeader) == 64, "SessionHeader must be 64 bytes");
 
-constexpr std::uint32_t kSessionMagic   = 0x51564652;  // "QVFR"
-constexpr std::uint32_t kSchemaVersion  = 2;           // v2: +bhSpin + probe scalars
-constexpr std::uint32_t kEndianMarker   = 0x01020304;
+constexpr std::uint32_t kSessionMagic = 0x51564652;  // "QVFR"
+constexpr std::uint32_t kSchemaVersion = 2;          // v2: +bhSpin + probe scalars
+constexpr std::uint32_t kEndianMarker = 0x01020304;
 
 /**
  * @brief A single simulation frame captured for training.
@@ -76,41 +75,41 @@ constexpr std::uint32_t kEndianMarker   = 0x01020304;
  * black hole mass.
  */
 struct FrameRecord {
-    double time = 0.0;                                    // simulation time (s)
-    std::vector<std::string> bodyNames;                   // body names
-    std::vector<double> positions;                        // x,y,z interleaved (m)
-    std::vector<double> velocities;                       // vx,vy,vz interleaved (m/s)
-    double totalEnergy = 0.0;                             // J
-    double kineticEnergy = 0.0;                           // J
-    double potentialEnergy = 0.0;                         // J
-    std::array<double, 4> cameraPosition{};               // t,x,y,z
-    std::array<double, 4> cameraLookAt{};                 // t,x,y,z
-    double blackHoleMassKg = 0.0;                         // active BH mass (kg)
-    double blackHoleSpin = 0.0;                           // dimensionless spin a*
-    double probeKretschmann = 0.0;                        // curvature invariant at probe
-    double probeRicciScalar = 0.0;                        // Ricci scalar at probe
-    double probeWeylSquared = 0.0;                        // Weyl^2 at probe
-    double probeRedshift = 0.0;                           // gravitational redshift at probe
+    double time = 0.0;                       // simulation time (s)
+    std::vector<std::string> bodyNames;      // body names
+    std::vector<double> positions;           // x,y,z interleaved (m)
+    std::vector<double> velocities;          // vx,vy,vz interleaved (m/s)
+    double totalEnergy = 0.0;                // J
+    double kineticEnergy = 0.0;              // J
+    double potentialEnergy = 0.0;            // J
+    std::array<double, 4> cameraPosition{};  // t,x,y,z
+    std::array<double, 4> cameraLookAt{};    // t,x,y,z
+    double blackHoleMassKg = 0.0;            // active BH mass (kg)
+    double blackHoleSpin = 0.0;              // dimensionless spin a*
+    double probeKretschmann = 0.0;           // curvature invariant at probe
+    double probeRicciScalar = 0.0;           // Ricci scalar at probe
+    double probeWeylSquared = 0.0;           // Weyl^2 at probe
+    double probeRedshift = 0.0;              // gravitational redshift at probe
 };
 
 /**
  * @brief Session metadata written to metadata.json.
  */
 struct SessionMetadata {
-    std::string sessionId;                                // UUID
-    double startTime = 0.0;                               // wall clock (epoch seconds)
-    std::vector<std::string> bodyNames;                   // body names in order
-    std::uint32_t frameCount = 0;                         // total frames recorded
-    double simDuration = 0.0;                             // total sim time covered (s)
+    std::string sessionId;               // UUID
+    double startTime = 0.0;              // wall clock (epoch seconds)
+    std::vector<std::string> bodyNames;  // body names in order
+    std::uint32_t frameCount = 0;        // total frames recorded
+    double simDuration = 0.0;            // total sim time covered (s)
 };
 
 /**
  * @brief SessionRecorder configuration.
  */
 struct SessionRecorderConfig {
-    std::string baseDir = "data/sessions";                // root for all sessions
-    std::uint32_t maxFrames = 6000;                       // cap per session
-    std::uint32_t frameInterval = 1;                      // record every N sim frames
+    std::string baseDir = "data/sessions";  // root for all sessions
+    std::uint32_t maxFrames = 6000;         // cap per session
+    std::uint32_t frameInterval = 1;        // record every N sim frames
 };
 
 /**
@@ -121,7 +120,7 @@ struct SessionRecorderConfig {
  * reaches maxFrames.
  */
 class SessionRecorder {
-public:
+   public:
     SessionRecorder();
     ~SessionRecorder();
 
@@ -156,19 +155,25 @@ public:
     /**
      * @brief Check if recording is active.
      */
-    bool isActive() const noexcept { return active_; }
+    bool isActive() const noexcept {
+        return active_;
+    }
 
     /**
      * @brief Get the current session UUID (empty if not recording).
      */
-    const std::string& sessionId() const noexcept { return sessionId_; }
+    const std::string& sessionId() const noexcept {
+        return sessionId_;
+    }
 
     /**
      * @brief Get the number of frames recorded so far.
      */
-    std::uint32_t frameCount() const noexcept { return frameCount_; }
+    std::uint32_t frameCount() const noexcept {
+        return frameCount_;
+    }
 
-private:
+   private:
     SessionRecorderConfig config_;
     std::mutex mutex_;
     bool active_ = false;
@@ -183,7 +188,7 @@ private:
     bool appendFrameToFile(const FrameRecord& frame);
     void flushBuffer();
 
-public:
+   public:
     /**
      * @brief Read all frames from frames.bin in the given session directory.
      *        Used by round-trip tests to verify write/read fidelity.
@@ -193,16 +198,14 @@ public:
     /**
      * @brief Read a single session's metadata.json.
      */
-    static std::unique_ptr<SessionMetadata> readMetadata(
-        const std::filesystem::path& sessionDir);
+    static std::unique_ptr<SessionMetadata> readMetadata(const std::filesystem::path& sessionDir);
 
     /**
      * @brief Read the SessionHeader from frames.bin.
      *        Used by round-trip tests to verify header fidelity.
      * @return Header with all fields, or empty std::optional on failure.
      */
-    static std::optional<SessionHeader> readHeader(
-        const std::filesystem::path& sessionDir);
+    static std::optional<SessionHeader> readHeader(const std::filesystem::path& sessionDir);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

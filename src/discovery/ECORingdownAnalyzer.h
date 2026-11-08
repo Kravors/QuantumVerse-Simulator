@@ -25,9 +25,9 @@
 #ifndef QUANTUMVERSE_ECO_RINGDOWN_ANALYZER_H
 #define QUANTUMVERSE_ECO_RINGDOWN_ANALYZER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -46,14 +46,16 @@ namespace quantumverse {
  * fraction exceeds the configured @c echo_threshold.
  */
 class ECORingdownAnalyzer : public DiscoveryInstrument {
-public:
+   public:
     ECORingdownAnalyzer();
     ~ECORingdownAnalyzer() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location, const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "ECORingdownAnalyzer"; }
+    std::string getName() const override {
+        return "ECORingdownAnalyzer";
+    }
     std::string getDescription() const override {
         return "ECO ringdown analyzer. Searches GW ringdown strain for the "
                "echo-train signature of a horizonless exotic compact object "
@@ -61,15 +63,19 @@ public:
                "variance is significantly explained by a delayed, repeated "
                "pulse rather than a single Kerr quasi-normal mode.";
     }
-    std::string getCategory() const override { return "Gravitational Waves"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Gravitational Waves";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
-private:
+   private:
     static constexpr size_t kMinPoints = 32;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_ECO_RINGDOWN_ANALYZER_H
+#endif  // QUANTUMVERSE_ECO_RINGDOWN_ANALYZER_H

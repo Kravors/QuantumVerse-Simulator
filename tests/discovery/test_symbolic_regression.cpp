@@ -9,10 +9,10 @@
 #include <string>
 #include <vector>
 
-#include "discovery/SymbolicMath.h"
 #include "discovery/DiscoveryEngine.h"
-#include "spacetime/MetricTensor.h"
+#include "discovery/SymbolicMath.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -37,7 +37,7 @@ std::vector<std::pair<std::vector<double>, double>> makePolynomialData() {
     }
     return data;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== SymbolicRegressionSanityTest ===" << std::endl;
@@ -144,8 +144,7 @@ int main() {
         auto result = engine.runRegression(data);
 
         std::cout << "  Regression equation: " << result.equation << std::endl;
-        std::cout << "  Fitness: " << result.fitness_score
-                  << " | Complexity: " << result.complexity
+        std::cout << "  Fitness: " << result.fitness_score << " | Complexity: " << result.complexity
                   << " | Valid: " << result.is_valid << std::endl;
 
         QV_CHECK(result.complexity >= 0);

@@ -1,34 +1,37 @@
-#include "discovery/DiscoveryInstrument.h"
-#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
-#include "discovery/GalacticRotationCurveScanner.h"
-#include "discovery/FineStructureConstantDriftObservatory.h"
-#include "discovery/BosonStarCollisionPredictor.h"
-#include "discovery/NeutronStarGlitchPhaseDetector.h"
-#include "discovery/UltralightDMWaveInterferometer.h"
-#include "discovery/BlackHoleJetAnomalyRecogniser.h"
-#include "discovery/PrimordialLithiumCrisisSolver.h"
-#include "discovery/GalacticTidalStreamCartographer.h"
-#include "discovery/RecombinationConstantVariationImager.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include <cmath>
 #include <cassert>
 #include <chrono>
-#include <cstdint>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
 #include <vector>
+#include "discovery/BlackHoleJetAnomalyRecogniser.h"
+#include "discovery/BosonStarCollisionPredictor.h"
+#include "discovery/DiscoveryInstrument.h"
+#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
+#include "discovery/FineStructureConstantDriftObservatory.h"
+#include "discovery/GalacticRotationCurveScanner.h"
+#include "discovery/GalacticTidalStreamCartographer.h"
+#include "discovery/NeutronStarGlitchPhaseDetector.h"
+#include "discovery/PrimordialLithiumCrisisSolver.h"
+#include "discovery/RecombinationConstantVariationImager.h"
+#include "discovery/UltralightDMWaveInterferometer.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 
 using namespace quantumverse;
 
 static bool hasNaNOrInf(const std::vector<InstrumentFinding>& findings) {
     for (const auto& f : findings) {
-        if (std::isnan(f.confidence) || std::isinf(f.confidence)) return true;
-        if (std::isnan(f.timestamp) || std::isinf(f.timestamp)) return true;
+        if (std::isnan(f.confidence) || std::isinf(f.confidence))
+            return true;
+        if (std::isnan(f.timestamp) || std::isinf(f.timestamp))
+            return true;
         for (const auto& kv : f.parameters) {
-            if (std::isnan(kv.second) || std::isinf(kv.second)) return true;
+            if (std::isnan(kv.second) || std::isinf(kv.second))
+                return true;
         }
     }
     return false;
@@ -38,7 +41,8 @@ static bool metricHasNaNOrInf(const std::array<std::array<double, 4>, 4>& g) {
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             double v = g[i][j];
-            if (std::isnan(v) || std::isinf(v)) return true;
+            if (std::isnan(v) || std::isinf(v))
+                return true;
         }
     }
     return false;
@@ -60,12 +64,8 @@ static std::vector<Event4D> randomTrajectory(int n) {
     std::vector<Event4D> traj;
     traj.reserve(n);
     for (int i = 0; i < n; ++i) {
-        traj.push_back(Event4D(
-            randDouble(-1e6, 1e6),
-            randDouble(1e3, 1e15),
-            randDouble(-1e14, 1e14),
-            randDouble(-1e14, 1e14)
-        ));
+        traj.push_back(Event4D(randDouble(-1e6, 1e6), randDouble(1e3, 1e15),
+                               randDouble(-1e14, 1e14), randDouble(-1e14, 1e14)));
     }
     return traj;
 }
@@ -88,8 +88,8 @@ int main() {
     instruments.push_back(std::make_unique<GalacticTidalStreamCartographer>());
     instruments.push_back(std::make_unique<RecombinationConstantVariationImager>());
 
-    std::printf("=== Fuzz Instruments: %zu instruments, %d cycles each ===\n",
-                instruments.size(), kCyclesPerInstrument);
+    std::printf("=== Fuzz Instruments: %zu instruments, %d cycles each ===\n", instruments.size(),
+                kCyclesPerInstrument);
 
     for (size_t idx = 0; idx < instruments.size(); ++idx) {
         const std::string name = instruments[idx]->getName();
@@ -107,11 +107,13 @@ int main() {
             try {
                 findings = instruments[idx]->analyze(*metric, location, traj);
             } catch (const std::exception& e) {
-                std::fprintf(stderr, "[FAIL] %s cycle %d threw: %s\n", name.c_str(), cycle, e.what());
+                std::fprintf(stderr, "[FAIL] %s cycle %d threw: %s\n", name.c_str(), cycle,
+                             e.what());
                 ++instrumentFailures;
                 continue;
             } catch (...) {
-                std::fprintf(stderr, "[FAIL] %s cycle %d threw unknown exception\n", name.c_str(), cycle);
+                std::fprintf(stderr, "[FAIL] %s cycle %d threw unknown exception\n", name.c_str(),
+                             cycle);
                 ++instrumentFailures;
                 continue;
             }
@@ -124,7 +126,8 @@ int main() {
             }
 
             if (!timedOut && hasNaNOrInf(findings)) {
-                std::fprintf(stderr, "[FAIL] %s cycle %d produced NaN/Inf finding\n", name.c_str(), cycle);
+                std::fprintf(stderr, "[FAIL] %s cycle %d produced NaN/Inf finding\n", name.c_str(),
+                             cycle);
                 ++instrumentFailures;
             }
         }
@@ -132,7 +135,8 @@ int main() {
         if (instrumentFailures == 0) {
             std::printf("[PASS] %s\n", name.c_str());
         } else {
-            std::printf("[FAIL] %s: %d/%d failures\n", name.c_str(), instrumentFailures, kCyclesPerInstrument);
+            std::printf("[FAIL] %s: %d/%d failures\n", name.c_str(), instrumentFailures,
+                        kCyclesPerInstrument);
             ++failures;
         }
     }
@@ -140,22 +144,18 @@ int main() {
     // Fuzz MetricTensor::evaluate() with NaN/Inf coordinates
     std::printf("=== Fuzz MetricTensor::evaluate() with bad coordinates ===\n");
     SchwarzschildMetric sch(1.989e30);
-    double badCoords[][4] = {
-        {NAN, 0.0, 0.0, 0.0},
-        {0.0, NAN, 0.0, 0.0},
-        {0.0, 0.0, INFINITY, 0.0},
-        {0.0, 0.0, 0.0, -INFINITY},
-        {NAN, NAN, NAN, NAN},
-        {INFINITY, INFINITY, INFINITY, INFINITY}
-    };
+    double badCoords[][4] = {{NAN, 0.0, 0.0, 0.0},      {0.0, NAN, 0.0, 0.0},
+                             {0.0, 0.0, INFINITY, 0.0}, {0.0, 0.0, 0.0, -INFINITY},
+                             {NAN, NAN, NAN, NAN},      {INFINITY, INFINITY, INFINITY, INFINITY}};
     int metricFailures = 0;
     for (auto& bc : badCoords) {
         Event4D ev(bc[0], bc[1], bc[2], bc[3]);
         auto result = sch.evaluate(ev);
         if (metricHasNaNOrInf(result)) {
-            std::fprintf(stderr,
-                "[FAIL] MetricTensor::evaluate() returned NaN/Inf for input (%f,%f,%f,%f)\n",
-                bc[0], bc[1], bc[2], bc[3]);
+            std::fprintf(
+                stderr,
+                "[FAIL] MetricTensor::evaluate() returned NaN/Inf for input (%f,%f,%f,%f)\n", bc[0],
+                bc[1], bc[2], bc[3]);
             ++metricFailures;
         }
     }
@@ -163,7 +163,7 @@ int main() {
         std::printf("[PASS] MetricTensor::evaluate() handles bad coordinates\n");
     } else {
         std::printf("[FAIL] MetricTensor::evaluate(): %d bad-coordinate cases leaked NaN/Inf\n",
-                     metricFailures);
+                    metricFailures);
         ++failures;
     }
 

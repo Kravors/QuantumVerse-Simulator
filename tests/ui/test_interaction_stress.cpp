@@ -2,16 +2,15 @@
 // Floods QmlGlViewport with synthetic mouse/wheel input and property toggles
 // to verify stability under rapid interaction.
 
-#include <QGuiApplication>
 #include <QDebug>
+#include <QGuiApplication>
 
 #include "qmlglviewport.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     qDebug() << "=== InteractionStressTest ===";
 

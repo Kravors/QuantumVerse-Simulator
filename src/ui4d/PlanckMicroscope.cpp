@@ -6,22 +6,22 @@
 // Qt headers MUST be included before opening namespace quantumverse,
 // because Qt uses QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
 #ifdef QUANTUMVERSE_USE_QML
-#include <QString>
-#include <QWidget>
-#include <QSlider>
-#include <QLabel>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QGroupBox>
-#include <QOpenGLWidget>
-#include <QTimer>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QMouseEvent>
+#include <QOpenGLWidget>
+#include <QPushButton>
+#include <QSlider>
+#include <QString>
+#include <QTimer>
+#include <QVBoxLayout>
+#include <QWidget>
 #endif
 
-#include "PlanckMicroscope.h"
-#include <string>
 #include <cmath>
+#include <string>
+#include "PlanckMicroscope.h"
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
 #ifndef M_PI
@@ -29,27 +29,28 @@
 #endif
 
 #ifdef QUANTUMVERSE_USE_QML
-// Full includes for types used in implementation (forward declarations in header are in global namespace)
-#include "rendering/CurvatureRenderer.h"
+// Full includes for types used in implementation (forward declarations in header are in global
+// namespace)
 #include "discovery/DiscoveryEngine.h"
-#include "quantumgravity/SpinFoamEngine.h"
 #include "quantumgravity/CDTEngine.h"
-#include "quantumgravity/GFTEngine.h"
 #include "quantumgravity/CausalSet.h"
+#include "quantumgravity/GFTEngine.h"
+#include "quantumgravity/SpinFoamEngine.h"
+#include "rendering/CurvatureRenderer.h"
 
 PlanckMicroscope::PlanckMicroscope(QWidget* parent)
     : QWidget(parent),
-      currentLogScale(0.0),      // Start at 1m (10^0)
+      currentLogScale(0.0),  // Start at 1m (10^0)
       targetLogScale(0.0),
       isAnimating(false),
-      currentLOD(0)
-{
+      currentLOD(0) {
     // Initialize LOD levels
     lodLevels = {
-        {-35.0, -30.0, 3, true, "Planck foam (quantum gravity regime)"},      // LOD 3: Ultra (Planck scale)
-        {-30.0, -20.0, 2, true, "Quantum foam (discrete geometry)"},         // LOD 2: High
-        {-20.0, -10.0, 1, false, "Quantum corrections visible"},            // LOD 1: Medium
-        {-10.0,  0.0, 0, false, "Classical continuum"}                      // LOD 0: Low
+        {-35.0, -30.0, 3, true,
+         "Planck foam (quantum gravity regime)"},                     // LOD 3: Ultra (Planck scale)
+        {-30.0, -20.0, 2, true, "Quantum foam (discrete geometry)"},  // LOD 2: High
+        {-20.0, -10.0, 1, false, "Quantum corrections visible"},      // LOD 1: Medium
+        {-10.0, 0.0, 0, false, "Classical continuum"}                 // LOD 0: Low
     };
 
     // Set up UI
@@ -123,8 +124,7 @@ PlanckMicroscope::PlanckMicroscope(QWidget* parent)
 
 PlanckMicroscope::~PlanckMicroscope() = default;
 
-void PlanckMicroscope::setActiveTheory(std::shared_ptr<quantumverse::QuantumGravityPlugin> theory)
-{
+void PlanckMicroscope::setActiveTheory(std::shared_ptr<quantumverse::QuantumGravityPlugin> theory) {
     activeTheory = theory;
 
     // Generate visualization data for this theory
@@ -145,9 +145,9 @@ void PlanckMicroscope::setActiveTheory(std::shared_ptr<quantumverse::QuantumGrav
     }
 }
 
-void PlanckMicroscope::setScale(double scale_meters)
-{
-    if (scale_meters <= 0) return;
+void PlanckMicroscope::setScale(double scale_meters) {
+    if (scale_meters <= 0)
+        return;
 
     double logScale = logFromScale(scale_meters);
     // Clamp to valid range
@@ -164,38 +164,32 @@ void PlanckMicroscope::setScale(double scale_meters)
     }
 }
 
-void PlanckMicroscope::zoom(double factor)
-{
+void PlanckMicroscope::zoom(double factor) {
     double newScale = getCurrentScale() * factor;
     setScale(newScale);
 }
 
-void PlanckMicroscope::onZoomSliderChanged(int value)
-{
+void PlanckMicroscope::onZoomSliderChanged(int value) {
     targetLogScale = static_cast<double>(value);
     isAnimating = true;  // Will animate to target
 }
 
-void PlanckMicroscope::onResetClicked()
-{
+void PlanckMicroscope::onResetClicked() {
     setScale(1.0);  // 1 meter
 }
 
-void PlanckMicroscope::onPlanckClicked()
-{
+void PlanckMicroscope::onPlanckClicked() {
     setScale(1.0e-35);  // Planck length
 }
 
-void PlanckMicroscope::onTheoryChanged(const QString& theoryName)
-{
+void PlanckMicroscope::onTheoryChanged(const QString& theoryName) {
     // Called when theory selection changes in QML
     // For now, just update the info panel
     Q_UNUSED(theoryName);
     updateInfoPanel();
 }
 
-void PlanckMicroscope::onUpdateTimer()
-{
+void PlanckMicroscope::onUpdateTimer() {
     if (isAnimating) {
         // Smooth interpolation towards target
         double diff = targetLogScale - currentLogScale;
@@ -210,28 +204,24 @@ void PlanckMicroscope::onUpdateTimer()
     }
 }
 
-void PlanckMicroscope::updateScaleDisplay()
-{
+void PlanckMicroscope::updateScaleDisplay() {
     double scale = scaleFromLog(currentLogScale);
 
     // Format scale in scientific notation
-    QString text = QString("<b>Scale: %1 m</b>").arg(
-        scale >= 1.0 ? QString::number(scale, 'f', 2) :
-        QString::number(scale, 'e', 2)
-    );
+    QString text =
+        QString("<b>Scale: %1 m</b>")
+            .arg(scale >= 1.0 ? QString::number(scale, 'f', 2) : QString::number(scale, 'e', 2));
     currentScaleLabel->setText(text);
 
     // Emit signal
     emit scaleChanged(scale);
 }
 
-void PlanckMicroscope::updateLOD()
-{
+void PlanckMicroscope::updateLOD() {
     // Determine LOD from current log scale
     int newLOD = 0;
     for (size_t i = 0; i < lodLevels.size(); ++i) {
-        if (currentLogScale >= lodLevels[i].minScale &&
-            currentLogScale <= lodLevels[i].maxScale) {
+        if (currentLogScale >= lodLevels[i].minScale && currentLogScale <= lodLevels[i].maxScale) {
             newLOD = lodLevels[i].detailLevel;
             break;
         }
@@ -264,8 +254,7 @@ void PlanckMicroscope::updateLOD()
     }
 }
 
-void PlanckMicroscope::updateInfoPanel()
-{
+void PlanckMicroscope::updateInfoPanel() {
     if (!activeTheory) {
         quantumEffectsLabel->setText("No active quantum gravity theory selected.");
         return;
@@ -275,16 +264,14 @@ void PlanckMicroscope::updateInfoPanel()
     double scale = getCurrentScale();
 
     QString info = QString("<b>Theory:</b> %1\n").arg(QString::fromStdString(name));
-    info += QString("<b>Current scale:</b> %2 m\n").arg(
-        scale >= 1.0 ? QString::number(scale, 'f', 2) :
-        QString::number(scale, 'e', 2)
-    );
+    info +=
+        QString("<b>Current scale:</b> %2 m\n")
+            .arg(scale >= 1.0 ? QString::number(scale, 'f', 2) : QString::number(scale, 'e', 2));
 
     // Add theory-specific quantum effects
     if (scale < 1.0e-19) {  // Below atomic scale
         info += "<br><b>Quantum effects active:</b><ul>";
-        if (name.find("Spin Foam") != std::string::npos ||
-            name.find("LQG") != std::string::npos) {
+        if (name.find("Spin Foam") != std::string::npos || name.find("LQG") != std::string::npos) {
             info += "<li>Discrete spin network geometry</li>";
             info += "<li>Area/volume quantization</li>";
             info += "<li>Planck-scale discreteness (~10^-35 m)</li>";
@@ -313,8 +300,7 @@ void PlanckMicroscope::updateInfoPanel()
     quantumEffectsLabel->setText(info);
 }
 
-void PlanckMicroscope::generateQuantumFoamGeometry()
-{
+void PlanckMicroscope::generateQuantumFoamGeometry() {
     // Generate a procedural quantum foam texture at Planck scale
     // This is a placeholder; real implementation would use theory-specific data
     std::vector<double> vertices;
@@ -323,12 +309,8 @@ void PlanckMicroscope::generateQuantumFoamGeometry()
 
     // Simple tetrahedral foam (will be replaced by actual theory data)
     double a = 1.0e-35;  // Planck scale
-    std::vector<std::array<double,4>> pos = {
-        {0.0,  a,  a,  a},
-        {0.0,  a, -a, -a},
-        {0.0, -a,  a, -a},
-        {0.0, -a, -a,  a}
-    };
+    std::vector<std::array<double, 4>> pos = {
+        {0.0, a, a, a}, {0.0, a, -a, -a}, {0.0, -a, a, -a}, {0.0, -a, -a, a}};
 
     for (const auto& p : pos) {
         vertices.push_back(p[0]);
@@ -337,7 +319,7 @@ void PlanckMicroscope::generateQuantumFoamGeometry()
         vertices.push_back(p[3]);
     }
 
-    edges = {0,1, 0,2, 0,3, 1,2, 1,3, 2,3};
+    edges = {0, 1, 0, 2, 0, 3, 1, 2, 1, 3, 2, 3};
     colors = {1.0, 0.0, 0.0, 1.0,   // red
               0.0, 1.0, 0.0, 1.0,   // green
               0.0, 0.0, 1.0, 1.0,   // blue
@@ -347,15 +329,13 @@ void PlanckMicroscope::generateQuantumFoamGeometry()
     // renderer->setGeometry(vertices, edges, colors);
 }
 
-void PlanckMicroscope::generateClassicalGeometry()
-{
+void PlanckMicroscope::generateClassicalGeometry() {
     // Generate smooth classical geometry (e.g., sphere or grid)
     // Placeholder
 }
 
-std::string PlanckMicroscope::getCurrentTheoryName() const
-{
+std::string PlanckMicroscope::getCurrentTheoryName() const {
     return activeTheory ? activeTheory->getName() : std::string{};
 }
 
-#endif // QUANTUMVERSE_USE_QML
+#endif  // QUANTUMVERSE_USE_QML

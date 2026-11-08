@@ -15,32 +15,32 @@
  * - Experiment that crashes on default parameters
  */
 
-#include "test_assert.h"
 #include "experiment/Experiment.h"
 #include "experiment/cosmology/LambdaCDMReferenceProvider.h"
+#include "test_assert.h"
 
-#include "experiment/experiments/MassSweepExperiment.h"
-#include "experiment/experiments/SpinSweepExperiment.h"
+#include "experiment/experiments/AgeOfUniverseExperiment.h"
+#include "experiment/experiments/AnomalyScanExperiment.h"
+#include "experiment/experiments/BAOSoundHorizonExperiment.h"
+#include "experiment/experiments/CMBTemperatureExperiment.h"
+#include "experiment/experiments/ChargeSweepExperiment.h"
+#include "experiment/experiments/CosmologyValidationSuite.h"
+#include "experiment/experiments/DistanceLadderExperiment.h"
+#include "experiment/experiments/FRBGeneratorExperiment.h"
+#include "experiment/experiments/FrameDraggingExperiment.h"
+#include "experiment/experiments/GWRingdownExperiment.h"
+#include "experiment/experiments/GrowthFactorExperiment.h"
+#include "experiment/experiments/HubbleEvolutionExperiment.h"
 #include "experiment/experiments/LensingDeflectionExperiment.h"
 #include "experiment/experiments/LensingTimeDelayExperiment.h"
-#include "experiment/experiments/FRBGeneratorExperiment.h"
-#include "experiment/experiments/PTASpectrumExperiment.h"
-#include "experiment/experiments/GWRingdownExperiment.h"
-#include "experiment/experiments/PhotonSphereExperiment.h"
-#include "experiment/experiments/ChargeSweepExperiment.h"
+#include "experiment/experiments/MassSweepExperiment.h"
 #include "experiment/experiments/MercuryPrecessionExperiment.h"
-#include "experiment/experiments/FrameDraggingExperiment.h"
-#include "experiment/experiments/RedshiftProfileExperiment.h"
-#include "experiment/experiments/AnomalyScanExperiment.h"
-#include "experiment/experiments/TheoryComparisonExperiment.h"
+#include "experiment/experiments/PTASpectrumExperiment.h"
+#include "experiment/experiments/PhotonSphereExperiment.h"
 #include "experiment/experiments/QuantumGeometryExperiment.h"
-#include "experiment/experiments/AgeOfUniverseExperiment.h"
-#include "experiment/experiments/DistanceLadderExperiment.h"
-#include "experiment/experiments/CMBTemperatureExperiment.h"
-#include "experiment/experiments/BAOSoundHorizonExperiment.h"
-#include "experiment/experiments/HubbleEvolutionExperiment.h"
-#include "experiment/experiments/GrowthFactorExperiment.h"
-#include "experiment/experiments/CosmologyValidationSuite.h"
+#include "experiment/experiments/RedshiftProfileExperiment.h"
+#include "experiment/experiments/SpinSweepExperiment.h"
+#include "experiment/experiments/TheoryComparisonExperiment.h"
 
 #include <cmath>
 #include <iostream>
@@ -57,9 +57,9 @@ static QVariantMap buildDefaultParams(const QVector<ExperimentParameter>& params
     return m;
 }
 
-static bool valueInRange(const QVariant& defaultValue, const QVariant& minV,
-                         const QVariant& maxV) {
-    if (!defaultValue.canConvert<double>()) return true; // non-numeric: skip
+static bool valueInRange(const QVariant& defaultValue, const QVariant& minV, const QVariant& maxV) {
+    if (!defaultValue.canConvert<double>())
+        return true;  // non-numeric: skip
     double v = defaultValue.toDouble();
     double mn = minV.canConvert<double>() ? minV.toDouble() : -1e300;
     double mx = maxV.canConvert<double>() ? maxV.toDouble() : 1e300;
@@ -117,8 +117,8 @@ int main() {
         const QString name = e->name();
         const QString cat = e->category();
 
-        std::cout << "Testing: " << id.toStdString() << " (" << name.toStdString()
-                  << ") [" << cat.toStdString() << "]" << std::endl;
+        std::cout << "Testing: " << id.toStdString() << " (" << name.toStdString() << ") ["
+                  << cat.toStdString() << "]" << std::endl;
 
         // Build default parameter map from declared parameters
         QVariantMap params = buildDefaultParams(e->parameters());
@@ -128,11 +128,10 @@ int main() {
         for (const auto& p : e->parameters()) {
             if (!valueInRange(p.defaultValue, p.min, p.max)) {
                 defaultsInRange = false;
-                std::cout << "    DEFAULT OUT OF RANGE: " << p.name.toStdString()
-                          << " = " << p.defaultValue.toString().toStdString()
+                std::cout << "    DEFAULT OUT OF RANGE: " << p.name.toStdString() << " = "
+                          << p.defaultValue.toString().toStdString()
                           << " (min=" << p.min.toString().toStdString()
-                          << ", max=" << p.max.toString().toStdString() << ")"
-                          << std::endl;
+                          << ", max=" << p.max.toString().toStdString() << ")" << std::endl;
             }
         }
         check(id.toStdString().c_str(), defaultsInRange,
@@ -142,7 +141,7 @@ int main() {
         ExperimentResult r;
         bool ranOK = true;
         try {
-            r = e->run(params, [](double){}, [](){ return false; });
+            r = e->run(params, [](double) {}, []() { return false; });
         } catch (const std::exception& ex) {
             ranOK = false;
             std::cout << "    EXCEPTION: " << ex.what() << std::endl;
@@ -152,18 +151,20 @@ int main() {
         }
 
         check(id.toStdString().c_str(), ranOK, "run() completes without exception");
-        if (!ranOK) { ++failed; continue; }
+        if (!ranOK) {
+            ++failed;
+            continue;
+        }
 
         bool hasOutput = !r.curve.isEmpty() || !r.scalars.isEmpty();
-        check(id.toStdString().c_str(), hasOutput,
-              "produces non-empty curve or scalars");
+        check(id.toStdString().c_str(), hasOutput, "produces non-empty curve or scalars");
 
         // Log tension values for cosmology validation experiments
         if (!r.success) {
             for (const auto& key : r.scalars.keys()) {
                 if (key.endsWith("_tension")) {
-                    std::cout << "    [TENSION] " << key.toStdString()
-                              << " = " << r.scalars[key].toDouble() << " sigma" << std::endl;
+                    std::cout << "    [TENSION] " << key.toStdString() << " = "
+                              << r.scalars[key].toDouble() << " sigma" << std::endl;
                 }
             }
         }
@@ -174,10 +175,13 @@ int main() {
         if (r.success)
             std::cout << "    [all validation checks passed]" << std::endl;
         else
-            std::cout << "    [some validation checks failed - expected for validation experiments]" << std::endl;
+            std::cout << "    [some validation checks failed - expected for validation experiments]"
+                      << std::endl;
 
-        if (ranOK && hasOutput) ++passed;
-        else ++failed;
+        if (ranOK && hasOutput)
+            ++passed;
+        else
+            ++failed;
     }
 
     // --- Summary ---

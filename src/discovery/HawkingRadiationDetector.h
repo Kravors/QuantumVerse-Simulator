@@ -6,9 +6,9 @@
 #ifndef QUANTUMVERSE_HAWKING_RADIATION_DETECTOR_H
 #define QUANTUMVERSE_HAWKING_RADIATION_DETECTOR_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -27,18 +27,23 @@ namespace quantumverse {
  * instruments that configure their channel of interest via parameters).
  */
 class HawkingRadiationDetector : public DiscoveryInstrument {
-public:
+   public:
     HawkingRadiationDetector();
     ~HawkingRadiationDetector() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "HawkingRadiationDetector"; }
+    std::string getName() const override {
+        return "HawkingRadiationDetector";
+    }
     std::string getDescription() const override;
-    std::string getCategory() const override { return "Black Holes"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::MEDIUM; }
+    std::string getCategory() const override {
+        return "Black Holes";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::MEDIUM;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
@@ -52,6 +57,6 @@ public:
     static double hawkingFlux2D();
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_HAWKING_RADIATION_DETECTOR_H
+#endif  // QUANTUMVERSE_HAWKING_RADIATION_DETECTOR_H

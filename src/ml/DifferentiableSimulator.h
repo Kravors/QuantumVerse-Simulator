@@ -11,17 +11,17 @@
 
 #pragma once
 
-#include <vector>
 #include <array>
-#include <memory>
-#include <string>
-#include <stdexcept>
 #include <cmath>
 #include <functional>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
+#include "../physics/GeodesicIntegrator.h"
 #include "../spacetime/Event4D.h"
 #include "../spacetime/MetricTensor.h"
-#include "../physics/GeodesicIntegrator.h"
 
 namespace quantumverse {
 
@@ -29,26 +29,26 @@ namespace quantumverse {
  * @brief Observable extraction modes for simulation output.
  */
 enum class ObservableMode {
-    FINAL_POSITION,   ///< Extract final (t, x, y, z) coordinates
-    FINAL_VELOCITY,   ///< Extract final 4-velocity components
-    FINAL_STATE,      ///< Extract both position and velocity (8 components)
-    PROPER_TIME,      ///< Extract total proper time of trajectory
-    CUSTOM            ///< User-defined observable via callback
+    FINAL_POSITION,  ///< Extract final (t, x, y, z) coordinates
+    FINAL_VELOCITY,  ///< Extract final 4-velocity components
+    FINAL_STATE,     ///< Extract both position and velocity (8 components)
+    PROPER_TIME,     ///< Extract total proper time of trajectory
+    CUSTOM           ///< User-defined observable via callback
 };
 
 /**
  * @brief Configuration for the DifferentiableSimulator.
  */
 struct SimulatorConfig {
-    double tolerance = 1e-8;           ///< Geodesic integrator tolerance
-    double minStepSize = 1e-12;        ///< Minimum integration step
-    double maxStepSize = 0.1;          ///< Maximum integration step
-    double safetyFactor = 0.9;         ///< Step size safety factor
-    int maxIterations = 1000000;       ///< Maximum integration iterations
-    double paramEpsilon = 1e-6;        ///< FD epsilon for Jacobian computation
+    double tolerance = 1e-8;      ///< Geodesic integrator tolerance
+    double minStepSize = 1e-12;   ///< Minimum integration step
+    double maxStepSize = 0.1;     ///< Maximum integration step
+    double safetyFactor = 0.9;    ///< Step size safety factor
+    int maxIterations = 1000000;  ///< Maximum integration iterations
+    double paramEpsilon = 1e-6;   ///< FD epsilon for Jacobian computation
     ObservableMode observableMode = ObservableMode::FINAL_STATE;
-    std::function<std::vector<double>(
-        const std::vector<GeodesicStep>&)> customObservable;  ///< Custom observable extractor
+    std::function<std::vector<double>(const std::vector<GeodesicStep>&)>
+        customObservable;  ///< Custom observable extractor
 };
 
 /**
@@ -57,9 +57,8 @@ struct SimulatorConfig {
  * Used to construct position-dependent metrics (Schwarzschild, Kerr, RN)
  * with specific parameter values for simulation and perturbation.
  */
-using MetricFactory = std::function<
-    std::shared_ptr<MetricTensor>(const std::vector<double>& params)
->;
+using MetricFactory =
+    std::function<std::shared_ptr<MetricTensor>(const std::vector<double>& params)>;
 
 /**
  * @brief DifferentiableSimulator
@@ -74,7 +73,7 @@ using MetricFactory = std::function<
  * @note Uses RAII for metric and integrator lifetime management.
  */
 class DifferentiableSimulator {
-public:
+   public:
     /**
      * @brief Construct a DifferentiableSimulator with a metric factory.
      * @param factory Function that creates MetricTensor from parameter vector.
@@ -83,11 +82,9 @@ public:
      *
      * @throws std::invalid_argument if factory is nullptr.
      */
-    explicit DifferentiableSimulator(
-        MetricFactory factory,
-        std::vector<std::string> paramNames = {},
-        const SimulatorConfig& config = SimulatorConfig()
-    );
+    explicit DifferentiableSimulator(MetricFactory factory,
+                                     std::vector<std::string> paramNames = {},
+                                     const SimulatorConfig& config = SimulatorConfig());
 
     /**
      * @brief Destructor.
@@ -109,64 +106,49 @@ public:
      * @param geodesicType Type of geodesic (timelike/lightlike/spacelike).
      * @return Event4D Final event after integration.
      */
-    Event4D simulate(
-        const Event4D& initialEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType geodesicType,
-        double targetProperTime
-    ) const;
+    Event4D simulate(const Event4D& initialEvent, const std::array<double, 4>& initialVelocity,
+                     GeodesicType geodesicType, double targetProperTime) const;
 
     /**
      * @brief Run simulation and return full trajectory.
      */
-    std::vector<GeodesicStep> simulateFull(
-        const Event4D& initialEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType geodesicType,
-        double targetProperTime,
-        bool storeTrajectory = false
-    ) const;
+    std::vector<GeodesicStep> simulateFull(const Event4D& initialEvent,
+                                           const std::array<double, 4>& initialVelocity,
+                                           GeodesicType geodesicType, double targetProperTime,
+                                           bool storeTrajectory = false) const;
 
     /**
-      * @brief Compute the Jacobian ∂observables/∂parameters via central finite differences.
-      *
-      * @note Uses central differences: ∂f/∂p_i ≈ (f(p+ε) - f(p-ε)) / (2ε)
-      */
-    std::vector<std::vector<double>> computeJacobian(
-        const Event4D& initialEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType geodesicType,
-        double targetProperTime
-    ) const;
+     * @brief Compute the Jacobian ∂observables/∂parameters via central finite differences.
+     *
+     * @note Uses central differences: ∂f/∂p_i ≈ (f(p+ε) - f(p-ε)) / (2ε)
+     */
+    std::vector<std::vector<double>> computeJacobian(const Event4D& initialEvent,
+                                                     const std::array<double, 4>& initialVelocity,
+                                                     GeodesicType geodesicType,
+                                                     double targetProperTime) const;
 
     /**
-      * @brief Compute the Jacobian ∂observables/∂parameters via reverse-mode AD.
-      *
-      * Uses the adjoint method: one forward pass records operations on the tape,
-      * one reverse pass propagates gradients back to all parameters simultaneously.
-      * Cost is O(1) in parameter count, vs O(N) for central finite differences.
-      *
-      * @note For geodesic observables, this currently uses a simplified differentiable
-      * model. Full adjoint-mode through the RK4 integrator requires extending
-      * GeodesicIntegrator with ADVar support.
-      */
-    std::vector<std::vector<double>> computeJacobianAdjoint(
-        const Event4D& initialEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType geodesicType,
-        double targetProperTime
-    ) const;
+     * @brief Compute the Jacobian ∂observables/∂parameters via reverse-mode AD.
+     *
+     * Uses the adjoint method: one forward pass records operations on the tape,
+     * one reverse pass propagates gradients back to all parameters simultaneously.
+     * Cost is O(1) in parameter count, vs O(N) for central finite differences.
+     *
+     * @note For geodesic observables, this currently uses a simplified differentiable
+     * model. Full adjoint-mode through the RK4 integrator requires extending
+     * GeodesicIntegrator with ADVar support.
+     */
+    std::vector<std::vector<double>>
+    computeJacobianAdjoint(const Event4D& initialEvent,
+                           const std::array<double, 4>& initialVelocity, GeodesicType geodesicType,
+                           double targetProperTime) const;
 
     /**
      * @brief Compute observables and their parameter gradients in one call.
      */
     std::pair<std::vector<double>, std::vector<std::vector<double>>>
-    simulateWithJacobian(
-        const Event4D& initialEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType geodesicType,
-        double targetProperTime
-    ) const;
+    simulateWithJacobian(const Event4D& initialEvent, const std::array<double, 4>& initialVelocity,
+                         GeodesicType geodesicType, double targetProperTime) const;
 
     /**
      * @brief Set the theory parameters for the underlying metric.
@@ -193,13 +175,9 @@ public:
      *
      * @return double Maximum relative error across all observable-parameter pairs.
      */
-    double verifyGradient(
-        const Event4D& initialEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType geodesicType,
-        double targetProperTime,
-        double epsilon = 1e-5
-    ) const;
+    double verifyGradient(const Event4D& initialEvent, const std::array<double, 4>& initialVelocity,
+                          GeodesicType geodesicType, double targetProperTime,
+                          double epsilon = 1e-5) const;
 
     /**
      * @brief Get the underlying metric name.
@@ -211,13 +189,11 @@ public:
      */
     bool isValid() const noexcept;
 
-private:
+   private:
     /**
      * @brief Extract observable vector from a geodesic trajectory.
      */
-    std::vector<double> extractObservables(
-        const std::vector<GeodesicStep>& trajectory
-    ) const;
+    std::vector<double> extractObservables(const std::vector<GeodesicStep>& trajectory) const;
 
     /**
      * @brief Rebuild the base metric from current parameters.
@@ -225,14 +201,14 @@ private:
     void rebuildMetric_() const;
 
     // Core components
-    MetricFactory metricFactory_;                              ///< Factory: params → MetricTensor
-    std::vector<std::string> paramNames_;                      ///< Parameter names
-    SimulatorConfig config_;                                   ///< Configuration
+    MetricFactory metricFactory_;          ///< Factory: params → MetricTensor
+    std::vector<std::string> paramNames_;  ///< Parameter names
+    SimulatorConfig config_;               ///< Configuration
 
     // Mutable state — modified in logically-const methods (Jacobian, verify)
-    mutable std::vector<double> currentParams_;                ///< Current parameter values
-    mutable std::shared_ptr<MetricTensor> baseMetric_;         ///< Current metric (cached)
-    mutable std::vector<GeodesicStep> lastTrajectory_;         ///< Most recent integration
+    mutable std::vector<double> currentParams_;         ///< Current parameter values
+    mutable std::shared_ptr<MetricTensor> baseMetric_;  ///< Current metric (cached)
+    mutable std::vector<GeodesicStep> lastTrajectory_;  ///< Most recent integration
     mutable bool trajectoryCached_ = false;
 };
 
@@ -246,10 +222,8 @@ private:
  *
  * @throws std::invalid_argument if metricType is unknown.
  */
-std::unique_ptr<DifferentiableSimulator> createDifferentiableSimulator(
-    const std::string& metricType,
-    const std::vector<double>& params = {},
-    const SimulatorConfig& config = SimulatorConfig()
-);
+std::unique_ptr<DifferentiableSimulator>
+createDifferentiableSimulator(const std::string& metricType, const std::vector<double>& params = {},
+                              const SimulatorConfig& config = SimulatorConfig());
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -1,16 +1,16 @@
 #pragma once
 
+#include <functional>
+#include <map>
+#include <optional>
 #include <string>
 #include <vector>
-#include <map>
-#include <functional>
-#include <optional>
 
 namespace quantumverse {
 
 /**
  * @brief Symbolic mathematics interface for field equation generation.
- * 
+ *
  * This class provides a C++ interface to SymPy (via Python subprocess) for
  * symbolic tensor calculus, field equation derivation, and mathematical
  * expression manipulation. It supports:
@@ -18,11 +18,11 @@ namespace quantumverse {
  * - Christoffel symbol symbolic derivation
  * - Curvature tensor symbolic computation
  * - Field equation simplification and validation
- * 
+ *
  * @ingroup discovery
  */
 class SymbolicMath {
-public:
+   public:
     /**
      * @brief Result of symbolic computation.
      */
@@ -49,11 +49,11 @@ public:
      * @brief Tensor component specification.
      */
     struct TensorComponent {
-        int upper_idx;               ///< Upper index (-1 if none)
-        int lower_idx1;              ///< First lower index
-        int lower_idx2;              ///< Second lower index (for Riemann)
-        int lower_idx3;              ///< Third lower index (for Riemann)
-        int lower_idx4;              ///< Fourth lower index (for Riemann)
+        int upper_idx;   ///< Upper index (-1 if none)
+        int lower_idx1;  ///< First lower index
+        int lower_idx2;  ///< Second lower index (for Riemann)
+        int lower_idx3;  ///< Third lower index (for Riemann)
+        int lower_idx4;  ///< Fourth lower index (for Riemann)
     };
 
     SymbolicMath();
@@ -75,9 +75,7 @@ public:
      * @param metric_params Map of metric parameters (e.g., {"M", 1.0} for Schwarzschild)
      * @return SymbolicResult containing the field equation
      */
-    SymbolicResult computeEinsteinEquations(
-        const std::map<std::string, double>& metric_params
-    );
+    SymbolicResult computeEinsteinEquations(const std::map<std::string, double>& metric_params);
 
     /**
      * @brief Compute Christoffel symbols symbolically.
@@ -134,10 +132,8 @@ public:
      * @param params Theory parameters (e.g., {"alpha", 1.0, "n", 2.0} for f(R))
      * @param result Output verification result with penalties and diagnostics
      */
-    void verifyFieldEquations(
-        const std::map<std::string, double>& params,
-        TheoryVerificationResult& result
-    );
+    void verifyFieldEquations(const std::map<std::string, double>& params,
+                              TheoryVerificationResult& result);
 
     /**
      * @brief Generate a symbolic field equation from trajectory data.
@@ -146,8 +142,7 @@ public:
      * @return SymbolicResult containing the fitted equation
      */
     SymbolicResult generateFieldEquationFromData(
-        const std::vector<std::pair<std::string, double>>& trajectory_data
-    );
+        const std::vector<std::pair<std::string, double>>& trajectory_data);
 
     /**
      * @brief Execute a Python script and return the result.
@@ -155,23 +150,19 @@ public:
      */
     std::string executePythonScript(const std::string& script) const;
 
-private:
+   private:
     bool available_;
     std::string python_path_;
 
     /**
      * @brief Build Python script for Einstein equations.
      */
-    std::string buildEinsteinScript(
-        const std::map<std::string, double>& params
-    ) const;
+    std::string buildEinsteinScript(const std::map<std::string, double>& params) const;
 
     /**
      * @brief Build Python script for field-equation verification.
      */
-    std::string buildVerificationScript(
-        const std::map<std::string, double>& params
-    ) const;
+    std::string buildVerificationScript(const std::map<std::string, double>& params) const;
 
     /**
      * @brief Build Python script for Christoffel symbols.
@@ -186,12 +177,12 @@ private:
 
 /**
  * @brief Symbolic regression engine for discovering field equations.
- * 
+ *
  * Uses genetic programming with SymPy to discover mathematical expressions
  * that fit observational or simulation data.
  */
 class SymbolicRegressionEngine {
-public:
+   public:
     /**
      * @brief Configuration for symbolic regression.
      */
@@ -202,14 +193,13 @@ public:
         double fitness_threshold;
         std::vector<std::string> operators;
         std::vector<std::string> variables;
-        
+
         Config()
-            : population_size(1000)
-            , generations(100)
-            , max_expression_depth(10)
-            , fitness_threshold(1e-6)
-            , operators({"+", "-", "*", "/", "sqrt", "log"})
-        {}
+            : population_size(1000),
+              generations(100),
+              max_expression_depth(10),
+              fitness_threshold(1e-6),
+              operators({"+", "-", "*", "/", "sqrt", "log"}) {}
     };
 
     /**
@@ -229,9 +219,7 @@ public:
      * @param data Input data points (x, y)
      * @return Best fitting equation
      */
-    RegressionResult runRegression(
-        const std::vector<std::pair<std::vector<double>, double>>& data
-    );
+    RegressionResult runRegression(const std::vector<std::pair<std::vector<double>, double>>& data);
 
     /**
      * @brief Set the configuration.
@@ -241,15 +229,16 @@ public:
     /**
      * @brief Get the current configuration.
      */
-    const Config& getConfig() const { return config_; }
+    const Config& getConfig() const {
+        return config_;
+    }
 
-private:
+   private:
     Config config_;
     SymbolicMath sym_math_;
 
-    std::string buildRegressionScript(
-        const std::vector<std::pair<std::vector<double>, double>>& data
-    ) const;
+    std::string
+    buildRegressionScript(const std::vector<std::pair<std::vector<double>, double>>& data) const;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

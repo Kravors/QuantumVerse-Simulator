@@ -4,23 +4,21 @@
  */
 
 #include "GWRingdownScanner.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include "../spacetime/KerrMetric.h"
 
 namespace quantumverse {
 
-GWRingdownScanner::GWRingdownScanner()
-{
+GWRingdownScanner::GWRingdownScanner() {
     setParameter("sigma_threshold", kSigmaThreshold);
     setParameter("spin", 0.0);
     setParameter("mass_solar", 1.0);
 }
 
-std::vector<InstrumentFinding> GWRingdownScanner::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding> GWRingdownScanner::analyze(const MetricTensor& metric,
+                                                          const Event4D& location,
+                                                          const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
@@ -51,12 +49,14 @@ std::vector<InstrumentFinding> GWRingdownScanner::analyze(
         double errReal = pt.z;
         double errImag = pt.t;
 
-        if (std::isnan(obsReal) || std::isnan(obsImag) || std::isnan(errReal) || std::isnan(errImag) ||
-            std::isinf(obsReal) || std::isinf(obsImag) || std::isinf(errReal) || std::isinf(errImag)) {
+        if (std::isnan(obsReal) || std::isnan(obsImag) || std::isnan(errReal) ||
+            std::isnan(errImag) || std::isinf(obsReal) || std::isinf(obsImag) ||
+            std::isinf(errReal) || std::isinf(errImag)) {
             continue;
         }
 
-        if (errReal <= 0.0 && errImag <= 0.0) continue;
+        if (errReal <= 0.0 && errImag <= 0.0)
+            continue;
 
         double devReal = 0.0;
         double devImag = 0.0;
@@ -91,8 +91,8 @@ std::vector<InstrumentFinding> GWRingdownScanner::analyze(
         finding.confidence = confidence;
         finding.isAnomaly = true;
         finding.description = "GW ringdown anomaly: QNM frequency deviation of " +
-                             std::to_string(maxDeviation) + " sigma detected. " +
-                             "This may indicate a non-Kerr compact object or modified gravity.";
+                              std::to_string(maxDeviation) + " sigma detected. " +
+                              "This may indicate a non-Kerr compact object or modified gravity.";
         finding.location = location;
         finding.timestamp = trajectory.back().t;
         finding.parameters["max_deviation_sigma"] = maxDeviation;
@@ -110,27 +110,19 @@ std::vector<InstrumentFinding> GWRingdownScanner::analyze(
     return findings;
 }
 
-std::map<std::string, std::pair<double, double>> GWRingdownScanner::getParameterRanges() const
-{
-    return {
-        {"sigma_threshold", {2.0, 5.0}},
-        {"spin", {-1.0, 1.0}},
-        {"mass_solar", {0.1, 100.0}}
-    };
+std::map<std::string, std::pair<double, double>> GWRingdownScanner::getParameterRanges() const {
+    return {{"sigma_threshold", {2.0, 5.0}}, {"spin", {-1.0, 1.0}}, {"mass_solar", {0.1, 100.0}}};
 }
 
-double GWRingdownScanner::schwarzschildQNMReal()
-{
+double GWRingdownScanner::schwarzschildQNMReal() {
     return 0.37367;
 }
 
-double GWRingdownScanner::schwarzschildQNMImag()
-{
+double GWRingdownScanner::schwarzschildQNMImag() {
     return -0.0890;
 }
 
-double GWRingdownScanner::predictedFrequency(double massSolar, double spin)
-{
+double GWRingdownScanner::predictedFrequency(double massSolar, double spin) {
     double m = massSolar;
     double a = spin;
     double m3 = m * m * m;
@@ -139,4 +131,4 @@ double GWRingdownScanner::predictedFrequency(double massSolar, double spin)
     return omegaR;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

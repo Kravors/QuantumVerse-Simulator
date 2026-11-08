@@ -5,11 +5,11 @@
 
 #include "TourManager.h"
 
-#include <filesystem>
-#include <algorithm>
-#include <iostream>
 #include <QDir>
 #include <QFileInfo>
+#include <algorithm>
+#include <filesystem>
+#include <iostream>
 
 namespace quantumverse {
 
@@ -89,10 +89,12 @@ bool TourManager::hasTour(const std::string& name) const {
 std::shared_ptr<EducationalTour> TourManager::getTour(const std::string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = name_to_filename_.find(name);
-    if (it == name_to_filename_.end()) return nullptr;
+    if (it == name_to_filename_.end())
+        return nullptr;
 
     auto sit = tours_.find(it->second);
-    if (sit != tours_.end()) return sit->second;
+    if (sit != tours_.end())
+        return sit->second;
 
     return nullptr;
 }
@@ -106,7 +108,8 @@ std::shared_ptr<EducationalTour> TourManager::getTourByFilename(const std::strin
     const std::string key = QFileInfo(path).fileName().toStdString();
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = tours_.find(key);
-    if (it != tours_.end()) return it->second;
+    if (it != tours_.end())
+        return it->second;
 
     auto tour = std::make_shared<EducationalTour>();
     if (!tour->loadFromFile(path.toStdString())) {
@@ -164,9 +167,11 @@ bool TourManager::doLoadAllTours() {
 
     try {
         for (const auto& entry : fs::directory_iterator(directory)) {
-            if (!entry.is_regular_file()) continue;
+            if (!entry.is_regular_file())
+                continue;
             auto ext = entry.path().extension().string();
-            if (ext != ".json") continue;
+            if (ext != ".json")
+                continue;
 
             std::string filename = entry.path().filename().string();
             std::string full_path = entry.path().string();
@@ -234,4 +239,4 @@ void TourManager::clear() {
     name_to_filename_.clear();
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -1,16 +1,16 @@
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <filesystem>
 
 #include "perf_gate.h"
 
 int main([[maybe_unused]] int argc, char* argv[]) {
-    const double avgThreshold = perf_gate::thresholdFromEnv(
-        "QUANTUMVERSE_PERF_AVG_THRESHOLD_MS", PERF_AVG_THRESHOLD_DEFAULT);
-    const double maxThreshold = perf_gate::thresholdFromEnv(
-        "QUANTUMVERSE_PERF_MAX_THRESHOLD_MS", PERF_MAX_THRESHOLD_DEFAULT);
+    const double avgThreshold = perf_gate::thresholdFromEnv("QUANTUMVERSE_PERF_AVG_THRESHOLD_MS",
+                                                            PERF_AVG_THRESHOLD_DEFAULT);
+    const double maxThreshold = perf_gate::thresholdFromEnv("QUANTUMVERSE_PERF_MAX_THRESHOLD_MS",
+                                                            PERF_MAX_THRESHOLD_DEFAULT);
 
     const char* logPath = "headless_performance.log";
     std::remove(logPath);
@@ -37,8 +37,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         return 1;
     }
 
-    std::string content((std::istreambuf_iterator<char>(log)),
-                        std::istreambuf_iterator<char>());
+    std::string content((std::istreambuf_iterator<char>(log)), std::istreambuf_iterator<char>());
     log.close();
 
     const perf_gate::Eval result = perf_gate::evaluate(content, avgThreshold, maxThreshold);
@@ -47,9 +46,8 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         double max = 0.0;
         perf_gate::parseLog(content, avg, max);
         std::cerr << "Performance gate failed (" << perf_gate::evalToString(result)
-                  << "): avg=" << avg << " ms (threshold " << avgThreshold
-                  << "), max=" << max << " ms (threshold " << maxThreshold << ")"
-                  << std::endl;
+                  << "): avg=" << avg << " ms (threshold " << avgThreshold << "), max=" << max
+                  << " ms (threshold " << maxThreshold << ")" << std::endl;
         return 1;
     }
 

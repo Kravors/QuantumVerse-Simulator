@@ -10,14 +10,14 @@
 #ifndef QUANTUMVERSE_TOUR_MANAGER_H
 #define QUANTUMVERSE_TOUR_MANAGER_H
 
-#include <string>
-#include <vector>
 #include <memory>
-#include <unordered_map>
 #include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-#include <QObject>
 #include <QMetaType>
+#include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
@@ -29,7 +29,7 @@ namespace quantumverse {
 
 class TourManager : public QObject {
     Q_OBJECT
-public:
+   public:
     static TourManager& instance() {
         static TourManager* mgr = nullptr;
         if (!mgr) {
@@ -66,10 +66,13 @@ public:
     void reload();
     void clear();
 
-    const std::string& tourDir() const { return tour_dir_; }
-    size_t count() const { return tours_.size(); }
+    const std::string& tourDir() const {
+        return tour_dir_;
+    }
+    size_t count() const {
+        return tours_.size();
+    }
     TourManager() : QObject(nullptr) {}
-
 
     bool doLoadAllTours();
 
@@ -79,9 +82,8 @@ public:
     mutable std::mutex mutex_;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
 Q_DECLARE_METATYPE(quantumverse::TourManager*)
 
-#endif // QUANTUMVERSE_TOUR_MANAGER_H
-
+#endif  // QUANTUMVERSE_TOUR_MANAGER_H

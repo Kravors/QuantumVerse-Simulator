@@ -37,13 +37,13 @@
 #ifndef QUANTUMVERSE_EDUCATIONAL_TOUR_H
 #define QUANTUMVERSE_EDUCATIONAL_TOUR_H
 
-#include <string>
-#include <vector>
-#include <array>
-#include <cstdint>
 #include <QList>
 #include <QMetaType>
 #include <QVariantList>
+#include <array>
+#include <cstdint>
+#include <string>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -59,8 +59,8 @@ namespace quantumverse {
  * `value` as appropriate.
  */
 struct TourAction {
-    std::string type;   ///< Action name, e.g. "enable_lensing", "set_bh_mass"
-    nlohmann::json value;         ///< Action payload (bool / number / string)
+    std::string type;      ///< Action name, e.g. "enable_lensing", "set_bh_mass"
+    nlohmann::json value;  ///< Action payload (bool / number / string)
 };
 
 /**
@@ -70,9 +70,9 @@ struct TourAction {
  * looks at; `distance` is the camera radius from that point.
  */
 struct TourCamera {
-    double azimuth = 45.0;      ///< Azimuth about vertical axis (degrees)
-    double elevation = 20.0;    ///< Elevation above equator (degrees)
-    double distance = 200.0;    ///< Distance from target (geometric units)
+    double azimuth = 45.0;                           ///< Azimuth about vertical axis (degrees)
+    double elevation = 20.0;                         ///< Elevation above equator (degrees)
+    double distance = 200.0;                         ///< Distance from target (geometric units)
     std::array<double, 3> target = {0.0, 0.0, 0.0};  ///< Look-at point
 };
 
@@ -81,20 +81,26 @@ struct TourCamera {
  */
 struct TourStep {
     Q_GADGET
-    Q_PROPERTY(QString title       READ qtitle)
-    Q_PROPERTY(QString body        READ qbody)
-    Q_PROPERTY(double  duration_sec READ dduration)
-public:
-    std::string title;              ///< Short heading shown in the panel
-    std::string body;               ///< Explanatory text (plain text or Markdown)
-    double duration_sec = 6.0;      ///< Auto-advance after this many seconds;
-                                     ///  0 means "wait for the user to click Next"
-    TourCamera camera;              ///< Camera to move to for this step
-    std::vector<TourAction> actions; ///< State mutations applied on entry
+    Q_PROPERTY(QString title READ qtitle)
+    Q_PROPERTY(QString body READ qbody)
+    Q_PROPERTY(double duration_sec READ dduration)
+   public:
+    std::string title;                ///< Short heading shown in the panel
+    std::string body;                 ///< Explanatory text (plain text or Markdown)
+    double duration_sec = 6.0;        ///< Auto-advance after this many seconds;
+                                      ///  0 means "wait for the user to click Next"
+    TourCamera camera;                ///< Camera to move to for this step
+    std::vector<TourAction> actions;  ///< State mutations applied on entry
 
-    QString qtitle() const { return QString::fromStdString(title); }
-    QString qbody() const { return QString::fromStdString(body); }
-    double dduration() const { return duration_sec; }
+    QString qtitle() const {
+        return QString::fromStdString(title);
+    }
+    QString qbody() const {
+        return QString::fromStdString(body);
+    }
+    double dduration() const {
+        return duration_sec;
+    }
 };
 
 /**
@@ -102,21 +108,27 @@ public:
  */
 struct EducationalTour {
     Q_GADGET
-    Q_PROPERTY(QString id          READ qid)
-    Q_PROPERTY(QString title       READ qtitle)
+    Q_PROPERTY(QString id READ qid)
+    Q_PROPERTY(QString title READ qtitle)
     Q_PROPERTY(QString description READ qdescription)
-    Q_PROPERTY(QVariantList steps   READ stepsQml)
-public:
-    std::string id;                 ///< Stable identifier, e.g. "black_hole_basics"
-    std::string title;             ///< Human-readable title
-    std::string description;       ///< Short blurb for the selection panel
-    std::vector<TourStep> steps;   ///< Ordered step list (must be non-empty)
+    Q_PROPERTY(QVariantList steps READ stepsQml)
+   public:
+    std::string id;               ///< Stable identifier, e.g. "black_hole_basics"
+    std::string title;            ///< Human-readable title
+    std::string description;      ///< Short blurb for the selection panel
+    std::vector<TourStep> steps;  ///< Ordered step list (must be non-empty)
 
     QVariantList stepsQml() const;
 
-    QString qid() const { return QString::fromStdString(id); }
-    QString qtitle() const { return QString::fromStdString(title); }
-    QString qdescription() const { return QString::fromStdString(description); }
+    QString qid() const {
+        return QString::fromStdString(id);
+    }
+    QString qtitle() const {
+        return QString::fromStdString(title);
+    }
+    QString qdescription() const {
+        return QString::fromStdString(description);
+    }
 
     // ----------------------------------------------------------------------
     // Validation
@@ -138,7 +150,7 @@ public:
     bool loadFromFile(const std::string& filepath);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
 Q_DECLARE_METATYPE(quantumverse::TourStep)
 Q_DECLARE_METATYPE(quantumverse::EducationalTour)
@@ -159,37 +171,34 @@ inline void from_json(const json& j, TourAction& a) {
 }
 
 inline void to_json(json& j, const TourCamera& c) {
-    j = json{
-        {"azimuth", c.azimuth},
-        {"elevation", c.elevation},
-        {"distance", c.distance},
-        {"target", {c.target[0], c.target[1], c.target[2]}}
-    };
+    j = json{{"azimuth", c.azimuth},
+             {"elevation", c.elevation},
+             {"distance", c.distance},
+             {"target", {c.target[0], c.target[1], c.target[2]}}};
 }
 
 inline void from_json(const json& j, TourCamera& c) {
-    c.azimuth   = j.value("azimuth", 45.0);
+    c.azimuth = j.value("azimuth", 45.0);
     c.elevation = j.value("elevation", 20.0);
-    c.distance  = j.value("distance", 200.0);
+    c.distance = j.value("distance", 200.0);
     if (j.contains("target") && j["target"].is_array() && j["target"].size() == 3) {
-        for (int i = 0; i < 3; i++) c.target[i] = j["target"][i].get<double>();
+        for (int i = 0; i < 3; i++)
+            c.target[i] = j["target"][i].get<double>();
     }
 }
 
 inline void to_json(json& j, const TourStep& s) {
-    j = json{
-        {"title", s.title},
-        {"body", s.body},
-        {"duration_sec", s.duration_sec},
-        {"camera", s.camera},
-        {"actions", s.actions}
-    };
+    j = json{{"title", s.title},
+             {"body", s.body},
+             {"duration_sec", s.duration_sec},
+             {"camera", s.camera},
+             {"actions", s.actions}};
 }
 
 inline void from_json(const json& j, TourStep& s) {
-    s.title         = j.value("title", "");
-    s.body          = j.value("body", "");
-    s.duration_sec  = j.value("duration_sec", 6.0);
+    s.title = j.value("title", "");
+    s.body = j.value("body", "");
+    s.duration_sec = j.value("duration_sec", 6.0);
     if (j.contains("camera") && j["camera"].is_object()) {
         s.camera = j["camera"].get<TourCamera>();
     }
@@ -199,23 +208,18 @@ inline void from_json(const json& j, TourStep& s) {
 }
 
 inline void to_json(json& j, const EducationalTour& t) {
-    j = json{
-        {"id", t.id},
-        {"title", t.title},
-        {"description", t.description},
-        {"steps", t.steps}
-    };
+    j = json{{"id", t.id}, {"title", t.title}, {"description", t.description}, {"steps", t.steps}};
 }
 
 inline void from_json(const json& j, EducationalTour& t) {
-    t.id          = j.value("id", "");
-    t.title       = j.value("title", "");
+    t.id = j.value("id", "");
+    t.title = j.value("title", "");
     t.description = j.value("description", "");
     if (j.contains("steps") && j["steps"].is_array()) {
         t.steps = j["steps"].get<std::vector<TourStep>>();
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_EDUCATIONAL_TOUR_H
+#endif  // QUANTUMVERSE_EDUCATIONAL_TOUR_H

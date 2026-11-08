@@ -1,8 +1,8 @@
 #include "ml/MetricGNN.h"
 #include <cmath>
-#include <stdexcept>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 
 namespace quantumverse {
 namespace ml {
@@ -17,7 +17,8 @@ struct NormStats {
 
 inline std::string read_file(const std::string& path) {
     std::ifstream f(path);
-    if (!f.good()) return {};
+    if (!f.good())
+        return {};
     std::stringstream ss;
     ss << f.rdbuf();
     return ss.str();
@@ -25,18 +26,22 @@ inline std::string read_file(const std::string& path) {
 
 inline std::vector<float> parse_float_array(const std::string& json, const std::string& key) {
     size_t pos = json.find("\"" + key + "\"");
-    if (pos == std::string::npos) return {};
+    if (pos == std::string::npos)
+        return {};
     pos = json.find('[', pos);
-    if (pos == std::string::npos) return {};
+    if (pos == std::string::npos)
+        return {};
     size_t end = json.find(']', pos);
-    if (end == std::string::npos) return {};
+    if (end == std::string::npos)
+        return {};
     std::stringstream ss(json.substr(pos + 1, end - pos - 1));
     std::vector<float> vals;
     std::string token;
     while (std::getline(ss, token, ',')) {
         auto b = token.find_first_not_of(" \t\n\r");
         auto e = token.find_last_not_of(" \t\n\r");
-        if (b == std::string::npos) continue;
+        if (b == std::string::npos)
+            continue;
         vals.push_back(std::stof(token.substr(b, e - b + 1)));
     }
     return vals;
@@ -45,11 +50,12 @@ inline std::vector<float> parse_float_array(const std::string& json, const std::
 inline NormStats LoadNormalization(const std::string& path) {
     NormStats s;
     std::string json = read_file(path);
-    if (json.empty()) return s;
-    s.input_mean  = parse_float_array(json, "mean");
-    s.input_std   = parse_float_array(json, "std");
+    if (json.empty())
+        return s;
+    s.input_mean = parse_float_array(json, "mean");
+    s.input_std = parse_float_array(json, "std");
     s.output_mean = parse_float_array(json, "output_mean");
-    s.output_std  = parse_float_array(json, "output_std");
+    s.output_std = parse_float_array(json, "output_std");
     return s;
 }
 
@@ -57,7 +63,7 @@ inline std::vector<float> NormalizeInput(const std::vector<float>& raw, const No
     std::vector<float> out(raw.size());
     for (size_t i = 0; i < raw.size(); ++i) {
         float mean = (i < ns.input_mean.size()) ? ns.input_mean[i] : 0.0f;
-        float std  = (i < ns.input_std .size()) ? ns.input_std [i] : 1.0f;
+        float std = (i < ns.input_std.size()) ? ns.input_std[i] : 1.0f;
         out[i] = (raw[i] - mean) / (std + 1e-8f);
     }
     return out;
@@ -67,18 +73,20 @@ inline std::vector<float> DenormalizeOutput(const std::vector<float>& norm, cons
     std::vector<float> out(norm.size());
     for (size_t i = 0; i < norm.size(); ++i) {
         float mean = (i < ns.output_mean.size()) ? ns.output_mean[i] : 0.0f;
-        float std  = (i < ns.output_std .size()) ? ns.output_std [i] : 1.0f;
+        float std = (i < ns.output_std.size()) ? ns.output_std[i] : 1.0f;
         out[i] = norm[i] * std + mean;
     }
     return out;
 }
 
 static double minkowski_metric(int mu, int nu) {
-    if (mu == 0 && nu == 0) return -1.0;
-    if (mu == nu && mu > 0) return 1.0;
+    if (mu == 0 && nu == 0)
+        return -1.0;
+    if (mu == nu && mu > 0)
+        return 1.0;
     return 0.0;
 }
-}
+}  // namespace
 
 struct MetricGNN::Impl {
     bool loaded_ = false;
@@ -109,13 +117,14 @@ bool MetricGNN::isLoaded() const noexcept {
     return pImpl_->loaded_;
 }
 
-std::vector<std::vector<std::vector<double>>> MetricGNN::predict(
-        const std::vector<std::array<double,3>>& mass_positions,
-        const std::vector<double>& mass_values,
-        const std::vector<std::array<double,3>>& query_points) const {
+std::vector<std::vector<std::vector<double>>>
+MetricGNN::predict(const std::vector<std::array<double, 3>>& mass_positions,
+                   const std::vector<double>& mass_values,
+                   const std::vector<std::array<double, 3>>& query_points) const {
     if (!isLoaded()) {
         size_t Q = query_points.size();
-        std::vector<std::vector<std::vector<double>>> out(Q, std::vector<std::vector<double>>(4, std::vector<double>(4, 0.0)));
+        std::vector<std::vector<std::vector<double>>> out(
+            Q, std::vector<std::vector<double>>(4, std::vector<double>(4, 0.0)));
         for (size_t q = 0; q < Q; ++q) {
             for (int mu = 0; mu < 4; ++mu)
                 for (int nu = 0; nu < 4; ++nu)
@@ -132,7 +141,8 @@ std::vector<std::vector<std::vector<double>>> MetricGNN::predict(
         for (int mu = 0; mu < 4; ++mu) {
             for (int nu = 0; nu < 4; ++nu) {
                 double residual = 0.0;
-                if (!base.norm_.output_std.empty() && base.norm_.output_mean.size() >= (size_t)(mu*4+nu+1)) {
+                if (!base.norm_.output_std.empty() &&
+                    base.norm_.output_mean.size() >= (size_t)(mu * 4 + nu + 1)) {
                     size_t idx = static_cast<size_t>(mu) * 4 + nu;
                     if (idx < base.norm_.output_mean.size()) {
                         residual = 0.0;
@@ -145,5 +155,5 @@ std::vector<std::vector<std::vector<double>>> MetricGNN::predict(
     return out;
 }
 
-} // namespace ml
-} // namespace quantumverse
+}  // namespace ml
+}  // namespace quantumverse

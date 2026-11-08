@@ -10,10 +10,10 @@
 
 #pragma once
 
-#include <vector>
+#include <array>
 #include <memory>
 #include <string>
-#include <array>
+#include <vector>
 
 namespace quantumverse {
 
@@ -21,11 +21,11 @@ namespace quantumverse {
  * @brief Celestial body for N-body simulation
  */
 struct NBody {
-    std::string id;                 ///< Unique identifier
-    double mass = 0.0;              ///< Mass in kg
-    double position[3] = {0.0, 0.0, 0.0};     ///< Position in 3D space
-    double velocity[3] = {0.0, 0.0, 0.0};   ///< Velocity vector
-    double acceleration[3] = {0.0, 0.0, 0.0}; ///< Acceleration vector
+    std::string id;                            ///< Unique identifier
+    double mass = 0.0;                         ///< Mass in kg
+    double position[3] = {0.0, 0.0, 0.0};      ///< Position in 3D space
+    double velocity[3] = {0.0, 0.0, 0.0};      ///< Velocity vector
+    double acceleration[3] = {0.0, 0.0, 0.0};  ///< Acceleration vector
 };
 
 /**
@@ -37,7 +37,7 @@ struct NBody {
  * And Euler integration for orbital motion.
  */
 class NBodySimulator {
-public:
+   public:
     /**
      * @brief Gravitational constant (m^3 kg^-1 s^-2)
      */
@@ -55,8 +55,8 @@ public:
      * @param position Initial position
      * @param velocity Initial velocity
      */
-    void addBody(const std::string& id, double mass,
-                 const double position[3], const double velocity[3]);
+    void addBody(const std::string& id, double mass, const double position[3],
+                 const double velocity[3]);
 
     /**
      * @brief Remove a body by ID
@@ -75,17 +75,23 @@ public:
     /**
      * @brief Get number of bodies
      */
-    size_t bodyCount() const { return m_bodies.size(); }
+    size_t bodyCount() const {
+        return m_bodies.size();
+    }
 
     /**
      * @brief Set time step for integration
      */
-    void setTimeStep(double dt) { m_dt = dt; }
+    void setTimeStep(double dt) {
+        m_dt = dt;
+    }
 
     /**
      * @brief Get time step
      */
-    double getTimeStep() const { return m_dt; }
+    double getTimeStep() const {
+        return m_dt;
+    }
 
     /**
      * @brief Update simulation by one time step
@@ -100,14 +106,18 @@ public:
     /**
      * @brief Get simulation time
      */
-    double getSimulationTime() const { return m_time; }
+    double getSimulationTime() const {
+        return m_time;
+    }
 
     /**
      * @brief Set simulation time
      */
-    void setSimulationTime(double t) { m_time = t; }
+    void setSimulationTime(double t) {
+        m_time = t;
+    }
 
-private:
+   private:
     /**
      * @brief Compute gravitational forces between all bodies
      */
@@ -123,4 +133,4 @@ private:
     double m_time;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

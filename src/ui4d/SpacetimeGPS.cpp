@@ -10,14 +10,12 @@
 #include <QJsonObject>
 #include <cmath>
 
-#include "ui4d/UI4D.h"
 #include "spacetime/MetricTensor.h"
+#include "ui4d/UI4D.h"
 
 namespace quantumverse {
 
-SpacetimeGPS::SpacetimeGPS(QObject* parent)
-    : QAbstractListModel(parent)
-{
+SpacetimeGPS::SpacetimeGPS(QObject* parent) : QAbstractListModel(parent) {
     // Initialise to 0 so the first updateFromSimulation() always runs; later
     // calls are throttled to m_updateHz.
     m_lastUpdateMs = 0;
@@ -30,35 +28,60 @@ int SpacetimeGPS::rowCount(const QModelIndex& /*parent*/) const {
 }
 
 QVariant SpacetimeGPS::data(const QModelIndex& index, int role) const {
-    if (!index.isValid()) return QVariant();
+    if (!index.isValid())
+        return QVariant();
     int row = index.row();
-    if (row < 0 || row >= static_cast<int>(m_objects.size())) return QVariant();
+    if (row < 0 || row >= static_cast<int>(m_objects.size()))
+        return QVariant();
     const Tracked& t = m_objects[row];
 
     switch (role) {
-        case IdRole:          return t.id;
-        case NameRole:        return t.name;
-        case TypeRole:        return t.type;
-        case ColorRole:       return t.color;
-        case TRole:           return t.pos.t;
-        case XRole:           return t.pos.x;
-        case YRole:           return t.pos.y;
-        case ZRole:           return t.pos.z;
-        case VxRole:          return t.vel.x;
-        case VyRole:          return t.vel.y;
-        case VzRole:          return t.vel.z;
-        case SpeedRole:       return t.vel.spatialLength();
-        case SpinXRole:       return t.spinX;
-        case SpinYRole:       return t.spinY;
-        case SpinZRole:       return t.spinZ;
-        case SpinRateRole:    return t.spinRate;
-        case RRole:           return t.r;
-        case ThetaRole:       return t.theta;
-        case PhiRole:         return t.phi;
-        case RedshiftRole:    return t.redshift;
-        case ProperTimeRole:  return t.properTime;
-        case PinnedRole:      return t.pinned;
-        default:              return QVariant();
+        case IdRole:
+            return t.id;
+        case NameRole:
+            return t.name;
+        case TypeRole:
+            return t.type;
+        case ColorRole:
+            return t.color;
+        case TRole:
+            return t.pos.t;
+        case XRole:
+            return t.pos.x;
+        case YRole:
+            return t.pos.y;
+        case ZRole:
+            return t.pos.z;
+        case VxRole:
+            return t.vel.x;
+        case VyRole:
+            return t.vel.y;
+        case VzRole:
+            return t.vel.z;
+        case SpeedRole:
+            return t.vel.spatialLength();
+        case SpinXRole:
+            return t.spinX;
+        case SpinYRole:
+            return t.spinY;
+        case SpinZRole:
+            return t.spinZ;
+        case SpinRateRole:
+            return t.spinRate;
+        case RRole:
+            return t.r;
+        case ThetaRole:
+            return t.theta;
+        case PhiRole:
+            return t.phi;
+        case RedshiftRole:
+            return t.redshift;
+        case ProperTimeRole:
+            return t.properTime;
+        case PinnedRole:
+            return t.pinned;
+        default:
+            return QVariant();
     }
 }
 
@@ -90,37 +113,45 @@ QHash<int, QByteArray> SpacetimeGPS::roleNames() const {
 }
 
 void SpacetimeGPS::setTrackingEnabled(bool enabled) {
-    if (m_trackingEnabled == enabled) return;
+    if (m_trackingEnabled == enabled)
+        return;
     m_trackingEnabled = enabled;
     emit trackingEnabledChanged();
 }
 
 void SpacetimeGPS::setUpdateHz(int hz) {
-    if (hz < 1) hz = 1;
-    if (m_updateHz == hz) return;
+    if (hz < 1)
+        hz = 1;
+    if (m_updateHz == hz)
+        return;
     m_updateHz = hz;
     emit updateHzChanged();
 }
 
 void SpacetimeGPS::setSelectedId(const QString& id) {
-    if (m_selectedId == id) return;
+    if (m_selectedId == id)
+        return;
     m_selectedId = id;
     emit selectedIdChanged();
 }
 
 void SpacetimeGPS::setViewportScale(double scale) {
-    if (scale <= 0.0) scale = 1.0;
-    if (std::abs(m_viewportScale - scale) < 1e-12) return;
+    if (scale <= 0.0)
+        scale = 1.0;
+    if (std::abs(m_viewportScale - scale) < 1e-12)
+        return;
     m_viewportScale = scale;
     emit viewportScaleChanged();
 }
 
 void SpacetimeGPS::pin(const QString& id, bool pinned) {
     auto it = m_indexById.constFind(id);
-    if (it == m_indexById.constEnd()) return;
+    if (it == m_indexById.constEnd())
+        return;
     int row = it.value();
     Tracked& t = m_objects[row];
-    if (t.pinned == pinned) return;
+    if (t.pinned == pinned)
+        return;
     t.pinned = pinned;
     QModelIndex idx = index(row);
     emit dataChanged(idx, idx, {PinnedRole});
@@ -128,7 +159,8 @@ void SpacetimeGPS::pin(const QString& id, bool pinned) {
 
 void SpacetimeGPS::focusOn(const QString& id) {
     auto it = m_indexById.constFind(id);
-    if (it == m_indexById.constEnd()) return;
+    if (it == m_indexById.constEnd())
+        return;
     const Tracked& t = m_objects[it.value()];
     // Emit scaled viewport coordinates so the camera lands on the visible grid.
     double sx = t.pos.x * m_viewportScale;
@@ -140,7 +172,8 @@ void SpacetimeGPS::focusOn(const QString& id) {
 QVariantMap SpacetimeGPS::details(const QString& id) const {
     QVariantMap map;
     auto it = m_indexById.constFind(id);
-    if (it == m_indexById.constEnd()) return map;
+    if (it == m_indexById.constEnd())
+        return map;
     const Tracked& t = m_objects[it.value()];
     map["id"] = t.id;
     map["name"] = t.name;
@@ -169,7 +202,8 @@ QVariantMap SpacetimeGPS::details(const QString& id) const {
 QVariantList SpacetimeGPS::track(const QString& id, int maxSamples) const {
     QVariantList list;
     auto it = m_indexById.constFind(id);
-    if (it == m_indexById.constEnd()) return list;
+    if (it == m_indexById.constEnd())
+        return list;
     const Tracked& t = m_objects[it.value()];
     int n = static_cast<int>(t.trackXY.size());
     int start = (n > maxSamples) ? (n - maxSamples) : 0;
@@ -186,7 +220,8 @@ QStringList SpacetimeGPS::types() const {
     QStringList out;
     out << QStringLiteral("All");
     for (const auto& t : m_objects) {
-        if (!out.contains(t.type)) out << t.type;
+        if (!out.contains(t.type))
+            out << t.type;
     }
     return out;
 }
@@ -201,19 +236,28 @@ void SpacetimeGPS::registerObject(const Tracked& t) {
 }
 
 QColor SpacetimeGPS::typeColor(const QString& type) {
-    if (type == QStringLiteral("BlackHole")) return QColor("#ff6b6b");
-    if (type == QStringLiteral("Star")) return QColor("#ffd166");
-    if (type == QStringLiteral("Planet")) return QColor("#4af");
-    if (type == QStringLiteral("Moon")) return QColor("#aaaaaa");
-    if (type == QStringLiteral("Probe")) return QColor("#00ffcc");
-    if (type == QStringLiteral("Geodesic")) return QColor("#ff9ff3");
-    if (type == QStringLiteral("Vertex")) return QColor("#888");
-    if (type == QStringLiteral("Annulus")) return QColor("#f44");
+    if (type == QStringLiteral("BlackHole"))
+        return QColor("#ff6b6b");
+    if (type == QStringLiteral("Star"))
+        return QColor("#ffd166");
+    if (type == QStringLiteral("Planet"))
+        return QColor("#4af");
+    if (type == QStringLiteral("Moon"))
+        return QColor("#aaaaaa");
+    if (type == QStringLiteral("Probe"))
+        return QColor("#00ffcc");
+    if (type == QStringLiteral("Geodesic"))
+        return QColor("#ff9ff3");
+    if (type == QStringLiteral("Vertex"))
+        return QColor("#888");
+    if (type == QStringLiteral("Annulus"))
+        return QColor("#f44");
     return QColor("#bbb");
 }
 
 double SpacetimeGPS::redshiftAt(const MetricTensor* metric, const Event4D& event) {
-    if (!metric) return 0.0;
+    if (!metric)
+        return 0.0;
     auto g = metric->evaluate(event);
     double gtt = g[0][0];
     if (gtt < 0.0 && std::isfinite(gtt)) {
@@ -257,16 +301,19 @@ void SpacetimeGPS::refreshTracked(Tracked& tr, UI4D* ui4d, MetricTensor* metric,
     QPointF scaled(static_cast<float>(tr.pos.x * m_viewportScale),
                    static_cast<float>(tr.pos.y * m_viewportScale));
     tr.trackXY.push_back(scaled);
-    while (tr.trackXY.size() > 2000) tr.trackXY.pop_front();
+    while (tr.trackXY.size() > 2000)
+        tr.trackXY.pop_front();
 }
 
-void SpacetimeGPS::updateFromSimulation(UI4D* ui4d, MetricTensor* metric,
-                                        double /*simTime*/, double dt) {
-    if (!m_trackingEnabled) return;
+void SpacetimeGPS::updateFromSimulation(UI4D* ui4d, MetricTensor* metric, double /*simTime*/,
+                                        double dt) {
+    if (!m_trackingEnabled)
+        return;
 
     qint64 now = QDateTime::currentMSecsSinceEpoch();
     int minIntervalMs = (m_updateHz > 0) ? (1000 / m_updateHz) : 100;
-    if (now - m_lastUpdateMs < minIntervalMs) return;
+    if (now - m_lastUpdateMs < minIntervalMs)
+        return;
     m_lastUpdateMs = now;
 
     // Refresh each registered object.
@@ -281,9 +328,8 @@ void SpacetimeGPS::updateFromSimulation(UI4D* ui4d, MetricTensor* metric,
             QModelIndex idx = index(row);
             QModelIndex last = index(row);
             emit dataChanged(idx, last,
-                             {TRole, XRole, YRole, ZRole, VxRole, VyRole, VzRole,
-                              SpeedRole, RRole, ThetaRole, PhiRole,
-                              RedshiftRole, ProperTimeRole});
+                             {TRole, XRole, YRole, ZRole, VxRole, VyRole, VzRole, SpeedRole, RRole,
+                              ThetaRole, PhiRole, RedshiftRole, ProperTimeRole});
         }
         (void)before;
         anyChanged = true;
@@ -293,8 +339,9 @@ void SpacetimeGPS::updateFromSimulation(UI4D* ui4d, MetricTensor* metric,
 
 const SpacetimeGPS::Tracked* SpacetimeGPS::objectById(const QString& id) const {
     auto it = m_indexById.constFind(id);
-    if (it == m_indexById.constEnd()) return nullptr;
+    if (it == m_indexById.constEnd())
+        return nullptr;
     return &m_objects[it.value()];
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

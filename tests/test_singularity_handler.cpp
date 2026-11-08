@@ -1,10 +1,10 @@
 // QuantumVerse Test: SingularityHandler edge cases
 // Tests black hole types, evaporation, and tidal force safety
 
-#include <iostream>
-#include <cmath>
-#include <vector>
 #include <array>
+#include <cmath>
+#include <iostream>
+#include <vector>
 
 #include "physics/SingularityHandler.h"
 #include "spacetime/Event4D.h"
@@ -17,25 +17,24 @@ int main() {
 
     // Test 1: All black-hole types initialize without crash
     {
-        std::vector<SingularityType> types = {
-            SingularityType::SCHWARZSCHILD,
-            SingularityType::KERR,
-            SingularityType::REISSNER_NORDSTROM,
-            SingularityType::KERR_NEWMAN,
-            SingularityType::NAKED,
-            SingularityType::FUZZBALL,
-            SingularityType::HAYWARD,
-            SingularityType::BARDEEN,
-            SingularityType::LOOP_QUANTUM,
-            SingularityType::REGULAR_GAUSS
-        };
+        std::vector<SingularityType> types = {SingularityType::SCHWARZSCHILD,
+                                              SingularityType::KERR,
+                                              SingularityType::REISSNER_NORDSTROM,
+                                              SingularityType::KERR_NEWMAN,
+                                              SingularityType::NAKED,
+                                              SingularityType::FUZZBALL,
+                                              SingularityType::HAYWARD,
+                                              SingularityType::BARDEEN,
+                                              SingularityType::LOOP_QUANTUM,
+                                              SingularityType::REGULAR_GAUSS};
 
         for (auto type : types) {
             SingularityHandler handler(type, 1.0, 0.0, 0.0);
             auto props = handler.getProperties();
             QV_CHECK(props.type == type);
             (void)props;
-            std::cout << "  [PASS] " << static_cast<int>(type) << " initializes correctly" << std::endl;
+            std::cout << "  [PASS] " << static_cast<int>(type) << " initializes correctly"
+                      << std::endl;
         }
         std::cout << "[PASS] All black-hole types initialize without crash" << std::endl;
     }
@@ -91,14 +90,15 @@ int main() {
         double initialMass = handler.getProperties().mass;
         for (int i = 0; i < 1000; ++i) {
             handler.evolveHawkingEvaporation(1e12);
-            if (handler.isEvaporated()) break;
+            if (handler.isEvaporated())
+                break;
         }
         double finalMass = handler.getProperties().mass;
         QV_CHECK(!std::isnan(finalMass));
         QV_CHECK(!std::isinf(finalMass));
         QV_CHECK(finalMass >= 0.0);
-        std::cout << "[PASS] Evaporation to near-Planck mass completes safely: "
-                  << initialMass << " -> " << finalMass << std::endl;
+        std::cout << "[PASS] Evaporation to near-Planck mass completes safely: " << initialMass
+                  << " -> " << finalMass << std::endl;
     }
 
     // Test 7: Kerr ergosphere detection
@@ -138,11 +138,8 @@ int main() {
     // Test 10: Regular black holes (Hayward, Bardeen) don't produce NaN at r=0
     {
         std::vector<SingularityType> regularTypes = {
-            SingularityType::HAYWARD,
-            SingularityType::BARDEEN,
-            SingularityType::LOOP_QUANTUM,
-            SingularityType::REGULAR_GAUSS
-        };
+            SingularityType::HAYWARD, SingularityType::BARDEEN, SingularityType::LOOP_QUANTUM,
+            SingularityType::REGULAR_GAUSS};
 
         for (auto type : regularTypes) {
             SingularityHandler handler(type, 1.0, 0.0, 0.0);

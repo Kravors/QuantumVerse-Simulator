@@ -1,24 +1,21 @@
 // Visual regression test for QuantumVerse headless rendering
-#include <QTest>
-#include <QProcess>
-#include <QImage>
-#include <QFile>
 #include <QDir>
+#include <QFile>
+#include <QImage>
+#include <QProcess>
+#include <QTest>
 #include <QtMath>
 
-class VisualRegressionTest : public QObject
-{
+class VisualRegressionTest : public QObject {
     Q_OBJECT
 
-private slots:
-    void test_default_rendering_is_stable()
-    {
+   private slots:
+    void test_default_rendering_is_stable() {
         runScreenshotTest("default");
     }
 
-private:
-    void runScreenshotTest(const QString &name)
-    {
+   private:
+    void runScreenshotTest(const QString& name) {
         QString exePath = QCoreApplication::applicationDirPath() + "/quantumverse_qml";
 #ifdef Q_OS_WIN
         exePath += ".exe";
@@ -35,7 +32,8 @@ private:
 
         process.start(exePath, args);
         bool finished = process.waitForFinished(30000);
-        QVERIFY2(finished, qPrintable("Process timed out or failed to start: " + process.errorString()));
+        QVERIFY2(finished,
+                 qPrintable("Process timed out or failed to start: " + process.errorString()));
         QCOMPARE(process.exitStatus(), QProcess::NormalExit);
         QCOMPARE(process.exitCode(), 0);
 
@@ -68,10 +66,10 @@ private:
         double pctDiff = (double)differentPixels / totalPixels * 100.0;
         qDebug() << "Percentage of pixels different:" << pctDiff;
 
-        QVERIFY2(pctDiff <= 1.0, qPrintable(
-            QString("Visual regression: %1% pixels differ (>%2 threshold)")
-                .arg(pctDiff, 0, 'f', 3)
-                .arg(threshold)));
+        QVERIFY2(pctDiff <= 1.0,
+                 qPrintable(QString("Visual regression: %1% pixels differ (>%2 threshold)")
+                                .arg(pctDiff, 0, 'f', 3)
+                                .arg(threshold)));
 
         QFile::remove(tempOutput);
     }

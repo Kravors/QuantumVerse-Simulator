@@ -17,10 +17,10 @@
 #include <map>
 #include <memory>
 
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "physics/GeodesicIntegrator.h"
 #include "discovery/DiscoveryEngine.h"
+#include "physics/GeodesicIntegrator.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -51,7 +51,7 @@ void test_metric_invariants() {
 void test_gr_recovery() {
     std::cout << "  Testing GR recovery (alpha = 0)..." << std::endl;
     YukawaFifthForcePlugin yukawa(0.0, 15.0, 1.0);
-    FRLGravityPlugin gr(1.0, 1.0); // FRL metric is pure Schwarzschild with M=1.0
+    FRLGravityPlugin gr(1.0, 1.0);  // FRL metric is pure Schwarzschild with M=1.0
     std::map<std::string, double> yp{{"alpha", 0.0}, {"lambda", 15.0}, {"M", 1.0}};
     Event4D loc(0.0, 20.0, 0.0, 0.0);
     MetricTensor my = yukawa.computeMetric(loc, yp);
@@ -103,7 +103,7 @@ void test_geodesic_integration() {
     (void)yEnd;
 }
 
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== YukawaGravityTest ===" << std::endl;

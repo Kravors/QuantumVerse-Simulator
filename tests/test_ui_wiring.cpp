@@ -10,8 +10,8 @@
  */
 
 #include <QCoreApplication>
-#include <QTemporaryDir>
 #include <QFile>
+#include <QTemporaryDir>
 #include <QTextStream>
 #include <cmath>
 #include <iostream>
@@ -59,8 +59,8 @@ int main(int argc, char** argv) {
         QV_CHECK(minK > 0.0);
         QV_CHECK(maxK / minK > 1.001);  // rows must actually vary
 
-        std::cout << "[PASS] SweepProducesVaryingRows — minK=" << minK
-                  << " maxK=" << maxK << std::endl;
+        std::cout << "[PASS] SweepProducesVaryingRows — minK=" << minK << " maxK=" << maxK
+                  << std::endl;
         std::cout.flush();
     }
 
@@ -88,8 +88,7 @@ int main(int argc, char** argv) {
         QV_CHECK(content.contains("mass_msun,"));
         QV_CHECK(content.contains("kretschmann,"));
 
-        std::cout << "[PASS] ExportWritesNonEmptyCsv — " << content.size()
-                  << " bytes" << std::endl;
+        std::cout << "[PASS] ExportWritesNonEmptyCsv — " << content.size() << " bytes" << std::endl;
         std::cout.flush();
     }
 
@@ -104,10 +103,10 @@ int main(int argc, char** argv) {
         double rs = metric.schwarzschildRadius();
 
         std::vector<Event4D> probes = {
-            makeProbe(1.1 * rs, M_PI / 2.0),   // A: just outside horizon
-            makeProbe(1.5 * rs, M_PI / 4.0),   // B: outside ergosphere
-            makeProbe(1e5,      M_PI / 4.0),   // C: production probe
-            makeProbe(1e10,     M_PI / 4.0),   // D: far field
+            makeProbe(1.1 * rs, M_PI / 2.0),  // A: just outside horizon
+            makeProbe(1.5 * rs, M_PI / 4.0),  // B: outside ergosphere
+            makeProbe(1e5, M_PI / 4.0),       // C: production probe
+            makeProbe(1e10, M_PI / 4.0),      // D: far field
         };
 
         PhysicsValidator validator(std::make_shared<MetricTensor>());
@@ -116,8 +115,8 @@ int main(int argc, char** argv) {
         QV_CHECK(result.totalChecks == 16);  // 4 probes × 4 checks
         QV_CHECK(result.totalFailures == 0);
 
-        std::cout << "[PASS] AllProbesValidate — " << result.totalChecks
-                  << " checks, " << result.totalFailures << " failures" << std::endl;
+        std::cout << "[PASS] AllProbesValidate — " << result.totalChecks << " checks, "
+                  << result.totalFailures << " failures" << std::endl;
         std::cout.flush();
     }
 

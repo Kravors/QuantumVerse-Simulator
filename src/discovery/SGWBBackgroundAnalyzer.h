@@ -30,9 +30,9 @@
 #ifndef QUANTUMVERSE_SGWB_BACKGROUND_ANALYZER_H
 #define QUANTUMVERSE_SGWB_BACKGROUND_ANALYZER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -47,12 +47,12 @@ namespace quantumverse {
  * single-detector self-cross-correlation).
  */
 class SGWBBackgroundAnalyzer : public DiscoveryInstrument {
-public:
+   public:
     SGWBBackgroundAnalyzer();
     ~SGWBBackgroundAnalyzer() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location, const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
     /**
      * @brief Two-detector cross-correlation SGWB search.
@@ -61,16 +61,19 @@ public:
      * @return Findings (non-empty when the cross-correlation significance
      *         exceeds the configured threshold).
      */
-    std::vector<InstrumentFinding> analyzeStrains(
-        const std::vector<double>& strainA,
-        const std::vector<double>& strainB);
+    std::vector<InstrumentFinding> analyzeStrains(const std::vector<double>& strainA,
+                                                  const std::vector<double>& strainB);
 
     /**
      * @brief Configure the reference strain series used by analyze().
      */
-    void setReferenceStrain(const std::vector<double>& strain) { m_referenceStrain = strain; }
+    void setReferenceStrain(const std::vector<double>& strain) {
+        m_referenceStrain = strain;
+    }
 
-    std::string getName() const override { return "SGWBBackgroundAnalyzer"; }
+    std::string getName() const override {
+        return "SGWBBackgroundAnalyzer";
+    }
     std::string getDescription() const override {
         return "Stochastic Gravitational-Wave Background (SGWB) analyzer. "
                "Cross-correlates two strain time series to detect the unresolved "
@@ -78,16 +81,20 @@ public:
                "isotropic, unpolarized background). Flags a detection when the "
                "normalized cross-power exceeds the significance threshold.";
     }
-    std::string getCategory() const override { return "Gravitational Waves"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::MEDIUM; }
+    std::string getCategory() const override {
+        return "Gravitational Waves";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::MEDIUM;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
-private:
+   private:
     std::vector<double> m_referenceStrain;
     static constexpr size_t kMinPoints = 16;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_SGWB_BACKGROUND_ANALYZER_H
+#endif  // QUANTUMVERSE_SGWB_BACKGROUND_ANALYZER_H

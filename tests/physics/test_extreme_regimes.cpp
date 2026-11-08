@@ -1,14 +1,14 @@
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "spacetime/FRWMetric.h"
-#include "spacetime/DilatonMetric.h"
-#include "physics/GeodesicIntegrator.h"
-#include "physics/CurvatureCalculator.h"
-#include "physics/SingularityHandler.h"
-#include "physics/PhysicsValidator.h"
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include "physics/CurvatureCalculator.h"
+#include "physics/GeodesicIntegrator.h"
+#include "physics/PhysicsValidator.h"
+#include "physics/SingularityHandler.h"
+#include "spacetime/DilatonMetric.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/FRWMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -17,7 +17,7 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4189)
+#pragma warning(disable : 4189)
 #endif
 
 using namespace quantumverse;
@@ -25,7 +25,8 @@ using namespace quantumverse;
 static constexpr double INF = std::numeric_limits<double>::infinity();
 
 static double relError(double computed, double expected) {
-    if (expected == 0.0) return std::abs(computed);
+    if (expected == 0.0)
+        return std::abs(computed);
     return std::abs(computed - expected) / std::abs(expected);
 }
 
@@ -56,8 +57,8 @@ void test_schwarzschild_singularity_approach() {
         QV_CHECK(std::isfinite(step.event.y));
         QV_CHECK(std::isfinite(step.event.z));
     }
-    std::cout << "[PASS] Schwarzschild singularity approach: hit_singularity="
-              << hit_singularity << ", steps=" << traj.size() << std::endl;
+    std::cout << "[PASS] Schwarzschild singularity approach: hit_singularity=" << hit_singularity
+              << ", steps=" << traj.size() << std::endl;
 }
 
 // ============================================================================
@@ -71,7 +72,8 @@ void test_planck_scale_curvature() {
     Event4D ev(0.0, r_planck, 0.0, 0.0);
     auto s = sch.curvatureScalars(ev);
     if (!s.valid) {
-        std::cout << "[INFO] Planck-scale probe inside horizon → valid=false, K=" << s.kretschmann << std::endl;
+        std::cout << "[INFO] Planck-scale probe inside horizon → valid=false, K=" << s.kretschmann
+                  << std::endl;
         QV_CHECK(std::isfinite(s.kretschmann));
     } else {
         QV_CHECK(s.valid);
@@ -114,9 +116,8 @@ void test_kerr_naked_singularity() {
     double rs = 2.0 * M;
     double a = 1.5 * rs / 2.0;  // a > rs/2 => naked singularity in code's units
 
-    SingularityHandler handler(SingularityType::KERR,
-        M * Event4D::C * Event4D::C / Event4D::G,
-        a * M * Event4D::C * Event4D::C * Event4D::C / Event4D::G, 0.0);
+    SingularityHandler handler(SingularityType::KERR, M * Event4D::C * Event4D::C / Event4D::G,
+                               a * M * Event4D::C * Event4D::C * Event4D::C / Event4D::G, 0.0);
 
     QV_CHECK(handler.getProperties().is_naked);
     Event4D ev(0.0, 5.0 * M, 0.0, 0.0);
@@ -156,7 +157,8 @@ void test_schwarzschild_huge_mass() {
     (void)g;
     auto s = sch.curvatureScalars(ev);
     if (!s.valid) {
-        std::cout << "[INFO] r=1e20 inside horizon (rs~1.5e23 for M=1e50) → valid=false" << std::endl;
+        std::cout << "[INFO] r=1e20 inside horizon (rs~1.5e23 for M=1e50) → valid=false"
+                  << std::endl;
         QV_CHECK(std::isfinite(s.kretschmann));
     } else {
         QV_CHECK(s.valid);
@@ -173,9 +175,8 @@ void test_kerr_extremal_spin() {
     double rs = 2.0 * M;
     double a = rs / 2.0 - 1e-10;  // Just below extremal
 
-    SingularityHandler handler(SingularityType::KERR,
-        M * Event4D::C * Event4D::C / Event4D::G,
-        a * M * Event4D::C * Event4D::C / Event4D::G, 0.0);
+    SingularityHandler handler(SingularityType::KERR, M * Event4D::C * Event4D::C / Event4D::G,
+                               a * M * Event4D::C * Event4D::C / Event4D::G, 0.0);
 
     QV_CHECK(!handler.getProperties().is_naked);
     QV_CHECK(handler.getProperties().event_horizon_radius > 0.0);
@@ -189,7 +190,7 @@ void test_event_horizon_boundary() {
     double M = 1.0;
     double rs = 2.0 * M;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     Event4D outside(0.0, rs * 2.0, 0.0, 0.0);
     Event4D inside(0.0, rs * 0.5, 0.0, 0.0);
@@ -220,8 +221,8 @@ void test_hawking_evaporation_stability() {
 // ============================================================================
 void test_hayward_r0_finite() {
     double M = 1.0;
-    SingularityHandler handler(SingularityType::HAYWARD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+    SingularityHandler handler(SingularityType::HAYWARD, M * Event4D::C * Event4D::C / Event4D::G,
+                               0.0, 0.0);
 
     double K = handler.computeKretschmannAtRadius(1e-20);
     QV_CHECK(std::isfinite(K) && K > 0.0);
@@ -257,7 +258,8 @@ void test_radial_plunge_to_singularity() {
     // The clamp makes the integrator terminate at the horizon (r_min approaches
     // rs from outside), so assert it reaches the horizon rather than r -> 0.
     QV_CHECK(r_min <= rs * 1.01);
-    std::cout << "[PASS] Radial plunge reaches horizon: r_min = " << r_min << " <= rs = " << rs << std::endl;
+    std::cout << "[PASS] Radial plunge reaches horizon: r_min = " << r_min << " <= rs = " << rs
+              << std::endl;
 }
 
 // ============================================================================
@@ -267,11 +269,14 @@ void test_frw_big_crunch() {
     // Closed universe can have Big Crunch
     double H0 = 2.27e-18;
     double t0 = 4.354e17;
-    auto frw = FRWMetric(FRWMetric::Curvature::CLOSED,
+    auto frw = FRWMetric(
+        FRWMetric::Curvature::CLOSED,
         [t0](double t) {
-            if (t <= 0) return 0.0;
+            if (t <= 0)
+                return 0.0;
             return std::sin(M_PI * t / (2.0 * t0)) * std::pow(t / t0, 0.5);
-        }, H0);
+        },
+        H0);
 
     double t_crunch = t0 * 1.5;
     double a = frw.scaleFactor(t_crunch);
@@ -313,10 +318,9 @@ void test_kerr_near_extremal_stability() {
     double rs = 2.0 * M;
     double a = rs / 2.0 * 0.999;
 
-    auto kerr = MetricTensor::kerr(
-        M * Event4D::C * Event4D::C / Event4D::G,
-        a * M * Event4D::C * Event4D::C / Event4D::G,
-        10.0 * M, M_PI / 2.0);
+    auto kerr =
+        MetricTensor::kerr(M * Event4D::C * Event4D::C / Event4D::G,
+                           a * M * Event4D::C * Event4D::C / Event4D::G, 10.0 * M, M_PI / 2.0);
 
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
@@ -407,7 +411,8 @@ void test_geodesic_through_horizon() {
         double r = step.event.spatialLength();
         // SchwarzschildMetric clamps the radial term at the horizon, so the
         // integrator terminates at the horizon rather than crossing it.
-        if (r <= 2.0 * M * 1.01) reached_horizon = true;
+        if (r <= 2.0 * M * 1.01)
+            reached_horizon = true;
         QV_CHECK(std::isfinite(step.event.t));
     }
     QV_CHECK(reached_horizon);
@@ -456,7 +461,7 @@ void test_tidal_forces_near_horizon() {
 void test_singularity_at_origin() {
     double M = 1.0;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     Event4D origin(0.0, 0.0, 0.0, 0.0);
     QV_CHECK(handler.isInsideEventHorizon(origin));
@@ -472,14 +477,16 @@ void test_evaporation_to_planck() {
     double initial = handler.getProperties().mass;
     for (int i = 0; i < 10000; i++) {
         handler.evolveHawkingEvaporation(1e20);
-        if (handler.isEvaporated()) break;
+        if (handler.isEvaporated())
+            break;
     }
     double final = handler.getProperties().mass;
     QV_CHECK(!std::isnan(final));
     QV_CHECK(!std::isinf(final));
     QV_CHECK(final >= 0.0);
     QV_CHECK(final <= initial);
-    std::cout << "[PASS] Evaporation to Planck remnant: " << initial << " -> " << final << std::endl;
+    std::cout << "[PASS] Evaporation to Planck remnant: " << initial << " -> " << final
+              << std::endl;
 }
 
 // ============================================================================
@@ -513,7 +520,8 @@ void test_curvature_diverges_at_origin() {
     (void)K_prev;
     for (double ri : r) {
         double r_meters = ri * Event4D::C * Event4D::C / Event4D::G;
-        if (r_meters < 1e-15) continue;
+        if (r_meters < 1e-15)
+            continue;
         Event4D ev(0.0, r_meters, 0.0, 0.0);
         auto s = sch.curvatureScalars(ev);
         QV_CHECK(s.valid);
@@ -529,7 +537,7 @@ void test_curvature_diverges_at_origin() {
 void test_tidal_forces_increase_near_singularity() {
     double M = 1.0;
     SingularityHandler handler(SingularityType::SCHWARZSCHILD,
-        M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
     double rs = handler.getProperties().schwarzschild_radius;
 
     std::vector<double> r_factors = {10.0, 5.0, 2.5, 1.5, 1.1};
@@ -537,7 +545,8 @@ void test_tidal_forces_increase_near_singularity() {
     (void)stretch_prev;
     for (double f : r_factors) {
         double r = f * rs;
-        if (r < rs * 1.01) continue;
+        if (r < rs * 1.01)
+            continue;
         Event4D ev(0.0, r, 0.0, 0.0);
         auto forces = handler.computeTidalForces(ev);
         QV_CHECK(forces.radial_stretch > stretch_prev);
@@ -603,10 +612,9 @@ void test_hawking_temperature_formula() {
 // 18.4.31 - Schwarzschild: singularity handler - regular BHs no NaN at r=0
 // ============================================================================
 void test_regular_bh_no_nan_at_origin() {
-    std::vector<SingularityType> types = {
-        SingularityType::HAYWARD, SingularityType::BARDEEN,
-        SingularityType::LOOP_QUANTUM, SingularityType::REGULAR_GAUSS
-    };
+    std::vector<SingularityType> types = {SingularityType::HAYWARD, SingularityType::BARDEEN,
+                                          SingularityType::LOOP_QUANTUM,
+                                          SingularityType::REGULAR_GAUSS};
     for (auto type : types) {
         SingularityHandler handler(type, 1.0, 0.0, 0.0);
         Event4D origin(0.0, 0.0, 0.0, 0.0);
@@ -636,7 +644,8 @@ void test_geodesic_near_horizon_outside() {
     for (const auto& step [[maybe_unused]] : traj) {
         QV_CHECK(std::isfinite(step.event.x));
     }
-    std::cout << "[PASS] Geodesic near horizon (just outside): " << traj.size() << " steps" << std::endl;
+    std::cout << "[PASS] Geodesic near horizon (just outside): " << traj.size() << " steps"
+              << std::endl;
 }
 
 // ============================================================================
@@ -686,12 +695,9 @@ void test_coordinate_system_robustness() {
     double M = 1.0;
     SchwarzschildMetric sch(M * Event4D::C * Event4D::C / Event4D::G);
 
-    std::vector<Event4D> points = {
-        Event4D(0.0, 10.0, 0.0, 0.0),
-        Event4D(0.0, 10.0, M_PI, 0.0),
-        Event4D(0.0, 10.0, M_PI / 2.0, M_PI),
-        Event4D(0.0, 10.0, 0.001, 0.001)
-    };
+    std::vector<Event4D> points = {Event4D(0.0, 10.0, 0.0, 0.0), Event4D(0.0, 10.0, M_PI, 0.0),
+                                   Event4D(0.0, 10.0, M_PI / 2.0, M_PI),
+                                   Event4D(0.0, 10.0, 0.001, 0.001)};
 
     for (const auto& ev : points) {
         auto g = sch.evaluate(ev);

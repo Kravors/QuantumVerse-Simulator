@@ -1,7 +1,7 @@
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "physics/GeodesicIntegrator.h"
 #include <iostream>
+#include "physics/GeodesicIntegrator.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 
 using namespace quantumverse;
 
@@ -20,7 +20,8 @@ int main() {
         for (int j = 0; j < 4; j++)
             norm0 += g0[i][j] * vel[i] * vel[j];
     double scale = std::sqrt(-1.0 / norm0);
-    for (int i = 0; i < 4; i++) vel[i] *= scale;
+    for (int i = 0; i < 4; i++)
+        vel[i] *= scale;
 
     std::cout << "Starting integration..." << std::endl;
     auto traj = integrator.integrate(start, vel, GeodesicType::TIMELIKE, 1.0, true);

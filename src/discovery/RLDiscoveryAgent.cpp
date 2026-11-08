@@ -1,11 +1,11 @@
 #include "RLDiscoveryAgent.h"
 #include <algorithm>
-#include <numeric>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <random>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <sstream>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -67,16 +67,18 @@ PolicyNetwork::PolicyNetwork(int state_dim, int action_dim) {
     layer_sizes = {state_dim, 128, 128, action_dim};
     std::normal_distribution<double> normal(0.0, 0.1);
     std::mt19937 gen(42);
-    
+
     for (size_t i = 0; i < layer_sizes.size() - 1; ++i) {
         int rows = layer_sizes[i + 1];
         int cols = layer_sizes[i];
         std::vector<double> layer_weights(static_cast<size_t>(rows) * cols);
-        for (auto& w : layer_weights) w = normal(gen);
+        for (auto& w : layer_weights)
+            w = normal(gen);
         weights.push_back(layer_weights);
-        
+
         std::vector<double> layer_biases(rows);
-        for (auto& b : layer_biases) b = normal(gen) * 0.1;
+        for (auto& b : layer_biases)
+            b = normal(gen) * 0.1;
         biases.push_back(layer_biases);
     }
     rng.seed(std::random_device{}());
@@ -84,13 +86,13 @@ PolicyNetwork::PolicyNetwork(int state_dim, int action_dim) {
 
 std::vector<double> PolicyNetwork::forward(const std::vector<double>& state) const {
     std::vector<double> activations = state;
-    
+
     for (size_t i = 0; i < weights.size(); ++i) {
         const auto& W = weights[i];
         const auto& b = biases[i];
         int rows = static_cast<int>(b.size());
         int cols = static_cast<int>(activations.size());
-        
+
         std::vector<double> new_activations(rows);
         for (int r = 0; r < rows; ++r) {
             double sum = b[r];
@@ -114,24 +116,26 @@ RLAction PolicyNetwork::sampleAction(const std::vector<double>& state, double ep
         std::uniform_int_distribution<int> action_type(0, 3);
         std::uniform_int_distribution<int> param_idx(0, 9);
         std::uniform_real_distribution<double> delta(-0.1, 0.1);
-        return RLAction(static_cast<RLAction::ActionType>(action_type(rng)), param_idx(rng), delta(rng));
+        return RLAction(static_cast<RLAction::ActionType>(action_type(rng)), param_idx(rng),
+                        delta(rng));
     }
-    
+
     auto logits = forward(state);
     int action_dim = static_cast<int>(logits.size() / 2);
-    
+
     std::vector<double> probs(action_dim);
     double sum = 0.0;
     for (int i = 0; i < action_dim; ++i) {
         probs[i] = 1.0 / (1.0 + std::exp(-logits[i]));
         sum += probs[i];
     }
-    for (auto& p : probs) p /= sum;
-    
+    for (auto& p : probs)
+        p /= sum;
+
     std::discrete_distribution<int> dist(probs.begin(), probs.end());
     int param_idx = dist(rng);
     double delta = std::tanh(logits[action_dim + param_idx]) * 0.1;
-    
+
     return RLAction(RLAction::ADJUST_PARAMETER, param_idx, delta);
 }
 
@@ -155,8 +159,10 @@ void PolicyNetwork::mutate(double rate, double scale) {
 
 std::vector<double> PolicyNetwork::getParameters() const {
     std::vector<double> params;
-    for (const auto& layer : weights) params.insert(params.end(), layer.begin(), layer.end());
-    for (const auto& layer : biases) params.insert(params.end(), layer.begin(), layer.end());
+    for (const auto& layer : weights)
+        params.insert(params.end(), layer.begin(), layer.end());
+    for (const auto& layer : biases)
+        params.insert(params.end(), layer.begin(), layer.end());
     return params;
 }
 
@@ -173,8 +179,10 @@ void PolicyNetwork::setParameters(const std::vector<double>& params) {
 }
 
 // RLDiscoveryAgent implementation
-RLDiscoveryAgent::RLDiscoveryAgent(int param_dim_, const std::vector<std::pair<double, double>>& ranges)
-    : param_ranges(ranges), param_dim(param_dim_) {
+RLDiscoveryAgent::RLDiscoveryAgent(int param_dim_,
+                                   const std::vector<std::pair<double, double>>& ranges)
+    : param_ranges(ranges),
+      param_dim(param_dim_) {
     policy = std::make_unique<PolicyNetwork>(param_dim + 5, param_dim);
     std::random_device rd;
     rng.seed(rd());
@@ -200,7 +208,8 @@ std::vector<double> RLDiscoveryAgent::normalizeParams(const std::vector<double>&
     return normalized;
 }
 
-std::vector<double> RLDiscoveryAgent::denormalizeParams(const std::vector<double>& normalized) const {
+std::vector<double>
+RLDiscoveryAgent::denormalizeParams(const std::vector<double>& normalized) const {
     std::vector<double> params;
     params.reserve(param_dim);
     for (int i = 0; i < param_dim; ++i) {
@@ -238,26 +247,28 @@ double RLDiscoveryAgent::trainEpisode() {
     std::vector<double> params(param_dim);
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
     for (int i = 0; i < param_dim; ++i) {
-        params[i] = param_ranges[i].first + uniform(rng) * (param_ranges[i].second - param_ranges[i].first);
+        params[i] =
+            param_ranges[i].first + uniform(rng) * (param_ranges[i].second - param_ranges[i].first);
     }
-    
+
     double episode_reward = 0.0;
     int steps = 0;
-    
+
     while (steps < 100) {
         RLState state = runSimulation(params);
         auto state_vec = state.toVector();
         RLAction action = policy->sampleAction(state_vec, epsilon);
         action.apply(params);
-        
+
         double reward = computeReward(state);
         episode_reward += std::pow(gamma, steps) * reward;
-        
+
         steps++;
-        
-        if (action.type == RLAction::TERMINATE && steps > 10) break;
+
+        if (action.type == RLAction::TERMINATE && steps > 10)
+            break;
     }
-    
+
     total_reward += episode_reward;
     episode_count++;
     return episode_reward;
@@ -266,7 +277,7 @@ double RLDiscoveryAgent::trainEpisode() {
 std::vector<double> RLDiscoveryAgent::discoverTheory(int max_steps) {
     std::vector<double> best_params(param_dim, 0.0);
     double best_reward = -1e10;
-    
+
     for (int step = 0; step < max_steps; ++step) {
         double reward = trainEpisode();
         if (reward > best_reward) {
@@ -277,15 +288,22 @@ std::vector<double> RLDiscoveryAgent::discoverTheory(int max_steps) {
                 best_params[action.param_index] += action.param_delta;
             }
         }
-        if (epsilon > 0.05) epsilon *= 0.995;
+        if (epsilon > 0.05)
+            epsilon *= 0.995;
     }
-    
+
     return best_params;
 }
 
-void RLDiscoveryAgent::setEpsilon(double eps) { epsilon = std::max(0.0, std::min(1.0, eps)); }
-double RLDiscoveryAgent::getEpsilon() const { return epsilon; }
-int RLDiscoveryAgent::getEpisodeCount() const { return episode_count; }
+void RLDiscoveryAgent::setEpsilon(double eps) {
+    epsilon = std::max(0.0, std::min(1.0, eps));
+}
+double RLDiscoveryAgent::getEpsilon() const {
+    return epsilon;
+}
+int RLDiscoveryAgent::getEpisodeCount() const {
+    return episode_count;
+}
 
 double RLDiscoveryAgent::getAverageReward(int window_size) const {
     (void)window_size;
@@ -296,18 +314,22 @@ void RLDiscoveryAgent::savePolicy(const std::string& path) const {
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
     std::ofstream file(path);
-    if (!file.is_open()) throw std::runtime_error("Cannot open file: " + path);
+    if (!file.is_open())
+        throw std::runtime_error("Cannot open file: " + path);
     auto params = policy->getParameters();
-    for (size_t i = 0; i < params.size(); ++i) file << params[i] << (i + 1 == params.size() ? "" : " ");
+    for (size_t i = 0; i < params.size(); ++i)
+        file << params[i] << (i + 1 == params.size() ? "" : " ");
     file.close();
 }
 
 void RLDiscoveryAgent::loadPolicy(const std::string& path) {
     std::ifstream file(path);
-    if (!file.is_open()) throw std::runtime_error("Cannot open file: " + path);
+    if (!file.is_open())
+        throw std::runtime_error("Cannot open file: " + path);
     std::vector<double> params;
     double val;
-    while (file >> val) params.push_back(val);
+    while (file >> val)
+        params.push_back(val);
     file.close();
     policy->setParameters(params);
 }
@@ -324,14 +346,17 @@ bool RLDiscoveryAgent::loadONNXModel(const std::string& onnx_path) {
         // Convert path to wide string on Windows
 #ifdef _WIN32
         int needed = MultiByteToWideChar(CP_UTF8, 0, onnx_path.c_str(), -1, nullptr, 0);
-        if (needed <= 0) return false;
+        if (needed <= 0)
+            return false;
         std::wstring wpath(needed, 0);
         MultiByteToWideChar(CP_UTF8, 0, onnx_path.c_str(), -1, &wpath[0], needed);
         wpath.resize(needed - 1);
 
-        ort_session_ptr_ = new Ort::Session(*static_cast<Ort::Env*>(ort_env_ptr_), wpath.c_str(), opts);
+        ort_session_ptr_ =
+            new Ort::Session(*static_cast<Ort::Env*>(ort_env_ptr_), wpath.c_str(), opts);
 #else
-        ort_session_ptr_ = new Ort::Session(*static_cast<Ort::Env*>(ort_env_ptr_), onnx_path.c_str(), opts);
+        ort_session_ptr_ =
+            new Ort::Session(*static_cast<Ort::Env*>(ort_env_ptr_), onnx_path.c_str(), opts);
 #endif
 
         size_t num_inputs = static_cast<Ort::Session*>(ort_session_ptr_)->GetInputCount();
@@ -345,7 +370,8 @@ bool RLDiscoveryAgent::loadONNXModel(const std::string& onnx_path) {
             auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
             auto dims = tensor_info.GetShape();
             for (auto& d : dims) {
-                if (d < 0) d = 1;
+                if (d < 0)
+                    d = 1;
             }
             ort_input_dims_ = dims;
         }
@@ -355,7 +381,8 @@ bool RLDiscoveryAgent::loadONNXModel(const std::string& onnx_path) {
             auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
             auto dims = tensor_info.GetShape();
             for (auto& d : dims) {
-                if (d < 0) d = 1;
+                if (d < 0)
+                    d = 1;
             }
             ort_output_dims_ = dims;
         }
@@ -383,13 +410,9 @@ std::array<float, 3> RLDiscoveryAgent::predictONNAction(const std::array<float, 
         std::vector<float> input_data(state.begin(), state.end());
 
         Ort::MemoryInfo mem_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-        Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-            mem_info,
-            input_data.data(),
-            input_data.size(),
-            ort_input_dims_.data(),
-            ort_input_dims_.size()
-        );
+        Ort::Value input_tensor =
+            Ort::Value::CreateTensor<float>(mem_info, input_data.data(), input_data.size(),
+                                            ort_input_dims_.data(), ort_input_dims_.size());
 
         std::vector<const char*> input_names_ptrs;
         input_names_ptrs.reserve(ort_input_names_.size());
@@ -403,14 +426,10 @@ std::array<float, 3> RLDiscoveryAgent::predictONNAction(const std::array<float, 
             output_names_ptrs.push_back(name.c_str());
         }
 
-        std::vector<Ort::Value> outputs = static_cast<Ort::Session*>(ort_session_ptr_)->Run(
-            Ort::RunOptions{},
-            input_names_ptrs.data(),
-            &input_tensor,
-            1,
-            output_names_ptrs.data(),
-            output_names_ptrs.size()
-        );
+        std::vector<Ort::Value> outputs =
+            static_cast<Ort::Session*>(ort_session_ptr_)
+                ->Run(Ort::RunOptions{}, input_names_ptrs.data(), &input_tensor, 1,
+                      output_names_ptrs.data(), output_names_ptrs.size());
 
         if (!outputs.empty()) {
             auto* out_ptr = outputs[0].GetTensorMutableData<float>();
@@ -427,7 +446,9 @@ std::array<float, 3> RLDiscoveryAgent::predictONNAction(const std::array<float, 
 // RLTrainer implementation
 RLTrainer::RLTrainer(int param_dim, const std::vector<std::pair<double, double>>& ranges,
                      int episodes, int checkpoint_interval_, std::string checkpoint_dir_)
-    : agent(param_dim, ranges), total_episodes(episodes), checkpoint_interval(checkpoint_interval_),
+    : agent(param_dim, ranges),
+      total_episodes(episodes),
+      checkpoint_interval(checkpoint_interval_),
       checkpoint_dir(std::move(checkpoint_dir_)) {}
 
 void RLTrainer::train() {
@@ -439,12 +460,13 @@ void RLTrainer::train() {
             best_reward = reward;
             best_reward_history.push_back(reward);
         }
-        
+
         if ((ep + 1) % checkpoint_interval == 0) {
             std::string path = checkpoint_dir + "/checkpoint_ep" + std::to_string(ep + 1) + ".bin";
             agent.savePolicy(path);
             std::cout << "[RLTrainer] Episode " << ep + 1 << "/" << total_episodes
-                      << " | Reward: " << reward << " | Avg: " << agent.getAverageReward() << std::endl;
+                      << " | Reward: " << reward << " | Avg: " << agent.getAverageReward()
+                      << std::endl;
         }
     }
 }
@@ -468,5 +490,5 @@ void RLTrainer::loadAndResume(const std::string& path, int additional_episodes) 
     }
 }
 
-} // namespace discovery
-} // namespace quantumverse
+}  // namespace discovery
+}  // namespace quantumverse

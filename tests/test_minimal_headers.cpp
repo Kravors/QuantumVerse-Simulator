@@ -1,16 +1,14 @@
-#include <QTest>
 #include <QDebug>
-#include "ml/AnomalyMonitor.h"
-#include "ml/AnomalyDetector.h"
+#include <QTest>
 #include "discovery/FindingsModel.h"
+#include "ml/AnomalyDetector.h"
+#include "ml/AnomalyMonitor.h"
 #include "spacetime/MetricTensor.h"
 
-class MinimalTest : public QObject
-{
+class MinimalTest : public QObject {
     Q_OBJECT
-private slots:
-    void test_basic()
-    {
+   private slots:
+    void test_basic() {
         qDebug() << "Test with all anomaly monitor headers running";
         QVERIFY(true);
     }

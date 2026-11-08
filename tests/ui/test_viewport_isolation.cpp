@@ -2,18 +2,17 @@
 // Validates property getters/setters, signal emissions, and Q_INVOKABLE methods
 // without requiring a full QML scene or OpenGL context.
 
+#include <QDebug>
 #include <QGuiApplication>
 #include <QSignalSpy>
-#include <QDebug>
 
 #include "qmlglviewport.h"
-#include "ui4d/UI4D.h"
 #include "test_assert.h"
+#include "ui4d/UI4D.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     qDebug() << "=== ViewportIsolationTest ===";
 
@@ -38,7 +37,7 @@ int main(int argc, char** argv)
     QV_CHECK(gridSpy.count() == 1);
     QV_CHECK(viewport->showGrid() == false);
 
-    viewport->setShowGrid(false); // no change -> no signal
+    viewport->setShowGrid(false);  // no change -> no signal
     QV_CHECK(gridSpy.count() == 1);
 
     QSignalSpy geodesicsSpy(viewport, &QmlGlViewport::showGeodesicsChanged);
@@ -50,7 +49,7 @@ int main(int argc, char** argv)
     QV_CHECK(geodesicsSpy.count() == 2);
     QV_CHECK(viewport->showGeodesics() == false);
 
-    viewport->setShowGeodesics(false); // no change -> no signal
+    viewport->setShowGeodesics(false);  // no change -> no signal
     QV_CHECK(geodesicsSpy.count() == 2);
 
     QSignalSpy lightConesSpy(viewport, &QmlGlViewport::showLightConesChanged);
@@ -91,7 +90,7 @@ int main(int argc, char** argv)
     viewport->updateSimulation(0.016);
     viewport->setSliceOffset(0, 5.0);
     viewport->setSliceOffset(1, -2.0);
-    viewport->setSliceOffset(99, 1.0); // out-of-range must not crash
+    viewport->setSliceOffset(99, 1.0);  // out-of-range must not crash
 
     // --- Probe API ------------------------------------------------------------
     // Without a metric the readout should stay invalid / placeholder.

@@ -5,19 +5,19 @@
 // using SymPy via Python subprocess calls.
 
 #include "SymbolicMath.h"
-#include <sstream>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <cstdlib>
+#include <sstream>
 #include <stdexcept>
-#include <cstdio>
 #include <unordered_set>
 
 #ifdef _WIN32
-    #include <windows.h>
+#include <windows.h>
 #else
-    #include <unistd.h>
-    #include <sys/wait.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 namespace quantumverse {
@@ -43,7 +43,8 @@ static std::string resolveExecutablePath(const std::string& name) {
     std::string cmd = "which " + name + " 2>/dev/null";
     FILE* pipe = popen(cmd.c_str(), "r");
 #endif
-    if (!pipe) return {};
+    if (!pipe)
+        return {};
     char buffer[512] = {0};
     std::string output;
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
@@ -59,12 +60,15 @@ static std::string resolveExecutablePath(const std::string& name) {
     std::string line;
     while (std::getline(iss, line)) {
         auto start = line.find_first_not_of(" \t\r\n");
-        if (start == std::string::npos) continue;
+        if (start == std::string::npos)
+            continue;
         auto end = line.find_last_not_of(" \t\r\n");
         std::string path = line.substr(start, end - start + 1);
-        if (path.empty()) continue;
+        if (path.empty())
+            continue;
         // Reject Windows App Execution Alias stubs.
-        if (path.find("WindowsApps") != std::string::npos) continue;
+        if (path.find("WindowsApps") != std::string::npos)
+            continue;
         return path;
     }
     return {};
@@ -86,7 +90,8 @@ static std::string probePython(const std::string& path) {
 #else
     FILE* pipe = popen(cmd.c_str(), "r");
 #endif
-    if (!pipe) return {};
+    if (!pipe)
+        return {};
     char buffer[128] = {0};
     std::string output;
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
@@ -107,8 +112,10 @@ static std::string findPython() {
     const char* candidates[] = {"python3", "python", nullptr};
     for (int i = 0; candidates[i] != nullptr; ++i) {
         std::string path = resolveExecutablePath(candidates[i]);
-        if (path.empty()) continue;
-        if (path.find("WindowsApps") != std::string::npos) continue;
+        if (path.empty())
+            continue;
+        if (path.find("WindowsApps") != std::string::npos)
+            continue;
         std::string result = probePython(path);
         if (!result.empty()) {
             return result;
@@ -119,12 +126,10 @@ static std::string findPython() {
 
 static bool isPythonKeyword(const std::string& name) {
     static const std::unordered_set<std::string> keywords = {
-        "False", "None", "True", "and", "as", "assert", "async", "await",
-        "break", "class", "continue", "def", "del", "elif", "else", "except",
-        "finally", "for", "from", "global", "if", "import", "in", "is",
-        "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try",
-        "while", "with", "yield"
-    };
+        "False", "None",     "True",  "and",    "as",   "assert", "async",  "await",    "break",
+        "class", "continue", "def",   "del",    "elif", "else",   "except", "finally",  "for",
+        "from",  "global",   "if",    "import", "in",   "is",     "lambda", "nonlocal", "not",
+        "or",    "pass",     "raise", "return", "try",  "while",  "with",   "yield"};
     return keywords.count(name) > 0;
 }
 
@@ -139,10 +144,7 @@ static std::string safePythonVar(const std::string& name) {
 // SymbolicMath Implementation
 // ============================================================================
 
-SymbolicMath::SymbolicMath()
-    : available_(false)
-    , python_path_(findPython())
-{
+SymbolicMath::SymbolicMath() : available_(false), python_path_(findPython()) {
     if (python_path_.empty()) {
         return;
     }
@@ -155,7 +157,7 @@ try:
 except ImportError:
     print("MISSING")
 )";
-    
+
     std::string result = executePythonScript(check_script);
     available_ = (result.find("OK") != std::string::npos);
 }
@@ -214,9 +216,7 @@ std::string SymbolicMath::executePythonScript(const std::string& script) const {
     return result;
 }
 
-std::string SymbolicMath::buildEinsteinScript(
-    const std::map<std::string, double>& params) const {
-    
+std::string SymbolicMath::buildEinsteinScript(const std::map<std::string, double>& params) const {
     std::ostringstream script;
     script << R"(
 import sympy as sp
@@ -228,11 +228,11 @@ x = sp.Matrix([t, r, theta, phi])
 
 # Define metric parameters
 )";
-    
+
     for (const auto& [name, value] : params) {
         script << safePythonVar(name) << " = " << value << "\n";
     }
-    
+
     script << R"(
 # Schwarzschild metric (example)
 g = sp.diag(-1 + 2*M/r, 1/(1 - 2*M/r), r**2, r**2*sp.sin(theta)**2)
@@ -268,7 +268,7 @@ for i in range(4):
             print(f"G_{i}{j} = {eq}")
             print(f"LaTeX: {latex(eq)}")
 )";
-    
+
     return script.str();
 }
 
@@ -283,10 +283,12 @@ t, r, theta, phi = symbols('t r theta phi', real=True)
 x = sp.Matrix([t, r, theta, phi])
 
 # Define metric based on name
-if ")" << metric_name << R"(" == "Schwarzschild":
+if ")" << metric_name
+           << R"(" == "Schwarzschild":
     M = symbols('M', positive=True)
     g = sp.diag(-(1 - 2*M/r), 1/(1 - 2*M/r), r**2, r**2*sp.sin(theta)**2)
-elif ")" << metric_name << R"(" == "Kerr":
+elif ")" << metric_name
+           << R"(" == "Kerr":
     M, a = symbols('M a', real=True)
     Delta = r**2 - 2*M*r + a**2
     Sigma = r**2 + a**2*sp.cos(theta)**2
@@ -298,7 +300,8 @@ else:
 g_inv = g.inv()
 
 # Compute Christoffel symbols
-print("Christoffel symbols for )" << metric_name << R"(:")
+print("Christoffel symbols for )"
+           << metric_name << R"(:")
 for rho in range(4):
     for mu in range(4):
         for nu in range(4):
@@ -308,7 +311,7 @@ for rho in range(4):
             if Gamma != 0:
                 print(f"Gamma^{rho}_{mu}{nu} = {Gamma}")
 )";
-    
+
     return script.str();
 }
 
@@ -356,20 +359,19 @@ K = sp.summation(sp.summation(sp.summation(sp.summation(
 print(f"Kretschmann scalar K = {K}")
 print(f"LaTeX: {latex(K)}")
 )";
-    
+
     return script.str();
 }
 
-SymbolicMath::SymbolicResult SymbolicMath::computeEinsteinEquations(
-    const std::map<std::string, double>& metric_params) {
-    
+SymbolicMath::SymbolicResult
+SymbolicMath::computeEinsteinEquations(const std::map<std::string, double>& metric_params) {
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     try {
         std::string script = buildEinsteinScript(metric_params);
         result.expression = executePythonScript(script);
@@ -378,20 +380,19 @@ SymbolicMath::SymbolicResult SymbolicMath::computeEinsteinEquations(
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
-SymbolicMath::SymbolicResult SymbolicMath::computeChristoffelSymbols(
-    const std::string& metric_name) {
-    
+SymbolicMath::SymbolicResult
+SymbolicMath::computeChristoffelSymbols(const std::string& metric_name) {
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     try {
         std::string script = buildChristoffelScript(metric_name);
         result.expression = executePythonScript(script);
@@ -400,20 +401,18 @@ SymbolicMath::SymbolicResult SymbolicMath::computeChristoffelSymbols(
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
-SymbolicMath::SymbolicResult SymbolicMath::computeRiemannTensor(
-    const std::string& metric_name) {
-    
+SymbolicMath::SymbolicResult SymbolicMath::computeRiemannTensor(const std::string& metric_name) {
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     // For now, use the curvature script which includes Riemann
     try {
         std::string script = buildCurvatureScript(metric_name);
@@ -423,20 +422,18 @@ SymbolicMath::SymbolicResult SymbolicMath::computeRiemannTensor(
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
-SymbolicMath::SymbolicResult SymbolicMath::computeRicciScalar(
-    const std::string& metric_name) {
-    
+SymbolicMath::SymbolicResult SymbolicMath::computeRicciScalar(const std::string& metric_name) {
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     try {
         std::string script = buildCurvatureScript(metric_name);
         result.expression = executePythonScript(script);
@@ -445,20 +442,19 @@ SymbolicMath::SymbolicResult SymbolicMath::computeRicciScalar(
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
-SymbolicMath::SymbolicResult SymbolicMath::computeKretschmannScalar(
-    const std::string& metric_name) {
-    
+SymbolicMath::SymbolicResult
+SymbolicMath::computeKretschmannScalar(const std::string& metric_name) {
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     try {
         std::string script = buildCurvatureScript(metric_name);
         result.expression = executePythonScript(script);
@@ -467,27 +463,26 @@ SymbolicMath::SymbolicResult SymbolicMath::computeKretschmannScalar(
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
-SymbolicMath::SymbolicResult SymbolicMath::simplifyExpression(
-    const std::string& expression) {
-    
+SymbolicMath::SymbolicResult SymbolicMath::simplifyExpression(const std::string& expression) {
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     std::string script = R"(
 import sympy as sp
-expr = sp.sympify(')" + expression + R"(')
+expr = sp.sympify(')" + expression +
+                         R"(')
 print(sp.simplify(expr))
 print("LaTeX:", sp.latex(sp.simplify(expr)))
 )";
-    
+
     try {
         result.expression = executePythonScript(script);
         result.is_valid = true;
@@ -495,26 +490,25 @@ print("LaTeX:", sp.latex(sp.simplify(expr)))
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
-SymbolicMath::SymbolicResult SymbolicMath::toLaTeX(
-    const std::string& expression) {
-    
+SymbolicMath::SymbolicResult SymbolicMath::toLaTeX(const std::string& expression) {
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     std::string script = R"(
 import sympy as sp
-expr = sp.sympify(')" + expression + R"(')
+expr = sp.sympify(')" + expression +
+                         R"(')
 print(sp.latex(expr))
 )";
-    
+
     try {
         result.expression = executePythonScript(script);
         result.is_valid = true;
@@ -522,13 +516,14 @@ print(sp.latex(expr))
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
 bool SymbolicMath::validateFieldEquation(const std::string& field_equation) {
-    if (!available_) return false;
-    
+    if (!available_)
+        return false;
+
     // Check if the equation matches known GR patterns
     // This is a simple heuristic check
     return (field_equation.find("R") != std::string::npos ||
@@ -536,9 +531,8 @@ bool SymbolicMath::validateFieldEquation(const std::string& field_equation) {
             field_equation.find("Einstein") != std::string::npos);
 }
 
-std::string SymbolicMath::buildVerificationScript(
-    const std::map<std::string, double>& params) const
-{
+std::string
+SymbolicMath::buildVerificationScript(const std::map<std::string, double>& params) const {
     std::ostringstream script;
     script << R"(
 import sympy as sp
@@ -646,10 +640,8 @@ print(f"SEC_MSG={sec_msg}")
     return script.str();
 }
 
-void SymbolicMath::verifyFieldEquations(
-    const std::map<std::string, double>& params,
-    TheoryVerificationResult& result)
-{
+void SymbolicMath::verifyFieldEquations(const std::map<std::string, double>& params,
+                                        TheoryVerificationResult& result) {
     result = TheoryVerificationResult{};
 
     if (!available_) {
@@ -668,27 +660,32 @@ void SymbolicMath::verifyFieldEquations(
         while (std::getline(iss, line)) {
             if (line.find("GHOST_PENALTY=") == 0) {
                 result.total_penalty += std::stod(line.substr(14));
-                if (std::stod(line.substr(14)) > 0) result.has_ghost_instability = true;
+                if (std::stod(line.substr(14)) > 0)
+                    result.has_ghost_instability = true;
             } else if (line.find("GHOST_MSG=") == 0) {
                 result.diagnostic_message += line.substr(10) + "; ";
             } else if (line.find("SUPERLUMINAL_PENALTY=") == 0) {
                 result.total_penalty += std::stod(line.substr(21));
-                if (std::stod(line.substr(21)) > 0) result.has_superluminal_propagation = true;
+                if (std::stod(line.substr(21)) > 0)
+                    result.has_superluminal_propagation = true;
             } else if (line.find("SUPERLUMINAL_MSG=") == 0) {
                 result.diagnostic_message += line.substr(17) + "; ";
             } else if (line.find("WEC_PENALTY=") == 0) {
                 result.total_penalty += std::stod(line.substr(12));
-                if (std::stod(line.substr(12)) > 0) result.violates_weak_energy = true;
+                if (std::stod(line.substr(12)) > 0)
+                    result.violates_weak_energy = true;
             } else if (line.find("WEC_MSG=") == 0) {
                 result.diagnostic_message += line.substr(8) + "; ";
             } else if (line.find("NEC_PENALTY=") == 0) {
                 result.total_penalty += std::stod(line.substr(12));
-                if (std::stod(line.substr(12)) > 0) result.violates_null_energy = true;
+                if (std::stod(line.substr(12)) > 0)
+                    result.violates_null_energy = true;
             } else if (line.find("NEC_MSG=") == 0) {
                 result.diagnostic_message += line.substr(8) + "; ";
             } else if (line.find("SEC_PENALTY=") == 0) {
                 result.total_penalty += std::stod(line.substr(12));
-                if (std::stod(line.substr(12)) > 0) result.violates_strong_energy = true;
+                if (std::stod(line.substr(12)) > 0)
+                    result.violates_strong_energy = true;
             } else if (line.find("SEC_MSG=") == 0) {
                 result.diagnostic_message += line.substr(8) + "; ";
             }
@@ -701,23 +698,23 @@ void SymbolicMath::verifyFieldEquations(
 
 SymbolicMath::SymbolicResult SymbolicMath::generateFieldEquationFromData(
     const std::vector<std::pair<std::string, double>>& trajectory_data) {
-    
     SymbolicResult result;
     if (!available_) {
         result.is_valid = false;
         result.error_message = "SymPy not available";
         return result;
     }
-    
+
     // Build data points for regression
     std::string data_str = "[";
     for (size_t i = 0; i < trajectory_data.size(); ++i) {
-        if (i > 0) data_str += ", ";
-        data_str += "(" + trajectory_data[i].first + ", " + 
-                   std::to_string(trajectory_data[i].second) + ")";
+        if (i > 0)
+            data_str += ", ";
+        data_str +=
+            "(" + trajectory_data[i].first + ", " + std::to_string(trajectory_data[i].second) + ")";
     }
     data_str += "]";
-    
+
     std::string script = R"(
 import sympy as sp
 from sympy import symbols, diff, simplify, latex, sympify
@@ -732,7 +729,7 @@ x = symbols('x')
 print("R(x) = 0")
 print("LaTeX: R(x) = 0")
 )";
-    
+
     try {
         result.expression = executePythonScript(script);
         result.is_valid = true;
@@ -740,7 +737,7 @@ print("LaTeX: R(x) = 0")
         result.is_valid = false;
         result.error_message = e.what();
     }
-    
+
     return result;
 }
 
@@ -748,10 +745,7 @@ print("LaTeX: R(x) = 0")
 // SymbolicRegressionEngine Implementation
 // ============================================================================
 
-SymbolicRegressionEngine::SymbolicRegressionEngine(const Config& config)
-    : config_(config)
-{
-}
+SymbolicRegressionEngine::SymbolicRegressionEngine(const Config& config) : config_(config) {}
 
 void SymbolicRegressionEngine::setConfig(const Config& config) {
     config_ = config;
@@ -759,28 +753,29 @@ void SymbolicRegressionEngine::setConfig(const Config& config) {
 
 SymbolicRegressionEngine::RegressionResult SymbolicRegressionEngine::runRegression(
     const std::vector<std::pair<std::vector<double>, double>>& data) {
-    
     RegressionResult result;
     result.is_valid = false;
-    
+
     if (!sym_math_.isAvailable()) {
         result.equation = "SymPy not available";
         return result;
     }
-    
+
     // Build data string for Python
     std::string data_str = "[";
     for (size_t i = 0; i < data.size(); ++i) {
-        if (i > 0) data_str += ", ";
+        if (i > 0)
+            data_str += ", ";
         data_str += "[";
         for (size_t j = 0; j < data[i].first.size(); ++j) {
-            if (j > 0) data_str += ", ";
+            if (j > 0)
+                data_str += ", ";
             data_str += std::to_string(data[i].first[j]);
         }
         data_str += ", " + std::to_string(data[i].second) + "]";
     }
     data_str += "]";
-    
+
     std::string script = R"(
 import sympy as sp
 from sympy import symbols, diff, simplify, latex, sympify, expand
@@ -795,7 +790,7 @@ x = symbols('x')
 print("R(x) = 0  # Placeholder - implement genetic programming for real regression")
 print("LaTeX: R(x) = 0")
 )";
-    
+
     try {
         std::string output = sym_math_.executePythonScript(script);
         result.equation = "R(x) = 0";  // Placeholder
@@ -805,7 +800,7 @@ print("LaTeX: R(x) = 0")
     } catch (const std::exception& e) {
         result.equation = "Error: " + std::string(e.what());
     }
-    
+
     return result;
 }
 
@@ -837,8 +832,8 @@ data = ) << "[";
 # Placeholder implementation
 print("R(x) = 0")
 )";
-    
+
     return script.str();
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

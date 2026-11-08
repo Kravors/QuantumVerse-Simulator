@@ -68,12 +68,8 @@ struct Quat {
         float cr = std::cos(roll * 0.5f);
         float sr = std::sin(roll * 0.5f);
 
-        return Quat(
-            cr * cp * cy + sr * sp * sy,
-            sr * cp * cy - cr * sp * sy,
-            cr * sp * cy + sr * cp * sy,
-            cr * cp * sy - sr * sp * cy
-        );
+        return Quat(cr * cp * cy + sr * sp * sy, sr * cp * cy - cr * sp * sy,
+                    cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy);
     }
 };
 
@@ -119,11 +115,7 @@ struct ControllerState {
 /**
  * @brief Stereo eye configuration
  */
-enum class StereoEye {
-    Left = 0,
-    Right = 1,
-    Mono = 2
-};
+enum class StereoEye { Left = 0, Right = 1, Mono = 2 };
 
 /**
  * @brief VR configuration parameters
@@ -140,7 +132,7 @@ struct VRConfig {
     bool enablePassthrough = false;
 };
 
-} // namespace vr
-} // namespace quantumverse
+}  // namespace vr
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_VR_COMMON_H
+#endif  // QUANTUMVERSE_VR_COMMON_H

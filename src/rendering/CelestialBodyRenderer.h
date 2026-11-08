@@ -16,14 +16,14 @@
 #ifndef QUANTUMVERSE_CELESTIAL_BODY_RENDERER_H
 #define QUANTUMVERSE_CELESTIAL_BODY_RENDERER_H
 
-#include <vector>
-#include <memory>
 #include <array>
-#include <map>
-#include <string>
 #include <cmath>
-#include "Texture.h"
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 #include "ProceduralTextures.h"
+#include "Texture.h"
 
 // Forward declarations to avoid Qt/GL header conflicts in header.
 // glad.h is included only in the .cpp implementation files.
@@ -32,7 +32,7 @@
 namespace quantumverse {
 class Event4D;
 struct ObjectProperties;
-}
+}  // namespace quantumverse
 
 namespace quantumverse {
 
@@ -40,13 +40,13 @@ namespace quantumverse {
  * @brief PBR material properties for a celestial body
  */
 struct PBRMaterial {
-    float metallic = 0.0f;      ///< Metallic factor (0=dielectric, 1=metal)
-    float roughness = 0.5f;     ///< Surface roughness (0=mirror, 1=diffuse)
-    float ao = 1.0f;            ///< Ambient occlusion (0=occluded, 1=unoccluded)
-    int metallicTexLayer = -1;  ///< Texture array layer for metallic map (-1=none)
-    int roughnessTexLayer = -1; ///< Texture array layer for roughness map (-1=none)
-    int normalTexLayer = -1;    ///< Texture array layer for normal map (-1=none)
-    int aoTexLayer = -1;        ///< Texture array layer for AO map (-1=none)
+    float metallic = 0.0f;       ///< Metallic factor (0=dielectric, 1=metal)
+    float roughness = 0.5f;      ///< Surface roughness (0=mirror, 1=diffuse)
+    float ao = 1.0f;             ///< Ambient occlusion (0=occluded, 1=unoccluded)
+    int metallicTexLayer = -1;   ///< Texture array layer for metallic map (-1=none)
+    int roughnessTexLayer = -1;  ///< Texture array layer for roughness map (-1=none)
+    int normalTexLayer = -1;     ///< Texture array layer for normal map (-1=none)
+    int aoTexLayer = -1;         ///< Texture array layer for AO map (-1=none)
 };
 
 /**
@@ -64,17 +64,17 @@ struct CelestialBodyInstance {
     bool hasAtmosphere = false;
     float atmosphereRadius = 1.0f;
     int textureLayer = -1;
-    PBRMaterial pbrMaterial;    ///< PBR material properties (planets only)
+    PBRMaterial pbrMaterial;  ///< PBR material properties (planets only)
 };
 
 /**
  * @brief GPU vertex for celestial body sphere rendering
  */
 struct SphereVertex {
-    float position[3];     // x, y, z in model space
-    float normal[3];       // Normal vector
-    float texCoord[2];     // u, v texture coordinates
-    float tangent[3];      // Tangent for normal mapping (future use)
+    float position[3];  // x, y, z in model space
+    float normal[3];    // Normal vector
+    float texCoord[2];  // u, v texture coordinates
+    float tangent[3];   // Tangent for normal mapping (future use)
 };
 
 /**
@@ -83,9 +83,8 @@ struct SphereVertex {
  * Generates UV sphere geometry and renders with Phong lighting.
  * Supports instanced rendering for multiple bodies with shared geometry.
  */
-class CelestialBodyRenderer
-{
-public:
+class CelestialBodyRenderer {
+   public:
     /**
      * @brief Quality level for sphere tessellation
      */
@@ -102,7 +101,7 @@ public:
      * @param maxBodies Maximum number of bodies to render
      */
     explicit CelestialBodyRenderer(QualityLevel quality = QualityLevel::MEDIUM,
-                                    size_t maxBodies = 64);
+                                   size_t maxBodies = 64);
     ~CelestialBodyRenderer();
 
     // Non-copyable
@@ -117,7 +116,9 @@ public:
     /**
      * @brief Check if OpenGL resources are initialized
      */
-    bool isInitialized() const { return m_initialized; }
+    bool isInitialized() const {
+        return m_initialized;
+    }
 
     /**
      * @brief Set the tessellation quality
@@ -155,7 +156,9 @@ public:
     /**
      * @brief Get number of currently rendered bodies
      */
-    size_t bodyCount() const { return m_bodies.size(); }
+    size_t bodyCount() const {
+        return m_bodies.size();
+    }
 
     /**
      * @brief Set the light source position (for Phong lighting)
@@ -189,23 +192,32 @@ public:
      * @param viewMatrix 4x4 view matrix
      * @param projectionMatrix 4x4 projection matrix
      */
-    void renderBody(const CelestialBodyInstance& body,
-                    const float* viewMatrix,
+    void renderBody(const CelestialBodyInstance& body, const float* viewMatrix,
                     const float* projectionMatrix);
 
     /**
      * @brief Set rendering flags
      */
-    void setShowAtmospheres(bool show) { m_showAtmospheres = show; }
-    void setShowOrbitRings(bool show) { m_showOrbitRings = show; }
-    void setWireframe(bool show) { m_wireframe = show; }
+    void setShowAtmospheres(bool show) {
+        m_showAtmospheres = show;
+    }
+    void setShowOrbitRings(bool show) {
+        m_showOrbitRings = show;
+    }
+    void setWireframe(bool show) {
+        m_wireframe = show;
+    }
 
     /**
      * @brief Set coordinate scale for unit conversion
      * @param scale Meters per viewport unit (e.g., 1.496e10 for 1 AU = 10 units)
      */
-    void setCoordinateScale(double scale) { m_coordinateScale = scale; }
-    double coordinateScale() const { return m_coordinateScale; }
+    void setCoordinateScale(double scale) {
+        m_coordinateScale = scale;
+    }
+    double coordinateScale() const {
+        return m_coordinateScale;
+    }
 
     /**
      * @brief Set the world position the black hole (and its annulus) is drawn at
@@ -223,8 +235,7 @@ public:
      * @param y World Y
      * @param z World Z
      */
-    void setBlackHoleCenter(float x, float y, float z)
-    {
+    void setBlackHoleCenter(float x, float y, float z) {
         m_bhCenterWorld[0] = x;
         m_bhCenterWorld[1] = y;
         m_bhCenterWorld[2] = z;
@@ -233,8 +244,7 @@ public:
     /**
      * @brief Get the world position the black hole annulus is drawn at
      */
-    void blackHoleCenter(float& x, float& y, float& z) const
-    {
+    void blackHoleCenter(float& x, float& y, float& z) const {
         x = m_bhCenterWorld[0];
         y = m_bhCenterWorld[1];
         z = m_bhCenterWorld[2];
@@ -253,10 +263,10 @@ public:
      * one-time geometry probe is what the removed r/4.0-in-red mode was.
      */
     enum class AnnulusDebugMode {
-        MAGENTA,  ///< Flat magenta overlay (presence/scale guard, debug only)
-        POSITION, ///< RGB encodes lerp -2..2 / 4 world position relative to the black hole
-        DOPPLER,  ///< Red/blue encodes the sign of dot(v_dir, view_dir) at the fragment
-        NORMAL    ///< Default: shaded disk path with Doppler beaming applied
+        MAGENTA,   ///< Flat magenta overlay (presence/scale guard, debug only)
+        POSITION,  ///< RGB encodes lerp -2..2 / 4 world position relative to the black hole
+        DOPPLER,   ///< Red/blue encodes the sign of dot(v_dir, view_dir) at the fragment
+        NORMAL     ///< Default: shaded disk path with Doppler beaming applied
     };
 
     /**
@@ -265,7 +275,9 @@ public:
      *        POSITION, DOPPLER (debug encodings), or MAGENTA
      *        (flat-overlay guard)
      */
-    void setAnnulusDebugMode(AnnulusDebugMode mode) { m_annulusDebugMode = mode; }
+    void setAnnulusDebugMode(AnnulusDebugMode mode) {
+        m_annulusDebugMode = mode;
+    }
 
     /**
      * @brief Set the display gain applied with the Doppler beaming term
@@ -280,29 +292,43 @@ public:
      *
      * @param gain Non-negative scale applied to the beamed disk colour
      */
-    void setBeamingDisplayGain(float gain) { m_beamingDisplayGain = gain; }
+    void setBeamingDisplayGain(float gain) {
+        m_beamingDisplayGain = gain;
+    }
 
     /**
      * @brief Get the current beaming display gain
      */
-    float beamingDisplayGain() const { return m_beamingDisplayGain; }
+    float beamingDisplayGain() const {
+        return m_beamingDisplayGain;
+    }
 
     /**
      * @brief Get the current annulus debug visualization
      */
-    AnnulusDebugMode annulusDebugMode() const { return m_annulusDebugMode; }
+    AnnulusDebugMode annulusDebugMode() const {
+        return m_annulusDebugMode;
+    }
 
     /**
      * @brief Texture array management
      */
-    bool loadTextureArray(const std::vector<std::string>& texturePaths,
-                        int width = 1024, int height = 512);
+    bool loadTextureArray(const std::vector<std::string>& texturePaths, int width = 1024,
+                          int height = 512);
     bool generateProceduralTexture(int layerIndex, const PlanetTextureConfig& config);
-    void setTextureArrayEnabled(bool enabled) { m_useTextureArray = enabled; }
-    bool isTextureArrayEnabled() const { return m_useTextureArray; }
+    void setTextureArrayEnabled(bool enabled) {
+        m_useTextureArray = enabled;
+    }
+    bool isTextureArrayEnabled() const {
+        return m_useTextureArray;
+    }
     bool initializeTextureArray(int numLayers, int width, int height);
-    bool isTextureArrayInitialized() const { return m_textureArray.isValid(); }
-    unsigned int textureArrayId() const { return m_textureArray.getId(); }
+    bool isTextureArrayInitialized() const {
+        return m_textureArray.isValid();
+    }
+    unsigned int textureArrayId() const {
+        return m_textureArray.getId();
+    }
 
     /**
      * @brief PBR texture generation
@@ -318,8 +344,12 @@ public:
     /**
      * @brief Enable/disable PBR rendering (fallback to legacy Phong)
      */
-    void setPBREnabled(bool enabled) { m_usePBR = enabled; }
-    bool isPBREnabled() const { return m_usePBR; }
+    void setPBREnabled(bool enabled) {
+        m_usePBR = enabled;
+    }
+    bool isPBREnabled() const {
+        return m_usePBR;
+    }
 
     /**
      * @brief Set environment color for IBL approximation
@@ -336,21 +366,26 @@ public:
      * @return true on success
      */
     bool loadTextureLayer(int layerIndex, const std::string& filepath,
-                          const PlanetTextureConfig& config,
-                          bool forceProcedural = false);
-    
+                          const PlanetTextureConfig& config, bool forceProcedural = false);
+
     /**
      * @brief Get the procedural texture generator
      */
-    ProceduralTextureGenerator& getTextureGenerator() { return m_textureGenerator; }
+    ProceduralTextureGenerator& getTextureGenerator() {
+        return m_textureGenerator;
+    }
 
     /**
      * @brief Get the sphere VAO (for external rendering)
      */
-    unsigned int sphereVAO() const { return m_sphereVAO; }
-    unsigned int sphereIndexCount() const { return m_indexCount; }
+    unsigned int sphereVAO() const {
+        return m_sphereVAO;
+    }
+    unsigned int sphereIndexCount() const {
+        return m_indexCount;
+    }
 
-private:
+   private:
     // Sphere generation
     void generateSphereMesh();
     void generateSphereVAO();
@@ -362,8 +397,7 @@ private:
     // Rendering helpers
     void setupShaders();
     void updateBodyBuffers();
-    void renderSingleBody(const CelestialBodyInstance& body,
-                          unsigned int instanceIndex);
+    void renderSingleBody(const CelestialBodyInstance& body, unsigned int instanceIndex);
 
     // OpenGL resources
     unsigned int m_sphereVAO;
@@ -420,7 +454,7 @@ private:
     std::map<std::string, size_t> m_bodyIndexMap;
 
     // Coordinate scale: meters per viewport unit
-    double m_coordinateScale = 1.496e10; // 1 AU = 10 units
+    double m_coordinateScale = 1.496e10;  // 1 AU = 10 units
 
     // Light properties
     float m_lightPosition[3];
@@ -449,6 +483,6 @@ private:
     float m_envColor[3];
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_CELESTIAL_BODY_RENDERER_H
+#endif  // QUANTUMVERSE_CELESTIAL_BODY_RENDERER_H

@@ -20,12 +20,18 @@ enum class Eval {
 
 inline const char* evalToString(Eval e) {
     switch (e) {
-        case Eval::Pass:        return "pass";
-        case Eval::NoLog:       return "log file missing";
-        case Eval::ParseError:  return "could not parse statistics";
-        case Eval::BadValue:    return "non-finite frame time";
-        case Eval::AvgExceeded: return "average frame time exceeded threshold";
-        case Eval::MaxExceeded: return "maximum frame time exceeded threshold";
+        case Eval::Pass:
+            return "pass";
+        case Eval::NoLog:
+            return "log file missing";
+        case Eval::ParseError:
+            return "could not parse statistics";
+        case Eval::BadValue:
+            return "non-finite frame time";
+        case Eval::AvgExceeded:
+            return "average frame time exceeded threshold";
+        case Eval::MaxExceeded:
+            return "maximum frame time exceeded threshold";
     }
     return "unknown";
 }
@@ -58,8 +64,7 @@ inline double thresholdFromEnv(const char* name, double fallback) {
     if (_dupenv_s(&e, &envsz, name) == 0 && e && *e) {
         try {
             value = std::stod(e);
-        } catch (...) {
-        }
+        } catch (...) {}
         free(e);
     }
 #else
@@ -67,8 +72,7 @@ inline double thresholdFromEnv(const char* name, double fallback) {
     if (e && *e) {
         try {
             value = std::stod(e);
-        } catch (...) {
-        }
+        } catch (...) {}
     }
 #endif
     return value;

@@ -6,14 +6,13 @@
 #include <QCoreApplication>
 #include <iostream>
 
-#include "spacetime/MetricTensor.h"
 #include "spacetime/KerrMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== Metric Epoch Test ===" << std::endl;
 
@@ -24,7 +23,7 @@ int main(int argc, char** argv)
         m.setMass(2.0 * 1.989e30);
         QV_CHECK(m.epoch() != e0);
         const uint64_t e1 = m.epoch();
-        m.setMass(2.0 * 1.989e30); // same value -> no bump
+        m.setMass(2.0 * 1.989e30);  // same value -> no bump
         QV_CHECK(m.epoch() == e1);
         std::cout << "[PASS] Schwarzschild epoch bumps on mass change" << std::endl;
     }

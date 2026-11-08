@@ -4,8 +4,8 @@
  */
 
 #include "UltralightDMWaveInterferometer.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,22 +13,21 @@
 
 namespace quantumverse {
 
-UltralightDMWaveInterferometer::UltralightDMWaveInterferometer()
-{
+UltralightDMWaveInterferometer::UltralightDMWaveInterferometer() {
     setParameter("dm_mass_ev", 1e-22);
     setParameter("local_density_gev_cm3", 0.3);
     setParameter("coherence_time_s", 1e6);
     setParameter("detection_snr_threshold", 5.0);
 }
 
-std::vector<InstrumentFinding> UltralightDMWaveInterferometer::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+UltralightDMWaveInterferometer::analyze(const MetricTensor& metric, const Event4D& location,
+                                        const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
-    if (trajectory.size() < 10) return findings;
+    if (trajectory.size() < 10)
+        return findings;
 
     double dmMass = getParameter("dm_mass_ev");
     double localDensity = getParameter("local_density_gev_cm3");
@@ -42,7 +41,8 @@ std::vector<InstrumentFinding> UltralightDMWaveInterferometer::analyze(
     }
     size_t n = xvals.size();
     double dt = times[1] - times[0];
-    if (dt <= 0) return findings;
+    if (dt <= 0)
+        return findings;
 
     // 1b. Reject non-oscillatory input before any spectral analysis.
     //     A constant (pure-DC) series has zero variance, so every non-DC DFT bin
@@ -60,20 +60,20 @@ std::vector<InstrumentFinding> UltralightDMWaveInterferometer::analyze(
 
     double variance = 0.0;
     for (double& v : xvals) {
-        v -= mean;              // remove DC so it cannot leak into the spectrum
+        v -= mean;  // remove DC so it cannot leak into the spectrum
         variance += v * v;
     }
     variance /= static_cast<double>(n);
     const double rms = std::sqrt(variance);
     const double roundOffFloor = 1e-9 * std::max(1.0, maxAbs);
-    if (rms <= roundOffFloor) return findings;
+    if (rms <= roundOffFloor)
+        return findings;
 
     // 2. Discrete Fourier transform over angular frequencies (rad/s).
     std::vector<double> freqs;
     std::vector<double> mags;
     for (size_t k = 0; k <= n / 2; ++k) {
-        double freq = 2.0 * M_PI * static_cast<double>(k) /
-                      (static_cast<double>(n) * dt);
+        double freq = 2.0 * M_PI * static_cast<double>(k) / (static_cast<double>(n) * dt);
         double re = 0.0, im = 0.0;
         for (size_t i = 0; i < n; ++i) {
             double ph = freq * times[i];
@@ -98,7 +98,8 @@ std::vector<InstrumentFinding> UltralightDMWaveInterferometer::analyze(
     meanMag /= std::max<size_t>(1, mags.size() - 1);
 
     double snr = (meanMag > 0.0) ? (peakMag / meanMag) : 0.0;
-    if (snr <= snrThreshold) return findings;
+    if (snr <= snrThreshold)
+        return findings;
 
     double peakFreq = freqs[peakIdx];
     double amplitude = 2.0 * peakMag / static_cast<double>(n);
@@ -113,9 +114,10 @@ std::vector<InstrumentFinding> UltralightDMWaveInterferometer::analyze(
     finding.instrumentName = getName();
     finding.severity = confidenceToSeverity(confidence);
     finding.confidence = confidence;
-    finding.description = "Ultralight DM wave detected: oscillation_freq=" +
-        std::to_string(peakFreq) + " rad/s, amplitude=" + std::to_string(amplitude) +
-        ", SNR=" + std::to_string(snr) + ", dm_mass=" + std::to_string(dmMass) + " eV";
+    finding.description =
+        "Ultralight DM wave detected: oscillation_freq=" + std::to_string(peakFreq) +
+        " rad/s, amplitude=" + std::to_string(amplitude) + ", SNR=" + std::to_string(snr) +
+        ", dm_mass=" + std::to_string(dmMass) + " eV";
     finding.location = location;
     finding.timestamp = trajectory.back().t;
     finding.parameters["oscillation_freq_rad_s"] = peakFreq;
@@ -130,27 +132,24 @@ std::vector<InstrumentFinding> UltralightDMWaveInterferometer::analyze(
     return findings;
 }
 
-double UltralightDMWaveInterferometer::computeDMSignalAmplitude(
-    double dmMass, double localDensity)
-{
+double UltralightDMWaveInterferometer::computeDMSignalAmplitude(double dmMass,
+                                                                double localDensity) {
     // Axion-photon coupling: g_aγγ ~ 10^-10 GeV^-1
     // Signal amplitude ~ g_aγγ * B * sqrt(ρ_DM / m_a)
-    double coupling = 1e-10; // GeV^-1
-    double magneticField = 1e-5; // T (interstellar)
+    double coupling = 1e-10;      // GeV^-1
+    double magneticField = 1e-5;  // T (interstellar)
     double evToGeV = 1e-9;
 
-    double amplitude = coupling * magneticField *
-        std::sqrt(localDensity / (dmMass * evToGeV));
+    double amplitude = coupling * magneticField * std::sqrt(localDensity / (dmMass * evToGeV));
 
     return amplitude;
 }
 
-double UltralightDMWaveInterferometer::computeOscillationFrequency(double dmMass)
-{
+double UltralightDMWaveInterferometer::computeOscillationFrequency(double dmMass) {
     // f = m_a c^2 / h = m_a / (2π ħ) in natural units
     // m_a in eV -> f in Hz
-    double hbar_eV_s = 6.582e-16; // eV·s
+    double hbar_eV_s = 6.582e-16;  // eV·s
     return dmMass / hbar_eV_s;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

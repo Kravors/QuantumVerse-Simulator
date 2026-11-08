@@ -1,8 +1,8 @@
 #pragma once
-#include <string>
-#include <vector>
 #include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 #include "vr/SharedSession.h"
 
 namespace quantumverse {
@@ -11,7 +11,7 @@ namespace net {
 struct PeerInfo {
     std::string id;
     std::string name;
-    std::string endpoint; // ip:port or ws url
+    std::string endpoint;  // ip:port or ws url
 };
 
 using StateUpdateCallback = std::function<void(const SharedState& state)>;
@@ -19,7 +19,7 @@ using PeerJoinedCallback = std::function<void(const PeerInfo& peer)>;
 using PeerLeftCallback = std::function<void(const std::string& peerId)>;
 
 class WebRTCManager {
-public:
+   public:
     WebRTCManager();
     ~WebRTCManager();
 
@@ -32,21 +32,33 @@ public:
     void shutdown();
 
     void setLocalParticipant(const Participant& participant);
-    const Participant& getLocalParticipant() const { return m_localParticipant; }
+    const Participant& getLocalParticipant() const {
+        return m_localParticipant;
+    }
 
     void broadcastState(const SharedState& state);
     void sendStateTo(const std::string& peerId, const SharedState& state);
 
     std::vector<PeerInfo> getConnectedPeers() const;
 
-    void setOnStateUpdate(StateUpdateCallback cb) { m_onStateUpdate = std::move(cb); }
-    void setOnPeerJoined(PeerJoinedCallback cb) { m_onPeerJoined = std::move(cb); }
-    void setOnPeerLeft(PeerLeftCallback cb) { m_onPeerLeft = std::move(cb); }
+    void setOnStateUpdate(StateUpdateCallback cb) {
+        m_onStateUpdate = std::move(cb);
+    }
+    void setOnPeerJoined(PeerJoinedCallback cb) {
+        m_onPeerJoined = std::move(cb);
+    }
+    void setOnPeerLeft(PeerLeftCallback cb) {
+        m_onPeerLeft = std::move(cb);
+    }
 
-    bool isConnected() const { return m_connected; }
-    size_t getPeerCount() const { return m_peers.size(); }
+    bool isConnected() const {
+        return m_connected;
+    }
+    size_t getPeerCount() const {
+        return m_peers.size();
+    }
 
-private:
+   private:
     bool m_initialized = false;
     bool m_connected = false;
     std::string m_signalingUrl;
@@ -59,5 +71,5 @@ private:
     PeerLeftCallback m_onPeerLeft;
 };
 
-} // namespace net
-} // namespace quantumverse
+}  // namespace net
+}  // namespace quantumverse

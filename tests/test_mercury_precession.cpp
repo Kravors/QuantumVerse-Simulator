@@ -14,8 +14,7 @@
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== MercuryPrecessionExperiment Test ===" << std::endl;
 
@@ -33,8 +32,8 @@ int main(int argc, char** argv)
     QV_CHECK(std::abs(prec - 43.0) < 1.0);
     QV_CHECK(r.scalars["expected"].toDouble() == 43.0);
     QV_CHECK(r.scalars["error_arcsec"].toDouble() < 1.0);
-    std::cout << "[PASS] Mercury precession = " << prec
-              << " arcsec/century (expected 43.0)" << std::endl;
+    std::cout << "[PASS] Mercury precession = " << prec << " arcsec/century (expected 43.0)"
+              << std::endl;
 
     // --- Kerr event horizon: units fix regression test ---
     // computeKerrEventHorizon previously plugged SI angular momentum
@@ -42,30 +41,30 @@ int main(int argc, char** argv)
     // yielding sqrt(negative) = NaN (r_+ = nanm).  Fix: convert to
     // dimensionless a* = (J/(Mc)) / (GM/c^2) before squaring.
     {
-        const double M   = 10.0 * 1.98892e30;            // 10 M☉ in kg
+        const double M = 10.0 * 1.98892e30;  // 10 M☉ in kg
         const double spin = 0.9;
-        const double J   = spin * Event4D::G * M * M / Event4D::C;
+        const double J = spin * Event4D::G * M * M / Event4D::C;
 
         SingularityHandler sh(SingularityType::KERR, M, J);
         const double r_plus = sh.getProperties().event_horizon_radius;
         QV_CHECK(std::isfinite(r_plus));
-        QV_CHECK_NEAR(r_plus, 21209.0, 50.0);            // matches log line
-        std::cout << "[PASS] KerrHorizonMatchesMetric: r_+ = " << r_plus
-                  << " m (expected ~21209 m)" << std::endl;
+        QV_CHECK_NEAR(r_plus, 21209.0, 50.0);  // matches log line
+        std::cout << "[PASS] KerrHorizonMatchesMetric: r_+ = " << r_plus << " m (expected ~21209 m)"
+                  << std::endl;
     }
 
     {
-        const double M   = 10.0 * 1.98892e30;            // 10 M☉ in kg
-        const double spin = 1.5;                         // naked, a* > 1
-        const double J   = spin * Event4D::G * M * M / Event4D::C;
+        const double M = 10.0 * 1.98892e30;  // 10 M☉ in kg
+        const double spin = 1.5;             // naked, a* > 1
+        const double J = spin * Event4D::G * M * M / Event4D::C;
 
         SingularityHandler sh(SingularityType::KERR, M, J);
         const double r_plus = sh.getProperties().event_horizon_radius;
-        QV_CHECK(std::isfinite(r_plus));                 // no NaN
+        QV_CHECK(std::isfinite(r_plus));  // no NaN
         const double r_h = Event4D::G * M / (Event4D::C * Event4D::C);
-        QV_CHECK_NEAR(r_plus, r_h, 1.0);                 // clamped to extremal
-        std::cout << "[PASS] KerrNakedClamped: r_+ = " << r_plus
-                  << " m (expected ~" << r_h << " m)" << std::endl;
+        QV_CHECK_NEAR(r_plus, r_h, 1.0);  // clamped to extremal
+        std::cout << "[PASS] KerrNakedClamped: r_+ = " << r_plus << " m (expected ~" << r_h << " m)"
+                  << std::endl;
     }
 
     std::cout << "=== MercuryPrecessionExperiment Test: ALL PASS ===" << std::endl;

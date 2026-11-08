@@ -10,34 +10,35 @@
 
 namespace quantumverse {
 namespace {
-constexpr double C_KMS       = 299792.458;   // km/s
-constexpr double MPC_PER_M   = 3.2407792895e-23;
-constexpr double MPC_M       = 1.0 / MPC_PER_M;
+constexpr double C_KMS = 299792.458;  // km/s
+constexpr double MPC_PER_M = 3.2407792895e-23;
+constexpr double MPC_M = 1.0 / MPC_PER_M;
 constexpr double SECONDS_PER_GYR = 1e9 * 365.25 * 86400.0;
-constexpr double G_SI        = 6.67430e-11;
-constexpr double A_RAD       = 7.5657e-16;
-constexpr double C_SI        = 299792458.0;
-constexpr double Z_DRAG      = 1059.94;
+constexpr double G_SI = 6.67430e-11;
+constexpr double A_RAD = 7.5657e-16;
+constexpr double C_SI = 299792458.0;
+constexpr double Z_DRAG = 1059.94;
 
-} // namespace
+}  // namespace
 
-ProjectCosmologyAdapter::ProjectCosmologyAdapter(double H0, double OmegaM,
-                                                  double OmegaB, double OmegaR,
-                                                  double OmegaLambda, double OmegaK,
-                                                  double Tcmb0)
-    : m_H0(H0), m_Om(OmegaM), m_Ob(OmegaB), m_Or(OmegaR),
-      m_OL(OmegaLambda), m_Ok(OmegaK), m_Tcmb(Tcmb0)
-{
+ProjectCosmologyAdapter::ProjectCosmologyAdapter(double H0, double OmegaM, double OmegaB,
+                                                 double OmegaR, double OmegaLambda, double OmegaK,
+                                                 double Tcmb0)
+    : m_H0(H0),
+      m_Om(OmegaM),
+      m_Ob(OmegaB),
+      m_Or(OmegaR),
+      m_OL(OmegaLambda),
+      m_Ok(OmegaK),
+      m_Tcmb(Tcmb0) {
     // Linkage to the project's FLRW code: construct an FRWMetric from the same
     // parameters so the adapter is tied to the project's cosmology module.
     const double H0_si = m_H0 * 1000.0 / MPC_M;
     try {
         if (std::abs(m_Om + m_OL - 1.0) <= 0.01) {
-            m_frw = std::make_shared<FRWMetric>(
-                FRWMetric::lambdaCDM(m_Om, m_OL, H0_si));
+            m_frw = std::make_shared<FRWMetric>(FRWMetric::lambdaCDM(m_Om, m_OL, H0_si));
         } else {
-            m_frw = std::make_shared<FRWMetric>(
-                FRWMetric::matterDominated(H0_si));
+            m_frw = std::make_shared<FRWMetric>(FRWMetric::matterDominated(H0_si));
         }
     } catch (const std::exception&) {
         m_frw.reset();
@@ -58,13 +59,13 @@ double ProjectCosmologyAdapter::H(double z) const {
     const double Ok = m_Ok;
     const double OL = m_frw ? m_frw->omegaLambda() : m_OL;
     const double E2 = Om * opz3 + Or * opz4 + Ok * opz2 + OL;
-    const double H0_si = m_frw ? m_frw->hubbleConstant()
-                               : m_H0 * 1000.0 / MPC_M;
+    const double H0_si = m_frw ? m_frw->hubbleConstant() : m_H0 * 1000.0 / MPC_M;
     return H0_si * MPC_M / 1000.0 * std::sqrt(E2);
 }
 
 double ProjectCosmologyAdapter::comovingDistance(double z) const {
-    if (m_frw) return m_frw->comovingDistance(z);
+    if (m_frw)
+        return m_frw->comovingDistance(z);
     // Fallback: first-principles Simpson integration
     const int steps = 8192;
     const double h = z / steps;
@@ -76,12 +77,14 @@ double ProjectCosmologyAdapter::comovingDistance(double z) const {
 }
 
 double ProjectCosmologyAdapter::luminosityDistance(double z) const {
-    if (m_frw) return (1.0 + z) * m_frw->comovingDistance(z);
+    if (m_frw)
+        return (1.0 + z) * m_frw->comovingDistance(z);
     return (1.0 + z) * comovingDistance(z);
 }
 
 double ProjectCosmologyAdapter::angularDiameterDistance(double z) const {
-    if (m_frw) return m_frw->angularDiameterDistance(z);
+    if (m_frw)
+        return m_frw->angularDiameterDistance(z);
     return comovingDistance(z) / (1.0 + z);
 }
 
@@ -91,7 +94,8 @@ double ProjectCosmologyAdapter::distanceModulus(double z) const {
 
 double ProjectCosmologyAdapter::ageAtRedshift(double z) const {
     // At z=0, delegate to FRWMetric's bisection (bit-exact, seconds → Gyr).
-    if (z == 0.0 && m_frw) return m_frw->ageOfUniverse() / SECONDS_PER_GYR;
+    if (z == 0.0 && m_frw)
+        return m_frw->ageOfUniverse() / SECONDS_PER_GYR;
 
     // For z > 0, first-principles a-space transform.
     // Reads Ω from FRWMetric when available to avoid value drift.
@@ -126,7 +130,8 @@ double ProjectCosmologyAdapter::decelerationParameter(double z) const {
     const double Om_z = Om * p1 * p1 * p1;
     const double Or_z = m_Or * p1 * p1 * p1 * p1;
     const double denom = Om_z + Or_z + m_Ok * p1 * p1 + OL;
-    if (denom <= 0.0) return 0.0;
+    if (denom <= 0.0)
+        return 0.0;
     return (0.5 * Om_z + Or_z - OL) / denom;
 }
 
@@ -151,9 +156,8 @@ double ProjectCosmologyAdapter::soundHorizon() const {
     for (int i = 1; i < steps; ++i)
         s += (i & 1 ? 4.0 : 2.0) * integrand(Z_DRAG + i * h);
     double rd = s * h / 3.0;
-    const double tail = (m_Or > 0.0)
-        ? (C_KMS / std::sqrt(3.0)) / (m_H0 * std::sqrt(m_Or)) / (1.0 + zmax)
-        : 0.0;
+    const double tail =
+        (m_Or > 0.0) ? (C_KMS / std::sqrt(3.0)) / (m_H0 * std::sqrt(m_Or)) / (1.0 + zmax) : 0.0;
     return rd + tail;
 }
 
@@ -165,9 +169,10 @@ double ProjectCosmologyAdapter::growthFactor(double z) const {
     const double OL_z = OL;
     const double a = 1.0 / p1;
     const double numerator = a * (5.0 * Om_z / 2.0);
-    const double denom = std::pow(Om_z, 4.0 / 7.0) - OL_z
-        + (1.0 + Om_z / 2.0) * (1.0 + OL_z / 70.0);
-    if (denom == 0.0) return 0.0;
+    const double denom =
+        std::pow(Om_z, 4.0 / 7.0) - OL_z + (1.0 + Om_z / 2.0) * (1.0 + OL_z / 70.0);
+    if (denom == 0.0)
+        return 0.0;
     return numerator / denom;
 }
 
@@ -177,4 +182,4 @@ double ProjectCosmologyAdapter::criticalDensity() const {
     return 3.0 * H0_si * H0_si / (8.0 * M_PI * G_SI);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

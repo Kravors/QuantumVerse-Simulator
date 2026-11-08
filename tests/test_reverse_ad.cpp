@@ -2,9 +2,9 @@
 // Validates ReverseTape<N> / ReverseAD<N> in src/math/AutoDiff.h
 // Isolated AD tests before integration with the geodesic integrator.
 
-#include <iostream>
-#include <cmath>
 #include <array>
+#include <cmath>
+#include <iostream>
 #include "math/AutoDiff.h"
 #include "test_assert.h"
 
@@ -36,8 +36,8 @@ int main() {
         auto grad = tape.backward(f.node);
         QV_CHECK(std::fabs(grad[0] - (5.0 + std::cos(2.0))) < 1e-10);
         QV_CHECK(std::fabs(grad[1] - 2.0) < 1e-10);
-        std::cout << "[PASS] f(x,y)=x*y+sin(x): df/dx = " << grad[0]
-                  << ", df/dy = " << grad[1] << std::endl;
+        std::cout << "[PASS] f(x,y)=x*y+sin(x): df/dx = " << grad[0] << ", df/dy = " << grad[1]
+                  << std::endl;
     }
 
     // Test 3: f(x,y,z) = (x+y)^2 - z at (1, 2, 3)
@@ -56,8 +56,8 @@ int main() {
         QV_CHECK(std::fabs(grad[0] - 6.0) < 1e-10);
         QV_CHECK(std::fabs(grad[1] - 6.0) < 1e-10);
         QV_CHECK(std::fabs(grad[2] - (-1.0)) < 1e-10);
-        std::cout << "[PASS] f(x,y,z)=(x+y)^2-z: grad = [" << grad[0] << ", "
-                  << grad[1] << ", " << grad[2] << "]" << std::endl;
+        std::cout << "[PASS] f(x,y,z)=(x+y)^2-z: grad = [" << grad[0] << ", " << grad[1] << ", "
+                  << grad[2] << "]" << std::endl;
     }
 
     // Test 4: Chain rule: f(g(x)) where g(x)=sin(x), f(y)=y^2
@@ -93,8 +93,10 @@ int main() {
             return p[0] * p[0] + p[1] * p[2] + std::exp(p[3]);
         };
         for (size_t i = 0; i < 4; i++) {
-            auto pPlus = params; auto pMinus = params;
-            pPlus[i] += eps; pMinus[i] -= eps;
+            auto pPlus = params;
+            auto pMinus = params;
+            pPlus[i] += eps;
+            pMinus[i] -= eps;
             double fd = (func(pPlus) - func(pMinus)) / (2.0 * eps);
             QV_CHECK(std::fabs(grad[i] - fd) < 1e-6);
         }

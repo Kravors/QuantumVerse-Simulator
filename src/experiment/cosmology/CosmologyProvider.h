@@ -19,7 +19,7 @@
 namespace quantumverse {
 
 class CosmologyProvider {
-public:
+   public:
     virtual ~CosmologyProvider() = default;
 
     /** Human-readable provider name, e.g. "reference-ΛCDM" | "project-FLRW". */
@@ -28,28 +28,28 @@ public:
     virtual QString parametersSource() const = 0;
 
     // Cosmological parameters (all in the units listed).
-    virtual double H0()              const = 0;   // km/s/Mpc
-    virtual double OmegaM()          const = 0;   // matter (baryons + DM)
-    virtual double OmegaB()          const = 0;   // baryons
-    virtual double OmegaR()          const = 0;   // radiation (photons + ν)
-    virtual double OmegaLambda()     const = 0;   // dark energy (Λ)
-    virtual double OmegaK()          const = 0;   // curvature
-    virtual double Tcmb0()           const = 0;   // K
+    virtual double H0() const = 0;           // km/s/Mpc
+    virtual double OmegaM() const = 0;       // matter (baryons + DM)
+    virtual double OmegaB() const = 0;       // baryons
+    virtual double OmegaR() const = 0;       // radiation (photons + ν)
+    virtual double OmegaLambda() const = 0;  // dark energy (Λ)
+    virtual double OmegaK() const = 0;       // curvature
+    virtual double Tcmb0() const = 0;        // K
 
     // Derived quantities — the experiments call ONLY these.
-    virtual double H(double z)                        const = 0; // km/s/Mpc
-    virtual double comovingDistance(double z)         const = 0; // Mpc
-    virtual double luminosityDistance(double z)       const = 0; // Mpc
-    virtual double angularDiameterDistance(double z)  const = 0; // Mpc
-    virtual double distanceModulus(double z)          const = 0; // mag
-    virtual double ageAtRedshift(double z)            const = 0; // Gyr
-    virtual double lookbackTime(double z)             const = 0; // Gyr
-    virtual double decelerationParameter(double z)    const = 0;
-    virtual double soundHorizon()                     const = 0; // Mpc (r_drag)
-    virtual double growthFactor(double z)             const = 0; // D(z)/D(0)
-    virtual double criticalDensity()                  const = 0; // kg/m³
+    virtual double H(double z) const = 0;                        // km/s/Mpc
+    virtual double comovingDistance(double z) const = 0;         // Mpc
+    virtual double luminosityDistance(double z) const = 0;       // Mpc
+    virtual double angularDiameterDistance(double z) const = 0;  // Mpc
+    virtual double distanceModulus(double z) const = 0;          // mag
+    virtual double ageAtRedshift(double z) const = 0;            // Gyr
+    virtual double lookbackTime(double z) const = 0;             // Gyr
+    virtual double decelerationParameter(double z) const = 0;
+    virtual double soundHorizon() const = 0;          // Mpc (r_drag)
+    virtual double growthFactor(double z) const = 0;  // D(z)/D(0)
+    virtual double criticalDensity() const = 0;       // kg/m³
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_COSMOLOGY_PROVIDER_H
+#endif  // QUANTUMVERSE_COSMOLOGY_PROVIDER_H

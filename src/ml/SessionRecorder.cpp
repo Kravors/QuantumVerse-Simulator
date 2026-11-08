@@ -4,12 +4,12 @@
  */
 
 #include "ml/SessionRecorder.h"
-#include <nlohmann/json.hpp>
-#include <cstring>
 #include <cstdio>
-#include <sstream>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <nlohmann/json.hpp>
+#include <sstream>
 #include <system_error>
 #ifdef _WIN32
 #include <windows.h>
@@ -31,23 +31,23 @@ bool createDirectoriesWin(const std::filesystem::path& path) {
             std::string parent = p.substr(0, i);
             if (!CreateDirectoryA(parent.c_str(), nullptr)) {
                 DWORD err = GetLastError();
-                if (err != ERROR_ALREADY_EXISTS) return false;
+                if (err != ERROR_ALREADY_EXISTS)
+                    return false;
             }
         }
     }
     if (!CreateDirectoryA(p.c_str(), nullptr)) {
         DWORD err = GetLastError();
-        if (err != ERROR_ALREADY_EXISTS) return false;
+        if (err != ERROR_ALREADY_EXISTS)
+            return false;
     }
     return true;
 #else
     std::error_code ec;
     std::filesystem::create_directories(path, ec);
     if (ec.value() != 0) {
-        std::cerr << "[SessionRecorder] createDirectoriesWin failed for "
-                  << path.string()
-                  << ": ec=" << ec.value()
-                  << " (" << ec.category().name() << "): " << ec.message()
+        std::cerr << "[SessionRecorder] createDirectoriesWin failed for " << path.string()
+                  << ": ec=" << ec.value() << " (" << ec.category().name() << "): " << ec.message()
                   << std::endl;
         return false;
     }
@@ -60,9 +60,7 @@ std::string generateUuid() {
     // Simple time-based UUID for testing purposes.
     // Not cryptographically random, but unique enough for session directories.
     auto now = std::chrono::system_clock::now();
-    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                  now.time_since_epoch())
-                  .count();
+    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
     std::ostringstream os;
     os << std::hex << std::setfill('0');
     for (int i = 0; i < 8; ++i) {
@@ -74,12 +72,11 @@ std::string generateUuid() {
 
 /** Current wall-clock time in epoch seconds. */
 double nowEpochSeconds() {
-    return std::chrono::duration<double>(
-        std::chrono::system_clock::now().time_since_epoch()
-    ).count();
+    return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch())
+        .count();
 }
 
-} // namespace
+}  // namespace
 
 SessionRecorder::SessionRecorder() = default;
 
@@ -92,14 +89,13 @@ void SessionRecorder::configure(const SessionRecorderConfig& cfg) {
 }
 
 std::string SessionRecorder::start() {
-
-    stop(); // end any previous session
+    stop();  // end any previous session
 
     sessionId_ = generateUuid();
     sessionDir_ = std::filesystem::path(config_.baseDir) / sessionId_;
     if (!createDirectoriesWin(sessionDir_)) {
-        std::cerr << "[SessionRecorder] Failed to create directory: "
-                  << sessionDir_.string() << std::endl;
+        std::cerr << "[SessionRecorder] Failed to create directory: " << sessionDir_.string()
+                  << std::endl;
         return sessionId_;
     }
 
@@ -107,7 +103,7 @@ std::string SessionRecorder::start() {
     SessionMetadata meta;
     meta.sessionId = sessionId_;
     meta.startTime = nowEpochSeconds();
-    meta.bodyNames.clear(); // filled on first frame
+    meta.bodyNames.clear();  // filled on first frame
     meta.frameCount = 0;
     meta.simDuration = 0.0;
     writeMetadata(meta);
@@ -116,23 +112,21 @@ std::string SessionRecorder::start() {
     writeConfig();
 
     // Open frames.bin for binary append
-    framesFile_.open(sessionDir_ / "frames.bin",
-                     std::ios::binary | std::ios::trunc);
+    framesFile_.open(sessionDir_ / "frames.bin", std::ios::binary | std::ios::trunc);
     if (!framesFile_.is_open()) {
-        std::cerr << "[SessionRecorder] Failed to open frames.bin"
-                  << std::endl;
+        std::cerr << "[SessionRecorder] Failed to open frames.bin" << std::endl;
         return sessionId_;
     }
 
     // Write SessionHeader at the start of frames.bin
     SessionHeader hdr{};
-    hdr.magic          = kSessionMagic;
-    hdr.schemaVersion  = kSchemaVersion;
-    hdr.endianMarker   = kEndianMarker;
-    hdr.recordSize     = static_cast<std::uint32_t>(sizeof(FrameRecord));
-    hdr.frameCount     = 0; // updated on stop()
-    hdr.createdAtUnix  = static_cast<std::uint64_t>(nowEpochSeconds());
-    hdr.gitCommitPrefix = 0; // placeholder; filled by build system in future
+    hdr.magic = kSessionMagic;
+    hdr.schemaVersion = kSchemaVersion;
+    hdr.endianMarker = kEndianMarker;
+    hdr.recordSize = static_cast<std::uint32_t>(sizeof(FrameRecord));
+    hdr.frameCount = 0;  // updated on stop()
+    hdr.createdAtUnix = static_cast<std::uint64_t>(nowEpochSeconds());
+    hdr.gitCommitPrefix = 0;  // placeholder; filled by build system in future
     std::memset(hdr.reserved, 0, sizeof(hdr.reserved));
     framesFile_.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
 
@@ -141,14 +135,15 @@ std::string SessionRecorder::start() {
     buffer_.clear();
     buffer_.reserve(std::min(config_.maxFrames, std::uint32_t(1024)));
 
-    std::cout << "[SessionRecorder] Session " << sessionId_
-              << " started at " << sessionDir_.string() << std::endl;
+    std::cout << "[SessionRecorder] Session " << sessionId_ << " started at "
+              << sessionDir_.string() << std::endl;
     return sessionId_;
 }
 
 void SessionRecorder::stop() {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!active_ && frameCount_ == 0) return;
+    if (!active_ && frameCount_ == 0)
+        return;
 
     flushBuffer();
 
@@ -156,12 +151,12 @@ void SessionRecorder::stop() {
         // Rewrite SessionHeader with final frame count
         framesFile_.seekp(0);
         SessionHeader hdr{};
-        hdr.magic          = kSessionMagic;
-        hdr.schemaVersion  = kSchemaVersion;
-        hdr.endianMarker   = kEndianMarker;
-        hdr.recordSize     = static_cast<std::uint32_t>(sizeof(FrameRecord));
-        hdr.frameCount     = frameCount_;
-        hdr.createdAtUnix  = static_cast<std::uint64_t>(nowEpochSeconds());
+        hdr.magic = kSessionMagic;
+        hdr.schemaVersion = kSchemaVersion;
+        hdr.endianMarker = kEndianMarker;
+        hdr.recordSize = static_cast<std::uint32_t>(sizeof(FrameRecord));
+        hdr.frameCount = frameCount_;
+        hdr.createdAtUnix = static_cast<std::uint64_t>(nowEpochSeconds());
         hdr.gitCommitPrefix = 0;
         std::memset(hdr.reserved, 0, sizeof(hdr.reserved));
         framesFile_.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
@@ -172,7 +167,7 @@ void SessionRecorder::stop() {
     if (!sessionDir_.empty()) {
         SessionMetadata meta;
         meta.sessionId = sessionId_;
-        meta.startTime = nowEpochSeconds(); // approximate; could store start
+        meta.startTime = nowEpochSeconds();  // approximate; could store start
         meta.frameCount = frameCount_;
         meta.simDuration = 0.0;
         // Read body names from first frame if available
@@ -188,13 +183,13 @@ void SessionRecorder::stop() {
     sessionDir_ = std::filesystem::path();
     frameCount_ = 0;
 
-    std::cout << "[SessionRecorder] Session stopped, "
-              << written << " frames written" << std::endl;
+    std::cout << "[SessionRecorder] Session stopped, " << written << " frames written" << std::endl;
 }
 
 void SessionRecorder::recordFrame(const FrameRecord& frame) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!active_) return;
+    if (!active_)
+        return;
 
     buffer_.push_back(frame);
 
@@ -204,20 +199,20 @@ void SessionRecorder::recordFrame(const FrameRecord& frame) {
         if (framesFile_.is_open()) {
             framesFile_.seekp(0);
             SessionHeader hdr{};
-            hdr.magic          = kSessionMagic;
-            hdr.schemaVersion  = kSchemaVersion;
-            hdr.endianMarker   = kEndianMarker;
-            hdr.recordSize     = static_cast<std::uint32_t>(sizeof(FrameRecord));
-            hdr.frameCount     = frameCount_;
-            hdr.createdAtUnix  = static_cast<std::uint64_t>(nowEpochSeconds());
+            hdr.magic = kSessionMagic;
+            hdr.schemaVersion = kSchemaVersion;
+            hdr.endianMarker = kEndianMarker;
+            hdr.recordSize = static_cast<std::uint32_t>(sizeof(FrameRecord));
+            hdr.frameCount = frameCount_;
+            hdr.createdAtUnix = static_cast<std::uint64_t>(nowEpochSeconds());
             hdr.gitCommitPrefix = 0;
             std::memset(hdr.reserved, 0, sizeof(hdr.reserved));
             framesFile_.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
             framesFile_.close();
         }
         active_ = false;
-        std::cout << "[SessionRecorder] Buffer full (" << config_.maxFrames
-                  << " frames), stopping" << std::endl;
+        std::cout << "[SessionRecorder] Buffer full (" << config_.maxFrames << " frames), stopping"
+                  << std::endl;
     }
 }
 
@@ -245,8 +240,7 @@ bool SessionRecorder::writeMetadata(const SessionMetadata& meta) const {
         f << j.dump(2);
         return true;
     } catch (const std::exception& e) {
-        std::cerr << "[SessionRecorder] writeMetadata exception: "
-                  << e.what() << std::endl;
+        std::cerr << "[SessionRecorder] writeMetadata exception: " << e.what() << std::endl;
         return false;
     }
 }
@@ -272,14 +266,14 @@ bool SessionRecorder::writeConfig() const {
         f << j.dump(2);
         return true;
     } catch (const std::exception& e) {
-        std::cerr << "[SessionRecorder] writeConfig exception: "
-                  << e.what() << std::endl;
+        std::cerr << "[SessionRecorder] writeConfig exception: " << e.what() << std::endl;
         return false;
     }
 }
 
 void SessionRecorder::flushBuffer() {
-    if (buffer_.empty()) return;
+    if (buffer_.empty())
+        return;
 
     for (const auto& frame : buffer_) {
         appendFrameToFile(frame);
@@ -289,23 +283,23 @@ void SessionRecorder::flushBuffer() {
 }
 
 bool SessionRecorder::appendFrameToFile(const FrameRecord& f) {
-    if (!framesFile_.is_open()) return false;
+    if (!framesFile_.is_open())
+        return false;
 
     // Calculate serialized size
     std::size_t nameBytes = 0;
     for (const auto& name : f.bodyNames) {
-        nameBytes += 4 + name.size(); // uint32 len + chars
+        nameBytes += 4 + name.size();  // uint32 len + chars
     }
-    std::size_t frameSize = 8 + 4 + // time + bodyCount
-                            nameBytes +
-                            f.positions.size() * sizeof(double) +
-                            f.velocities.size() * sizeof(double) +
-                            4 * sizeof(double) + // cameraPosition
-                            4 * sizeof(double) + // cameraLookAt
-                            sizeof(double) +     // blackHoleMassKg
-                            sizeof(double) +     // blackHoleSpin
-                            4 * sizeof(double) + // probeKretschmann, probeRicciScalar, probeWeylSquared, probeRedshift
-                            3 * sizeof(double);  // totalEnergy, kineticEnergy, potentialEnergy
+    std::size_t frameSize =
+        8 + 4 +  // time + bodyCount
+        nameBytes + f.positions.size() * sizeof(double) + f.velocities.size() * sizeof(double) +
+        4 * sizeof(double) +  // cameraPosition
+        4 * sizeof(double) +  // cameraLookAt
+        sizeof(double) +      // blackHoleMassKg
+        sizeof(double) +      // blackHoleSpin
+        4 * sizeof(double) +  // probeKretschmann, probeRicciScalar, probeWeylSquared, probeRedshift
+        3 * sizeof(double);   // totalEnergy, kineticEnergy, potentialEnergy
 
     // Write frame size prefix
     std::uint32_t len = static_cast<std::uint32_t>(frameSize);
@@ -338,20 +332,16 @@ bool SessionRecorder::appendFrameToFile(const FrameRecord& f) {
     }
 
     // Write camera position
-    framesFile_.write(reinterpret_cast<const char*>(f.cameraPosition.data()),
-                      4 * sizeof(double));
+    framesFile_.write(reinterpret_cast<const char*>(f.cameraPosition.data()), 4 * sizeof(double));
 
     // Write camera lookAt
-    framesFile_.write(reinterpret_cast<const char*>(f.cameraLookAt.data()),
-                      4 * sizeof(double));
+    framesFile_.write(reinterpret_cast<const char*>(f.cameraLookAt.data()), 4 * sizeof(double));
 
     // Write black hole mass
-    framesFile_.write(reinterpret_cast<const char*>(&f.blackHoleMassKg),
-                      sizeof(f.blackHoleMassKg));
+    framesFile_.write(reinterpret_cast<const char*>(&f.blackHoleMassKg), sizeof(f.blackHoleMassKg));
 
     // Write black hole spin
-    framesFile_.write(reinterpret_cast<const char*>(&f.blackHoleSpin),
-                      sizeof(f.blackHoleSpin));
+    framesFile_.write(reinterpret_cast<const char*>(&f.blackHoleSpin), sizeof(f.blackHoleSpin));
 
     // Write probe curvature scalars
     framesFile_.write(reinterpret_cast<const char*>(&f.probeKretschmann),
@@ -360,44 +350,45 @@ bool SessionRecorder::appendFrameToFile(const FrameRecord& f) {
                       sizeof(f.probeRicciScalar));
     framesFile_.write(reinterpret_cast<const char*>(&f.probeWeylSquared),
                       sizeof(f.probeWeylSquared));
-    framesFile_.write(reinterpret_cast<const char*>(&f.probeRedshift),
-                      sizeof(f.probeRedshift));
+    framesFile_.write(reinterpret_cast<const char*>(&f.probeRedshift), sizeof(f.probeRedshift));
 
     // Write energies
-    framesFile_.write(reinterpret_cast<const char*>(&f.totalEnergy),
-                      sizeof(f.totalEnergy));
-    framesFile_.write(reinterpret_cast<const char*>(&f.kineticEnergy),
-                      sizeof(f.kineticEnergy));
-    framesFile_.write(reinterpret_cast<const char*>(&f.potentialEnergy),
-                      sizeof(f.potentialEnergy));
+    framesFile_.write(reinterpret_cast<const char*>(&f.totalEnergy), sizeof(f.totalEnergy));
+    framesFile_.write(reinterpret_cast<const char*>(&f.kineticEnergy), sizeof(f.kineticEnergy));
+    framesFile_.write(reinterpret_cast<const char*>(&f.potentialEnergy), sizeof(f.potentialEnergy));
 
     return framesFile_.good();
 }
 
-std::vector<FrameRecord> SessionRecorder::readFrames(
-    const std::filesystem::path& sessionDir)
-{
+std::vector<FrameRecord> SessionRecorder::readFrames(const std::filesystem::path& sessionDir) {
     std::vector<FrameRecord> frames;
     std::ifstream f(sessionDir / "frames.bin", std::ios::binary);
-    if (!f.is_open()) return frames;
+    if (!f.is_open())
+        return frames;
 
     // Read and verify SessionHeader
     SessionHeader hdr;
     f.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
-    if (f.gcount() != sizeof(hdr)) return frames;
-    if (hdr.magic != kSessionMagic) return frames;
-    if (hdr.schemaVersion != kSchemaVersion) return frames;
-    if (hdr.endianMarker != kEndianMarker) return frames;
+    if (f.gcount() != sizeof(hdr))
+        return frames;
+    if (hdr.magic != kSessionMagic)
+        return frames;
+    if (hdr.schemaVersion != kSchemaVersion)
+        return frames;
+    if (hdr.endianMarker != kEndianMarker)
+        return frames;
 
     while (f.good()) {
         // Read frame size prefix
         std::uint32_t len = 0;
         f.read(reinterpret_cast<char*>(&len), sizeof(len));
-        if (!f.good() || len == 0) break;
+        if (!f.good() || len == 0)
+            break;
 
         std::vector<char> buf(len);
         f.read(buf.data(), len);
-        if (!f.good()) break;
+        if (!f.good())
+            break;
 
         const char* p = buf.data();
 
@@ -476,12 +467,12 @@ std::vector<FrameRecord> SessionRecorder::readFrames(
     return frames;
 }
 
-std::unique_ptr<SessionMetadata> SessionRecorder::readMetadata(
-    const std::filesystem::path& sessionDir)
-{
+std::unique_ptr<SessionMetadata>
+SessionRecorder::readMetadata(const std::filesystem::path& sessionDir) {
     try {
         std::ifstream f(sessionDir / "metadata.json");
-        if (!f.is_open()) return nullptr;
+        if (!f.is_open())
+            return nullptr;
         nlohmann::json j;
         f >> j;
 
@@ -497,22 +488,21 @@ std::unique_ptr<SessionMetadata> SessionRecorder::readMetadata(
         }
         return meta;
     } catch (const std::exception& e) {
-        std::cerr << "[SessionRecorder] readMetadata exception: "
-                  << e.what() << std::endl;
+        std::cerr << "[SessionRecorder] readMetadata exception: " << e.what() << std::endl;
         return nullptr;
     }
 }
 
-std::optional<SessionHeader> SessionRecorder::readHeader(
-    const std::filesystem::path& sessionDir)
-{
+std::optional<SessionHeader> SessionRecorder::readHeader(const std::filesystem::path& sessionDir) {
     std::ifstream f(sessionDir / "frames.bin", std::ios::binary);
-    if (!f.is_open()) return std::nullopt;
+    if (!f.is_open())
+        return std::nullopt;
 
     SessionHeader hdr;
     f.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
-    if (f.gcount() != sizeof(hdr)) return std::nullopt;
+    if (f.gcount() != sizeof(hdr))
+        return std::nullopt;
     return hdr;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

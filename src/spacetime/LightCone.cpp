@@ -4,9 +4,9 @@
  */
 
 #include "spacetime/LightCone.h"
-#include "../physics/GeodesicIntegrator.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include "../physics/GeodesicIntegrator.h"
 
 namespace quantumverse {
 
@@ -14,62 +14,50 @@ namespace quantumverse {
 const double LightCone::AFFINE_STEP = 0.1;
 const double LightCone::AFFINE_MAX = 100.0;
 
-LightCone::LightCone(
-    const Event4D& origin_,
-    LightConeType type_,
-    double maxAngle_,
-    int resolution_
-) : origin(origin_),
-    type(type_),
-    maxAngle(maxAngle_),
-    resolution(resolution_),
-    maxExtent(0.0)
-{
+LightCone::LightCone(const Event4D& origin_, LightConeType type_, double maxAngle_, int resolution_)
+    : origin(origin_),
+      type(type_),
+      maxAngle(maxAngle_),
+      resolution(resolution_),
+      maxExtent(0.0) {
     colorRGBA[0] = 1.0f;
     colorRGBA[1] = 0.8f;
     colorRGBA[2] = 0.2f;
     colorRGBA[3] = 0.3f;
 }
 
-void LightCone::setMetric(std::shared_ptr<MetricTensor> m)
-{
+void LightCone::setMetric(std::shared_ptr<MetricTensor> m) {
     metric = m;
 }
 
-void LightCone::setOrigin(const Event4D& o)
-{
+void LightCone::setOrigin(const Event4D& o) {
     origin = o;
     generateMesh();
 }
 
-void LightCone::setType(LightConeType t)
-{
+void LightCone::setType(LightConeType t) {
     type = t;
     generateMesh();
 }
 
-void LightCone::setMaxAngle(double angle)
-{
+void LightCone::setMaxAngle(double angle) {
     maxAngle = angle;
     generateMesh();
 }
 
-void LightCone::setResolution(int res)
-{
+void LightCone::setResolution(int res) {
     resolution = std::max(4, std::min(128, res));
     generateMesh();
 }
 
-void LightCone::setColor(float r, float g, float b, float a)
-{
+void LightCone::setColor(float r, float g, float b, float a) {
     colorRGBA[0] = r;
     colorRGBA[1] = g;
     colorRGBA[2] = b;
     colorRGBA[3] = a;
 }
 
-void LightCone::generateMesh()
-{
+void LightCone::generateMesh() {
     if (!metric) {
         generateFlatCone();
     } else {
@@ -77,8 +65,7 @@ void LightCone::generateMesh()
     }
 }
 
-void LightCone::generateFlatCone()
-{
+void LightCone::generateFlatCone() {
     vertices.clear();
     indices.clear();
 
@@ -88,7 +75,7 @@ void LightCone::generateFlatCone()
 
     int nTheta = resolution;
     int nPhi = resolution * 2;
-    double dt = 1.0; // time extent of cone
+    double dt = 1.0;  // time extent of cone
 
     // Generate vertices on the cone surface
     for (int i = 0; i <= nTheta; ++i) {
@@ -120,8 +107,7 @@ void LightCone::generateFlatCone()
     maxExtent = dt * std::tan(maxAngle);
 }
 
-void LightCone::generateCurvedCone()
-{
+void LightCone::generateCurvedCone() {
     vertices.clear();
     indices.clear();
 
@@ -143,11 +129,7 @@ void LightCone::generateCurvedCone()
             double cphi = std::cos(phi);
 
             // Direction in 3D space
-            std::array<double, 3> direction = {
-                stheta * cphi,
-                stheta * sphi,
-                ctheta
-            };
+            std::array<double, 3> direction = {stheta * cphi, stheta * sphi, ctheta};
 
             // Integrate null ray
             auto ray = integrateNullRay(direction, AFFINE_MAX);
@@ -157,12 +139,8 @@ void LightCone::generateCurvedCone()
             } else {
                 // Fallback: use flat approximation
                 double r = AFFINE_MAX;
-                Event4D endpoint(
-                    origin.t + r,
-                    origin.x + r * direction[0],
-                    origin.y + r * direction[1],
-                    origin.z + r * direction[2]
-                );
+                Event4D endpoint(origin.t + r, origin.x + r * direction[0],
+                                 origin.y + r * direction[1], origin.z + r * direction[2]);
                 rayEndpoints.push_back(endpoint);
             }
         }
@@ -195,16 +173,14 @@ void LightCone::generateCurvedCone()
         double dx = ep.x - origin.x;
         double dy = ep.y - origin.y;
         double dz = ep.z - origin.z;
-        double r = std::sqrt(dx*dx + dy*dy + dz*dz);
-        if (r > maxExtent) maxExtent = r;
+        double r = std::sqrt(dx * dx + dy * dy + dz * dz);
+        if (r > maxExtent)
+            maxExtent = r;
     }
 }
 
-std::vector<Event4D> LightCone::integrateNullRay(
-    const std::array<double, 3>& direction,
-    double maxAffineParam
-) const
-{
+std::vector<Event4D> LightCone::integrateNullRay(const std::array<double, 3>& direction,
+                                                 double maxAffineParam) const {
     std::vector<Event4D> trajectory;
 
     if (!metric) {
@@ -213,12 +189,8 @@ std::vector<Event4D> LightCone::integrateNullRay(
         double step = maxAffineParam / 20.0;
         for (int i = 0; i <= 20; ++i) {
             r = step * i;
-            trajectory.push_back(Event4D(
-                origin.t + r,
-                origin.x + r * direction[0],
-                origin.y + r * direction[1],
-                origin.z + r * direction[2]
-            ));
+            trajectory.push_back(Event4D(origin.t + r, origin.x + r * direction[0],
+                                         origin.y + r * direction[1], origin.z + r * direction[2]));
         }
         return trajectory;
     }
@@ -244,16 +216,16 @@ std::vector<Event4D> LightCone::integrateNullRay(
         // Compute metric at current position
         auto m = metric->evaluate(Event4D(current.t, current.x, current.y, current.z));
 
-         // Simple null propagation: advance along direction with metric correction
-         // This is a simplified approximation; full null geodesic integration
-         // would require solving the geodesic equation properly
+        // Simple null propagation: advance along direction with metric correction
+        // This is a simplified approximation; full null geodesic integration
+        // would require solving the geodesic equation properly
 
-         double g00 = m[0][0];
-         (void)g00;
-        double spatialNorm = std::sqrt(direction[0]*direction[0] +
-                                        direction[1]*direction[1] +
-                                        direction[2]*direction[2]);
-        if (spatialNorm < 1e-10) break;
+        double g00 = m[0][0];
+        (void)g00;
+        double spatialNorm = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1] +
+                                       direction[2] * direction[2]);
+        if (spatialNorm < 1e-10)
+            break;
 
         // Null condition: g00 * dt^2 + 2*g0i*dt*dx^i + gij*dx^i*dx^j = 0
         // For simplicity, use coordinate speed approximation
@@ -269,8 +241,7 @@ std::vector<Event4D> LightCone::integrateNullRay(
     return trajectory;
 }
 
-void LightCone::buildIndices(int nTheta, int nPhi)
-{
+void LightCone::buildIndices(int nTheta, int nPhi) {
     indices.clear();
     indices.reserve(static_cast<size_t>(nTheta - 1) * (nPhi - 1) * 6);
 
@@ -289,4 +260,4 @@ void LightCone::buildIndices(int nTheta, int nPhi)
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

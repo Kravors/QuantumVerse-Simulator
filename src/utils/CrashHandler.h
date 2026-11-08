@@ -10,8 +10,8 @@
 #include <string>
 
 #ifdef _WIN32
-    #include <windows.h>
-    #include <dbghelp.h>
+#include <dbghelp.h>
+#include <windows.h>
 #endif
 
 namespace quantumverse {
@@ -35,5 +35,5 @@ bool isDebuggerPresent();
  */
 std::string getLastCrashDumpPath();
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

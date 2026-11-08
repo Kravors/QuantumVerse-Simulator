@@ -10,10 +10,10 @@
 #ifndef QUANTUMVERSE_ANOMALY_DETECTOR_H
 #define QUANTUMVERSE_ANOMALY_DETECTOR_H
 
-#include <string>
-#include <vector>
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <vector>
 #include "ml/FeatureVector.h"
 
 namespace quantumverse {
@@ -43,7 +43,7 @@ namespace quantumverse {
  * }
  */
 class AnomalyDetector {
-public:
+   public:
     struct Layer {
         int in = 0;
         int out = 0;
@@ -82,7 +82,9 @@ public:
     /**
      * @brief Check if model is loaded and ready
      */
-    bool isLoaded() const noexcept { return loaded_; }
+    bool isLoaded() const noexcept {
+        return loaded_;
+    }
 
     /**
      * @brief Compute anomaly score for a feature vector
@@ -105,30 +107,33 @@ public:
     /**
      * @brief Get configured detection threshold
      */
-    double threshold() const noexcept { return metadata_.threshold; }
+    double threshold() const noexcept {
+        return metadata_.threshold;
+    }
 
     /**
      * @brief Set detection threshold
      */
-    void setThreshold(double t) { metadata_.threshold = t; }
+    void setThreshold(double t) {
+        metadata_.threshold = t;
+    }
 
     /**
      * @brief Get model metadata
      */
-    const Metadata& getMetadata() const noexcept { return metadata_; }
+    const Metadata& getMetadata() const noexcept {
+        return metadata_;
+    }
 
-private:
+   private:
     Metadata metadata_;
     bool loaded_ = false;
 
     /**
      * @brief Forward pass through a single layer
      */
-    static std::vector<double> forward(
-        const std::vector<double>& input,
-        const Layer& layer,
-        bool relu
-    );
+    static std::vector<double> forward(const std::vector<double>& input, const Layer& layer,
+                                       bool relu);
 
     /**
      * @brief Compute MSE between two vectors
@@ -138,9 +143,11 @@ private:
     /**
      * @brief Normalize features using stored mean/std
      */
-    static std::vector<double> normalize(const std::vector<double>& raw, const std::vector<double>& mean, const std::vector<double>& std);
+    static std::vector<double> normalize(const std::vector<double>& raw,
+                                         const std::vector<double>& mean,
+                                         const std::vector<double>& std);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_ANOMALY_DETECTOR_H
+#endif  // QUANTUMVERSE_ANOMALY_DETECTOR_H

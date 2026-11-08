@@ -17,24 +17,19 @@
 
 namespace quantumverse {
 
-TheorySensitivityExperiment::TheorySensitivityExperiment()
-    : Experiment()
-{
-}
+TheorySensitivityExperiment::TheorySensitivityExperiment() : Experiment() {}
 
 QVector<ExperimentParameter> TheorySensitivityExperiment::parameters() const {
     QVector<ExperimentParameter> p;
     p.append({QStringLiteral("passSigma"), QStringLiteral("Pass tolerance (σ)"),
-              QStringLiteral("double"), QVariant(3.0), QVariant(1.0), QVariant(5.0),
-              QStringList(), QStringLiteral("σ"), QStringLiteral("Tolerance for σ-referenced checks.")});
+              QStringLiteral("double"), QVariant(3.0), QVariant(1.0), QVariant(5.0), QStringList(),
+              QStringLiteral("σ"), QStringLiteral("Tolerance for σ-referenced checks.")});
     return p;
 }
 
-ExperimentResult TheorySensitivityExperiment::run(
-    const QVariantMap& params,
-    std::function<void(double)> progress,
-    std::function<bool()> shouldAbort)
-{
+ExperimentResult TheorySensitivityExperiment::run(const QVariantMap& params,
+                                                  std::function<void(double)> progress,
+                                                  std::function<bool()> shouldAbort) {
     ExperimentResult out;
     out.success = true;
 
@@ -43,27 +38,32 @@ ExperimentResult TheorySensitivityExperiment::run(
     CosmologyValidationSuite suite;
 
     const int nTheories = static_cast<int>(m_theories.size());
-    const int nSub = 6; // age, distance, cmb, bao, hubble, growth
+    const int nSub = 6;  // age, distance, cmb, bao, hubble, growth
     const int total = nTheories * nSub;
     int completed = 0;
 
     for (const QString& theory : m_theories) {
-        if (shouldAbort()) { out.success = false; return out; }
+        if (shouldAbort()) {
+            out.success = false;
+            return out;
+        }
 
         QVariantMap suiteParams;
         suiteParams[QStringLiteral("theory_choice")] = theory;
         suiteParams[QStringLiteral("passSigma")] = passSigma;
 
         ExperimentResult suiteResult = suite.run(suiteParams, nullptr, shouldAbort);
-        if (shouldAbort()) { out.success = false; return out; }
+        if (shouldAbort()) {
+            out.success = false;
+            return out;
+        }
 
         // Record each sub-experiment's scalars with theory prefix.
         for (auto it = suiteResult.scalars.cbegin(); it != suiteResult.scalars.cend(); ++it) {
             const QString key = it.key();
             // Only keep tension, pass, and rel_err scalars — skip timestamps,
             // provider names, and other metadata.
-            if (key.contains(QStringLiteral("_tension")) ||
-                key.contains(QStringLiteral("_pass")) ||
+            if (key.contains(QStringLiteral("_tension")) || key.contains(QStringLiteral("_pass")) ||
                 key.contains(QStringLiteral("_rel_err"))) {
                 out.scalars[theory + QStringLiteral("_") + key] = it.value();
             }
@@ -75,10 +75,10 @@ ExperimentResult TheorySensitivityExperiment::run(
             suiteResult.scalars.value(QStringLiteral("suite_provider"));
 
         completed += nSub;
-        if (progress) progress(static_cast<double>(completed) / total);
+        if (progress)
+            progress(static_cast<double>(completed) / total);
 
-        out.logLines << QString("Theory %1: %2 sub-experiments complete")
-                        .arg(theory).arg(nSub);
+        out.logLines << QString("Theory %1: %2 sub-experiments complete").arg(theory).arg(nSub);
     }
 
     const QString stamp = QDateTime::currentDateTime().toString(Qt::ISODate);
@@ -89,10 +89,11 @@ ExperimentResult TheorySensitivityExperiment::run(
     out.scalars[QStringLiteral("matrix_pass_sigma")] = passSigma;
 
     out.logLines << QString("Theory sensitivity matrix complete: %1 theories × %2 experiments")
-                    .arg(nTheories).arg(nSub);
+                        .arg(nTheories)
+                        .arg(nSub);
     out.logLines << QString("Generated: %1").arg(stamp);
 
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

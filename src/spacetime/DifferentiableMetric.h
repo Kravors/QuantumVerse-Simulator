@@ -12,17 +12,17 @@
  * Uses: AutoDiff.h for forward-mode automatic differentiation
  */
 
-#include <string>
-#include <vector>
-#include <memory>
 #include <array>
 #include <cmath>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "../math/AutoDiff.h"
 #include "Event4D.h"
 #include "MetricTensor.h"
-#include "../math/AutoDiff.h"
 
 namespace quantumverse {
 
@@ -34,7 +34,7 @@ namespace quantumverse {
  * into the geodesic integrator and loss functions.
  */
 class DifferentiableMetric {
-public:
+   public:
     virtual ~DifferentiableMetric() = default;
 
     /**
@@ -76,10 +76,9 @@ public:
      *                  Defaults to identity seeds for the first parameter.
      * @return Array of 16 ADVariable<4> components in row-major order.
      */
-    virtual std::array<math::ADVariable<4>, 16> evaluateAD(
-        const Event4D& event,
-        const std::array<double, 4>& paramSeeds = {1.0, 0.0, 0.0, 0.0}
-    ) const = 0;
+    virtual std::array<math::ADVariable<4>, 16>
+    evaluateAD(const Event4D& event,
+               const std::array<double, 4>& paramSeeds = {1.0, 0.0, 0.0, 0.0}) const = 0;
 
     /**
      * @brief Compute the metric and its Jacobian w.r.t. parameters at an event.
@@ -87,9 +86,8 @@ public:
      * @param event Spacetime event.
      * @return Pair of (MetricTensor, Jacobian matrix as flat vector of 16*paramCount elements).
      */
-    virtual std::pair<MetricTensor, std::vector<double>> evaluateWithJacobian(
-        const Event4D& event
-    ) const = 0;
+    virtual std::pair<MetricTensor, std::vector<double>>
+    evaluateWithJacobian(const Event4D& event) const = 0;
 
     /**
      * @brief Clone this metric (virtual copy constructor).
@@ -118,11 +116,12 @@ public:
  * ds^2 = -(1 - 2M/r) dt^2 + (1 - 2M/r)^-1 dr^2 + r^2 dOmega^2
  */
 class DifferentiableSchwarzschildMetric : public DifferentiableMetric {
-public:
-    explicit DifferentiableSchwarzschildMetric(double mass = 1.0)
-        : M_(mass) {}
+   public:
+    explicit DifferentiableSchwarzschildMetric(double mass = 1.0) : M_(mass) {}
 
-    size_t parameterCount() const noexcept override { return 1; }
+    size_t parameterCount() const noexcept override {
+        return 1;
+    }
 
     std::vector<std::string> parameterNames() const override {
         return {"M"};
@@ -141,7 +140,8 @@ public:
 
     MetricTensor evaluate(const Event4D& event) const override {
         double r = event.spatialLength();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         double rs = 2.0 * M_;
         double factor = 1.0 - rs / r;
@@ -156,14 +156,14 @@ public:
         return metric;
     }
 
-    std::array<math::ADVariable<4>, 16> evaluateAD(
-        const Event4D& event,
-        const std::array<double, 4>& paramSeeds = {1.0, 0.0, 0.0, 0.0}
-    ) const override {
+    std::array<math::ADVariable<4>, 16> evaluateAD(const Event4D& event,
+                                                   const std::array<double, 4>& paramSeeds = {
+                                                       1.0, 0.0, 0.0, 0.0}) const override {
         math::ADVariable<4> M_ad(M_, {paramSeeds[0], paramSeeds[1], paramSeeds[2], paramSeeds[3]});
 
         double r = event.spatialLength();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         math::ADVariable<4> rs = M_ad * 2.0;
         math::ADVariable<4> factor = math::ADVariable<4>(1.0) - rs / math::ADVariable<4>(r);
@@ -174,20 +174,20 @@ public:
         result[10] = math::ADVariable<4>(r * r);
         result[15] = math::ADVariable<4>(r * r * std::sin(event.theta()) * std::sin(event.theta()));
 
-        for (int i : {1,2,3,4,6,7,8,9,11,12,13,14}) {
+        for (int i : {1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14}) {
             result[i] = math::ADVariable<4>(0.0);
         }
 
         return result;
     }
 
-    std::pair<MetricTensor, std::vector<double>> evaluateWithJacobian(
-        const Event4D& event
-    ) const override {
+    std::pair<MetricTensor, std::vector<double>>
+    evaluateWithJacobian(const Event4D& event) const override {
         MetricTensor metric = evaluate(event);
 
         double r = event.spatialLength();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         double rs = 2.0 * M_;
         double factor = 1.0 - rs / r;
@@ -203,9 +203,11 @@ public:
         return std::make_unique<DifferentiableSchwarzschildMetric>(*this);
     }
 
-    std::string name() const override { return "DifferentiableSchwarzschild"; }
+    std::string name() const override {
+        return "DifferentiableSchwarzschild";
+    }
 
-private:
+   private:
     double M_;
 };
 
@@ -215,11 +217,12 @@ private:
  * Parameters: [M, a] where a is the dimensionless spin parameter.
  */
 class DifferentiableKerrMetric : public DifferentiableMetric {
-public:
-    DifferentiableKerrMetric(double mass = 1.0, double spin = 0.0)
-        : M_(mass), a_(spin) {}
+   public:
+    DifferentiableKerrMetric(double mass = 1.0, double spin = 0.0) : M_(mass), a_(spin) {}
 
-    size_t parameterCount() const noexcept override { return 2; }
+    size_t parameterCount() const noexcept override {
+        return 2;
+    }
 
     std::vector<std::string> parameterNames() const override {
         return {"M", "a"};
@@ -241,7 +244,8 @@ public:
         double r = event.spatialLength();
         double theta = event.theta();
 
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         double a2 = a_ * a_;
         double sin_theta = std::sin(theta);
@@ -251,8 +255,10 @@ public:
         double Sigma = r * r + a2 * cos2;
         double Delta = r * r - 2.0 * M_ * r + a2;
 
-        if (std::abs(Delta) < 1e-10) Delta = 1e-10;
-        if (std::abs(Sigma) < 1e-10) Sigma = 1e-10;
+        if (std::abs(Delta) < 1e-10)
+            Delta = 1e-10;
+        if (std::abs(Sigma) < 1e-10)
+            Sigma = 1e-10;
 
         MetricTensor metric;
         metric.setToZero();
@@ -267,16 +273,16 @@ public:
         return metric;
     }
 
-    std::array<math::ADVariable<4>, 16> evaluateAD(
-        const Event4D& event,
-        const std::array<double, 4>& paramSeeds = {1.0, 0.0, 0.0, 0.0}
-    ) const override {
+    std::array<math::ADVariable<4>, 16> evaluateAD(const Event4D& event,
+                                                   const std::array<double, 4>& paramSeeds = {
+                                                       1.0, 0.0, 0.0, 0.0}) const override {
         math::ADVariable<4> M_ad(M_, {paramSeeds[0], paramSeeds[1], 0.0, 0.0});
         math::ADVariable<4> a_ad(a_, {0.0, 0.0, paramSeeds[2], paramSeeds[3]});
 
         double r = event.spatialLength();
         double theta = event.theta();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         math::ADVariable<4> a2 = a_ad * a_ad;
         math::ADVariable<4> sin_theta = math::sin(math::ADVariable<4>(theta));
@@ -298,21 +304,21 @@ public:
         result[3] = -M_ad * 2.0 * math::ADVariable<4>(r) * a_ad * sin2 * inv_Sigma;
         result[12] = result[3];
 
-        for (int i : {1,2,4,6,7,8,9,11,13,14}) {
+        for (int i : {1, 2, 4, 6, 7, 8, 9, 11, 13, 14}) {
             result[i] = math::ADVariable<4>(0.0);
         }
 
         return result;
     }
 
-    std::pair<MetricTensor, std::vector<double>> evaluateWithJacobian(
-        const Event4D& event
-    ) const override {
+    std::pair<MetricTensor, std::vector<double>>
+    evaluateWithJacobian(const Event4D& event) const override {
         MetricTensor metric = evaluate(event);
 
         double r = event.spatialLength();
         double theta = event.theta();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         double a2 = a_ * a_;
         double sin_theta = std::sin(theta);
@@ -321,8 +327,10 @@ public:
         double Sigma = r * r + a2 * cos2;
         double Delta = r * r - 2.0 * M_ * r + a2;
 
-        if (std::abs(Delta) < 1e-10) Delta = 1e-10;
-        if (std::abs(Sigma) < 1e-10) Sigma = 1e-10;
+        if (std::abs(Delta) < 1e-10)
+            Delta = 1e-10;
+        if (std::abs(Sigma) < 1e-10)
+            Sigma = 1e-10;
 
         std::vector<double> jacobian(32, 0.0);
 
@@ -350,9 +358,11 @@ public:
         return std::make_unique<DifferentiableKerrMetric>(*this);
     }
 
-    std::string name() const override { return "DifferentiableKerr"; }
+    std::string name() const override {
+        return "DifferentiableKerr";
+    }
 
-private:
+   private:
     double M_;
     double a_;
 };
@@ -363,11 +373,12 @@ private:
  * Parameters: [M, Q] where Q is the electric charge.
  */
 class DifferentiableRNMetric : public DifferentiableMetric {
-public:
-    DifferentiableRNMetric(double mass = 1.0, double charge = 0.0)
-        : M_(mass), Q_(charge) {}
+   public:
+    DifferentiableRNMetric(double mass = 1.0, double charge = 0.0) : M_(mass), Q_(charge) {}
 
-    size_t parameterCount() const noexcept override { return 2; }
+    size_t parameterCount() const noexcept override {
+        return 2;
+    }
 
     std::vector<std::string> parameterNames() const override {
         return {"M", "Q"};
@@ -387,7 +398,8 @@ public:
 
     MetricTensor evaluate(const Event4D& event) const override {
         double r = event.spatialLength();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         double rs = 2.0 * M_;
         double rq2 = Q_ * Q_;
@@ -403,15 +415,15 @@ public:
         return metric;
     }
 
-    std::array<math::ADVariable<4>, 16> evaluateAD(
-        const Event4D& event,
-        const std::array<double, 4>& paramSeeds = {1.0, 0.0, 0.0, 0.0}
-    ) const override {
+    std::array<math::ADVariable<4>, 16> evaluateAD(const Event4D& event,
+                                                   const std::array<double, 4>& paramSeeds = {
+                                                       1.0, 0.0, 0.0, 0.0}) const override {
         math::ADVariable<4> M_ad(M_, {paramSeeds[0], paramSeeds[1], 0.0, 0.0});
         math::ADVariable<4> Q_ad(Q_, {0.0, 0.0, paramSeeds[2], paramSeeds[3]});
 
         double r = event.spatialLength();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         math::ADVariable<4> rs = M_ad * 2.0;
         math::ADVariable<4> rq2 = Q_ad * Q_ad;
@@ -422,24 +434,23 @@ public:
         result[0] = -f;
         result[5] = math::ADVariable<4>(1.0) / f;
         result[10] = math::ADVariable<4>(r * r);
-        result[15] = math::ADVariable<4>(r * r) *
-                     math::sin(math::ADVariable<4>(event.theta())) *
+        result[15] = math::ADVariable<4>(r * r) * math::sin(math::ADVariable<4>(event.theta())) *
                      math::sin(math::ADVariable<4>(event.theta()));
 
-        for (int i : {1,2,3,4,6,7,8,9,11,12,13,14}) {
+        for (int i : {1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14}) {
             result[i] = math::ADVariable<4>(0.0);
         }
 
         return result;
     }
 
-    std::pair<MetricTensor, std::vector<double>> evaluateWithJacobian(
-        const Event4D& event
-    ) const override {
+    std::pair<MetricTensor, std::vector<double>>
+    evaluateWithJacobian(const Event4D& event) const override {
         MetricTensor metric = evaluate(event);
 
         double r = event.spatialLength();
-        if (r < 1e-10) r = 1e-10;
+        if (r < 1e-10)
+            r = 1e-10;
 
         double rs = 2.0 * M_;
         double rq2 = Q_ * Q_;
@@ -460,9 +471,11 @@ public:
         return std::make_unique<DifferentiableRNMetric>(*this);
     }
 
-    std::string name() const override { return "DifferentiableReissnerNordstrom"; }
+    std::string name() const override {
+        return "DifferentiableReissnerNordstrom";
+    }
 
-private:
+   private:
     double M_;
     double Q_;
 };
@@ -470,10 +483,8 @@ private:
 /**
  * @brief Factory function to create differentiable metrics by name.
  */
-inline std::unique_ptr<DifferentiableMetric> createDifferentiableMetric(
-    const std::string& type,
-    const std::vector<double>& params = {}
-) {
+inline std::unique_ptr<DifferentiableMetric>
+createDifferentiableMetric(const std::string& type, const std::vector<double>& params = {}) {
     if (type == "schwarzschild") {
         double M = params.empty() ? 1.0 : params[0];
         return std::make_unique<DifferentiableSchwarzschildMetric>(M);
@@ -489,6 +500,6 @@ inline std::unique_ptr<DifferentiableMetric> createDifferentiableMetric(
     throw std::invalid_argument("Unknown metric type: " + type);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_DIFFERENTIABLE_METRIC_H
+#endif  // QUANTUMVERSE_DIFFERENTIABLE_METRIC_H

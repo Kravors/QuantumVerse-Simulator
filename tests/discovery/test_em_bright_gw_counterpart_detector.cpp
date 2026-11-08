@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/EMBrightGWCounterpartDetector.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -30,10 +30,11 @@ MetricTensor makeFlatMetric() {
 std::vector<Event4D> makeCoincidentTrajectory() {
     std::vector<Event4D> traj;
     traj.reserve(4);
-    traj.emplace_back(0.0, 10.0, 20.0, 0.0);   // GW event at (RA=10, Dec=20), t=0
-    traj.emplace_back(1.0, 10.5, 20.5, 0.0);   // EM counterpart ~1s later, nearby
-    traj.emplace_back(100.0, 0.0, 0.0, 0.0);     // unrelated event far away in time
-    traj.emplace_back(101.0, 80.0, -80.0, 0.0); // unrelated event, far in space and from the others
+    traj.emplace_back(0.0, 10.0, 20.0, 0.0);  // GW event at (RA=10, Dec=20), t=0
+    traj.emplace_back(1.0, 10.5, 20.5, 0.0);  // EM counterpart ~1s later, nearby
+    traj.emplace_back(100.0, 0.0, 0.0, 0.0);  // unrelated event far away in time
+    traj.emplace_back(101.0, 80.0, -80.0,
+                      0.0);  // unrelated event, far in space and from the others
     return traj;
 }
 
@@ -45,7 +46,7 @@ std::vector<Event4D> makeNonCoincidentTrajectory() {
     traj.emplace_back(2000.0, 180.0, -90.0, 0.0);
     return traj;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== EMBrightGWCounterpartDetectorTest ===" << std::endl;
@@ -112,19 +113,19 @@ int main() {
         std::cout << "  Tight angular threshold suppressed counterpart correctly." << std::endl;
     }
 
-        // --- 6. Parameter tuning: widen time window to recover -------------------------
-        // The coincident pair is at dt = 1s; a 2s window gives only a 0.5 time score,
-        // dropping confidence below min_confidence (0.7). Widening to 5s lifts the
-        // time score above the gate so the counterpart is recovered.
-        {
-            EMBrightGWCounterpartDetector detector;
-            detector.setParameter("angular_threshold_deg", 5.0);
-            detector.setParameter("time_window_sec", 5.0);
-            auto traj = makeCoincidentTrajectory();
-            auto findings = detector.analyze(metric, location, traj);
-            QV_CHECK(!findings.empty());
-            std::cout << "  Wider time window recovered counterpart." << std::endl;
-        }
+    // --- 6. Parameter tuning: widen time window to recover -------------------------
+    // The coincident pair is at dt = 1s; a 2s window gives only a 0.5 time score,
+    // dropping confidence below min_confidence (0.7). Widening to 5s lifts the
+    // time score above the gate so the counterpart is recovered.
+    {
+        EMBrightGWCounterpartDetector detector;
+        detector.setParameter("angular_threshold_deg", 5.0);
+        detector.setParameter("time_window_sec", 5.0);
+        auto traj = makeCoincidentTrajectory();
+        auto findings = detector.analyze(metric, location, traj);
+        QV_CHECK(!findings.empty());
+        std::cout << "  Wider time window recovered counterpart." << std::endl;
+    }
 
     std::cout << "All EMBrightGWCounterpartDetectorTest checks passed." << std::endl;
     return 0;

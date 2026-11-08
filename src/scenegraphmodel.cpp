@@ -13,29 +13,23 @@
 
 namespace quantumverse {
 
-SceneGraphModel::SceneGraphModel(QObject* parent)
-    : QAbstractListModel(parent)
-{
-}
+SceneGraphModel::SceneGraphModel(QObject* parent) : QAbstractListModel(parent) {}
 
-void SceneGraphModel::setSceneGraphManager(std::shared_ptr<SceneGraphManager> manager)
-{
+void SceneGraphModel::setSceneGraphManager(std::shared_ptr<SceneGraphManager> manager) {
     beginResetModel();
     m_manager = std::move(manager);
     endResetModel();
     emit countChanged();
 }
 
-int SceneGraphModel::rowCount(const QModelIndex& parent) const
-{
+int SceneGraphModel::rowCount(const QModelIndex& parent) const {
     if (parent.isValid() || !m_manager) {
         return 0;
     }
     return static_cast<int>(m_manager->getScene().objects.size());
 }
 
-QVariant SceneGraphModel::data(const QModelIndex& index, int role) const
-{
+QVariant SceneGraphModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || !m_manager) {
         return QVariant();
     }
@@ -48,57 +42,59 @@ QVariant SceneGraphModel::data(const QModelIndex& index, int role) const
     }
 
     const auto& obj = objects[row];
-    if (!obj) return QVariant();
+    if (!obj)
+        return QVariant();
 
     static int s_dbg = 0;
     if (s_dbg < 40) {
         std::ofstream("model_debug.log", std::ios::app)
-            << "row=" << row << " name=[" << obj->name << "] type="
-            << objectTypeToString(obj->type).toStdString() << " id=[" << obj->id << "]\n";
+            << "row=" << row << " name=[" << obj->name
+            << "] type=" << objectTypeToString(obj->type).toStdString() << " id=[" << obj->id
+            << "]\n";
         ++s_dbg;
     }
 
     switch (role) {
-    case NameRole: {
-        QString name = QString::fromStdString(obj->name);
-        return name;
-    }
-    case TypeRole: {
-        QString type = objectTypeToString(obj->type);
-        return type;
-    }
-    case MassRole:
-        return obj->mass;
-    case PositionRole: {
-        QVariantMap pos;
-        pos["t"] = obj->position.t;
-        pos["x"] = obj->position.x;
-        pos["y"] = obj->position.y;
-        pos["z"] = obj->position.z;
-        return pos;
-    }
-    case VelocityRole: {
-        QVariantMap vel;
-        vel["t"] = obj->velocity.t;
-        vel["x"] = obj->velocity.x;
-        vel["y"] = obj->velocity.y;
-        vel["z"] = obj->velocity.z;
-        return vel;
-    }
-    case ColorRole:
-        return QColor::fromRgbF(obj->color[0], obj->color[1], obj->color[2]);
-    case IdRole:
-        return QString::fromStdString(obj->id);
-    case IsSelectedRole:
-        return obj->id == m_manager->getScene().selectedObjectId;
-    default:
-        qDebug() << "SceneGraphModel: unknown role" << role << "for object" << QString::fromStdString(obj->name);
-        return QVariant();
+        case NameRole: {
+            QString name = QString::fromStdString(obj->name);
+            return name;
+        }
+        case TypeRole: {
+            QString type = objectTypeToString(obj->type);
+            return type;
+        }
+        case MassRole:
+            return obj->mass;
+        case PositionRole: {
+            QVariantMap pos;
+            pos["t"] = obj->position.t;
+            pos["x"] = obj->position.x;
+            pos["y"] = obj->position.y;
+            pos["z"] = obj->position.z;
+            return pos;
+        }
+        case VelocityRole: {
+            QVariantMap vel;
+            vel["t"] = obj->velocity.t;
+            vel["x"] = obj->velocity.x;
+            vel["y"] = obj->velocity.y;
+            vel["z"] = obj->velocity.z;
+            return vel;
+        }
+        case ColorRole:
+            return QColor::fromRgbF(obj->color[0], obj->color[1], obj->color[2]);
+        case IdRole:
+            return QString::fromStdString(obj->id);
+        case IsSelectedRole:
+            return obj->id == m_manager->getScene().selectedObjectId;
+        default:
+            qDebug() << "SceneGraphModel: unknown role" << role << "for object"
+                     << QString::fromStdString(obj->name);
+            return QVariant();
     }
 }
 
-QHash<int, QByteArray> SceneGraphModel::roleNames() const
-{
+QHash<int, QByteArray> SceneGraphModel::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
     roles[TypeRole] = "type";
@@ -111,15 +107,15 @@ QHash<int, QByteArray> SceneGraphModel::roleNames() const
     return roles;
 }
 
-QString SceneGraphModel::selectedObjectId() const
-{
-    if (!m_manager) return QString();
+QString SceneGraphModel::selectedObjectId() const {
+    if (!m_manager)
+        return QString();
     return QString::fromStdString(m_manager->getScene().selectedObjectId);
 }
 
-void SceneGraphModel::setSelectedObjectId(const QString& id)
-{
-    if (!m_manager) return;
+void SceneGraphModel::setSelectedObjectId(const QString& id) {
+    if (!m_manager)
+        return;
 
     std::string stdId = id.toStdString();
     if (m_manager->getScene().selectedObjectId != stdId) {
@@ -129,17 +125,21 @@ void SceneGraphModel::setSelectedObjectId(const QString& id)
     }
 }
 
-void SceneGraphModel::addObject(const QString& type, const QString& name,
-                                double x, double y, double z)
-{
-    if (!m_manager) return;
+void SceneGraphModel::addObject(const QString& type, const QString& name, double x, double y,
+                                double z) {
+    if (!m_manager)
+        return;
 
     ObjectType objType = ObjectType::CelestialBody;
     QString typeLower = type.toLower();
-    if (typeLower == "blackhole") objType = ObjectType::BlackHole;
-    else if (typeLower == "particle") objType = ObjectType::Particle;
-    else if (typeLower == "quantumobject") objType = ObjectType::QuantumObject;
-    else if (typeLower == "singularity") objType = ObjectType::Singularity;
+    if (typeLower == "blackhole")
+        objType = ObjectType::BlackHole;
+    else if (typeLower == "particle")
+        objType = ObjectType::Particle;
+    else if (typeLower == "quantumobject")
+        objType = ObjectType::QuantumObject;
+    else if (typeLower == "singularity")
+        objType = ObjectType::Singularity;
 
     Event4D pos(0.0, x, y, z);
     std::string id = m_manager->addObject(objType, name.toStdString(), pos);
@@ -150,9 +150,9 @@ void SceneGraphModel::addObject(const QString& type, const QString& name,
     emit objectAdded(QString::fromStdString(id), name);
 }
 
-void SceneGraphModel::removeObject(const QString& id)
-{
-    if (!m_manager) return;
+void SceneGraphModel::removeObject(const QString& id) {
+    if (!m_manager)
+        return;
 
     m_manager->removeObject(id.toStdString());
     beginResetModel();
@@ -161,9 +161,9 @@ void SceneGraphModel::removeObject(const QString& id)
     emit objectRemoved(id);
 }
 
-void SceneGraphModel::selectObject(const QString& id)
-{
-    if (!m_manager) return;
+void SceneGraphModel::selectObject(const QString& id) {
+    if (!m_manager)
+        return;
 
     m_manager->selectObject(id.toStdString());
     m_selectedObjectId = id;
@@ -172,9 +172,9 @@ void SceneGraphModel::selectObject(const QString& id)
     emit dataChanged(index(0), index(rowCount() - 1), {IsSelectedRole});
 }
 
-void SceneGraphModel::clearSelection()
-{
-    if (!m_manager) return;
+void SceneGraphModel::clearSelection() {
+    if (!m_manager)
+        return;
 
     m_manager->clearSelection();
     m_selectedObjectId.clear();
@@ -182,13 +182,14 @@ void SceneGraphModel::clearSelection()
     emit dataChanged(index(0), index(rowCount() - 1), {IsSelectedRole});
 }
 
-QVariantMap SceneGraphModel::selectedObjectPosition() const
-{
+QVariantMap SceneGraphModel::selectedObjectPosition() const {
     QVariantMap empty;
-    if (!m_manager) return empty;
+    if (!m_manager)
+        return empty;
 
     const auto& obj = m_manager->getSelectedObject();
-    if (!obj) return empty;
+    if (!obj)
+        return empty;
 
     QVariantMap pos;
     pos["t"] = obj->position.t;
@@ -198,16 +199,15 @@ QVariantMap SceneGraphModel::selectedObjectPosition() const
     return pos;
 }
 
-void SceneGraphModel::refresh()
-{
+void SceneGraphModel::refresh() {
     beginResetModel();
     endResetModel();
     emit countChanged();
 }
 
-void SceneGraphModel::createSolarSystem()
-{
-    if (!m_manager) return;
+void SceneGraphModel::createSolarSystem() {
+    if (!m_manager)
+        return;
 
     m_manager->createSolarSystem();
     beginResetModel();
@@ -215,24 +215,30 @@ void SceneGraphModel::createSolarSystem()
     emit countChanged();
 }
 
-void SceneGraphModel::focusCameraOn(const QString& objectId)
-{
-    if (!m_manager) return;
+void SceneGraphModel::focusCameraOn(const QString& objectId) {
+    if (!m_manager)
+        return;
 
     m_manager->focusCameraOn(objectId.toStdString());
 }
 
-QString SceneGraphModel::objectTypeToString(ObjectType type)
-{
+QString SceneGraphModel::objectTypeToString(ObjectType type) {
     switch (type) {
-    case ObjectType::CelestialBody: return "Celestial Body";
-    case ObjectType::BlackHole: return "Black Hole";
-    case ObjectType::Particle: return "Particle";
-    case ObjectType::QuantumObject: return "Quantum Object";
-    case ObjectType::Singularity: return "Singularity";
-    case ObjectType::Custom: return "Custom";
-    default: return "Unknown";
+        case ObjectType::CelestialBody:
+            return "Celestial Body";
+        case ObjectType::BlackHole:
+            return "Black Hole";
+        case ObjectType::Particle:
+            return "Particle";
+        case ObjectType::QuantumObject:
+            return "Quantum Object";
+        case ObjectType::Singularity:
+            return "Singularity";
+        case ObjectType::Custom:
+            return "Custom";
+        default:
+            return "Unknown";
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

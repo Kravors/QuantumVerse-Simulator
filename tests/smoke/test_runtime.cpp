@@ -6,15 +6,15 @@
  * and asserts on the [REALITY] diagnostic dumps.
  */
 
-#include <QProcess>
-#include <QString>
-#include <QStringList>
-#include <QRegularExpression>
 #include <QFileInfo>
 #include <QImage>
+#include <QProcess>
+#include <QRegularExpression>
+#include <QString>
+#include <QStringList>
 #include <QVector3D>
-#include <cmath>
 #include <QtTest/QtTest>
+#include <cmath>
 
 namespace {
 
@@ -39,45 +39,59 @@ namespace {
 // timeScale seconds of integration). Either fix --time-scale in the capture
 // args, or derive the expected position analytically from that formula.
 // Do not hardcode a pixel the way this file hardcodes the annulus bbox.
-QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth,
-                      const QString& path, QString& error, double beamingGain = 1.0)
-{
+QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth, const QString& path,
+                      QString& error, double beamingGain = 1.0) {
     QProcess proc;
     proc.setProgram(binary);
     QStringList args = {
-        QStringLiteral("--frames"), QStringLiteral("1"),
-        QStringLiteral("--cam-az"), QString::number(azimuth),
-        QStringLiteral("--cam-el"), QStringLiteral("30"),
-        QStringLiteral("--cam-dist"), QStringLiteral("150"),
+        QStringLiteral("--frames"),
+        QStringLiteral("1"),
+        QStringLiteral("--cam-az"),
+        QString::number(azimuth),
+        QStringLiteral("--cam-el"),
+        QStringLiteral("30"),
+        QStringLiteral("--cam-dist"),
+        QStringLiteral("150"),
         // The camera target is the BH position (config black_hole.position).
         // The Doppler verification was defined in BH-relative terms, so the
         // camera must frame the BH for the annulus to stay in the frustum and
         // for the decoded rel positions to match the verified geometry. Keep
         // this in sync with config/simulator.json black_hole.position.
-        QStringLiteral("--cam-tx"), QStringLiteral("40"),
-        QStringLiteral("--cam-ty"), QStringLiteral("0"),
-        QStringLiteral("--cam-tz"), QStringLiteral("0"),
-        QStringLiteral("--annulus-debug"), mode,
-        QStringLiteral("--beaming-gain"), QString::number(beamingGain, 'f', 2),
-        QStringLiteral("--screenshot"), path,
+        QStringLiteral("--cam-tx"),
+        QStringLiteral("40"),
+        QStringLiteral("--cam-ty"),
+        QStringLiteral("0"),
+        QStringLiteral("--cam-tz"),
+        QStringLiteral("0"),
+        QStringLiteral("--annulus-debug"),
+        mode,
+        QStringLiteral("--beaming-gain"),
+        QString::number(beamingGain, 'f', 2),
+        QStringLiteral("--screenshot"),
+        path,
     };
     proc.setArguments(args);
     proc.setProcessChannelMode(QProcess::MergedChannels);
     proc.start();
     if (!proc.waitForFinished(120000)) {
         error = QStringLiteral("annulus capture (mode=%1 az=%2) timed out: %3")
-                    .arg(mode).arg(azimuth).arg(proc.errorString());
+                    .arg(mode)
+                    .arg(azimuth)
+                    .arg(proc.errorString());
         return QImage();
     }
     if (proc.exitCode() != 0) {
         error = QStringLiteral("annulus capture (mode=%1 az=%2) exited with code %3")
-                    .arg(mode).arg(azimuth).arg(proc.exitCode());
+                    .arg(mode)
+                    .arg(azimuth)
+                    .arg(proc.exitCode());
         return QImage();
     }
     const QImage img(path);
     if (img.isNull()) {
         error = QStringLiteral("annulus capture (mode=%1 az=%2) produced a null image")
-                    .arg(mode).arg(azimuth);
+                    .arg(mode)
+                    .arg(azimuth);
     }
     return img;
 }
@@ -96,22 +110,20 @@ QImage captureAnnulus(const QString& binary, const QString& mode, int azimuth,
 // line out of the same render. That line names the well center in world
 // coordinates, which is the value the fix actually changes; asserting on it
 // is deterministic in a way a pixel centroid is not.
-QImage captureGrid(const QString& binary, const QString& path, QString& error,
-                  float camTx = 40.0f, float camTy = 0.0f, float camTz = 0.0f,
-                  QString* outWellCenter = nullptr,
-                  const QStringList& extraArgs = {})
-{
+QImage captureGrid(const QString& binary, const QString& path, QString& error, float camTx = 40.0f,
+                   float camTy = 0.0f, float camTz = 0.0f, QString* outWellCenter = nullptr,
+                   const QStringList& extraArgs = {}) {
     QProcess proc;
     proc.setProgram(binary);
     QStringList args = {
-     QLatin1String("--frames"),QLatin1String("1"),
-     QLatin1String("--cam-az"),QLatin1String("90"),
-     QLatin1String("--cam-el"),QLatin1String("0"),
-     QLatin1String("--cam-dist"),QLatin1String("150"),
-     QLatin1String("--cam-tx"),QString::number(camTx, 'f', 1),
-     QLatin1String("--cam-ty"),QString::number(camTy, 'f', 1),
-     QLatin1String("--cam-tz"),QString::number(camTz, 'f', 1),
-     QLatin1String("--screenshot"),path,
+        QLatin1String("--frames"),     QLatin1String("1"),
+        QLatin1String("--cam-az"),     QLatin1String("90"),
+        QLatin1String("--cam-el"),     QLatin1String("0"),
+        QLatin1String("--cam-dist"),   QLatin1String("150"),
+        QLatin1String("--cam-tx"),     QString::number(camTx, 'f', 1),
+        QLatin1String("--cam-ty"),     QString::number(camTy, 'f', 1),
+        QLatin1String("--cam-tz"),     QString::number(camTz, 'f', 1),
+        QLatin1String("--screenshot"), path,
     };
     args << extraArgs;
     proc.setArguments(args);
@@ -121,18 +133,18 @@ QImage captureGrid(const QString& binary, const QString& path, QString& error,
     proc.setEnvironment(envList);
     proc.start();
     if (!proc.waitForFinished(120000)) {
-        error =QStringLiteral("grid capture timed out: %1").arg(proc.errorString());
+        error = QStringLiteral("grid capture timed out: %1").arg(proc.errorString());
         return QImage();
     }
     if (proc.exitCode() != 0) {
-        error =QStringLiteral("grid capture exited with code %1")
-                .arg(static_cast<int>(proc.exitCode()));
+        error = QStringLiteral("grid capture exited with code %1")
+                    .arg(static_cast<int>(proc.exitCode()));
         return QImage();
     }
     const QString output = QString::fromLocal8Bit(proc.readAll());
     if (outWellCenter) {
         static const QRegularExpression gridRe(
-          QStringLiteral(R"(wellCenter=([\d.\-]+),([\d.\-]+),([\d.\-]+))"));
+            QStringLiteral(R"(wellCenter=([\d.\-]+),([\d.\-]+),([\d.\-]+))"));
         // Take the LAST [GRID] line, not the first: main_qml.cpp wires the
         // curvature metric (which logs a wellCenter at the renderer default of
         // 0,0) BEFORE it wires the effective BH position, and deformGrid()
@@ -146,19 +158,17 @@ QImage captureGrid(const QString& binary, const QString& path, QString& error,
         }
         *outWellCenter = last;
         if (last.isEmpty())
-            error =QStringLiteral("grid capture output had no [GRID] wellCenter line");
+            error = QStringLiteral("grid capture output had no [GRID] wellCenter line");
     }
     const QImage img(path);
     if (img.isNull())
-        error =QStringLiteral("grid capture produced a null image");
+        error = QStringLiteral("grid capture produced a null image");
     return img;
 }
 
 // POSITION encoding: RGB = (rel + 2) / 4, with rel relative to bhCenterWorld.
-QVector3D decodeAnnulusPosition(QRgb p)
-{
-    return QVector3D(qRed(p) / 255.0f * 4.0f - 2.0f,
-                     qGreen(p) / 255.0f * 4.0f - 2.0f,
+QVector3D decodeAnnulusPosition(QRgb p) {
+    return QVector3D(qRed(p) / 255.0f * 4.0f - 2.0f, qGreen(p) / 255.0f * 4.0f - 2.0f,
                      qBlue(p) / 255.0f * 4.0f - 2.0f);
 }
 
@@ -170,8 +180,7 @@ QVector3D decodeAnnulusPosition(QRgb p)
 // 60x60 box is a genuine annulus fragment, and the annulus itself bboxes to
 // (356,213)-(367,218) there.
 bool findNearestAnnulusPixel(const QImage& positionCapture, const QVector3D& target,
-                             QPoint& outPixel, QVector3D& outWorld)
-{
+                             QPoint& outPixel, QVector3D& outWorld) {
     const int cx = positionCapture.width() / 2;
     const int cy = positionCapture.height() / 2;
     const int half = 30;
@@ -197,17 +206,16 @@ bool findNearestAnnulusPixel(const QImage& positionCapture, const QVector3D& tar
     return found;
 }
 
-QRgb pixelAt(const QImage& img, const QPoint& p)
-{
+QRgb pixelAt(const QImage& img, const QPoint& p) {
     return reinterpret_cast<const QRgb*>(img.scanLine(p.y()))[p.x()];
 }
 
-} // namespace
+}  // namespace
 
 class RuntimeSmokeTest : public QObject {
     Q_OBJECT
 
-private slots:
+   private slots:
     void initTestCase() {
         // Locate the quantumverse_qml executable relative to the build tree
         const QStringList candidates = {
@@ -237,7 +245,7 @@ private slots:
         });
         proc.setProcessChannelMode(QProcess::MergedChannels);
         proc.start();
-        const bool started = proc.waitForFinished(300000); // 5 minutes max
+        const bool started = proc.waitForFinished(300000);  // 5 minutes max
         if (!started) {
             qWarning() << "Process timed out or failed to start:" << proc.errorString();
         }
@@ -270,9 +278,10 @@ private slots:
 
         // 1. >= 3 [REALITY] dumps
         qWarning() << "Reality dump count:" << realityLines.size();
-        QVERIFY2(realityLines.size() >= 3,
-                  qPrintable(QStringLiteral("Expected >= 3 [REALITY] dumps, got %1")
-                                 .arg(realityLines.size())));
+        QVERIFY2(
+            realityLines.size() >= 3,
+            qPrintable(
+                QStringLiteral("Expected >= 3 [REALITY] dumps, got %1").arg(realityLines.size())));
 
         // 2. bodies=9 in every dump
         for (const auto& line : realityLines) {
@@ -285,8 +294,7 @@ private slots:
         static const QRegularExpression simTimeRe("simTime=\\s*([0-9.]+)");
         for (const auto& line : realityLines) {
             const auto match = simTimeRe.match(line);
-            QVERIFY2(match.hasMatch(),
-                     qPrintable(QStringLiteral("No simTime in: %1").arg(line)));
+            QVERIFY2(match.hasMatch(), qPrintable(QStringLiteral("No simTime in: %1").arg(line)));
             bool ok = false;
             const double t = match.captured(1).toDouble(&ok);
             QVERIFY2(ok, qPrintable(QStringLiteral("Failed to parse simTime in: %1").arg(line)));
@@ -295,7 +303,8 @@ private slots:
         for (int i = 1; i < simTimes.size(); ++i) {
             QVERIFY2(simTimes[i] > simTimes[i - 1],
                      qPrintable(QStringLiteral("simTime not increasing: %1 -> %2")
-                                    .arg(simTimes[i - 1]).arg(simTimes[i])));
+                                    .arg(simTimes[i - 1])
+                                    .arg(simTimes[i])));
         }
 
         // 4. gridZRange present in every dump
@@ -303,18 +312,19 @@ private slots:
         for (const auto& line : realityLines) {
             const auto match = gridRe.match(line);
             QVERIFY2(match.hasMatch(),
-                      qPrintable(QStringLiteral("No gridZRange in: %1").arg(line)));
+                     qPrintable(QStringLiteral("No gridZRange in: %1").arg(line)));
         }
 
         // 4b. probeValid=1 in every dump (probe must be sampling)
         for (const auto& line : realityLines) {
             QVERIFY2(line.contains(QLatin1String("probeValid= 1")),
-                      qPrintable(QStringLiteral("probeValid != 1 in: %1").arg(line)));
+                     qPrintable(QStringLiteral("probeValid != 1 in: %1").arg(line)));
         }
 
         // 5b. Experiment runner registered >= 22 experiments
         int expCount = -1;
-        static const QRegularExpression expRe("Experiment runner registered\\s+(\\d+)\\s+experiments");
+        static const QRegularExpression expRe(
+            "Experiment runner registered\\s+(\\d+)\\s+experiments");
         for (const auto& line : lines) {
             const auto match = expRe.match(line);
             if (match.hasMatch()) {
@@ -322,19 +332,19 @@ private slots:
                 break;
             }
         }
-        QVERIFY2(expCount >= 22,
-                  qPrintable(QStringLiteral("Expected >= 22 registered experiments, got %1")
-                                 .arg(expCount)));
+        QVERIFY2(
+            expCount >= 22,
+            qPrintable(
+                QStringLiteral("Expected >= 22 registered experiments, got %1").arg(expCount)));
 
         // 6. [DataPaths] resolves to source tree, not build/
         qWarning() << "DataPaths line:" << dataPathsLine;
-        QVERIFY2(!dataPathsLine.isEmpty(),
-                  "[DataPaths] diagnostic line not found in output");
-        QVERIFY2(!dataPathsLine.contains(QLatin1String("build")),
-                  qPrintable(QStringLiteral("DataPaths resolved to build/ tree: %1")
-                                   .arg(dataPathsLine)));
+        QVERIFY2(!dataPathsLine.isEmpty(), "[DataPaths] diagnostic line not found in output");
+        QVERIFY2(
+            !dataPathsLine.contains(QLatin1String("build")),
+            qPrintable(QStringLiteral("DataPaths resolved to build/ tree: %1").arg(dataPathsLine)));
         QVERIFY2(dataPathsLine.contains(QLatin1String("dataRoot=")),
-                  "[DataPaths] output missing dataRoot= field");
+                 "[DataPaths] output missing dataRoot= field");
     }
 
     void testHeadlessCompletes() {
@@ -371,11 +381,13 @@ private slots:
         proc.start();
         const bool started = proc.waitForFinished(120000);
         if (!started) {
-            qWarning() << "quantumverse_qml screenshot did not finish within timeout, skipping pixel checks";
+            qWarning() << "quantumverse_qml screenshot did not finish within timeout, skipping "
+                          "pixel checks";
             return;
         }
         if (proc.exitCode() != 0) {
-            qWarning() << "quantumverse_qml exited with code" << proc.exitCode() << ", skipping pixel checks";
+            qWarning() << "quantumverse_qml exited with code" << proc.exitCode()
+                       << ", skipping pixel checks";
             return;
         }
 
@@ -399,9 +411,9 @@ private slots:
             }
         }
         qWarning() << "Geodesic pixel count:" << geodesicPixels;
-        QVERIFY2(geodesicPixels > 5,
-                  qPrintable(QStringLiteral("Expected > 5 geodesic pixels, got %1")
-                                  .arg(geodesicPixels)));
+        QVERIFY2(
+            geodesicPixels > 5,
+            qPrintable(QStringLiteral("Expected > 5 geodesic pixels, got %1").arg(geodesicPixels)));
 
         const int cx = img.width() / 2;
         const int cy = img.height() / 2;
@@ -418,9 +430,9 @@ private slots:
             }
         }
         qWarning() << "Sun warm pixel count:" << sunWarmPixels;
-        QVERIFY2(sunWarmPixels > 5,
-                  qPrintable(QStringLiteral("Expected > 5 warm Sun pixels, got %1")
-                                  .arg(sunWarmPixels)));
+        QVERIFY2(
+            sunWarmPixels > 5,
+            qPrintable(QStringLiteral("Expected > 5 warm Sun pixels, got %1").arg(sunWarmPixels)));
     }
 
     void testAnnulusMagentaPixelAssertion() {
@@ -474,7 +486,8 @@ private slots:
         QCOMPARE(proc.exitCode(), 0);
 
         const QImage img(screenshotPath);
-        QVERIFY2(!img.isNull(), "Screenshot image is null — headless render may not have produced output");
+        QVERIFY2(!img.isNull(),
+                 "Screenshot image is null — headless render may not have produced output");
         QVERIFY2(img.width() > 0 && img.height() > 0, "Screenshot has zero size");
 
         int magentaPixels = 0;
@@ -544,15 +557,22 @@ private slots:
 
         // Both picks must be fragments of the same (+Z) side of the disk,
         // otherwise the flip below would compare two different world points.
-        QVERIFY2(w90.z() > 0.5f, qPrintable(QStringLiteral(
-                     "az=90 pick decoded to z=%1 - expected the +Z side").arg(w90.z())));
-        QVERIFY2(w270.z() > 0.5f, qPrintable(QStringLiteral(
-                     "az=270 pick decoded to z=%1 - expected the +Z side").arg(w270.z())));
-        QVERIFY2((w90 - w270).length() < 0.7f, qPrintable(QStringLiteral(
-                     "az=90 and az=270 picks are different world points: "
-                     "(%1,%2,%3) vs (%4,%5,%6)")
-                     .arg(w90.x()).arg(w90.y()).arg(w90.z())
-                     .arg(w270.x()).arg(w270.y()).arg(w270.z())));
+        QVERIFY2(
+            w90.z() > 0.5f,
+            qPrintable(
+                QStringLiteral("az=90 pick decoded to z=%1 - expected the +Z side").arg(w90.z())));
+        QVERIFY2(w270.z() > 0.5f,
+                 qPrintable(QStringLiteral("az=270 pick decoded to z=%1 - expected the +Z side")
+                                .arg(w270.z())));
+        QVERIFY2((w90 - w270).length() < 0.7f,
+                 qPrintable(QStringLiteral("az=90 and az=270 picks are different world points: "
+                                           "(%1,%2,%3) vs (%4,%5,%6)")
+                                .arg(w90.x())
+                                .arg(w90.y())
+                                .arg(w90.z())
+                                .arg(w270.x())
+                                .arg(w270.y())
+                                .arg(w270.z())));
 
         const QRgb s90 = pixelAt(dop90, px90);
         const QRgb s270 = pixelAt(dop270, px270);
@@ -561,16 +581,20 @@ private slots:
 
         // Decision point: the same world point reads approaching (red) with
         // the eye on +X and receding (blue) with the eye on -X.
-        QVERIFY2(qRed(s90) > qBlue(s90) + 100, qPrintable(QStringLiteral(
-                     "az=90 sample %1 is not red-dominant: RGB(%2,%3,%4) - "
-                     "los sign did not point at the +X camera")
-                     .arg(QStringLiteral("(%1,%2)").arg(px90.x()).arg(px90.y()))
-                     .arg(qRed(s90)).arg(qGreen(s90)).arg(qBlue(s90))));
-        QVERIFY2(qBlue(s270) > qRed(s270) + 100, qPrintable(QStringLiteral(
-                     "az=270 sample %1 is not blue-dominant: RGB(%2,%3,%4) - "
-                     "the los sign did not flip with the camera")
-                     .arg(QStringLiteral("(%1,%2)").arg(px270.x()).arg(px270.y()))
-                     .arg(qRed(s270)).arg(qGreen(s270)).arg(qBlue(s270))));
+        QVERIFY2(qRed(s90) > qBlue(s90) + 100,
+                 qPrintable(QStringLiteral("az=90 sample %1 is not red-dominant: RGB(%2,%3,%4) - "
+                                           "los sign did not point at the +X camera")
+                                .arg(QStringLiteral("(%1,%2)").arg(px90.x()).arg(px90.y()))
+                                .arg(qRed(s90))
+                                .arg(qGreen(s90))
+                                .arg(qBlue(s90))));
+        QVERIFY2(qBlue(s270) > qRed(s270) + 100,
+                 qPrintable(QStringLiteral("az=270 sample %1 is not blue-dominant: RGB(%2,%3,%4) - "
+                                           "the los sign did not flip with the camera")
+                                .arg(QStringLiteral("(%1,%2)").arg(px270.x()).arg(px270.y()))
+                                .arg(qRed(s270))
+                                .arg(qGreen(s270))
+                                .arg(qBlue(s270))));
         // The encoding writes exactly one of (los,0,0) / (0,0,-los) with
         // alpha 1.0; green staying 0 and alpha staying 255 keep the decode
         // unambiguous against skybox blending.
@@ -600,14 +624,19 @@ private slots:
                     }
                 }
             }
-            qWarning() << "Doppler limb pixel counts az=" << az << "red:" << red
-                       << "blue:" << blue;
-            QVERIFY2(red >= 20, qPrintable(QStringLiteral(
-                         "az=%1 capture has %2 red-dominant pixels, expected >= 20 - "
-                         "the approaching limb is missing").arg(az).arg(red)));
-            QVERIFY2(blue >= 5, qPrintable(QStringLiteral(
-                         "az=%1 capture has %2 blue-dominant pixels, expected >= 5 - "
-                         "the receding limb is missing").arg(az).arg(blue)));
+            qWarning() << "Doppler limb pixel counts az=" << az << "red:" << red << "blue:" << blue;
+            QVERIFY2(red >= 20,
+                     qPrintable(QStringLiteral(
+                                    "az=%1 capture has %2 red-dominant pixels, expected >= 20 - "
+                                    "the approaching limb is missing")
+                                    .arg(az)
+                                    .arg(red)));
+            QVERIFY2(blue >= 5,
+                     qPrintable(QStringLiteral(
+                                    "az=%1 capture has %2 blue-dominant pixels, expected >= 5 - "
+                                    "the receding limb is missing")
+                                    .arg(az)
+                                    .arg(blue)));
         }
     }
 
@@ -644,8 +673,7 @@ private slots:
         // Red is the assertion channel: at gain 0.3 red stays unclipped across
         // the whole ring (max 243) while blue clips at the innermost fragment.
         const QImage beam = captureAnnulus(m_binary, QStringLiteral("normal"), 90,
-                                           QStringLiteral("smoke_annulus_beam.png"), error,
-                                           0.3);
+                                           QStringLiteral("smoke_annulus_beam.png"), error, 0.3);
         QVERIFY2(!beam.isNull(), qPrintable(error));
 
         const QVector3D near(0.0f, 0.0f, 1.294f);
@@ -659,9 +687,9 @@ private slots:
 
         const QRgb sNear = pixelAt(beam, pxNear);
         const QRgb sFar = pixelAt(beam, pxFar);
-        qWarning() << "Beaming az=90 near px" << pxNear << "RGB" << qRed(sNear)
-                   << qGreen(sNear) << qBlue(sNear) << "| far px" << pxFar << "RGB"
-                   << qRed(sFar) << qGreen(sFar) << qBlue(sFar);
+        qWarning() << "Beaming az=90 near px" << pxNear << "RGB" << qRed(sNear) << qGreen(sNear)
+                   << qBlue(sNear) << "| far px" << pxFar << "RGB" << qRed(sFar) << qGreen(sFar)
+                   << qBlue(sFar);
 
         // Sampling channel: red. Blue approaches the clip boundary closest
         // (223 at gain 0.3), so it has the least headroom for a slight
@@ -674,16 +702,21 @@ private slots:
         // (a clipped sample flattens the ratio to ~2-3x), above 50 means the
         // sample is not degenerate (a dark or mislocated sample would make
         // any ratio meaningless).
-        QVERIFY2(nearR < 255, qPrintable(QStringLiteral(
-                     "Approaching limb sample is clipped (R=%1) - the display gain no "
-                     "longer keeps base * D^4 inside [0,1] and the ratio is not "
-                     "measurable").arg(nearR)));
-        QVERIFY2(nearR > 50, qPrintable(QStringLiteral(
-                     "Approaching limb sample is degenerate (R=%1) - outside the "
-                     "beamed disk region").arg(nearR)));
+        QVERIFY2(nearR < 255,
+                 qPrintable(QStringLiteral(
+                                "Approaching limb sample is clipped (R=%1) - the display gain no "
+                                "longer keeps base * D^4 inside [0,1] and the ratio is not "
+                                "measurable")
+                                .arg(nearR)));
+        QVERIFY2(
+            nearR > 50,
+            qPrintable(QStringLiteral("Approaching limb sample is degenerate (R=%1) - outside the "
+                                      "beamed disk region")
+                           .arg(nearR)));
         QVERIFY2(farR > 5, qPrintable(QStringLiteral(
-                     "Receding limb sample is black (R=%1) - the beaming term "
-                     "attenuated it below the measurable range").arg(farR)));
+                                          "Receding limb sample is black (R=%1) - the beaming term "
+                                          "attenuated it below the measurable range")
+                                          .arg(farR)));
 
         // The D^4 band. The ratio is gain-agnostic by construction - a ratio
         // within one channel cancels the display gain - so this assertion holds
@@ -703,10 +736,15 @@ private slots:
         for (int c = 0; c < 3; ++c) {
             const double ratio = static_cast<double>(nearCh[c]) / farCh[c];
             qWarning() << "Beaming ratio channel" << c << ":" << ratio;
-            QVERIFY2(ratio >= 6.0 && ratio <= 10.5, qPrintable(QStringLiteral(
-                         "Channel %1 limb ratio %2 outside the D^4 band [6.0, 10.5] "
-                         "(near=%3 far=%4) - the beaming term is not the bolometric "
-                         "D^4 convention").arg(c).arg(ratio).arg(nearCh[c]).arg(farCh[c])));
+            QVERIFY2(ratio >= 6.0 && ratio <= 10.5,
+                     qPrintable(
+                         QStringLiteral("Channel %1 limb ratio %2 outside the D^4 band [6.0, 10.5] "
+                                        "(near=%3 far=%4) - the beaming term is not the bolometric "
+                                        "D^4 convention")
+                             .arg(c)
+                             .arg(ratio)
+                             .arg(nearCh[c])
+                             .arg(farCh[c])));
         }
     }
 
@@ -734,20 +772,21 @@ private slots:
     // asserted here - a regression that breaks the mass scaling of the funnel
     // shape would slip past. Covering it needs a third capture with a
     // different --bh-mass and a wellR != wellB check.
-    void testFunnelTracksBlackHoleCenter()
-    {
+    void testFunnelTracksBlackHoleCenter() {
         QString error;
         const QStringList bhA = {QStringLiteral("--bh-position"), QStringLiteral("40"),
                                  QStringLiteral("0"), QStringLiteral("0")};
         const QStringList bhB = {QStringLiteral("--bh-position"), QStringLiteral("0"),
                                  QStringLiteral("0"), QStringLiteral("0")};
-        const QImage gridA = captureGrid(m_binary,
-             QStringLiteral("smoke_grid_well_a.png"), error, 40.0f, 0.0f, 0.0f, nullptr, bhA);
-        const QImage gridB = captureGrid(m_binary,
-             QStringLiteral("smoke_grid_well_b.png"), error, 40.0f, 0.0f, 0.0f, nullptr, bhB);
+        const QImage gridA = captureGrid(m_binary, QStringLiteral("smoke_grid_well_a.png"), error,
+                                         40.0f, 0.0f, 0.0f, nullptr, bhA);
+        const QImage gridB = captureGrid(m_binary, QStringLiteral("smoke_grid_well_b.png"), error,
+                                         40.0f, 0.0f, 0.0f, nullptr, bhB);
         // Both captures must produce valid screenshots (grid rendering works).
-        QVERIFY2(!gridA.isNull(), qPrintable(QStringLiteral("Grid capture A failed: %1").arg(error)));
-        QVERIFY2(!gridB.isNull(), qPrintable(QStringLiteral("Grid capture B failed: %1").arg(error)));
+        QVERIFY2(!gridA.isNull(),
+                 qPrintable(QStringLiteral("Grid capture A failed: %1").arg(error)));
+        QVERIFY2(!gridB.isNull(),
+                 qPrintable(QStringLiteral("Grid capture B failed: %1").arg(error)));
         QVERIFY2(gridA.width() > 0 && gridA.height() > 0,
                  qPrintable("Grid capture A has zero size"));
         QVERIFY2(gridB.width() > 0 && gridB.height() > 0,
@@ -760,16 +799,18 @@ private slots:
                 const QRgb* sa = reinterpret_cast<const QRgb*>(gridA.scanLine(y));
                 const QRgb* sb = reinterpret_cast<const QRgb*>(gridB.scanLine(y));
                 for (int x = 0; x < gridA.width(); ++x) {
-                    if (sa[x] != sb[x]) { imagesDiffer = true; break; }
+                    if (sa[x] != sb[x]) {
+                        imagesDiffer = true;
+                        break;
+                    }
                 }
             }
         } else {
             imagesDiffer = true;
         }
         QVERIFY2(imagesDiffer,
-                 qPrintable(QStringLiteral(
-                     "Grid render identical for BH at (40,0,0) vs (0,0,0) - "
-                     "the funnel did not move with the black hole")));
+                 qPrintable(QStringLiteral("Grid render identical for BH at (40,0,0) vs (0,0,0) - "
+                                           "the funnel did not move with the black hole")));
     }
 
     void testToolbarOverflowAssertion() {
@@ -810,11 +851,13 @@ private slots:
             }
         }
         qWarning() << "Toolbar overflow clear:" << overflowClear;
-        QVERIFY2(overflowClear,
-                  qPrintable(QStringLiteral("toolbar_overflow remained 1 in all [REALITY] dumps; layout still overflows")));
+        QVERIFY2(
+            overflowClear,
+            qPrintable(QStringLiteral(
+                "toolbar_overflow remained 1 in all [REALITY] dumps; layout still overflows")));
     }
 
-private:
+   private:
     QString m_binary;
     QString m_output;
 };

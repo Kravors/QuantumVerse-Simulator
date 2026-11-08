@@ -8,25 +8,26 @@
 // Supports:
 //   - Schwarzschild:      ds^2 = -(1-2M/r)dt^2 + (1-2M/r)^{-1}dr^2 + r^2 dOmega^2
 //   - Kerr:               ds^2 = -(1-2Mr/sigma)dt^2 - 4Mar sin^2(theta)/sigma dt dphi
-//                         + sigma/delta dr^2 + sigma dtheta^2 + (r^2+a^2+2Ma^2r sin^2/sigma) sin^2 dphi^2
+//                         + sigma/delta dr^2 + sigma dtheta^2 + (r^2+a^2+2Ma^2r sin^2/sigma) sin^2
+//                         dphi^2
 //   - Reissner-Nordstrom: ds^2 = -(1-2M/r+Q^2/r^2)dt^2 + (1-2M/r+Q^2/r^2)^{-1}dr^2 + r^2 dOmega^2
 
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
-#include <cmath>
 #include <array>
-#include <string>
-#include <stdexcept>
-#include <vector>
+#include <cmath>
 #include <memory>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
-#include "../spacetime/Event4D.h"
-#include "../spacetime/MetricTensor.h"
-#include "../spacetime/KerrMetric.h"
 #include "../physics/CurvatureCalculator.h"
 #include "../physics/PhysicsConstants.h"
+#include "../spacetime/Event4D.h"
+#include "../spacetime/KerrMetric.h"
+#include "../spacetime/MetricTensor.h"
 
 namespace py = pybind11;
 using namespace quantumverse;
@@ -35,15 +36,15 @@ using namespace quantumverse;
 // Schwarzschild Christoffel symbols (analytical, equatorial theta=pi/2)
 // ---------------------------------------------------------------------------
 static void christoffel_schwarzschild(double M, double r,
-    std::array<std::array<std::array<double, 4>, 4>, 4>& Gamma)
-{
+                                      std::array<std::array<std::array<double, 4>, 4>, 4>& Gamma) {
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
                 Gamma[i][j][k] = 0.0;
 
     double rs = 2.0 * M;
-    if (r <= rs) r = rs + 1e-10;
+    if (r <= rs)
+        r = rs + 1e-10;
 
     double inv_r = 1.0 / r;
     double factor = 1.0 - rs / r;
@@ -79,8 +80,7 @@ static void christoffel_schwarzschild(double M, double r,
 // a = J/(M*c)  dimensionless spin parameter
 // ---------------------------------------------------------------------------
 static void christoffel_kerr(double M, double a, double r,
-    std::array<std::array<std::array<double, 4>, 4>, 4>& Gamma)
-{
+                             std::array<std::array<std::array<double, 4>, 4>, 4>& Gamma) {
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
@@ -89,22 +89,25 @@ static void christoffel_kerr(double M, double a, double r,
     double rs = 2.0 * M;
     double r2 = r * r;
     double a2 = a * a;
-    double sigma = r2 + a2;          // theta=pi/2 => cos^2=0
+    double sigma = r2 + a2;  // theta=pi/2 => cos^2=0
     double delta = r2 - rs * r + a2;
 
-    if (sigma < 1e-12) sigma = 1e-12;
-    if (std::abs(delta) < 1e-12) delta = 1e-12;
+    if (sigma < 1e-12)
+        sigma = 1e-12;
+    if (std::abs(delta) < 1e-12)
+        delta = 1e-12;
 
     // Metric components (equatorial, theta=pi/2, sin theta = 1)
     double gtt = -(1.0 - rs * r / sigma);
-    double gtf = -rs * r * a / sigma;          // g_{t phi}
+    double gtf = -rs * r * a / sigma;  // g_{t phi}
     double grr = sigma / delta;
     double gthth = sigma;
     double gff = (r2 + a2 + rs * r * a2 / sigma);  // g_{phi phi}
 
     // Inverse metric components (2x2 block for t,phi)
     double det_tf = gtt * gff - gtf * gtf;
-    if (std::abs(det_tf) < 1e-15) det_tf = 1e-15;
+    if (std::abs(det_tf) < 1e-15)
+        det_tf = 1e-15;
     double gtt_inv = gff / det_tf;
     double gtf_inv = -gtf / det_tf;
     double gff_inv = gtt / det_tf;
@@ -123,23 +126,27 @@ static void christoffel_kerr(double M, double a, double r,
 
     double dgff_dr = 2.0 * r + rs * a2 * (sigma - 2.0 * r * r) / (sigma * sigma);
 
-    // Christoffel symbols via Gamma^lambda_{mu nu} = 1/2 g^{lambda sigma}(d_mu g_{nu sigma} + d_nu g_{mu sigma} - d_sigma g_{mu nu})
-    // Only non-zero derivatives are w.r.t. r (mu=1)
+    // Christoffel symbols via Gamma^lambda_{mu nu} = 1/2 g^{lambda sigma}(d_mu g_{nu sigma} + d_nu
+    // g_{mu sigma} - d_sigma g_{mu nu}) Only non-zero derivatives are w.r.t. r (mu=1)
 
     // Helper: Gamma^lambda_{mu nu} for cases where derivative is in r direction
     // d_r g_{mu nu} terms
     auto compute_Gamma = [&](int lam, int mu, int nu, double dg_r) -> double {
         // Only r-derivatives contribute (mu or nu = 1)
-        // Gamma^lam_{mu nu} = 0.5 * g^{lam sig} * (d_mu g_{nu sig} + d_nu g_{mu sig} - d_sig g_{mu nu})
-        // For equatorial Kerr, only g^{tt}, g^{tphi}, g^{phiphi}, g^{rr}, g^{thth} are non-zero
+        // Gamma^lam_{mu nu} = 0.5 * g^{lam sig} * (d_mu g_{nu sig} + d_nu g_{mu sig} - d_sig g_{mu
+        // nu}) For equatorial Kerr, only g^{tt}, g^{tphi}, g^{phiphi}, g^{rr}, g^{thth} are
+        // non-zero
         double result = 0.0;
 
         // Contribution from inverse metric components
         // g^{tt} component
         double dg_nu_t = 0, dg_mu_t = 0, dg_t_munu = 0;
-        if (nu == 0) dg_nu_t = dg_r;  // d_r g_{mu t} when nu=r
-        if (mu == 0) dg_mu_t = dg_r;
-        if (0 == 1) dg_t_munu = dg_r; // d_t g_{mu nu} = 0 (stationary)
+        if (nu == 0)
+            dg_nu_t = dg_r;  // d_r g_{mu t} when nu=r
+        if (mu == 0)
+            dg_mu_t = dg_r;
+        if (0 == 1)
+            dg_t_munu = dg_r;  // d_t g_{mu nu} = 0 (stationary)
         // This is getting complex; use direct formula
 
         return result;
@@ -229,9 +236,9 @@ static void christoffel_kerr(double M, double a, double r,
 // Reissner-Nordstrom Christoffel symbols (analytical, equatorial)
 // ds^2 = -(1 - 2M/r + Q^2/r^2) dt^2 + (1 - 2M/r + Q^2/r^2)^{-1} dr^2 + r^2 dOmega^2
 // ---------------------------------------------------------------------------
-static void christoffel_reissner_nordstrom(double M, double Q, double r,
-    std::array<std::array<std::array<double, 4>, 4>, 4>& Gamma)
-{
+static void
+christoffel_reissner_nordstrom(double M, double Q, double r,
+                               std::array<std::array<std::array<double, 4>, 4>, 4>& Gamma) {
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
@@ -239,7 +246,8 @@ static void christoffel_reissner_nordstrom(double M, double Q, double r,
 
     // f(r) = 1 - 2M/r + Q^2/r^2
     double f = 1.0 - 2.0 * M / r + Q * Q / (r * r);
-    if (std::abs(f) < 1e-12) f = 1e-12;
+    if (std::abs(f) < 1e-12)
+        f = 1e-12;
 
     // f'(r) = 2M/r^2 - 2Q^2/r^3
     double df_dr = 2.0 * M / (r * r) - 2.0 * Q * Q / (r * r * r);
@@ -277,8 +285,7 @@ static void christoffel_reissner_nordstrom(double M, double Q, double r,
 // y = [t, r, theta, phi, ut, ur, utheta, uphi]
 // ---------------------------------------------------------------------------
 static void geodesic_derivative(const double y[8], double M, double a, double Q,
-    const std::string& metric_type, double /*tau*/, double dydtau[8])
-{
+                                const std::string& metric_type, double /*tau*/, double dydtau[8]) {
     double r = y[1];
     double ut = y[4], ur = y[5], uth = y[6], uph = y[7];
 
@@ -316,20 +323,22 @@ static void geodesic_derivative(const double y[8], double M, double a, double Q,
 // RK4 integration step
 // ---------------------------------------------------------------------------
 static void rk4_step(const double y[8], double M, double a, double Q,
-    const std::string& metric_type, double h, double y_new[8])
-{
+                     const std::string& metric_type, double h, double y_new[8]) {
     double k1[8], k2[8], k3[8], k4[8];
     double y_temp[8];
 
     geodesic_derivative(y, M, a, Q, metric_type, 0.0, k1);
 
-    for (int i = 0; i < 8; i++) y_temp[i] = y[i] + 0.5 * h * k1[i];
+    for (int i = 0; i < 8; i++)
+        y_temp[i] = y[i] + 0.5 * h * k1[i];
     geodesic_derivative(y_temp, M, a, Q, metric_type, 0.0, k2);
 
-    for (int i = 0; i < 8; i++) y_temp[i] = y[i] + 0.5 * h * k2[i];
+    for (int i = 0; i < 8; i++)
+        y_temp[i] = y[i] + 0.5 * h * k2[i];
     geodesic_derivative(y_temp, M, a, Q, metric_type, 0.0, k3);
 
-    for (int i = 0; i < 8; i++) y_temp[i] = y[i] + h * k3[i];
+    for (int i = 0; i < 8; i++)
+        y_temp[i] = y[i] + h * k3[i];
     geodesic_derivative(y_temp, M, a, Q, metric_type, 0.0, k4);
 
     for (int i = 0; i < 8; i++) {
@@ -340,13 +349,10 @@ static void rk4_step(const double y[8], double M, double a, double Q,
 // ---------------------------------------------------------------------------
 // Full integration: returns final state (8-vector)
 // ---------------------------------------------------------------------------
-static py::array_t<double> integrate_geodesic(
-    const py::array_t<double>& initial_event,
-    const py::array_t<double>& initial_velocity,
-    double M, double a, double Q,
-    const std::string& metric_type,
-    double tau_max, int num_steps)
-{
+static py::array_t<double> integrate_geodesic(const py::array_t<double>& initial_event,
+                                              const py::array_t<double>& initial_velocity, double M,
+                                              double a, double Q, const std::string& metric_type,
+                                              double tau_max, int num_steps) {
     py::buffer_info event_buf = initial_event.request();
     py::buffer_info vel_buf = initial_velocity.request();
 
@@ -357,7 +363,7 @@ static py::array_t<double> integrate_geodesic(
     if (metric_type != "schwarzschild" && metric_type != "kerr" &&
         metric_type != "reissner-nordstrom") {
         throw std::invalid_argument("Unknown metric_type: " + metric_type +
-            ". Must be 'schwarzschild', 'kerr', or 'reissner-nordstrom'");
+                                    ". Must be 'schwarzschild', 'kerr', or 'reissner-nordstrom'");
     }
 
     // Validate Kerr parameters
@@ -366,15 +372,16 @@ static py::array_t<double> integrate_geodesic(
         double a_abs = std::abs(a);
         if (a_abs > M) {
             throw std::invalid_argument("Kerr spin parameter |a|=" + std::to_string(a_abs) +
-                " exceeds M=" + std::to_string(M) + " (would be naked singularity)");
+                                        " exceeds M=" + std::to_string(M) +
+                                        " (would be naked singularity)");
         }
     }
 
     // Validate RN parameters
     if (metric_type == "reissner-nordstrom") {
         if (Q > M) {
-            throw std::invalid_argument("RN charge Q=" + std::to_string(Q) +
-                " exceeds M=" + std::to_string(M) + " (would be naked singularity)");
+            throw std::invalid_argument("RN charge Q=" + std::to_string(Q) + " exceeds M=" +
+                                        std::to_string(M) + " (would be naked singularity)");
         }
     }
 
@@ -382,15 +389,18 @@ static py::array_t<double> integrate_geodesic(
     double* vel_ptr = static_cast<double*>(vel_buf.ptr);
 
     double y[8];
-    for (int i = 0; i < 4; i++) y[i] = event_ptr[i];
-    for (int i = 0; i < 4; i++) y[4 + i] = vel_ptr[i];
+    for (int i = 0; i < 4; i++)
+        y[i] = event_ptr[i];
+    for (int i = 0; i < 4; i++)
+        y[4 + i] = vel_ptr[i];
 
     double h = tau_max / num_steps;
     double y_next[8];
 
     for (int step = 0; step < num_steps; step++) {
         rk4_step(y, M, a, Q, metric_type, h, y_next);
-        for (int i = 0; i < 8; i++) y[i] = y_next[i];
+        for (int i = 0; i < 8; i++)
+            y[i] = y_next[i];
     }
 
     auto result = py::array_t<double>(8);
@@ -406,13 +416,10 @@ static py::array_t<double> integrate_geodesic(
 // ---------------------------------------------------------------------------
 // Full trajectory integration: returns vector of (t, r, theta, phi) tuples
 // ---------------------------------------------------------------------------
-static std::vector<std::array<double, 4>> integrate_trajectory(
-    const py::array_t<double>& initial_event,
-    const py::array_t<double>& initial_velocity,
-    double M, double a, double Q,
-    const std::string& metric_type,
-    double tau_max, int num_steps)
-{
+static std::vector<std::array<double, 4>>
+integrate_trajectory(const py::array_t<double>& initial_event,
+                     const py::array_t<double>& initial_velocity, double M, double a, double Q,
+                     const std::string& metric_type, double tau_max, int num_steps) {
     py::buffer_info event_buf = initial_event.request();
     py::buffer_info vel_buf = initial_velocity.request();
 
@@ -429,8 +436,10 @@ static std::vector<std::array<double, 4>> integrate_trajectory(
     double* vel_ptr = static_cast<double*>(vel_buf.ptr);
 
     double y[8];
-    for (int i = 0; i < 4; i++) y[i] = event_ptr[i];
-    for (int i = 0; i < 4; i++) y[4 + i] = vel_ptr[i];
+    for (int i = 0; i < 4; i++)
+        y[i] = event_ptr[i];
+    for (int i = 0; i < 4; i++)
+        y[4 + i] = vel_ptr[i];
 
     double h = tau_max / num_steps;
     double y_next[8];
@@ -443,7 +452,8 @@ static std::vector<std::array<double, 4>> integrate_trajectory(
 
     for (int step = 0; step < num_steps; step++) {
         rk4_step(y, M, a, Q, metric_type, h, y_next);
-        for (int i = 0; i < 8; i++) y[i] = y_next[i];
+        for (int i = 0; i < 8; i++)
+            y[i] = y_next[i];
         trajectory.push_back({y[0], y[1], y[2], y[3]});
 
         // Terminate if too close to singularity (r < 1.1 * horizon radius)
@@ -451,12 +461,15 @@ static std::vector<std::array<double, 4>> integrate_trajectory(
         double rs = 2.0 * M;
         if (metric_type == "reissner-nordstrom") {
             double r_horizon = M + std::sqrt(M * M - Q * Q);
-            if (r < 1.1 * r_horizon) break;
+            if (r < 1.1 * r_horizon)
+                break;
         } else if (metric_type == "kerr") {
             double r_horizon = M + std::sqrt(M * M - a * a);
-            if (r < 1.1 * r_horizon) break;
+            if (r < 1.1 * r_horizon)
+                break;
         } else {
-            if (r < 1.1 * rs) break;
+            if (r < 1.1 * rs)
+                break;
         }
     }
 
@@ -466,12 +479,10 @@ static std::vector<std::array<double, 4>> integrate_trajectory(
 // ---------------------------------------------------------------------------
 // Compute conserved quantities along a geodesic
 // ---------------------------------------------------------------------------
-static py::array_t<double> compute_conserved_quantities(
-    const py::array_t<double>& initial_event,
-    const py::array_t<double>& initial_velocity,
-    double M, double a, double Q,
-    const std::string& metric_type)
-{
+static py::array_t<double> compute_conserved_quantities(const py::array_t<double>& initial_event,
+                                                        const py::array_t<double>& initial_velocity,
+                                                        double M, double a, double Q,
+                                                        const std::string& metric_type) {
     py::buffer_info event_buf = initial_event.request();
     py::buffer_info vel_buf = initial_velocity.request();
 
@@ -549,11 +560,8 @@ static py::array_t<double> compute_conserved_quantities(
 // Reuses CurvatureCalculator via the metric objects — never re-implements
 // curvature formulas in Python, eliminating formula-vs-simulator drift.
 // ---------------------------------------------------------------------------
-static py::dict compute_curvature_features(
-    const std::string& metric_type,
-    double M, double a, double Q,
-    const py::array_t<double>& probe_pos)
-{
+static py::dict compute_curvature_features(const std::string& metric_type, double M, double a,
+                                           double Q, const py::array_t<double>& probe_pos) {
     py::buffer_info pos_buf = probe_pos.request();
     if (pos_buf.size != 4) {
         throw std::runtime_error("probe_pos must be length 4 [t, x, y, z]");
@@ -577,7 +585,7 @@ static py::dict compute_curvature_features(
             "(no ReissnerNordstromMetric class exists)");
     } else {
         throw std::invalid_argument("Unknown metric_type: " + metric_type +
-            ". Must be 'schwarzschild', 'kerr', or 'reissner-nordstrom'");
+                                    ". Must be 'schwarzschild', 'kerr', or 'reissner-nordstrom'");
     }
 
     CurvatureCalculator calc(metric);
@@ -588,7 +596,8 @@ static py::dict compute_curvature_features(
     double g_tt = g[0][0];
 
     // Radial coordinate for analytic expected values
-    double r = std::sqrt(pos_ptr[1] * pos_ptr[1] + pos_ptr[2] * pos_ptr[2] + pos_ptr[3] * pos_ptr[3]);
+    double r =
+        std::sqrt(pos_ptr[1] * pos_ptr[1] + pos_ptr[2] * pos_ptr[2] + pos_ptr[3] * pos_ptr[3]);
 
     // Analytic Schwarzschild Kretschmann: K = 48 M^2 / r^6 (geometric units)
     // Returned so training scripts can use residuals: log K - log K_expected
@@ -611,40 +620,32 @@ static py::dict compute_curvature_features(
 PYBIND11_MODULE(_geodesic_cpp, m) {
     m.doc() = "QuantumVerse Geodesic Integrator (C++ backend) - Phase 3 Training Data Generator";
 
-    m.def("integrate_schwarzschild", &integrate_geodesic,
-          py::arg("initial_event"), py::arg("initial_velocity"),
-          py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
-          py::arg("metric_type") = "schwarzschild",
-          py::arg("tau_max"), py::arg("num_steps") = 1000,
+    m.def("integrate_schwarzschild", &integrate_geodesic, py::arg("initial_event"),
+          py::arg("initial_velocity"), py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
+          py::arg("metric_type") = "schwarzschild", py::arg("tau_max"), py::arg("num_steps") = 1000,
           "Integrate geodesic using RK4 (backward-compatible alias). "
           "Returns final 8-vector [t, r, theta, phi, ut, ur, utheta, uphi].");
 
-    m.def("integrate_geodesic", &integrate_geodesic,
-          py::arg("initial_event"), py::arg("initial_velocity"),
-          py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
-          py::arg("metric_type") = "schwarzschild",
-          py::arg("tau_max"), py::arg("num_steps") = 1000,
+    m.def("integrate_geodesic", &integrate_geodesic, py::arg("initial_event"),
+          py::arg("initial_velocity"), py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
+          py::arg("metric_type") = "schwarzschild", py::arg("tau_max"), py::arg("num_steps") = 1000,
           "Integrate geodesic for Schwarzschild/Kerr/RN metrics using RK4. "
           "Returns final 8-vector [t, r, theta, phi, ut, ur, utheta, uphi].");
 
-    m.def("integrate_trajectory", &integrate_trajectory,
-          py::arg("initial_event"), py::arg("initial_velocity"),
-          py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
-          py::arg("metric_type") = "schwarzschild",
-          py::arg("tau_max"), py::arg("num_steps") = 1000,
+    m.def("integrate_trajectory", &integrate_trajectory, py::arg("initial_event"),
+          py::arg("initial_velocity"), py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
+          py::arg("metric_type") = "schwarzschild", py::arg("tau_max"), py::arg("num_steps") = 1000,
           "Integrate full geodesic trajectory. "
           "Returns list of [t, r, theta, phi] arrays.");
 
-    m.def("compute_conserved_quantities", &compute_conserved_quantities,
-          py::arg("initial_event"), py::arg("initial_velocity"),
-          py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
+    m.def("compute_conserved_quantities", &compute_conserved_quantities, py::arg("initial_event"),
+          py::arg("initial_velocity"), py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
           py::arg("metric_type") = "schwarzschild",
           "Compute conserved energy E, angular momentum Lz, and Carter constant Q. "
           "Returns 3-vector [E, Lz, Q_carter].");
 
-    m.def("compute_curvature_features", &compute_curvature_features,
-          py::arg("metric_type"), py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0,
-          py::arg("probe_pos"),
+    m.def("compute_curvature_features", &compute_curvature_features, py::arg("metric_type"),
+          py::arg("M"), py::arg("a") = 0.0, py::arg("Q") = 0.0, py::arg("probe_pos"),
           "Compute curvature invariants at a probe position via CurvatureCalculator. "
           "Returns dict with keys K (Kretschmann), R (Ricci scalar), W2 (Weyl squared), "
           "g_tt (time-time metric component), K_expected (analytic Schwarzschild K=48M^2/r^6), "

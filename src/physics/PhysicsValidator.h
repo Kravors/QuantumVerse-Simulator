@@ -31,10 +31,10 @@ class CurvatureRenderer;
 struct PhysicsCheck {
     std::string name;
     bool passed;
-    double value;      // measured value (for logging)
-    double expected;   // expected value (for logging)
-    double tolerance;  // allowed deviation
-    std::string message; // human-readable detail
+    double value;         // measured value (for logging)
+    double expected;      // expected value (for logging)
+    double tolerance;     // allowed deviation
+    std::string message;  // human-readable detail
 };
 
 // Summary of one validation sweep over the current state
@@ -56,25 +56,28 @@ struct ValidationResult {
 // Validates metric tensor and geodesic invariants at the current probe
 // position. Call once per N frames (aligned with the [REALITY] log).
 class PhysicsValidator {
-public:
-    explicit PhysicsValidator(std::shared_ptr<MetricTensor> metric)
-        : m_metric(std::move(metric)) {}
+   public:
+    explicit PhysicsValidator(std::shared_ptr<MetricTensor> metric) : m_metric(std::move(metric)) {}
 
     // Set the metric (called when the probe metric changes)
-    void setMetric(std::shared_ptr<MetricTensor> metric) { m_metric = std::move(metric); }
+    void setMetric(std::shared_ptr<MetricTensor> metric) {
+        m_metric = std::move(metric);
+    }
 
     // Run a full validation sweep at the given probe position.
     // Returns a report with pass/fail status for every check.
     PhysicsReport validate(const Event4D& probePos);
 
     // Quick boolean: is everything currently valid?
-    bool isValid() const { return m_lastReport.failedChecks == 0; }
+    bool isValid() const {
+        return m_lastReport.failedChecks == 0;
+    }
 
     // Run all checks at each probe in `probes` (Layer 2: multi-probe coverage).
     // Metric-agnostic: signature, determinant, Kretschmann >= 0, Ricci finite.
     // Header-only so tests can use it without pulling in CurvatureRenderer's GL deps.
     ValidationResult validateAtProbes(const MetricTensor& metric,
-                                       const std::vector<Event4D>& probes) const {
+                                      const std::vector<Event4D>& probes) const {
         ValidationResult result;
 
         for (const auto& probe : probes) {
@@ -117,12 +120,11 @@ public:
                 c.name = "kretschmann_non_negative";
                 auto scalars = metric.curvatureScalars(probe);
                 c.value = scalars.kretschmann;
-                c.passed = scalars.valid && std::isfinite(scalars.kretschmann)
-                           && scalars.kretschmann >= 0.0;
+                c.passed = scalars.valid && std::isfinite(scalars.kretschmann) &&
+                           scalars.kretschmann >= 0.0;
                 c.expected = 0.0;
                 c.tolerance = 0.0;
-                c.message = c.passed ? "K >= 0 and finite"
-                                     : "K invalid, negative, or non-finite";
+                c.message = c.passed ? "K >= 0 and finite" : "K invalid, negative, or non-finite";
                 report.totalChecks++;
                 if (!c.passed) {
                     report.failedChecks++;
@@ -150,28 +152,37 @@ public:
             result.perProbe.push_back(std::move(report));
             result.totalChecks += report.totalChecks;
             result.totalFailures += report.failedChecks;
-            if (report.failedChecks > 0) result.passed = false;
+            if (report.failedChecks > 0)
+                result.passed = false;
         }
 
         return result;
     }
 
     // Get the most recent report.
-    const PhysicsReport& lastReport() const { return m_lastReport; }
+    const PhysicsReport& lastReport() const {
+        return m_lastReport;
+    }
 
     // Set the curvature renderer (non-owning) for grid-state cross-checks.
-    void setCurvatureRenderer(CurvatureRenderer* renderer) { m_renderer = renderer; }
+    void setCurvatureRenderer(CurvatureRenderer* renderer) {
+        m_renderer = renderer;
+    }
 
     // Set the expected black hole mass (for Kretschmann scaling check)
-    void setMass(double massKg) { m_massKg = massKg; }
+    void setMass(double massKg) {
+        m_massKg = massKg;
+    }
 
     // Set the Schwarzschild radius (for asymptotic flatness check)
-    void setSchwarzschildRadius(double rs) { m_rs = rs; }
+    void setSchwarzschildRadius(double rs) {
+        m_rs = rs;
+    }
 
-private:
+   private:
     std::shared_ptr<MetricTensor> m_metric;
     double m_massKg = 1.0;
-    double m_rs = 2.95325008e3; // ~2.95 km for 1 solar mass (geometric units)
+    double m_rs = 2.95325008e3;  // ~2.95 km for 1 solar mass (geometric units)
     PhysicsReport m_lastReport;
 
     // Non-owning pointer to the curvature renderer for grid-state validation.
@@ -186,15 +197,16 @@ private:
             for (int i = 1; i < 4; ++i) {
                 int sj = 0;
                 for (int jj = 0; jj < 4; ++jj) {
-                    if (jj == j) continue;
+                    if (jj == j)
+                        continue;
                     sub[si][sj] = m[i][jj];
                     sj++;
                 }
                 si++;
             }
-            double subDet = sub[0][0] * (sub[1][1] * sub[2][2] - sub[1][2] * sub[2][1])
-                          - sub[0][1] * (sub[1][0] * sub[2][2] - sub[1][2] * sub[2][0])
-                          + sub[0][2] * (sub[1][0] * sub[2][1] - sub[1][1] * sub[2][0]);
+            double subDet = sub[0][0] * (sub[1][1] * sub[2][2] - sub[1][2] * sub[2][1]) -
+                            sub[0][1] * (sub[1][0] * sub[2][2] - sub[1][2] * sub[2][0]) +
+                            sub[0][2] * (sub[1][0] * sub[2][1] - sub[1][1] * sub[2][0]);
             double cofactor = ((0 + j) % 2 == 0 ? 1.0 : -1.0) * subDet;
             det += m[0][j] * cofactor;
         }
@@ -203,32 +215,32 @@ private:
 
     // Helper: check eigenvalue signature of a symmetric matrix
     bool checkLorentzianSignature(const std::array<std::array<double, 4>, 4>& g,
-                                   PhysicsCheck& out) const {
+                                  PhysicsCheck& out) const {
         auto eigs = jacobiEigenvalues(g);
 
         int negCount = 0, posCount = 0, zeroCount = 0;
         for (double e : eigs) {
-            if (e < -1e-10) negCount++;
-            else if (e > 1e-10) posCount++;
-            else zeroCount++;
+            if (e < -1e-10)
+                negCount++;
+            else if (e > 1e-10)
+                posCount++;
+            else
+                zeroCount++;
         }
 
         out.value = static_cast<double>(negCount);
         out.expected = 1.0;  // exactly one negative eigenvalue
         out.tolerance = 0.0;
         out.passed = (negCount == 1 && posCount == 3 && zeroCount == 0);
-        out.message = out.passed
-                          ? "signature (-,+,+,+)"
-                          : "signature violation: " +
-                                std::to_string(negCount) + " neg, " +
-                                std::to_string(posCount) + " pos, " +
-                                std::to_string(zeroCount) + " zero";
+        out.message = out.passed ? "signature (-,+,+,+)"
+                                 : "signature violation: " + std::to_string(negCount) + " neg, " +
+                                       std::to_string(posCount) + " pos, " +
+                                       std::to_string(zeroCount) + " zero";
         return out.passed;
     }
 
     // Helper: compute eigenvalues of a 4x4 symmetric matrix via Jacobi rotation
-    static inline std::array<double, 4> jacobiEigenvalues(
-        std::array<std::array<double, 4>, 4> a) {
+    static inline std::array<double, 4> jacobiEigenvalues(std::array<std::array<double, 4>, 4> a) {
         std::array<double, 4> d = {a[0][0], a[1][1], a[2][2], a[3][3]};
         std::array<std::array<double, 4>, 4> v = {{
             {{1.0, 0.0, 0.0, 0.0}},
@@ -253,7 +265,8 @@ private:
                 }
             }
 
-            if (maxOff < 1e-14) break;  // Converged
+            if (maxOff < 1e-14)
+                break;  // Converged
 
             // Jacobi rotation angle
             double app = a[p][p], aqq = a[q][q], apq = a[p][q];
@@ -303,4 +316,4 @@ private:
     bool validateRenderer(PhysicsCheck& out) const;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

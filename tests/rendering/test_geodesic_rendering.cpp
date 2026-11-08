@@ -1,13 +1,11 @@
-#include <QTest>
 #include <QObject>
+#include <QTest>
 
-class GeodesicRenderingTest : public QObject
-{
+class GeodesicRenderingTest : public QObject {
     Q_OBJECT
 
-private slots:
-    void test_trivial()
-    {
+   private slots:
+    void test_trivial() {
         QVERIFY(true);
     }
 };

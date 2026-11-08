@@ -5,8 +5,8 @@
 
 #include "ConfigManager.h"
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 namespace quantumverse {
@@ -29,11 +29,13 @@ bool ConfigManager::loadFromFile(const std::string& path) {
     std::string line;
     while (std::getline(file, line)) {
         // Skip empty lines and comments
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || line[0] == '#')
+            continue;
 
         // Parse key=value format
         size_t eqPos = line.find('=');
-        if (eqPos == std::string::npos) continue;
+        if (eqPos == std::string::npos)
+            continue;
 
         std::string key = line.substr(0, eqPos);
         std::string value = line.substr(eqPos + 1);
@@ -59,7 +61,8 @@ bool ConfigManager::loadFromFile(const std::string& path) {
                 }
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error parsing config value for key '" << key << "': " << e.what() << std::endl;
+            std::cerr << "Error parsing config value for key '" << key << "': " << e.what()
+                      << std::endl;
         }
     }
 
@@ -120,7 +123,8 @@ bool ConfigManager::getBool(const std::string& key, bool defaultValue) const {
     return defaultValue;
 }
 
-std::string ConfigManager::getString(const std::string& key, const std::string& defaultValue) const {
+std::string ConfigManager::getString(const std::string& key,
+                                     const std::string& defaultValue) const {
     auto it = m_config.find(key);
     if (it != m_config.end() && it->second.type == ConfigType::STRING) {
         return it->second.value.stringVal ? *it->second.value.stringVal : defaultValue;
@@ -156,7 +160,8 @@ void ConfigManager::setString(const std::string& key, const std::string& value) 
     m_config[key] = entry;
 }
 
-void ConfigManager::registerCallback(const std::string& key, std::function<void(const ConfigValue&)> callback) {
+void ConfigManager::registerCallback(const std::string& key,
+                                     std::function<void(const ConfigValue&)> callback) {
     auto it = m_config.find(key);
     if (it != m_config.end()) {
         it->second.onChange = callback;
@@ -171,5 +176,5 @@ std::vector<std::string> ConfigManager::getKeys() const {
     return keys;
 }
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

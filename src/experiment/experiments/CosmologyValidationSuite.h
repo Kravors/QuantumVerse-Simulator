@@ -21,12 +21,12 @@
 #define QUANTUMVERSE_COSMOLOGY_VALIDATION_SUITE_H
 
 #include "../Experiment.h"
+#include "../cosmology/BransDickeProvider.h"
 #include "../cosmology/CosmologyProvider.h"
 #include "../cosmology/FRGravityProvider.h"
-#include "../cosmology/WCDMProvider.h"
-#include "../cosmology/BransDickeProvider.h"
 #include "../cosmology/LambdaCDMReferenceProvider.h"
 #include "../cosmology/ProjectCosmologyAdapter.h"
+#include "../cosmology/WCDMProvider.h"
 #include "../experiments/CosmologyExperimentBase.h"
 
 #include <memory>
@@ -41,28 +41,36 @@ class HubbleEvolutionExperiment;
 class GrowthFactorExperiment;
 
 class CosmologyValidationSuite : public Experiment {
-public:
+   public:
     CosmologyValidationSuite();
 
-    QString id() const override { return QStringLiteral("cosmology_validation_suite"); }
-    QString name() const override { return QStringLiteral("Cosmology Validation Suite"); }
-    QString category() const override { return QStringLiteral("Cosmology"); }
+    QString id() const override {
+        return QStringLiteral("cosmology_validation_suite");
+    }
+    QString name() const override {
+        return QStringLiteral("Cosmology Validation Suite");
+    }
+    QString category() const override {
+        return QStringLiteral("Cosmology");
+    }
     QString description() const override {
-        return QStringLiteral("Run all six cosmology experiments and export a fixed-schema validation report (CSV).");
+        return QStringLiteral(
+            "Run all six cosmology experiments and export a fixed-schema validation report (CSV).");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 
-private:
-    double m_H0 = 67.66, m_Om = 0.3111, m_Ob = 0.049, m_Or = 9.1e-5,
-           m_OL = 0.6889, m_Tcmb = 2.7255;
+   private:
+    double m_H0 = 67.66, m_Om = 0.3111, m_Ob = 0.049, m_Or = 9.1e-5, m_OL = 0.6889, m_Tcmb = 2.7255;
     double m_passSigma = 3.0;
-    QString m_theoryChoice = QStringLiteral("project"); // "project" | "fR" | "wcdm" | "brans_dicke"
-    double m_Ok() const { return 1.0 - m_Om - m_Or - m_OL; }
+    QString m_theoryChoice =
+        QStringLiteral("project");  // "project" | "fR" | "wcdm" | "brans_dicke"
+    double m_Ok() const {
+        return 1.0 - m_Om - m_Or - m_OL;
+    }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_COSMOLOGY_VALIDATION_SUITE_H
+#endif  // QUANTUMVERSE_COSMOLOGY_VALIDATION_SUITE_H

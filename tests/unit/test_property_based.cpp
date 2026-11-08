@@ -1,12 +1,12 @@
-#include "math/Vector4D.h"
-#include "math/Matrix4x4.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "quantumgravity/CDTEngine.h"
-#include "physics/CurvatureCalculator.h"
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include "math/Matrix4x4.h"
+#include "math/Vector4D.h"
+#include "physics/CurvatureCalculator.h"
+#include "quantumgravity/CDTEngine.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -40,21 +40,14 @@ void test_lorentz_interval_invariance_random() {
         Matrix4x4<double> boost = Matrix4x4<double>::lorentzBoost(beta, 0.0, 0.0);
         auto bd = boost;
         (void)bd;
-        Event4D e1p(
-            bd[0][0] * e1.t + bd[0][1] * e1.x,
-            bd[1][0] * e1.t + bd[1][1] * e1.x,
-            e1.y,
-            e1.z
-        );
-        Event4D e2p(
-            bd[0][0] * e2.t + bd[0][1] * e2.x,
-            bd[1][0] * e2.t + bd[1][1] * e2.x,
-            e2.y,
-            e2.z
-        );
+        Event4D e1p(bd[0][0] * e1.t + bd[0][1] * e1.x, bd[1][0] * e1.t + bd[1][1] * e1.x, e1.y,
+                    e1.z);
+        Event4D e2p(bd[0][0] * e2.t + bd[0][1] * e2.x, bd[1][0] * e2.t + bd[1][1] * e2.x, e2.y,
+                    e2.z);
         double ds2_boosted = eta.interval(e1p, e2p);
         (void)ds2_boosted;
-        QV_CHECK_NEAR(ds2_original - ds2_boosted, 0.0, 1e-9 * std::max(std::abs(ds2_original), 1.0));
+        QV_CHECK_NEAR(ds2_original - ds2_boosted, 0.0,
+                      1e-9 * std::max(std::abs(ds2_original), 1.0));
     }
 }
 
@@ -134,18 +127,10 @@ void test_lorentz_interval_invariance() {
     auto bdata = boost;
     (void)bdata;
 
-    Event4D e1p(
-        bdata[0][0] * e1.t + bdata[0][1] * e1.x,
-        bdata[1][0] * e1.t + bdata[1][1] * e1.x,
-        e1.y,
-        e1.z
-    );
-    Event4D e2p(
-        bdata[0][0] * e2.t + bdata[0][1] * e2.x,
-        bdata[1][0] * e2.t + bdata[1][1] * e2.x,
-        e2.y,
-        e2.z
-    );
+    Event4D e1p(bdata[0][0] * e1.t + bdata[0][1] * e1.x, bdata[1][0] * e1.t + bdata[1][1] * e1.x,
+                e1.y, e1.z);
+    Event4D e2p(bdata[0][0] * e2.t + bdata[0][1] * e2.x, bdata[1][0] * e2.t + bdata[1][1] * e2.x,
+                e2.y, e2.z);
 
     double ds2_boosted = eta.interval(e1p, e2p);
     (void)ds2_boosted;
@@ -168,7 +153,8 @@ void test_kretschmann_non_negativity() {
     for (double r : radii) {
         Event4D ev(0.0, r, 0.0, 0.0);
         auto scalars = sch.curvatureScalars(ev);
-        if (!scalars.valid) continue;  // inside horizon → skip
+        if (!scalars.valid)
+            continue;  // inside horizon → skip
         QV_CHECK(scalars.valid);
         QV_CHECK(scalars.kretschmann >= 0.0);
         (void)scalars;
@@ -178,35 +164,35 @@ void test_kretschmann_non_negativity() {
 void test_vector4d_lorentzian_symmetry() {
     Vector4d a(1.0, 2.0, 3.0, 4.0);
     Vector4d b(2.0, 3.0, 4.0, 5.0);
-    
+
     double dot_ab = a.lorentzianDot(b);
     double dot_ba = b.lorentzianDot(a);
     (void)dot_ab;
     (void)dot_ba;
-    
+
     QV_CHECK(dot_ab == dot_ba);
 }
 
 void test_vector4d_euclidean_symmetry() {
     Vector4d a(1.0, 2.0, 3.0, 4.0);
     Vector4d b(2.0, 3.0, 4.0, 5.0);
-    
+
     double dot_ab = a.euclideanDot(b);
     double dot_ba = b.euclideanDot(a);
     (void)dot_ab;
     (void)dot_ba;
-    
+
     QV_CHECK(dot_ab == dot_ba);
 }
 
 void test_vector4d_norm_consistency() {
     Vector4d v(1.0, 2.0, 3.0, 4.0);
-    
+
     double normSq = v.normSquaredLorentzian();
     double dot = v.lorentzianDot(v);
     (void)normSq;
     (void)dot;
-    
+
     QV_CHECK(normSq == dot);
 }
 
@@ -216,9 +202,9 @@ void test_matrix4x4_transpose_double() {
     m(1, 0) = 2.5;
     m(2, 3) = 3.5;
     m(3, 2) = 4.5;
-    
+
     auto tt = m.transpose().transpose();
-    
+
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             QV_CHECK(tt(i, j) == m(i, j));
@@ -229,12 +215,12 @@ void test_matrix4x4_transpose_double() {
 
 void test_matrix4x4_minkowski_signature() {
     auto eta = Matrix4x4<double>::minkowski();
-    
+
     QV_CHECK(eta(0, 0) == -1.0);
     QV_CHECK(eta(1, 1) == 1.0);
     QV_CHECK(eta(2, 2) == 1.0);
     QV_CHECK(eta(3, 3) == 1.0);
-    
+
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (i != j) {
@@ -249,7 +235,7 @@ void test_vector4d_timelike_classification() {
     Vector4d timelike(10.0, 1.0, 0.0, 0.0);
     Vector4d spacelike(1.0, 10.0, 0.0, 0.0);
     Vector4d lightlike(1.0, 1.0, 0.0, 0.0);
-    
+
     QV_CHECK(timelike.isTimelike());
     QV_CHECK(spacelike.isSpacelike());
     QV_CHECK(lightlike.isLightlike());
@@ -257,7 +243,7 @@ void test_vector4d_timelike_classification() {
 
 void test_matrix4x4_identity_properties() {
     auto I = Matrix4x4<double>::identity();
-    
+
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (i == j) {

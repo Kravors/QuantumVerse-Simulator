@@ -20,8 +20,7 @@
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== FrameDraggingExperiment Test ===" << std::endl;
 
@@ -40,13 +39,12 @@ int main(int argc, char** argv)
     // Deterministic regression value (verified by direct run):
     //   Ω_LT = 2 G J / (c² r³), J = a* G M² / c
     //   M=1 M☉, a*=0.9, r=7e6 m → 2.23422e+10 mas/yr
-    QV_CHECK_NEAR(r.scalars["last_mas_per_year"].toDouble(),
-                  2.23422e10, 1.0e7);
+    QV_CHECK_NEAR(r.scalars["last_mas_per_year"].toDouble(), 2.23422e10, 1.0e7);
 
     QV_CHECK(r.scalars["expected_gpb_mas_per_year"].toDouble() == 39.0);
     QV_CHECK(r.curve.size() == 2);
-    std::cout << "[PASS] frame dragging last = "
-              << r.scalars["last_mas_per_year"].toDouble() << " mas/yr"
+    std::cout << "[PASS] frame dragging last = " << r.scalars["last_mas_per_year"].toDouble()
+              << " mas/yr"
               << " (reference GP-B label 39.0)" << std::endl;
 
     std::cout << "=== FrameDraggingExperiment Test: ALL PASS ===" << std::endl;

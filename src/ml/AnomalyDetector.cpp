@@ -4,10 +4,10 @@
  */
 
 #include "ml/AnomalyDetector.h"
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
 
 namespace quantumverse {
@@ -17,7 +17,8 @@ AnomalyDetector::AnomalyDetector() = default;
 bool AnomalyDetector::load(const std::string& path) {
     try {
         std::ifstream f(path);
-        if (!f.is_open()) return false;
+        if (!f.is_open())
+            return false;
         nlohmann::json j;
         f >> j;
         return loadFromString(j.dump());
@@ -87,11 +88,8 @@ bool AnomalyDetector::loadFromString(const std::string& json_str) {
     }
 }
 
-std::vector<double> AnomalyDetector::forward(
-    const std::vector<double>& input,
-    const Layer& layer,
-    bool relu
-) {
+std::vector<double> AnomalyDetector::forward(const std::vector<double>& input, const Layer& layer,
+                                             bool relu) {
     std::vector<double> out(layer.out, 0.0);
     for (int i = 0; i < layer.out; ++i) {
         double sum = layer.bias[i];
@@ -118,7 +116,9 @@ double AnomalyDetector::mse(const std::vector<double>& a, const std::vector<doub
     return sum / static_cast<double>(a.size());
 }
 
-std::vector<double> AnomalyDetector::normalize(const std::vector<double>& raw, const std::vector<double>& mean, const std::vector<double>& std) {
+std::vector<double> AnomalyDetector::normalize(const std::vector<double>& raw,
+                                               const std::vector<double>& mean,
+                                               const std::vector<double>& std) {
     if (raw.size() != mean.size() || raw.size() != std.size()) {
         throw std::invalid_argument("Normalization size mismatch");
     }
@@ -142,7 +142,7 @@ double AnomalyDetector::score(const FeatureVector& features) const {
 
     // Encoder: 20 -> 10 (ReLU) -> 2 (linear)
     auto h1 = forward(x, metadata_.encoder[0], true);
-    auto z  = forward(h1, metadata_.encoder[1], false);
+    auto z = forward(h1, metadata_.encoder[1], false);
 
     // Decoder: 2 -> 10 (ReLU) -> 20 (linear)
     auto h2 = forward(z, metadata_.decoder[0], true);
@@ -152,8 +152,9 @@ double AnomalyDetector::score(const FeatureVector& features) const {
 }
 
 bool AnomalyDetector::isAnomalous(const FeatureVector& features) const {
-    if (!loaded_) return false;
+    if (!loaded_)
+        return false;
     return score(features) > metadata_.threshold;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

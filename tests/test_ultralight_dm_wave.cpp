@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/UltralightDMWaveInterferometer.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
@@ -20,7 +20,7 @@ int main() {
     // frequency bin so the detector recovers it cleanly.
     const double dt = 0.02;
     const int N = 1000;
-    const double omega = 2.0 * 3.14159265358979323846 / (static_cast<double>(N) * dt); // = bin 1
+    const double omega = 2.0 * 3.14159265358979323846 / (static_cast<double>(N) * dt);  // = bin 1
     const double amplitude = 1.0;
 
     std::vector<quantumverse::Event4D> trajectory;
@@ -47,8 +47,8 @@ int main() {
     QV_CHECK(ait != f.parameters.end());
     QV_CHECK_NEAR(ait->second, amplitude, 0.01);
 
-    std::cout << "Detected DM wave: freq=" << fit->second
-              << " rad/s, amplitude=" << ait->second << std::endl;
+    std::cout << "Detected DM wave: freq=" << fit->second << " rad/s, amplitude=" << ait->second
+              << std::endl;
 
     // --- Negative case: constant (non-oscillatory) signal ------------------
     std::vector<quantumverse::Event4D> steady;

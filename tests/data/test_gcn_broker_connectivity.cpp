@@ -14,13 +14,12 @@
 #include <cassert>
 #include <iostream>
 
-#include "data/KafkaAlertListener.h"
 #include "data/GCNBrokerConfig.h"
+#include "data/KafkaAlertListener.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== GCNBrokerConnectivityTest ===" << std::endl;
 
@@ -49,14 +48,16 @@ int main(int argc, char** argv)
         if (lastError.contains("network") || lastError.contains("resolve") ||
             lastError.contains("timed out") || lastError.contains("unreachable") ||
             lastError.contains("Connection") || lastError.contains("No such host")) {
-            std::cout << "SKIP: Network unreachable or broker unavailable (" << lastError.toStdString() << ")." << std::endl;
+            std::cout << "SKIP: Network unreachable or broker unavailable ("
+                      << lastError.toStdString() << ")." << std::endl;
             return 0;
         }
         std::cerr << "ERROR: Unexpected Kafka error: " << lastError.toStdString() << std::endl;
         return 1;
     }
 
-    std::cout << "PASS: Connected to GCN test broker at " << config.brokers.toStdString() << std::endl;
+    std::cout << "PASS: Connected to GCN test broker at " << config.brokers.toStdString()
+              << std::endl;
     std::cout << "Subscribed to " << config.topics.size() << " topics." << std::endl;
     std::cout << "All GCNBrokerConnectivityTest checks passed." << std::endl;
 #else

@@ -8,19 +8,19 @@
 // clear()+record() isolation across repeated forward passes — the pattern
 // optimizeWithGradient() uses.
 
-#include <iostream>
-#include <cmath>
 #include <array>
-#include <vector>
+#include <cmath>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 #include "math/AutoDiff.h"
 #include "physics/AdjointGeodesicIntegrator.h"
 #include "physics/GeodesicIntegrator.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/KerrMetric.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/KerrMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -90,7 +90,8 @@ int main() {
         auto& vars = ADTape::getVariables();
         QV_CHECK(vars.size() == 2);
 
-        std::cout << "[PASS] Test 3: TapeClear — tape size after clear = " << vars.size() << std::endl;
+        std::cout << "[PASS] Test 3: TapeClear — tape size after clear = " << vars.size()
+                  << std::endl;
         std::cout.flush();
     }
 
@@ -137,7 +138,8 @@ int main() {
 
         double dr_dM_adjoint = result.dState_dParams[1][0];
 
-        auto fd_grad = integrator.computePositionGradientFD(start, vel, GeodesicType::TIMELIKE, targetPT);
+        auto fd_grad =
+            integrator.computePositionGradientFD(start, vel, GeodesicType::TIMELIKE, targetPT);
         double dr_dM_fd = fd_grad[1];
 
         QV_CHECK_NEAR(dr_dM_adjoint, dr_dM_fd, 1e-4);
@@ -162,8 +164,8 @@ int main() {
         double expected = 384.0 * G2 * mass / (C4 * 10.0 * 10.0 * 10.0 * 10.0 * 10.0 * 10.0);
         QV_CHECK_NEAR(dK_dM, expected, 1e-9 * expected);
 
-        std::cout << "[PASS] Test 6: AdjointVacuumRicci — dK/dM = " << dK_dM
-                  << " (expected " << expected << ")" << std::endl;
+        std::cout << "[PASS] Test 6: AdjointVacuumRicci — dK/dM = " << dK_dM << " (expected "
+                  << expected << ")" << std::endl;
         std::cout.flush();
     }
 
@@ -202,10 +204,10 @@ int main() {
             double expected_grad;
         };
         Case cases[] = {
-            { 3.0, 6.0 },     // d(x^2)/dx at x=3 = 6
-            { 5.0, 10.0 },    // d(x^2)/dx at x=5 = 10
-            { -2.0, -4.0 },   // d(x^2)/dx at x=-2 = -4
-            { 0.0, 0.0 },     // d(x^2)/dx at x=0 = 0
+            {3.0, 6.0},    // d(x^2)/dx at x=3 = 6
+            {5.0, 10.0},   // d(x^2)/dx at x=5 = 10
+            {-2.0, -4.0},  // d(x^2)/dx at x=-2 = -4
+            {0.0, 0.0},    // d(x^2)/dx at x=0 = 0
         };
 
         for (const auto& c : cases) {
@@ -225,8 +227,9 @@ int main() {
             QV_CHECK(ADTape::getVariables().size() == 0);
         }
 
-        std::cout << "[PASS] Test 8: AdjointTapeIsolation — " << sizeof(cases)/sizeof(cases[0])
-                  << " sequential forward passes, each with correct independent gradient" << std::endl;
+        std::cout << "[PASS] Test 8: AdjointTapeIsolation — " << sizeof(cases) / sizeof(cases[0])
+                  << " sequential forward passes, each with correct independent gradient"
+                  << std::endl;
         std::cout.flush();
     }
 

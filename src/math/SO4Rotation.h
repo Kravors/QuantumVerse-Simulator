@@ -12,9 +12,9 @@
  * Based on: 4D geometry for spacetime visualization
  */
 
-#include "Matrix4x4.h"
 #include <cmath>
 #include <vector>
+#include "Matrix4x4.h"
 
 namespace quantumverse {
 
@@ -32,7 +32,7 @@ namespace quantumverse {
  * Each rotation is specified by a plane index (0-5) and an angle.
  */
 class SO4Rotation {
-public:
+   public:
     /**
      * @brief Number of independent rotation planes in 4D.
      */
@@ -45,13 +45,20 @@ public:
      */
     static std::pair<int, int> planeIndices(int plane) {
         switch (plane) {
-            case 0: return {0, 1};  // xy
-            case 1: return {0, 2};  // xz
-            case 2: return {0, 3};  // xw
-            case 3: return {1, 2};  // yz
-            case 4: return {1, 3};  // yw
-            case 5: return {2, 3};  // zw
-            default: return {0, 1};
+            case 0:
+                return {0, 1};  // xy
+            case 1:
+                return {0, 2};  // xz
+            case 2:
+                return {0, 3};  // xw
+            case 3:
+                return {1, 2};  // yz
+            case 4:
+                return {1, 3};  // yw
+            case 5:
+                return {2, 3};  // zw
+            default:
+                return {0, 1};
         }
     }
 
@@ -75,11 +82,8 @@ public:
      * @param angle Rotation angle in radians.
      * @return Rotated 4D vector.
      */
-    static std::array<double, 4> rotateVector(
-        const std::array<double, 4>& v,
-        int plane,
-        double angle
-    ) {
+    static std::array<double, 4> rotateVector(const std::array<double, 4>& v, int plane,
+                                              double angle) {
         auto indices = planeIndices(plane);
         int i = indices.first;
         int j = indices.second;
@@ -103,10 +107,8 @@ public:
      * @param angles Array of rotation angles (same length as planes).
      * @return Combined 4x4 rotation matrix.
      */
-    static Matrix4x4<double> compoundRotation(
-        const std::vector<int>& planes,
-        const std::vector<double>& angles
-    ) {
+    static Matrix4x4<double> compoundRotation(const std::vector<int>& planes,
+                                              const std::vector<double>& angles) {
         Matrix4x4<double> result = Matrix4x4<double>::identity();
 
         for (size_t k = 0; k < planes.size() && k < angles.size(); ++k) {
@@ -123,11 +125,9 @@ public:
      * @param angles Array of rotation angles.
      * @return Rotated 4D vector.
      */
-    static std::array<double, 4> rotateVector(
-        const std::array<double, 4>& v,
-        const std::vector<int>& planes,
-        const std::vector<double>& angles
-    ) {
+    static std::array<double, 4> rotateVector(const std::array<double, 4>& v,
+                                              const std::vector<int>& planes,
+                                              const std::vector<double>& angles) {
         std::array<double, 4> result = v;
 
         for (size_t k = 0; k < planes.size() && k < angles.size(); ++k) {
@@ -169,6 +169,6 @@ public:
     }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_SO4_ROTATION_H
+#endif  // QUANTUMVERSE_SO4_ROTATION_H

@@ -1,11 +1,11 @@
 #include "WasmLLMCoPilot.h"
+#include <cstring>
 #include <emscripten/val.h>
 #include <iostream>
-#include <cstring>
-#include <sstream>
 #include <memory>
-#include <vector>
 #include <mutex>
+#include <sstream>
+#include <vector>
 
 namespace quantumverse {
 
@@ -23,31 +23,43 @@ WasmLLMCoPilot::WasmLLMCoPilot() = default;
 
 WasmLLMCoPilot::~WasmLLMCoPilot() = default;
 
-void WasmLLMCoPilot::setAnalysisCallback(AnalysisCallback cb)
-{
+void WasmLLMCoPilot::setAnalysisCallback(AnalysisCallback cb) {
     m_callback = std::move(cb);
 }
 
-void WasmLLMCoPilot::analyzeAnomaly(const std::string& anomalyData)
-{
+void WasmLLMCoPilot::analyzeAnomaly(const std::string& anomalyData) {
     // Build JSON payload for Ollama /api/generate
     std::ostringstream json;
     json << R"({"model":"llama3","prompt":")";
-    std::string prompt = "You are a brilliant astrophysicist analyzing a 4D spacetime simulation. "
-        "The following data was logged by the QuantumVerse Discovery Engine: "
-        + anomalyData + ". "
+    std::string prompt =
+        "You are a brilliant astrophysicist analyzing a 4D spacetime simulation. "
+        "The following data was logged by the QuantumVerse Discovery Engine: " +
+        anomalyData +
+        ". "
         "Explain what this means for General Relativity in 2-3 sentences. "
         "Be precise, use scientific terms (metric signature, Kretschmann scalar, "
         "cosmic censorship, event horizon, naked singularity), and focus on "
         "spacetime curvature and physical validity.";
     for (char c : prompt) {
         switch (c) {
-            case '"':  json << "\\\""; break;
-            case '\\': json << "\\\\"; break;
-            case '\n': json << "\\n"; break;
-            case '\r': json << "\\r"; break;
-            case '\t': json << "\\t"; break;
-            default:   json << c; break;
+            case '"':
+                json << "\\\"";
+                break;
+            case '\\':
+                json << "\\\\";
+                break;
+            case '\n':
+                json << "\\n";
+                break;
+            case '\r':
+                json << "\\r";
+                break;
+            case '\t':
+                json << "\\t";
+                break;
+            default:
+                json << c;
+                break;
         }
     }
     json << R"(","stream":false})";
@@ -61,11 +73,8 @@ void WasmLLMCoPilot::analyzeAnomaly(const std::string& anomalyData)
     attr.onerror = WasmLLMCoPilot::onFetchFailed;
     attr.userData = nullptr;  // set below
 
-    const char* headers[] = {
-        "Content-Type", "application/json",
-        "Accept", "application/json",
-        nullptr
-    };
+    const char* headers[] = {"Content-Type", "application/json", "Accept", "application/json",
+                             nullptr};
     attr.requestHeaders = headers;
     attr.requestData = body->c_str();
     attr.requestDataSize = body->size();
@@ -85,8 +94,7 @@ void WasmLLMCoPilot::analyzeAnomaly(const std::string& anomalyData)
     // Fetch managed by emscripten; callbacks receive ctx via userData
 }
 
-void WasmLLMCoPilot::onFetchSucceeded(emscripten_fetch_t* fetch)
-{
+void WasmLLMCoPilot::onFetchSucceeded(emscripten_fetch_t* fetch) {
     auto ctx = static_cast<FetchContext*>(fetch->userData);
     if (!ctx || !ctx->self || !ctx->self->m_callback) {
         emscripten_fetch_close(fetch);
@@ -115,12 +123,24 @@ void WasmLLMCoPilot::onFetchSucceeded(emscripten_fetch_t* fetch)
                         if (explanation[i] == '\\' && i + 1 < explanation.size()) {
                             char next = explanation[i + 1];
                             switch (next) {
-                                case '"': unescaped += '"'; break;
-                                case '\\': unescaped += '\\'; break;
-                                case 'n': unescaped += '\n'; break;
-                                case 'r': unescaped += '\r'; break;
-                                case 't': unescaped += '\t'; break;
-                                default: unescaped += next; break;
+                                case '"':
+                                    unescaped += '"';
+                                    break;
+                                case '\\':
+                                    unescaped += '\\';
+                                    break;
+                                case 'n':
+                                    unescaped += '\n';
+                                    break;
+                                case 'r':
+                                    unescaped += '\r';
+                                    break;
+                                case 't':
+                                    unescaped += '\t';
+                                    break;
+                                default:
+                                    unescaped += next;
+                                    break;
                             }
                             ++i;
                         } else {
@@ -152,8 +172,7 @@ void WasmLLMCoPilot::onFetchSucceeded(emscripten_fetch_t* fetch)
     }
 }
 
-void WasmLLMCoPilot::onFetchFailed(emscripten_fetch_t* fetch)
-{
+void WasmLLMCoPilot::onFetchFailed(emscripten_fetch_t* fetch) {
     auto ctx = static_cast<FetchContext*>(fetch->userData);
     if (ctx && ctx->self && ctx->self->m_callback) {
         std::string msg = "Error connecting to LLM: HTTP status ";
@@ -173,4 +192,4 @@ void WasmLLMCoPilot::onFetchFailed(emscripten_fetch_t* fetch)
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

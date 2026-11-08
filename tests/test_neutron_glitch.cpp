@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/NeutronStarGlitchPhaseDetector.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
@@ -47,8 +47,8 @@ int main() {
     QV_CHECK(dit != f.parameters.end());
     QV_CHECK_NEAR(dit->second, (postRate - preRate), 0.01);
 
-    std::cout << "Detected glitch at t=" << git->second
-              << " s, delta_rate=" << dit->second << std::endl;
+    std::cout << "Detected glitch at t=" << git->second << " s, delta_rate=" << dit->second
+              << std::endl;
 
     // --- Negative case: constant spin rate yields no glitch -----------------
     std::vector<quantumverse::Event4D> steady;

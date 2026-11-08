@@ -1,15 +1,15 @@
 #ifndef QUANTUMVERSE_THEORY_DISCOVERY_AGENT_H
 #define QUANTUMVERSE_THEORY_DISCOVERY_AGENT_H
 
+#include <memory>
 #include "RLDiscoveryAgent.h"
 #include "TheoryParameterSpace.h"
 #include "discovery/DiscoveryEngine.h"
 #include "discovery/SymbolicMath.h"
 #include "discovery/TheorySurrogate.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
 #include "physics/CurvatureCalculator.h"
-#include <memory>
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #if defined(QUANTUMVERSE_USE_QML) || defined(QUANTUMVERSE_USE_QT)
 #include <QJsonObject>
 #endif
@@ -30,7 +30,7 @@ namespace discovery {
  *   - Simplicity bonus (Occam penalty for extra parameters)
  */
 class TheoryDiscoveryAgent : public RLDiscoveryAgent {
-public:
+   public:
     struct DiscoveryResult {
         std::vector<double> parameters;
         double total_reward = 0.0;
@@ -45,9 +45,8 @@ public:
         std::string theory_name;
     };
 
-    explicit TheoryDiscoveryAgent(
-        TheoryParameterSpace::TheoryType theory_type = TheoryParameterSpace::TheoryType::FR_GRAVITY
-    );
+    explicit TheoryDiscoveryAgent(TheoryParameterSpace::TheoryType theory_type =
+                                      TheoryParameterSpace::TheoryType::FR_GRAVITY);
 
     ~TheoryDiscoveryAgent() = default;
 
@@ -60,18 +59,18 @@ public:
      * @param params Theory parameters in normalized [0,1] space.
      * @return DiscoveryResult with reward components and validity flags.
      */
-     DiscoveryResult evaluateTheory(const std::vector<double>& params) const;
+    DiscoveryResult evaluateTheory(const std::vector<double>& params) const;
 
-     /**
-      * @brief Run a single theory evaluation with optional Pareto archive update.
-      *
-      * Used internally to batch archive updates during optimization loops.
-      *
-      * @param params Theory parameters in normalized [0,1] space.
-      * @param updatePareto If true, update the Pareto archive after evaluation.
-      * @return DiscoveryResult with reward components and validity flags.
-      */
-     DiscoveryResult evaluateTheory(const std::vector<double>& params, bool updatePareto) const;
+    /**
+     * @brief Run a single theory evaluation with optional Pareto archive update.
+     *
+     * Used internally to batch archive updates during optimization loops.
+     *
+     * @param params Theory parameters in normalized [0,1] space.
+     * @param updatePareto If true, update the Pareto archive after evaluation.
+     * @return DiscoveryResult with reward components and validity flags.
+     */
+    DiscoveryResult evaluateTheory(const std::vector<double>& params, bool updatePareto) const;
 
     /**
      * @brief Discover the best theory parameters over max_steps episodes.
@@ -126,20 +125,20 @@ public:
      * @brief Active-learning configuration.
      */
     enum class ActiveLearningMode {
-        RANDOM,        ///< Pure random exploration (default)
-        UNCERTAINTY,   ///< Select points with highest predictive variance
-        EI             ///< Expected improvement over current best
+        RANDOM,       ///< Pure random exploration (default)
+        UNCERTAINTY,  ///< Select points with highest predictive variance
+        EI            ///< Expected improvement over current best
     };
 
     /**
      * @brief Acquisition function for active learning and multi-objective optimization.
      */
     enum class AcquisitionMode {
-        RANDOM,        ///< Pure random exploration
-        UNCERTAINTY,   ///< Select points with highest predictive variance
-        EI,            ///< Expected improvement over current best
-        EHVI,          ///< Expected hypervolume improvement (multi-objective)
-        UCB            ///< Upper confidence bound (scalarized)
+        RANDOM,       ///< Pure random exploration
+        UNCERTAINTY,  ///< Select points with highest predictive variance
+        EI,           ///< Expected improvement over current best
+        EHVI,         ///< Expected hypervolume improvement (multi-objective)
+        UCB           ///< Upper confidence bound (scalarized)
     };
 
     /**
@@ -148,7 +147,8 @@ public:
      * @param enabled Whether to use active learning.
      * @param mode Selection strategy (uncertainty sampling or EI).
      */
-    void setActiveLearningEnabled(bool enabled, ActiveLearningMode mode = ActiveLearningMode::UNCERTAINTY);
+    void setActiveLearningEnabled(bool enabled,
+                                  ActiveLearningMode mode = ActiveLearningMode::UNCERTAINTY);
 
     /**
      * @brief Set the acquisition mode for active learning point selection.
@@ -159,17 +159,23 @@ public:
     /**
      * @brief Check if active learning is enabled.
      */
-    bool isActiveLearningEnabled() const { return active_learning_enabled_; }
+    bool isActiveLearningEnabled() const {
+        return active_learning_enabled_;
+    }
 
     /**
      * @brief Number of evaluated theories in the current active-learning history.
      */
-    size_t getEvaluationCount() const { return evaluation_history_.size(); }
+    size_t getEvaluationCount() const {
+        return evaluation_history_.size();
+    }
 
     /**
      * @brief Get the surrogate model used for active learning.
      */
-    const class TheorySurrogate* getSurrogate() const { return surrogate_.get(); }
+    const class TheorySurrogate* getSurrogate() const {
+        return surrogate_.get();
+    }
 
     /**
      * @brief Clear active-learning history and retrain from scratch.
@@ -194,13 +200,13 @@ public:
      * @brief Result of Bayesian model comparison.
      */
     struct BayesianComparisonResult {
-        double log_likelihood = 0.0;       ///< Log-likelihood from chi-squared
-        double bic_candidate = 0.0;        ///< Bayesian Information Criterion for candidate
-        double bic_baseline = 0.0;         ///< BIC for GR baseline
-        double log_bayes_factor = 0.0;     ///< log(BF) where BF = P(data|candidate)/P(data|GR)
-        double bayes_factor = 1.0;         ///< Bayes factor (clamped to avoid overflow)
-        std::string preferred_model;       ///< "candidate", "GR", or "inconclusive"
-        double evidence_ratio = 1.0;       ///< P(data|candidate) / P(data|GR)
+        double log_likelihood = 0.0;    ///< Log-likelihood from chi-squared
+        double bic_candidate = 0.0;     ///< Bayesian Information Criterion for candidate
+        double bic_baseline = 0.0;      ///< BIC for GR baseline
+        double log_bayes_factor = 0.0;  ///< log(BF) where BF = P(data|candidate)/P(data|GR)
+        double bayes_factor = 1.0;      ///< Bayes factor (clamped to avoid overflow)
+        std::string preferred_model;    ///< "candidate", "GR", or "inconclusive"
+        double evidence_ratio = 1.0;    ///< P(data|candidate) / P(data|GR)
     };
 
     /**
@@ -211,7 +217,9 @@ public:
     /**
      * @brief Number of live observations currently ingested.
      */
-    size_t getLiveObservationCount() const { return m_liveObservations.size(); }
+    size_t getLiveObservationCount() const {
+        return m_liveObservations.size();
+    }
 
     /**
      * @brief Compute Bayesian posterior model weights for the current Pareto front.
@@ -226,7 +234,9 @@ public:
      * evaluations or live-alert ingestion, without an explicit
      * computeModelWeights() call).
      */
-    std::vector<double> getModelWeights() const { return computeModelWeights(); }
+    std::vector<double> getModelWeights() const {
+        return computeModelWeights();
+    }
 
     /**
      * @brief BMA prediction: weighted average of a scalar quantity across the Pareto front.
@@ -240,7 +250,8 @@ public:
      * @param quantity Lambda extracting a scalar from a DiscoveryResult.
      * @return Variance of the BMA prediction.
      */
-    double predictiveVarianceBMA(const std::function<double(const DiscoveryResult&)>& quantity) const;
+    double
+    predictiveVarianceBMA(const std::function<double(const DiscoveryResult&)>& quantity) const;
 
     /**
      * @brief Compute log-likelihood from observational chi-squared.
@@ -269,9 +280,7 @@ public:
      * @param candidate_params Candidate theory parameters (normalized).
      * @return BayesianComparisonResult with all metrics.
      */
-    BayesianComparisonResult computeBayesFactor(
-        const std::vector<double>& candidate_params
-    ) const;
+    BayesianComparisonResult computeBayesFactor(const std::vector<double>& candidate_params) const;
 
     /**
      * @brief Compute GR baseline chi-squared for current theory type.
@@ -293,11 +302,8 @@ public:
      * @param tolerance Convergence threshold on chi-squared improvement.
      * @return Final DiscoveryResult after optimization.
      */
-    DiscoveryResult optimizeWithGradient(
-        size_t maxIterations = 50,
-        double learningRate = 0.01,
-        double tolerance = 1e-4
-    );
+    DiscoveryResult optimizeWithGradient(size_t maxIterations = 50, double learningRate = 0.01,
+                                         double tolerance = 1e-4);
 
     /**
      * @brief Central finite-difference gradient of observational chi-squared
@@ -323,14 +329,8 @@ public:
         std::string theory_name;
 
         ParetoPoint() = default;
-        ParetoPoint(
-            const std::vector<double>& params,
-            const std::vector<double>& objs,
-            double reward,
-            bool valid,
-            bool singular,
-            const std::string& name
-         );
+        ParetoPoint(const std::vector<double>& params, const std::vector<double>& objs,
+                    double reward, bool valid, bool singular, const std::string& name);
     };
 
     /**
@@ -339,7 +339,8 @@ public:
      * @param refPoint Reference point (worse than all objectives).
      * @return Approximate hypervolume.
      */
-    double computeHypervolume(const std::vector<ParetoPoint>& front, const std::vector<double>& refPoint) const;
+    double computeHypervolume(const std::vector<ParetoPoint>& front,
+                              const std::vector<double>& refPoint) const;
 
     /**
      * @brief BAO distance data point.
@@ -355,8 +356,8 @@ public:
      */
     struct LiveObservation {
         double redshift;
-        double mu_obs;    ///< Distance modulus (mag)
-        double mu_err;    ///< 1-sigma uncertainty on distance modulus (mag)
+        double mu_obs;  ///< Distance modulus (mag)
+        double mu_err;  ///< 1-sigma uncertainty on distance modulus (mag)
         std::string origin;
     };
 
@@ -379,7 +380,9 @@ public:
     /**
      * @brief Check if multi-objective Pareto optimization is enabled.
      */
-    bool isMultiObjectiveEnabled() const { return multi_objective_mode_; }
+    bool isMultiObjectiveEnabled() const {
+        return multi_objective_mode_;
+    }
 
     /**
      * @brief Get the current Pareto front (non-dominated solutions).
@@ -436,10 +439,8 @@ public:
      * @param params Theory parameter map.
      * @return Combined chi-squared value.
      */
-    double computeObservationalChi2(
-        const MetricTensor& metric,
-        const std::map<std::string, double>& params
-    ) const;
+    double computeObservationalChi2(const MetricTensor& metric,
+                                    const std::map<std::string, double>& params) const;
 
     /**
      * @brief Check Pareto dominance between two points.
@@ -455,7 +456,9 @@ public:
      *        during optimization loops. Call beginParetoBatch() before a
      *        batch of evaluateTheory() calls and flushParetoBatch() after.
      */
-    void beginParetoBatch() const { m_paretoBatchMode_ = true; }
+    void beginParetoBatch() const {
+        m_paretoBatchMode_ = true;
+    }
     void flushParetoBatch() const;
 
     /**
@@ -467,7 +470,7 @@ public:
      */
     void updateParetoArchive(const ParetoPoint& point, const DiscoveryResult& result) const;
 
-private:
+   private:
     // Override to provide physics-grounded simulation
     RLState runSimulation(const std::vector<double>& params) const;
 
@@ -478,15 +481,11 @@ private:
     double computeTheoreticalPenalty(const MetricTensor& metric) const;
 
     // Helper: instantiate a theory plugin from parameter vector
-    std::unique_ptr<TheoryPlugin> instantiateTheory(
-        const std::vector<double>& params
-    ) const;
+    std::unique_ptr<TheoryPlugin> instantiateTheory(const std::vector<double>& params) const;
 
     // Helper: compute GW170817 time-delay chi2 contribution
-    double computeGW170817Chi2(
-        const MetricTensor& metric,
-        const std::map<std::string, double>& params
-    ) const;
+    double computeGW170817Chi2(const MetricTensor& metric,
+                               const std::map<std::string, double>& params) const;
 
     TheoryParameterSpace param_space_;
     Event4D test_location_;
@@ -542,7 +541,7 @@ private:
     double luminosityDistanceMpc(double z, double H0, double omegaM, double omegaLambda) const;
 };
 
-} // namespace discovery
-} // namespace quantumverse
+}  // namespace discovery
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_THEORY_DISCOVERY_AGENT_H
+#endif  // QUANTUMVERSE_THEORY_DISCOVERY_AGENT_H

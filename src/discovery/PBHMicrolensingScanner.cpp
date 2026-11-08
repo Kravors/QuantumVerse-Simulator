@@ -4,38 +4,37 @@
  */
 
 #include "PBHMicrolensingScanner.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <utility>
 #include <vector>
 
 namespace quantumverse {
 
-double PBHMicrolensingScanner::paczynskiMagnification(double u)
-{
-    if (u <= 0.0) return 1.0;
+double PBHMicrolensingScanner::paczynskiMagnification(double u) {
+    if (u <= 0.0)
+        return 1.0;
     double u2 = u * u;
     return (u2 + 2.0) / (u * std::sqrt(u2 + 4.0));
 }
 
-PBHMicrolensingScanner::PBHMicrolensingScanner()
-{
+PBHMicrolensingScanner::PBHMicrolensingScanner() {
     setParameter("min_magnification", 1.1);
     setParameter("fit_ratio_threshold", 0.6);
     // Geometry / kinematics priors used to convert a fitted tE into a mass.
-    setParameter("lens_distance_kpc", 4.0);     // assumed PBH distance
-    setParameter("source_distance_kpc", 8.0);   // assumed background-star distance
-    setParameter("lens_velocity_kms", 220.0);  // assumed transverse velocity
-    setParameter("seconds_per_time_unit", 86400.0); // light-curve time unit (days)
+    setParameter("lens_distance_kpc", 4.0);          // assumed PBH distance
+    setParameter("source_distance_kpc", 8.0);        // assumed background-star distance
+    setParameter("lens_velocity_kms", 220.0);        // assumed transverse velocity
+    setParameter("seconds_per_time_unit", 86400.0);  // light-curve time unit (days)
 }
 
-std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+PBHMicrolensingScanner::analyze(const MetricTensor& metric, const Event4D& location,
+                                const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
-    if (trajectory.size() < kMinTrajectorySize) return findings;
+    if (trajectory.size() < kMinTrajectorySize)
+        return findings;
 
     double minMag = getParameter("min_magnification");
     double fitRatioThreshold = getParameter("fit_ratio_threshold");
@@ -49,21 +48,25 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
         }
         samples.emplace_back(pt.t, pt.x);
     }
-    if (samples.size() < kMinTrajectorySize) return findings;
+    if (samples.size() < kMinTrajectorySize)
+        return findings;
     std::sort(samples.begin(), samples.end());
 
     // Robust baseline flux (median).
     std::vector<double> sx;
     sx.reserve(samples.size());
-    for (const auto& s : samples) sx.push_back(s.second);
+    for (const auto& s : samples)
+        sx.push_back(s.second);
     std::sort(sx.begin(), sx.end());
     double F0 = sx[sx.size() / 2];
-    if (F0 <= 0.0) return findings;
+    if (F0 <= 0.0)
+        return findings;
 
     double tMin = samples.front().first;
     double tMax = samples.back().first;
     double T = tMax - tMin;
-    if (T <= 0.0) return findings;
+    if (T <= 0.0)
+        return findings;
 
     // Baseline (constant-flux) residual.
     double baseSSE = 0.0;
@@ -72,7 +75,8 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
         baseSSE += d * d;
     }
     double baseRMS = std::sqrt(baseSSE / samples.size());
-    if (baseRMS <= 0.0) return findings; // perfectly flat: no event
+    if (baseRMS <= 0.0)
+        return findings;  // perfectly flat: no event
 
     // Grid search for the best Paczynski microlensing fit. The magnification
     // is always >= 1, so a darkening (dip) or asymmetric flare cannot be fit,
@@ -86,7 +90,8 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
         double u0 = 0.05 + (1.5 - 0.05) * iu / (nU0 - 1);
         for (int it = 0; it < nTE; ++it) {
             double tE = 0.1 * T + (T - 0.1 * T) * it / (nTE - 1);
-            if (tE <= 0.0) continue;
+            if (tE <= 0.0)
+                continue;
             for (int ic = 0; ic < nT0; ++ic) {
                 double t0 = tMin + T * ic / (nT0 - 1);
                 double sse = 0.0;
@@ -110,8 +115,10 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
     double ratio = resRMS / baseRMS;
     double A0 = paczynskiMagnification(bestU0);
 
-    if (ratio > fitRatioThreshold) return findings; // fit does not explain the variance
-    if (A0 < minMag) return findings;                // magnification too weak
+    if (ratio > fitRatioThreshold)
+        return findings;  // fit does not explain the variance
+    if (A0 < minMag)
+        return findings;  // magnification too weak
 
     double confidence = std::min(1.0, std::max(0.0, 1.0 - ratio));
 
@@ -120,8 +127,8 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
     double srcDist = getParameter("source_distance_kpc");
     double velKms = getParameter("lens_velocity_kms");
 
-    PBHEstimate est = estimatePBH(bestTE * secPerUnit, bestU0,
-        lensDist, srcDist, velKms, confidence);
+    PBHEstimate est =
+        estimatePBH(bestTE * secPerUnit, bestU0, lensDist, srcDist, velKms, confidence);
 
     InstrumentFinding f;
     f.id = "PBHML_" + std::to_string(getTotalFindings());
@@ -129,15 +136,18 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
     f.severity = confidenceToSeverity(confidence);
     f.confidence = confidence;
     f.isAnomaly = true;
-    f.description = "Primordial black-hole microlensing candidate: symmetric "
-        "Paczynski magnification bump with peak A=" + std::to_string(A0) +
-        " at t=" + std::to_string(bestT0) + " (Einstein-radius crossing time tE=" +
-        std::to_string(bestTE) + ", impact parameter u0=" + std::to_string(bestU0) +
+    f.description =
+        "Primordial black-hole microlensing candidate: symmetric "
+        "Paczynski magnification bump with peak A=" +
+        std::to_string(A0) + " at t=" + std::to_string(bestT0) +
+        " (Einstein-radius crossing time tE=" + std::to_string(bestTE) +
+        ", impact parameter u0=" + std::to_string(bestU0) +
         "). A dark, compact lens is consistent with a primordial black hole. "
-        "Assuming D_l=" + std::to_string(lensDist) + " kpc, D_s=" +
-        std::to_string(srcDist) + " kpc, v_t=" + std::to_string(velKms) +
-        " km/s, the lens mass is M ~ " + std::to_string(est.mass_solar) +
-        " M_sun (R_E=" + std::to_string(est.einstein_radius_au) + " AU).";
+        "Assuming D_l=" +
+        std::to_string(lensDist) + " kpc, D_s=" + std::to_string(srcDist) +
+        " kpc, v_t=" + std::to_string(velKms) + " km/s, the lens mass is M ~ " +
+        std::to_string(est.mass_solar) + " M_sun (R_E=" + std::to_string(est.einstein_radius_au) +
+        " AU).";
     f.location = location;
     f.timestamp = bestT0;
     f.parameters["event_time"] = bestT0;
@@ -158,22 +168,18 @@ std::vector<InstrumentFinding> PBHMicrolensingScanner::analyze(
     return findings;
 }
 
-std::map<std::string, std::pair<double, double>> PBHMicrolensingScanner::getParameterRanges() const
-{
-    return {
-        {"min_magnification", {1.05, 3.0}},
-        {"fit_ratio_threshold", {0.3, 0.8}},
-        {"lens_distance_kpc", {0.1, 50.0}},
-        {"source_distance_kpc", {1.0, 100.0}},
-        {"lens_velocity_kms", {10.0, 1000.0}},
-        {"seconds_per_time_unit", {1.0, 3.15576e7}}
-    };
+std::map<std::string, std::pair<double, double>>
+PBHMicrolensingScanner::getParameterRanges() const {
+    return {{"min_magnification", {1.05, 3.0}},    {"fit_ratio_threshold", {0.3, 0.8}},
+            {"lens_distance_kpc", {0.1, 50.0}},    {"source_distance_kpc", {1.0, 100.0}},
+            {"lens_velocity_kms", {10.0, 1000.0}}, {"seconds_per_time_unit", {1.0, 3.15576e7}}};
 }
 
-PBHMicrolensingScanner::PBHEstimate PBHMicrolensingScanner::estimatePBH(
-    double tE, double u0, double lensDistanceKpc,
-    double sourceDistanceKpc, double lensVelocityKms, double confidence)
-{
+PBHMicrolensingScanner::PBHEstimate PBHMicrolensingScanner::estimatePBH(double tE, double u0,
+                                                                        double lensDistanceKpc,
+                                                                        double sourceDistanceKpc,
+                                                                        double lensVelocityKms,
+                                                                        double confidence) {
     (void)u0;
     PBHEstimate est;
     est.confidence = confidence;
@@ -182,16 +188,16 @@ PBHMicrolensingScanner::PBHEstimate PBHMicrolensingScanner::estimatePBH(
     est.velocity_kms = lensVelocityKms;
 
     double Dls = sourceDistanceKpc - lensDistanceKpc;
-    if (tE <= 0.0 || lensDistanceKpc <= 0.0 || sourceDistanceKpc <= 0.0 ||
-        lensVelocityKms <= 0.0 || Dls <= 0.0) {
-        return est; // degenerate/ill-posed geometry: no estimate
+    if (tE <= 0.0 || lensDistanceKpc <= 0.0 || sourceDistanceKpc <= 0.0 || lensVelocityKms <= 0.0 ||
+        Dls <= 0.0) {
+        return est;  // degenerate/ill-posed geometry: no estimate
     }
 
-    const double G = 6.67430e-11;      // m^3 kg^-1 s^-2
-    const double c = 299792458.0;      // m/s
-    const double Msun = 1.98847e30;    // kg
-    const double kpc = 3.085677581e19; // m
-    const double au = 1.495978707e11;  // m
+    const double G = 6.67430e-11;       // m^3 kg^-1 s^-2
+    const double c = 299792458.0;       // m/s
+    const double Msun = 1.98847e30;     // kg
+    const double kpc = 3.085677581e19;  // m
+    const double au = 1.495978707e11;   // m
 
     const double v = lensVelocityKms * 1000.0;  // m/s
     const double RE = v * tE;                   // R_E = v_t * t_E  (m)
@@ -207,4 +213,4 @@ PBHMicrolensingScanner::PBHEstimate PBHMicrolensingScanner::estimatePBH(
     return est;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

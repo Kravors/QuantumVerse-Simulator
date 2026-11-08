@@ -29,22 +29,28 @@ namespace quantumverse {
  */
 
 class PhotonSphereExperiment : public Experiment {
-public:
-    QString id()          const override { return QStringLiteral("photon_sphere"); }
-    QString name()        const override { return QStringLiteral("Kerr Photon Sphere & Shadow"); }
-    QString category()    const override { return QStringLiteral("Black Holes"); }
+   public:
+    QString id() const override {
+        return QStringLiteral("photon_sphere");
+    }
+    QString name() const override {
+        return QStringLiteral("Kerr Photon Sphere & Shadow");
+    }
+    QString category() const override {
+        return QStringLiteral("Black Holes");
+    }
     QString description() const override {
-        return QStringLiteral("Equatorial photon orbit radii r_ph(a) and critical "
-                              "impact parameters b_c(a) vs spin. Bardeen 1972 exact "
-                              "formulas. Prograde curve; retrograde + asymmetry in "
-                              "scalars.");
+        return QStringLiteral(
+            "Equatorial photon orbit radii r_ph(a) and critical "
+            "impact parameters b_c(a) vs spin. Bardeen 1972 exact "
+            "formulas. Prograde curve; retrograde + asymmetry in "
+            "scalars.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_PHOTON_SPHERE_EXPERIMENT_H
+#endif  // QUANTUMVERSE_PHOTON_SPHERE_EXPERIMENT_H

@@ -7,22 +7,22 @@
 // before any system <GL/gl.h> is pulled in by other headers
 #include "glad.h"
 
-#include "CelestialBodyRenderer.h"
-#include "../spacetime/Event4D.h"
-#include "Texture.h"
-#include "ProceduralTextures.h"
 #include <fstream>
+#include "../spacetime/Event4D.h"
+#include "CelestialBodyRenderer.h"
+#include "ProceduralTextures.h"
+#include "Texture.h"
 
 // Ensure M_PI is defined on all platforms
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
+#include <QDebug>
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <iostream>
-#include <algorithm>
-#include <QDebug>
 
 namespace quantumverse {
 
@@ -31,26 +31,25 @@ namespace quantumverse {
 // ============================================================================
 
 CelestialBodyRenderer::CelestialBodyRenderer(QualityLevel quality, size_t maxBodies)
-    : m_quality(quality)
-    , m_initialized(false)
-    , m_showAtmospheres(true)
-    , m_showOrbitRings(false)
-    , m_wireframe(false)
-    , m_maxBodies(maxBodies)
-    , m_buffersDirty(false)
-    , m_sphereVAO(0)
-    , m_sphereVBO(0)
-    , m_sphereEBO(0)
-    , m_instanceVBO(0)
-    , m_shaderProgram(0)
-    , m_atmosphereShaderProgram(0)
-    , m_indexCount(0)
-    , m_stackCount(0)
-    , m_sliceCount(0)
-    , m_useTextureArray(false)
-    , m_pbrShaderProgram(0)
-    , m_usePBR(true)
-{
+    : m_quality(quality),
+      m_initialized(false),
+      m_showAtmospheres(true),
+      m_showOrbitRings(false),
+      m_wireframe(false),
+      m_maxBodies(maxBodies),
+      m_buffersDirty(false),
+      m_sphereVAO(0),
+      m_sphereVBO(0),
+      m_sphereEBO(0),
+      m_instanceVBO(0),
+      m_shaderProgram(0),
+      m_atmosphereShaderProgram(0),
+      m_indexCount(0),
+      m_stackCount(0),
+      m_sliceCount(0),
+      m_useTextureArray(false),
+      m_pbrShaderProgram(0),
+      m_usePBR(true) {
     m_lightPosition[0] = 0.0f;
     m_lightPosition[1] = 0.0f;
     m_lightPosition[2] = 0.0f;
@@ -68,41 +67,49 @@ CelestialBodyRenderer::CelestialBodyRenderer(QualityLevel quality, size_t maxBod
     setQuality(quality);
 }
 
-CelestialBodyRenderer::~CelestialBodyRenderer()
-{
+CelestialBodyRenderer::~CelestialBodyRenderer() {
     // Clean up OpenGL resources
-    if (m_sphereVAO) glDeleteVertexArrays(1, &m_sphereVAO);
-    if (m_sphereVBO) glDeleteBuffers(1, &m_sphereVBO);
-    if (m_sphereEBO) glDeleteBuffers(1, &m_sphereEBO);
-    if (m_instanceVBO) glDeleteBuffers(1, &m_instanceVBO);
-    if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
-    if (m_pbrShaderProgram) glDeleteProgram(m_pbrShaderProgram);
-    if (m_atmosphereShaderProgram) glDeleteProgram(m_atmosphereShaderProgram);
-    if (m_annulusVAO) glDeleteVertexArrays(1, &m_annulusVAO);
-    if (m_annulusVBO) glDeleteBuffers(1, &m_annulusVBO);
-    if (m_annulusEBO) glDeleteBuffers(1, &m_annulusEBO);
+    if (m_sphereVAO)
+        glDeleteVertexArrays(1, &m_sphereVAO);
+    if (m_sphereVBO)
+        glDeleteBuffers(1, &m_sphereVBO);
+    if (m_sphereEBO)
+        glDeleteBuffers(1, &m_sphereEBO);
+    if (m_instanceVBO)
+        glDeleteBuffers(1, &m_instanceVBO);
+    if (m_shaderProgram)
+        glDeleteProgram(m_shaderProgram);
+    if (m_pbrShaderProgram)
+        glDeleteProgram(m_pbrShaderProgram);
+    if (m_atmosphereShaderProgram)
+        glDeleteProgram(m_atmosphereShaderProgram);
+    if (m_annulusVAO)
+        glDeleteVertexArrays(1, &m_annulusVAO);
+    if (m_annulusVBO)
+        glDeleteBuffers(1, &m_annulusVBO);
+    if (m_annulusEBO)
+        glDeleteBuffers(1, &m_annulusEBO);
 }
 
-void CelestialBodyRenderer::setQuality(QualityLevel quality)
-{
+void CelestialBodyRenderer::setQuality(QualityLevel quality) {
     m_quality = quality;
     switch (quality) {
-    case QualityLevel::LOW:
-        m_stackCount = 16;
-        m_sliceCount = 32;
-        break;
-    case QualityLevel::MEDIUM:
-        m_stackCount = 32;
-        m_sliceCount = 64;
-        break;
-    case QualityLevel::HIGH:
-        m_stackCount = 64;
-        m_sliceCount = 128;
-        break;
-    case QualityLevel::ULTRA:
-        m_stackCount = 128;
-        m_sliceCount = 256;
-        break;
+        case QualityLevel::LOW:
+            m_stackCount = 16;
+            m_sliceCount = 32;
+            break;
+        case QualityLevel::MEDIUM:
+            m_stackCount = 32;
+            m_sliceCount = 64;
+            break;
+        case QualityLevel::HIGH:
+            m_stackCount = 64;
+            m_sliceCount = 128;
+            break;
+        case QualityLevel::ULTRA:
+            m_stackCount = 128;
+            m_sliceCount = 256;
+            break;
     }
     generateSphereMesh();
     // generateSphereVAO() is called in initializeGL() when GL context is available
@@ -112,8 +119,7 @@ void CelestialBodyRenderer::setQuality(QualityLevel quality)
 // Sphere mesh generation
 // ---------------------------------------------------------------------------
 
-void CelestialBodyRenderer::generateSphereMesh()
-{
+void CelestialBodyRenderer::generateSphereMesh() {
     m_vertices.clear();
     m_indices.clear();
 
@@ -169,13 +175,16 @@ void CelestialBodyRenderer::generateSphereMesh()
     m_indexCount = static_cast<unsigned int>(m_indices.size());
 }
 
-void CelestialBodyRenderer::generateSphereVAO()
-{
+void CelestialBodyRenderer::generateSphereVAO() {
     // Clean up old resources
-    if (m_sphereVAO) glDeleteVertexArrays(1, &m_sphereVAO);
-    if (m_sphereVBO) glDeleteBuffers(1, &m_sphereVBO);
-    if (m_sphereEBO) glDeleteBuffers(1, &m_sphereEBO);
-    if (m_instanceVBO) glDeleteBuffers(1, &m_instanceVBO);
+    if (m_sphereVAO)
+        glDeleteVertexArrays(1, &m_sphereVAO);
+    if (m_sphereVBO)
+        glDeleteBuffers(1, &m_sphereVBO);
+    if (m_sphereEBO)
+        glDeleteBuffers(1, &m_sphereEBO);
+    if (m_instanceVBO)
+        glDeleteBuffers(1, &m_instanceVBO);
 
     glGenVertexArrays(1, &m_sphereVAO);
     glGenBuffers(1, &m_sphereVBO);
@@ -186,33 +195,33 @@ void CelestialBodyRenderer::generateSphereVAO()
 
     // Upload vertex data
     glBindBuffer(GL_ARRAY_BUFFER, m_sphereVBO);
-    glBufferData(GL_ARRAY_BUFFER,
-                 m_vertices.size() * sizeof(SphereVertex),
-                 m_vertices.data(),
+    glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(SphereVertex), m_vertices.data(),
                  GL_STATIC_DRAW);
 
     // Upload index data
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphereEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 m_indices.size() * sizeof(unsigned int),
-                 m_indices.data(),
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), m_indices.data(),
                  GL_STATIC_DRAW);
 
     // Per-vertex attributes
     // Position (location 0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex), (void*)offsetof(SphereVertex, position));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, position));
     glEnableVertexAttribArray(0);
 
     // Normal (location 1)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex), (void*)offsetof(SphereVertex, normal));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, normal));
     glEnableVertexAttribArray(1);
 
     // TexCoord (location 2)
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(SphereVertex), (void*)offsetof(SphereVertex, texCoord));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, texCoord));
     glEnableVertexAttribArray(2);
 
     // Tangent (location 3)
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex), (void*)offsetof(SphereVertex, tangent));
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
+                          (void*)offsetof(SphereVertex, tangent));
     glEnableVertexAttribArray(3);
 
     // Instance attributes
@@ -229,39 +238,36 @@ void CelestialBodyRenderer::generateSphereVAO()
     // modelMatrix columns (locations 4-7), each column is 4 floats
     for (int col = 0; col < 4; ++col) {
         glEnableVertexAttribArray(4 + col);
-        glVertexAttribPointer(4 + col, 4, GL_FLOAT, GL_FALSE,
-                              kInstanceStride,
-                              reinterpret_cast<void*>(static_cast<uintptr_t>(col * 4 * sizeof(float))));
+        glVertexAttribPointer(
+            4 + col, 4, GL_FLOAT, GL_FALSE, kInstanceStride,
+            reinterpret_cast<void*>(static_cast<uintptr_t>(col * 4 * sizeof(float))));
         glVertexAttribDivisor(4 + col, 1);
     }
 
     // modelMatrixIT columns (locations 8-10), each column is 3 floats
     for (int col = 0; col < 3; ++col) {
         glEnableVertexAttribArray(8 + col);
-        glVertexAttribPointer(8 + col, 3, GL_FLOAT, GL_FALSE,
-                              kInstanceStride,
-                              reinterpret_cast<void*>(static_cast<uintptr_t>(16 * sizeof(float) + col * 3 * sizeof(float))));
+        glVertexAttribPointer(8 + col, 3, GL_FLOAT, GL_FALSE, kInstanceStride,
+                              reinterpret_cast<void*>(static_cast<uintptr_t>(
+                                  16 * sizeof(float) + col * 3 * sizeof(float))));
         glVertexAttribDivisor(8 + col, 1);
     }
 
     // Color (location 11)
     glEnableVertexAttribArray(11);
-    glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE,
-                          kInstanceStride,
+    glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, kInstanceStride,
                           reinterpret_cast<void*>(static_cast<uintptr_t>(25 * sizeof(float))));
     glVertexAttribDivisor(11, 1);
 
     // EmissiveAO (location 12): xyz=emissive, w=ao
     glEnableVertexAttribArray(12);
-    glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE,
-                          kInstanceStride,
+    glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, kInstanceStride,
                           reinterpret_cast<void*>(static_cast<uintptr_t>(28 * sizeof(float))));
     glVertexAttribDivisor(12, 1);
 
     // Packed radius/metallic/roughness/texLayer (location 13)
     glEnableVertexAttribArray(13);
-    glVertexAttribPointer(13, 4, GL_FLOAT, GL_FALSE,
-                          kInstanceStride,
+    glVertexAttribPointer(13, 4, GL_FLOAT, GL_FALSE, kInstanceStride,
                           reinterpret_cast<void*>(static_cast<uintptr_t>(32 * sizeof(float))));
     glVertexAttribDivisor(13, 1);
     // Locations 14+ are no longer used
@@ -269,8 +275,7 @@ void CelestialBodyRenderer::generateSphereVAO()
     glBindVertexArray(0);
 }
 
-void CelestialBodyRenderer::generateAnnulusMesh(float innerR, float outerR)
-{
+void CelestialBodyRenderer::generateAnnulusMesh(float innerR, float outerR) {
     m_annulusVertices.clear();
     m_annulusIndices.clear();
 
@@ -279,11 +284,10 @@ void CelestialBodyRenderer::generateAnnulusMesh(float innerR, float outerR)
 
     // Vertices lie in the XZ plane (the disk's equatorial plane).
     for (int i = 0; i <= radialSegments; ++i) {
-        const float r = innerR + (outerR - innerR) * static_cast<float>(i) /
-                        static_cast<float>(radialSegments);
+        const float r =
+            innerR + (outerR - innerR) * static_cast<float>(i) / static_cast<float>(radialSegments);
         for (int j = 0; j <= angularSegments; ++j) {
-            const float theta = 2.0f * static_cast<float>(M_PI) *
-                                static_cast<float>(j) /
+            const float theta = 2.0f * static_cast<float>(M_PI) * static_cast<float>(j) /
                                 static_cast<float>(angularSegments);
 
             SphereVertex v;
@@ -334,12 +338,14 @@ void CelestialBodyRenderer::generateAnnulusMesh(float innerR, float outerR)
     m_annulusIndexCount = static_cast<unsigned int>(m_annulusIndices.size());
 }
 
-void CelestialBodyRenderer::generateAnnulusVAO()
-{
+void CelestialBodyRenderer::generateAnnulusVAO() {
     // Clean up old resources
-    if (m_annulusVAO) glDeleteVertexArrays(1, &m_annulusVAO);
-    if (m_annulusVBO) glDeleteBuffers(1, &m_annulusVBO);
-    if (m_annulusEBO) glDeleteBuffers(1, &m_annulusEBO);
+    if (m_annulusVAO)
+        glDeleteVertexArrays(1, &m_annulusVAO);
+    if (m_annulusVBO)
+        glDeleteBuffers(1, &m_annulusVBO);
+    if (m_annulusEBO)
+        glDeleteBuffers(1, &m_annulusEBO);
 
     glGenVertexArrays(1, &m_annulusVAO);
     glGenBuffers(1, &m_annulusVBO);
@@ -349,17 +355,13 @@ void CelestialBodyRenderer::generateAnnulusVAO()
 
     // Upload vertex data
     glBindBuffer(GL_ARRAY_BUFFER, m_annulusVBO);
-    glBufferData(GL_ARRAY_BUFFER,
-                 m_annulusVertices.size() * sizeof(SphereVertex),
-                 m_annulusVertices.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_annulusVertices.size() * sizeof(SphereVertex),
+                 m_annulusVertices.data(), GL_STATIC_DRAW);
 
     // Upload index data
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_annulusEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 m_annulusIndices.size() * sizeof(unsigned int),
-                 m_annulusIndices.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_annulusIndices.size() * sizeof(unsigned int),
+                 m_annulusIndices.data(), GL_STATIC_DRAW);
 
     // Per-vertex attributes (identical layout to the sphere VAO)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SphereVertex),
@@ -385,46 +387,37 @@ void CelestialBodyRenderer::generateAnnulusVAO()
     // modelMatrix columns (locations 4-7), one vec4 per column
     for (int col = 0; col < 4; ++col) {
         glEnableVertexAttribArray(4 + col);
-        glVertexAttribPointer(4 + col, 4, GL_FLOAT, GL_FALSE,
-                              kInstanceStride,
-                              reinterpret_cast<void*>(
-                                  static_cast<uintptr_t>(col * 4 * sizeof(float))));
+        glVertexAttribPointer(
+            4 + col, 4, GL_FLOAT, GL_FALSE, kInstanceStride,
+            reinterpret_cast<void*>(static_cast<uintptr_t>(col * 4 * sizeof(float))));
         glVertexAttribDivisor(4 + col, 1);
     }
 
     // modelMatrixIT columns (locations 8-10), one vec3 per column
     for (int col = 0; col < 3; ++col) {
         glEnableVertexAttribArray(8 + col);
-        glVertexAttribPointer(8 + col, 3, GL_FLOAT, GL_FALSE,
-                              kInstanceStride,
-                              reinterpret_cast<void*>(
-                                  static_cast<uintptr_t>(16 * sizeof(float) +
-                                                         col * 3 * sizeof(float))));
+        glVertexAttribPointer(8 + col, 3, GL_FLOAT, GL_FALSE, kInstanceStride,
+                              reinterpret_cast<void*>(static_cast<uintptr_t>(
+                                  16 * sizeof(float) + col * 3 * sizeof(float))));
         glVertexAttribDivisor(8 + col, 1);
     }
 
     // Color (location 11)
     glEnableVertexAttribArray(11);
-    glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE,
-                          kInstanceStride,
-                          reinterpret_cast<void*>(
-                              static_cast<uintptr_t>(25 * sizeof(float))));
+    glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, kInstanceStride,
+                          reinterpret_cast<void*>(static_cast<uintptr_t>(25 * sizeof(float))));
     glVertexAttribDivisor(11, 1);
 
     // EmissiveAO (location 12): xyz = emissive, w = ao
     glEnableVertexAttribArray(12);
-    glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE,
-                          kInstanceStride,
-                          reinterpret_cast<void*>(
-                              static_cast<uintptr_t>(28 * sizeof(float))));
+    glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, kInstanceStride,
+                          reinterpret_cast<void*>(static_cast<uintptr_t>(28 * sizeof(float))));
     glVertexAttribDivisor(12, 1);
 
     // Packed radius/metallic/roughness/texLayer (location 13)
     glEnableVertexAttribArray(13);
-    glVertexAttribPointer(13, 4, GL_FLOAT, GL_FALSE,
-                          kInstanceStride,
-                          reinterpret_cast<void*>(
-                              static_cast<uintptr_t>(32 * sizeof(float))));
+    glVertexAttribPointer(13, 4, GL_FLOAT, GL_FALSE, kInstanceStride,
+                          reinterpret_cast<void*>(static_cast<uintptr_t>(32 * sizeof(float))));
     glVertexAttribDivisor(13, 1);
 
     glBindVertexArray(0);
@@ -875,8 +868,7 @@ void main() {
 }
 )";
 
-bool compileShader(GLuint& program, const char* vertSrc, const char* fragSrc)
-{
+bool compileShader(GLuint& program, const char* vertSrc, const char* fragSrc) {
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertShader, 1, &vertSrc, nullptr);
     glCompileShader(vertShader);
@@ -924,22 +916,20 @@ bool compileShader(GLuint& program, const char* vertSrc, const char* fragSrc)
     return program != 0;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 // ---------------------------------------------------------------------------
 // OpenGL initialization
 // ---------------------------------------------------------------------------
 
-void CelestialBodyRenderer::initializeGL()
-{
+void CelestialBodyRenderer::initializeGL() {
     generateSphereVAO();
 
     // Generate the black hole annulus (accretion disk) debug geometry
     if (!m_annulusVAO) {
         generateAnnulusMesh(m_annInnerR, m_annOuterR);
         generateAnnulusVAO();
-        qDebug() << "[ANNULUS] generated: inner=" << m_annInnerR
-                 << "outer=" << m_annOuterR
+        qDebug() << "[ANNULUS] generated: inner=" << m_annInnerR << "outer=" << m_annOuterR
                  << "indices=" << m_annulusIndexCount;
         // The annulus instance matrix translates to m_bhCenterWorld, so this is
         // the world position the disk is actually drawn at. It is whatever
@@ -948,9 +938,8 @@ void CelestialBodyRenderer::initializeGL()
         // grid well centers on. If it ever disagrees with the physics BH the
         // disk is displaced while the magenta pixel count stays unchanged (the
         // count never inspects world coordinates).
-        qDebug() << "[ANNULUS] bhCenterWorld =" << m_bhCenterWorld[0]
-                 << m_bhCenterWorld[1] << m_bhCenterWorld[2]
-                 << "(from setBlackHoleCenter)";
+        qDebug() << "[ANNULUS] bhCenterWorld =" << m_bhCenterWorld[0] << m_bhCenterWorld[1]
+                 << m_bhCenterWorld[2] << "(from setBlackHoleCenter)";
     }
 
     // Compile shaders
@@ -966,7 +955,7 @@ void CelestialBodyRenderer::initializeGL()
     //     std::cerr << "CelestialBodyRenderer: Failed to compile PBR shader" << std::endl;
     //     return;
     // }
-    m_pbrShaderProgram = m_shaderProgram; // Use legacy shader as fallback
+    m_pbrShaderProgram = m_shaderProgram;  // Use legacy shader as fallback
 
     if (!compileShader(m_atmosphereShaderProgram, atmosphereVertSrc, atmosphereFragSrc)) {
         std::cerr << "CelestialBodyRenderer: Failed to compile atmosphere shader" << std::endl;
@@ -993,11 +982,10 @@ void CelestialBodyRenderer::initializeGL()
 // Body management
 // ---------------------------------------------------------------------------
 
-int CelestialBodyRenderer::addBody(const CelestialBodyInstance& body)
-{
+int CelestialBodyRenderer::addBody(const CelestialBodyInstance& body) {
     if (m_bodies.size() >= m_maxBodies) {
-        std::cerr << "CelestialBodyRenderer: Maximum body count reached ("
-                  << m_maxBodies << ")" << std::endl;
+        std::cerr << "CelestialBodyRenderer: Maximum body count reached (" << m_maxBodies << ")"
+                  << std::endl;
         return -1;
     }
 
@@ -1009,7 +997,10 @@ int CelestialBodyRenderer::addBody(const CelestialBodyInstance& body)
     // too would apply it twice (radius^2), shrinking bodies to invisibility.
     float* m = data.modelMatrix;
     std::memset(m, 0, 16 * sizeof(float));
-    m[0] = 1.0f;  m[5] = 1.0f;  m[10] = 1.0f;  m[15] = 1.0f;
+    m[0] = 1.0f;
+    m[5] = 1.0f;
+    m[10] = 1.0f;
+    m[15] = 1.0f;
     m[12] = body.position[0];
     m[13] = body.position[1];
     m[14] = body.position[2];
@@ -1027,10 +1018,10 @@ int CelestialBodyRenderer::addBody(const CelestialBodyInstance& body)
     return static_cast<int>(m_bodies.size() - 1);
 }
 
-bool CelestialBodyRenderer::removeBody(const std::string& objectId)
-{
+bool CelestialBodyRenderer::removeBody(const std::string& objectId) {
     auto it = m_bodyIndexMap.find(objectId);
-    if (it == m_bodyIndexMap.end()) return false;
+    if (it == m_bodyIndexMap.end())
+        return false;
 
     size_t idx = it->second;
     m_bodies.erase(m_bodies.begin() + idx);
@@ -1047,10 +1038,10 @@ bool CelestialBodyRenderer::removeBody(const std::string& objectId)
 }
 
 bool CelestialBodyRenderer::updateBody(const std::string& objectId,
-                                        const CelestialBodyInstance& body)
-{
+                                       const CelestialBodyInstance& body) {
     auto it = m_bodyIndexMap.find(objectId);
-    if (it == m_bodyIndexMap.end()) return false;
+    if (it == m_bodyIndexMap.end())
+        return false;
 
     size_t idx = it->second;
     m_bodies[idx].instance = body;
@@ -1058,7 +1049,10 @@ bool CelestialBodyRenderer::updateBody(const std::string& objectId,
     // Update model matrix (translation only; shader applies aRadius)
     float* m = m_bodies[idx].modelMatrix;
     std::memset(m, 0, 16 * sizeof(float));
-    m[0] = 1.0f; m[5] = 1.0f; m[10] = 1.0f; m[15] = 1.0f;
+    m[0] = 1.0f;
+    m[5] = 1.0f;
+    m[10] = 1.0f;
+    m[15] = 1.0f;
     m[12] = body.position[0];
     m[13] = body.position[1];
     m[14] = body.position[2];
@@ -1072,26 +1066,22 @@ bool CelestialBodyRenderer::updateBody(const std::string& objectId,
     return true;
 }
 
-void CelestialBodyRenderer::clearBodies()
-{
+void CelestialBodyRenderer::clearBodies() {
     m_bodies.clear();
     m_bodyIndexMap.clear();
     m_buffersDirty = true;
 }
 
-void CelestialBodyRenderer::setLightPosition(const float position[3])
-{
+void CelestialBodyRenderer::setLightPosition(const float position[3]) {
     std::memcpy(m_lightPosition, position, 3 * sizeof(float));
 }
 
-void CelestialBodyRenderer::setLightProperties(const float color[3], float intensity)
-{
+void CelestialBodyRenderer::setLightProperties(const float color[3], float intensity) {
     std::memcpy(m_lightColor, color, 3 * sizeof(float));
     m_lightIntensity = intensity;
 }
 
-void CelestialBodyRenderer::setAmbientColor(const float color[3])
-{
+void CelestialBodyRenderer::setAmbientColor(const float color[3]) {
     std::memcpy(m_ambientColor, color, 3 * sizeof(float));
 }
 
@@ -1103,44 +1093,43 @@ void CelestialBodyRenderer::setAmbientColor(const float color[3])
  *
  * Generates a noise-based procedural texture using the ProceduralTextureGenerator.
  */
-bool CelestialBodyRenderer::generateProceduralTexture(int layerIndex, const PlanetTextureConfig& config)
-{
+bool CelestialBodyRenderer::generateProceduralTexture(int layerIndex,
+                                                      const PlanetTextureConfig& config) {
     if (!m_textureArray.isValid()) {
         std::cerr << "CelestialBodyRenderer: Texture array not initialized" << std::endl;
         return false;
     }
 
     if (layerIndex < 0 || layerIndex >= m_textureArray.getMaxLayers()) {
-        std::cerr << "CelestialBodyRenderer: Invalid texture layer index " << layerIndex << std::endl;
+        std::cerr << "CelestialBodyRenderer: Invalid texture layer index " << layerIndex
+                  << std::endl;
         return false;
     }
 
     // Generate texture using the procedural texture generator
     std::vector<uint8_t> pixels = m_textureGenerator.generatePlanetTexture(config);
     if (pixels.empty()) {
-        std::cerr << "CelestialBodyRenderer: Generated empty pixels for layer " << layerIndex << std::endl;
+        std::cerr << "CelestialBodyRenderer: Generated empty pixels for layer " << layerIndex
+                  << std::endl;
         return false;
     }
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureArray.getId());
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                    0, 0, layerIndex,
-                    config.width, config.height, 1,
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerIndex, config.width, config.height, 1,
                     GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     static int s_texLog = 0;
     if (s_texLog++ < 10) {
-        std::cout << "[Texture] Generated layer " << layerIndex
-                  << " (" << config.width << "x" << config.height << ")"
+        std::cout << "[Texture] Generated layer " << layerIndex << " (" << config.width << "x"
+                  << config.height << ")"
                   << " pixels: " << pixels.size() << std::endl;
     }
 
     return true;
 }
 
-bool CelestialBodyRenderer::initializeTextureArray(int numLayers, int width, int height)
-{
+bool CelestialBodyRenderer::initializeTextureArray(int numLayers, int width, int height) {
     if (!m_textureArray.initialize(numLayers, width, height)) {
         std::cerr << "CelestialBodyRenderer: Failed to initialize texture array" << std::endl;
         return false;
@@ -1152,12 +1141,11 @@ bool CelestialBodyRenderer::initializeTextureArray(int numLayers, int width, int
 }
 
 bool CelestialBodyRenderer::loadTextureArray(const std::vector<std::string>& texturePaths,
-                                               int width, int height)
-{
+                                             int width, int height) {
     // Calculate number of layers: use provided paths, or default to 1 for procedural textures
     int numLayers = static_cast<int>(texturePaths.size());
     if (numLayers == 0) {
-        numLayers = 1; // Default to 1 layer for procedural texture generation
+        numLayers = 1;  // Default to 1 layer for procedural texture generation
     }
 
     if (!m_textureArray.initialize(numLayers, width, height)) {
@@ -1168,22 +1156,22 @@ bool CelestialBodyRenderer::loadTextureArray(const std::vector<std::string>& tex
     for (size_t i = 0; i < texturePaths.size(); ++i) {
         int layer = m_textureArray.addLayerFromFile(texturePaths[i]);
         if (layer < 0) {
-            std::cerr << "CelestialBodyRenderer: Failed to load texture layer " << i
-                      << " from '" << texturePaths[i] << "'" << std::endl;
+            std::cerr << "CelestialBodyRenderer: Failed to load texture layer " << i << " from '"
+                      << texturePaths[i] << "'" << std::endl;
             // Continue loading other layers
         }
     }
 
     m_useTextureArray = true;
-    std::cout << "CelestialBodyRenderer: Initialized texture array with " << m_textureArray.getMaxLayers()
-              << " layers (" << width << "x" << height << ")" << std::endl;
+    std::cout << "CelestialBodyRenderer: Initialized texture array with "
+              << m_textureArray.getMaxLayers() << " layers (" << width << "x" << height << ")"
+              << std::endl;
     return true;
 }
 
 bool CelestialBodyRenderer::loadTextureLayer(int layerIndex, const std::string& filepath,
-                                              const PlanetTextureConfig& config,
-                                              bool forceProcedural)
-{
+                                             const PlanetTextureConfig& config,
+                                             bool forceProcedural) {
     // Try loading from file first (unless forceProcedural is set)
     if (!forceProcedural && !filepath.empty()) {
         if (std::ifstream(filepath).good()) {
@@ -1219,8 +1207,7 @@ namespace {
  * Metallic maps are mostly black (0) for dielectric surfaces with some
  * variation for mineral deposits, metal-rich regions, etc.
  */
-std::vector<uint8_t> generateMetallicMap(const PlanetTextureConfig& config)
-{
+std::vector<uint8_t> generateMetallicMap(const PlanetTextureConfig& config) {
     int w = config.width;
     int h = config.height;
     std::vector<uint8_t> pixels(w * h);
@@ -1241,8 +1228,10 @@ std::vector<uint8_t> generateMetallicMap(const PlanetTextureConfig& config)
                 float nx = u * frequency + seed * 0.1f;
                 float ny = v * frequency + seed * 0.1f;
                 // Simple hash-based noise
-                float val = std::fmod(std::sin(nx * 12.9898f + ny * 78.233f + seed) * 43758.5453f, 1.0f);
-                if (val < 0.0f) val += 1.0f;
+                float val =
+                    std::fmod(std::sin(nx * 12.9898f + ny * 78.233f + seed) * 43758.5453f, 1.0f);
+                if (val < 0.0f)
+                    val += 1.0f;
                 noise1 += val * amplitude;
                 amplitude *= 0.5f;
                 frequency *= 2.0f;
@@ -1251,7 +1240,7 @@ std::vector<uint8_t> generateMetallicMap(const PlanetTextureConfig& config)
             // Metallic is mostly low (dielectric) with sparse high-metallic spots
             float metallic = 0.0f;
             if (noise1 > 0.6f) {
-                metallic = (noise1 - 0.6f) * 2.0f; // 0.0 to 0.8
+                metallic = (noise1 - 0.6f) * 2.0f;  // 0.0 to 0.8
             }
 
             // Gas giants and stars have higher metallic content
@@ -1274,8 +1263,7 @@ std::vector<uint8_t> generateMetallicMap(const PlanetTextureConfig& config)
  * Roughness maps control microsurface detail. Oceans are smooth (low roughness),
  * mountains are rough (high roughness), deserts are medium.
  */
-std::vector<uint8_t> generateRoughnessMap(const PlanetTextureConfig& config)
-{
+std::vector<uint8_t> generateRoughnessMap(const PlanetTextureConfig& config) {
     int w = config.width;
     int h = config.height;
     std::vector<uint8_t> pixels(w * h);
@@ -1294,8 +1282,10 @@ std::vector<uint8_t> generateRoughnessMap(const PlanetTextureConfig& config)
             for (int oct = 0; oct < 4; ++oct) {
                 float nx = u * frequency + seed * 0.1f;
                 float ny = v * frequency + seed * 0.1f;
-                float val = std::fmod(std::sin(nx * 12.9898f + ny * 78.233f + seed) * 43758.5453f, 1.0f);
-                if (val < 0.0f) val += 1.0f;
+                float val =
+                    std::fmod(std::sin(nx * 12.9898f + ny * 78.233f + seed) * 43758.5453f, 1.0f);
+                if (val < 0.0f)
+                    val += 1.0f;
                 noise += val * amplitude;
                 amplitude *= 0.5f;
                 frequency *= 2.0f;
@@ -1325,8 +1315,7 @@ std::vector<uint8_t> generateRoughnessMap(const PlanetTextureConfig& config)
  *
  * AO maps darken crevices and valleys. Uses noise to simulate terrain occlusion.
  */
-std::vector<uint8_t> generateAOMap(const PlanetTextureConfig& config)
-{
+std::vector<uint8_t> generateAOMap(const PlanetTextureConfig& config) {
     int w = config.width;
     int h = config.height;
     std::vector<uint8_t> pixels(w * h);
@@ -1345,8 +1334,10 @@ std::vector<uint8_t> generateAOMap(const PlanetTextureConfig& config)
             for (int oct = 0; oct < 3; ++oct) {
                 float nx = u * frequency + seed * 0.1f;
                 float ny = v * frequency + seed * 0.1f;
-                float val = std::fmod(std::sin(nx * 12.9898f + ny * 78.233f + seed) * 43758.5453f, 1.0f);
-                if (val < 0.0f) val += 1.0f;
+                float val =
+                    std::fmod(std::sin(nx * 12.9898f + ny * 78.233f + seed) * 43758.5453f, 1.0f);
+                if (val < 0.0f)
+                    val += 1.0f;
                 noise += val * amplitude;
                 amplitude *= 0.5f;
                 frequency *= 2.0f;
@@ -1362,17 +1353,18 @@ std::vector<uint8_t> generateAOMap(const PlanetTextureConfig& config)
     return pixels;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
-bool CelestialBodyRenderer::generatePBRMaps(int layerIndex, const PlanetTextureConfig& config)
-{
+bool CelestialBodyRenderer::generatePBRMaps(int layerIndex, const PlanetTextureConfig& config) {
     if (!m_textureArray.isValid()) {
-        std::cerr << "CelestialBodyRenderer: Texture array not initialized for PBR maps" << std::endl;
+        std::cerr << "CelestialBodyRenderer: Texture array not initialized for PBR maps"
+                  << std::endl;
         return false;
     }
 
     if (layerIndex < 0 || layerIndex + 3 >= m_textureArray.getMaxLayers()) {
-        std::cerr << "CelestialBodyRenderer: Not enough layers for PBR maps at index " << layerIndex << std::endl;
+        std::cerr << "CelestialBodyRenderer: Not enough layers for PBR maps at index " << layerIndex
+                  << std::endl;
         return false;
     }
 
@@ -1380,9 +1372,7 @@ bool CelestialBodyRenderer::generatePBRMaps(int layerIndex, const PlanetTextureC
     {
         std::vector<uint8_t> pixels = generateMetallicMap(config);
         glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureArray.getId());
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                        0, 0, layerIndex,
-                        config.width, config.height, 1,
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerIndex, config.width, config.height, 1,
                         GL_RED, GL_UNSIGNED_BYTE, pixels.data());
         glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     }
@@ -1391,10 +1381,8 @@ bool CelestialBodyRenderer::generatePBRMaps(int layerIndex, const PlanetTextureC
     {
         std::vector<uint8_t> pixels = generateRoughnessMap(config);
         glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureArray.getId());
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                        0, 0, layerIndex + 1,
-                        config.width, config.height, 1,
-                        GL_RED, GL_UNSIGNED_BYTE, pixels.data());
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerIndex + 1, config.width, config.height,
+                        1, GL_RED, GL_UNSIGNED_BYTE, pixels.data());
         glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     }
 
@@ -1402,22 +1390,19 @@ bool CelestialBodyRenderer::generatePBRMaps(int layerIndex, const PlanetTextureC
     {
         std::vector<uint8_t> pixels = generateAOMap(config);
         glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureArray.getId());
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                        0, 0, layerIndex + 2,
-                        config.width, config.height, 1,
-                        GL_RED, GL_UNSIGNED_BYTE, pixels.data());
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerIndex + 2, config.width, config.height,
+                        1, GL_RED, GL_UNSIGNED_BYTE, pixels.data());
         glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     }
 
-    std::cout << "[PBR] Generated metallic/roughness/AO maps at layers "
-              << layerIndex << "-" << (layerIndex + 2)
-              << " (" << config.width << "x" << config.height << ")" << std::endl;
+    std::cout << "[PBR] Generated metallic/roughness/AO maps at layers " << layerIndex << "-"
+              << (layerIndex + 2) << " (" << config.width << "x" << config.height << ")"
+              << std::endl;
 
     return true;
 }
 
-void CelestialBodyRenderer::setEnvironmentColor(const float color[3])
-{
+void CelestialBodyRenderer::setEnvironmentColor(const float color[3]) {
     std::memcpy(m_envColor, color, 3 * sizeof(float));
 }
 
@@ -1425,11 +1410,12 @@ void CelestialBodyRenderer::setEnvironmentColor(const float color[3])
 // Instance buffer update
 // ---------------------------------------------------------------------------
 
-void CelestialBodyRenderer::updateBodyBuffers()
-{
-    if (!m_buffersDirty || (m_bodies.empty() && !m_annulusVAO)) return;
+void CelestialBodyRenderer::updateBodyBuffers() {
+    if (!m_buffersDirty || (m_bodies.empty() && !m_annulusVAO))
+        return;
 
-    // Build instance data: model(16) + modelIT(9) + color(3) + emissiveAO(4) + packedRadiusMR(4) = 36 floats
+    // Build instance data: model(16) + modelIT(9) + color(3) + emissiveAO(4) + packedRadiusMR(4) =
+    // 36 floats
     std::vector<float> instanceData;
     instanceData.reserve((m_bodies.size() + 1) * 36);
 
@@ -1465,35 +1451,44 @@ void CelestialBodyRenderer::updateBodyBuffers()
     // is translation-only to the black hole center; texLayer = -1 keeps the
     // texture array from sampling a layer for the disk.
     if (m_annulusVAO) {
-        const float modelMatrix[16] = {
-            1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f, 0.0f,
-            m_bhCenterWorld[0], m_bhCenterWorld[1], m_bhCenterWorld[2], 1.0f
-        };
+        const float modelMatrix[16] = {1.0f,
+                                       0.0f,
+                                       0.0f,
+                                       0.0f,
+                                       0.0f,
+                                       1.0f,
+                                       0.0f,
+                                       0.0f,
+                                       0.0f,
+                                       0.0f,
+                                       1.0f,
+                                       0.0f,
+                                       m_bhCenterWorld[0],
+                                       m_bhCenterWorld[1],
+                                       m_bhCenterWorld[2],
+                                       1.0f};
         // Translation-only model -> inverse transpose is identity.
-        const float modelMatrixIT[9] = {
-            1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 1.0f
-        };
+        const float modelMatrixIT[9] = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
         const float color[3] = {1.0f, 1.0f, 1.0f};
         const float emissiveAO[4] = {0.0f, 0.0f, 0.0f, 1.0f};
         const float packedRadiusMR[4] = {1.0f, 0.0f, 0.5f, -1.0f};
 
-        for (int i = 0; i < 16; ++i) instanceData.push_back(modelMatrix[i]);
-        for (int i = 0; i < 9; ++i) instanceData.push_back(modelMatrixIT[i]);
-        for (int i = 0; i < 3; ++i) instanceData.push_back(color[i]);
-        for (int i = 0; i < 4; ++i) instanceData.push_back(emissiveAO[i]);
-        for (int i = 0; i < 4; ++i) instanceData.push_back(packedRadiusMR[i]);
+        for (int i = 0; i < 16; ++i)
+            instanceData.push_back(modelMatrix[i]);
+        for (int i = 0; i < 9; ++i)
+            instanceData.push_back(modelMatrixIT[i]);
+        for (int i = 0; i < 3; ++i)
+            instanceData.push_back(color[i]);
+        for (int i = 0; i < 4; ++i)
+            instanceData.push_back(emissiveAO[i]);
+        for (int i = 0; i < 4; ++i)
+            instanceData.push_back(packedRadiusMR[i]);
 
         m_annulusInstanceBase = static_cast<unsigned int>(m_bodies.size());
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, m_instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER,
-                 instanceData.size() * sizeof(float),
-                 instanceData.data(),
+    glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(float), instanceData.data(),
                  GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -1504,19 +1499,19 @@ void CelestialBodyRenderer::updateBodyBuffers()
 // Rendering
 // ---------------------------------------------------------------------------
 
-void CelestialBodyRenderer::render(const float* viewMatrix, const float* projectionMatrix)
-{
-    if (!m_initialized || (m_bodies.empty() && !m_annulusVAO)) return;
+void CelestialBodyRenderer::render(const float* viewMatrix, const float* projectionMatrix) {
+    if (!m_initialized || (m_bodies.empty() && !m_annulusVAO))
+        return;
 
     updateBodyBuffers();
 
     // Render atmospheres first (semi-transparent, back-to-front would be ideal)
     if (m_showAtmospheres) {
         glUseProgram(m_atmosphereShaderProgram);
-        glUniformMatrix4fv(glGetUniformLocation(m_atmosphereShaderProgram, "viewMatrix"),
-                           1, GL_FALSE, viewMatrix);
-        glUniformMatrix4fv(glGetUniformLocation(m_atmosphereShaderProgram, "projectionMatrix"),
-                           1, GL_FALSE, projectionMatrix);
+        glUniformMatrix4fv(glGetUniformLocation(m_atmosphereShaderProgram, "viewMatrix"), 1,
+                           GL_FALSE, viewMatrix);
+        glUniformMatrix4fv(glGetUniformLocation(m_atmosphereShaderProgram, "projectionMatrix"), 1,
+                           GL_FALSE, projectionMatrix);
         glUniform1f(glGetUniformLocation(m_atmosphereShaderProgram, "atmosphereScale"), 1.1f);
 
         glBindVertexArray(m_sphereVAO);
@@ -1531,10 +1526,9 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     GLuint activeProgram = m_usePBR ? m_pbrShaderProgram : m_shaderProgram;
     glUseProgram(activeProgram);
 
-    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "viewMatrix"),
-                       1, GL_FALSE, viewMatrix);
-    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "projectionMatrix"),
-                       1, GL_FALSE, projectionMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "viewMatrix"), 1, GL_FALSE, viewMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "projectionMatrix"), 1, GL_FALSE,
+                       projectionMatrix);
     glUniform3fv(glGetUniformLocation(activeProgram, "lightPosition"), 1, m_lightPosition);
     glUniform3fv(glGetUniformLocation(activeProgram, "lightColor"), 1, m_lightColor);
     glUniform1f(glGetUniformLocation(activeProgram, "lightIntensity"), m_lightIntensity);
@@ -1598,8 +1592,7 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
         -(viewMatrix[4] * viewMatrix[12] + viewMatrix[5] * viewMatrix[13] +
           viewMatrix[6] * viewMatrix[14]),
         -(viewMatrix[8] * viewMatrix[12] + viewMatrix[9] * viewMatrix[13] +
-          viewMatrix[10] * viewMatrix[14])
-    };
+          viewMatrix[10] * viewMatrix[14])};
     glUniform3fv(m_bhCenterWorldLoc, 1, m_bhCenterWorld);
     glUniform3fv(m_cameraPosWorldLoc, 1, cameraPosWorld);
     glDrawElementsInstanced(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0,
@@ -1628,12 +1621,8 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
         // Bodies above already uploaded m_beamingDisplayGain; bodies drawn
         // later get the same value re-uploaded when the uniforms reset.
         glBindVertexArray(m_annulusVAO);
-        glDrawElementsInstancedBaseInstance(GL_TRIANGLES,
-                                            static_cast<GLsizei>(m_annulusIndexCount),
-                                            GL_UNSIGNED_INT,
-                                            0,
-                                            1,
-                                            m_annulusInstanceBase);
+        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, static_cast<GLsizei>(m_annulusIndexCount),
+                                            GL_UNSIGNED_INT, 0, 1, m_annulusInstanceBase);
         glBindVertexArray(0);
         glUniform1i(m_debugAnnulusLoc, 0);
         glUniform1i(m_debugAnnulusPositionLoc, 0);
@@ -1644,19 +1633,17 @@ void CelestialBodyRenderer::render(const float* viewMatrix, const float* project
     glUseProgram(0);
 }
 
-void CelestialBodyRenderer::renderBody(const CelestialBodyInstance& body,
-                                         const float* viewMatrix,
-                                         const float* projectionMatrix)
-{
-    if (!m_initialized) return;
+void CelestialBodyRenderer::renderBody(const CelestialBodyInstance& body, const float* viewMatrix,
+                                       const float* projectionMatrix) {
+    if (!m_initialized)
+        return;
 
     GLuint activeProgram = m_usePBR ? m_pbrShaderProgram : m_shaderProgram;
     glUseProgram(activeProgram);
 
-    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "viewMatrix"),
-                       1, GL_FALSE, viewMatrix);
-    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "projectionMatrix"),
-                       1, GL_FALSE, projectionMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "viewMatrix"), 1, GL_FALSE, viewMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(activeProgram, "projectionMatrix"), 1, GL_FALSE,
+                       projectionMatrix);
     glUniform3fv(glGetUniformLocation(activeProgram, "lightPosition"), 1, m_lightPosition);
     glUniform3fv(glGetUniformLocation(activeProgram, "lightColor"), 1, m_lightColor);
     glUniform1f(glGetUniformLocation(activeProgram, "lightIntensity"), m_lightIntensity);
@@ -1690,7 +1677,7 @@ void CelestialBodyRenderer::renderBody(const CelestialBodyInstance& body,
     float posX = static_cast<float>(body.position[0] * invScale);
     float posY = static_cast<float>(body.position[1] * invScale);
     float posZ = static_cast<float>(body.position[2] * invScale);
-    
+
     float scale = static_cast<float>(body.radius * invScale);
     // Model matrix: translation only (shader applies aRadius), so unit scale
     instanceData[0] = 1.0f;
@@ -1739,4 +1726,4 @@ void CelestialBodyRenderer::renderBody(const CelestialBodyInstance& body,
     glUseProgram(0);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

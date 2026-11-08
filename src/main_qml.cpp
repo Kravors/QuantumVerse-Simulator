@@ -12,306 +12,298 @@
 
 #ifdef _WIN32
 #define NOMINMAX
-#include <windows.h>  // for MessageBoxA
 #include <DbgHelp.h>
+#include <windows.h>  // for MessageBoxA
 #pragma comment(lib, "DbgHelp.lib")
 #undef connect
 #endif
 
 // Qt headers MUST come before project headers to avoid namespace pollution.
 // Qt uses QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
-#include <QGuiApplication>
 #include <QApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QQmlComponent>
-#include <QQuickWindow>
-#include <QSGRendererInterface>
-#include <QSurfaceFormat>
-#include <QResource>
 #include <QDebug>
 #include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QMessageBox>
-#include <QStandardPaths>
-#include <QTimer>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QFile>
+#include <QFileInfo>
+#include <QGuiApplication>
+#include <QMap>
+#include <QMessageBox>
+#include <QQmlApplicationEngine>
+#include <QQmlComponent>
+#include <QQmlContext>
+#include <QQuickWindow>
+#include <QResource>
+#include <QSGRendererInterface>
+#include <QStandardPaths>
+#include <QSurfaceFormat>
 #include <QThread>
+#include <QTimer>
 #include <QWidget>
 #include <QWindow>
-#include <QMap>
-#include <vector>
-#include <iostream>
 #include <csignal>
-#include <exception>
 #include <cstdio>
+#include <exception>
 #include <fstream>
+#include <iostream>
+#include <vector>
 
-#include "qmlglviewport.h"
-#include "qmlcamcontroller.h"
-#include "scenegraphmodel.h"
-#include "ui4d/SceneGraphManager.h"
-#include "ui4d/UI4D.h"
-#include "ui4d/PlanckMicroscope.h"
-#include "ui4d/Camera4DAdapter.h"
-#include "ui4d/QmlRLDiscoveryAgent.h"
-#include "ui4d/SpacetimeGPS.h"
-#include "experiment/ExperimentRunner.h"
-#include "experiment/experiments/MassSweepExperiment.h"
-#include "experiment/experiments/SpinSweepExperiment.h"
-#include "experiment/experiments/LensingDeflectionExperiment.h"
-#include "experiment/experiments/LensingTimeDelayExperiment.h"
-#include "experiment/experiments/FRBGeneratorExperiment.h"
-#include "experiment/experiments/PTASpectrumExperiment.h"
-#include "experiment/experiments/GWRingdownExperiment.h"
-#include "experiment/experiments/PhotonSphereExperiment.h"
-#include "experiment/experiments/ChargeSweepExperiment.h"
-#include "experiment/experiments/MercuryPrecessionExperiment.h"
-#include "experiment/experiments/FrameDraggingExperiment.h"
-#include "experiment/experiments/RedshiftProfileExperiment.h"
-#include "experiment/experiments/AnomalyScanExperiment.h"
-#include "experiment/experiments/TheoryComparisonExperiment.h"
-#include "experiment/experiments/QuantumGeometryExperiment.h"
-#include "experiment/experiments/AgeOfUniverseExperiment.h"
-#include "experiment/experiments/DistanceLadderExperiment.h"
-#include "experiment/experiments/CMBTemperatureExperiment.h"
-#include "experiment/experiments/BAOSoundHorizonExperiment.h"
-#include "experiment/experiments/HubbleEvolutionExperiment.h"
-#include "experiment/experiments/GrowthFactorExperiment.h"
-#include "experiment/experiments/CosmologyValidationSuite.h"
-#include "experiment/experiments/TheorySensitivityExperiment.h"
-#include "discovery/LLMCoPilot.h"
-#include "discovery/PaperGenerator.h"
-#include "discovery/ScanSummary.h"
-#include "discovery/AbstractVerifier.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/KerrMetric.h"
-#include "rendering/CurvatureRenderer.h"
-#include "rendering/QuantumGeometryRenderer.h"
-#include "rendering/GravitationalLensing.h"
-#include "rendering/CelestialBodyRenderer.h"
-#include "rendering/GLDebug.h"
-#include "physics/SingularityHandler.h"
-#include "quantumgravity/CDTEngine.h"
-#include "discovery/DiscoveryPanelManager.h"
-#include "discovery/FindingsModel.h"
-#include "ml/AnomalyMonitor.h"
-#include "data/LIGOAdapter.h"
-#include "data/IceCubeAdapter.h"
-#include "data/TESSAlertAdapter.h"
-#include "data/FermiGBMAdapter.h"
-#include "data/SwiftBATAdapter.h"
-#include "data/AlertToFinding.h"
+#include "config/ConfigLoader.h"
 #include "data/AlertRouter.h"
-#include "data/KafkaAlertListener.h"
+#include "data/AlertToFinding.h"
+#include "data/FermiGBMAdapter.h"
+#include "data/GCNBrokerConfig.h"
 #include "data/GCNNoticeParser.h"
 #include "data/GCNReplayStream.h"
-#include "data/GCNBrokerConfig.h"
-#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
-#include "discovery/GalacticRotationCurveScanner.h"
-#include "discovery/FineStructureConstantDriftObservatory.h"
+#include "data/IceCubeAdapter.h"
+#include "data/KafkaAlertListener.h"
+#include "data/LIGOAdapter.h"
+#include "data/SwiftBATAdapter.h"
+#include "data/TESSAlertAdapter.h"
+#include "discovery/AbstractVerifier.h"
+#include "discovery/BlackHoleJetAnomalyRecogniser.h"
 #include "discovery/BosonStarCollisionPredictor.h"
+#include "discovery/CMBLensingScanner.h"
+#include "discovery/CosmicShearScanner.h"
+#include "discovery/DarkMatterAnnihilationAnalyzer.h"
+#include "discovery/DiscoveryPanelManager.h"
+#include "discovery/ECORingdownAnalyzer.h"
+#include "discovery/EMBrightGWCounterpartDetector.h"
+#include "discovery/ExoplanetaryTTVFifthForceHunter.h"
+#include "discovery/FRBDispersionScanner.h"
+#include "discovery/FastRadioBurstAnalyzer.h"
+#include "discovery/FindingsModel.h"
+#include "discovery/FineStructureConstantDriftObservatory.h"
+#include "discovery/GWEchoHunter.h"
+#include "discovery/GWMemoryDetector.h"
+#include "discovery/GWRingdownScanner.h"
+#include "discovery/GalacticRotationCurveScanner.h"
+#include "discovery/GalacticTidalStreamCartographer.h"
+#include "discovery/GravitationalWaveMemoryAnalyzer.h"
 #include "discovery/HawkingRadiationDetector.h"
 #include "discovery/KerrNoHairViolationAnalyzer.h"
-#include "discovery/MergingBinaryInspiralAnalyzer.h"
-#include "discovery/NeutronStarGlitchPhaseDetector.h"
-#include "discovery/UltralightDMWaveInterferometer.h"
-#include "discovery/BlackHoleJetAnomalyRecogniser.h"
-#include "discovery/PrimordialLithiumCrisisSolver.h"
-#include "discovery/GalacticTidalStreamCartographer.h"
-#include "discovery/RecombinationConstantVariationImager.h"
-#include "discovery/CMBLensingScanner.h"
-#include "discovery/PTAScanner.h"
-#include "discovery/FRBDispersionScanner.h"
-#include "discovery/CosmicShearScanner.h"
-#include "discovery/GWMemoryDetector.h"
-#include "discovery/GravitationalWaveMemoryAnalyzer.h"
-#include "discovery/NeutrinoBurstAnalyzer.h"
 #include "discovery/KilonovaAfterglowScanner.h"
-#include "discovery/FastRadioBurstAnalyzer.h"
-#include "discovery/GWRingdownScanner.h"
-#include "discovery/GWEchoHunter.h"
-#include "discovery/ECORingdownAnalyzer.h"
-#include "discovery/SGWBBackgroundAnalyzer.h"
-#include "discovery/DarkMatterAnnihilationAnalyzer.h"
+#include "discovery/LLMCoPilot.h"
+#include "discovery/MergingBinaryInspiralAnalyzer.h"
+#include "discovery/NeutrinoBurstAnalyzer.h"
+#include "discovery/NeutronStarGlitchPhaseDetector.h"
 #include "discovery/PBHMicrolensingScanner.h"
-#include "discovery/EMBrightGWCounterpartDetector.h"
+#include "discovery/PTAScanner.h"
+#include "discovery/PaperGenerator.h"
+#include "discovery/PrimordialLithiumCrisisSolver.h"
+#include "discovery/RecombinationConstantVariationImager.h"
+#include "discovery/SGWBBackgroundAnalyzer.h"
+#include "discovery/ScanSummary.h"
 #include "discovery/TheoryDiscoveryAgent.h"
-#include "vr/SignalingClient.h"
-#include "vr/SharedSession.h"
-#include "vr/MultiUserServer.h"
-#include "utils/TraceLogger.h"
-#include "utils/CrashHandler.h"
-#include "utils/FrameDiagnostics.h"
-#include "utils/DataPaths.h"
-#include "config/ConfigLoader.h"
-#include "scenario/ScenarioManager.h"
-#include "sandbox/SandboxManager.h"
-#include "education/TourManager.h"
+#include "discovery/UltralightDMWaveInterferometer.h"
 #include "education/TourController.h"
+#include "education/TourManager.h"
+#include "experiment/ExperimentRunner.h"
+#include "experiment/experiments/AgeOfUniverseExperiment.h"
+#include "experiment/experiments/AnomalyScanExperiment.h"
+#include "experiment/experiments/BAOSoundHorizonExperiment.h"
+#include "experiment/experiments/CMBTemperatureExperiment.h"
+#include "experiment/experiments/ChargeSweepExperiment.h"
+#include "experiment/experiments/CosmologyValidationSuite.h"
+#include "experiment/experiments/DistanceLadderExperiment.h"
+#include "experiment/experiments/FRBGeneratorExperiment.h"
+#include "experiment/experiments/FrameDraggingExperiment.h"
+#include "experiment/experiments/GWRingdownExperiment.h"
+#include "experiment/experiments/GrowthFactorExperiment.h"
+#include "experiment/experiments/HubbleEvolutionExperiment.h"
+#include "experiment/experiments/LensingDeflectionExperiment.h"
+#include "experiment/experiments/LensingTimeDelayExperiment.h"
+#include "experiment/experiments/MassSweepExperiment.h"
+#include "experiment/experiments/MercuryPrecessionExperiment.h"
+#include "experiment/experiments/PTASpectrumExperiment.h"
+#include "experiment/experiments/PhotonSphereExperiment.h"
+#include "experiment/experiments/QuantumGeometryExperiment.h"
+#include "experiment/experiments/RedshiftProfileExperiment.h"
+#include "experiment/experiments/SpinSweepExperiment.h"
+#include "experiment/experiments/TheoryComparisonExperiment.h"
+#include "experiment/experiments/TheorySensitivityExperiment.h"
+#include "ml/AnomalyMonitor.h"
+#include "physics/SingularityHandler.h"
+#include "qmlcamcontroller.h"
+#include "qmlglviewport.h"
+#include "quantumgravity/CDTEngine.h"
+#include "rendering/CelestialBodyRenderer.h"
+#include "rendering/CurvatureRenderer.h"
+#include "rendering/GLDebug.h"
+#include "rendering/GravitationalLensing.h"
+#include "rendering/QuantumGeometryRenderer.h"
+#include "sandbox/SandboxManager.h"
+#include "scenario/ScenarioManager.h"
+#include "scenegraphmodel.h"
+#include "spacetime/KerrMetric.h"
+#include "spacetime/MetricTensor.h"
+#include "ui4d/Camera4DAdapter.h"
+#include "ui4d/PlanckMicroscope.h"
+#include "ui4d/QmlRLDiscoveryAgent.h"
+#include "ui4d/SceneGraphManager.h"
+#include "ui4d/SpacetimeGPS.h"
+#include "ui4d/UI4D.h"
+#include "utils/CrashHandler.h"
+#include "utils/DataPaths.h"
+#include "utils/FrameDiagnostics.h"
+#include "utils/TraceLogger.h"
+#include "vr/MultiUserServer.h"
+#include "vr/SharedSession.h"
+#include "vr/SignalingClient.h"
 
 /**
  * @brief Register QML types for the QuantumVerse module
  */
-void registerQmlTypes()
-{
-    qmlRegisterType<quantumverse::QmlGlViewport>(
-        "QuantumVerse", 1, 0, "QmlGlViewport");
-    qmlRegisterType<quantumverse::QmlCamController>(
-        "QuantumVerse", 1, 0, "QmlCamController");
-    qmlRegisterType<quantumverse::SceneGraphModel>(
-        "QuantumVerse", 1, 0, "SceneGraphModel");
+void registerQmlTypes() {
+    qmlRegisterType<quantumverse::QmlGlViewport>("QuantumVerse", 1, 0, "QmlGlViewport");
+    qmlRegisterType<quantumverse::QmlCamController>("QuantumVerse", 1, 0, "QmlCamController");
+    qmlRegisterType<quantumverse::SceneGraphModel>("QuantumVerse", 1, 0, "SceneGraphModel");
 
     // Register uncreatable types (singletons, etc.)
     qmlRegisterUncreatableType<quantumverse::SceneGraphManager>(
-        "QuantumVerse", 1, 0, "SceneGraphManager",
-        "SceneGraphManager is created in C++");
+        "QuantumVerse", 1, 0, "SceneGraphManager", "SceneGraphManager is created in C++");
 
     // TourController is instantiated in C++ as a context property.
     // Register its namespace meta-object so QML can access TourState enum
     // values (TourController.Stopped, TourController.Running, etc.)
-    qmlRegisterUncreatableMetaObject(
-        quantumverse::staticMetaObject,
-        "QuantumVerse", 1, 0, "TourController",
-        "TourController is created and wired in C++");
+    qmlRegisterUncreatableMetaObject(quantumverse::staticMetaObject, "QuantumVerse", 1, 0,
+                                     "TourController",
+                                     "TourController is created and wired in C++");
     // TourManager: singleton, registered for QML enum/meta-object access.
     qmlRegisterUncreatableType<quantumverse::TourManager>(
-        "QuantumVerse", 1, 0, "TourManager",
-        "TourManager is a singleton created in C++");
+        "QuantumVerse", 1, 0, "TourManager", "TourManager is a singleton created in C++");
 }
 
 /**
  * @brief Set up OpenGL format with required settings
  */
-QSurfaceFormat createSurfaceFormat()
-{
+QSurfaceFormat createSurfaceFormat() {
     QSurfaceFormat format;
     format.setVersion(4, 5);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setDepthBufferSize(24);
     format.setStencilBufferSize(8);
-    format.setSamples(4); // MSAA
+    format.setSamples(4);  // MSAA
     format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
     format.setSwapInterval(1);
     return format;
 }
 
 namespace {
-    // Captures Qt warnings/errors and (more importantly) the crash reason from
-    // Qt's render thread, which would otherwise be invisible on a headless/remote
-    // run. All output is mirrored to qml_runtime.log for post-mortem analysis.
-    void qtMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg)
-    {
-        static std::ofstream s_log("qml_runtime.log", std::ios::app);
-        const char* tag = "QT";
-        switch (type) {
-            case QtDebugMsg:    tag = "DEBUG"; break;
-            case QtInfoMsg:     tag = "INFO";  break;
-            case QtWarningMsg:  tag = "WARN";  break;
-            case QtCriticalMsg: tag = "CRIT";  break;
-            case QtFatalMsg:    tag = "FATAL"; break;
-        }
-        const char* file = ctx.file ? ctx.file : "?";
-        s_log << "[" << tag << "] " << msg.toStdString() << "  (" << file << ":" << ctx.line << ")\n";
-        s_log.flush();
-        std::fprintf(stderr, "[%s] %s\n", tag, msg.toLocal8Bit().constData());
+// Captures Qt warnings/errors and (more importantly) the crash reason from
+// Qt's render thread, which would otherwise be invisible on a headless/remote
+// run. All output is mirrored to qml_runtime.log for post-mortem analysis.
+void qtMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg) {
+    static std::ofstream s_log("qml_runtime.log", std::ios::app);
+    const char* tag = "QT";
+    switch (type) {
+        case QtDebugMsg:
+            tag = "DEBUG";
+            break;
+        case QtInfoMsg:
+            tag = "INFO";
+            break;
+        case QtWarningMsg:
+            tag = "WARN";
+            break;
+        case QtCriticalMsg:
+            tag = "CRIT";
+            break;
+        case QtFatalMsg:
+            tag = "FATAL";
+            break;
     }
-
-    void termHandler()
-    {
-        std::ofstream("qml_runtime.log", std::ios::app)
-            << "[TERMINATE] std::terminate called (uncaught C++ exception in render or init)\n";
-        std::fprintf(stderr, "[TERMINATE] std::terminate called (uncaught C++ exception)\n");
-        std::fflush(stderr);
-        abort();
-    }
-
-#ifdef _WIN32
-    // Write a string to stderr via the native console handle (bypasses the C
-    // runtime, which may already be torn down during a hard crash so that
-    // fprintf/std::ofstream would be lost).
-    void writeErrNative(const char* s)
-    {
-        HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
-        if (h == INVALID_HANDLE_VALUE || h == nullptr) return;
-        DWORD n = 0;
-        while (s[n]) ++n;
-        DWORD written = 0;
-        WriteFile(h, s, n, &written, nullptr);
-    }
-
-    LONG WINAPI unhandledExceptionFilter(EXCEPTION_POINTERS* ep)
-    {
-        char buf[256];
-        if (ep && ep->ExceptionRecord) {
-            sprintf_s(buf, sizeof(buf),
-                      "[SEH] Unhandled exception 0x%08X at %p\n",
-                      static_cast<unsigned>(ep->ExceptionRecord->ExceptionCode),
-                      ep->ExceptionRecord->ExceptionAddress);
-        } else {
-            sprintf_s(buf, sizeof(buf), "[SEH] Unhandled exception (no record)\n");
-        }
-        writeErrNative(buf);
-
-        HANDLE hFile = CreateFileA("qml_crash.dmp",
-                                    GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
-                                    FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (hFile != INVALID_HANDLE_VALUE) {
-            MINIDUMP_EXCEPTION_INFORMATION exInfo;
-            exInfo.ThreadId = GetCurrentThreadId();
-            exInfo.ExceptionPointers = ep;
-            exInfo.ClientPointers = FALSE;
-            MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(),
-                              hFile, MiniDumpNormal, &exInfo, nullptr, nullptr);
-            CloseHandle(hFile);
-            writeErrNative("[SEH] Minidump written to qml_crash.dmp\n");
-        }
-        return EXCEPTION_EXECUTE_HANDLER;
-    }
-
-    // First-chance vectored handler. Unlike SetUnhandledExceptionFilter, this
-    // cannot be overridden by Qt's own crash handler (which Qt installs during
-    // scene-graph / RHI initialization, shadowing our filter). We skip C++
-    // exceptions (0xE06D7363) and debug traps so only genuine crashes are logged.
-    LONG WINAPI vectoredHandler(PEXCEPTION_POINTERS ep)
-    {
-        if (!ep || !ep->ExceptionRecord) return EXCEPTION_CONTINUE_SEARCH;
-        DWORD code = ep->ExceptionRecord->ExceptionCode;
-        if (code == 0xE06D7363 /* C++ EH */ ||
-            code == 0x80000003 /* breakpoint */ ||
-            code == 0x80000004 /* single step */ ||
-            (code >= 0x40000000 && code < 0x80000000)) {
-            return EXCEPTION_CONTINUE_SEARCH;
-        }
-        char buf[256];
-        sprintf_s(buf, sizeof(buf),
-                  "[VEH] Exception 0x%08X at %p\n",
-                  static_cast<unsigned>(code),
-                  ep->ExceptionRecord->ExceptionAddress);
-        writeErrNative(buf);
-
-        HANDLE hFile = CreateFileA("qml_crash.dmp",
-                                    GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
-                                    FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (hFile != INVALID_HANDLE_VALUE) {
-            MINIDUMP_EXCEPTION_INFORMATION exInfo;
-            exInfo.ThreadId = GetCurrentThreadId();
-            exInfo.ExceptionPointers = ep;
-            exInfo.ClientPointers = FALSE;
-            MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(),
-                              hFile, MiniDumpNormal, &exInfo, nullptr, nullptr);
-            CloseHandle(hFile);
-            writeErrNative("[VEH] Minidump written to qml_crash.dmp\n");
-        }
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-#endif
+    const char* file = ctx.file ? ctx.file : "?";
+    s_log << "[" << tag << "] " << msg.toStdString() << "  (" << file << ":" << ctx.line << ")\n";
+    s_log.flush();
+    std::fprintf(stderr, "[%s] %s\n", tag, msg.toLocal8Bit().constData());
 }
 
-int main(int argc, char* argv[])
-{
+void termHandler() {
+    std::ofstream("qml_runtime.log", std::ios::app)
+        << "[TERMINATE] std::terminate called (uncaught C++ exception in render or init)\n";
+    std::fprintf(stderr, "[TERMINATE] std::terminate called (uncaught C++ exception)\n");
+    std::fflush(stderr);
+    abort();
+}
+
+#ifdef _WIN32
+// Write a string to stderr via the native console handle (bypasses the C
+// runtime, which may already be torn down during a hard crash so that
+// fprintf/std::ofstream would be lost).
+void writeErrNative(const char* s) {
+    HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+    if (h == INVALID_HANDLE_VALUE || h == nullptr)
+        return;
+    DWORD n = 0;
+    while (s[n])
+        ++n;
+    DWORD written = 0;
+    WriteFile(h, s, n, &written, nullptr);
+}
+
+LONG WINAPI unhandledExceptionFilter(EXCEPTION_POINTERS* ep) {
+    char buf[256];
+    if (ep && ep->ExceptionRecord) {
+        sprintf_s(buf, sizeof(buf), "[SEH] Unhandled exception 0x%08X at %p\n",
+                  static_cast<unsigned>(ep->ExceptionRecord->ExceptionCode),
+                  ep->ExceptionRecord->ExceptionAddress);
+    } else {
+        sprintf_s(buf, sizeof(buf), "[SEH] Unhandled exception (no record)\n");
+    }
+    writeErrNative(buf);
+
+    HANDLE hFile = CreateFileA("qml_crash.dmp", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                               FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile != INVALID_HANDLE_VALUE) {
+        MINIDUMP_EXCEPTION_INFORMATION exInfo;
+        exInfo.ThreadId = GetCurrentThreadId();
+        exInfo.ExceptionPointers = ep;
+        exInfo.ClientPointers = FALSE;
+        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal,
+                          &exInfo, nullptr, nullptr);
+        CloseHandle(hFile);
+        writeErrNative("[SEH] Minidump written to qml_crash.dmp\n");
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+// First-chance vectored handler. Unlike SetUnhandledExceptionFilter, this
+// cannot be overridden by Qt's own crash handler (which Qt installs during
+// scene-graph / RHI initialization, shadowing our filter). We skip C++
+// exceptions (0xE06D7363) and debug traps so only genuine crashes are logged.
+LONG WINAPI vectoredHandler(PEXCEPTION_POINTERS ep) {
+    if (!ep || !ep->ExceptionRecord)
+        return EXCEPTION_CONTINUE_SEARCH;
+    DWORD code = ep->ExceptionRecord->ExceptionCode;
+    if (code == 0xE06D7363 /* C++ EH */ || code == 0x80000003 /* breakpoint */ ||
+        code == 0x80000004 /* single step */ || (code >= 0x40000000 && code < 0x80000000)) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    char buf[256];
+    sprintf_s(buf, sizeof(buf), "[VEH] Exception 0x%08X at %p\n", static_cast<unsigned>(code),
+              ep->ExceptionRecord->ExceptionAddress);
+    writeErrNative(buf);
+
+    HANDLE hFile = CreateFileA("qml_crash.dmp", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                               FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile != INVALID_HANDLE_VALUE) {
+        MINIDUMP_EXCEPTION_INFORMATION exInfo;
+        exInfo.ThreadId = GetCurrentThreadId();
+        exInfo.ExceptionPointers = ep;
+        exInfo.ClientPointers = FALSE;
+        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal,
+                          &exInfo, nullptr, nullptr);
+        CloseHandle(hFile);
+        writeErrNative("[VEH] Minidump written to qml_crash.dmp\n");
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+#endif
+}  // namespace
+
+int main(int argc, char* argv[]) {
     // Install crash/exception logging BEFORE any other work so a failure in the
     // Qt render thread (which writes no message to stderr) is captured.
     std::set_terminate(termHandler);
@@ -337,7 +329,8 @@ int main(int argc, char* argv[])
         std::cerr << "FATAL: Threading support not available: " << e.what() << std::endl;
         std::cerr.flush();
 #ifdef _WIN32
-        MessageBoxA(nullptr, e.what(), "QuantumVerse Fatal Error: Threading Support Missing", MB_ICONERROR);
+        MessageBoxA(nullptr, e.what(), "QuantumVerse Fatal Error: Threading Support Missing",
+                    MB_ICONERROR);
 #endif
         return -1;
     } catch (const std::exception& e) {
@@ -348,7 +341,6 @@ int main(int argc, char* argv[])
 #endif
         return -1;
     }
-
 
     // Headless detection - exit gracefully if no display (for CI environments)
     // But if --frames is specified, attempt headless benchmark rendering below.
@@ -388,7 +380,7 @@ int main(int argc, char* argv[])
     double lensingTheta = -1.0;  // <0 = not set; >=0 overrides QML default
     bool disableCelestial = false;
     bool noStarfield = false;
-    QString paperPipelineId;  // --run-paper-pipeline <experiment-id>
+    QString paperPipelineId;        // --run-paper-pipeline <experiment-id>
     bool comparePublished = false;  // --compare-published: pass compareToPublished=true
 
     // VR / multi-user collaboration: --vr-server runs a MultiUserServer on the
@@ -451,14 +443,13 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i], "--time-scale") == 0 && i + 1 < argc) {
             const double scale = atof(argv[++i]);
             if (!(scale > 0.0)) {
-                std::cerr << "QuantumVerse: --time-scale takes a positive value, got "
-                          << scale << " - keeping " << simTimeScale << std::endl;
+                std::cerr << "QuantumVerse: --time-scale takes a positive value, got " << scale
+                          << " - keeping " << simTimeScale << std::endl;
                 std::cerr.flush();
             } else {
                 simTimeScale = scale;
                 std::cerr << "QuantumVerse: Physics time scale set to " << scale
-                          << " (dt = " << (1.0 / 60.0) * scale << " s/frame)"
-                          << std::endl;
+                          << " (dt = " << (1.0 / 60.0) * scale << " s/frame)" << std::endl;
                 std::cerr.flush();
             }
         } else if (strcmp(argv[i], "--screenshot") == 0 && i + 1 < argc) {
@@ -556,19 +547,19 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i], "--beaming-gain") == 0 && i + 1 < argc) {
             const float gain = static_cast<float>(atof(argv[++i]));
             if (gain <= 0.0f || gain > 4.0f) {
-                std::cerr << "QuantumVerse: --beaming-gain takes a value in (0, 4], got "
-                          << gain << " - keeping 1.0" << std::endl;
+                std::cerr << "QuantumVerse: --beaming-gain takes a value in (0, 4], got " << gain
+                          << " - keeping 1.0" << std::endl;
                 std::cerr.flush();
             } else {
                 beamingDisplayGain = gain;
-                std::cerr << "QuantumVerse: Beaming display gain set to " << gain
-                          << std::endl;
+                std::cerr << "QuantumVerse: Beaming display gain set to " << gain << std::endl;
                 std::cerr.flush();
             }
         }
     }
     if (fixedSimTime >= 0.0) {
-        std::cerr << "QuantumVerse: Deterministic simTime mode: fixedTime=" << fixedSimTime << std::endl;
+        std::cerr << "QuantumVerse: Deterministic simTime mode: fixedTime=" << fixedSimTime
+                  << std::endl;
         std::cerr.flush();
     }
     if (!screenshotPath.isEmpty() && headlessFrames <= 0) {
@@ -587,7 +578,8 @@ int main(int argc, char* argv[])
     quantumverse::utils::FrameDiagnostics frameDiagnostics;
     if (!diagnosticsPath.isEmpty()) {
         frameDiagnostics.setEnabled(true);
-        std::cerr << "Frame diagnostics enabled, output: " << diagnosticsPath.toStdString() << std::endl;
+        std::cerr << "Frame diagnostics enabled, output: " << diagnosticsPath.toStdString()
+                  << std::endl;
         std::cerr.flush();
     }
 
@@ -616,26 +608,30 @@ int main(int argc, char* argv[])
             QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
         }
 
-    // Plugin/import paths are resolved automatically from the Qt installation
-    // (see deploy/windows/windeployqt or the platform qt.conf). Do NOT hardcode
-    // local absolute paths here: it crashes on any machine without that layout.
+        // Plugin/import paths are resolved automatically from the Qt installation
+        // (see deploy/windows/windeployqt or the platform qt.conf). Do NOT hardcode
+        // local absolute paths here: it crashes on any machine without that layout.
 
-    if (!softwareRendering) {
-        QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
-    }
+        if (!softwareRendering) {
+            QSurfaceFormat::setDefaultFormat(createSurfaceFormat());
+        }
 
 #ifdef _WIN32
-    // Initialize COM for Windows (required for QWidget::createWindowContainer and Planck Microscope)
-    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        // Initialize COM for Windows (required for QWidget::createWindowContainer and Planck
+        // Microscope)
+        CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 #endif
 
-    QApplication app(argc, argv);
-    app.setApplicationName("QuantumVerse Simulator");
-    app.setOrganizationName("QuantumVerse");
-    qDebug() << "[DataPaths] appDir=" << QCoreApplication::applicationDirPath();
+        QApplication app(argc, argv);
+        app.setApplicationName("QuantumVerse Simulator");
+        app.setOrganizationName("QuantumVerse");
+        qDebug() << "[DataPaths] appDir=" << QCoreApplication::applicationDirPath();
 
-    std::ofstream("graphics_api.txt") << "Graphics API after QApplication/QQuickWindow setup: " << QQuickWindow::graphicsApi() << std::endl;
-    qDebug() << "Graphics API after QApplication/QQuickWindow setup:" << QQuickWindow::graphicsApi();
+        std::ofstream("graphics_api.txt")
+            << "Graphics API after QApplication/QQuickWindow setup: " << QQuickWindow::graphicsApi()
+            << std::endl;
+        qDebug() << "Graphics API after QApplication/QQuickWindow setup:"
+                 << QQuickWindow::graphicsApi();
 
         // 1. Ensure Qt can find its plugins
         std::cerr << "QT_PLUGIN_PATH = " << qgetenv("QT_PLUGIN_PATH").constData() << std::endl;
@@ -679,8 +675,7 @@ int main(int argc, char* argv[])
             quantumverse::utils::dataPath("scenarios/"));
 
         // Initialize educational tour manager (sibling of data/scenarios/)
-        quantumverse::TourManager::instance().initialize(
-            quantumverse::utils::dataPath("tours/"));
+        quantumverse::TourManager::instance().initialize(quantumverse::utils::dataPath("tours/"));
 
         double blackHoleMass = config.black_hole.mass_solar_masses * 1.989e30;
         double blackHoleSpin = config.black_hole.spin;
@@ -688,35 +683,41 @@ int main(int argc, char* argv[])
         std::shared_ptr<quantumverse::MetricTensor> metric;
         if (blackHoleSpin > 1e-10) {
             metric = std::make_shared<quantumverse::KerrMetric>(blackHoleMass, blackHoleSpin);
-            qDebug() << "QuantumVerse: Created Kerr BH with spin a*=" << blackHoleSpin
-                     << ", r_s =" << static_cast<quantumverse::KerrMetric*>(metric.get())->schwarzschildRadius() << "m"
-                     << ", r_+ =" << static_cast<quantumverse::KerrMetric*>(metric.get())->outerHorizonRadius() << "m";
+            qDebug() << "QuantumVerse: Created Kerr BH with spin a*=" << blackHoleSpin << ", r_s ="
+                     << static_cast<quantumverse::KerrMetric*>(metric.get())->schwarzschildRadius()
+                     << "m"
+                     << ", r_+ ="
+                     << static_cast<quantumverse::KerrMetric*>(metric.get())->outerHorizonRadius()
+                     << "m";
         } else {
             metric = std::make_shared<quantumverse::SchwarzschildMetric>(blackHoleMass);
-            qDebug() << "QuantumVerse: Created Schwarzschild BH, r_s =" << blackHoleMass * 2.0 * 6.67430e-11 / (299792458.0 * 299792458.0) << "m";
+            qDebug() << "QuantumVerse: Created Schwarzschild BH, r_s ="
+                     << blackHoleMass * 2.0 * 6.67430e-11 / (299792458.0 * 299792458.0) << "m";
         }
         auto curvatureRenderer = std::make_shared<quantumverse::CurvatureRenderer>(
-            config.grid.resolution, config.grid.size, quantumverse::CurvatureMode::GRID_DEFORMATION);
+            config.grid.resolution, config.grid.size,
+            quantumverse::CurvatureMode::GRID_DEFORMATION);
         curvatureRenderer->setMetric(metric);
         curvatureRenderer->setBlackHoleMassSolar(blackHoleMass / 1.989e30);
 
         // Create black hole singularity (position at origin)
         std::array<double, 3> bhPos = {0.0, 0.0, 0.0};
-        double angularMomentum = blackHoleSpin * quantumverse::PHYS_G() * blackHoleMass * blackHoleMass / quantumverse::PHYS_C();
+        double angularMomentum = blackHoleSpin * quantumverse::PHYS_G() * blackHoleMass *
+                                 blackHoleMass / quantumverse::PHYS_C();
         quantumverse::SingularityType bhType = (blackHoleSpin > 1e-10)
-            ? quantumverse::SingularityType::KERR
-            : quantumverse::SingularityType::SCHWARZSCHILD;
-        auto singularity = std::make_shared<quantumverse::SingularityHandler>(
-            bhType,
-            blackHoleMass,
-            angularMomentum,
-            0.0,   // charge
-            bhPos
-        );
+                                                   ? quantumverse::SingularityType::KERR
+                                                   : quantumverse::SingularityType::SCHWARZSCHILD;
+        auto singularity = std::make_shared<quantumverse::SingularityHandler>(bhType, blackHoleMass,
+                                                                              angularMomentum,
+                                                                              0.0,  // charge
+                                                                              bhPos);
         qDebug() << "QuantumVerse: Created" << (blackHoleSpin > 1e-10 ? "Kerr" : "Schwarzschild")
                  << "BH, r_s =" << singularity->getProperties().schwarzschild_radius << "m"
-                 << (blackHoleSpin > 1e-10 ? ", r_+ =" + QString::number(singularity->getProperties().event_horizon_radius) + "m"
-                                          : "");
+                 << (blackHoleSpin > 1e-10
+                         ? ", r_+ =" +
+                               QString::number(singularity->getProperties().event_horizon_radius) +
+                               "m"
+                         : "");
 
         // Add singularity to curvature renderer for grid deformation
         curvatureRenderer->addSingularity(singularity);
@@ -734,41 +735,69 @@ int main(int argc, char* argv[])
 
         // Create the Discovery Panel Manager and register all instruments
         auto discoveryPanelManager = std::make_shared<quantumverse::DiscoveryPanelManager>();
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::ExoplanetaryTTVFifthForceHunter>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GalacticRotationCurveScanner>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::FineStructureConstantDriftObservatory>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::BosonStarCollisionPredictor>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::HawkingRadiationDetector>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::KerrNoHairViolationAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::MergingBinaryInspiralAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::NeutronStarGlitchPhaseDetector>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::UltralightDMWaveInterferometer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::BlackHoleJetAnomalyRecogniser>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PrimordialLithiumCrisisSolver>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GalacticTidalStreamCartographer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::RecombinationConstantVariationImager>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::CMBLensingScanner>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::ExoplanetaryTTVFifthForceHunter>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::GalacticRotationCurveScanner>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::FineStructureConstantDriftObservatory>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::BosonStarCollisionPredictor>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::HawkingRadiationDetector>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::KerrNoHairViolationAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::MergingBinaryInspiralAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::NeutronStarGlitchPhaseDetector>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::UltralightDMWaveInterferometer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::BlackHoleJetAnomalyRecogniser>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::PrimordialLithiumCrisisSolver>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::GalacticTidalStreamCartographer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::RecombinationConstantVariationImager>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::CMBLensingScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PTAScanner>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::FRBDispersionScanner>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::CosmicShearScanner>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWMemoryDetector>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GravitationalWaveMemoryAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::NeutrinoBurstAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::KilonovaAfterglowScanner>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::FastRadioBurstAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWRingdownScanner>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::FRBDispersionScanner>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::CosmicShearScanner>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::GWMemoryDetector>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::GravitationalWaveMemoryAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::NeutrinoBurstAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::KilonovaAfterglowScanner>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::FastRadioBurstAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::GWRingdownScanner>());
         discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::GWEchoHunter>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::ECORingdownAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::SGWBBackgroundAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::DarkMatterAnnihilationAnalyzer>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::PBHMicrolensingScanner>());
-        discoveryPanelManager->registerInstrument(std::make_unique<quantumverse::EMBrightGWCounterpartDetector>());
-        qDebug() << "QuantumVerse: Registered" << discoveryPanelManager->instrumentCount() << "discovery instruments";
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::ECORingdownAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::SGWBBackgroundAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::DarkMatterAnnihilationAnalyzer>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::PBHMicrolensingScanner>());
+        discoveryPanelManager->registerInstrument(
+            std::make_unique<quantumverse::EMBrightGWCounterpartDetector>());
+        qDebug() << "QuantumVerse: Registered" << discoveryPanelManager->instrumentCount()
+                 << "discovery instruments";
 
         // Create the RL Discovery Agent and load the ONNX PPO actor policy
         auto rlDiscoveryAgent = std::make_shared<quantumverse::QmlRLDiscoveryAgent>();
-        QString onnxModelPath = QString::fromStdString(
-            quantumverse::utils::repoRoot() + "/rl_discovery_agent.onnx");
+        QString onnxModelPath =
+            QString::fromStdString(quantumverse::utils::repoRoot() + "/rl_discovery_agent.onnx");
         if (rlDiscoveryAgent->loadONNXModel(onnxModelPath)) {
             qDebug() << "QuantumVerse: RL Discovery Agent ONNX model loaded from:" << onnxModelPath;
         } else {
@@ -807,7 +836,7 @@ int main(int argc, char* argv[])
         // solar system into the grid (1 AU -> kViewportUnitsPerAU units) and
         // reuse the exact same factor for camera focus (exposed to QML below)
         // so the camera target and the rendered bodies always agree.
-        constexpr double kAstronomicalUnit = 1.495978707e11; // meters
+        constexpr double kAstronomicalUnit = 1.495978707e11;  // meters
         constexpr double kViewportUnitsPerAU = 1.3;
         const double kViewportScale = kViewportUnitsPerAU / kAstronomicalUnit;
         ui4d->setSolarSystemScale(kViewportScale);
@@ -831,7 +860,9 @@ int main(int argc, char* argv[])
             tr.color = quantumverse::SpacetimeGPS::typeColor(tr.type);
             tr.pos = b.position;
             tr.vel = b.velocity;
-            tr.spinX = 0.0; tr.spinY = 1.0; tr.spinZ = 0.0;
+            tr.spinX = 0.0;
+            tr.spinY = 1.0;
+            tr.spinZ = 0.0;
             tr.spinRate = 0.0;
             gps->registerObject(tr);
         }
@@ -845,7 +876,9 @@ int main(int argc, char* argv[])
             tr.color = quantumverse::SpacetimeGPS::typeColor(tr.type);
             tr.pos = quantumverse::Event4D(0.0, 0.0, 0.0, 0.0);
             tr.vel = quantumverse::Event4D(0.0, 0.0, 0.0, 0.0);
-            tr.spinX = 0.0; tr.spinY = 1.0; tr.spinZ = 0.0;
+            tr.spinX = 0.0;
+            tr.spinY = 1.0;
+            tr.spinZ = 0.0;
             tr.spinRate = blackHoleSpin;
             gps->registerObject(tr);
         }
@@ -857,35 +890,55 @@ int main(int argc, char* argv[])
         auto experimentRunner = std::make_shared<quantumverse::ExperimentRunner>();
         experimentRunner->registerExperiment(std::make_unique<quantumverse::MassSweepExperiment>());
         experimentRunner->registerExperiment(std::make_unique<quantumverse::SpinSweepExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::LensingDeflectionExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::LensingTimeDelayExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::FRBGeneratorExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::PTASpectrumExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::GWRingdownExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::PhotonSphereExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::ChargeSweepExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::MercuryPrecessionExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::FrameDraggingExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::RedshiftProfileExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::AnomalyScanExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::TheoryComparisonExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::QuantumGeometryExperiment>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::AgeOfUniverseExperiment>(
-            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::DistanceLadderExperiment>(
-            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::CMBTemperatureExperiment>(
-            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::BAOSoundHorizonExperiment>(
-            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::HubbleEvolutionExperiment>(
-            std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::LensingDeflectionExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::LensingTimeDelayExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::FRBGeneratorExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::PTASpectrumExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::GWRingdownExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::PhotonSphereExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::ChargeSweepExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::MercuryPrecessionExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::FrameDraggingExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::RedshiftProfileExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::AnomalyScanExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::TheoryComparisonExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::QuantumGeometryExperiment>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::AgeOfUniverseExperiment>(
+                std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::DistanceLadderExperiment>(
+                std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::CMBTemperatureExperiment>(
+                std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::BAOSoundHorizonExperiment>(
+                std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::HubbleEvolutionExperiment>(
+                std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
         experimentRunner->registerExperiment(std::make_unique<quantumverse::GrowthFactorExperiment>(
             std::make_shared<quantumverse::LambdaCDMReferenceProvider>()));
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::CosmologyValidationSuite>());
-        experimentRunner->registerExperiment(std::make_unique<quantumverse::TheorySensitivityExperiment>());
-        std::cerr << "QuantumVerse: Experiment runner registered "
-                  << experimentRunner->rowCount() << " experiments" << std::endl;
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::CosmologyValidationSuite>());
+        experimentRunner->registerExperiment(
+            std::make_unique<quantumverse::TheorySensitivityExperiment>());
+        std::cerr << "QuantumVerse: Experiment runner registered " << experimentRunner->rowCount()
+                  << " experiments" << std::endl;
         std::cerr.flush();
 
         // Headless paper pipeline: generate a discovery paper for the given
@@ -896,15 +949,14 @@ int main(int argc, char* argv[])
             if (comparePublished) {
                 paperParams[QStringLiteral("compareToPublished")] = true;
             }
-            QString path =
-                experimentRunner->generateDiscoveryPaper(paperPipelineId);
+            QString path = experimentRunner->generateDiscoveryPaper(paperPipelineId);
             if (path.isEmpty()) {
                 // No prior result — run the experiment first (same as QML:
                 // run, then generate paper).
                 QEventLoop runLoop;
                 QObject::connect(experimentRunner.get(),
-                    &quantumverse::ExperimentRunner::experimentFinished,
-                    &runLoop, [&]() { runLoop.quit(); });
+                                 &quantumverse::ExperimentRunner::experimentFinished, &runLoop,
+                                 [&]() { runLoop.quit(); });
                 experimentRunner->start(paperPipelineId, paperParams);
                 QTimer::singleShot(30000, &runLoop, &QEventLoop::quit);
                 runLoop.exec();
@@ -912,15 +964,15 @@ int main(int argc, char* argv[])
                 path = experimentRunner->generateDiscoveryPaper(paperPipelineId);
                 if (path.isEmpty()) {
                     std::cerr << "QuantumVerse: paper pipeline for '"
-                              << paperPipelineId.toStdString()
-                              << "' produced no PDF" << std::endl;
+                              << paperPipelineId.toStdString() << "' produced no PDF" << std::endl;
                     std::cerr.flush();
                     return 1;
                 }
             }
             // pdflatex runs asynchronously via QProcess signals; poll for the
             // output file (up to 120s — first MiKTeX run installs packages).
-            QElapsedTimer timer; timer.start();
+            QElapsedTimer timer;
+            timer.start();
             while (timer.elapsed() < 120000 && !QFileInfo::exists(path)) {
                 QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
             }
@@ -932,14 +984,14 @@ int main(int argc, char* argv[])
             }
             // Grace period for pdflatex to finish writing before exit.
             QThread::msleep(1000);
-            std::cerr << "[PAPER-PIPELINE] " << paperPipelineId.toStdString()
-                      << " -> " << path.toStdString() << std::endl;
+            std::cerr << "[PAPER-PIPELINE] " << paperPipelineId.toStdString() << " -> "
+                      << path.toStdString() << std::endl;
             std::cerr.flush();
             return 0;
         }
 
-        std::cerr << "QuantumVerse: Spacetime GPS registered "
-                  << gps->rowCount() << " tracked objects" << std::endl;
+        std::cerr << "QuantumVerse: Spacetime GPS registered " << gps->rowCount()
+                  << " tracked objects" << std::endl;
         std::cerr.flush();
 
         // Create the Camera4DAdapter for 4D navigation with 6-plane SO(4) rotation
@@ -973,10 +1025,9 @@ int main(int argc, char* argv[])
             }
             std::cerr << "QuantumVerse: CLI camera: az=" << cliCamAzimuthDeg
                       << "deg el=" << cliCamElevationDeg
-                      << "deg dist=" << camera4DAdapter->distance()
-                      << " target=(" << cliCamTarget.x() << ", "
-                      << cliCamTarget.y() << ", " << cliCamTarget.z() << ")"
-                      << std::endl;
+                      << "deg dist=" << camera4DAdapter->distance() << " target=("
+                      << cliCamTarget.x() << ", " << cliCamTarget.y() << ", " << cliCamTarget.z()
+                      << ")" << std::endl;
             std::cerr.flush();
         }
 
@@ -1000,45 +1051,49 @@ int main(int argc, char* argv[])
         }
 
         // VR controller input → Camera4DAdapter wiring
-        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [&engine, vrBackend, camera4DAdapter](QObject* obj, const QUrl& objUrl) {
-            if (!obj) return;
-            QTimer* vrInputTimer = new QTimer(&engine);
-            vrInputTimer->setInterval(16); // ~60Hz polling
-            QObject::connect(vrInputTimer, &QTimer::timeout, [vrBackend, camera4DAdapter]() {
-                if (!vrBackend->isActive() || !camera4DAdapter) return;
+        QObject::connect(
+            &engine, &QQmlApplicationEngine::objectCreated, &app,
+            [&engine, vrBackend, camera4DAdapter](QObject* obj, const QUrl& objUrl) {
+                if (!obj)
+                    return;
+                QTimer* vrInputTimer = new QTimer(&engine);
+                vrInputTimer->setInterval(16);  // ~60Hz polling
+                QObject::connect(vrInputTimer, &QTimer::timeout, [vrBackend, camera4DAdapter]() {
+                    if (!vrBackend->isActive() || !camera4DAdapter)
+                        return;
 
-                quantumverse::vr::ControllerState left, right;
-                if (vrBackend->getControllerState(left, right)) {
-                    // Left thumbstick → XY/XZ rotations
-                    const float deadzone = 0.15f;
-                    if (std::abs(left.thumbstickAxis.x) > deadzone) {
-                        camera4DAdapter->onMouseMoved(
-                            camera4DAdapter->distance() * left.thumbstickAxis.x * 0.02f,
-                            0.0f, 0, 0);
-                    }
-                    if (std::abs(left.thumbstickAxis.y) > deadzone) {
-                        camera4DAdapter->onMouseMoved(
-                            0.0f,
-                            camera4DAdapter->distance() * left.thumbstickAxis.y * 0.02f,
-                            0, 0);
-                    }
+                    quantumverse::vr::ControllerState left, right;
+                    if (vrBackend->getControllerState(left, right)) {
+                        // Left thumbstick → XY/XZ rotations
+                        const float deadzone = 0.15f;
+                        if (std::abs(left.thumbstickAxis.x) > deadzone) {
+                            camera4DAdapter->onMouseMoved(camera4DAdapter->distance() *
+                                                              left.thumbstickAxis.x * 0.02f,
+                                                          0.0f, 0, 0);
+                        }
+                        if (std::abs(left.thumbstickAxis.y) > deadzone) {
+                            camera4DAdapter->onMouseMoved(
+                                0.0f, camera4DAdapter->distance() * left.thumbstickAxis.y * 0.02f,
+                                0, 0);
+                        }
 
-                    // Right thumbstick → TY/TZ 4D rotations
-                    if (std::abs(right.thumbstickAxis.x) > deadzone) {
-                        camera4DAdapter->rotateInPlane(right.thumbstickAxis.x * 0.05);
-                    }
-                    if (std::abs(right.thumbstickAxis.y) > deadzone) {
-                        camera4DAdapter->advanceSlice(right.thumbstickAxis.y * 0.1);
-                    }
+                        // Right thumbstick → TY/TZ 4D rotations
+                        if (std::abs(right.thumbstickAxis.x) > deadzone) {
+                            camera4DAdapter->rotateInPlane(right.thumbstickAxis.x * 0.05);
+                        }
+                        if (std::abs(right.thumbstickAxis.y) > deadzone) {
+                            camera4DAdapter->advanceSlice(right.thumbstickAxis.y * 0.1);
+                        }
 
-                    // Grip button → reset view
-                    if (left.buttons[quantumverse::vr::ControllerState::ButtonGrip]) {
-                        camera4DAdapter->reset();
+                        // Grip button → reset view
+                        if (left.buttons[quantumverse::vr::ControllerState::ButtonGrip]) {
+                            camera4DAdapter->reset();
+                        }
                     }
-                }
-            });
-            vrInputTimer->start();
-        }, Qt::QueuedConnection);
+                });
+                vrInputTimer->start();
+            },
+            Qt::QueuedConnection);
 #endif
 
         QWidget* planckContainer = nullptr;
@@ -1050,16 +1105,16 @@ int main(int argc, char* argv[])
             std::cerr << "QuantumVerse: PlanckMicroscope created" << std::endl;
             std::cerr.flush();
             planckMicroscope->winId();
-            planckContainer = QWidget::createWindowContainer(
-                planckMicroscope->windowHandle(), nullptr);
+            planckContainer =
+                QWidget::createWindowContainer(planckMicroscope->windowHandle(), nullptr);
             std::cerr << "QuantumVerse: planckContainer created" << std::endl;
             std::cerr.flush();
             planckContainer->setObjectName("planckContainer");
             planckContainer->setVisible(false);
             // The container embeds the microscope's window; reparenting the widget
             // itself creates a recursive createWinId() chain under offscreen Qt.
-            QObject::connect(planckContainer, &QObject::destroyed,
-                planckMicroscope, &QObject::deleteLater);
+            QObject::connect(planckContainer, &QObject::destroyed, planckMicroscope,
+                             &QObject::deleteLater);
             std::cerr << "QuantumVerse: PlanckMicroscope setup complete" << std::endl;
             std::cerr.flush();
         }
@@ -1095,29 +1150,25 @@ int main(int argc, char* argv[])
         // scaled step - see main.qml's simTimer running binding.
         rootContext->setContextProperty("headlessPhysics", headlessFrames > 0);
         rootContext->setContextProperty("curvatureRenderer",
-            QVariant::fromValue(curvatureRenderer.get()));
+                                        QVariant::fromValue(curvatureRenderer.get()));
         rootContext->setContextProperty("quantumRenderer",
-            QVariant::fromValue(quantumRenderer.get()));
+                                        QVariant::fromValue(quantumRenderer.get()));
         rootContext->setContextProperty("sceneGraphModel",
-            new quantumverse::SceneGraphModel(&engine));
+                                        new quantumverse::SceneGraphModel(&engine));
         rootContext->setContextProperty("sceneGraphManager",
-            QVariant::fromValue(sceneGraphManager.get()));
+                                        QVariant::fromValue(sceneGraphManager.get()));
         auto* sandboxManager = new quantumverse::SandboxManager(&engine);
         rootContext->setContextProperty("sandboxManager", sandboxManager);
-        rootContext->setContextProperty("ui4d",
-            QVariant::fromValue(ui4d.get()));
+        rootContext->setContextProperty("ui4d", QVariant::fromValue(ui4d.get()));
         rootContext->setContextProperty("camera4DAdapter",
-            QVariant::fromValue(camera4DAdapter.get()));
-        rootContext->setContextProperty("spacetimeGPS",
-            QVariant::fromValue(gps.get()));
+                                        QVariant::fromValue(camera4DAdapter.get()));
+        rootContext->setContextProperty("spacetimeGPS", QVariant::fromValue(gps.get()));
         rootContext->setContextProperty("experimentRunner",
-            QVariant::fromValue(experimentRunner.get()));
+                                        QVariant::fromValue(experimentRunner.get()));
         // Shared meters -> viewport-units factor so QML camera focus lands
         // where the C++ renderer draws the bodies (see kViewportScale above).
-        rootContext->setContextProperty("viewportScale",
-            QVariant::fromValue(kViewportScale));
-        rootContext->setContextProperty("camController",
-            QVariant::fromValue(camController));
+        rootContext->setContextProperty("viewportScale", QVariant::fromValue(kViewportScale));
+        rootContext->setContextProperty("camController", QVariant::fromValue(camController));
 
         // Educational tour controller: bridges scripted tours to the live
         // viewport through provider lambdas (same decoupling as
@@ -1129,30 +1180,26 @@ int main(int argc, char* argv[])
         auto tourController = new quantumverse::TourController(&engine);
         tourController->setCameraGetter([&] {
             quantumverse::TourCameraState cs;
-            cs.azimuth   = static_cast<double>(camController->azimuth()) * 180.0 / M_PI;
+            cs.azimuth = static_cast<double>(camController->azimuth()) * 180.0 / M_PI;
             cs.elevation = static_cast<double>(camController->elevation()) * 180.0 / M_PI;
-            cs.distance  = static_cast<double>(camController->distance());
-            cs.target    = {static_cast<double>(camController->target().x()),
-                            static_cast<double>(camController->target().y()),
-                            static_cast<double>(camController->target().z())};
+            cs.distance = static_cast<double>(camController->distance());
+            cs.target = {static_cast<double>(camController->target().x()),
+                         static_cast<double>(camController->target().y()),
+                         static_cast<double>(camController->target().z())};
             return cs;
         });
-        rootContext->setContextProperty("tourController",
-            QVariant::fromValue(tourController));
-        rootContext->setContextProperty("tourManager",
-            QVariant::fromValue(&quantumverse::TourManager::instance()));
+        rootContext->setContextProperty("tourController", QVariant::fromValue(tourController));
+        rootContext->setContextProperty(
+            "tourManager", QVariant::fromValue(&quantumverse::TourManager::instance()));
         rootContext->setContextProperty("discoveryPanelManager",
-            QVariant::fromValue(discoveryPanelManager.get()));
+                                        QVariant::fromValue(discoveryPanelManager.get()));
         rootContext->setContextProperty("rlDiscoveryAgent",
-            QVariant::fromValue(rlDiscoveryAgent.get()));
-        rootContext->setContextProperty("llmCoPilot",
-            QVariant::fromValue(llmCoPilot));
+                                        QVariant::fromValue(rlDiscoveryAgent.get()));
+        rootContext->setContextProperty("llmCoPilot", QVariant::fromValue(llmCoPilot));
 #ifdef QUANTUMVERSE_USE_VR
-        rootContext->setContextProperty("vrBackend",
-            QVariant::fromValue(vrBackend.get()));
+        rootContext->setContextProperty("vrBackend", QVariant::fromValue(vrBackend.get()));
 #endif
-        rootContext->setContextProperty("planckContainer",
-            QVariant::fromValue(planckContainer));
+        rootContext->setContextProperty("planckContainer", QVariant::fromValue(planckContainer));
 
         // Correlations are exposed via DiscoveryPanelManager::correlationsList
         // and emitted through its built-in signals.
@@ -1161,10 +1208,10 @@ int main(int argc, char* argv[])
         // discovery panel manager via its findingsChanged signal.
         auto findingsModel = new quantumverse::FindingsModel(&engine);
         QObject::connect(discoveryPanelManager.get(),
-            &quantumverse::DiscoveryPanelManager::findingsChanged,
-            findingsModel, [findingsModel, discoveryPanelManager]() {
-                findingsModel->setFindings(discoveryPanelManager->findings());
-            });
+                         &quantumverse::DiscoveryPanelManager::findingsChanged, findingsModel,
+                         [findingsModel, discoveryPanelManager]() {
+                             findingsModel->setFindings(discoveryPanelManager->findings());
+                         });
         findingsModel->setFindings(discoveryPanelManager->findings());
         rootContext->setContextProperty("findingsModel", findingsModel);
 
@@ -1172,38 +1219,44 @@ int main(int argc, char* argv[])
         // Registered BEFORE engine.load() so QML can reference it during parsing.
         auto anomalyMonitor = std::make_shared<quantumverse::AnomalyMonitor>();
         auto anomalyDetector = std::make_shared<quantumverse::AnomalyDetector>();
-                if (anomalyDetector->load(quantumverse::utils::dataPath("ml/anomaly_model.json"))) {
-                    qDebug() << "AnomalyMonitor: ML model loaded from" << quantumverse::utils::dataPath("ml/anomaly_model.json");
-                    anomalyMonitor->setAnomalyDetector(anomalyDetector);
-                } else {
-                    qWarning() << "AnomalyMonitor: No ML model found at" << quantumverse::utils::dataPath("ml/anomaly_model.json") << ", running with empty detector";
-                    // Route the failure to the Discovery Console so it's visible in the UI
-                    quantumverse::InstrumentFinding f;
-                    f.id = "ML_Anomaly_Offline";
-                    f.instrumentName = "ML Anomaly Detector";
-                    f.description = "ONNX model failed to load — ML anomaly detection offline. Check data path and model file.";
-                    f.confidence = 1.0;
-                    f.severity = quantumverse::AlertSeverity::HIGH;
-                    f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
-                    f.isAnomaly = true;
-                    findingsModel->addFinding(f);
-                }
+        if (anomalyDetector->load(quantumverse::utils::dataPath("ml/anomaly_model.json"))) {
+            qDebug() << "AnomalyMonitor: ML model loaded from"
+                     << quantumverse::utils::dataPath("ml/anomaly_model.json");
+            anomalyMonitor->setAnomalyDetector(anomalyDetector);
+        } else {
+            qWarning() << "AnomalyMonitor: No ML model found at"
+                       << quantumverse::utils::dataPath("ml/anomaly_model.json")
+                       << ", running with empty detector";
+            // Route the failure to the Discovery Console so it's visible in the UI
+            quantumverse::InstrumentFinding f;
+            f.id = "ML_Anomaly_Offline";
+            f.instrumentName = "ML Anomaly Detector";
+            f.description =
+                "ONNX model failed to load — ML anomaly detection offline. Check data path and "
+                "model file.";
+            f.confidence = 1.0;
+            f.severity = quantumverse::AlertSeverity::HIGH;
+            f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
+            f.isAnomaly = true;
+            findingsModel->addFinding(f);
+        }
         anomalyMonitor->setUI4D(ui4d);
-        anomalyMonitor->setFindingsProvider([discoveryPanelManager]() {
-            return discoveryPanelManager->findings();
-        });
+        anomalyMonitor->setFindingsProvider(
+            [discoveryPanelManager]() { return discoveryPanelManager->findings(); });
         QObject::connect(anomalyMonitor.get(), &quantumverse::AnomalyMonitor::anomalyDetected,
-            [findingsModel](const QJsonObject& anomaly) {
-                quantumverse::InstrumentFinding f;
-                f.id = ("ML_Anomaly_" + QString::number(QDateTime::currentMSecsSinceEpoch())).toStdString();
-                f.instrumentName = "ML Anomaly Detector";
-                f.description = anomaly.value("description").toString().toStdString();
-                f.confidence = 0.5;
-                f.severity = quantumverse::AlertSeverity::MEDIUM;
-                f.timestamp = anomaly.value("timestamp").toDouble();
-                f.isAnomaly = true;
-                findingsModel->addFinding(f);
-            });
+                         [findingsModel](const QJsonObject& anomaly) {
+                             quantumverse::InstrumentFinding f;
+                             f.id = ("ML_Anomaly_" +
+                                     QString::number(QDateTime::currentMSecsSinceEpoch()))
+                                        .toStdString();
+                             f.instrumentName = "ML Anomaly Detector";
+                             f.description = anomaly.value("description").toString().toStdString();
+                             f.confidence = 0.5;
+                             f.severity = quantumverse::AlertSeverity::MEDIUM;
+                             f.timestamp = anomaly.value("timestamp").toDouble();
+                             f.isAnomaly = true;
+                             findingsModel->addFinding(f);
+                         });
         rootContext->setContextProperty("anomalyMonitor", anomalyMonitor.get());
         qDebug() << "QuantumVerse: AnomalyMonitor registered as context property 'anomalyMonitor'";
 
@@ -1212,20 +1265,21 @@ int main(int argc, char* argv[])
         // discovery instrument findings.
         auto ligoAdapter = std::make_shared<quantumverse::LIGOAdapter>();
         auto iceCubeAdapter = std::make_shared<quantumverse::IceCubeAdapter>();
-        ligoAdapter->setCallback([findingsModel, ligoAdapter](const quantumverse::GravitationalWaveAlert& alert) {
-            (void)ligoAdapter;
-            findingsModel->addFinding(quantumverse::toInstrumentFinding(alert));
-        });
-        iceCubeAdapter->setCallback([findingsModel, iceCubeAdapter](const quantumverse::NeutrinoAlert& alert) {
-            (void)iceCubeAdapter;
-            findingsModel->addFinding(quantumverse::toInstrumentFinding(alert));
-        });
+        ligoAdapter->setCallback(
+            [findingsModel, ligoAdapter](const quantumverse::GravitationalWaveAlert& alert) {
+                (void)ligoAdapter;
+                findingsModel->addFinding(quantumverse::toInstrumentFinding(alert));
+            });
+        iceCubeAdapter->setCallback(
+            [findingsModel, iceCubeAdapter](const quantumverse::NeutrinoAlert& alert) {
+                (void)iceCubeAdapter;
+                findingsModel->addFinding(quantumverse::toInstrumentFinding(alert));
+            });
         ligoAdapter->start();
         iceCubeAdapter->start();
-        rootContext->setContextProperty("ligoAdapter",
-            QVariant::fromValue(ligoAdapter.get()));
+        rootContext->setContextProperty("ligoAdapter", QVariant::fromValue(ligoAdapter.get()));
         rootContext->setContextProperty("iceCubeAdapter",
-            QVariant::fromValue(iceCubeAdapter.get()));
+                                        QVariant::fromValue(iceCubeAdapter.get()));
 
         // Create replayStream outside the Kafka block so it's always available
         auto replayStream = std::make_shared<quantumverse::GCNReplayStream>();
@@ -1240,18 +1294,17 @@ int main(int argc, char* argv[])
             f.id = "TESS_" + alert.toi_id;
             f.instrumentName = "TESS (Live)";
             f.description = QStringLiteral("Live TOI %1 (P=%2 d, depth=%3 ppm)")
-                .arg(QString::fromStdString(alert.toi_id))
-                .arg(alert.period_days)
-                .arg(alert.depth_ppm)
-                .toStdString();
+                                .arg(QString::fromStdString(alert.toi_id))
+                                .arg(alert.period_days)
+                                .arg(alert.depth_ppm)
+                                .toStdString();
             f.confidence = alert.confidence;
             f.severity = quantumverse::confidenceToSeverity(alert.confidence);
             f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
             findingsModel->addFinding(f);
         });
         alertRouter->setTESSAdapter(tessAdapter.get());
-        rootContext->setContextProperty("tessAdapter",
-            QVariant::fromValue(tessAdapter.get()));
+        rootContext->setContextProperty("tessAdapter", QVariant::fromValue(tessAdapter.get()));
 
         auto fermiAdapter = std::make_shared<quantumverse::FermiGBMAdapter>();
         fermiAdapter->setCallback([findingsModel](const quantumverse::FermiGBMAlert& alert) {
@@ -1259,18 +1312,17 @@ int main(int argc, char* argv[])
             f.id = "FermiGBM_" + alert.trigger_id;
             f.instrumentName = "Fermi GBM (Live)";
             f.description = QStringLiteral("Live GRB %1 (duration=%2 s, flux=%3)")
-                .arg(QString::fromStdString(alert.trigger_id))
-                .arg(alert.duration)
-                .arg(alert.peak_flux)
-                .toStdString();
+                                .arg(QString::fromStdString(alert.trigger_id))
+                                .arg(alert.duration)
+                                .arg(alert.peak_flux)
+                                .toStdString();
             f.confidence = quantumverse::alertConfidence(alert.false_alarm_rate, alert.confidence);
             f.severity = quantumverse::confidenceToSeverity(f.confidence);
             f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
             findingsModel->addFinding(f);
         });
         alertRouter->setFermiGBMAdapter(fermiAdapter.get());
-        rootContext->setContextProperty("fermiAdapter",
-            QVariant::fromValue(fermiAdapter.get()));
+        rootContext->setContextProperty("fermiAdapter", QVariant::fromValue(fermiAdapter.get()));
 
         auto swiftAdapter = std::make_shared<quantumverse::SwiftBATAdapter>();
         swiftAdapter->setCallback([findingsModel](const quantumverse::SwiftBATAlert& alert) {
@@ -1278,18 +1330,17 @@ int main(int argc, char* argv[])
             f.id = "SwiftBAT_" + alert.trigger_id;
             f.instrumentName = "Swift BAT (Live)";
             f.description = QStringLiteral("Live X-ray transient %1 (BAT rate=%2, XRT flux=%3)")
-                .arg(QString::fromStdString(alert.trigger_id))
-                .arg(alert.bat_rate)
-                .arg(alert.xrt_flux)
-                .toStdString();
+                                .arg(QString::fromStdString(alert.trigger_id))
+                                .arg(alert.bat_rate)
+                                .arg(alert.xrt_flux)
+                                .toStdString();
             f.confidence = quantumverse::alertConfidence(alert.false_alarm_rate, alert.confidence);
             f.severity = quantumverse::confidenceToSeverity(f.confidence);
             f.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
             findingsModel->addFinding(f);
         });
         alertRouter->setSwiftBATAdapter(swiftAdapter.get());
-        rootContext->setContextProperty("swiftAdapter",
-            QVariant::fromValue(swiftAdapter.get()));
+        rootContext->setContextProperty("swiftAdapter", QVariant::fromValue(swiftAdapter.get()));
 
         quantumverse::GCNBrokerConfig gcnConfig;
         if (gcnProdMode) {
@@ -1303,36 +1354,32 @@ int main(int argc, char* argv[])
         auto kafkaListener = std::make_shared<quantumverse::KafkaAlertListener>(gcnConfig);
 
         QObject::connect(kafkaListener.get(), &quantumverse::KafkaAlertListener::alertReceived,
-            alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
+                         alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
 
         QObject::connect(alertRouter.get(), &quantumverse::AlertRouter::parsedAlertReady,
-            discoveryPanelManager.get(), &quantumverse::DiscoveryPanelManager::ingestAlert);
+                         discoveryPanelManager.get(),
+                         &quantumverse::DiscoveryPanelManager::ingestAlert);
 
         QObject::connect(kafkaListener.get(), &quantumverse::KafkaAlertListener::consumerError,
-            [](const QString& err) {
-                qWarning() << "Kafka listener error:" << err;
-            });
+                         [](const QString& err) { qWarning() << "Kafka listener error:" << err; });
 
         kafkaListener->start();
-        rootContext->setContextProperty("kafkaListener",
-            QVariant::fromValue(kafkaListener.get()));
-        rootContext->setContextProperty("alertRouter",
-            QVariant::fromValue(alertRouter.get()));
+        rootContext->setContextProperty("kafkaListener", QVariant::fromValue(kafkaListener.get()));
+        rootContext->setContextProperty("alertRouter", QVariant::fromValue(alertRouter.get()));
 
         auto theoryAgent = std::make_shared<quantumverse::TheoryDiscoveryAgent>();
         QObject::connect(alertRouter.get(), &quantumverse::AlertRouter::parsedAlertReady,
-            [theoryAgent](const QJsonObject& alert, quantumverse::AlertOrigin origin) {
-                if (origin == quantumverse::AlertOrigin::LIGO) {
-                    theoryAgent->ingestLiveAlert(alert);
-                }
-            });
+                         [theoryAgent](const QJsonObject& alert, quantumverse::AlertOrigin origin) {
+                             if (origin == quantumverse::AlertOrigin::LIGO) {
+                                 theoryAgent->ingestLiveAlert(alert);
+                             }
+                         });
 
 #ifdef HAVE_LIBRDKAFKA
         QObject::connect(replayStream.get(), &quantumverse::GCNReplayStream::alertAvailable,
-            alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
+                         alertRouter.get(), &quantumverse::AlertRouter::routeAlert);
 #endif
-        rootContext->setContextProperty("replayStream",
-            QVariant::fromValue(replayStream.get()));
+        rootContext->setContextProperty("replayStream", QVariant::fromValue(replayStream.get()));
         // Set default archive directory (create if missing)
         QString defaultArchive = QDir::currentPath() + "/data/gcn_archive";
         QDir().mkpath(defaultArchive);
@@ -1357,27 +1404,26 @@ int main(int argc, char* argv[])
         sharedSession->setSignalingClient(signalingClient.get());
 
         QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::connected,
-            [signalingClient, sessionId, sharedSession]() mutable {
-                qDebug() << "Signaling: connected to server, session=" << sessionId;
-                if (!sessionId.isEmpty()) {
-                    sharedSession->setSessionId(sessionId);
-                }
-            });
+                         [signalingClient, sessionId, sharedSession]() mutable {
+                             qDebug() << "Signaling: connected to server, session=" << sessionId;
+                             if (!sessionId.isEmpty()) {
+                                 sharedSession->setSessionId(sessionId);
+                             }
+                         });
 
         QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::peerJoined,
-            [](const QString& clientId, const QString& clientName) {
-                qDebug() << "Signaling: peer joined" << clientId << clientName;
-            });
+                         [](const QString& clientId, const QString& clientName) {
+                             qDebug() << "Signaling: peer joined" << clientId << clientName;
+                         });
 
-        QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::peerLeft,
-            [](const QString& clientId) {
-                qDebug() << "Signaling: peer left" << clientId;
-            });
+        QObject::connect(
+            signalingClient.get(), &quantumverse::vr::SignalingClient::peerLeft,
+            [](const QString& clientId) { qDebug() << "Signaling: peer left" << clientId; });
 
         QObject::connect(signalingClient.get(), &quantumverse::vr::SignalingClient::stateReceived,
-            [sharedSession](const QString& senderId, const QJsonObject& stateJson) {
-                sharedSession->applyPeerState(senderId, stateJson);
-            });
+                         [sharedSession](const QString& senderId, const QJsonObject& stateJson) {
+                             sharedSession->applyPeerState(senderId, stateJson);
+                         });
 
         if (!signalingServerUrl.isEmpty()) {
             QString effectiveSessionId = sessionId;
@@ -1412,39 +1458,35 @@ int main(int argc, char* argv[])
         }
 
         rootContext->setContextProperty("signalingClient",
-            QVariant::fromValue(signalingClient.get()));
-        rootContext->setContextProperty("sharedSession",
-            QVariant::fromValue(sharedSession.get()));
+                                        QVariant::fromValue(signalingClient.get()));
+        rootContext->setContextProperty("sharedSession", QVariant::fromValue(sharedSession.get()));
 
-        rootContext->setContextProperty("planckContainer",
-            QVariant::fromValue(planckContainer));
+        rootContext->setContextProperty("planckContainer", QVariant::fromValue(planckContainer));
 
         // Stub missing properties so QML does not throw reference errors
-        rootContext->setContextProperty("probeKretschmann",
-            QVariant::fromValue(QString("—")));
-        rootContext->setContextProperty("probeRicci",
-            QVariant::fromValue(QString("—")));
-        rootContext->setContextProperty("probeWeyl",
-            QVariant::fromValue(QString("—")));
-        rootContext->setContextProperty("probeRedshift",
-            QVariant::fromValue(QString("—")));
+        rootContext->setContextProperty("probeKretschmann", QVariant::fromValue(QString("—")));
+        rootContext->setContextProperty("probeRicci", QVariant::fromValue(QString("—")));
+        rootContext->setContextProperty("probeWeyl", QVariant::fromValue(QString("—")));
+        rootContext->setContextProperty("probeRedshift", QVariant::fromValue(QString("—")));
 
         QStringList bodies = {"Schwarzschild BH"};
-        engine.rootContext()->setContextProperty("celestialBodyModel",
-            QVariant::fromValue(bodies));
+        engine.rootContext()->setContextProperty("celestialBodyModel", QVariant::fromValue(bodies));
 
         // Load the main QML file
         const QUrl url(QStringLiteral("qrc:/main.qml"));
         qDebug() << "QuantumVerse: Loading QML from" << url.toString();
 
-        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-            &app, [url](QObject* obj, const QUrl& objUrl) {
+        QObject::connect(
+            &engine, &QQmlApplicationEngine::objectCreated, &app,
+            [url](QObject* obj, const QUrl& objUrl) {
                 if (!obj && url == objUrl) {
-                    std::cerr << "Failed to load main.qml from" << url.toString().toStdString() << std::endl;
+                    std::cerr << "Failed to load main.qml from" << url.toString().toStdString()
+                              << std::endl;
                     std::cerr.flush();
                     QCoreApplication::exit(-1);
                 }
-            }, Qt::QueuedConnection);
+            },
+            Qt::QueuedConnection);
 
         QQmlComponent component(&engine, url);
         if (component.isError()) {
@@ -1459,7 +1501,8 @@ int main(int argc, char* argv[])
         engine.load(url);
         qDebug() << "QuantumVerse: QML engine.load() completed";
 
-        std::ofstream("graphics_api.txt", std::ios::app) << "graphics_api_post_engine: " << QQuickWindow::graphicsApi() << std::endl;
+        std::ofstream("graphics_api.txt", std::ios::app)
+            << "graphics_api_post_engine: " << QQuickWindow::graphicsApi() << std::endl;
 
         // Check for QML errors
         if (engine.rootObjects().isEmpty()) {
@@ -1470,8 +1513,8 @@ int main(int argc, char* argv[])
         qDebug() << "QML loaded successfully, root objects:" << engine.rootObjects().size();
 
         // Initialize the scene graph model with the manager
-        auto* sgModel = rootContext->contextProperty("sceneGraphModel")
-            .value<quantumverse::SceneGraphModel*>();
+        auto* sgModel =
+            rootContext->contextProperty("sceneGraphModel").value<quantumverse::SceneGraphModel*>();
         if (sgModel) {
             sgModel->setSceneGraphManager(sceneGraphManager);
             sgModel->createSolarSystem();
@@ -1514,12 +1557,11 @@ int main(int argc, char* argv[])
 
                 // GPS focus request: re-centre the 4D camera on the clicked object.
                 // Coordinates are already scaled by viewportScale (viewport units).
-                QObject::connect(gps.get(), &quantumverse::SpacetimeGPS::focusRequested,
-                    camera4DAdapter.get(),
+                QObject::connect(
+                    gps.get(), &quantumverse::SpacetimeGPS::focusRequested, camera4DAdapter.get(),
                     [camera4DAdapter](const QString& /*id*/, double x, double y, double z) {
-                        camera4DAdapter->focusOn(QVector3D(static_cast<float>(x),
-                                                           static_cast<float>(y),
-                                                           static_cast<float>(z)));
+                        camera4DAdapter->focusOn(QVector3D(
+                            static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)));
                     });
 
                 sandboxManager->setViewport(viewport);
@@ -1536,83 +1578,88 @@ int main(int argc, char* argv[])
                     // Peer camera poses received via cameraPoseReceived signal.
                     QMap<QString, QVariantMap> peerPoses;
 
-                    QObject::connect(signalingClient.get(),
+                    QObject::connect(
+                        signalingClient.get(),
                         &quantumverse::vr::SignalingClient::cameraPoseReceived,
                         [&peerPoses](const QString& senderId, const QJsonObject& cameraJson) {
-                        QVariantMap b;
-                        b["id"] = senderId;
-                        b["name"] = QString("Peer %1").arg(senderId.left(8));
-                        b["x"] = cameraJson.value("x").toDouble();
-                        b["y"] = cameraJson.value("y").toDouble();
-                        b["z"] = cameraJson.value("z").toDouble();
-                        b["color"] = "#00ff00";
-                        peerPoses[senderId] = b;
-                        qDebug() << "[VR] Received camera_pose from" << senderId
-                                 << "at" << cameraJson.value("x").toDouble()
-                                 << cameraJson.value("y").toDouble()
-                                 << cameraJson.value("z").toDouble();
-                    });
+                            QVariantMap b;
+                            b["id"] = senderId;
+                            b["name"] = QString("Peer %1").arg(senderId.left(8));
+                            b["x"] = cameraJson.value("x").toDouble();
+                            b["y"] = cameraJson.value("y").toDouble();
+                            b["z"] = cameraJson.value("z").toDouble();
+                            b["color"] = "#00ff00";
+                            peerPoses[senderId] = b;
+                            qDebug() << "[VR] Received camera_pose from" << senderId << "at"
+                                     << cameraJson.value("x").toDouble()
+                                     << cameraJson.value("y").toDouble()
+                                     << cameraJson.value("z").toDouble();
+                        });
 
                     auto vrTimer = new QTimer();
-                    vrTimer->setInterval(100); // 10 Hz
+                    vrTimer->setInterval(100);  // 10 Hz
 
-                    QObject::connect(vrTimer, &QTimer::timeout, [viewport, camera4DAdapter,
-                        signalingClient, &peerPoses, vrClientName, vrSessionId]() mutable {
-                        if (!viewport || !camera4DAdapter) return;
+                    QObject::connect(
+                        vrTimer, &QTimer::timeout,
+                        [viewport, camera4DAdapter, signalingClient, &peerPoses, vrClientName,
+                         vrSessionId]() mutable {
+                            if (!viewport || !camera4DAdapter)
+                                return;
 
-                        // Broadcast local camera pose to peers
-                        if (signalingClient && signalingClient->isConnected()) {
-                            QJsonObject poseMsg;
-                            poseMsg["type"] = "camera_pose";
-                            poseMsg["sessionId"] = vrSessionId;
-                            poseMsg["senderId"] = signalingClient->clientId();
-                            poseMsg["senderName"] = vrClientName;
-                            poseMsg["timestamp"] = QDateTime::currentMSecsSinceEpoch();
-                            QJsonObject cam;
-                            quantumverse::Event4D camPos = camera4DAdapter->cameraPosition4D();
-                            cam["x"] = camPos.x;
-                            cam["y"] = camPos.y;
-                            cam["z"] = camPos.z;
-                            cam["az"] = camera4DAdapter->azimuth();
-                            cam["el"] = camera4DAdapter->elevation();
-                            cam["d"] = camera4DAdapter->distance();
-                            poseMsg["camera"] = cam;
-                            signalingClient->sendJson(poseMsg);
-                        }
+                            // Broadcast local camera pose to peers
+                            if (signalingClient && signalingClient->isConnected()) {
+                                QJsonObject poseMsg;
+                                poseMsg["type"] = "camera_pose";
+                                poseMsg["sessionId"] = vrSessionId;
+                                poseMsg["senderId"] = signalingClient->clientId();
+                                poseMsg["senderName"] = vrClientName;
+                                poseMsg["timestamp"] = QDateTime::currentMSecsSinceEpoch();
+                                QJsonObject cam;
+                                quantumverse::Event4D camPos = camera4DAdapter->cameraPosition4D();
+                                cam["x"] = camPos.x;
+                                cam["y"] = camPos.y;
+                                cam["z"] = camPos.z;
+                                cam["az"] = camera4DAdapter->azimuth();
+                                cam["el"] = camera4DAdapter->elevation();
+                                cam["d"] = camera4DAdapter->distance();
+                                poseMsg["camera"] = cam;
+                                signalingClient->sendJson(poseMsg);
+                            }
 
-                        // Render peer bodies from received camera poses
-                        QVariantList peerBodies;
-                        for (auto it = peerPoses.begin(); it != peerPoses.end(); ++it) {
-                            peerBodies.append(it.value());
-                        }
-                        if (viewport) {
-                            viewport->setPeerBodies(peerBodies);
-                        }
-                    });
+                            // Render peer bodies from received camera poses
+                            QVariantList peerBodies;
+                            for (auto it = peerPoses.begin(); it != peerPoses.end(); ++it) {
+                                peerBodies.append(it.value());
+                            }
+                            if (viewport) {
+                                viewport->setPeerBodies(peerBodies);
+                            }
+                        });
                     vrTimer->start();
                 }
 
                 // Connect LLM Co-Pilot analysisReady signal to QML updateCoPilotText
                 QObject::connect(llmCoPilot, &quantumverse::LLMCoPilot::analysisReady,
-                    [rootObject](const QString& text) {
-                        QMetaObject::invokeMethod(rootObject, "updateCoPilotText",
-                            Q_ARG(QVariant, text));
-                    });
+                                 [rootObject](const QString& text) {
+                                     QMetaObject::invokeMethod(rootObject, "updateCoPilotText",
+                                                               Q_ARG(QVariant, text));
+                                 });
 
                 // Wire: discovery scan result → LLM abstract → verify → PaperGenerator → PDF
-                QObject::connect(discoveryPanelManager.get(),
+                QObject::connect(
+                    discoveryPanelManager.get(),
                     &quantumverse::DiscoveryPanelManager::discoveryResultReady,
                     [llmCoPilot, paperGenerator](const QVariantMap& result) {
                         quantumverse::ScanSummary s;
-                        s.mass        = result["mass"].toDouble();
-                        s.spin        = result["spin"].toDouble();
-                        s.charge      = result["charge"].toDouble();
+                        s.mass = result["mass"].toDouble();
+                        s.spin = result["spin"].toDouble();
+                        s.charge = result["charge"].toDouble();
                         s.kretschmann = result["kretschmann"].toDouble();
-                        s.redshift    = result["redshift"].toDouble();
+                        s.redshift = result["redshift"].toDouble();
                         s.discoveryId = result["id"].toString();
                         s.discoveryType = result["type"].toString();
-                        s.confidence  = result["confidence"].toDouble();
-                        s.bhType      = result["bh_type"].toString();
+                        s.confidence = result["confidence"].toDouble();
+                        s.bhType = result["bh_type"].toString();
 
                         auto retryCount = std::make_shared<int>(0);
                         auto watchdog = new QTimer();
@@ -1625,21 +1672,25 @@ int main(int argc, char* argv[])
                         });
 
                         auto conn = std::make_shared<QMetaObject::Connection>();
-                        *conn = QObject::connect(llmCoPilot,
-                            &quantumverse::LLMCoPilot::abstractReady,
-                            [paperGenerator, s, conn, retryCount, watchdog, llmCoPilot](const QString& abstract) mutable {
+                        *conn = QObject::connect(
+                            llmCoPilot, &quantumverse::LLMCoPilot::abstractReady,
+                            [paperGenerator, s, conn, retryCount, watchdog,
+                             llmCoPilot](const QString& abstract) mutable {
                                 watchdog->stop();
                                 QObject::disconnect(*conn);
-                                auto v = quantumverse::AbstractVerifier::verifyAbstract(abstract, s);
+                                auto v =
+                                    quantumverse::AbstractVerifier::verifyAbstract(abstract, s);
                                 if (!v.passed) {
                                     if (*retryCount == 0) {
                                         *retryCount = 1;
-                                        qWarning() << "[PaperGen] abstract rejected, retrying once:" << v.mismatches;
+                                        qWarning() << "[PaperGen] abstract rejected, retrying once:"
+                                                   << v.mismatches;
                                         watchdog->start(120000);
                                         llmCoPilot->generatePaperAbstract(s.toJson());
                                         return;
                                     }
-                                    qWarning() << "[PaperGen] abstract rejected after retry:" << v.mismatches;
+                                    qWarning() << "[PaperGen] abstract rejected after retry:"
+                                               << v.mismatches;
                                     watchdog->deleteLater();
                                     return;
                                 }
@@ -1647,20 +1698,26 @@ int main(int argc, char* argv[])
                                 paperGenerator->generatePaper(s, abstract);
                             });
 
-                        QObject::connect(llmCoPilot,
-                            &quantumverse::LLMCoPilot::abstractFailed,
-                            [paperGenerator, s, watchdog](const QString& error) {
-                                qWarning() << "[PaperGen] LLM abstract failed:" << error;
-                                qWarning() << "[PaperGen] falling back to template abstract";
-                                const QString fallback = QStringLiteral(
-                                    "The QuantumVerse discovery engine identified a %1 black hole "
-                                    "candidate consistent with General Relativity. Automated abstract "
-                                    "generation was unavailable; this report uses the default narrative. "
-                                    "[LLM unavailable - fallback abstract]").arg(s.bhType);
-                                paperGenerator->generatePaper(s, fallback);
-                                watchdog->stop();
-                                watchdog->deleteLater();
-                            });
+                        QObject::connect(llmCoPilot, &quantumverse::LLMCoPilot::abstractFailed,
+                                         [paperGenerator, s, watchdog](const QString& error) {
+                                             qWarning()
+                                                 << "[PaperGen] LLM abstract failed:" << error;
+                                             qWarning()
+                                                 << "[PaperGen] falling back to template abstract";
+                                             const QString fallback =
+                                                 QStringLiteral(
+                                                     "The QuantumVerse discovery engine identified "
+                                                     "a %1 black hole "
+                                                     "candidate consistent with General "
+                                                     "Relativity. Automated abstract "
+                                                     "generation was unavailable; this report uses "
+                                                     "the default narrative. "
+                                                     "[LLM unavailable - fallback abstract]")
+                                                     .arg(s.bhType);
+                                             paperGenerator->generatePaper(s, fallback);
+                                             watchdog->stop();
+                                             watchdog->deleteLater();
+                                         });
 
                         watchdog->start(120000);
                         llmCoPilot->generatePaperAbstract(s.toJson());
@@ -1671,7 +1728,7 @@ int main(int argc, char* argv[])
 
                 // Set coordinate scale: 1 AU = 10 viewport units
                 // This maps the solar system (AU scale) into the viewport grid
-                celestialBodyRenderer->setCoordinateScale(1.496e10); // 1.496e11 m / 10 units
+                celestialBodyRenderer->setCoordinateScale(1.496e10);  // 1.496e11 m / 10 units
 
                 // Draw the annulus around the configured black hole position so
                 // the disk cannot silently diverge from the physics BH. The
@@ -1691,7 +1748,8 @@ int main(int argc, char* argv[])
                     bhPosLocal[1] = cliBHPosition[1];
                     bhPosLocal[2] = cliBHPosition[2];
                 }
-                celestialBodyRenderer->setBlackHoleCenter(bhPosLocal[0], bhPosLocal[1], bhPosLocal[2]);
+                celestialBodyRenderer->setBlackHoleCenter(bhPosLocal[0], bhPosLocal[1],
+                                                          bhPosLocal[2]);
                 // The curvature grid's well centers on the same BH the annulus does.
                 // Without this the funnel stayed at the world origin while the disk
                 // sat at (40,0,0): two different positions for the same physics BH.
@@ -1702,17 +1760,19 @@ int main(int argc, char* argv[])
                 // --bh-position is parsed this line must say so, otherwise the
                 // acceptance capture logs claim a config value that was
                 // overridden. One value feeds the annulus and the grid well.
-                qDebug() << "[ANNULUS] wired BH world position ="
-                         << bhPosLocal[0] << bhPosLocal[1] << bhPosLocal[2]
-                         << (cliBHPositionSet
-                                 ? QStringLiteral("(--bh-position override)")
-                                 : QStringLiteral("(from config black_hole.position)"))
+                qDebug() << "[ANNULUS] wired BH world position =" << bhPosLocal[0] << bhPosLocal[1]
+                         << bhPosLocal[2]
+                         << (cliBHPositionSet ? QStringLiteral("(--bh-position override)")
+                                              : QStringLiteral("(from config black_hole.position)"))
                          << "debug="
-                         << (cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION
+                         << (cliAnnulusDebug ==
+                                     quantumverse::CelestialBodyRenderer::AnnulusDebugMode::POSITION
                                  ? QStringLiteral("position")
-                             : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::DOPPLER
+                             : cliAnnulusDebug ==
+                                     quantumverse::CelestialBodyRenderer::AnnulusDebugMode::DOPPLER
                                  ? QStringLiteral("doppler")
-                             : cliAnnulusDebug == quantumverse::CelestialBodyRenderer::AnnulusDebugMode::NORMAL
+                             : cliAnnulusDebug ==
+                                     quantumverse::CelestialBodyRenderer::AnnulusDebugMode::NORMAL
                                  ? QStringLiteral("normal")
                                  : QStringLiteral("magenta"));
 
@@ -1733,15 +1793,17 @@ int main(int argc, char* argv[])
                 }
 
                 // Wire CLI camera to lensing shader so u_cameraPos matches the QML viewport camera.
-                // Without this the lensing shader traces from default (distance=10, theta=pi/2, phi=0)
-                // while the QML camera is at the CLI position, producing a half-frame split.
+                // Without this the lensing shader traces from default (distance=10, theta=pi/2,
+                // phi=0) while the QML camera is at the CLI position, producing a half-frame split.
                 if (cliCamDistance > 0.0) {
                     viewport->setLensingDistance(static_cast<float>(cliCamDistance));
                 }
                 if (lensingTheta < 0.0) {
                     // Elevation is measured from the equator; theta is polar from +Y axis.
-                    // theta = pi/2 - elevation.  el=0 -> equator (theta=pi/2); el=90 -> pole (theta=0).
-                    viewport->setLensingTheta(static_cast<float>((90.0 - cliCamElevationDeg) * M_PI / 180.0));
+                    // theta = pi/2 - elevation.  el=0 -> equator (theta=pi/2); el=90 -> pole
+                    // (theta=0).
+                    viewport->setLensingTheta(
+                        static_cast<float>((90.0 - cliCamElevationDeg) * M_PI / 180.0));
                 }
                 if (cliCamAzimuthDeg != 0.0) {
                     viewport->setLensingPhi(static_cast<float>(cliCamAzimuthDeg * M_PI / 180.0));
@@ -1773,18 +1835,19 @@ int main(int argc, char* argv[])
                     const double camOffsetX = cliCamDistance * cosEl * std::sin(azRad);
                     const double camOffsetY = cliCamDistance * std::sin(elRad);
                     const double camOffsetZ = cliCamDistance * cosEl * std::cos(azRad);
-                    std::array<float,3> camPos = {
+                    std::array<float, 3> camPos = {
                         static_cast<float>(cliCamTarget.x() + camOffsetX),
                         static_cast<float>(cliCamTarget.y() + camOffsetY),
-                        static_cast<float>(cliCamTarget.z() + camOffsetZ)
-                    };
+                        static_cast<float>(cliCamTarget.z() + camOffsetZ)};
 
                     // Verify against the QML viewport camera's actual world position
                     quantumverse::Event4D qmlCamPos = camera4DAdapter->cameraPosition4D();
-                    std::cerr << "[LENS-VERIFY] qmlCam=(" << qmlCamPos.x << ", " << qmlCamPos.y << ", " << qmlCamPos.z
-                              << ") lensingCam=(" << camPos[0] << ", " << camPos[1] << ", " << camPos[2] << ")"
-                              << " az=" << cliCamAzimuthDeg << " el=" << cliCamElevationDeg << " dist=" << cliCamDistance
-                              << " target=(" << cliCamTarget.x() << ", " << cliCamTarget.y() << ", " << cliCamTarget.z() << ")"
+                    std::cerr << "[LENS-VERIFY] qmlCam=(" << qmlCamPos.x << ", " << qmlCamPos.y
+                              << ", " << qmlCamPos.z << ") lensingCam=(" << camPos[0] << ", "
+                              << camPos[1] << ", " << camPos[2] << ")"
+                              << " az=" << cliCamAzimuthDeg << " el=" << cliCamElevationDeg
+                              << " dist=" << cliCamDistance << " target=(" << cliCamTarget.x()
+                              << ", " << cliCamTarget.y() << ", " << cliCamTarget.z() << ")"
                               << std::endl;
                     std::cerr.flush();
                     if (auto lensing = viewport->lensingRenderer()) {
@@ -1793,13 +1856,13 @@ int main(int argc, char* argv[])
                 }
 
                 viewport->setVolumetricDiskEnabled(true);
-                viewport->setLensingSpin(0.0f);  // Default: Schwarzschild. Override with setLensingSpin() for Kerr.
+                viewport->setLensingSpin(
+                    0.0f);  // Default: Schwarzschild. Override with setLensingSpin() for Kerr.
                 if (!noStarfield) {
                     viewport->setLensingStarFieldEnabled(false);
                 }
                 if (viewport->lensingRenderer() && viewport->renderer()) {
-                    viewport->renderer()->setLensingRenderer(
-                        viewport->lensingRenderer());
+                    viewport->renderer()->setLensingRenderer(viewport->lensingRenderer());
                 }
 
                 if (disableCelestial) {
@@ -1816,7 +1879,8 @@ int main(int argc, char* argv[])
                 if (enableGeodesics) {
                     qDebug() << "[DIAG] --enable-geodesics: forcing showGeodesics=true on viewport";
                     viewport->setShowGeodesics(true);
-                    qDebug() << "[DIAG] --enable-geodesics: curvatureRenderer sync will happen in renderGL()";
+                    qDebug() << "[DIAG] --enable-geodesics: curvatureRenderer sync will happen in "
+                                "renderGL()";
                 }
 
                 // Defer screenshot request until after the event loop starts.
@@ -1841,9 +1905,11 @@ int main(int argc, char* argv[])
                     quantumverse::GLDebug::instance().setStrictMode(true);
                 }
 
-
-                qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport";
-                std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and CelestialBodyRenderer wired to QML viewport" << std::endl;
+                qDebug() << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and "
+                            "CelestialBodyRenderer wired to QML viewport";
+                std::cerr << "QuantumVerse: Renderers, UI4D, Camera4DAdapter, and "
+                             "CelestialBodyRenderer wired to QML viewport"
+                          << std::endl;
                 std::cerr.flush();
 
                 // The OpenGL scene is composited onto the window in
@@ -1855,7 +1921,8 @@ int main(int argc, char* argv[])
                 }
             } else {
                 qWarning("QuantumVerse: Could not find QmlGlViewport in QML object tree");
-                std::cerr << "QuantumVerse: Could not find QmlGlViewport in QML object tree" << std::endl;
+                std::cerr << "QuantumVerse: Could not find QmlGlViewport in QML object tree"
+                          << std::endl;
                 std::cerr.flush();
             }
         } else {
@@ -1864,36 +1931,30 @@ int main(int argc, char* argv[])
         }
 
         QVariant tourVar = rootContext->contextProperty("tourController");
-        auto* tourControllerPtr =
-            tourVar.value<quantumverse::TourController*>();
+        auto* tourControllerPtr = tourVar.value<quantumverse::TourController*>();
         if (tourControllerPtr) {
             tourControllerPtr->setCameraSetter(
                 [camController, viewport](const quantumverse::TourCameraState& cs) {
-                    camController->setAzimuth(
-                        static_cast<float>(cs.azimuth * M_PI / 180.0));
-                    camController->setElevation(
-                        static_cast<float>(cs.elevation * M_PI / 180.0));
+                    camController->setAzimuth(static_cast<float>(cs.azimuth * M_PI / 180.0));
+                    camController->setElevation(static_cast<float>(cs.elevation * M_PI / 180.0));
                     camController->setDistance(static_cast<float>(cs.distance));
                     if (viewport) {
-                        viewport->setCameraDistance(
-                            static_cast<float>(cs.distance));
+                        viewport->setCameraDistance(static_cast<float>(cs.distance));
                     }
                 });
-            tourControllerPtr->setActionHandler(
-                [viewport](const quantumverse::TourAction& a) {
-                    if (!viewport) return;
-                    if (a.type == "enable_lensing") {
-                        viewport->setLensingEnabled(a.value.get<bool>());
-                    } else if (a.type == "enable_volumetric_disk") {
-                        viewport->setVolumetricDiskEnabled(
-                            a.value.get<bool>());
-                    } else if (a.type == "set_bh_mass") {
-                        viewport->setBlackHoleMass(a.value.get<double>());
-                    } else if (a.type == "set_disk_density") {
-                        viewport->setVolumetricDiskDensity(
-                            static_cast<float>(a.value.get<double>()));
-                    }
-                });
+            tourControllerPtr->setActionHandler([viewport](const quantumverse::TourAction& a) {
+                if (!viewport)
+                    return;
+                if (a.type == "enable_lensing") {
+                    viewport->setLensingEnabled(a.value.get<bool>());
+                } else if (a.type == "enable_volumetric_disk") {
+                    viewport->setVolumetricDiskEnabled(a.value.get<bool>());
+                } else if (a.type == "set_bh_mass") {
+                    viewport->setBlackHoleMass(a.value.get<double>());
+                } else if (a.type == "set_disk_density") {
+                    viewport->setVolumetricDiskDensity(static_cast<float>(a.value.get<double>()));
+                }
+            });
         }
 
         // [DIAG] Auto-trigger a discovery scan a few seconds after startup so
@@ -1909,12 +1970,14 @@ int main(int argc, char* argv[])
 
         qDebug() << "QuantumVerse Simulator started successfully";
         qDebug() << "  - OpenGL 4.5 Core Profile";
-        qDebug() << "  - QML Scene Graph with" << sceneGraphManager->getScene().objects.size() << "objects";
+        qDebug() << "  - QML Scene Graph with" << sceneGraphManager->getScene().objects.size()
+                 << "objects";
         qDebug() << "  - Curvature renderer initialized";
         qDebug() << "  - Ready for 4D navigation";
         std::cerr << "QuantumVerse Simulator started successfully" << std::endl;
         std::cerr << "  - OpenGL 4.5 Core Profile" << std::endl;
-        std::cerr << "  - QML Scene Graph with " << sceneGraphManager->getScene().objects.size() << " objects" << std::endl;
+        std::cerr << "  - QML Scene Graph with " << sceneGraphManager->getScene().objects.size()
+                  << " objects" << std::endl;
         std::cerr << "  - Curvature renderer initialized" << std::endl;
         std::cerr << "  - Ready for 4D navigation" << std::endl;
         std::cerr.flush();
@@ -1926,8 +1989,8 @@ int main(int argc, char* argv[])
             if (!ok) {
                 ok = tourController->loadTourFromFile(tourPath);
             }
-            std::cerr << "[Tour] --start-tour " << startTourId.toStdString()
-                      << " (" << tourPath.toStdString() << ")" << std::endl;
+            std::cerr << "[Tour] --start-tour " << startTourId.toStdString() << " ("
+                      << tourPath.toStdString() << ")" << std::endl;
             std::cerr.flush();
             if (ok) {
                 tourController->start();
@@ -1938,12 +2001,14 @@ int main(int argc, char* argv[])
             }
         }
 
-        std::cerr << "[DIAG] About to enter headless benchmark check, headlessFrames=" << headlessFrames << std::endl;
+        std::cerr << "[DIAG] About to enter headless benchmark check, headlessFrames="
+                  << headlessFrames << std::endl;
         std::cerr.flush();
 
         if (headlessFrames > 0) {
             qDebug() << "Headless benchmark mode: rendering" << headlessFrames << "frames";
-            std::cerr << "Headless benchmark mode: rendering " << headlessFrames << " frames" << std::endl;
+            std::cerr << "Headless benchmark mode: rendering " << headlessFrames << " frames"
+                      << std::endl;
             std::cerr.flush();
 
             // Phase 1 warmup: complete GL initialization before benchmark.
@@ -1966,7 +2031,8 @@ int main(int argc, char* argv[])
             // Headless recording: start SessionRecorder before the benchmark loop.
             if (recordFrames > 0 && viewport) {
                 viewport->startRecording(recordFrames, 6);  // 10 Hz (6 frames at 60 FPS)
-                std::cerr << "Headless recording: " << recordFrames << " frames at 10 Hz" << std::endl;
+                std::cerr << "Headless recording: " << recordFrames << " frames at 10 Hz"
+                          << std::endl;
                 std::cerr.flush();
             }
 
@@ -1987,11 +2053,14 @@ int main(int argc, char* argv[])
                 double frameMs = 0.0;
                 if (lastTickNs > 0) {
                     frameMs = (nowNs - lastTickNs) / 1e6;
-                    if (frameMs < 0.5) frameMs = 0.5;
+                    if (frameMs < 0.5)
+                        frameMs = 0.5;
 
                     headlessTotalMs += frameMs;
-                    if (frameMs < headlessMinMs) headlessMinMs = frameMs;
-                    if (frameMs > headlessMaxMs) headlessMaxMs = frameMs;
+                    if (frameMs < headlessMinMs)
+                        headlessMinMs = frameMs;
+                    if (frameMs > headlessMaxMs)
+                        headlessMaxMs = frameMs;
                     frameDeltas.push_back(frameMs);
                 }
                 lastTickNs = nowNs;
@@ -2038,7 +2107,8 @@ int main(int argc, char* argv[])
 
             if (recordFrames > 0 && viewport) {
                 viewport->stopRecording();
-                std::cerr << "Headless recording stopped (" << viewport->totalFrames() << " frames captured)" << std::endl;
+                std::cerr << "Headless recording stopped (" << viewport->totalFrames()
+                          << " frames captured)" << std::endl;
                 std::cerr.flush();
             }
 
@@ -2046,7 +2116,8 @@ int main(int argc, char* argv[])
                 double avgMs = headlessTotalMs / headlessRendered;
                 double fps = avgMs > 0.0 ? 1000.0 / avgMs : 0.0;
                 std::cerr << "HeadlessPerformanceStats: frames=" << headlessRendered
-                          << " avg=" << avgMs << "ms max=" << headlessMaxMs << "ms fps=" << fps << std::endl;
+                          << " avg=" << avgMs << "ms max=" << headlessMaxMs << "ms fps=" << fps
+                          << std::endl;
                 std::cerr.flush();
 
                 QFile file("headless_performance.log");
@@ -2088,9 +2159,11 @@ int main(int argc, char* argv[])
         if (frameDiagnostics.isEnabled() && !diagnosticsPath.isEmpty()) {
             bool written = frameDiagnostics.writeJson(diagnosticsPath.toStdString());
             if (written) {
-                std::cerr << "Frame diagnostics written to " << diagnosticsPath.toStdString() << std::endl;
+                std::cerr << "Frame diagnostics written to " << diagnosticsPath.toStdString()
+                          << std::endl;
             } else {
-                std::cerr << "Failed to write frame diagnostics to " << diagnosticsPath.toStdString() << std::endl;
+                std::cerr << "Failed to write frame diagnostics to "
+                          << diagnosticsPath.toStdString() << std::endl;
             }
             std::cerr.flush();
         }
@@ -2098,7 +2171,8 @@ int main(int argc, char* argv[])
         if (glStrict && quantumverse::GLDebug::instance().isEnabled()) {
             int errCount = quantumverse::GLDebug::instance().getErrorCount();
             if (errCount > 0) {
-                std::cerr << "GL strict mode: " << errCount << " GL error(s) detected during rendering" << std::endl;
+                std::cerr << "GL strict mode: " << errCount
+                          << " GL error(s) detected during rendering" << std::endl;
                 std::cerr.flush();
                 return 1;
             }

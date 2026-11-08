@@ -9,17 +9,17 @@
 #ifndef QUANTUMVERSE_MULTI_USER_SERVER_H
 #define QUANTUMVERSE_MULTI_USER_SERVER_H
 
-#include "../vr/VRCommon.h"
-#include <QObject>
-#include <QWebSocketServer>
-#include <QWebSocket>
 #include <QHostAddress>
+#include <QObject>
 #include <QTimer>
-#include <string>
-#include <vector>
-#include <memory>
-#include <unordered_set>
+#include <QWebSocket>
+#include <QWebSocketServer>
 #include <functional>
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <vector>
+#include "../vr/VRCommon.h"
 
 namespace quantumverse {
 namespace vr {
@@ -67,7 +67,7 @@ struct Message {
  */
 class MultiUserServer : public QObject {
     Q_OBJECT
-public:
+   public:
     explicit MultiUserServer(QObject* parent = nullptr);
     ~MultiUserServer() override;
 
@@ -91,12 +91,16 @@ public:
     /**
      * @brief Check if the server is running
      */
-    bool isRunning() const { return m_isRunning; }
+    bool isRunning() const {
+        return m_isRunning;
+    }
 
     /**
      * @brief Update server state (call regularly)
      */
-    void update() { cleanupStaleParticipants(); }
+    void update() {
+        cleanupStaleParticipants();
+    }
 
     /**
      * @brief Get list of connected participants
@@ -108,7 +112,7 @@ public:
      */
     void broadcastMessage(const Message& message);
 
-signals:
+   signals:
     /**
      * @brief Emitted when a client connects
      */
@@ -129,7 +133,7 @@ signals:
      */
     void clientLeftSession(const std::string& clientId, const std::string& sessionId);
 
-private slots:
+   private slots:
     /**
      * @brief Handle new WebSocket connection
      */
@@ -145,7 +149,7 @@ private slots:
      */
     void onTextMessageReceived(const QString& message);
 
-private:
+   private:
     struct ClientEntry {
         QWebSocket* socket = nullptr;
         std::string id;
@@ -197,9 +201,8 @@ private:
     /**
      * @brief Broadcast message to all clients in a session except sender
      */
-    void broadcastToSession(const std::string& sessionId,
-                           const QJsonObject& message,
-                           const std::string& excludeClientId);
+    void broadcastToSession(const std::string& sessionId, const QJsonObject& message,
+                            const std::string& excludeClientId);
 
     /**
      * @brief Remove stale participants that haven't updated recently
@@ -225,7 +228,7 @@ private:
     std::unordered_map<std::string, std::unordered_set<std::string>> m_sessions;
 };
 
-} // namespace vr
-} // namespace quantumverse
+}  // namespace vr
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_MULTI_USER_SERVER_H
+#endif  // QUANTUMVERSE_MULTI_USER_SERVER_H

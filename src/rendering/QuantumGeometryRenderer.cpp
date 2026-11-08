@@ -8,75 +8,67 @@
 
 #include "glad.h"
 
-#include "QuantumGeometryRenderer.h"
-#include "../ui4d/UI4D.h"  // For full Camera4D definition
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include "../ui4d/UI4D.h"  // For full Camera4D definition
+#include "QuantumGeometryRenderer.h"
 
 namespace quantumverse {
 
 QuantumGeometryRenderer::QuantumGeometryRenderer()
-     : currentType(QuantumGeometryType::NONE),
-       showWireframe(true),
-       showVolumes(false),
-       showLabels(false),
-       animateEvolution(false),
-        animationTime(0.0),
-        currentFrame(0),
-        targetLOD(3),
-        m_globalAlpha(1.0f)
-{
-    lodLevels = {
-        {1000,  2.0f, 1.0f, false},
-        {5000,  3.0f, 1.5f, false},
-        {20000, 4.0f, 2.0f, true},
-        {100000, 5.0f, 3.0f, true}
-    };
+    : currentType(QuantumGeometryType::NONE),
+      showWireframe(true),
+      showVolumes(false),
+      showLabels(false),
+      animateEvolution(false),
+      animationTime(0.0),
+      currentFrame(0),
+      targetLOD(3),
+      m_globalAlpha(1.0f) {
+    lodLevels = {{1000, 2.0f, 1.0f, false},
+                 {5000, 3.0f, 1.5f, false},
+                 {20000, 4.0f, 2.0f, true},
+                 {100000, 5.0f, 3.0f, true}};
 }
 
-void QuantumGeometryRenderer::setCDTEngine(const std::shared_ptr<CDTEngine>& /*engine*/)
-{
+void QuantumGeometryRenderer::setCDTEngine(const std::shared_ptr<CDTEngine>& /*engine*/) {
     currentType = QuantumGeometryType::CDT;
 }
 
-void QuantumGeometryRenderer::setSpinFoamEngine(const std::shared_ptr<SpinFoamEngine>& /*engine*/)
-{
+void QuantumGeometryRenderer::setSpinFoamEngine(const std::shared_ptr<SpinFoamEngine>& /*engine*/) {
     currentType = QuantumGeometryType::SPIN_FOAM;
 }
 
-void QuantumGeometryRenderer::setGFTEngine(const std::shared_ptr<GFTEngine>& /*engine*/)
-{
+void QuantumGeometryRenderer::setGFTEngine(const std::shared_ptr<GFTEngine>& /*engine*/) {
     currentType = QuantumGeometryType::GFT;
 }
 
-void QuantumGeometryRenderer::setCausalSetEngine(const std::shared_ptr<CausalSetEngine>& /*engine*/)
-{
+void QuantumGeometryRenderer::setCausalSetEngine(
+    const std::shared_ptr<CausalSetEngine>& /*engine*/) {
     currentType = QuantumGeometryType::CAUSAL_SET;
 }
 
-void QuantumGeometryRenderer::clearGeometry()
-{
+void QuantumGeometryRenderer::clearGeometry() {
     currentType = QuantumGeometryType::NONE;
     quantumSource.reset();
 }
 
-void QuantumGeometryRenderer::setViewScale(double scale_meters)
-{
+void QuantumGeometryRenderer::setViewScale(double scale_meters) {
     currentScale = scale_meters;
     updateLODFromScale();
 }
 
 void QuantumGeometryRenderer::render(const Camera4D& camera,
                                      const std::vector<SliceView>& /*slices*/,
-                                     const MetricTensor& /*metric*/)
-{
+                                     const MetricTensor& /*metric*/) {
     // Use parent class's isInitialized() method
-    if (!isInitialized()) return;
-    
+    if (!isInitialized())
+        return;
+
     // Get view and projection matrices from camera
     auto viewMatrix = camera.computeViewMatrix4x4();
     auto projMatrix = camera.computeProjectionMatrix4x4(1.0);  // aspect ratio 1.0
-    
+
     // Render based on current quantum geometry type
     switch (currentType) {
         case QuantumGeometryType::CDT:
@@ -106,13 +98,12 @@ void QuantumGeometryRenderer::render(const Camera4D& camera,
 }
 
 void QuantumGeometryRenderer::renderCDTGeometry(const std::array<double, 16>& viewMatrix,
-                                                 const std::array<double, 16>& projMatrix)
-{
+                                                const std::array<double, 16>& projMatrix) {
     // Render CDT simplices (4-simplices as tetrahedra)
     // For now, render a simple wireframe grid to represent discrete geometry
-    
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
+
     // Use the grid shader from parent class via protected getter
     ShaderProgram* shader = &getGridShader();
     shader->use();
@@ -122,7 +113,7 @@ void QuantumGeometryRenderer::renderCDTGeometry(const std::array<double, 16>& vi
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::GRID_DEFORMATION));
     shader->setUniform("u_global_alpha", m_globalAlpha);
-    
+
     // Render vertices as points for CDT
     if (auto it = geometryCache.find(QuantumGeometryType::CDT); it != geometryCache.end()) {
         const GeometryBuffers& buffers = it->second;
@@ -133,18 +124,17 @@ void QuantumGeometryRenderer::renderCDTGeometry(const std::array<double, 16>& vi
             glBindVertexArray(0);
         }
     }
-    
+
     shader->release();
 }
 
 void QuantumGeometryRenderer::renderSpinFoamGeometry(const std::array<double, 16>& viewMatrix,
-                                                     const std::array<double, 16>& projMatrix)
-{
+                                                     const std::array<double, 16>& projMatrix) {
     // Render spin network edges
     // Vertices as spheres, edges as cylinders
-    
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
+
     ShaderProgram* shader = &getGridShader();
     shader->use();
     shader->setUniform("viewMatrix", viewMatrix.data());
@@ -153,7 +143,7 @@ void QuantumGeometryRenderer::renderSpinFoamGeometry(const std::array<double, 16
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::RIEMANN_COLOR));
     shader->setUniform("u_global_alpha", m_globalAlpha);
-    
+
     // Render vertices
     if (auto it = geometryCache.find(QuantumGeometryType::SPIN_FOAM); it != geometryCache.end()) {
         const GeometryBuffers& buffers = it->second;
@@ -164,18 +154,17 @@ void QuantumGeometryRenderer::renderSpinFoamGeometry(const std::array<double, 16
             glBindVertexArray(0);
         }
     }
-    
+
     shader->release();
 }
 
 void QuantumGeometryRenderer::renderGFTGeometry(const std::array<double, 16>& viewMatrix,
-                                                 const std::array<double, 16>& projMatrix)
-{
+                                                const std::array<double, 16>& projMatrix) {
     // Render GFT field as isosurfaces
     // Color by field magnitude |φ|
-    
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
+
     ShaderProgram* shader = &getCurvatureShader();
     shader->use();
     shader->setUniform("viewMatrix", viewMatrix.data());
@@ -184,28 +173,27 @@ void QuantumGeometryRenderer::renderGFTGeometry(const std::array<double, 16>& vi
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::CURVATURE_SCALAR));
     shader->setUniform("u_global_alpha", m_globalAlpha);
-    
+
     if (auto it = geometryCache.find(QuantumGeometryType::GFT); it != geometryCache.end()) {
         const GeometryBuffers& buffers = it->second;
         if (buffers.isValid && buffers.numIndices > 0) {
             glBindVertexArray(buffers.vao);
-            glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(buffers.numIndices),
-                         GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(buffers.numIndices), GL_UNSIGNED_INT,
+                           0);
             glBindVertexArray(0);
         }
     }
-    
+
     shader->release();
 }
 
 void QuantumGeometryRenderer::renderCausalSetGeometry(const std::array<double, 16>& viewMatrix,
-                                                     const std::array<double, 16>& projMatrix)
-{
+                                                      const std::array<double, 16>& projMatrix) {
     // Render causal set as point cloud with causal links
     // Points for sprinkled events, lines for causal relations
-    
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
+
     ShaderProgram* shader = &getGridShader();
     shader->use();
     shader->setUniform("viewMatrix", viewMatrix.data());
@@ -214,7 +202,7 @@ void QuantumGeometryRenderer::renderCausalSetGeometry(const std::array<double, 1
     shader->setUniform("curvatureScale", 1.0f);
     shader->setUniform("curvatureMode", static_cast<int>(CurvatureMode::TIME_DILATION));
     shader->setUniform("u_global_alpha", m_globalAlpha);
-    
+
     if (auto it = geometryCache.find(QuantumGeometryType::CAUSAL_SET); it != geometryCache.end()) {
         const GeometryBuffers& buffers = it->second;
         if (buffers.isValid && buffers.numVertices > 0) {
@@ -224,29 +212,25 @@ void QuantumGeometryRenderer::renderCausalSetGeometry(const std::array<double, 1
             glBindVertexArray(0);
         }
     }
-    
+
     shader->release();
 }
 
-void QuantumGeometryRenderer::renderQuantumGeometry(const Camera4D& /*camera*/)
-{
+void QuantumGeometryRenderer::renderQuantumGeometry(const Camera4D& /*camera*/) {
     // Phase 2: render cached geometry
 }
 
 void QuantumGeometryRenderer::renderSimplex(const std::array<Event4D, 4>& /*vertices*/,
-                                            const std::array<double, 4>& /*colors*/)
-{
+                                            const std::array<double, 4>& /*colors*/) {
     // Phase 2: render 4-simplex wireframe
 }
 
 void QuantumGeometryRenderer::renderSpinEdge(const Event4D& /*v1*/, const Event4D& /*v2*/,
-                                             double /*spin*/, const double[/*4*/] /*color*/)
-{
+                                             double /*spin*/, const double[/*4*/] /*color*/) {
     // Phase 2: render spin network edge
 }
 
-QuantumGeometryRenderer::GeometryInfo QuantumGeometryRenderer::getGeometryInfo() const
-{
+QuantumGeometryRenderer::GeometryInfo QuantumGeometryRenderer::getGeometryInfo() const {
     GeometryInfo info;
     info.type = currentType;
     info.vertexCount = 0;
@@ -273,51 +257,43 @@ QuantumGeometryRenderer::GeometryInfo QuantumGeometryRenderer::getGeometryInfo()
     return info;
 }
 
-void QuantumGeometryRenderer::setLODLevel(int level)
-{
+void QuantumGeometryRenderer::setLODLevel(int level) {
     targetLOD = std::max(0, std::min(3, level));
 }
 
-void QuantumGeometryRenderer::stepAnimation()
-{
+void QuantumGeometryRenderer::stepAnimation() {
     currentFrame++;
     animationTime += 0.033;
 }
 
-void QuantumGeometryRenderer::resetAnimation()
-{
+void QuantumGeometryRenderer::resetAnimation() {
     currentFrame = 0;
     animationTime = 0.0;
 }
 
-void QuantumGeometryRenderer::setGlobalAlpha(float alpha)
-{
+void QuantumGeometryRenderer::setGlobalAlpha(float alpha) {
     m_globalAlpha = std::clamp(alpha, 0.0f, 1.0f);
 }
 
-void QuantumGeometryRenderer::updateColorScheme()
-{
+void QuantumGeometryRenderer::updateColorScheme() {
     // Phase 2: recompute colors for cached geometries
 }
 
-void QuantumGeometryRenderer::updateLODFromScale()
-{
+void QuantumGeometryRenderer::updateLODFromScale() {
     double logScale = std::log10(currentScale > 0 ? currentScale : 1.0);
     double norm = (logScale + 35.0) / 35.0;
     targetLOD = static_cast<int>((1.0 - norm) * 4.0);
     targetLOD = std::max(0, std::min(3, targetLOD));
 }
 
-void QuantumGeometryRenderer::animateGeometry(double /*deltaTime*/)
-{
+void QuantumGeometryRenderer::animateGeometry(double /*deltaTime*/) {
     animationTime += 0.033;
 }
 
 std::array<float, 3> QuantumGeometryRenderer::projectToScreen(const Event4D& point,
-                                                               const Camera4D& /*camera*/,
-                                                               int /*viewportWidth*/,
-                                                               int /*viewportHeight*/) const
-{
+                                                              const Camera4D& /*camera*/,
+                                                              int /*viewportWidth*/,
+                                                              int /*viewportHeight*/) const {
     std::array<float, 3> result;
     result[0] = static_cast<float>(point.x);
     result[1] = static_cast<float>(point.y);
@@ -325,41 +301,37 @@ std::array<float, 3> QuantumGeometryRenderer::projectToScreen(const Event4D& poi
     return result;
 }
 
-std::array<float, 4> QuantumGeometryRenderer::colorFromValue(double value,
-                                                              double minVal,
-                                                              double maxVal,
-                                                              ColorScheme /*scheme*/) const
-{
+std::array<float, 4> QuantumGeometryRenderer::colorFromValue(double value, double minVal,
+                                                             double maxVal,
+                                                             ColorScheme /*scheme*/) const {
     double t = (value - minVal) / (maxVal - minVal + 1e-10);
     t = std::max(0.0, std::min(1.0, t));
 
     std::array<float, 4> color = {1.0f, 1.0f, 1.0f, 1.0f};
     if (t < 0.5) {
-        color = {0.0f, static_cast<float>(2*t), 1.0f - static_cast<float>(2*t), 1.0f};
+        color = {0.0f, static_cast<float>(2 * t), 1.0f - static_cast<float>(2 * t), 1.0f};
     } else {
-        color = {static_cast<float>(2*(t-0.5)), 1.0f - static_cast<float>(2*(t-0.5)), 0.0f, 1.0f};
+        color = {static_cast<float>(2 * (t - 0.5)), 1.0f - static_cast<float>(2 * (t - 0.5)), 0.0f,
+                 1.0f};
     }
     return color;
 }
 
-void QuantumGeometryRenderer::uploadGeometryToGPU(
-    GeometryBuffers& buffers,
-    const std::vector<double>& /*vertices*/,
-    const std::vector<int>& /*indices*/,
-    const std::vector<double>& /*colors*/)
-{
+void QuantumGeometryRenderer::uploadGeometryToGPU(GeometryBuffers& buffers,
+                                                  const std::vector<double>& /*vertices*/,
+                                                  const std::vector<int>& /*indices*/,
+                                                  const std::vector<double>& /*colors*/) {
     buffers.isValid = false;
 }
 
 void QuantumGeometryRenderer::generateCDTGeometry(const std::vector<double>&,
-                                                   const std::vector<int>&) {}
+                                                  const std::vector<int>&) {}
 void QuantumGeometryRenderer::generateSpinFoamGeometry(const std::vector<double>&,
+                                                       const std::vector<int>&,
+                                                       const std::vector<double>&) {}
+void QuantumGeometryRenderer::generateGFTGeometry(const std::vector<double>&, int) {}
+void QuantumGeometryRenderer::generateCausalSetGeometry(const std::vector<double>&,
                                                         const std::vector<int>&,
                                                         const std::vector<double>&) {}
-void QuantumGeometryRenderer::generateGFTGeometry(const std::vector<double>&,
-                                                   int) {}
-void QuantumGeometryRenderer::generateCausalSetGeometry(const std::vector<double>&,
-                                                         const std::vector<int>&,
-                                                         const std::vector<double>&) {}
 
-} // namespace quantumverse
+}  // namespace quantumverse

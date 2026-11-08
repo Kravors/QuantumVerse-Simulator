@@ -4,14 +4,14 @@
 namespace quantumverse {
 
 CurvatureCalculator::CurvatureCalculator(std::shared_ptr<MetricTensor> metric)
-    : currentMetric_(std::move(metric))
-    , fdStep_(1e-6)
-    , singularityTolerance_(1e10)
-    , ricciScalarCache_(0.0)
-    , kretschmannCache_(0.0)
-    , christoffelValid_(false)
-    , riemannValid_(false)
-    , ricciValid_(false) {
+    : currentMetric_(std::move(metric)),
+      fdStep_(1e-6),
+      singularityTolerance_(1e10),
+      ricciScalarCache_(0.0),
+      kretschmannCache_(0.0),
+      christoffelValid_(false),
+      riemannValid_(false),
+      ricciValid_(false) {
     if (!currentMetric_) {
         currentMetric_ = std::make_shared<MetricTensor>();
     }
@@ -42,10 +42,18 @@ void CurvatureCalculator::setMetricField(std::function<MetricTensor(const Event4
 MetricTensor CurvatureCalculator::metricAt(const Event4D& position, int mu, double delta) const {
     Event4D perturbed = position;
     switch (mu) {
-        case 0: perturbed.t += delta; break;
-        case 1: perturbed.x += delta; break;
-        case 2: perturbed.y += delta; break;
-        case 3: perturbed.z += delta; break;
+        case 0:
+            perturbed.t += delta;
+            break;
+        case 1:
+            perturbed.x += delta;
+            break;
+        case 2:
+            perturbed.y += delta;
+            break;
+        case 3:
+            perturbed.z += delta;
+            break;
     }
     return metricField_(perturbed);
 }
@@ -82,7 +90,8 @@ void CurvatureCalculator::computeChristoffel(const Event4D& position) const {
         }
     }
 
-    // Gamma^lambda_mu_nu = 0.5 * g^lambda_sigma * (d_mu g_sigma_nu + d_nu g_sigma_mu - d_sigma g_mu_nu)
+    // Gamma^lambda_mu_nu = 0.5 * g^lambda_sigma * (d_mu g_sigma_nu + d_nu g_sigma_mu - d_sigma
+    // g_mu_nu)
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = 0; nu < 4; nu++) {
             for (int lambda = 0; lambda < 4; lambda++) {
@@ -108,7 +117,8 @@ void CurvatureCalculator::computeChristoffel(const Event4D& position) const {
 void CurvatureCalculator::computeRiemann(const Event4D& position) const {
     ensureChristoffel(position);
 
-    if (riemannValid_) return;
+    if (riemannValid_)
+        return;
 
     const double h = fdStep_;
 
@@ -133,16 +143,40 @@ void CurvatureCalculator::computeRiemann(const Event4D& position) const {
             Event4D pos_p_nu = position;
             Event4D pos_m_nu = position;
             switch (mu) {
-                case 0: pos_p_mu.t += h; pos_m_mu.t -= h; break;
-                case 1: pos_p_mu.x += h; pos_m_mu.x -= h; break;
-                case 2: pos_p_mu.y += h; pos_m_mu.y -= h; break;
-                case 3: pos_p_mu.z += h; pos_m_mu.z -= h; break;
+                case 0:
+                    pos_p_mu.t += h;
+                    pos_m_mu.t -= h;
+                    break;
+                case 1:
+                    pos_p_mu.x += h;
+                    pos_m_mu.x -= h;
+                    break;
+                case 2:
+                    pos_p_mu.y += h;
+                    pos_m_mu.y -= h;
+                    break;
+                case 3:
+                    pos_p_mu.z += h;
+                    pos_m_mu.z -= h;
+                    break;
             }
             switch (nu) {
-                case 0: pos_p_nu.t += h; pos_m_nu.t -= h; break;
-                case 1: pos_p_nu.x += h; pos_m_nu.x -= h; break;
-                case 2: pos_p_nu.y += h; pos_m_nu.y -= h; break;
-                case 3: pos_p_nu.z += h; pos_m_nu.z -= h; break;
+                case 0:
+                    pos_p_nu.t += h;
+                    pos_m_nu.t -= h;
+                    break;
+                case 1:
+                    pos_p_nu.x += h;
+                    pos_m_nu.x -= h;
+                    break;
+                case 2:
+                    pos_p_nu.y += h;
+                    pos_m_nu.y -= h;
+                    break;
+                case 3:
+                    pos_p_nu.z += h;
+                    pos_m_nu.z -= h;
+                    break;
             }
 
             computeChristoffel(pos_p_mu);
@@ -159,8 +193,10 @@ void CurvatureCalculator::computeRiemann(const Event4D& position) const {
 
             for (int rho = 0; rho < 4; rho++) {
                 for (int sigma = 0; sigma < 4; sigma++) {
-                    double d_mu_Gamma = (Gamma_p_mu[rho][nu][sigma] - Gamma_m_mu[rho][nu][sigma]) / (2.0 * h);
-                    double d_nu_Gamma = (Gamma_p_nu[rho][mu][sigma] - Gamma_m_nu[rho][mu][sigma]) / (2.0 * h);
+                    double d_mu_Gamma =
+                        (Gamma_p_mu[rho][nu][sigma] - Gamma_m_mu[rho][nu][sigma]) / (2.0 * h);
+                    double d_nu_Gamma =
+                        (Gamma_p_nu[rho][mu][sigma] - Gamma_m_nu[rho][mu][sigma]) / (2.0 * h);
 
                     double product1 = 0.0;  // Gamma^rho_mu_lambda * Gamma^lambda_nu_sigma
                     double product2 = 0.0;  // Gamma^rho_nu_lambda * Gamma^lambda_mu_sigma
@@ -169,7 +205,8 @@ void CurvatureCalculator::computeRiemann(const Event4D& position) const {
                         product2 += central[rho][nu][lambda] * central[lambda][mu][sigma];
                     }
 
-                    riemannCache_[rho][sigma][mu][nu] = d_mu_Gamma - d_nu_Gamma + product1 - product2;
+                    riemannCache_[rho][sigma][mu][nu] =
+                        d_mu_Gamma - d_nu_Gamma + product1 - product2;
                 }
             }
         }
@@ -182,7 +219,8 @@ void CurvatureCalculator::computeRiemann(const Event4D& position) const {
 void CurvatureCalculator::computeRicci(const Event4D& position) const {
     ensureRiemann(position);
 
-    if (ricciValid_) return;
+    if (ricciValid_)
+        return;
 
     // R_mu_nu = g^rho_sigma * R_sigma_rho_mu_nu  (contract first and third indices of Riemann)
     // Equivalently: R_mu_nu = R^rho_mu_rho_nu
@@ -220,7 +258,8 @@ void CurvatureCalculator::computeKretschmann(const Event4D& position) const {
     ensureRiemann(position);
 
     // K = R^{rho sigma mu nu} R_{rho sigma mu nu}
-    // Lower the first index with the metric: R_{rho sigma mu nu} = g_{rho alpha} R^alpha_sigma_mu_nu
+    // Lower the first index with the metric: R_{rho sigma mu nu} = g_{rho alpha}
+    // R^alpha_sigma_mu_nu
     MetricTensor metric = metricField_(position);
     MetricTensor inv = metric.inverse();
     std::array<std::array<std::array<std::array<double, 4>, 4>, 4>, 4> R_lowered;
@@ -253,8 +292,9 @@ void CurvatureCalculator::computeKretschmann(const Event4D& position) const {
                     for (int beta = 0; beta < 4; beta++) {
                         for (int gamma = 0; gamma < 4; gamma++) {
                             for (int delta = 0; delta < 4; delta++) {
-                                R_raised += inv.g[sigma][beta] * inv.g[mu][gamma] * inv.g[nu][delta]
-                                            * riemannCache_[rho][beta][gamma][delta];
+                                R_raised += inv.g[sigma][beta] * inv.g[mu][gamma] *
+                                            inv.g[nu][delta] *
+                                            riemannCache_[rho][beta][gamma][delta];
                             }
                         }
                     }
@@ -295,25 +335,28 @@ CurvatureResult CurvatureCalculator::computeAll(const Event4D& position) const {
     MetricTensor metric = metricField_(position);
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = 0; nu < 4; nu++) {
-            result.einstein[mu][nu] = ricciCache_[mu][nu] - 0.5 * metric.g[mu][nu] * ricciScalarCache_;
+            result.einstein[mu][nu] =
+                ricciCache_[mu][nu] - 0.5 * metric.g[mu][nu] * ricciScalarCache_;
         }
     }
 
     // Compute Weyl tensor squared (simplified: K - 2*R^2/3 + R^2/12 for vacuum)
     // Full computation requires the decomposition; use vacuum approximation here
-    result.weylSquared = kretschmannCache_ - 2.0 * ricciScalarCache_ * ricciScalarCache_ / 3.0
-                         + ricciScalarCache_ * ricciScalarCache_ / 12.0;
+    result.weylSquared = kretschmannCache_ - 2.0 * ricciScalarCache_ * ricciScalarCache_ / 3.0 +
+                         ricciScalarCache_ * ricciScalarCache_ / 12.0;
 
     result.nearSingularity = (kretschmannCache_ > singularityTolerance_);
 
     return result;
 }
 
-const std::array<std::array<std::array<double, 4>, 4>, 4>& CurvatureCalculator::getChristoffel() const {
+const std::array<std::array<std::array<double, 4>, 4>, 4>&
+CurvatureCalculator::getChristoffel() const {
     return christoffelCache_;
 }
 
-const std::array<std::array<std::array<std::array<double, 4>, 4>, 4>, 4>& CurvatureCalculator::getRiemann() const {
+const std::array<std::array<std::array<std::array<double, 4>, 4>, 4>, 4>&
+CurvatureCalculator::getRiemann() const {
     return riemannCache_;
 }
 
@@ -362,4 +405,4 @@ void CurvatureCalculator::ensureRicci(const Event4D& position) const {
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

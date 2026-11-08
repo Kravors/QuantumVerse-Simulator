@@ -1,9 +1,9 @@
 #ifndef QUANTUMVERSE_DIFFERENTIABLE_METRIC_H
 #define QUANTUMVERSE_DIFFERENTIABLE_METRIC_H
 
+#include <functional>
 #include "../spacetime/MetricTensor.h"
 #include "AutoDiff.h"
-#include <functional>
 
 namespace quantumverse {
 namespace math {
@@ -19,18 +19,17 @@ namespace math {
  *   auto grad = dm.gradient(M_value);
  */
 class DifferentiableMetric {
-private:
+   private:
     std::function<MetricTensor(double)> metricFunction;
     double baseParams[10];  // Parameter values
     int numParams;
 
-public:
+   public:
     DifferentiableMetric() : numParams(0) {}
 
-    DifferentiableMetric(
-        std::function<MetricTensor(double)> f,
-        double initialParam = 0.0
-    ) : metricFunction(f), numParams(1) {
+    DifferentiableMetric(std::function<MetricTensor(double)> f, double initialParam = 0.0)
+        : metricFunction(f),
+          numParams(1) {
         baseParams[0] = initialParam;
     }
 
@@ -55,11 +54,8 @@ public:
     }
 
     // Compute gradient of metric component (i,j) w.r.t. parameter k
-    std::array<double, 10> gradientComponent(
-        int i, int j,
-        const std::vector<double>& paramValues,
-        double h = 1e-5
-    ) const {
+    std::array<double, 10> gradientComponent(int i, int j, const std::vector<double>& paramValues,
+                                             double h = 1e-5) const {
         std::array<double, 10> grad;
         grad.fill(0.0);
 
@@ -78,11 +74,8 @@ public:
     }
 
     // Compute gradient of scalar curvature invariant (e.g., Kretschmann)
-    double gradientCurvature(
-        const std::function<double(const MetricTensor&)>& curvatureFunc,
-        const std::vector<double>& paramValues,
-        double h = 1e-5
-    ) const {
+    double gradientCurvature(const std::function<double(const MetricTensor&)>& curvatureFunc,
+                             const std::vector<double>& paramValues, double h = 1e-5) const {
         std::vector<double> grad(paramValues.size(), 0.0);
 
         double baseCurv = curvatureFunc(evaluate(paramValues));
@@ -96,16 +89,14 @@ public:
 
         // Return magnitude of gradient
         double mag2 = 0.0;
-        for (double g : grad) mag2 += g*g;
+        for (double g : grad)
+            mag2 += g * g;
         return std::sqrt(mag2);
     }
 
     // Use ADVariable for exact derivatives (single parameter)
-    double adGradientComponent(
-        int i, int j,
-        double param,
-        const std::function<ADVariable<1>(ADVariable<1>)>& f
-    ) const {
+    double adGradientComponent(int i, int j, double param,
+                               const std::function<ADVariable<1>(ADVariable<1>)>& f) const {
         // Create AD variable
         ADVariable<1> x(param, 1.0);  // value=param, derivative=1
         ADVariable<1> result = f(x);
@@ -127,7 +118,7 @@ public:
     }
 };
 
-} // namespace math
-} // namespace quantumverse
+}  // namespace math
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_DIFFERENTIABLE_METRIC_H
+#endif  // QUANTUMVERSE_DIFFERENTIABLE_METRIC_H

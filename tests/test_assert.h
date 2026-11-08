@@ -12,8 +12,9 @@
 
 #pragma once
 
-#include <stdexcept>
 #include <cmath>
+#include <iostream>
+#include <stdexcept>
 #include <string>
 
 namespace quantumverse {
@@ -21,32 +22,39 @@ namespace test {
 
 /// @brief Assert a boolean condition, throwing on failure.
 /// @param cond Expression that must be true.
-#define QV_CHECK(cond)                                                     \
-    do {                                                                   \
-        if (!(cond)) {                                                    \
-            throw std::runtime_error(                                     \
-                std::string("QV_CHECK failed: ") + #cond +                \
-                " at " + __FILE__ + ":" + std::to_string(__LINE__));     \
-        }                                                                 \
+#define QV_CHECK(cond)                                                                   \
+    do {                                                                                 \
+        if (!(cond)) {                                                                   \
+            throw std::runtime_error(std::string("QV_CHECK failed: ") + #cond + " at " + \
+                                     __FILE__ + ":" + std::to_string(__LINE__));         \
+        }                                                                                \
     } while (0)
 
 /// @brief Assert two values agree within an absolute tolerance.
 /// @param a First value.
 /// @param b Second value.
 /// @param eps Absolute tolerance.
-#define QV_CHECK_NEAR(a, b, eps)                                           \
-    do {                                                                   \
-        double _qv_a = static_cast<double>(a);                            \
-        double _qv_b = static_cast<double>(b);                            \
-        double _qv_eps = static_cast<double>(eps);                        \
-        if (std::fabs(_qv_a - _qv_b) > _qv_eps) {                        \
-            throw std::runtime_error(                                     \
-                std::string("QV_CHECK_NEAR failed: ") + #a + "=" +        \
-                std::to_string(_qv_a) + " vs " + #b + "=" +               \
-                std::to_string(_qv_b) + " (eps=" +                        \
-                std::to_string(_qv_eps) + ") at " + __FILE__ + ":" +      \
-                std::to_string(__LINE__));                                \
-        }                                                                 \
+#define QV_CHECK_NEAR(a, b, eps)                                                                  \
+    do {                                                                                          \
+        double _qv_a = static_cast<double>(a);                                                    \
+        double _qv_b = static_cast<double>(b);                                                    \
+        double _qv_eps = static_cast<double>(eps);                                                \
+        if (std::fabs(_qv_a - _qv_b) > _qv_eps) {                                                 \
+            throw std::runtime_error(std::string("QV_CHECK_NEAR failed: ") + #a + "=" +           \
+                                     std::to_string(_qv_a) + " vs " + #b + "=" +                  \
+                                     std::to_string(_qv_b) + " (eps=" + std::to_string(_qv_eps) + \
+                                     ") at " + __FILE__ + ":" + std::to_string(__LINE__));        \
+        }                                                                                         \
+    } while (0)
+
+/// @brief Skip a test with a documented reason.
+/// Prints a QSKIP line to stdout and returns 0 from main(),
+/// so CTest reports the test as "skipped" rather than failed.
+/// @param reason Human-readable explanation for the skip.
+#define QSKIP(reason)                                    \
+    do {                                                 \
+        std::cout << "QSKIP: " << (reason) << std::endl; \
+        return 0;                                        \
     } while (0)
 
 }  // namespace test

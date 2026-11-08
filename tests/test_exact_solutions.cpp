@@ -1,11 +1,11 @@
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "spacetime/FRWMetric.h"
-#include "physics/GeodesicIntegrator.h"
-#include "physics/CurvatureCalculator.h"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include "physics/CurvatureCalculator.h"
+#include "physics/GeodesicIntegrator.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/FRWMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -36,8 +36,10 @@ void test_schwarzschild_orbital_period_keplerian_limit() {
 
     double xMax = -1e100, xMin = 1e100;
     for (const auto& step : traj) {
-        if (step.event.x > xMax) xMax = step.event.x;
-        if (step.event.x < xMin) xMin = step.event.x;
+        if (step.event.x > xMax)
+            xMax = step.event.x;
+        if (step.event.x < xMin)
+            xMin = step.event.x;
     }
     double amplitude = (xMax - xMin) / 2.0;
     (void)amplitude;
@@ -88,7 +90,8 @@ void test_schwarzschild_photon_orbit() {
     QV_CHECK((fellIn || traj.size() >= 1));
     (void)fellIn;
 
-    std::cout << "[PASS] Schwarzschild photon orbit at b=3*sqrt(3)*M handled correctly" << std::endl;
+    std::cout << "[PASS] Schwarzschild photon orbit at b=3*sqrt(3)*M handled correctly"
+              << std::endl;
 }
 
 // ============================================================================
@@ -103,7 +106,9 @@ void test_kerr_equatorial_angular_velocity() {
 
         if (a_over_M < 1.0) {
             r_isco = M * (3.0 + std::sqrt(3.0 + a_over_M * a_over_M) -
-                          std::sqrt((3.0 + std::sqrt(3.0 + a_over_M * a_over_M)) * (3.0 - std::sqrt(3.0 + a_over_M * a_over_M)) * (3.0 + std::sqrt(3.0 + a_over_M * a_over_M))));
+                          std::sqrt((3.0 + std::sqrt(3.0 + a_over_M * a_over_M)) *
+                                    (3.0 - std::sqrt(3.0 + a_over_M * a_over_M)) *
+                                    (3.0 + std::sqrt(3.0 + a_over_M * a_over_M))));
         } else {
             r_isco = M;
         }
@@ -126,9 +131,9 @@ void test_kerr_equatorial_angular_velocity() {
             dphi += traj[i].event.phi() - traj[i - 1].event.phi();
         }
         if (dt > 0.0) {
-        double omega = dphi / dt;
-        (void)omega;
-        QV_CHECK(std::isfinite(omega));
+            double omega = dphi / dt;
+            (void)omega;
+            QV_CHECK(std::isfinite(omega));
         }
 
         std::cout << "[PASS] Kerr equatorial orbit a/M=" << a_over_M << " integrates" << std::endl;
@@ -154,7 +159,8 @@ void test_frw_redshift() {
     QV_CHECK(relError < 1e-6);
     (void)relError;
 
-    std::cout << "[PASS] FRW redshift: z_numeric=" << z_numeric << ", z_analytic=" << z_analytic << std::endl;
+    std::cout << "[PASS] FRW redshift: z_numeric=" << z_numeric << ", z_analytic=" << z_analytic
+              << std::endl;
 }
 
 // ============================================================================
@@ -184,7 +190,8 @@ void test_curvature_invariants_exact() {
     QV_CHECK(relError < 1e-6);
     (void)relError;
 
-    std::cout << "[PASS] Curvature invariants: Minkowski=0, Schwarzschild K=" << scalars.kretschmann << std::endl;
+    std::cout << "[PASS] Curvature invariants: Minkowski=0, Schwarzschild K=" << scalars.kretschmann
+              << std::endl;
 }
 
 // ============================================================================

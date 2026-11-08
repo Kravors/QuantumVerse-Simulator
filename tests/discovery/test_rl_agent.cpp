@@ -33,7 +33,7 @@ std::vector<std::pair<double, double>> makeDefaultRanges(int dim) {
     }
     return ranges;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== RLAgentConvergenceTest ===" << std::endl;
@@ -88,7 +88,8 @@ int main() {
         for (double p : best) {
             assertFinite("discovered param", p);
         }
-        std::cout << "  discoverTheory returned " << best.size() << " finite parameters." << std::endl;
+        std::cout << "  discoverTheory returned " << best.size() << " finite parameters."
+                  << std::endl;
     }
 
     // --- 6. Policy save/load roundtrip ------------------------------------------
@@ -98,7 +99,8 @@ int main() {
         // Use a portable path (temp dir) instead of a hardcoded drive letter, which
         // does not exist on CI runners (e.g. Windows GitHub runner has no F: drive)
         // and would make savePolicy throw -> uncaught exception -> abort (0xc0000409).
-        std::string path = (std::filesystem::temp_directory_path() / "test_rl_policy_roundtrip.bin").string();
+        std::string path =
+            (std::filesystem::temp_directory_path() / "test_rl_policy_roundtrip.bin").string();
         agent.savePolicy(path);
         QV_CHECK(std::ifstream(path).good());
 
@@ -120,7 +122,8 @@ int main() {
 
     // --- 8. RLTrainer completes without crash ------------------------------------
     {
-        std::string ckpt_dir = (std::filesystem::temp_directory_path() / "test_rl_checkpoints").string();
+        std::string ckpt_dir =
+            (std::filesystem::temp_directory_path() / "test_rl_checkpoints").string();
         RLTrainer trainer(2, makeDefaultRanges(2), 10, 5, ckpt_dir);
         trainer.train();
         auto history = trainer.getRewardHistory();
@@ -171,8 +174,8 @@ int main() {
         QV_CHECK(std::isfinite(action1[0]));
         QV_CHECK(std::isfinite(action1[1]));
         QV_CHECK(std::isfinite(action1[2]));
-        std::cout << "  Schwarzschild action: ["
-                  << action1[0] << ", " << action1[1] << ", " << action1[2] << "]" << std::endl;
+        std::cout << "  Schwarzschild action: [" << action1[0] << ", " << action1[1] << ", "
+                  << action1[2] << "]" << std::endl;
 
         // Test with near-extremal state [M=10, a=0.9, Q=0.3, score=0.8]
         std::array<float, 4> state_extremal = {10.0f, 0.9f, 0.3f, 0.8f};
@@ -180,8 +183,8 @@ int main() {
         QV_CHECK(std::isfinite(action2[0]));
         QV_CHECK(std::isfinite(action2[1]));
         QV_CHECK(std::isfinite(action2[2]));
-        std::cout << "  Near-extremal action: ["
-                  << action2[0] << ", " << action2[1] << ", " << action2[2] << "]" << std::endl;
+        std::cout << "  Near-extremal action: [" << action2[0] << ", " << action2[1] << ", "
+                  << action2[2] << "]" << std::endl;
 
         // Test determinism: same input -> same output
         auto action3 = agent.predictONNAction(state_schwarzschild);

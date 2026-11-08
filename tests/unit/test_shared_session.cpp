@@ -6,11 +6,11 @@
  * merges, and event handling.
  */
 
-#include "vr/SharedSession.h"
-#include <cmath>
-#include <cassert>
-#include <iostream>
 #include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <iostream>
+#include "vr/SharedSession.h"
 
 using namespace quantumverse;
 
@@ -43,8 +43,7 @@ static void assertLiveAlertEqual(const LiveAlert& a, const LiveAlert& b) {
     check(a.summary == b.summary, "LiveAlert summary mismatch");
 }
 
-int main()
-{
+int main() {
     std::cout << "=== SharedSessionTest ===" << std::endl;
 
     // --- TheoryParams round-trip -----------------------------------------------
@@ -82,7 +81,7 @@ int main()
         Participant p1;
         p1.id = "peer1";
         p1.name = "Alice";
-        p1.cameraMatrix = {1.0,0,0,0, 0,1.0,0,0, 0,0,1.0,0, 0,0,0,1.0};
+        p1.cameraMatrix = {1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0};
         p1.vrActive = true;
         state.participants.push_back(p1);
 
@@ -100,7 +99,8 @@ int main()
         check(restored.participants[0].id == "peer1", "SharedState participant id");
         check(restored.participants[0].vrActive == true, "SharedState participant vrActive");
         check(restored.activeTheory.name == "Kerr", "SharedState activeTheory name");
-        check(approxEqual(restored.activeTheory.parameters["a"], 0.5), "SharedState activeTheory a");
+        check(approxEqual(restored.activeTheory.parameters["a"], 0.5),
+              "SharedState activeTheory a");
         check(restored.bmaWeights.size() == 2, "SharedState bmaWeights count");
         check(approxEqual(restored.bmaWeights[0], 0.6), "SharedState bmaWeights[0]");
         check(restored.recentAlerts.size() == 1, "SharedState recentAlerts count");
@@ -118,14 +118,16 @@ int main()
         t.parameters["x"] = 1.0;
         session.updateActiveTheory(t);
         check(session.state().activeTheory.name == "Test", "SharedSession theory name");
-        check(approxEqual(session.state().activeTheory.parameters["x"], 1.0), "SharedSession theory x");
+        check(approxEqual(session.state().activeTheory.parameters["x"], 1.0),
+              "SharedSession theory x");
 
         DiscoveryResult dr;
         dr.confidence = 0.95;
         dr.description = "Result";
         session.addDiscoveryResult(dr);
         check(session.state().paretoFront.size() == 1, "SharedSession paretoFront count");
-        check(session.state().paretoFront[0].confidence == 0.95, "SharedSession paretoFront confidence");
+        check(session.state().paretoFront[0].confidence == 0.95,
+              "SharedSession paretoFront confidence");
 
         LiveAlert la;
         la.origin = "Test";
@@ -133,7 +135,8 @@ int main()
         la.summary = "Alert";
         session.addLiveAlert(la);
         check(session.state().recentAlerts.size() == 1, "SharedSession recentAlerts count");
-        check(session.state().recentAlerts[0].origin == "Test", "SharedSession recentAlerts origin");
+        check(session.state().recentAlerts[0].origin == "Test",
+              "SharedSession recentAlerts origin");
 
         std::cout << "[PASS] SharedSession state updates" << std::endl;
     }
@@ -167,8 +170,10 @@ int main()
         session.applyPeerState("peer1", remoteJson);
 
         check(session.state().activeTheory.name == "Remote", "applyPeerState theory name");
-        check(approxEqual(session.state().activeTheory.parameters["p"], 2.0), "applyPeerState theory p");
-        check(approxEqual(session.state().activeTheory.parameters["q"], 3.0), "applyPeerState theory q");
+        check(approxEqual(session.state().activeTheory.parameters["p"], 2.0),
+              "applyPeerState theory p");
+        check(approxEqual(session.state().activeTheory.parameters["q"], 3.0),
+              "applyPeerState theory q");
         check(session.state().paretoFront.size() == 2, "applyPeerState paretoFront count");
 
         std::cout << "[PASS] SharedSession applyPeerState merge" << std::endl;

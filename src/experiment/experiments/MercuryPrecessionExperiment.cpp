@@ -12,9 +12,9 @@
 
 #include "MercuryPrecessionExperiment.h"
 
-#include <cmath>
-#include <QDir>
 #include <QDateTime>
+#include <QDir>
+#include <cmath>
 
 #include "spacetime/Event4D.h"
 #include "spacetime/KerrMetric.h"
@@ -23,21 +23,23 @@ namespace quantumverse {
 
 QVector<ExperimentParameter> MercuryPrecessionExperiment::parameters() const {
     QVector<ExperimentParameter> p;
-    p.append({QStringLiteral("semi_major_m"),  QStringLiteral("Semi-major axis (m)"),
+    p.append({QStringLiteral("semi_major_m"), QStringLiteral("Semi-major axis (m)"),
               QStringLiteral("double"), QVariant(5.79e10), QVariant(1.0e9), QVariant(1.0e12),
-              QStringList(), QStringLiteral("m"),  QStringLiteral("Orbit semi-major axis.")});
+              QStringList(), QStringLiteral("m"), QStringLiteral("Orbit semi-major axis.")});
     p.append({QStringLiteral("eccentricity"), QStringLiteral("Eccentricity"),
               QStringLiteral("double"), QVariant(0.2056), QVariant(0.0), QVariant(0.99),
-              QStringList(), QStringLiteral(""),  QStringLiteral("Orbit eccentricity.")});
-    p.append({QStringLiteral("orbits"),      QStringLiteral("Orbits to average"),
-              QStringLiteral("int"),    QVariant(100),    QVariant(1),   QVariant(100000),
-              QStringList(), QStringLiteral(""),  QStringLiteral("Number of orbits (precession is orbit-independent).")});
+              QStringList(), QStringLiteral(""), QStringLiteral("Orbit eccentricity.")});
+    p.append({QStringLiteral("orbits"), QStringLiteral("Orbits to average"), QStringLiteral("int"),
+              QVariant(100), QVariant(1), QVariant(100000), QStringList(), QStringLiteral(""),
+              QStringLiteral("Number of orbits (precession is orbit-independent).")});
     p.append({QStringLiteral("mass_sun_Msun"), QStringLiteral("Central mass (M☉)"),
-              QStringLiteral("double"), QVariant(1.0),    QVariant(0.1), QVariant(1e6),
-              QStringList(), QStringLiteral("M☉"),  QStringLiteral("Mass of the central body.")});
-    p.append({QStringLiteral("compareToPublished"), QStringLiteral("Compare to published perihelion value"),
-              QStringLiteral("bool"), QVariant(false), QVariant(), QVariant(),
-              QStringList(), QStringLiteral(""), QStringLiteral("If true, compute σ-tension vs published Mercury perihelion value (43.0 arcsec/century).")});
+              QStringLiteral("double"), QVariant(1.0), QVariant(0.1), QVariant(1e6), QStringList(),
+              QStringLiteral("M☉"), QStringLiteral("Mass of the central body.")});
+    p.append({QStringLiteral("compareToPublished"),
+              QStringLiteral("Compare to published perihelion value"), QStringLiteral("bool"),
+              QVariant(false), QVariant(), QVariant(), QStringList(), QStringLiteral(""),
+              QStringLiteral("If true, compute σ-tension vs published Mercury perihelion value "
+                             "(43.0 arcsec/century).")});
     return p;
 }
 
@@ -45,14 +47,14 @@ ExperimentResult MercuryPrecessionExperiment::run(const QVariantMap& params,
                                                   std::function<void(double)> progress,
                                                   std::function<bool()> shouldAbort) {
     ExperimentResult out;
-    const double a     = params.value(QStringLiteral("semi_major_m"),  5.79e10).toDouble();
-    const double e     = params.value(QStringLiteral("eccentricity"),   0.2056).toDouble();
-    const int    orbits= params.value(QStringLiteral("orbits"),        100   ).toInt();
-    const double massMsun = params.value(QStringLiteral("mass_sun_Msun"), 1.0 ).toDouble();
+    const double a = params.value(QStringLiteral("semi_major_m"), 5.79e10).toDouble();
+    const double e = params.value(QStringLiteral("eccentricity"), 0.2056).toDouble();
+    const int orbits = params.value(QStringLiteral("orbits"), 100).toInt();
+    const double massMsun = params.value(QStringLiteral("mass_sun_Msun"), 1.0).toDouble();
 
     out.scalars[QStringLiteral("semi_major_m")] = a;
     out.scalars[QStringLiteral("eccentricity")] = e;
-    out.scalars[QStringLiteral("orbits")]       = orbits;
+    out.scalars[QStringLiteral("orbits")] = orbits;
     out.scalars[QStringLiteral("mass_sun_Msun")] = massMsun;
 
     if (a <= 0.0 || e < 0.0 || e >= 1.0 || orbits < 1) {
@@ -68,15 +70,13 @@ ExperimentResult MercuryPrecessionExperiment::run(const QVariantMap& params,
     const double arcsecPerRad = 180.0 * 3600.0 / M_PI;
 
     // Perihelion advance per orbit (Schwarzschild, first post-Newtonian).
-    const double deltaPhiPerOrbit =
-        6.0 * M_PI * G * massKg / (a * (1.0 - e * e) * c * c);
+    const double deltaPhiPerOrbit = 6.0 * M_PI * G * massKg / (a * (1.0 - e * e) * c * c);
 
     // Orbits per century (Mercury period = 87.97 days).
     const double periodDays = 87.97;
     const double orbitsPerCentury = (100.0 * 365.25) / periodDays;
 
-    const double precession =
-        deltaPhiPerOrbit * orbitsPerCentury * arcsecPerRad;
+    const double precession = deltaPhiPerOrbit * orbitsPerCentury * arcsecPerRad;
 
     const double expected = 43.0;
     const double error = std::abs(precession - expected);
@@ -98,29 +98,35 @@ ExperimentResult MercuryPrecessionExperiment::run(const QVariantMap& params,
 
     // Mercury perihelion reproduction: Einstein 1915, Annalen der Physik 49:769-822
     // Published: 43.0 arcsec/century (±0.1 arcsec/century typical uncertainty)
-    const double precession_pub   = 43.0;
-    const double precession_err   = 0.1;
+    const double precession_pub = 43.0;
+    const double precession_err = 0.1;
 
-    out.scalars[QStringLiteral("reference")]        = QStringLiteral("Einstein 1915, Annalen der Physik 49:769-822");
-    out.scalars[QStringLiteral("source_system")]    = QStringLiteral("Mercury");
+    out.scalars[QStringLiteral("reference")] =
+        QStringLiteral("Einstein 1915, Annalen der Physik 49:769-822");
+    out.scalars[QStringLiteral("source_system")] = QStringLiteral("Mercury");
     out.scalars[QStringLiteral("precession_published_arcsec_per_century")] = precession_pub;
     out.scalars[QStringLiteral("precession_published_err_arcsec_per_century")] = precession_err;
-    out.scalars[QStringLiteral("precession_delta_sigma")]    = (precession - precession_pub) / precession_err;
+    out.scalars[QStringLiteral("precession_delta_sigma")] =
+        (precession - precession_pub) / precession_err;
 
     if (params.value(QStringLiteral("compareToPublished"), false).toBool()) {
         out.scalars[QStringLiteral("compareToPublished")] = true;
     }
 
     out.logLines << QString("a=%1 m  e=%2  M=%3 M☉")
-                    .arg(a, 0, 'e', 4).arg(e, 0, 'g', 4).arg(massMsun, 0, 'g', 4);
+                        .arg(a, 0, 'e', 4)
+                        .arg(e, 0, 'g', 4)
+                        .arg(massMsun, 0, 'g', 4);
     out.logLines << QString("Δφ/orbit=%1 rad").arg(deltaPhiPerOrbit, 0, 'e', 4);
     out.logLines << QString("Precession=%2 arcsec/century (expected %3, error %4)")
-                    .arg(precession, 0, 'f', 3).arg(expected, 0, 'f', 1).arg(error, 0, 'f', 3);
+                        .arg(precession, 0, 'f', 3)
+                        .arg(expected, 0, 'f', 1)
+                        .arg(error, 0, 'f', 3);
 
-    out.curve.append(QPointF(0.0, expected));   // reference line
-    out.curve.append(QPointF(1.0, precession)); // measured
+    out.curve.append(QPointF(0.0, expected));    // reference line
+    out.curve.append(QPointF(1.0, precession));  // measured
     out.outputDir = QDir::currentPath();
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

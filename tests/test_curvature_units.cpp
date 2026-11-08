@@ -18,11 +18,11 @@
 #include <cmath>
 #include <iostream>
 
-#include "ui4d/Camera4DAdapter.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/KerrMetric.h"
 #include "spacetime/MetricTensor.h"
 #include "test_assert.h"
+#include "ui4d/Camera4DAdapter.h"
 
 using namespace quantumverse;
 
@@ -79,8 +79,8 @@ int main(int argc, char** argv) {
         QV_CHECK(cs.valid);
         QV_CHECK_NEAR(cs.kretschmann, 0.0, 1e-20);
 
-        std::cout << "[PASS] Test 3: KerrMetric curvatureScalars at r=100000 — K="
-                  << cs.kretschmann << " (expected ~0)" << std::endl;
+        std::cout << "[PASS] Test 3: KerrMetric curvatureScalars at r=100000 — K=" << cs.kretschmann
+                  << " (expected ~0)" << std::endl;
         std::cout.flush();
     }
 
@@ -154,12 +154,13 @@ int main(int argc, char** argv) {
         Event4D probe(0.0, 0.0, 0.0, 1000.0);  // r=1000 m < rs
 
         auto cs = metric.curvatureScalars(probe);
-        std::cout << "DEBUG Test 6: got cs, valid=" << cs.valid << " K=" << cs.kretschmann << std::endl;
+        std::cout << "DEBUG Test 6: got cs, valid=" << cs.valid << " K=" << cs.kretschmann
+                  << std::endl;
         std::cout.flush();
         QV_CHECK(!cs.valid);  // inside horizon → invalid
 
-        std::cout << "[PASS] Test 6: curvatureScalars inside horizon — valid="
-                  << cs.valid << " (expected false)" << std::endl;
+        std::cout << "[PASS] Test 6: curvatureScalars inside horizon — valid=" << cs.valid
+                  << " (expected false)" << std::endl;
         std::cout.flush();
     }
 
@@ -173,11 +174,11 @@ int main(int argc, char** argv) {
         Event4D probe(0.0, 0.0, 0.0, 5000.0);  // r=5000 m > rs
 
         auto cs = metric.curvatureScalars(probe);
-        QV_CHECK(cs.valid);  // outside horizon → valid
+        QV_CHECK(cs.valid);                       // outside horizon → valid
         QV_CHECK(std::isfinite(cs.kretschmann));  // finite K
 
-        std::cout << "[PASS] Test 7: curvatureScalars outside horizon — K="
-                  << cs.kretschmann << " (finite, valid=true)" << std::endl;
+        std::cout << "[PASS] Test 7: curvatureScalars outside horizon — K=" << cs.kretschmann
+                  << " (finite, valid=true)" << std::endl;
         std::cout.flush();
     }
 
@@ -194,16 +195,16 @@ int main(int argc, char** argv) {
         Event4D probe(0.0, 0.0, 0.0, 100000.0);    // r=100000
 
         auto cs = metric.curvatureScalars(probe);
-        std::cout << "DEBUG Test 8: M=226, r=100000, K=" << cs.kretschmann
-                  << ", valid=" << cs.valid << std::endl;
+        std::cout << "DEBUG Test 8: M=226, r=100000, K=" << cs.kretschmann << ", valid=" << cs.valid
+                  << std::endl;
         std::cout.flush();
 
         // Probe is inside horizon → clamped to safe radius → valid + finite K.
-        QV_CHECK(!cs.valid);                          // inside horizon → invalid
-        QV_CHECK(std::isfinite(cs.kretschmann));     // K is 0.0 when invalid
+        QV_CHECK(!cs.valid);                      // inside horizon → invalid
+        QV_CHECK(std::isfinite(cs.kretschmann));  // K is 0.0 when invalid
 
-        std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid="
-                  << cs.valid << " (expected true)" << std::endl;
+        std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid=" << cs.valid
+                  << " (expected true)" << std::endl;
         std::cout.flush();
     }
 
@@ -217,11 +218,11 @@ int main(int argc, char** argv) {
         Event4D probe(0.0, 0.0, 0.0, 100000.0);    // r=100000 < rs
 
         auto cs = metric.curvatureScalars(probe);
-        QV_CHECK(!cs.valid);                          // inside horizon → invalid
-        QV_CHECK(std::isfinite(cs.kretschmann));     // K is 0.0 when invalid
+        QV_CHECK(!cs.valid);                      // inside horizon → invalid
+        QV_CHECK(std::isfinite(cs.kretschmann));  // K is 0.0 when invalid
 
-        std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid="
-                  << cs.valid << " (expected true)" << std::endl;
+        std::cout << "[PASS] Test 8: M=226, r=100000 — clamped to safe radius, valid=" << cs.valid
+                  << " (expected true)" << std::endl;
         std::cout.flush();
     }
 
@@ -237,8 +238,8 @@ int main(int argc, char** argv) {
         auto g = metric.evaluate(probe);
         QV_CHECK_NEAR(g[0][0], -1.0, 0.01);  // gtt ≈ -1 far outside horizon
 
-        std::cout << "[PASS] Test 9: M=226, r=1e10 — gtt=" << g[0][0]
-                  << " (expected ≈ -1)" << std::endl;
+        std::cout << "[PASS] Test 9: M=226, r=1e10 — gtt=" << g[0][0] << " (expected ≈ -1)"
+                  << std::endl;
         std::cout.flush();
     }
 
@@ -249,13 +250,13 @@ int main(int argc, char** argv) {
     // -----------------------------------------------------------------------
     {
         KerrMetric metric(226.0 * 1.989e30, 0.0);  // 226 M☉
-        Event4D probe(0.0, 0.0, 0.0, 1e6);        // r=1e6 > rs=667,700
+        Event4D probe(0.0, 0.0, 0.0, 1e6);         // r=1e6 > rs=667,700
 
         auto g = metric.evaluate(probe);
         QV_CHECK_NEAR(g[0][0], -0.3323, 0.01);  // g_tt = -(1 − rs/r)
 
-        std::cout << "[PASS] Test 10: M=226, r=1e6 — gtt=" << g[0][0]
-                  << " (expected ≈ -0.3323)" << std::endl;
+        std::cout << "[PASS] Test 10: M=226, r=1e6 — gtt=" << g[0][0] << " (expected ≈ -0.3323)"
+                  << std::endl;
         std::cout.flush();
     }
 

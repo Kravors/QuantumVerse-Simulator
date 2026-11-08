@@ -19,16 +19,16 @@
 #include <iostream>
 #include <vector>
 
-#include "data/LIGOAdapter.h"
-#include "data/IceCubeAdapter.h"
+#include "data/AlertRouter.h"
 #include "data/FermiGBMAdapter.h"
+#include "data/GCNNoticeParser.h"
+#include "data/IceCubeAdapter.h"
+#include "data/LIGOAdapter.h"
+#include "data/MultiMessengerCorrelator.h"
 #include "data/SwiftBATAdapter.h"
 #include "data/TESSAlertAdapter.h"
-#include "data/GCNNoticeParser.h"
-#include "data/MultiMessengerCorrelator.h"
-#include "data/AlertRouter.h"
-#include "discovery/UltralightDMWaveInterferometer.h"
 #include "discovery/DiscoveryInstrument.h"
+#include "discovery/UltralightDMWaveInterferometer.h"
 #include "spacetime/Event4D.h"
 #include "spacetime/MetricTensor.h"
 #include "test_assert.h"
@@ -45,9 +45,8 @@ using namespace quantumverse;
 void test_ligo_adapter_fidelity() {
     LIGOAdapter adapter;
     std::vector<GravitationalWaveAlert> received;
-    adapter.setCallback([&received](const GravitationalWaveAlert& alert) {
-        received.push_back(alert);
-    });
+    adapter.setCallback(
+        [&received](const GravitationalWaveAlert& alert) { received.push_back(alert); });
 
     GravitationalWaveAlert gw;
     gw.event_id = "GW250601A";
@@ -78,9 +77,7 @@ void test_ligo_adapter_fidelity() {
 void test_icecube_adapter_fidelity() {
     IceCubeAdapter adapter;
     std::vector<NeutrinoAlert> received;
-    adapter.setCallback([&received](const NeutrinoAlert& alert) {
-        received.push_back(alert);
-    });
+    adapter.setCallback([&received](const NeutrinoAlert& alert) { received.push_back(alert); });
 
     NeutrinoAlert nu;
     nu.event_id = "IC250601A";
@@ -109,9 +106,7 @@ void test_icecube_adapter_fidelity() {
 void test_fermi_gbm_adapter_fidelity() {
     FermiGBMAdapter adapter;
     std::vector<FermiGBMAlert> received;
-    adapter.setCallback([&received](const FermiGBMAlert& alert) {
-        received.push_back(alert);
-    });
+    adapter.setCallback([&received](const FermiGBMAlert& alert) { received.push_back(alert); });
 
     FermiGBMAlert grb;
     grb.trigger_id = "bn240512001";
@@ -146,9 +141,7 @@ void test_fermi_gbm_adapter_fidelity() {
 void test_swift_bat_adapter_fidelity() {
     SwiftBATAdapter adapter;
     std::vector<SwiftBATAlert> received;
-    adapter.setCallback([&received](const SwiftBATAlert& alert) {
-        received.push_back(alert);
-    });
+    adapter.setCallback([&received](const SwiftBATAlert& alert) { received.push_back(alert); });
 
     SwiftBATAlert xrt;
     xrt.trigger_id = "swift_bat_240512A";
@@ -181,9 +174,7 @@ void test_swift_bat_adapter_fidelity() {
 void test_tess_adapter_fidelity() {
     TESSAlertAdapter adapter;
     std::vector<TESSAlert> received;
-    adapter.setCallback([&received](const TESSAlert& alert) {
-        received.push_back(alert);
-    });
+    adapter.setCallback([&received](const TESSAlert& alert) { received.push_back(alert); });
 
     TESSAlert toi;
     toi.toi_id = "TOI-1234.01";
@@ -338,7 +329,7 @@ void test_gcn_parser_missing_fields() {
 // ============================================================================
 void test_correlator_spatial_fidelity() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     MultiMessengerCorrelator correlator;
     correlator.setSpatialThresholdDeg(2.0);
@@ -371,7 +362,8 @@ void test_correlator_spatial_fidelity() {
     QV_CHECK(ev.messengers.contains("IceCube"));
     QV_CHECK(ev.combinedConfidence > 0.8);
     QV_CHECK(ev.spatialScore > 0.0);
-    std::cout << "[PASS] MultiMessengerCorrelator spatial coincidence fidelity verified" << std::endl;
+    std::cout << "[PASS] MultiMessengerCorrelator spatial coincidence fidelity verified"
+              << std::endl;
 }
 
 // ============================================================================
@@ -379,7 +371,7 @@ void test_correlator_spatial_fidelity() {
 // ============================================================================
 void test_correlator_non_coincidence() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     MultiMessengerCorrelator correlator;
     correlator.setSpatialThresholdDeg(1.0);
@@ -414,7 +406,7 @@ void test_correlator_non_coincidence() {
 // ============================================================================
 void test_correlator_follow_up_trigger() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     MultiMessengerCorrelator correlator;
     correlator.setSpatialThresholdDeg(2.0);
@@ -446,7 +438,10 @@ void test_correlator_follow_up_trigger() {
     // exact-match contains("Fermi") fails; check for the Fermi substring instead.
     bool fermiPresent = false;
     for (const auto& m : followUpEv.messengers) {
-        if (m.contains(QStringLiteral("Fermi"))) { fermiPresent = true; break; }
+        if (m.contains(QStringLiteral("Fermi"))) {
+            fermiPresent = true;
+            break;
+        }
     }
     QV_CHECK(fermiPresent);
     std::cout << "[PASS] MultiMessengerCorrelator follow-up trigger fidelity verified" << std::endl;
@@ -457,7 +452,7 @@ void test_correlator_follow_up_trigger() {
 // ============================================================================
 void test_correlator_threshold_boundary() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     MultiMessengerCorrelator correlator;
     correlator.setSpatialThresholdDeg(1.0);
@@ -492,7 +487,7 @@ void test_correlator_threshold_boundary() {
 // ============================================================================
 void test_alert_router_ligo_routing() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     LIGOAdapter ligoAdapter;
     AlertRouter router;
@@ -519,7 +514,7 @@ void test_alert_router_ligo_routing() {
 // ============================================================================
 void test_alert_router_icecube_routing() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     IceCubeAdapter icecubeAdapter;
     AlertRouter router;
@@ -547,7 +542,7 @@ void test_alert_router_icecube_routing() {
 // ============================================================================
 void test_alert_router_fermi_routing() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     FermiGBMAdapter fermiAdapter;
     AlertRouter router;
@@ -575,7 +570,7 @@ void test_alert_router_fermi_routing() {
 // ============================================================================
 void test_alert_router_swift_routing() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
     SwiftBATAdapter swiftAdapter;
     AlertRouter router;
@@ -607,7 +602,8 @@ void test_confidence_to_severity_mapping() {
     QV_CHECK(DiscoveryInstrument::confidenceToSeverity(0.80) == AlertSeverity::MEDIUM);
     QV_CHECK(DiscoveryInstrument::confidenceToSeverity(0.50) == AlertSeverity::LOW);
     QV_CHECK(DiscoveryInstrument::confidenceToSeverity(0.10) == AlertSeverity::INFO);
-    std::cout << "[PASS] DiscoveryInstrument confidenceToSeverity mapping fidelity verified" << std::endl;
+    std::cout << "[PASS] DiscoveryInstrument confidenceToSeverity mapping fidelity verified"
+              << std::endl;
 }
 
 // ============================================================================
@@ -622,7 +618,8 @@ void test_confidence_to_sigma_mapping() {
     QV_CHECK(DiscoveryInstrument::confidenceToSigma(0.80) == 2.0);
     QV_CHECK(DiscoveryInstrument::confidenceToSigma(0.50) == 1.0);
     QV_CHECK(DiscoveryInstrument::confidenceToSigma(0.10) == 0.0);
-    std::cout << "[PASS] DiscoveryInstrument confidenceToSigma mapping fidelity verified" << std::endl;
+    std::cout << "[PASS] DiscoveryInstrument confidenceToSigma mapping fidelity verified"
+              << std::endl;
 }
 
 // ============================================================================
@@ -679,7 +676,8 @@ void test_dm_interferometer_snr_gating() {
     auto findings = interferometer.analyze(metric, Event4D(0.0, 0.0, 0.0, 0.0), trajectory);
 
     QV_CHECK(findings.empty());
-    std::cout << "[PASS] UltralightDMWaveInterferometer SNR gating: weak signal rejected" << std::endl;
+    std::cout << "[PASS] UltralightDMWaveInterferometer SNR gating: weak signal rejected"
+              << std::endl;
 }
 
 // ============================================================================
@@ -758,7 +756,7 @@ void test_instrument_finding_field_preservation() {
 // ============================================================================
 void test_gw170817_time_delay() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
 
     static constexpr double NGC4993_RA = 197.45;
@@ -795,8 +793,10 @@ void test_gw170817_time_delay() {
     const CorrelationEvent ev = qvariant_cast<CorrelationEvent>(spy.value(0).at(0));
     bool ligoPresent = false, fermiPresent = false;
     for (const auto& m : ev.messengers) {
-        if (m.contains(QStringLiteral("LIGO"))) ligoPresent = true;
-        if (m.contains(QStringLiteral("Fermi"))) fermiPresent = true;
+        if (m.contains(QStringLiteral("LIGO")))
+            ligoPresent = true;
+        if (m.contains(QStringLiteral("Fermi")))
+            fermiPresent = true;
     }
     QV_CHECK(ligoPresent);
     QV_CHECK(fermiPresent);
@@ -809,7 +809,7 @@ void test_gw170817_time_delay() {
 // ============================================================================
 void test_gw170817_late_grb_rejected() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
 
     static constexpr double NGC4993_RA = 197.45;
@@ -840,8 +840,7 @@ void test_gw170817_late_grb_rejected() {
 
     QV_CHECK(correlator.correlationCount() == 0);
     QV_CHECK(spy.count() == 0);
-    std::cout << "[PASS] GW170817: 5.0 s delay correctly rejected beyond 2.0 s window"
-              << std::endl;
+    std::cout << "[PASS] GW170817: 5.0 s delay correctly rejected beyond 2.0 s window" << std::endl;
 }
 
 // ============================================================================
@@ -879,6 +878,7 @@ int main(int argc, char** argv) {
     test_gw170817_time_delay();
     test_gw170817_late_grb_rejected();
 
-    std::cout << "=== ALL SIGNAL FIDELITY TESTS PASSED (" << 27 << " test functions) ===" << std::endl;
+    std::cout << "=== ALL SIGNAL FIDELITY TESTS PASSED (" << 27
+              << " test functions) ===" << std::endl;
     return 0;
 }

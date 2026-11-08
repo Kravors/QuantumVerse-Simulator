@@ -13,9 +13,9 @@
 #ifndef QUANTUMVERSE_MULTI_MESSENGER_CORRELATOR_H
 #define QUANTUMVERSE_MULTI_MESSENGER_CORRELATOR_H
 
+#include <QDateTime>
 #include <QObject>
 #include <QVector>
-#include <QDateTime>
 #include <cmath>
 
 #include "discovery/DiscoveryInstrument.h"
@@ -27,30 +27,31 @@ namespace quantumverse {
  */
 struct CorrelationEvent {
     QString id;
-    QStringList messengers;          // e.g. ["LIGO", "IceCube"]
-    double ra = 0.0;                 // degrees (sky-frame only; 0 for sim-frame)
-    double dec = 0.0;                // degrees (sky-frame only; 0 for sim-frame)
-    double timestamp = 0.0;          // Unix seconds
+    QStringList messengers;           // e.g. ["LIGO", "IceCube"]
+    double ra = 0.0;                  // degrees (sky-frame only; 0 for sim-frame)
+    double dec = 0.0;                 // degrees (sky-frame only; 0 for sim-frame)
+    double timestamp = 0.0;           // Unix seconds
     double combinedConfidence = 0.0;  // joint confidence
-    double spatialScore = 0.0;       // 0..1 proximity score
-    double spatialDistance = 0.0;    // meters (sim-frame correlation)
-    double timeSeparation = 0.0;     // seconds (sim-frame correlation)
+    double spatialScore = 0.0;        // 0..1 proximity score
+    double spatialDistance = 0.0;     // meters (sim-frame correlation)
+    double timeSeparation = 0.0;      // seconds (sim-frame correlation)
     QString description;
     AlertSeverity severity = AlertSeverity::INFO;
-    QVector<QString> alertIds;       // source finding IDs
+    QVector<QString> alertIds;  // source finding IDs
 };
 
 /**
  * @brief Real-time multi-messenger correlation engine
  */
-class MultiMessengerCorrelator : public QObject
-{
+class MultiMessengerCorrelator : public QObject {
     Q_OBJECT
-    Q_PROPERTY(double spatialThresholdDeg READ spatialThresholdDeg WRITE setSpatialThresholdDeg NOTIFY spatialThresholdDegChanged)
-    Q_PROPERTY(double timeWindowSec READ timeWindowSec WRITE setTimeWindowSec NOTIFY timeWindowSecChanged)
+    Q_PROPERTY(double spatialThresholdDeg READ spatialThresholdDeg WRITE setSpatialThresholdDeg
+                   NOTIFY spatialThresholdDegChanged)
+    Q_PROPERTY(
+        double timeWindowSec READ timeWindowSec WRITE setTimeWindowSec NOTIFY timeWindowSecChanged)
     Q_PROPERTY(int correlationCount READ correlationCount NOTIFY correlationCountChanged)
 
-public:
+   public:
     explicit MultiMessengerCorrelator(QObject* parent = nullptr);
     ~MultiMessengerCorrelator() override = default;
 
@@ -66,22 +67,29 @@ public:
      *  Two findings correlate when their spatial distance is below @p spatialThresholdMeters
      *  and their time separation is below @p timeWindowSec.
      */
-    std::vector<CorrelationEvent> correlateFindings(
-        const std::vector<InstrumentFinding>& findings,
-        double spatialThresholdMeters,
-        double timeWindowSec) const;
+    std::vector<CorrelationEvent> correlateFindings(const std::vector<InstrumentFinding>& findings,
+                                                    double spatialThresholdMeters,
+                                                    double timeWindowSec) const;
 
     /** @brief Current spatial coincidence threshold in degrees. */
-    double spatialThresholdDeg() const { return m_spatialThresholdDeg; }
+    double spatialThresholdDeg() const {
+        return m_spatialThresholdDeg;
+    }
 
     /** @brief Current temporal coincidence window in seconds. */
-    double timeWindowSec() const { return m_timeWindowSec; }
+    double timeWindowSec() const {
+        return m_timeWindowSec;
+    }
 
     /** @brief Number of detected correlations so far. */
-    int correlationCount() const { return m_correlations.size(); }
+    int correlationCount() const {
+        return m_correlations.size();
+    }
 
     /** @brief All detected correlations. */
-    QVector<CorrelationEvent> correlations() const { return m_correlations; }
+    QVector<CorrelationEvent> correlations() const {
+        return m_correlations;
+    }
 
     /** @brief Set spatial threshold in degrees (default 1.0). */
     void setSpatialThresholdDeg(double deg);
@@ -101,30 +109,30 @@ public:
      */
     static QString canonicalMessenger(const QString& instrumentName);
 
-    signals:
-        void spatialThresholdDegChanged();
-        void timeWindowSecChanged();
-        void correlationCountChanged();
-        /** @brief Emitted when a new multi-messenger correlation is detected. */
-        void correlationDetected(const CorrelationEvent& correlation);
-        /** @brief Emitted when a GW alert is correlated with an EM transient. */
-        void followUpTriggered(const CorrelationEvent& correlation);
+   signals:
+    void spatialThresholdDegChanged();
+    void timeWindowSecChanged();
+    void correlationCountChanged();
+    /** @brief Emitted when a new multi-messenger correlation is detected. */
+    void correlationDetected(const CorrelationEvent& correlation);
+    /** @brief Emitted when a GW alert is correlated with an EM transient. */
+    void followUpTriggered(const CorrelationEvent& correlation);
 
-    private:
-        struct Alert {
-            QString messenger;   ///< canonical messenger family (e.g. "Fermi")
-            QString rawName;     ///< instrument name as reported (e.g. "Fermi GBM (Live)")
-            double ra = 0.0;
-            double dec = 0.0;
-            double timestamp = 0.0;
-            double confidence = 0.0;
-            QString id;
-        };
+   private:
+    struct Alert {
+        QString messenger;  ///< canonical messenger family (e.g. "Fermi")
+        QString rawName;    ///< instrument name as reported (e.g. "Fermi GBM (Live)")
+        double ra = 0.0;
+        double dec = 0.0;
+        double timestamp = 0.0;
+        double confidence = 0.0;
+        QString id;
+    };
 
-        /** @brief Return true if the alert originated from a gravitational-wave observatory. */
-        bool isGW(const Alert& a) const;
-        /** @brief Return true if the alert originated from an electromagnetic observatory. */
-        bool isEM(const Alert& a) const;
+    /** @brief Return true if the alert originated from a gravitational-wave observatory. */
+    bool isGW(const Alert& a) const;
+    /** @brief Return true if the alert originated from an electromagnetic observatory. */
+    bool isEM(const Alert& a) const;
 
     static double angularSeparationDeg(double ra1, double dec1, double ra2, double dec2);
     static QString severityToString(AlertSeverity sev);
@@ -135,6 +143,6 @@ public:
     double m_timeWindowSec = 86400.0;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_MULTI_MESSENGER_CORRELATOR_H
+#endif  // QUANTUMVERSE_MULTI_MESSENGER_CORRELATOR_H

@@ -2,16 +2,15 @@
 // Rapidly resizes QmlGlViewport and toggles rendering state to verify
 // FBO/texture resource management under stress.
 
-#include <QGuiApplication>
 #include <QDebug>
+#include <QGuiApplication>
 
 #include "qmlglviewport.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     qDebug() << "=== ResizeStressTest ===";
 

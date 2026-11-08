@@ -1,8 +1,8 @@
+#include <cmath>
+#include <iostream>
 #include "quantumgravity/CDTEngine.h"
 #include "quantumgravity/CausalSet.h"
 #include "quantumgravity/SpinFoam.h"
-#include <cmath>
-#include <iostream>
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -94,7 +94,8 @@ void test_cdt_regge_action_positive() {
     double avgDeficit = manifold->getAverageDeficit();
     QV_CHECK(std::isfinite(avgDeficit));
 
-    std::cout << "[PASS] CDT Regge action: S=" << action << ", avg_deficit=" << avgDeficit << std::endl;
+    std::cout << "[PASS] CDT Regge action: S=" << action << ", avg_deficit=" << avgDeficit
+              << std::endl;
 }
 
 // ============================================================================
@@ -115,7 +116,8 @@ void test_cdt_monte_carlo_stability() {
     QV_CHECK(ratio > 0.5 && ratio < 2.0);
     (void)ratio;
 
-    std::cout << "[PASS] CDT MC stability: before=" << simplices_before << ", after=" << simplices_after << std::endl;
+    std::cout << "[PASS] CDT MC stability: before=" << simplices_before
+              << ", after=" << simplices_after << std::endl;
 }
 
 int main() {

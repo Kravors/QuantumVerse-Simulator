@@ -1,12 +1,12 @@
 #ifndef QUANTUMVERSE_CDT_ENGINE_H
 #define QUANTUMVERSE_CDT_ENGINE_H
 
-#include "discovery/DiscoveryEngine.h"
-#include <vector>
 #include <array>
+#include <map>
 #include <memory>
 #include <random>
-#include <map>
+#include <vector>
+#include "discovery/DiscoveryEngine.h"
 
 namespace quantumverse {
 namespace quantumgravity {
@@ -18,7 +18,7 @@ namespace quantumgravity {
  * Each 4-simplex has 5 vertices, 10 edges, 10 triangles, 5 tetrahedra.
  */
 class SimplicialManifold {
-private:
+   private:
     struct Vertex {
         std::array<double, 4> coordinates;
         int id;
@@ -62,7 +62,7 @@ private:
     std::vector<double> vertexDeficitAngles;
     mutable std::mt19937 rng;
 
-public:
+   public:
     SimplicialManifold(int numVertices, double spatialSize, double timeSize, int topology = 1);
     ~SimplicialManifold() = default;
 
@@ -83,9 +83,15 @@ public:
     std::vector<double> getVertexColors() const;
     double getAverageDeficit() const;
     double getCurvatureVariance() const;
-    int getNumSimplices() const { return static_cast<int>(simplices.size()); }
-    int getNumVertices() const { return static_cast<int>(vertices.size()); }
-    void setTopologyType(int type) { topologyType = type; }
+    int getNumSimplices() const {
+        return static_cast<int>(simplices.size());
+    }
+    int getNumVertices() const {
+        return static_cast<int>(vertices.size());
+    }
+    void setTopologyType(int type) {
+        topologyType = type;
+    }
     void saveToFile(const std::string& filename) const;
     void loadFromFile(const std::string& filename);
 
@@ -104,7 +110,7 @@ public:
  * Key observables: d_s(μ) → 4 (large), 2 (Planck); d_H ~ 4
  */
 class CDTEngine : public QuantumGravityPlugin {
-private:
+   private:
     std::unique_ptr<SimplicialManifold> manifold;
     double beta;
     double alpha;
@@ -122,38 +128,39 @@ private:
     mutable std::mt19937 rng;
     std::uniform_real_distribution<double> uniformDist;
 
-public:
+   public:
     CDTEngine(int initialVertices = 1000, double spatialSize = 100.0, double timeSize = 100.0);
     CDTEngine(const CDTEngine& other);
     ~CDTEngine() override = default;
 
     // TheoryPlugin interface
-    std::string getName() const override { return "Causal Dynamical Triangulations (CDT)"; }
+    std::string getName() const override {
+        return "Causal Dynamical Triangulations (CDT)";
+    }
     std::string getDescription() const override;
-    std::string getFieldEquation() const override { return "Z = Σ_T e^{-S_R[T]}, S_R = β Σ δ_v + α Σ V_simplex"; }
-    QuantumGeometryType getQuantumGeometryType() const override { return QUANTUM_CDT; }
+    std::string getFieldEquation() const override {
+        return "Z = Σ_T e^{-S_R[T]}, S_R = β Σ δ_v + α Σ V_simplex";
+    }
+    QuantumGeometryType getQuantumGeometryType() const override {
+        return QUANTUM_CDT;
+    }
     std::string getPlanckScaleEffects() const override;
-    bool isDiscrete() const override { return true; }
+    bool isDiscrete() const override {
+        return true;
+    }
 
-    MetricTensor computeMetric(
-        const Event4D& location,
-        const std::map<std::string, double>& parameters
-    ) const override;
+    MetricTensor computeMetric(const Event4D& location,
+                               const std::map<std::string, double>& parameters) const override;
 
-    std::array<std::array<double, 4>, 4> computeChristoffel(
-        const Event4D& location,
-        int rho, int mu, int nu
-    ) const override;
+    std::array<std::array<double, 4>, 4> computeChristoffel(const Event4D& location, int rho,
+                                                            int mu, int nu) const override;
 
     MetricTensor computeRicciTensor(const Event4D& location) const override;
     double computeRicciScalar(const Event4D& location) const override;
     double computeKretschmannScalar(const Event4D& location) const override;
 
     // Quantum-specific
-    double computeAmplitude(
-        const Event4D& from,
-        const Event4D& to
-    ) const override;
+    double computeAmplitude(const Event4D& from, const Event4D& to) const override;
 
     double computeSpectralDimension(double mu) const override;
     double computeHausdorffDimension() const override;
@@ -164,10 +171,18 @@ public:
     std::vector<double> getGeometryColors() const override;
 
     // Phenomenology
-    bool predictsWormholes() const override { return false; }
-    bool predictsNakedSingularities() const override { return false; }
-    bool violatesEnergyConditions() const override { return false; }
-    bool allowsTimeTravel() const override { return false; }
+    bool predictsWormholes() const override {
+        return false;
+    }
+    bool predictsNakedSingularities() const override {
+        return false;
+    }
+    bool violatesEnergyConditions() const override {
+        return false;
+    }
+    bool allowsTimeTravel() const override {
+        return false;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
@@ -183,36 +198,54 @@ public:
     void printStatistics() const;
 
     // Configuration
-    void setCoupling(double beta_) { beta = beta_; }
-    void setCosmologicalConstant(double alpha_) { alpha = alpha_; }
-    void setTopology(int type) { manifold->setTopologyType(type); }
+    void setCoupling(double beta_) {
+        beta = beta_;
+    }
+    void setCosmologicalConstant(double alpha_) {
+        alpha = alpha_;
+    }
+    void setTopology(int type) {
+        manifold->setTopologyType(type);
+    }
 
     // Accessors
-    double getSpectralDimension() const { return spectralDimension; }
-    double getHausdorffDimension() const { return hausdorffDimension; }
-    const SimplicialManifold* getManifold() const { return manifold.get(); }
-    int getNumSimplices() const { return manifold->getNumSimplices(); }
+    double getSpectralDimension() const {
+        return spectralDimension;
+    }
+    double getHausdorffDimension() const {
+        return hausdorffDimension;
+    }
+    const SimplicialManifold* getManifold() const {
+        return manifold.get();
+    }
+    int getNumSimplices() const {
+        return manifold->getNumSimplices();
+    }
 };
 
 /**
  * CDTPlugin - Concrete plugin for DiscoveryEngine registration
  */
 class CDTPlugin : public CDTEngine {
-private:
+   private:
     std::string name;
     std::string description;
 
-public:
+   public:
     CDTPlugin(int vertices = 1000, double spatialSize = 100.0, double timeSize = 100.0);
     CDTPlugin(const CDTPlugin& other);
     CDTPlugin(const CDTEngine& other);
 
-    std::string getName() const override { return name; }
-    std::string getDescription() const override { return description; }
+    std::string getName() const override {
+        return name;
+    }
+    std::string getDescription() const override {
+        return description;
+    }
     std::unique_ptr<TheoryPlugin> clone() const override;
 };
 
-} // namespace quantumgravity
-} // namespace quantumverse
+}  // namespace quantumgravity
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_CDT_ENGINE_H
+#endif  // QUANTUMVERSE_CDT_ENGINE_H

@@ -1,32 +1,26 @@
 #include "PaperGenerator.h"
-#include <QFile>
-#include <QTextStream>
-#include <QDir>
-#include <QProcess>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QProcess>
 #include <QStandardPaths>
+#include <QTextStream>
 #include <cmath>
 
 namespace quantumverse {
 
-static QString formatScientific(double v, int digits = 4)
-{
-    if (v == 0.0) return QStringLiteral("0");
+static QString formatScientific(double v, int digits = 4) {
+    if (v == 0.0)
+        return QStringLiteral("0");
     const double a = std::abs(v);
     const int exp = static_cast<int>(std::floor(std::log10(a)));
     const double mant = v / std::pow(10.0, exp);
-    return QStringLiteral("%1 \\times 10^{%2}")
-        .arg(mant, 0, 'f', digits)
-        .arg(exp);
+    return QStringLiteral("%1 \\times 10^{%2}").arg(mant, 0, 'f', digits).arg(exp);
 }
 
-PaperGenerator::PaperGenerator(QObject* parent)
-    : QObject(parent)
-{
-}
+PaperGenerator::PaperGenerator(QObject* parent) : QObject(parent) {}
 
-QString PaperGenerator::loadTemplate()
-{
+QString PaperGenerator::loadTemplate() {
     // QRC first — resource is compiled at :/resources/paper_template.tex
     QFile file(QStringLiteral(":/resources/paper_template.tex"));
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -51,34 +45,52 @@ QString PaperGenerator::loadTemplate()
     return QString();
 }
 
-QString PaperGenerator::escapeLatex(const QString& input)
-{
+QString PaperGenerator::escapeLatex(const QString& input) {
     QString out;
     out.reserve(input.size());
     for (const QChar& c : input) {
         switch (c.toLatin1()) {
-        case '\\': out += "\\textbackslash{}"; break;
-        case '&':  out += "\\&"; break;
-        case '%':  out += "\\%"; break;
-        case '$':  out += "\\$"; break;
-        case '#':  out += "\\#"; break;
-        case '_':  out += "\\_"; break;
-        case '{':  out += "\\{"; break;
-        case '}':  out += "\\}"; break;
-        case '~':  out += "\\textasciitilde{}"; break;
-        case '^':  out += "\\textasciicircum{}"; break;
-        default:   out += c; break;
+            case '\\':
+                out += "\\textbackslash{}";
+                break;
+            case '&':
+                out += "\\&";
+                break;
+            case '%':
+                out += "\\%";
+                break;
+            case '$':
+                out += "\\$";
+                break;
+            case '#':
+                out += "\\#";
+                break;
+            case '_':
+                out += "\\_";
+                break;
+            case '{':
+                out += "\\{";
+                break;
+            case '}':
+                out += "\\}";
+                break;
+            case '~':
+                out += "\\textasciitilde{}";
+                break;
+            case '^':
+                out += "\\textasciicircum{}";
+                break;
+            default:
+                out += c;
+                break;
         }
     }
     return out;
 }
 
-void PaperGenerator::generatePaper(double mass, double spin, double charge,
-                                   double kretch, double redshift,
-                                   const QString& llmAbstract,
-                                   const QString& bhType,
-                                   const QString& outputPath)
-{
+void PaperGenerator::generatePaper(double mass, double spin, double charge, double kretch,
+                                   double redshift, const QString& llmAbstract,
+                                   const QString& bhType, const QString& outputPath) {
     QString tex = loadTemplate();
     if (tex.isEmpty()) {
         return;
@@ -96,15 +108,15 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
     // Write .tex to output directory; derive .pdf path alongside it.
     // outputPath (when non-empty) is the desired PDF path; the .tex goes
     // next to it with the same base name.
-    QString outDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/QuantumVerse/output";
+    QString outDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                     "/QuantumVerse/output";
     if (!outputPath.isEmpty()) {
         outDir = QFileInfo(outputPath).absolutePath();
     }
     QDir().mkpath(outDir);
 
-    QString baseName = outputPath.isEmpty()
-        ? QStringLiteral("discovery_paper")
-        : QFileInfo(outputPath).baseName();
+    QString baseName =
+        outputPath.isEmpty() ? QStringLiteral("discovery_paper") : QFileInfo(outputPath).baseName();
     QString texPath = outDir + QStringLiteral("/") + baseName + QStringLiteral(".tex");
     QString pdfPath = outDir + QStringLiteral("/") + baseName + QStringLiteral(".pdf");
 
@@ -125,43 +137,42 @@ void PaperGenerator::generatePaper(double mass, double spin, double charge,
     // Resolve pdflatex: prefer PATH, fall back to known MiKTeX install path
     QString pdflatexPath = QStringLiteral("pdflatex");
 #ifdef Q_OS_WIN
-    const QString miktexPath = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdflatex.exe");
+    const QString miktexPath =
+        QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdflatex.exe");
     if (QFileInfo::exists(miktexPath)) {
         pdflatexPath = miktexPath;
     }
 #endif
 
-    process->start(pdflatexPath, QStringList() << "-interaction=batchmode" << "-halt-on-error" << texFileName);
+    process->start(pdflatexPath,
+                   QStringList() << "-interaction=batchmode" << "-halt-on-error" << texFileName);
 
     QObject::connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-        [this, process, texPath](int exitCode, QProcess::ExitStatus) {
-            QString pdfPath = texPath;
-            pdfPath.replace(".tex", ".pdf");
-            if (exitCode == 0 && QFileInfo::exists(pdfPath) && QFileInfo(pdfPath).size() > 1000) {
-                qDebug() << "[PaperGenerator] PDF generated:" << pdfPath;
-                emit paperGenerated(pdfPath);
-            } else {
-                qWarning() << "[PaperGenerator] pdflatex failed (exit" << exitCode
-                           << ", pdf exists:" << QFileInfo::exists(pdfPath) << ")";
-                emit paperGenerated(QString());
-            }
-            process->deleteLater();
-        });
+                     [this, process, texPath](int exitCode, QProcess::ExitStatus) {
+                         QString pdfPath = texPath;
+                         pdfPath.replace(".tex", ".pdf");
+                         if (exitCode == 0 && QFileInfo::exists(pdfPath) &&
+                             QFileInfo(pdfPath).size() > 1000) {
+                             qDebug() << "[PaperGenerator] PDF generated:" << pdfPath;
+                             emit paperGenerated(pdfPath);
+                         } else {
+                             qWarning() << "[PaperGenerator] pdflatex failed (exit" << exitCode
+                                        << ", pdf exists:" << QFileInfo::exists(pdfPath) << ")";
+                             emit paperGenerated(QString());
+                         }
+                         process->deleteLater();
+                     });
 }
 
-void PaperGenerator::generatePaper(const ScanSummary& summary,
-                                    const QString& llmAbstract,
-                                    const QString& outputPath)
-{
-    generatePaper(summary.mass, summary.spin, summary.charge,
-                  summary.kretschmann, summary.redshift,
+void PaperGenerator::generatePaper(const ScanSummary& summary, const QString& llmAbstract,
+                                   const QString& outputPath) {
+    generatePaper(summary.mass, summary.spin, summary.charge, summary.kretschmann, summary.redshift,
                   llmAbstract, summary.bhType, outputPath);
 }
 
 void PaperGenerator::generateTheorySensitivityPaper(const QJsonObject& matrix,
-                                                     const QString& llmAbstract,
-                                                     const QString& outputPath)
-{
+                                                    const QString& llmAbstract,
+                                                    const QString& outputPath) {
     QString tex = QStringLiteral(
         "\\documentclass[twocolumn,prl,aps]{revtex4-2}\n"
         "\\usepackage{graphicx}\n"
@@ -248,20 +259,11 @@ void PaperGenerator::generateTheorySensitivityPaper(const QJsonObject& matrix,
     tex.replace("%1", llmAbstract);
 
     // Build matrix table rows from QJsonObject
-    QStringList theoryKeys = {
-        QStringLiteral("project"),
-        QStringLiteral("fR"),
-        QStringLiteral("wcdm"),
-        QStringLiteral("brans_dicke")
-    };
-    QStringList probeKeys = {
-        QStringLiteral("r_drag_Mpc"),
-        QStringLiteral("age_universe_Gyr"),
-        QStringLiteral("age_at_z1_Gyr"),
-        QStringLiteral("D_z1"),
-        QStringLiteral("H0_SH0ES"),
-        QStringLiteral("mu_z1")
-    };
+    QStringList theoryKeys = {QStringLiteral("project"), QStringLiteral("fR"),
+                              QStringLiteral("wcdm"), QStringLiteral("brans_dicke")};
+    QStringList probeKeys = {QStringLiteral("r_drag_Mpc"),    QStringLiteral("age_universe_Gyr"),
+                             QStringLiteral("age_at_z1_Gyr"), QStringLiteral("D_z1"),
+                             QStringLiteral("H0_SH0ES"),      QStringLiteral("mu_z1")};
 
     QStringList rows;
     for (const QString& probe : probeKeys) {
@@ -279,15 +281,15 @@ void PaperGenerator::generateTheorySensitivityPaper(const QJsonObject& matrix,
     tex.replace("%2", rows.join(QStringLiteral("\n")));
 
     // Write .tex to output directory; derive .pdf path alongside it.
-    QString outDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/QuantumVerse/output";
+    QString outDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                     "/QuantumVerse/output";
     if (!outputPath.isEmpty()) {
         outDir = QFileInfo(outputPath).absolutePath();
     }
     QDir().mkpath(outDir);
 
-    QString baseName = outputPath.isEmpty()
-        ? QStringLiteral("theory_sensitivity_paper")
-        : QFileInfo(outputPath).baseName();
+    QString baseName = outputPath.isEmpty() ? QStringLiteral("theory_sensitivity_paper")
+                                            : QFileInfo(outputPath).baseName();
     QString texPath = outDir + QStringLiteral("/") + baseName + QStringLiteral(".tex");
     QString pdfPath = outDir + QStringLiteral("/") + baseName + QStringLiteral(".pdf");
 
@@ -307,15 +309,18 @@ void PaperGenerator::generateTheorySensitivityPaper(const QJsonObject& matrix,
 
     QString pdflatexPath = QStringLiteral("pdflatex");
 #ifdef Q_OS_WIN
-    const QString miktexPath = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdflatex.exe");
+    const QString miktexPath =
+        QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdflatex.exe");
     if (QFileInfo::exists(miktexPath)) {
         pdflatexPath = miktexPath;
     }
 #endif
 
-    process->start(pdflatexPath, QStringList() << "-interaction=batchmode" << "-halt-on-error" << QFileInfo(texPath).fileName());
+    process->start(pdflatexPath, QStringList() << "-interaction=batchmode" << "-halt-on-error"
+                                               << QFileInfo(texPath).fileName());
 
-    QObject::connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+    QObject::connect(
+        process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
         [this, process, texPath](int exitCode, QProcess::ExitStatus) {
             QString pdfPath = texPath;
             pdfPath.replace(".tex", ".pdf");
@@ -331,4 +336,4 @@ void PaperGenerator::generateTheorySensitivityPaper(const QJsonObject& matrix,
         });
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -16,4 +16,4 @@ namespace quantumverse {
 // All methods are inline in UI4D.h
 // This file intentionally left minimal
 
-} // namespace quantumverse
+}  // namespace quantumverse

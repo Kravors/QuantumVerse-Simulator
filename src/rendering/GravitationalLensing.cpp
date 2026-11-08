@@ -5,19 +5,18 @@
 
 #include "GravitationalLensing.h"
 
-#include <iostream>
-#include <cmath>
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include <vector>
-#include <array>
-#include <random>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <random>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -47,7 +46,8 @@ static std::string loadLensingFragmentSource() {
     auto path = srcDir / "lensing_fragment.glsl";
     std::ifstream file(path);
     if (!file) {
-        std::cerr << "[GravitationalLensing] failed to open lensing_fragment.glsl at " << path << std::endl;
+        std::cerr << "[GravitationalLensing] failed to open lensing_fragment.glsl at " << path
+                  << std::endl;
         return {};
     }
     std::stringstream ss;
@@ -121,8 +121,7 @@ static GLuint linkProgram(GLuint vertShader, GLuint fragShader) {
 // ============================================================================
 
 GravitationalLensing::GravitationalLensing(std::shared_ptr<MetricTensor> metric)
-    : m_metric(std::move(metric))
-{
+    : m_metric(std::move(metric)) {
     // Initialize camera position based on parameters
     m_params.cameraDistance = 10.0f;
     m_params.cameraTheta = 1.5708f;  // equatorial
@@ -151,7 +150,8 @@ GravitationalLensing::GravitationalLensing(std::shared_ptr<MetricTensor> metric)
 GravitationalLensing::~GravitationalLensing() {
     // Only clean up GL resources if they were actually created.
     // Without initialize() being called, no GL resources exist.
-    if (!m_initialized) return;
+    if (!m_initialized)
+        return;
 
     if (m_lensingProgram) {
         glDeleteProgram(m_lensingProgram);
@@ -266,9 +266,12 @@ std::vector<uint8_t> GravitationalLensing::renderOffscreen(int width, int height
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRbo);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        if (colorTex) glDeleteTextures(1, &colorTex);
-        if (depthRbo) glDeleteRenderbuffers(1, &depthRbo);
-        if (fbo) glDeleteFramebuffers(1, &fbo);
+        if (colorTex)
+            glDeleteTextures(1, &colorTex);
+        if (depthRbo)
+            glDeleteRenderbuffers(1, &depthRbo);
+        if (fbo)
+            glDeleteFramebuffers(1, &fbo);
         return std::vector<uint8_t>(width * height * 3, 0);
     }
 
@@ -299,9 +302,12 @@ std::vector<uint8_t> GravitationalLensing::renderOffscreen(int width, int height
     glBindVertexArray(prevVao);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    if (colorTex) glDeleteTextures(1, &colorTex);
-    if (depthRbo) glDeleteRenderbuffers(1, &depthRbo);
-    if (fbo) glDeleteFramebuffers(1, &fbo);
+    if (colorTex)
+        glDeleteTextures(1, &colorTex);
+    if (depthRbo)
+        glDeleteRenderbuffers(1, &depthRbo);
+    if (fbo)
+        glDeleteFramebuffers(1, &fbo);
 
     return pixels;
 }
@@ -357,7 +363,8 @@ double GravitationalLensing::computeISCO() const {
 
     // Bardeen et al. 1972 formula
     double aM = a / M;
-    double z1 = 1.0 + pow(1.0 - aM * aM, 1.0 / 3.0) * (pow(1.0 + aM, 1.0 / 3.0) + pow(1.0 - aM, 1.0 / 3.0));
+    double z1 =
+        1.0 + pow(1.0 - aM * aM, 1.0 / 3.0) * (pow(1.0 + aM, 1.0 / 3.0) + pow(1.0 - aM, 1.0 / 3.0));
     double z2 = sqrt(3.0 * aM * aM + z1 * z1);
     double r_isco = M * (3.0 + z2 - sqrt((3.0 - z1) * (3.0 + z1 + 2.0 * z2)));
 
@@ -377,7 +384,8 @@ double GravitationalLensing::computeISCO() const {
  */
 double GravitationalLensing::computeISCORadius(double spin) {
     double a = std::abs(spin);
-    if (a < 0.001) return 6.0;
+    if (a < 0.001)
+        return 6.0;
 
     double a2 = a * a;
     // cbrt(1-a^2): guarded explicitly because pow(0, 1/3) can return NaN on
@@ -398,7 +406,8 @@ double GravitationalLensing::computeISCORadius(double spin) {
 void GravitationalLensing::compileLensingShader() {
     GLuint vertShader = compileShader(GL_VERTEX_SHADER, lensingVertexSource);
     std::string fragSource = loadLensingFragmentSource();
-    if (fragSource.empty()) return;
+    if (fragSource.empty())
+        return;
     GLuint fragShader = compileShader(GL_FRAGMENT_SHADER, fragSource.c_str());
     if (vertShader && fragShader) {
         m_lensingProgram = linkProgram(vertShader, fragShader);
@@ -446,8 +455,11 @@ void GravitationalLensing::createStarFieldTexture() {
         float y = dist(rng);
         float z = dist(rng);
         float len = sqrt(x * x + y * y + z * z);
-        if (len < 0.001f) continue;
-        x /= len; y /= len; z /= len;
+        if (len < 0.001f)
+            continue;
+        x /= len;
+        y /= len;
+        z /= len;
 
         stars.push_back({x, y, z, brightnessDist(rng), colorDist(rng)});
     }
@@ -468,17 +480,47 @@ void GravitationalLensing::createStarFieldTexture() {
 
                 float x, y, z;
                 switch (face) {
-                    case 0: x = 1.0f; y = -v; z = -u; break;  // +X
-                    case 1: x = -1.0f; y = -v; z = u; break;  // -X
-                    case 2: x = u; y = 1.0f; z = v; break;    // +Y
-                    case 3: x = u; y = -1.0f; z = -v; break;  // -Y
-                    case 4: x = u; y = -v; z = 1.0f; break;   // +Z
-                    case 5: x = -u; y = -v; z = -1.0f; break; // -Z
-                    default: x = 0; y = 0; z = 1; break;
+                    case 0:
+                        x = 1.0f;
+                        y = -v;
+                        z = -u;
+                        break;  // +X
+                    case 1:
+                        x = -1.0f;
+                        y = -v;
+                        z = u;
+                        break;  // -X
+                    case 2:
+                        x = u;
+                        y = 1.0f;
+                        z = v;
+                        break;  // +Y
+                    case 3:
+                        x = u;
+                        y = -1.0f;
+                        z = -v;
+                        break;  // -Y
+                    case 4:
+                        x = u;
+                        y = -v;
+                        z = 1.0f;
+                        break;  // +Z
+                    case 5:
+                        x = -u;
+                        y = -v;
+                        z = -1.0f;
+                        break;  // -Z
+                    default:
+                        x = 0;
+                        y = 0;
+                        z = 1;
+                        break;
                 }
 
                 float len = sqrt(x * x + y * y + z * z);
-                x /= len; y /= len; z /= len;
+                x /= len;
+                y /= len;
+                z /= len;
 
                 // Check each star
                 float r = 0, g = 0, b = 0;
@@ -494,17 +536,17 @@ void GravitationalLensing::createStarFieldTexture() {
 
                         // Star color
                         switch (star.colorType) {
-                            case 0: // Blue-white
+                            case 0:  // Blue-white
                                 r += 0.8f * falloff * star.brightness;
                                 g += 0.9f * falloff * star.brightness;
                                 b += 1.0f * falloff * star.brightness;
                                 break;
-                            case 1: // White
+                            case 1:  // White
                                 r += 1.0f * falloff * star.brightness;
                                 g += 1.0f * falloff * star.brightness;
                                 b += 0.95f * falloff * star.brightness;
                                 break;
-                            case 2: // Yellow-orange
+                            case 2:  // Yellow-orange
                                 r += 1.0f * falloff * star.brightness;
                                 g += 0.9f * falloff * star.brightness;
                                 b += 0.7f * falloff * star.brightness;
@@ -527,8 +569,8 @@ void GravitationalLensing::createStarFieldTexture() {
             }
         }
 
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_RGB8,
-                     faceSize, faceSize, 0, GL_RGB, GL_UNSIGNED_BYTE, faceData.data());
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_RGB8, faceSize, faceSize, 0,
+                     GL_RGB, GL_UNSIGNED_BYTE, faceData.data());
     }
 
     // Set texture parameters
@@ -543,12 +585,7 @@ void GravitationalLensing::createStarFieldTexture() {
 
 void GravitationalLensing::createFullscreenQuad() {
     // Simple fullscreen quad (two triangles)
-    float quadVertices[] = {
-        -1.0f, -1.0f,
-         1.0f, -1.0f,
-        -1.0f,  1.0f,
-         1.0f,  1.0f
-    };
+    float quadVertices[] = {-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f};
 
     glGenVertexArrays(1, &m_quadVao);
     glGenBuffers(1, &m_quadVbo);
@@ -562,7 +599,8 @@ void GravitationalLensing::createFullscreenQuad() {
 }
 
 void GravitationalLensing::updateUniforms() {
-    if (!m_lensingProgram) return;
+    if (!m_lensingProgram)
+        return;
 
     // Black hole parameters
     setUniformFloat("u_mass", m_params.mass);
@@ -573,12 +611,16 @@ void GravitationalLensing::updateUniforms() {
     setUniformFloat("u_starFieldIntensity", m_params.starFieldIntensity);
     setUniformFloat("u_photonRingIntensity", m_params.photonRingIntensity);
     setUniformFloat("u_accretionDiskIntensity", m_params.accretionDiskIntensity);
-    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enablePhotonRing"), m_params.enablePhotonRing ? 1 : 0);
-    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enableAccretionDisk"), m_params.enableAccretionDisk ? 1 : 0);
-    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enableStarField"), m_params.enableStarField ? 1 : 0);
+    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enablePhotonRing"),
+                m_params.enablePhotonRing ? 1 : 0);
+    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enableAccretionDisk"),
+                m_params.enableAccretionDisk ? 1 : 0);
+    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_enableStarField"),
+                m_params.enableStarField ? 1 : 0);
 
     // Volumetric accretion disk uniforms
-    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_volumetricDiskEnable"), m_volumetricDisk.enableVolumetricDisk ? 1 : 0);
+    glUniform1i(glGetUniformLocation(m_lensingProgram, "u_volumetricDiskEnable"),
+                m_volumetricDisk.enableVolumetricDisk ? 1 : 0);
     setUniformFloat("u_volumetricDiskDensity", m_volumetricDisk.diskDensity);
     setUniformFloat("u_volumetricDiskTemperature", m_volumetricDisk.diskTemperature);
     setUniformFloat("u_volumetricDiskScaleHeight", m_volumetricDisk.diskScaleHeight);
@@ -614,10 +656,14 @@ void GravitationalLensing::updateUniforms() {
     float fwdZ = m_bhPos[2] - camZ;
     float forwardLen = sqrt(fwdX * fwdX + fwdY * fwdY + fwdZ * fwdZ);
     if (forwardLen > 0.001f) {
-        fwdX /= forwardLen; fwdY /= forwardLen; fwdZ /= forwardLen;
+        fwdX /= forwardLen;
+        fwdY /= forwardLen;
+        fwdZ /= forwardLen;
         setUniformVec3("u_cameraDir", fwdX, fwdY, fwdZ);
     } else {
-        fwdX = 0.0f; fwdY = 0.0f; fwdZ = -1.0f;
+        fwdX = 0.0f;
+        fwdY = 0.0f;
+        fwdZ = -1.0f;
         setUniformVec3("u_cameraDir", fwdX, fwdY, fwdZ);
     }
 
@@ -629,7 +675,9 @@ void GravitationalLensing::updateUniforms() {
     float rightZ = fwdX * worldUpY - fwdY * worldUpX;
     float rightLen = sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
     if (rightLen > 0.001f) {
-        rightX /= rightLen; rightY /= rightLen; rightZ /= rightLen;
+        rightX /= rightLen;
+        rightY /= rightLen;
+        rightZ /= rightLen;
         float upX = rightY * fwdZ - rightZ * fwdY;
         float upY = rightZ * fwdX - rightX * fwdZ;
         float upZ = rightX * fwdY - rightY * fwdX;
@@ -647,32 +695,36 @@ void GravitationalLensing::updateUniforms() {
         static bool lastHasCamPos = false;
         static float lastDirX = 0.0f, lastDirY = 0.0f, lastDirZ = 0.0f;
 
-        bool changed = (std::abs(camX - lastCamX) > 1e-6f ||
-                        std::abs(camY - lastCamY) > 1e-6f ||
-                        std::abs(camZ - lastCamZ) > 1e-6f ||
-                        std::abs(m_bhPos[0] - lastBhX) > 1e-6f ||
-                        std::abs(m_bhPos[1] - lastBhY) > 1e-6f ||
-                        std::abs(m_bhPos[2] - lastBhZ) > 1e-6f ||
-                        std::abs(m_params.cameraDistance - lastDist) > 1e-6f ||
-                        std::abs(m_params.cameraTheta - lastTheta) > 1e-6f ||
-                        std::abs(m_params.cameraPhi - lastPhi) > 1e-6f ||
-                        m_params.hasCameraPos != lastHasCamPos ||
-                        std::abs(fwdX - lastDirX) > 1e-6f ||
-                        std::abs(fwdY - lastDirY) > 1e-6f ||
-                        std::abs(fwdZ - lastDirZ) > 1e-6f);
+        bool changed =
+            (std::abs(camX - lastCamX) > 1e-6f || std::abs(camY - lastCamY) > 1e-6f ||
+             std::abs(camZ - lastCamZ) > 1e-6f || std::abs(m_bhPos[0] - lastBhX) > 1e-6f ||
+             std::abs(m_bhPos[1] - lastBhY) > 1e-6f || std::abs(m_bhPos[2] - lastBhZ) > 1e-6f ||
+             std::abs(m_params.cameraDistance - lastDist) > 1e-6f ||
+             std::abs(m_params.cameraTheta - lastTheta) > 1e-6f ||
+             std::abs(m_params.cameraPhi - lastPhi) > 1e-6f ||
+             m_params.hasCameraPos != lastHasCamPos || std::abs(fwdX - lastDirX) > 1e-6f ||
+             std::abs(fwdY - lastDirY) > 1e-6f || std::abs(fwdZ - lastDirZ) > 1e-6f);
 
         if (changed) {
             std::cerr << "[LENS] u_cameraPos =(" << camX << " " << camY << " " << camZ
                       << ") u_bhPos =(" << m_bhPos[0] << " " << m_bhPos[1] << " " << m_bhPos[2]
-                      << ") distance=" << m_params.cameraDistance << " theta=" << m_params.cameraTheta
-                      << " phi=" << m_params.cameraPhi << " hasCameraPos=" << m_params.hasCameraPos
-                      << " u_cameraDir =(" << fwdX << " " << fwdY << " " << fwdZ << ")"
-                      << std::endl;
-            lastCamX = camX; lastCamY = camY; lastCamZ = camZ;
-            lastBhX = m_bhPos[0]; lastBhY = m_bhPos[1]; lastBhZ = m_bhPos[2];
-            lastDist = m_params.cameraDistance; lastTheta = m_params.cameraTheta; lastPhi = m_params.cameraPhi;
+                      << ") distance=" << m_params.cameraDistance
+                      << " theta=" << m_params.cameraTheta << " phi=" << m_params.cameraPhi
+                      << " hasCameraPos=" << m_params.hasCameraPos << " u_cameraDir =(" << fwdX
+                      << " " << fwdY << " " << fwdZ << ")" << std::endl;
+            lastCamX = camX;
+            lastCamY = camY;
+            lastCamZ = camZ;
+            lastBhX = m_bhPos[0];
+            lastBhY = m_bhPos[1];
+            lastBhZ = m_bhPos[2];
+            lastDist = m_params.cameraDistance;
+            lastTheta = m_params.cameraTheta;
+            lastPhi = m_params.cameraPhi;
             lastHasCamPos = m_params.hasCameraPos;
-            lastDirX = fwdX; lastDirY = fwdY; lastDirZ = fwdZ;
+            lastDirX = fwdX;
+            lastDirY = fwdY;
+            lastDirZ = fwdZ;
         }
     }
 
@@ -697,7 +749,7 @@ void GravitationalLensing::setUniformVec3(const char* name, float x, float y, fl
 }
 
 void GravitationalLensing::setUniformMat4(const char* name, const float* matrix) {
-   glUniformMatrix4fv(glGetUniformLocation(m_lensingProgram, name), 1, GL_FALSE, matrix);
+    glUniformMatrix4fv(glGetUniformLocation(m_lensingProgram, name), 1, GL_FALSE, matrix);
 }
 
 // ============================================================================
@@ -707,7 +759,8 @@ void GravitationalLensing::setUniformMat4(const char* name, const float* matrix)
 // straight ray in geometric units (c = 1).
 // ============================================================================
 
-GravitationalLensing::MarchResult GravitationalLensing::marchFlatSlab(double tauTotal, double j, int steps) {
+GravitationalLensing::MarchResult GravitationalLensing::marchFlatSlab(double tauTotal, double j,
+                                                                      int steps) {
     MarchResult result;
     if (steps <= 0 || tauTotal <= 0.0) {
         result.tau = tauTotal;
@@ -752,21 +805,18 @@ std::array<float, 3> GravitationalLensing::blackbodyColor(float T) {
 }
 
 std::array<float, 3> GravitationalLensing::computeVolumetricDiskEmissivity(
-    const std::array<float, 3>& pos,
-    const VolumetricDiskParams& params,
-    float mass,
-    float spin)
-{
+    const std::array<float, 3>& pos, const VolumetricDiskParams& params, float mass, float spin) {
     float rPlane = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
     float rInner = params.diskInnerRadius;
     if (rInner <= 0.0f) {
         rInner = static_cast<float>(computeISCORadius(spin)) * mass;
     }
-    if (rPlane < rInner || rPlane > params.diskOuterRadius) return {0.0f, 0.0f, 0.0f};
+    if (rPlane < rInner || rPlane > params.diskOuterRadius)
+        return {0.0f, 0.0f, 0.0f};
 
     float innerFade = (params.diskInnerEdgeFade > 0.0f)
-        ? std::clamp((rPlane - rInner) / params.diskInnerEdgeFade, 0.0f, 1.0f)
-        : (rPlane >= rInner ? 1.0f : 0.0f);
+                          ? std::clamp((rPlane - rInner) / params.diskInnerEdgeFade, 0.0f, 1.0f)
+                          : (rPlane >= rInner ? 1.0f : 0.0f);
 
     float H = params.diskScaleHeight * rPlane;
     float zNorm = (H > 0.0001f) ? pos[1] / H : 0.0f;
@@ -795,14 +845,14 @@ std::array<float, 3> GravitationalLensing::computeVolumetricDiskEmissivity(
 }
 
 float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& params, float mass,
-                                                  float spin)
-{
+                                                  float spin) {
     float rInner = params.diskInnerRadius;
     if (rInner <= 0.0f) {
         rInner = static_cast<float>(computeISCORadius(spin)) * mass;
     }
     float rOuter = params.diskOuterRadius;
-    if (rOuter <= rInner) return 0.0f;
+    if (rOuter <= rInner)
+        return 0.0f;
 
     const int NR = 64;
     const int NPHI = 64;
@@ -821,7 +871,8 @@ float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& pa
             for (int iz = 0; iz < NZ; ++iz) {
                 float y = -Hmax + (iz + 0.5f) * (2.0f * Hmax) / float(NZ);
                 std::array<float, 3> pos = {x, y, z};
-                std::array<float, 3> emissivity = computeVolumetricDiskEmissivity(pos, params, mass, spin);
+                std::array<float, 3> emissivity =
+                    computeVolumetricDiskEmissivity(pos, params, mass, spin);
                 float dV = dr * dphi * r * (2.0f * Hmax) / float(NZ);
                 lum += (emissivity[0] + emissivity[1] + emissivity[2]) * dV;
             }
@@ -830,4 +881,4 @@ float GravitationalLensing::computeDiskLuminosity(const VolumetricDiskParams& pa
     return lum;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

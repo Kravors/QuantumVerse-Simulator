@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/FineStructureConstantDriftObservatory.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
@@ -17,7 +17,7 @@ int main() {
 
     // --- Synthetic drift: α(t) = α₀ + δα·t --------------------------------
     const double alpha0 = 1.0 / 137.035999084;
-    const double drift = 1e-6;   // dα/dt
+    const double drift = 1e-6;  // dα/dt
     const double tMax = 10.0;
     const int N = 100;
 
@@ -25,7 +25,7 @@ int main() {
     for (int i = 0; i < N; ++i) {
         double t = tMax * i / (N - 1);
         double alpha = alpha0 + drift * t;
-        trajectory.emplace_back(t, 0.0, 0.0, alpha); // t=time, z=measured α
+        trajectory.emplace_back(t, 0.0, 0.0, alpha);  // t=time, z=measured α
     }
 
     quantumverse::MetricTensor metric;
@@ -41,8 +41,8 @@ int main() {
     QV_CHECK(dit != f.parameters.end());
     QV_CHECK_NEAR(dit->second, drift, 1e-9);
 
-    std::cout << "Detected α drift: dα/dt=" << dit->second
-              << " (expected " << drift << ")" << std::endl;
+    std::cout << "Detected α drift: dα/dt=" << dit->second << " (expected " << drift << ")"
+              << std::endl;
 
     // --- Negative case: constant α (no drift) -> no finding ---------------
     std::vector<quantumverse::Event4D> steady;

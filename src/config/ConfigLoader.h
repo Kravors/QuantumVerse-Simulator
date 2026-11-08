@@ -9,13 +9,13 @@
 #ifndef QUANTUMVERSE_CONFIG_LOADER_H
 #define QUANTUMVERSE_CONFIG_LOADER_H
 
-#include <string>
-#include <vector>
-#include <memory>
-#include <unordered_map>
-#include <stdexcept>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -75,7 +75,7 @@ struct SimulatorConfig {
 };
 
 class ConfigLoader {
-public:
+   public:
     static ConfigLoader& instance() {
         static ConfigLoader inst;
         return inst;
@@ -123,10 +123,18 @@ public:
         return true;
     }
 
-    const SimulatorConfig& config() const { return config_; }
-    SimulatorConfig& config() { return config_; }
-    bool isLoaded() const { return config_loaded_; }
-    const std::string& path() const { return config_path_; }
+    const SimulatorConfig& config() const {
+        return config_;
+    }
+    SimulatorConfig& config() {
+        return config_;
+    }
+    bool isLoaded() const {
+        return config_loaded_;
+    }
+    const std::string& path() const {
+        return config_path_;
+    }
 
     void reload() {
         if (!config_path_.empty()) {
@@ -134,7 +142,7 @@ public:
         }
     }
 
-private:
+   private:
     ConfigLoader() = default;
     SimulatorConfig config_;
     bool config_loaded_ = false;
@@ -147,7 +155,8 @@ private:
             config_.black_hole.type = bh.value("type", "schwarzschild");
             config_.black_hole.spin = bh.value("spin", 0.0);
             config_.black_hole.charge = bh.value("charge", 0.0);
-            if (bh.contains("position") && bh["position"].is_array() && bh["position"].size() == 3) {
+            if (bh.contains("position") && bh["position"].is_array() &&
+                bh["position"].size() == 3) {
                 for (int i = 0; i < 3; i++)
                     config_.black_hole.position[i] = bh["position"][i].get<double>();
             }
@@ -216,6 +225,6 @@ private:
     }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_CONFIG_LOADER_H
+#endif  // QUANTUMVERSE_CONFIG_LOADER_H

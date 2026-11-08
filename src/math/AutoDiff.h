@@ -1,39 +1,54 @@
 #ifndef QUANTUMVERSE_AUTODIFF_H
 #define QUANTUMVERSE_AUTODIFF_H
 
-#include <cmath>
-#include <vector>
 #include <array>
-#include <functional>
-#include <type_traits>
 #include <cassert>
-#include <memory>
+#include <cmath>
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include <stdexcept>
+#include <type_traits>
+#include <vector>
 
 namespace quantumverse {
 namespace math {
 
-template<size_t N = 1>
+template <size_t N = 1>
 class ADVariable;
 
 // Forward declarations of free math function templates
 // (required for friend declarations inside ADVariable)
-template<size_t N> ADVariable<N> sin(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> cos(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> exp(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> log(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> sqrt(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> pow(const ADVariable<N>& x, double p);
-template<size_t N> ADVariable<N> tan(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> atan(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> sinh(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> cosh(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> tanh(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> asin(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> acos(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> asinh(const ADVariable<N>& x);
-template<size_t N> ADVariable<N> acosh(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> sin(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> cos(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> exp(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> log(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> sqrt(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> pow(const ADVariable<N>& x, double p);
+template <size_t N>
+ADVariable<N> tan(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> atan(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> sinh(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> cosh(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> tanh(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> asin(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> acos(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> asinh(const ADVariable<N>& x);
+template <size_t N>
+ADVariable<N> acosh(const ADVariable<N>& x);
 
 /**
  * @file AutoDiff.h
@@ -45,13 +60,13 @@ template<size_t N> ADVariable<N> acosh(const ADVariable<N>& x);
  * ADVariable<N> carries a value and an N-dimensional gradient vector.
  * All operations propagate derivatives via the chain rule.
  */
-template<size_t N>
+template <size_t N>
 class ADVariable {
-private:
-    double value_;                    // f(x)
-    std::array<double, N> derivs_;    // df/dx_i
+   private:
+    double value_;                  // f(x)
+    std::array<double, N> derivs_;  // df/dx_i
 
-public:
+   public:
     // Constructors
     constexpr ADVariable() : value_(0.0) {
         derivs_.fill(0.0);
@@ -69,10 +84,18 @@ public:
     }
 
     // Accessors
-    constexpr double getValue() const { return value_; }
-    constexpr const std::array<double, N>& getDerivs() const { return derivs_; }
-    std::array<double, N>& getDerivs() { return derivs_; }
-    constexpr double operator[](size_t i) const { return derivs_[i]; }
+    constexpr double getValue() const {
+        return value_;
+    }
+    constexpr const std::array<double, N>& getDerivs() const {
+        return derivs_;
+    }
+    std::array<double, N>& getDerivs() {
+        return derivs_;
+    }
+    constexpr double operator[](size_t i) const {
+        return derivs_[i];
+    }
 
     // Basic arithmetic with scalar
     ADVariable operator+(double s) const {
@@ -133,54 +156,69 @@ public:
         // Quotient rule: (f/g)' = (f'g - fg')/g^2
         ADVariable<N> result(value_ / other.value_);
         for (size_t i = 0; i < N; ++i) {
-            result.derivs_[i] = (derivs_[i] * other.value_ - value_ * other.derivs_[i])
-                                 / (other.value_ * other.value_);
+            result.derivs_[i] = (derivs_[i] * other.value_ - value_ * other.derivs_[i]) /
+                                (other.value_ * other.value_);
         }
         return result;
     }
 
     // Compound assignment with scalar
-     ADVariable& operator+=(double s) { value_ += s; return *this; }
-     ADVariable& operator-=(double s) { value_ -= s; return *this; }
-     ADVariable& operator*=(double s) {
-         for (size_t i = 0; i < N; ++i) derivs_[i] *= s;
-         value_ *= s;
-         return *this;
-     }
-     ADVariable& operator/=(double s) {
-         for (size_t i = 0; i < N; ++i) derivs_[i] /= s;
-         value_ /= s;
-         return *this;
-     }
+    ADVariable& operator+=(double s) {
+        value_ += s;
+        return *this;
+    }
+    ADVariable& operator-=(double s) {
+        value_ -= s;
+        return *this;
+    }
+    ADVariable& operator*=(double s) {
+        for (size_t i = 0; i < N; ++i)
+            derivs_[i] *= s;
+        value_ *= s;
+        return *this;
+    }
+    ADVariable& operator/=(double s) {
+        for (size_t i = 0; i < N; ++i)
+            derivs_[i] /= s;
+        value_ /= s;
+        return *this;
+    }
 
-     // Reverse arithmetic with scalar (enables double * ADVariable)
-     friend ADVariable operator+(double s, const ADVariable<N>& var) {
-         return var + s;
-     }
-     friend ADVariable operator-(double s, const ADVariable<N>& var) {
-         ADVariable result(s - var.value_);
-         for (size_t i = 0; i < N; ++i) result.derivs_[i] = -var.derivs_[i];
-         return result;
-     }
-     friend ADVariable operator*(double s, const ADVariable<N>& var) {
-         return var * s;
-     }
-     friend ADVariable operator/(double s, const ADVariable<N>& var) {
-         ADVariable result(s / var.value_);
-         for (size_t i = 0; i < N; ++i) result.derivs_[i] = -s * var.derivs_[i] / (var.value_ * var.value_);
-         return result;
-     }
+    // Reverse arithmetic with scalar (enables double * ADVariable)
+    friend ADVariable operator+(double s, const ADVariable<N>& var) {
+        return var + s;
+    }
+    friend ADVariable operator-(double s, const ADVariable<N>& var) {
+        ADVariable result(s - var.value_);
+        for (size_t i = 0; i < N; ++i)
+            result.derivs_[i] = -var.derivs_[i];
+        return result;
+    }
+    friend ADVariable operator*(double s, const ADVariable<N>& var) {
+        return var * s;
+    }
+    friend ADVariable operator/(double s, const ADVariable<N>& var) {
+        ADVariable result(s / var.value_);
+        for (size_t i = 0; i < N; ++i)
+            result.derivs_[i] = -s * var.derivs_[i] / (var.value_ * var.value_);
+        return result;
+    }
 
     // Unary negation
     ADVariable operator-() const {
         ADVariable result(-value_);
-        for (size_t i = 0; i < N; ++i) result.derivs_[i] = -derivs_[i];
+        for (size_t i = 0; i < N; ++i)
+            result.derivs_[i] = -derivs_[i];
         return result;
     }
 
     // Comparison (on value only)
-    bool operator==(const ADVariable& other) const { return value_ == other.value_; }
-    bool operator!=(const ADVariable& other) const { return value_ != other.value_; }
+    bool operator==(const ADVariable& other) const {
+        return value_ == other.value_;
+    }
+    bool operator!=(const ADVariable& other) const {
+        return value_ != other.value_;
+    }
 
     // Grant free math functions access to private members
     friend ADVariable<N> sin<>(const ADVariable<N>& x);
@@ -203,17 +241,20 @@ public:
     static ADVariable variable(double v, size_t index) {
         ADVariable var(v);
         var.derivs_.fill(0.0);
-        if (index < N) var.derivs_[index] = 1.0;
+        if (index < N)
+            var.derivs_[index] = 1.0;
         return var;
     }
 
     // Utility: create constant
-    static ADVariable constant(double v) { return ADVariable(v); }
+    static ADVariable constant(double v) {
+        return ADVariable(v);
+    }
 };
 
 // ========== Transcendental Functions ==========
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> sin(const ADVariable<N>& x) {
     ADVariable<N> result(std::sin(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -222,7 +263,7 @@ ADVariable<N> sin(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> cos(const ADVariable<N>& x) {
     ADVariable<N> result(std::cos(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -231,7 +272,7 @@ ADVariable<N> cos(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> exp(const ADVariable<N>& x) {
     ADVariable<N> result(std::exp(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -240,7 +281,7 @@ ADVariable<N> exp(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> log(const ADVariable<N>& x) {
     ADVariable<N> result(std::log(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -249,7 +290,7 @@ ADVariable<N> log(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> sqrt(const ADVariable<N>& x) {
     ADVariable<N> result(std::sqrt(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -258,7 +299,7 @@ ADVariable<N> sqrt(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> pow(const ADVariable<N>& x, double p) {
     ADVariable<N> result(std::pow(x.value_, p));
     for (size_t i = 0; i < N; ++i) {
@@ -267,19 +308,19 @@ ADVariable<N> pow(const ADVariable<N>& x, double p) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> pow(double base, const ADVariable<N>& x) {
     return exp(x * ADVariable<N>::constant(std::log(base)));
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> pow(const ADVariable<N>& x, const ADVariable<N>& y) {
     return exp(y * log(x));
 }
 
 // ========== Additional Transcendental Functions ==========
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> tan(const ADVariable<N>& x) {
     double tx = std::tan(x.value_);
     ADVariable<N> result(tx);
@@ -289,7 +330,7 @@ ADVariable<N> tan(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> atan(const ADVariable<N>& x) {
     ADVariable<N> result(std::atan(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -298,7 +339,7 @@ ADVariable<N> atan(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> sinh(const ADVariable<N>& x) {
     ADVariable<N> result(std::sinh(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -307,7 +348,7 @@ ADVariable<N> sinh(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> cosh(const ADVariable<N>& x) {
     ADVariable<N> result(std::cosh(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -316,7 +357,7 @@ ADVariable<N> cosh(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> tanh(const ADVariable<N>& x) {
     double tx = std::tanh(x.value_);
     ADVariable<N> result(tx);
@@ -326,7 +367,7 @@ ADVariable<N> tanh(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> asin(const ADVariable<N>& x) {
     ADVariable<N> result(std::asin(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -335,7 +376,7 @@ ADVariable<N> asin(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> acos(const ADVariable<N>& x) {
     ADVariable<N> result(std::acos(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -344,7 +385,7 @@ ADVariable<N> acos(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> asinh(const ADVariable<N>& x) {
     ADVariable<N> result(std::asinh(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -353,7 +394,7 @@ ADVariable<N> asinh(const ADVariable<N>& x) {
     return result;
 }
 
-template<size_t N>
+template <size_t N>
 ADVariable<N> acosh(const ADVariable<N>& x) {
     ADVariable<N> result(std::acosh(x.value_));
     for (size_t i = 0; i < N; ++i) {
@@ -364,11 +405,10 @@ ADVariable<N> acosh(const ADVariable<N>& x) {
 
 // ========== Gradient / Jacobian Utilities ==========
 
-template<size_t N>
-std::array<double, N> gradient(
-    const std::function<ADVariable<N>(const std::vector<ADVariable<N>>&)>& f,
-    const std::vector<double>& x
-) {
+template <size_t N>
+std::array<double, N>
+gradient(const std::function<ADVariable<N>(const std::vector<ADVariable<N>>&)>& f,
+         const std::vector<double>& x) {
     assert(x.size() == N);
     std::vector<ADVariable<N>> vars;
     for (size_t i = 0; i < N; ++i) {
@@ -382,11 +422,10 @@ std::array<double, N> gradient(
     return grad;
 }
 
-template<size_t N, size_t M>
-std::array<std::array<double, M>, N> jacobian(
-    const std::function<std::vector<ADVariable<N>>(const std::vector<ADVariable<M>>&)>& F,
-    const std::vector<double>& x
-) {
+template <size_t N, size_t M>
+std::array<std::array<double, M>, N>
+jacobian(const std::function<std::vector<ADVariable<N>>(const std::vector<ADVariable<M>>&)>& F,
+         const std::vector<double>& x) {
     assert(x.size() == M);
     std::vector<ADVariable<M>> vars;
     for (size_t i = 0; i < M; ++i) {
@@ -404,22 +443,16 @@ std::array<std::array<double, M>, N> jacobian(
 
 // ========== Scalar Convenience Wrappers ==========
 
-inline double differentiate(
-    const std::function<double(double)>& f,
-    double x,
-    double h = 1e-5
-) {
+inline double differentiate(const std::function<double(double)>& f, double x, double h = 1e-5) {
     return (f(x + h) - f(x - h)) / (2 * h);
 }
 
-template<size_t N>
-std::array<double, N> gradientN(
-    const std::function<double(const std::vector<double>&)>& f,
-    const std::vector<double>& x
-) {
+template <size_t N>
+std::array<double, N> gradientN(const std::function<double(const std::vector<double>&)>& f,
+                                const std::vector<double>& x) {
     std::array<double, N> grad{};
     const double h = 1e-8;
-    
+
     for (size_t i = 0; i < N; ++i) {
         std::vector<double> x_plus = x;
         std::vector<double> x_minus = x;
@@ -435,7 +468,7 @@ std::array<double, N> gradientN(
 // ============================================================================
 
 class ADVar {
-public:
+   public:
     double value;
     double grad;
     std::function<void()> backward;
@@ -447,16 +480,22 @@ public:
     ADVar(const ADVar&) = delete;
     ADVar& operator=(const ADVar&) = delete;
     ADVar(ADVar&& other) noexcept
-        : value(other.value), grad(other.grad), backward(std::move(other.backward)) {}
+        : value(other.value),
+          grad(other.grad),
+          backward(std::move(other.backward)) {}
 };
 
 class ADTape {
     static std::vector<std::unique_ptr<ADVar>> variables;
 
-public:
-    static void push(ADVar* var) { variables.push_back(std::unique_ptr<ADVar>(var)); }
+   public:
+    static void push(ADVar* var) {
+        variables.push_back(std::unique_ptr<ADVar>(var));
+    }
 
-    static void clear() { variables.clear(); }
+    static void clear() {
+        variables.clear();
+    }
 
     static ADVar* record(double value, std::function<void()> backward_fn) {
         auto var = std::make_unique<ADVar>(value, std::move(backward_fn));
@@ -468,22 +507,27 @@ public:
     static std::vector<std::pair<ADVar*, double>> compute_gradients(ADVar& output) {
         output.grad = 1.0;
         for (auto it = variables.rbegin(); it != variables.rend(); ++it) {
-            if ((*it)->backward) (*it)->backward();
+            if ((*it)->backward)
+                (*it)->backward();
         }
         std::vector<std::pair<ADVar*, double>> grads;
         grads.reserve(variables.size());
-        for (auto& v : variables) grads.emplace_back(v.get(), v->grad);
+        for (auto& v : variables)
+            grads.emplace_back(v.get(), v->grad);
         return grads;
     }
 
     static double get_gradient(ADVar* var, const std::vector<std::pair<ADVar*, double>>& grads) {
         for (const auto& [v, g] : grads) {
-            if (v == var) return g;
+            if (v == var)
+                return g;
         }
         return 0.0;
     }
 
-    static const std::vector<std::unique_ptr<ADVar>>& getVariables() { return variables; }
+    static const std::vector<std::unique_ptr<ADVar>>& getVariables() {
+        return variables;
+    }
 };
 
 inline std::vector<std::unique_ptr<ADVar>> ADTape::variables;
@@ -538,9 +582,7 @@ inline ADVar* div(ADVar* a, ADVar* b) {
 
 inline ADVar* add(ADVar* a, double s) {
     ADVar* result = new ADVar(a->value + s);
-    result->backward = [a, result]() {
-        a->grad += result->grad;
-    };
+    result->backward = [a, result]() { a->grad += result->grad; };
     ADTape::push(result);
     return result;
 }
@@ -551,27 +593,21 @@ inline ADVar* add(double s, ADVar* a) {
 
 inline ADVar* sub(ADVar* a, double s) {
     ADVar* result = new ADVar(a->value - s);
-    result->backward = [a, result]() {
-        a->grad += result->grad;
-    };
+    result->backward = [a, result]() { a->grad += result->grad; };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* sub(double s, ADVar* a) {
     ADVar* result = new ADVar(s - a->value);
-    result->backward = [a, result]() {
-        a->grad += -result->grad;
-    };
+    result->backward = [a, result]() { a->grad += -result->grad; };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* mul(ADVar* a, double s) {
     ADVar* result = new ADVar(a->value * s);
-    result->backward = [a, s, result]() {
-        a->grad += result->grad * s;
-    };
+    result->backward = [a, s, result]() { a->grad += result->grad * s; };
     ADTape::push(result);
     return result;
 }
@@ -582,72 +618,56 @@ inline ADVar* mul(double s, ADVar* a) {
 
 inline ADVar* div(ADVar* a, double s) {
     ADVar* result = new ADVar(a->value / s);
-    result->backward = [a, s, result]() {
-        a->grad += result->grad / s;
-    };
+    result->backward = [a, s, result]() { a->grad += result->grad / s; };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* div(double s, ADVar* a) {
     ADVar* result = new ADVar(s / a->value);
-    result->backward = [a, s, result]() {
-        a->grad += -result->grad * s / (a->value * a->value);
-    };
+    result->backward = [a, s, result]() { a->grad += -result->grad * s / (a->value * a->value); };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* neg(ADVar* a) {
     ADVar* result = new ADVar(-a->value);
-    result->backward = [a, result]() {
-        a->grad += -result->grad;
-    };
+    result->backward = [a, result]() { a->grad += -result->grad; };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* sin(ADVar* x) {
     ADVar* result = new ADVar(std::sin(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad * std::cos(x->value);
-    };
+    result->backward = [x, result]() { x->grad += result->grad * std::cos(x->value); };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* cos(ADVar* x) {
     ADVar* result = new ADVar(std::cos(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad * -std::sin(x->value);
-    };
+    result->backward = [x, result]() { x->grad += result->grad * -std::sin(x->value); };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* exp(ADVar* x) {
     ADVar* result = new ADVar(std::exp(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad * result->value;
-    };
+    result->backward = [x, result]() { x->grad += result->grad * result->value; };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* log(ADVar* x) {
     ADVar* result = new ADVar(std::log(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad / x->value;
-    };
+    result->backward = [x, result]() { x->grad += result->grad / x->value; };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* sqrt(ADVar* x) {
     ADVar* result = new ADVar(std::sqrt(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad * 0.5 / result->value;
-    };
+    result->backward = [x, result]() { x->grad += result->grad * 0.5 / result->value; };
     ADTape::push(result);
     return result;
 }
@@ -673,36 +693,28 @@ inline ADVar* pow(double base, ADVar* x) {
 inline ADVar* tan(ADVar* x) {
     double tx = std::tan(x->value);
     ADVar* result = new ADVar(tx);
-    result->backward = [x, result, tx]() {
-        x->grad += result->grad * (1.0 + tx * tx);
-    };
+    result->backward = [x, result, tx]() { x->grad += result->grad * (1.0 + tx * tx); };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* atan(ADVar* x) {
     ADVar* result = new ADVar(std::atan(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad / (1.0 + x->value * x->value);
-    };
+    result->backward = [x, result]() { x->grad += result->grad / (1.0 + x->value * x->value); };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* sinh(ADVar* x) {
     ADVar* result = new ADVar(std::sinh(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad * std::cosh(x->value);
-    };
+    result->backward = [x, result]() { x->grad += result->grad * std::cosh(x->value); };
     ADTape::push(result);
     return result;
 }
 
 inline ADVar* cosh(ADVar* x) {
     ADVar* result = new ADVar(std::cosh(x->value));
-    result->backward = [x, result]() {
-        x->grad += result->grad * std::sinh(x->value);
-    };
+    result->backward = [x, result]() { x->grad += result->grad * std::sinh(x->value); };
     ADTape::push(result);
     return result;
 }
@@ -710,9 +722,7 @@ inline ADVar* cosh(ADVar* x) {
 inline ADVar* tanh(ADVar* x) {
     double tx = std::tanh(x->value);
     ADVar* result = new ADVar(tx);
-    result->backward = [x, result, tx]() {
-        x->grad += result->grad * (1.0 - tx * tx);
-    };
+    result->backward = [x, result, tx]() { x->grad += result->grad * (1.0 - tx * tx); };
     ADTape::push(result);
     return result;
 }
@@ -757,9 +767,9 @@ inline ADVar* acosh(ADVar* x) {
 // Reverse-Mode Automatic Differentiation (Tape-Based, N-Parameter)
 // ============================================================================
 
-template<size_t N>
+template <size_t N>
 class ReverseTape {
-public:
+   public:
     struct Node {
         double value = 0.0;
         uint32_t p0 = UINT32_MAX, p1 = UINT32_MAX;
@@ -787,7 +797,8 @@ public:
     }
 
     uint32_t makeParam(double v, size_t idx) {
-        if (idx >= N) throw std::out_of_range("ReverseTape::makeParam: index out of range");
+        if (idx >= N)
+            throw std::out_of_range("ReverseTape::makeParam: index out of range");
         auto id = push(v);
         paramNodes[idx] = id;
         paramSet[idx] = true;
@@ -808,14 +819,18 @@ public:
         for (int i = static_cast<int>(nodes.size()) - 1; i >= 0; --i) {
             const auto& n = nodes[i];
             double a = adjoints[i];
-            if (a == 0.0) continue;
-            if (n.p0 != UINT32_MAX) adjoints[n.p0] += a * n.w0;
-            if (n.p1 != UINT32_MAX) adjoints[n.p1] += a * n.w1;
+            if (a == 0.0)
+                continue;
+            if (n.p0 != UINT32_MAX)
+                adjoints[n.p0] += a * n.w0;
+            if (n.p1 != UINT32_MAX)
+                adjoints[n.p1] += a * n.w1;
         }
 
         std::array<double, N> g{};
         for (size_t i = 0; i < N; ++i)
-            if (paramSet[i]) g[i] = adjoints[paramNodes[i]];
+            if (paramSet[i])
+                g[i] = adjoints[paramNodes[i]];
         return g;
     }
 
@@ -827,7 +842,7 @@ public:
     }
 };
 
-template<size_t N>
+template <size_t N>
 struct ReverseAD {
     ReverseTape<N>* tape = nullptr;
     uint32_t node = UINT32_MAX;
@@ -836,11 +851,11 @@ struct ReverseAD {
     ReverseAD() = default;
 
     static ReverseAD param(ReverseTape<N>& t, double v, size_t idx) {
-        return { &t, t.makeParam(v, idx), v };
+        return {&t, t.makeParam(v, idx), v};
     }
 
     static ReverseAD constant(double v) {
-        return { nullptr, UINT32_MAX, v };
+        return {nullptr, UINT32_MAX, v};
     }
 
     // ---------- binary ops ----------
@@ -986,7 +1001,9 @@ struct ReverseAD {
         return r;
     }
 
-    friend ReverseAD operator+(double s, const ReverseAD& a) { return a + s; }
+    friend ReverseAD operator+(double s, const ReverseAD& a) {
+        return a + s;
+    }
 
     friend ReverseAD operator-(const ReverseAD& a, double s) {
         ReverseAD r;
@@ -1039,7 +1056,9 @@ struct ReverseAD {
         return r;
     }
 
-    friend ReverseAD operator*(double s, const ReverseAD& a) { return a * s; }
+    friend ReverseAD operator*(double s, const ReverseAD& a) {
+        return a * s;
+    }
 
     friend ReverseAD operator/(const ReverseAD& a, double s) {
         ReverseAD r;
@@ -1200,7 +1219,7 @@ struct ReverseAD {
     }
 };
 
-} // namespace math
-} // namespace quantumverse
+}  // namespace math
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_AUTODIFF_H
+#endif  // QUANTUMVERSE_AUTODIFF_H

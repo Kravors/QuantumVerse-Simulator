@@ -9,18 +9,18 @@
 #ifndef QUANTUMVERSE_SCENARIO_MANAGER_H
 #define QUANTUMVERSE_SCENARIO_MANAGER_H
 
-#include "Scenario.h"
-#include <string>
-#include <vector>
-#include <memory>
-#include <unordered_map>
-#include <mutex>
 #include <filesystem>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include "Scenario.h"
 
 namespace quantumverse {
 
 class ScenarioManager {
-public:
+   public:
     static ScenarioManager& instance() {
         static ScenarioManager inst;
         return inst;
@@ -43,10 +43,14 @@ public:
     void reload();
     void clear();
 
-    const std::string& scenarioDir() const { return scenario_dir_; }
-    size_t count() const { return scenarios_.size(); }
+    const std::string& scenarioDir() const {
+        return scenario_dir_;
+    }
+    size_t count() const {
+        return scenarios_.size();
+    }
 
-private:
+   private:
     ScenarioManager() = default;
 
     bool doLoadAllScenarios();
@@ -57,6 +61,6 @@ private:
     mutable std::mutex mutex_;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_SCENARIO_MANAGER_H
+#endif  // QUANTUMVERSE_SCENARIO_MANAGER_H

@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include <QObject>
-#include <QWebSocket>
 #include <QAbstractSocket>
-#include <QJsonObject>
 #include <QJsonDocument>
+#include <QJsonObject>
+#include <QObject>
 #include <QTimer>
 #include <QUuid>
+#include <QWebSocket>
 #include <string>
 #include <vector>
 
@@ -32,7 +32,7 @@ class SignalingClient : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isConnected READ isConnected NOTIFY isConnectedChanged)
     Q_PROPERTY(size_t peerCount READ peerCount NOTIFY peerCountChanged)
-public:
+   public:
     /**
      * @brief Construct a new SignalingClient
      * @param parent QObject parent
@@ -52,8 +52,7 @@ public:
      * @param clientName Human-readable client name
      * @return true if connection initiated successfully
      */
-    bool connectToServer(const QString& url,
-                         const QString& sessionId,
+    bool connectToServer(const QString& url, const QString& sessionId,
                          const QString& clientId = QString(),
                          const QString& clientName = QString());
 
@@ -65,27 +64,37 @@ public:
     /**
      * @brief Check if connected to the server
      */
-    bool isConnected() const { return m_connected; }
+    bool isConnected() const {
+        return m_connected;
+    }
 
     /**
      * @brief Get current session ID
      */
-    QString sessionId() const { return m_sessionId; }
+    QString sessionId() const {
+        return m_sessionId;
+    }
 
     /**
      * @brief Get current client ID
      */
-    QString clientId() const { return m_clientId; }
+    QString clientId() const {
+        return m_clientId;
+    }
 
     /**
      * @brief Get list of connected peer client IDs
      */
-    std::vector<std::string> peerIds() const { return m_peerIds; }
+    std::vector<std::string> peerIds() const {
+        return m_peerIds;
+    }
 
     /**
      * @brief Get number of connected peers
      */
-    size_t peerCount() const { return m_peerIds.size(); }
+    size_t peerCount() const {
+        return m_peerIds.size();
+    }
 
     /**
      * @brief Broadcast SharedState to all peers in the session
@@ -100,9 +109,11 @@ public:
     /**
      * @brief Set human-readable client name
      */
-    void setClientName(const QString& name) { m_clientName = name; }
+    void setClientName(const QString& name) {
+        m_clientName = name;
+    }
 
-signals:
+   signals:
     /**
      * @brief Emitted when connection to server is established
      */
@@ -157,7 +168,7 @@ signals:
      */
     void peerCountChanged();
 
-private slots:
+   private slots:
     /**
      * @brief Handle WebSocket connection established
      */
@@ -180,19 +191,21 @@ private slots:
      */
     void onSocketError(QAbstractSocket::SocketError error);
 
-public:
+   public:
     /**
      * @brief Generate a unique client ID
      * @return UUID-like string
      */
-    static QString generateClientId() { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
+    static QString generateClientId() {
+        return QUuid::createUuid().toString(QUuid::WithoutBraces);
+    }
 
-private:
+   private:
     /**
      * @brief Send a JSON message to the server
      * @param obj JSON object to send
      */
-public:
+   public:
     /**
      * @brief Send a raw JSON message to the server
      * @param obj JSON object to send
@@ -218,5 +231,5 @@ public:
     static constexpr int kReconnectDelayMs = 2000;
 };
 
-} // namespace vr
-} // namespace quantumverse
+}  // namespace vr
+}  // namespace quantumverse

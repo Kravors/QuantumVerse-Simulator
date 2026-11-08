@@ -1,14 +1,14 @@
 // QuantumVerse Test: TrainingDataCollector
 // Validates sample collection, labeling, persistence, and loading
 
-#include <cmath>
-#include <iostream>
-#include <fstream>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
 
-#include "ml/FeatureVector.h"
 #include "ml/AnomalyDetector.h"
+#include "ml/FeatureVector.h"
 #include "ml/TrainingDataCollector.h"
 #include "test_assert.h"
 
@@ -243,8 +243,8 @@ int main() {
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
-        std::cout << "[PASS] " << iters << " samples in " << ms << " ms ("
-                  << (ms / iters * 1000.0) << " us/sample)" << std::endl;
+        std::cout << "[PASS] " << iters << " samples in " << ms << " ms (" << (ms / iters * 1000.0)
+                  << " us/sample)" << std::endl;
     }
 
     // Cleanup

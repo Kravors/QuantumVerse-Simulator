@@ -6,29 +6,26 @@
 #include "ExperimentRunner.h"
 #include "Experiment.h"
 
-#include <cmath>
-#include <QDir>
 #include <QDateTime>
+#include <QDebug>
+#include <QDir>
+#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
-#include <QTextStream>
-#include <QMutexLocker>
-#include <QMetaObject>
-#include <QDebug>
-#include <QMap>
-#include <QStandardPaths>
-#include <QEventLoop>
-#include <QTimer>
 #include <QJsonObject>
+#include <QMap>
+#include <QMetaObject>
+#include <QMutexLocker>
+#include <QStandardPaths>
+#include <QTextStream>
+#include <QTimer>
 #include <algorithm>
-#include <thread>
 #include <cmath>
+#include <thread>
 
 namespace quantumverse {
 
-ExperimentRunner::ExperimentRunner(QObject* parent)
-    : QAbstractListModel(parent)
-{
+ExperimentRunner::ExperimentRunner(QObject* parent) : QAbstractListModel(parent) {
     // m_pool.setMaxThreadCount(std::max<size_t>(1, std::thread::hardware_concurrency() / 2));
 
     // m_paperGenerator = std::make_unique<PaperGenerator>(this);
@@ -48,18 +45,25 @@ int ExperimentRunner::rowCount(const QModelIndex& /*parent*/) const {
 }
 
 QVariant ExperimentRunner::data(const QModelIndex& index, int role) const {
-    if (!index.isValid()) return QVariant();
+    if (!index.isValid())
+        return QVariant();
     int row = index.row();
-    if (row < 0 || row >= static_cast<int>(m_experiments.size())) return QVariant();
+    if (row < 0 || row >= static_cast<int>(m_experiments.size()))
+        return QVariant();
     const auto& slot = m_experiments[row];
     const Experiment* e = slot.exp.get();
 
     switch (role) {
-        case IdRole:          return e->id();
-        case NameRole:        return e->name();
-        case CategoryRole:    return e->category();
-        case DescriptionRole: return e->description();
-        default:              return QVariant();
+        case IdRole:
+            return e->id();
+        case NameRole:
+            return e->name();
+        case CategoryRole:
+            return e->category();
+        case DescriptionRole:
+            return e->description();
+        default:
+            return QVariant();
     }
 }
 
@@ -73,7 +77,8 @@ QHash<int, QByteArray> ExperimentRunner::roleNames() const {
 }
 
 void ExperimentRunner::registerExperiment(std::unique_ptr<Experiment> exp) {
-    if (!exp) return;
+    if (!exp)
+        return;
     beginInsertRows(QModelIndex(), static_cast<int>(m_experiments.size()),
                     static_cast<int>(m_experiments.size()));
     Slot slot;
@@ -86,7 +91,8 @@ void ExperimentRunner::registerExperiment(std::unique_ptr<Experiment> exp) {
 QVariantList ExperimentRunner::parametersFor(const QString& id) const {
     QVariantList list;
     auto it = m_indexById.constFind(id);
-    if (it == m_indexById.constEnd()) return list;
+    if (it == m_indexById.constEnd())
+        return list;
     const auto& params = m_experiments[it.value()].exp->parameters();
     for (const auto& p : params) {
         QVariantMap m;
@@ -105,9 +111,11 @@ QVariantList ExperimentRunner::parametersFor(const QString& id) const {
 }
 
 void ExperimentRunner::start(const QString& id, const QVariantMap& params) {
-    if (m_running.load()) return;
+    if (m_running.load())
+        return;
     auto it = m_indexById.constFind(id);
-    if (it == m_indexById.constEnd()) return;
+    if (it == m_indexById.constEnd())
+        return;
 
     int row = it.value();
     Experiment* exp = m_experiments[row].exp.get();
@@ -158,7 +166,8 @@ void ExperimentRunner::exportLast(const QString& format) {
     QString dir = QDir::currentPath() + "/data/experiments";
     QDir().mkpath(dir);
     const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-    const QString path = dir + QStringLiteral("/exp_") + m_currentId + QStringLiteral("_") + stamp + QStringLiteral(".") + fmt;
+    const QString path = dir + QStringLiteral("/exp_") + m_currentId + QStringLiteral("_") + stamp +
+                         QStringLiteral(".") + fmt;
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -171,12 +180,15 @@ void ExperimentRunner::exportLast(const QString& format) {
         QStringList keys = result.scalars.keys();
         std::sort(keys.begin(), keys.end());
         out << keys.join(",") << "\n";
-        for (const auto& k : keys) out << result.scalars.value(k).toString() << ",";
+        for (const auto& k : keys)
+            out << result.scalars.value(k).toString() << ",";
         out << "\n";
         out << "curve_x,curve_y\n";
-        for (const auto& pt : result.curve) out << pt.x() << "," << pt.y() << "\n";
+        for (const auto& pt : result.curve)
+            out << pt.x() << "," << pt.y() << "\n";
         out << "\n-- log --\n";
-        for (const auto& line : result.logLines) out << line << "\n";
+        for (const auto& line : result.logLines)
+            out << line << "\n";
     } else {
         out << "{\n";
         out << "  \"id\": \"" << m_currentId << "\",\n";
@@ -185,19 +197,22 @@ void ExperimentRunner::exportLast(const QString& format) {
         std::sort(keys.begin(), keys.end());
         for (int i = 0; i < keys.size(); ++i) {
             out << "    \"" << keys[i] << "\": " << result.scalars.value(keys[i]).toString();
-            if (i + 1 < keys.size()) out << ",";
+            if (i + 1 < keys.size())
+                out << ",";
             out << "\n";
         }
         out << "  },\n  \"curve\": [\n";
         for (int i = 0; i < result.curve.size(); ++i) {
             out << "    [" << result.curve[i].x() << ", " << result.curve[i].y() << "]";
-            if (i + 1 < result.curve.size()) out << ",";
+            if (i + 1 < result.curve.size())
+                out << ",";
             out << "\n";
         }
         out << "  ],\n  \"log\": [\n";
         for (int i = 0; i < result.logLines.size(); ++i) {
             out << "    \"" << result.logLines[i] << "\"";
-            if (i + 1 < result.logLines.size()) out << ",";
+            if (i + 1 < result.logLines.size())
+                out << ",";
             out << "\n";
         }
         out << "  ]\n}\n";
@@ -206,7 +221,8 @@ void ExperimentRunner::exportLast(const QString& format) {
 
     QMutexLocker lock(&m_mutex);
     for (auto& h : m_history) {
-        if (h.id == m_currentId) h.result.outputDir = path;
+        if (h.id == m_currentId)
+            h.result.outputDir = path;
     }
 
     emit exportFinished(path);
@@ -214,8 +230,7 @@ void ExperimentRunner::exportLast(const QString& format) {
 }
 
 QString ExperimentRunner::writeValidationReportCSV(const ExperimentResult& result,
-                                                    const QString& path /*= QString()*/)
-{
+                                                   const QString& path /*= QString()*/) {
     QString outPath = path;
     if (outPath.isEmpty()) {
         QString dir = QDir::currentPath() + "/data/experiments";
@@ -233,9 +248,11 @@ QString ExperimentRunner::writeValidationReportCSV(const ExperimentResult& resul
     out << QStringLiteral("# cosmology_validation_report.csv\n");
     out << QStringLiteral("# QuantumVerse Cosmology Validation Report\n");
     out << QStringLiteral("# Generated: %1\n")
-           .arg(QDateTime::currentDateTime().toString(Qt::ISODate));
+               .arg(QDateTime::currentDateTime().toString(Qt::ISODate));
     out << QStringLiteral("\n");
-    out << QStringLiteral("parameter,project_value,reference_value,observed_value,observed_sigma,source,unit,rel_error_pct,tension_sigma,pass\n");
+    out << QStringLiteral(
+        "parameter,project_value,reference_value,observed_value,observed_sigma,source,unit,rel_"
+        "error_pct,tension_sigma,pass\n");
 
     struct Row {
         QString parameter;
@@ -247,30 +264,39 @@ QString ExperimentRunner::writeValidationReportCSV(const ExperimentResult& resul
     };
 
     const QStringList suffixes = {
-        QStringLiteral("_project"), QStringLiteral("_ref"), QStringLiteral("_obs"),
-        QStringLiteral("_sigma"), QStringLiteral("_source"), QStringLiteral("_unit"),
-        QStringLiteral("_rel_err"), QStringLiteral("_tension"), QStringLiteral("_pass")
-    };
+        QStringLiteral("_project"), QStringLiteral("_ref"),     QStringLiteral("_obs"),
+        QStringLiteral("_sigma"),   QStringLiteral("_source"),  QStringLiteral("_unit"),
+        QStringLiteral("_rel_err"), QStringLiteral("_tension"), QStringLiteral("_pass")};
 
     QMap<QString, Row> rows;
     QStringList keys = result.scalars.keys();
     std::sort(keys.begin(), keys.end());
     for (const auto& k : keys) {
-        if (k.startsWith(QStringLiteral("suite_"))) continue;
+        if (k.startsWith(QStringLiteral("suite_")))
+            continue;
         for (const auto& suf : suffixes) {
             if (k.endsWith(suf)) {
                 QString param = k.left(k.size() - suf.size());
                 Row& r = rows[param];
                 r.parameter = param;
-                if (suf == QStringLiteral("_project")) r.projectValue = result.scalars.value(k);
-                else if (suf == QStringLiteral("_ref")) r.referenceValue = result.scalars.value(k);
-                else if (suf == QStringLiteral("_obs")) r.observedValue = result.scalars.value(k);
-                else if (suf == QStringLiteral("_sigma")) r.observedSigma = result.scalars.value(k);
-                else if (suf == QStringLiteral("_source")) r.source = result.scalars.value(k).toString();
-                else if (suf == QStringLiteral("_unit")) r.unit = result.scalars.value(k).toString();
-                else if (suf == QStringLiteral("_rel_err")) r.relErrorPct = result.scalars.value(k).toDouble();
-                else if (suf == QStringLiteral("_tension")) r.tensionSigma = result.scalars.value(k).toDouble();
-                else if (suf == QStringLiteral("_pass")) r.pass = result.scalars.value(k).toBool();
+                if (suf == QStringLiteral("_project"))
+                    r.projectValue = result.scalars.value(k);
+                else if (suf == QStringLiteral("_ref"))
+                    r.referenceValue = result.scalars.value(k);
+                else if (suf == QStringLiteral("_obs"))
+                    r.observedValue = result.scalars.value(k);
+                else if (suf == QStringLiteral("_sigma"))
+                    r.observedSigma = result.scalars.value(k);
+                else if (suf == QStringLiteral("_source"))
+                    r.source = result.scalars.value(k).toString();
+                else if (suf == QStringLiteral("_unit"))
+                    r.unit = result.scalars.value(k).toString();
+                else if (suf == QStringLiteral("_rel_err"))
+                    r.relErrorPct = result.scalars.value(k).toDouble();
+                else if (suf == QStringLiteral("_tension"))
+                    r.tensionSigma = result.scalars.value(k).toDouble();
+                else if (suf == QStringLiteral("_pass"))
+                    r.pass = result.scalars.value(k).toBool();
                 break;
             }
         }
@@ -290,7 +316,8 @@ QString ExperimentRunner::writeValidationReportCSV(const ExperimentResult& resul
         out << (r.pass ? QStringLiteral("PASS") : QStringLiteral("FAIL")) << "\n";
     }
     out << QStringLiteral("\n# log:\n");
-    for (const auto& line : result.logLines) out << line << "\n";
+    for (const auto& line : result.logLines)
+        out << line << "\n";
     file.close();
 
     return outPath;
@@ -320,7 +347,8 @@ QString ExperimentRunner::exportValidationReport(const QString& format) {
 
     QMutexLocker lock(&m_mutex);
     for (auto& h : m_history) {
-        if (h.id == m_currentId) h.result.outputDir = path;
+        if (h.id == m_currentId)
+            h.result.outputDir = path;
     }
 
     emit exportFinished(path);
@@ -351,11 +379,12 @@ QString ExperimentRunner::exportPDF(const QString& id, const QString& path /*= Q
     // Compute a unique output path: <experimentId>_<timestamp>.pdf
     QString pdfPath = path;
     if (pdfPath.isEmpty()) {
-        QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
-                        + "/QuantumVerse/output";
+        QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                          "/QuantumVerse/output";
         QDir().mkpath(baseDir);
         const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-        pdfPath = baseDir + QStringLiteral("/") + id + QStringLiteral("_") + stamp + QStringLiteral(".pdf");
+        pdfPath = baseDir + QStringLiteral("/") + id + QStringLiteral("_") + stamp +
+                  QStringLiteral(".pdf");
     }
 
     // Map experiment scalars to PaperGenerator parameters.
@@ -364,25 +393,26 @@ QString ExperimentRunner::exportPDF(const QString& id, const QString& path /*= Q
     // a curvature proxy since lensing doesn't directly compute K.
     double mass = result.scalars.value(QStringLiteral("lens_mass_msun"), 0.0).toDouble();
     double redshift = result.scalars.value(QStringLiteral("lens_redshift"), 0.0).toDouble();
-    double einsteinRadius = result.scalars.value(QStringLiteral("einstein_radius_arcsec"), 0.0).toDouble();
+    double einsteinRadius =
+        result.scalars.value(QStringLiteral("einstein_radius_arcsec"), 0.0).toDouble();
     double delayDays = result.scalars.value(QStringLiteral("reference_delay_days"), 0.0).toDouble();
 
     // Build a plain-English abstract from the scalars
-    QString abstract = QStringLiteral(
-        "Strong gravitational lensing by a point-mass lens of %1 M_sun at z = %2. "
-        "The Einstein radius is %3 arcsec. The reference time delay at "
-        "beta = 0.5 theta_E is %4 days.")
-        .arg(QString::number(mass, 'f', 2))
-        .arg(QString::number(redshift, 'f', 3))
-        .arg(QString::number(einsteinRadius, 'f', 4))
-        .arg(QString::number(delayDays, 'f', 2));
+    QString abstract =
+        QStringLiteral(
+            "Strong gravitational lensing by a point-mass lens of %1 M_sun at z = %2. "
+            "The Einstein radius is %3 arcsec. The reference time delay at "
+            "beta = 0.5 theta_E is %4 days.")
+            .arg(QString::number(mass, 'f', 2))
+            .arg(QString::number(redshift, 'f', 3))
+            .arg(QString::number(einsteinRadius, 'f', 4))
+            .arg(QString::number(delayDays, 'f', 2));
 
     // PaperGenerator::generatePaper is async (QProcess). We fire it and let
     // the paperGenerated signal propagate via pdfFinished. The caller can
     // listen to pdfFinished for the actual path.
-    m_paperGenerator->generatePaper(
-        mass, 0.0, 0.0, einsteinRadius, redshift,
-        abstract, QStringLiteral("lensing"), pdfPath);
+    m_paperGenerator->generatePaper(mass, 0.0, 0.0, einsteinRadius, redshift, abstract,
+                                    QStringLiteral("lensing"), pdfPath);
 
     return pdfPath;
 }
@@ -397,14 +427,15 @@ const ExperimentResult* ExperimentRunner::lastResultFor(const QString& id) const
 }
 
 QString ExperimentRunner::abstractForExperiment(const QString& id,
-                                                 const ExperimentResult& result) const {
+                                                const ExperimentResult& result) const {
     if (id == QStringLiteral("photon_sphere")) {
         const double mass = result.scalars.value(QStringLiteral("mass_Msun"), 0.0).toDouble();
         const double spin = result.scalars.value(QStringLiteral("spin_a_max"), 0.0).toDouble();
-        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_ph_pro"), 0.0).toDouble();
+        const double kret =
+            result.scalars.value(QStringLiteral("kretschmann_at_r_ph_pro"), 0.0).toDouble();
         return QStringLiteral(
-            "Kerr black hole discovery scan: mass = %1 M_sun, spin a* = %2, "
-            "Kretschmann scalar at prograde photon sphere = %3.")
+                   "Kerr black hole discovery scan: mass = %1 M_sun, spin a* = %2, "
+                   "Kretschmann scalar at prograde photon sphere = %3.")
             .arg(QString::number(mass, 'f', 2))
             .arg(QString::number(spin, 'f', 4))
             .arg(QString::number(kret, 'e', 4));
@@ -413,12 +444,13 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
         const double mass = result.scalars.value(QStringLiteral("mass"), 0.0).toDouble();
         const double rMin = result.scalars.value(QStringLiteral("r_min"), 0.0).toDouble();
         const double z = result.scalars.value(QStringLiteral("z_at_r_min"), 0.0).toDouble();
-        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_min"), 0.0).toDouble();
+        const double kret =
+            result.scalars.value(QStringLiteral("kretschmann_at_r_min"), 0.0).toDouble();
         return QStringLiteral(
-            "Gravitational redshift profile of a Schwarzschild black hole of mass "
-            "%1 M_sun. At the minimum sampled radius r = %2 m, the observed redshift "
-            "is z = %3. The Kretschmann curvature invariant at this radius is K = %4, "
-            "consistent with the Schwarzschild vacuum solution K = 12 r_s^2 / r^6.")
+                   "Gravitational redshift profile of a Schwarzschild black hole of mass "
+                   "%1 M_sun. At the minimum sampled radius r = %2 m, the observed redshift "
+                   "is z = %3. The Kretschmann curvature invariant at this radius is K = %4, "
+                   "consistent with the Schwarzschild vacuum solution K = 12 r_s^2 / r^6.")
             .arg(QString::number(mass, 'f', 2))
             .arg(QString::number(rMin, 'e', 4))
             .arg(QString::number(z, 'e', 4))
@@ -428,13 +460,15 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
         const double mass = result.scalars.value(QStringLiteral("mass_Msun"), 0.0).toDouble();
         const double spin = result.scalars.value(QStringLiteral("spin_a_star"), 0.0).toDouble();
         const double rOrb = result.scalars.value(QStringLiteral("orbit_radius_m"), 0.0).toDouble();
-        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_orbit"), 0.0).toDouble();
-        const double masYr = result.scalars.value(QStringLiteral("last_mas_per_year"), 0.0).toDouble();
+        const double kret =
+            result.scalars.value(QStringLiteral("kretschmann_at_r_orbit"), 0.0).toDouble();
+        const double masYr =
+            result.scalars.value(QStringLiteral("last_mas_per_year"), 0.0).toDouble();
         return QStringLiteral(
-            "Lense-Thirring frame-dragging precession around a Kerr black hole of "
-            "mass %1 M_sun with dimensionless spin a* = %2. At orbital radius r = %3 m, "
-            "the precession rate corresponds to %4 mas/year. The Kretschmann invariant "
-            "at this radius is %5 m^-4.")
+                   "Lense-Thirring frame-dragging precession around a Kerr black hole of "
+                   "mass %1 M_sun with dimensionless spin a* = %2. At orbital radius r = %3 m, "
+                   "the precession rate corresponds to %4 mas/year. The Kretschmann invariant "
+                   "at this radius is %5 m^-4.")
             .arg(QString::number(mass, 'f', 2))
             .arg(QString::number(spin, 'f', 4))
             .arg(QString::number(rOrb, 'e', 4))
@@ -447,26 +481,34 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
         const double fR = result.scalars.value(QStringLiteral("f_R_Hz"), 0.0).toDouble();
         const double tau = result.scalars.value(QStringLiteral("tau_ms"), 0.0).toDouble();
         const double Q = result.scalars.value(QStringLiteral("Q_factor"), 0.0).toDouble();
-        const double kret = result.scalars.value(QStringLiteral("kretschmann_at_r_plus"), 0.0).toDouble();
+        const double kret =
+            result.scalars.value(QStringLiteral("kretschmann_at_r_plus"), 0.0).toDouble();
 
         // Reproduction-paper template: compare computed QNMs to published GW150914 values
         if (result.scalars.value(QStringLiteral("compareToPublished"), false).toBool()) {
-            const double fR_pub = result.scalars.value(QStringLiteral("f_R_published_Hz"), 251.0).toDouble();
-            const double tau_pub = result.scalars.value(QStringLiteral("tau_published_ms"), 4.0).toDouble();
-            const QString citation = result.scalars.value(QStringLiteral("reference"), QStringLiteral("Abbott et al. 2016")).toString();
-            const double fR_dsigma = result.scalars.value(QStringLiteral("f_R_delta_sigma"), 0.0).toDouble();
-            const double tau_dsigma = result.scalars.value(QStringLiteral("tau_delta_sigma"), 0.0).toDouble();
+            const double fR_pub =
+                result.scalars.value(QStringLiteral("f_R_published_Hz"), 251.0).toDouble();
+            const double tau_pub =
+                result.scalars.value(QStringLiteral("tau_published_ms"), 4.0).toDouble();
+            const QString citation =
+                result.scalars
+                    .value(QStringLiteral("reference"), QStringLiteral("Abbott et al. 2016"))
+                    .toString();
+            const double fR_dsigma =
+                result.scalars.value(QStringLiteral("f_R_delta_sigma"), 0.0).toDouble();
+            const double tau_dsigma =
+                result.scalars.value(QStringLiteral("tau_delta_sigma"), 0.0).toDouble();
             const double tau_ms = tau * 1e3;
             return QStringLiteral(
-                "Gravitational-wave ringdown detection of GW150914: l=m=2, n=0 "
-                "quasinormal mode of a Kerr black hole of mass %1 M_sun with "
-                "dimensionless spin a* = %2. The fundamental mode has frequency "
-                "$f_R = %3$ Hz and damping time $\\tau = %4$ ms (Q = %5). "
-                "Comparing to the published l=m=2 value f_R = %6 Hz and "
-                "damping time $\\tau = %7$ ms (Abbott et al. 2016, PRL 116, 061102), "
-                "we find f_R = %8 Hz (Delta sigma = %9) and "
-                "tau = %10 ms (Delta sigma = %10), consistent within the "
-                "observational uncertainty of the ringdown measurement.")
+                       "Gravitational-wave ringdown detection of GW150914: l=m=2, n=0 "
+                       "quasinormal mode of a Kerr black hole of mass %1 M_sun with "
+                       "dimensionless spin a* = %2. The fundamental mode has frequency "
+                       "$f_R = %3$ Hz and damping time $\\tau = %4$ ms (Q = %5). "
+                       "Comparing to the published l=m=2 value f_R = %6 Hz and "
+                       "damping time $\\tau = %7$ ms (Abbott et al. 2016, PRL 116, 061102), "
+                       "we find f_R = %8 Hz (Delta sigma = %9) and "
+                       "tau = %10 ms (Delta sigma = %10), consistent within the "
+                       "observational uncertainty of the ringdown measurement.")
                 .arg(QString::number(mass, 'f', 2))
                 .arg(QString::number(spin, 'f', 4))
                 .arg(QString::number(fR, 'e', 4))
@@ -481,11 +523,11 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
         }
 
         return QStringLiteral(
-            "GW ringdown detection: l=m=2, n=0 quasinormal mode of a Kerr black hole "
-            "of mass %1 M_sun with dimensionless spin a* = %2. The fundamental mode has "
-            "frequency $f_R = %3$ Hz and damping time $\\tau = %4$ ms (Q = %5). The "
-            "Kretschmann invariant just outside the horizon is K = %6 m^-4, consistent "
-            "with the Kerr vacuum solution.")
+                   "GW ringdown detection: l=m=2, n=0 quasinormal mode of a Kerr black hole "
+                   "of mass %1 M_sun with dimensionless spin a* = %2. The fundamental mode has "
+                   "frequency $f_R = %3$ Hz and damping time $\\tau = %4$ ms (Q = %5). The "
+                   "Kretschmann invariant just outside the horizon is K = %6 m^-4, consistent "
+                   "with the Kerr vacuum solution.")
             .arg(QString::number(mass, 'f', 2))
             .arg(QString::number(spin, 'f', 4))
             .arg(QString::number(fR, 'e', 4))
@@ -495,20 +537,27 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
     }
     if (id == QStringLiteral("mercury_precession")) {
         const double mass = result.scalars.value(QStringLiteral("mass_sun_Msun"), 0.0).toDouble();
-        const double precession = result.scalars.value(QStringLiteral("precession_arcsec_per_century"), 0.0).toDouble();
+        const double precession =
+            result.scalars.value(QStringLiteral("precession_arcsec_per_century"), 0.0).toDouble();
 
         // Reproduction-paper template: compare computed precession to published Mercury value
         if (result.scalars.value(QStringLiteral("compareToPublished"), false).toBool()) {
-            const double precession_pub = result.scalars.value(QStringLiteral("precession_published_arcsec_per_century"), 43.0).toDouble();
-            const QString citation = result.scalars.value(QStringLiteral("reference"), QStringLiteral("Einstein 1915")).toString();
-            const double precession_dsigma = result.scalars.value(QStringLiteral("precession_delta_sigma"), 0.0).toDouble();
+            const double precession_pub =
+                result.scalars
+                    .value(QStringLiteral("precession_published_arcsec_per_century"), 43.0)
+                    .toDouble();
+            const QString citation =
+                result.scalars.value(QStringLiteral("reference"), QStringLiteral("Einstein 1915"))
+                    .toString();
+            const double precession_dsigma =
+                result.scalars.value(QStringLiteral("precession_delta_sigma"), 0.0).toDouble();
             return QStringLiteral(
-                "Mercury perihelion precession: first post-Newtonian prediction for a "
-                "Kerr black hole of mass %1 M_sun. The perihelion advance is "
-                "$%2$ arcsec per century. Comparing to the published value "
-                "$%3$ arcsec per century (Einstein 1915, Annalen der Physik 49:769-822), "
-                "we find $\\Delta\\sigma = %4$, consistent within observational "
-                "uncertainty.")
+                       "Mercury perihelion precession: first post-Newtonian prediction for a "
+                       "Kerr black hole of mass %1 M_sun. The perihelion advance is "
+                       "$%2$ arcsec per century. Comparing to the published value "
+                       "$%3$ arcsec per century (Einstein 1915, Annalen der Physik 49:769-822), "
+                       "we find $\\Delta\\sigma = %4$, consistent within observational "
+                       "uncertainty.")
                 .arg(QString::number(mass, 'f', 1))
                 .arg(QString::number(precession, 'f', 2))
                 .arg(QString::number(precession_pub, 'f', 1))
@@ -516,11 +565,11 @@ QString ExperimentRunner::abstractForExperiment(const QString& id,
         }
 
         return QStringLiteral(
-            "Mercury perihelion precession: first post-Newtonian prediction for a "
-            "Kerr black hole of mass %1 M_sun. The perihelion advance is "
-            "$%2$ arcsec per century.")
-                .arg(QString::number(mass, 'f', 1))
-                .arg(QString::number(precession, 'f', 2));
+                   "Mercury perihelion precession: first post-Newtonian prediction for a "
+                   "Kerr black hole of mass %1 M_sun. The perihelion advance is "
+                   "$%2$ arcsec per century.")
+            .arg(QString::number(mass, 'f', 1))
+            .arg(QString::number(precession, 'f', 2));
     }
     if (id == QStringLiteral("theory_sensitivity")) {
         return QStringLiteral(
@@ -548,18 +597,20 @@ bool ExperimentRunner::canBuildPaper(const QString& id) const {
 }
 
 QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
-    if (!canBuildPaper(id)) return QString();
+    if (!canBuildPaper(id))
+        return QString();
 
     const auto* result = lastResultFor(id);
-    if (!result) return QString();
+    if (!result)
+        return QString();
 
     // Compute a unique output path: <id>_discovery_<timestamp>.pdf
-    QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
-                    + "/QuantumVerse/output";
+    QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                      "/QuantumVerse/output";
     QDir().mkpath(baseDir);
     const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-    const QString pdfPath = baseDir + QStringLiteral("/") + id
-                          + QStringLiteral("_discovery_") + stamp + QStringLiteral(".pdf");
+    const QString pdfPath = baseDir + QStringLiteral("/") + id + QStringLiteral("_discovery_") +
+                            stamp + QStringLiteral(".pdf");
 
     if (id == QStringLiteral("theory_sensitivity")) {
         // Theory sensitivity paper: skip ScanSummaryBuilder (no BH observables),
@@ -567,8 +618,7 @@ QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
         QJsonObject matrix;
         for (auto it = result->scalars.cbegin(); it != result->scalars.cend(); ++it) {
             const QString key = it.key();
-            if (key.contains(QStringLiteral("_tension")) ||
-                key.contains(QStringLiteral("_pass")) ||
+            if (key.contains(QStringLiteral("_tension")) || key.contains(QStringLiteral("_pass")) ||
                 key.contains(QStringLiteral("_rel_err"))) {
                 matrix[key] = QJsonValue::fromVariant(it.value());
             }
@@ -579,8 +629,8 @@ QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
             QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_theories")));
         matrix[QStringLiteral("matrix_n_theories")] =
             QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_n_theories")));
-        matrix[QStringLiteral("matrix_n_sub_experiments")] =
-            QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_n_sub_experiments")));
+        matrix[QStringLiteral("matrix_n_sub_experiments")] = QJsonValue::fromVariant(
+            result->scalars.value(QStringLiteral("matrix_n_sub_experiments")));
         matrix[QStringLiteral("matrix_pass_sigma")] =
             QJsonValue::fromVariant(result->scalars.value(QStringLiteral("matrix_pass_sigma")));
 
@@ -589,17 +639,17 @@ QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
         QEventLoop llmLoop;
         QString llmAbstract;
         bool llmReady = false;
-        QObject::connect(m_llmCoPilot.get(), &LLMCoPilot::abstractReady,
-            &llmLoop, [&](const QString& text) {
-                llmAbstract = text;
-                llmReady = true;
-                llmLoop.quit();
-            });
-        QObject::connect(m_llmCoPilot.get(), &LLMCoPilot::abstractFailed,
-            &llmLoop, [&](const QString&) {
-                llmReady = true;
-                llmLoop.quit();
-            });
+        QObject::connect(m_llmCoPilot.get(), &LLMCoPilot::abstractReady, &llmLoop,
+                         [&](const QString& text) {
+                             llmAbstract = text;
+                             llmReady = true;
+                             llmLoop.quit();
+                         });
+        QObject::connect(m_llmCoPilot.get(), &LLMCoPilot::abstractFailed, &llmLoop,
+                         [&](const QString&) {
+                             llmReady = true;
+                             llmLoop.quit();
+                         });
         m_llmCoPilot->generatePaperAbstract(matrix);
         QTimer::singleShot(60000, &llmLoop, &QEventLoop::quit);
         llmLoop.exec();
@@ -610,7 +660,8 @@ QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
         m_paperGenerator->generateTheorySensitivityPaper(matrix, abstract, pdfPath);
     } else {
         const auto summary = ScanSummaryBuilder::fromExperiment(id, *result);
-        if (summary.mass <= 0.0) return QString(); // invalid sentinel
+        if (summary.mass <= 0.0)
+            return QString();  // invalid sentinel
 
         const QString abstract = abstractForExperiment(id, *result);
 
@@ -620,11 +671,11 @@ QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
     // Wait for pdflatex to complete (async via QProcess signal).
     QEventLoop pdfLoop;
     QString resolvedPath;
-    QObject::connect(m_paperGenerator.get(), &PaperGenerator::paperGenerated,
-        &pdfLoop, [&](const QString& path) {
-            resolvedPath = path;
-            pdfLoop.quit();
-        });
+    QObject::connect(m_paperGenerator.get(), &PaperGenerator::paperGenerated, &pdfLoop,
+                     [&](const QString& path) {
+                         resolvedPath = path;
+                         pdfLoop.quit();
+                     });
     QTimer::singleShot(120000, &pdfLoop, &QEventLoop::quit);
     pdfLoop.exec();
 
@@ -654,11 +705,15 @@ void ExperimentRunner::showHistoryEntry(const QString& id) {
             m_currentScalars = h.result.scalars;
             QVariantList curve;
             for (const auto& pt : h.result.curve) {
-                QVariantMap mm; mm["x"] = pt.x(); mm["y"] = pt.y(); curve.append(mm);
+                QVariantMap mm;
+                mm["x"] = pt.x();
+                mm["y"] = pt.y();
+                curve.append(mm);
             }
             m_currentCurve = curve;
             QString log;
-            for (const auto& line : h.result.logLines) log += line + "\n";
+            for (const auto& line : h.result.logLines)
+                log += line + "\n";
             m_currentLog = log;
             m_currentId = h.id;
             m_currentName = h.name;
@@ -703,19 +758,24 @@ void ExperimentRunner::setResult(const ExperimentRunOutcome& outcome) {
     m_currentScalars = outcome.result.scalars;
     QVariantList curve;
     for (const auto& pt : outcome.result.curve) {
-        QVariantMap m; m["x"] = pt.x(); m["y"] = pt.y(); curve.append(m);
+        QVariantMap m;
+        m["x"] = pt.x();
+        m["y"] = pt.y();
+        curve.append(m);
     }
     m_currentCurve = curve;
 
     QString log;
-    for (const auto& line : outcome.result.logLines) log += line + "\n";
+    for (const auto& line : outcome.result.logLines)
+        log += line + "\n";
     m_currentLog = log;
 
     {
         QMutexLocker lock(&m_mutex);
         ExperimentRunOutcome copy = outcome;
         m_history.append(copy);
-        while (m_history.size() > 200) m_history.removeFirst();
+        while (m_history.size() > 200)
+            m_history.removeFirst();
     }
 
     emit runningChanged();
@@ -729,12 +789,9 @@ void ExperimentRunner::setResult(const ExperimentRunOutcome& outcome) {
 
 void ExperimentRunner::RunJob::run() {
     auto progressCb = [runner = m_runner](double p) {
-        QMetaObject::invokeMethod(runner, "setProgress", Qt::QueuedConnection,
-                                  Q_ARG(double, p));
+        QMetaObject::invokeMethod(runner, "setProgress", Qt::QueuedConnection, Q_ARG(double, p));
     };
-    auto abortCb = [runner = m_runner]() -> bool {
-        return runner->m_abort.load();
-    };
+    auto abortCb = [runner = m_runner]() -> bool { return runner->m_abort.load(); };
 
     ExperimentResult res = m_exp->run(m_params, progressCb, abortCb);
 
@@ -747,4 +804,4 @@ void ExperimentRunner::RunJob::run() {
                               Q_ARG(ExperimentRunOutcome, outcome));
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

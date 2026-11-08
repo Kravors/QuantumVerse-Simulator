@@ -4,33 +4,32 @@
  */
 
 #include <QCoreApplication>
-#include <QSignalSpy>
-#include <QTest>
-#include <QVariantMap>
-#include <QFileInfo>
 #include <QDir>
-#include <QFile>
-#include <QProcess>
-#include <QStandardPaths>
 #include <QElapsedTimer>
 #include <QEventLoop>
-#include <iostream>
+#include <QFile>
+#include <QFileInfo>
+#include <QProcess>
+#include <QSignalSpy>
+#include <QStandardPaths>
+#include <QTest>
+#include <QVariantMap>
 #include <cstdlib>
+#include <iostream>
 
 #include "experiment/ExperimentRunner.h"
-#include "experiment/experiments/MassSweepExperiment.h"
-#include "experiment/experiments/LensingTimeDelayExperiment.h"
-#include "experiment/experiments/PhotonSphereExperiment.h"
-#include "experiment/experiments/RedshiftProfileExperiment.h"
+#include "experiment/experiments/CosmologyValidationSuite.h"
 #include "experiment/experiments/FrameDraggingExperiment.h"
 #include "experiment/experiments/GWRingdownExperiment.h"
-#include "experiment/experiments/CosmologyValidationSuite.h"
+#include "experiment/experiments/LensingTimeDelayExperiment.h"
+#include "experiment/experiments/MassSweepExperiment.h"
+#include "experiment/experiments/PhotonSphereExperiment.h"
+#include "experiment/experiments/RedshiftProfileExperiment.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== ExperimentRunner Test ===" << std::endl;
 
@@ -66,8 +65,9 @@ int main(int argc, char** argv)
     // invokes, which need the event loop).
     bool finished = false;
     for (int i = 0; i < 200 && !finished; ++i) {
-        QTest::qWait(25); // processes pending events
-        if (finishedSpy.count() >= 1) finished = true;
+        QTest::qWait(25);  // processes pending events
+        if (finishedSpy.count() >= 1)
+            finished = true;
         QCoreApplication::processEvents();
     }
     QV_CHECK(finished);
@@ -110,7 +110,8 @@ int main(int argc, char** argv)
     bool lensFinished = false;
     for (int i = 0; i < 200 && !lensFinished; ++i) {
         QTest::qWait(25);
-        if (finishedSpy.count() >= 1) lensFinished = true;
+        if (finishedSpy.count() >= 1)
+            lensFinished = true;
         QCoreApplication::processEvents();
     }
     QV_CHECK(lensFinished);
@@ -122,7 +123,7 @@ int main(int argc, char** argv)
 
     bool pdfDone1 = false;
     QString actualPdfPath1;
-    for (int i = 0; i < 9600 && !pdfDone1; ++i) { // up to 240s: PDF export can be slow on CI
+    for (int i = 0; i < 9600 && !pdfDone1; ++i) {  // up to 240s: PDF export can be slow on CI
         QTest::qWait(25);
         if (pdfDoneSpy.count() >= 1) {
             pdfDone1 = true;
@@ -145,7 +146,8 @@ int main(int argc, char** argv)
     {
         QString pdftotextPath = QStringLiteral("pdftotext");
 #ifdef Q_OS_WIN
-        const QString miktexPdftotext = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
+        const QString miktexPdftotext =
+            QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
         if (QFileInfo::exists(miktexPdftotext)) {
             pdftotextPath = miktexPdftotext;
         }
@@ -158,10 +160,13 @@ int main(int argc, char** argv)
     }
     if (!pdfText.isEmpty()) {
         QV_CHECK(pdfText.contains(QStringLiteral("lensing")));
-        QV_CHECK(pdfText.contains(QStringLiteral("29.96")) || pdfText.contains(QStringLiteral("29.9")));
+        QV_CHECK(pdfText.contains(QStringLiteral("29.96")) ||
+                 pdfText.contains(QStringLiteral("29.9")));
         QV_CHECK(pdfText.contains(QStringLiteral("0.5")));
     } else {
-        std::cerr << "WARNING: pdftotext not available or produced empty output, skipping PDF content checks" << std::endl;
+        std::cerr << "WARNING: pdftotext not available or produced empty output, skipping PDF "
+                     "content checks"
+                  << std::endl;
     }
 
     // ---- Second export must produce a DIFFERENT (unique) file ----
@@ -202,45 +207,51 @@ int main(int argc, char** argv)
     };
 
     QVector<DiscoveryCase> cases = {
-        { QStringLiteral("photon_sphere"),
-          {{QStringLiteral("mass_Msun"), 10.0},
-           {QStringLiteral("spin_a_max"), 0.99},
-           {QStringLiteral("n_steps"), 50}},
-          {QStringLiteral("Kerr"), QStringLiteral("10"), QStringLiteral("0.99"), QStringLiteral("e-")},
-          QStringLiteral("NaN"), QStringLiteral("Kerr") },
-        { QStringLiteral("redshift_profile"),
-          {{QStringLiteral("mass"), 42.0},
-           {QStringLiteral("r_min"), 3000.0},
-           {QStringLiteral("r_max"), 1.0e6},
-           {QStringLiteral("steps"), 50}},
-          {QStringLiteral("Schwarzschild"), QStringLiteral("42"), QStringLiteral("e-")},
-          QStringLiteral("NaN"), QStringLiteral("Schwarzschild") },
-         { QStringLiteral("frame_dragging"),
-           {{QStringLiteral("mass_Msun"), 42.0},
-            {QStringLiteral("spin_a_star"), 0.5},
-            {QStringLiteral("orbit_radius_m"), 7.0e6},
-            {QStringLiteral("steps"), 50}},
-           {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"), QStringLiteral("e-")},
-           QStringLiteral("NaN"), QStringLiteral("Kerr") },
-        { QStringLiteral("gw_ringdown"),
-          {{QStringLiteral("mass_Msun"), 42.0},
-           {QStringLiteral("spin_a"), 0.5},
-           {QStringLiteral("amplitude"), 1.0},
-           {QStringLiteral("duration_ms"), 5.0},
-           {QStringLiteral("n_steps"), 50}},
-          {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"), QStringLiteral("e-"),
-           QStringLiteral("f R"), QStringLiteral("quasinormal")},
-          QStringLiteral("NaN"), QStringLiteral("Kerr") },
+        {QStringLiteral("photon_sphere"),
+         {{QStringLiteral("mass_Msun"), 10.0},
+          {QStringLiteral("spin_a_max"), 0.99},
+          {QStringLiteral("n_steps"), 50}},
+         {QStringLiteral("Kerr"), QStringLiteral("10"), QStringLiteral("0.99"),
+          QStringLiteral("e-")},
+         QStringLiteral("NaN"),
+         QStringLiteral("Kerr")},
+        {QStringLiteral("redshift_profile"),
+         {{QStringLiteral("mass"), 42.0},
+          {QStringLiteral("r_min"), 3000.0},
+          {QStringLiteral("r_max"), 1.0e6},
+          {QStringLiteral("steps"), 50}},
+         {QStringLiteral("Schwarzschild"), QStringLiteral("42"), QStringLiteral("e-")},
+         QStringLiteral("NaN"),
+         QStringLiteral("Schwarzschild")},
+        {QStringLiteral("frame_dragging"),
+         {{QStringLiteral("mass_Msun"), 42.0},
+          {QStringLiteral("spin_a_star"), 0.5},
+          {QStringLiteral("orbit_radius_m"), 7.0e6},
+          {QStringLiteral("steps"), 50}},
+         {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"),
+          QStringLiteral("e-")},
+         QStringLiteral("NaN"),
+         QStringLiteral("Kerr")},
+        {QStringLiteral("gw_ringdown"),
+         {{QStringLiteral("mass_Msun"), 42.0},
+          {QStringLiteral("spin_a"), 0.5},
+          {QStringLiteral("amplitude"), 1.0},
+          {QStringLiteral("duration_ms"), 5.0},
+          {QStringLiteral("n_steps"), 50}},
+         {QStringLiteral("Kerr"), QStringLiteral("42"), QStringLiteral("0.5"), QStringLiteral("e-"),
+          QStringLiteral("f R"), QStringLiteral("quasinormal")},
+         QStringLiteral("NaN"),
+         QStringLiteral("Kerr")},
     };
 
-    const QString outputDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
-                            + "/QuantumVerse/output";
+    const QString outputDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                              "/QuantumVerse/output";
 
     for (const auto& c : cases) {
         // Clean up old discovery PDFs for this experiment id.
         {
             QDir cleanupDir(outputDir);
-            const QStringList pattern = { QStringLiteral("%1_discovery_*.pdf").arg(c.id) };
+            const QStringList pattern = {QStringLiteral("%1_discovery_*.pdf").arg(c.id)};
             const auto oldEntries = cleanupDir.entryList(pattern, QDir::Files);
             for (const auto& e : oldEntries) {
                 QFile::remove(cleanupDir.absoluteFilePath(e));
@@ -253,7 +264,8 @@ int main(int argc, char** argv)
         bool finished = false;
         for (int i = 0; i < 200 && !finished; ++i) {
             QTest::qWait(25);
-            if (finishedSpy.count() >= 1) finished = true;
+            if (finishedSpy.count() >= 1)
+                finished = true;
             QCoreApplication::processEvents();
         }
         QV_CHECK(finished);
@@ -261,117 +273,125 @@ int main(int argc, char** argv)
 
         QString discoveryPath = runner.generateDiscoveryPaper(c.id);
         if (discoveryPath.isEmpty()) {
-            std::cerr << "WARNING: generateDiscoveryPaper produced empty path, skipping PDF checks" << std::endl;
+            std::cerr << "WARNING: generateDiscoveryPaper produced empty path, skipping PDF checks"
+                      << std::endl;
         } else {
             QV_CHECK(!discoveryPath.isEmpty());
 
             // Poll for the compiled PDF.
             QString resolvedPath;
-            QElapsedTimer timer; timer.start();
+            QElapsedTimer timer;
+            timer.start();
             while (timer.elapsed() < 120000) {
                 QDir dir(outputDir);
-                const QStringList pattern = { QStringLiteral("%1_discovery_*.pdf").arg(c.id) };
+                const QStringList pattern = {QStringLiteral("%1_discovery_*.pdf").arg(c.id)};
                 const auto entries = dir.entryList(pattern, QDir::Files, QDir::Time);
                 if (!entries.isEmpty()) {
                     const QString candidate = dir.absoluteFilePath(entries.first());
                     if (QFileInfo(candidate).size() > 1000) {
                         resolvedPath = candidate;
-                    break;
+                        break;
+                    }
                 }
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
             }
-            QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
-        }
-        QV_CHECK(!resolvedPath.isEmpty());
-        QV_CHECK(resolvedPath.endsWith(QStringLiteral(".pdf")));
+            QV_CHECK(!resolvedPath.isEmpty());
+            QV_CHECK(resolvedPath.endsWith(QStringLiteral(".pdf")));
 
-        std::cout << "Discovery paper (" << c.id.toStdString()
-                  << ") exported to: " << resolvedPath.toStdString() << std::endl;
+            std::cout << "Discovery paper (" << c.id.toStdString()
+                      << ") exported to: " << resolvedPath.toStdString() << std::endl;
 
-        // Content verification via pdftotext.
-        {
-            QString pdftotextPath = QStringLiteral("pdftotext");
+            // Content verification via pdftotext.
+            {
+                QString pdftotextPath = QStringLiteral("pdftotext");
 #ifdef Q_OS_WIN
-            const QString miktexPdftotext = QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
-            if (QFileInfo::exists(miktexPdftotext)) {
-                pdftotextPath = miktexPdftotext;
-            }
+                const QString miktexPdftotext =
+                    QStringLiteral("C:/Program Files/MiKTeX/miktex/bin/x64/pdftotext.exe");
+                if (QFileInfo::exists(miktexPdftotext)) {
+                    pdftotextPath = miktexPdftotext;
+                }
 #endif
-            QProcess pdftotext;
-            pdftotext.setProcessChannelMode(QProcess::MergedChannels);
-            pdftotext.start(pdftotextPath, QStringList() << resolvedPath << "-");
-            pdftotext.waitForFinished(30000);
-            const QString pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
-            if (!pdfText.isEmpty()) {
-                QV_CHECK(pdfText.contains(QStringLiteral("lensing")));
-                QV_CHECK(pdfText.contains(QStringLiteral("29.96")) || pdfText.contains(QStringLiteral("29.9")));
-                QV_CHECK(pdfText.contains(QStringLiteral("0.5")));
-                for (const auto& token : c.contentMustContain) {
-                    QV_CHECK(pdfText.contains(token));
+                QProcess pdftotext;
+                pdftotext.setProcessChannelMode(QProcess::MergedChannels);
+                pdftotext.start(pdftotextPath, QStringList() << resolvedPath << "-");
+                pdftotext.waitForFinished(30000);
+                const QString pdfText = QString::fromLocal8Bit(pdftotext.readAllStandardOutput());
+                if (!pdfText.isEmpty()) {
+                    QV_CHECK(pdfText.contains(QStringLiteral("lensing")));
+                    QV_CHECK(pdfText.contains(QStringLiteral("29.96")) ||
+                             pdfText.contains(QStringLiteral("29.9")));
+                    QV_CHECK(pdfText.contains(QStringLiteral("0.5")));
+                    for (const auto& token : c.contentMustContain) {
+                        QV_CHECK(pdfText.contains(token));
+                    }
+                    QV_CHECK(!pdfText.contains(c.contentMustNotContain));
+                    QV_CHECK(!pdfText.contains(QStringLiteral("{")));
+                } else {
+                    std::cerr << "WARNING: pdftotext not available or produced empty output, "
+                                 "skipping PDF content checks"
+                              << std::endl;
                 }
-                QV_CHECK(!pdfText.contains(c.contentMustNotContain));
-                QV_CHECK(!pdfText.contains(QStringLiteral("{")));
+            }
+        }
+
+        std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;
+
+        // ---- CosmologyValidationSuite with all theories ----
+        // Verifies wCDM and Brans-Dicke as non-ΛCDM theories in the validation
+        // harness, alongside f(R). Each theory runs all 6 cosmology experiments
+        // and captures σ-tensions vs ΛCDM.
+        runner.registerExperiment(std::make_unique<CosmologyValidationSuite>());
+        QV_CHECK(runner.count() == 7);
+
+        QStringList theoryChoices = {QStringLiteral("project"), QStringLiteral("fR"),
+                                     QStringLiteral("wcdm"), QStringLiteral("brans_dicke")};
+
+        for (const QString& theory : theoryChoices) {
+            QVariantMap cvsParams;
+            cvsParams[QStringLiteral("theory_choice")] = theory;
+            cvsParams[QStringLiteral("passSigma")] = 3.0;
+
+            QSignalSpy cvsFinishedSpy(&runner, &ExperimentRunner::experimentFinished);
+            runner.start(QStringLiteral("cosmology_validation_suite"), cvsParams);
+
+            bool cvsFinished = false;
+            for (int i = 0; i < 800 && !cvsFinished; ++i) {
+                QTest::qWait(25);
+                if (cvsFinishedSpy.count() >= 1)
+                    cvsFinished = true;
+                QCoreApplication::processEvents();
+            }
+            if (!cvsFinished) {
+                std::cerr << "WARNING: CosmologyValidationSuite theory=" << theory.toStdString()
+                          << " did not finish, skipping scalar checks" << std::endl;
             } else {
-                std::cerr << "WARNING: pdftotext not available or produced empty output, skipping PDF content checks" << std::endl;
-            }
-    }
-    }
+                QV_CHECK(cvsFinished);
+                QV_CHECK(!runner.running());
 
-    std::cout << "=== ExperimentRunner Test: ALL PASS ===" << std::endl;
-
-    // ---- CosmologyValidationSuite with all theories ----
-    // Verifies wCDM and Brans-Dicke as non-ΛCDM theories in the validation
-    // harness, alongside f(R). Each theory runs all 6 cosmology experiments
-    // and captures σ-tensions vs ΛCDM.
-    runner.registerExperiment(std::make_unique<CosmologyValidationSuite>());
-    QV_CHECK(runner.count() == 7);
-
-    QStringList theoryChoices = {
-        QStringLiteral("project"),
-        QStringLiteral("fR"),
-        QStringLiteral("wcdm"),
-        QStringLiteral("brans_dicke")
-    };
-
-    for (const QString& theory : theoryChoices) {
-        QVariantMap cvsParams;
-        cvsParams[QStringLiteral("theory_choice")] = theory;
-        cvsParams[QStringLiteral("passSigma")] = 3.0;
-
-        QSignalSpy cvsFinishedSpy(&runner, &ExperimentRunner::experimentFinished);
-        runner.start(QStringLiteral("cosmology_validation_suite"), cvsParams);
-
-        bool cvsFinished = false;
-        for (int i = 0; i < 800 && !cvsFinished; ++i) {
-            QTest::qWait(25);
-            if (cvsFinishedSpy.count() >= 1) cvsFinished = true;
-            QCoreApplication::processEvents();
-        }
-        if (!cvsFinished) {
-            std::cerr << "WARNING: CosmologyValidationSuite theory=" << theory.toStdString()
-                      << " did not finish, skipping scalar checks" << std::endl;
-        } else {
-            QV_CHECK(cvsFinished);
-            QV_CHECK(!runner.running());
-
-            runner.showHistoryEntry(QStringLiteral("cosmology_validation_suite"));
-            const QVariantMap cvsScalars = runner.currentScalars();
-            std::cout << "  CosmologyValidationSuite theory=" << theory.toStdString()
-                      << " suite_theory=" << cvsScalars.value(QStringLiteral("suite_theory")).toString().toStdString()
-                      << " provider=" << cvsScalars.value(QStringLiteral("suite_provider")).toString().toStdString()
-                      << std::endl;
-            QV_CHECK(cvsScalars.value(QStringLiteral("suite_theory")).toString() == theory);
-            for (auto it = cvsScalars.cbegin(); it != cvsScalars.cend(); ++it) {
-                const QString key = it.key();
-                if (key.contains(QStringLiteral("tension")) || key.contains(QStringLiteral("pass"))) {
-                    std::cout << "    " << key.toStdString() << " = " << it.value().toDouble() << std::endl;
+                runner.showHistoryEntry(QStringLiteral("cosmology_validation_suite"));
+                const QVariantMap cvsScalars = runner.currentScalars();
+                std::cout
+                    << "  CosmologyValidationSuite theory=" << theory.toStdString()
+                    << " suite_theory="
+                    << cvsScalars.value(QStringLiteral("suite_theory")).toString().toStdString()
+                    << " provider="
+                    << cvsScalars.value(QStringLiteral("suite_provider")).toString().toStdString()
+                    << std::endl;
+                QV_CHECK(cvsScalars.value(QStringLiteral("suite_theory")).toString() == theory);
+                for (auto it = cvsScalars.cbegin(); it != cvsScalars.cend(); ++it) {
+                    const QString key = it.key();
+                    if (key.contains(QStringLiteral("tension")) ||
+                        key.contains(QStringLiteral("pass"))) {
+                        std::cout << "    " << key.toStdString() << " = " << it.value().toDouble()
+                                  << std::endl;
+                    }
                 }
+                std::cout << "CosmologyValidationSuite with " << theory.toStdString()
+                          << " completed successfully." << std::endl;
             }
-            std::cout << "CosmologyValidationSuite with " << theory.toStdString() << " completed successfully."
-                      << std::endl;
         }
-    }
 
-    std::cout.flush();
-    std::_Exit(0);
-}
+        std::cout.flush();
+        std::_Exit(0);
+    }
 }

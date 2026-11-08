@@ -15,8 +15,8 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "spacetime/Event4D.h"
 #include "discovery/DiscoveryResultJson.h"
+#include "spacetime/Event4D.h"
 
 namespace quantumverse {
 namespace vr {
@@ -83,12 +83,16 @@ struct Participant {
         obj["id"] = QString::fromStdString(id);
         obj["name"] = QString::fromStdString(name);
         QJsonArray cam;
-        for (double v : cameraMatrix) cam.append(v);
+        for (double v : cameraMatrix)
+            cam.append(v);
         obj["cameraMatrix"] = cam;
         QJsonArray pr;
         for (const auto& p : probes) {
             QJsonObject pt;
-            pt["t"] = p.t; pt["x"] = p.x; pt["y"] = p.y; pt["z"] = p.z;
+            pt["t"] = p.t;
+            pt["x"] = p.x;
+            pt["y"] = p.y;
+            pt["z"] = p.z;
             pr.append(pt);
         }
         obj["probes"] = pr;
@@ -101,12 +105,13 @@ struct Participant {
         p.id = obj["id"].toString().toStdString();
         p.name = obj["name"].toString().toStdString();
         QJsonArray cam = obj["cameraMatrix"].toArray();
-        for (int i = 0; i < 16; ++i) p.cameraMatrix[i] = cam[i].toDouble();
+        for (int i = 0; i < 16; ++i)
+            p.cameraMatrix[i] = cam[i].toDouble();
         QJsonArray pr = obj["probes"].toArray();
         for (const auto& val : pr) {
             QJsonObject pt = val.toObject();
-            p.probes.emplace_back(pt["t"].toDouble(), pt["x"].toDouble(),
-                                  pt["y"].toDouble(), pt["z"].toDouble());
+            p.probes.emplace_back(pt["t"].toDouble(), pt["x"].toDouble(), pt["y"].toDouble(),
+                                  pt["z"].toDouble());
         }
         p.vrActive = obj["vrActive"].toBool();
         return p;
@@ -123,17 +128,21 @@ struct SharedState {
     QJsonObject toJson() const {
         QJsonObject obj;
         QJsonArray parts;
-        for (const auto& p : participants) parts.append(p.toJson());
+        for (const auto& p : participants)
+            parts.append(p.toJson());
         obj["participants"] = parts;
         obj["activeTheory"] = activeTheory.toJson();
         QJsonArray front;
-        for (const auto& r : paretoFront) front.append(discoveryResultToJson(r));
+        for (const auto& r : paretoFront)
+            front.append(discoveryResultToJson(r));
         obj["paretoFront"] = front;
         QJsonArray weights;
-        for (double w : bmaWeights) weights.append(w);
+        for (double w : bmaWeights)
+            weights.append(w);
         obj["bmaWeights"] = weights;
         QJsonArray alerts;
-        for (const auto& a : recentAlerts) alerts.append(a.toJson());
+        for (const auto& a : recentAlerts)
+            alerts.append(a.toJson());
         obj["recentAlerts"] = alerts;
         return obj;
     }
@@ -148,7 +157,8 @@ struct SharedState {
         for (const auto& val : front)
             s.paretoFront.push_back(discoveryResultFromJson(val.toObject()));
         QJsonArray weights = obj["bmaWeights"].toArray();
-        for (const auto& w : weights) s.bmaWeights.push_back(w.toDouble());
+        for (const auto& w : weights)
+            s.bmaWeights.push_back(w.toDouble());
         QJsonArray alerts = obj["recentAlerts"].toArray();
         for (const auto& a : alerts)
             s.recentAlerts.push_back(LiveAlert::fromJson(a.toObject()));
@@ -167,7 +177,7 @@ class SharedSession : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString sessionId READ sessionId WRITE setSessionId NOTIFY sessionIdChanged)
     Q_PROPERTY(bool isActive READ isActive WRITE setActive NOTIFY isActiveChanged)
-public:
+   public:
     /**
      * @brief Construct a new SharedSession
      * @param parent QObject parent (optional, unused for non-QObject base)
@@ -183,22 +193,30 @@ public:
      * @brief Set the signaling client used for broadcasting
      * @param client SignalingClient instance (not owned)
      */
-    void setSignalingClient(vr::SignalingClient* client) { m_signalingClient = client; }
+    void setSignalingClient(vr::SignalingClient* client) {
+        m_signalingClient = client;
+    }
 
     /**
      * @brief Get current shared state
      */
-    const SharedState& state() const { return m_state; }
+    const SharedState& state() const {
+        return m_state;
+    }
 
     /**
      * @brief Get mutable shared state
      */
-    SharedState& state() { return m_state; }
+    SharedState& state() {
+        return m_state;
+    }
 
     /**
      * @brief Check if session is active (broadcasting enabled)
      */
-    bool isActive() const { return m_active; }
+    bool isActive() const {
+        return m_active;
+    }
 
     /**
      * @brief Activate or deactivate session broadcasting
@@ -239,18 +257,25 @@ public:
     /**
      * @brief Set session ID for display purposes
      */
-    void setSessionId(const QString& sessionId) { if (m_sessionId != sessionId) { m_sessionId = sessionId; emit sessionIdChanged(); } }
+    void setSessionId(const QString& sessionId) {
+        if (m_sessionId != sessionId) {
+            m_sessionId = sessionId;
+            emit sessionIdChanged();
+        }
+    }
 
     /**
      * @brief Get current session ID
      */
-    QString sessionId() const { return m_sessionId; }
+    QString sessionId() const {
+        return m_sessionId;
+    }
 
-signals:
+   signals:
     void sessionIdChanged();
     void isActiveChanged();
 
-private:
+   private:
     /**
      * @brief Broadcast the current full state to peers
      */
@@ -263,4 +288,4 @@ private:
     std::vector<std::string> m_knownPeerIds;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

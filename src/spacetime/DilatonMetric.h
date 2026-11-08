@@ -30,7 +30,7 @@ namespace quantumverse {
  * 2D dilaton gravity and black hole information paradox.
  */
 class DilatonMetric {
-public:
+   public:
     /**
      * @brief Construct a dilaton metric with given sigma and mass.
      * @param sigma The dilaton vacuum parameter σ (λ = e^{-σ}).
@@ -88,7 +88,8 @@ public:
     /**
      * @brief Check if a point lies on the apparent horizon.
      * The apparent horizon is defined by ∂₊φ = 0 (future horizon) or ∂₋φ = 0 (past horizon).
-     * For this metric, ∂₊φ = ½ (M e^{2σ} x⁻) / (1 + M e^{2σ} x⁺ x⁻). So the horizon occurs at x⁻ = 0.
+     * For this metric, ∂₊φ = ½ (M e^{2σ} x⁻) / (1 + M e^{2σ} x⁺ x⁻). So the horizon occurs at x⁻ =
+     * 0.
      * @param x_plus Advanced time coordinate.
      * @param x_minus Retarded time coordinate.
      * @param tol Tolerance for floating point comparison.
@@ -110,19 +111,25 @@ public:
      * @brief Get the dilaton vacuum parameter σ.
      * @return σ.
      */
-    double getSigma() const noexcept { return sigma; }
+    double getSigma() const noexcept {
+        return sigma;
+    }
 
     /**
      * @brief Get the black hole mass M.
      * @return M (≥ 0).
      */
-    double getMass() const noexcept { return mass; }
+    double getMass() const noexcept {
+        return mass;
+    }
 
     /**
      * @brief Check if this is the linear dilaton vacuum (M=0).
      * @return true if mass is zero.
      */
-    bool isVacuum() const noexcept { return mass == 0.0; }
+    bool isVacuum() const noexcept {
+        return mass == 0.0;
+    }
 
     /**
      * @brief Compute the Hawking temperature T = κ/(2π).
@@ -131,9 +138,9 @@ public:
      */
     double hawkingTemperature() const noexcept;
 
-private:
-    double sigma; ///< Dilaton vacuum parameter σ (λ = e^{-σ})
-    double mass;  ///< Black hole mass M (M=0 for vacuum)
+   private:
+    double sigma;  ///< Dilaton vacuum parameter σ (λ = e^{-σ})
+    double mass;   ///< Black hole mass M (M=0 for vacuum)
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

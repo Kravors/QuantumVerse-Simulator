@@ -9,9 +9,9 @@
 
 #include "FrameDraggingExperiment.h"
 
-#include <cmath>
-#include <QDir>
 #include <QDateTime>
+#include <QDir>
+#include <cmath>
 
 #include "spacetime/Event4D.h"
 #include "spacetime/KerrMetric.h"
@@ -20,18 +20,18 @@ namespace quantumverse {
 
 QVector<ExperimentParameter> FrameDraggingExperiment::parameters() const {
     QVector<ExperimentParameter> p;
-    p.append({QStringLiteral("mass_Msun"),   QStringLiteral("Mass (M☉)"),
-              QStringLiteral("double"), QVariant(1.0),  QVariant(0.01), QVariant(1e6),
-              QStringList(), QStringLiteral("M☉"),  QStringLiteral("Central body mass.")});
+    p.append({QStringLiteral("mass_Msun"), QStringLiteral("Mass (M☉)"), QStringLiteral("double"),
+              QVariant(1.0), QVariant(0.01), QVariant(1e6), QStringList(), QStringLiteral("M☉"),
+              QStringLiteral("Central body mass.")});
     p.append({QStringLiteral("spin_a_star"), QStringLiteral("Dimensionless spin a*"),
-              QStringLiteral("double"), QVariant(0.9),  QVariant(0.0), QVariant(0.999),
-              QStringList(), QStringLiteral(""),     QStringLiteral("Kerr spin parameter.")});
+              QStringLiteral("double"), QVariant(0.9), QVariant(0.0), QVariant(0.999),
+              QStringList(), QStringLiteral(""), QStringLiteral("Kerr spin parameter.")});
     p.append({QStringLiteral("orbit_radius_m"), QStringLiteral("Orbit radius (m)"),
               QStringLiteral("double"), QVariant(7.0e6), QVariant(1.0e5), QVariant(1.0e12),
-              QStringList(), QStringLiteral("m"),  QStringLiteral("Orbit radius.")});
-    p.append({QStringLiteral("steps"),      QStringLiteral("Steps"),
-              QStringLiteral("int"),    QVariant(50),   QVariant(2), QVariant(10000),
-              QStringList(), QStringLiteral(""),     QStringLiteral("Number of radius samples.")});
+              QStringList(), QStringLiteral("m"), QStringLiteral("Orbit radius.")});
+    p.append({QStringLiteral("steps"), QStringLiteral("Steps"), QStringLiteral("int"), QVariant(50),
+              QVariant(2), QVariant(10000), QStringList(), QStringLiteral(""),
+              QStringLiteral("Number of radius samples.")});
     return p;
 }
 
@@ -39,13 +39,13 @@ ExperimentResult FrameDraggingExperiment::run(const QVariantMap& params,
                                               std::function<void(double)> progress,
                                               std::function<bool()> shouldAbort) {
     ExperimentResult out;
-    const double massMsun = params.value(QStringLiteral("mass_Msun"),   1.0 ).toDouble();
-    const double aStar    = params.value(QStringLiteral("spin_a_star"), 0.9 ).toDouble();
-    const double rOrb     = params.value(QStringLiteral("orbit_radius_m"), 7.0e6).toDouble();
-    const int    n        = params.value(QStringLiteral("steps"),      50  ).toInt();
+    const double massMsun = params.value(QStringLiteral("mass_Msun"), 1.0).toDouble();
+    const double aStar = params.value(QStringLiteral("spin_a_star"), 0.9).toDouble();
+    const double rOrb = params.value(QStringLiteral("orbit_radius_m"), 7.0e6).toDouble();
+    const int n = params.value(QStringLiteral("steps"), 50).toInt();
 
-    out.scalars[QStringLiteral("mass_Msun")]      = massMsun;
-    out.scalars[QStringLiteral("spin_a_star")]    = aStar;
+    out.scalars[QStringLiteral("mass_Msun")] = massMsun;
+    out.scalars[QStringLiteral("spin_a_star")] = aStar;
     out.scalars[QStringLiteral("orbit_radius_m")] = rOrb;
     out.scalars[QStringLiteral("steps")] = n;
 
@@ -62,23 +62,29 @@ ExperimentResult FrameDraggingExperiment::run(const QVariantMap& params,
     double lastMasPerYear = 0.0;
 
     for (int i = 0; i < steps; ++i) {
-        if (shouldAbort()) { out.success = false; return out; }
+        if (shouldAbort()) {
+            out.success = false;
+            return out;
+        }
 
-        const double t = (steps > 1) ? static_cast<double>(i) / static_cast<double>(steps - 1) : 0.0;
+        const double t =
+            (steps > 1) ? static_cast<double>(i) / static_cast<double>(steps - 1) : 0.0;
         // Sweep radius from rOrb down toward the horizon region for the curve.
-        const double r = rOrb * (0.1 + 0.9 * t);   // 0.1·rOrb .. rOrb
+        const double r = rOrb * (0.1 + 0.9 * t);  // 0.1·rOrb .. rOrb
 
         // Lense–Thirring angular velocity (weak-field, leading order).
         double omega = 2.0 * G * J / (c * c * std::pow(r, 3.0));
-        if (!std::isfinite(omega)) omega = 0.0;
+        if (!std::isfinite(omega))
+            omega = 0.0;
 
-        const double masPerYear =
-            omega * secondsPerYear * arcsecPerRad * 1000.0;
+        const double masPerYear = omega * secondsPerYear * arcsecPerRad * 1000.0;
 
         lastMasPerYear = masPerYear;
         out.curve.append(QPointF(r, masPerYear));
         out.logLines << QString("r=%1 m  Ω_LT=%2 rad/s  → %3 mas/yr")
-                        .arg(r, 0, 'e', 4).arg(omega, 0, 'e', 4).arg(masPerYear, 0, 'f', 3);
+                            .arg(r, 0, 'e', 4)
+                            .arg(omega, 0, 'e', 4)
+                            .arg(masPerYear, 0, 'f', 3);
         progress(static_cast<double>(i + 1) / static_cast<double>(steps));
     }
 
@@ -96,4 +102,4 @@ ExperimentResult FrameDraggingExperiment::run(const QVariantMap& params,
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

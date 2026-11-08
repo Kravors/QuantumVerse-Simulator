@@ -15,10 +15,10 @@
 #endif
 
 #include <algorithm>
-#include <numeric>
-#include <iostream>
-#include <iomanip>
 #include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <numeric>
 #include "math/AutoDiff.h"
 
 namespace quantumverse {
@@ -27,41 +27,30 @@ namespace quantumverse {
 // DifferentiableSimulator Implementation
 // ============================================================================
 
-DifferentiableSimulator::DifferentiableSimulator(
-    MetricFactory factory,
-    std::vector<std::string> paramNames,
-    const SimulatorConfig& config
-)
-    : metricFactory_(std::move(factory))
-    , paramNames_(std::move(paramNames))
-    , config_(config)
-    , baseMetric_(nullptr)
-{
+DifferentiableSimulator::DifferentiableSimulator(MetricFactory factory,
+                                                 std::vector<std::string> paramNames,
+                                                 const SimulatorConfig& config)
+    : metricFactory_(std::move(factory)),
+      paramNames_(std::move(paramNames)),
+      config_(config),
+      baseMetric_(nullptr) {
     if (!metricFactory_) {
-        throw std::invalid_argument(
-            "DifferentiableSimulator: metric factory must not be nullptr"
-        );
+        throw std::invalid_argument("DifferentiableSimulator: metric factory must not be nullptr");
     }
 }
 
-void DifferentiableSimulator::rebuildMetric_() const
-{
+void DifferentiableSimulator::rebuildMetric_() const {
     if (metricFactory_) {
         baseMetric_ = metricFactory_(currentParams_);
     }
 }
 
-Event4D DifferentiableSimulator::simulate(
-    const Event4D& initialEvent,
-    const std::array<double, 4>& initialVelocity,
-    GeodesicType geodesicType,
-    double targetProperTime
-) const
-{
-    auto trajectory = simulateFull(
-        initialEvent, initialVelocity, geodesicType,
-        targetProperTime, false
-    );
+Event4D DifferentiableSimulator::simulate(const Event4D& initialEvent,
+                                          const std::array<double, 4>& initialVelocity,
+                                          GeodesicType geodesicType,
+                                          double targetProperTime) const {
+    auto trajectory =
+        simulateFull(initialEvent, initialVelocity, geodesicType, targetProperTime, false);
 
     if (trajectory.empty()) {
         return initialEvent;
@@ -70,53 +59,35 @@ Event4D DifferentiableSimulator::simulate(
 }
 
 std::vector<GeodesicStep> DifferentiableSimulator::simulateFull(
-    const Event4D& initialEvent,
-    const std::array<double, 4>& initialVelocity,
-    GeodesicType geodesicType,
-    double targetProperTime,
-    bool storeTrajectory
-) const
-{
+    const Event4D& initialEvent, const std::array<double, 4>& initialVelocity,
+    GeodesicType geodesicType, double targetProperTime, bool storeTrajectory) const {
     rebuildMetric_();
 
     if (!baseMetric_) {
-        throw std::runtime_error(
-            "DifferentiableSimulator: failed to create metric"
-        );
+        throw std::runtime_error("DifferentiableSimulator: failed to create metric");
     }
 
     // Build a position-dependent metric field wrapper
     auto metricPtr = baseMetric_;
-    GeodesicIntegrator integrator(
-        config_.tolerance,
-        config_.minStepSize,
-        config_.maxStepSize,
-        config_.safetyFactor,
-        config_.maxIterations
-    );
+    GeodesicIntegrator integrator(config_.tolerance, config_.minStepSize, config_.maxStepSize,
+                                  config_.safetyFactor, config_.maxIterations);
 
     // Wrap evaluate() which returns std::array<std::array<double,4>,4>
     // into a function returning MetricTensor
-    integrator.setMetricField(
-        [metricPtr](const Event4D& evt) -> MetricTensor {
-            auto g = metricPtr->evaluate(evt);
-            MetricTensor mt;
-            mt.g = g;
-            return mt;
-        }
-    );
+    integrator.setMetricField([metricPtr](const Event4D& evt) -> MetricTensor {
+        auto g = metricPtr->evaluate(evt);
+        MetricTensor mt;
+        mt.g = g;
+        return mt;
+    });
 
     auto initialMetric = metricPtr->evaluate(initialEvent);
     MetricTensor initialMt;
     initialMt.g = initialMetric;
-    integrator.setMetric(
-        std::make_shared<MetricTensor>(initialMt)
-    );
+    integrator.setMetric(std::make_shared<MetricTensor>(initialMt));
 
-    auto trajectory = integrator.integrate(
-        initialEvent, initialVelocity, geodesicType,
-        targetProperTime, true
-    );
+    auto trajectory =
+        integrator.integrate(initialEvent, initialVelocity, geodesicType, targetProperTime, true);
 
     if (storeTrajectory) {
         lastTrajectory_ = trajectory;
@@ -126,10 +97,8 @@ std::vector<GeodesicStep> DifferentiableSimulator::simulateFull(
     return trajectory;
 }
 
-std::vector<double> DifferentiableSimulator::extractObservables(
-    const std::vector<GeodesicStep>& trajectory
-) const
-{
+std::vector<double>
+DifferentiableSimulator::extractObservables(const std::vector<GeodesicStep>& trajectory) const {
     if (trajectory.empty()) {
         return {};
     }
@@ -138,12 +107,7 @@ std::vector<double> DifferentiableSimulator::extractObservables(
 
     switch (config_.observableMode) {
         case ObservableMode::FINAL_POSITION:
-            return {
-                finalStep.event.t,
-                finalStep.event.x,
-                finalStep.event.y,
-                finalStep.event.z
-            };
+            return {finalStep.event.t, finalStep.event.x, finalStep.event.y, finalStep.event.z};
 
         case ObservableMode::FINAL_VELOCITY: {
             if (trajectory.size() < 2) {
@@ -151,13 +115,12 @@ std::vector<double> DifferentiableSimulator::extractObservables(
             }
             const auto& prevStep = trajectory[trajectory.size() - 2];
             double dt = finalStep.properTime - prevStep.properTime;
-            if (dt < 1e-15) return {0.0, 0.0, 0.0, 0.0};
-            return {
-                (finalStep.event.t - prevStep.event.t) / dt,
-                (finalStep.event.x - prevStep.event.x) / dt,
-                (finalStep.event.y - prevStep.event.y) / dt,
-                (finalStep.event.z - prevStep.event.z) / dt
-            };
+            if (dt < 1e-15)
+                return {0.0, 0.0, 0.0, 0.0};
+            return {(finalStep.event.t - prevStep.event.t) / dt,
+                    (finalStep.event.x - prevStep.event.x) / dt,
+                    (finalStep.event.y - prevStep.event.y) / dt,
+                    (finalStep.event.z - prevStep.event.z) / dt};
         }
 
         case ObservableMode::FINAL_STATE: {
@@ -200,31 +163,22 @@ std::vector<double> DifferentiableSimulator::extractObservables(
 }
 
 std::vector<std::vector<double>>
-DifferentiableSimulator::computeJacobian(
-    const Event4D& initialEvent,
-    const std::array<double, 4>& initialVelocity,
-    GeodesicType geodesicType,
-    double targetProperTime
-) const
-{
+DifferentiableSimulator::computeJacobian(const Event4D& initialEvent,
+                                         const std::array<double, 4>& initialVelocity,
+                                         GeodesicType geodesicType, double targetProperTime) const {
     const size_t numParams = getNumParameters();
     if (numParams == 0) {
         return {};
     }
 
     // Get base trajectory and observables
-    auto baseTrajectory = simulateFull(
-        initialEvent, initialVelocity, geodesicType,
-        targetProperTime, false
-    );
+    auto baseTrajectory =
+        simulateFull(initialEvent, initialVelocity, geodesicType, targetProperTime, false);
     auto baseObservables = extractObservables(baseTrajectory);
     const size_t numObservables = baseObservables.size();
 
     // Jacobian matrix: numObservables × numParameters
-    std::vector<std::vector<double>> jacobian(
-        numObservables,
-        std::vector<double>(numParams, 0.0)
-    );
+    std::vector<std::vector<double>> jacobian(numObservables, std::vector<double>(numParams, 0.0));
 
     const double eps = config_.paramEpsilon;
 
@@ -239,31 +193,23 @@ DifferentiableSimulator::computeJacobian(
         currentParams_ = paramsPlus;
         rebuildMetric_();
 
-        GeodesicIntegrator integratorPlus(
-            config_.tolerance, config_.minStepSize,
-            config_.maxStepSize, config_.safetyFactor,
-            config_.maxIterations
-        );
+        GeodesicIntegrator integratorPlus(config_.tolerance, config_.minStepSize,
+                                          config_.maxStepSize, config_.safetyFactor,
+                                          config_.maxIterations);
         auto metricPtrPlus = baseMetric_;
-        integratorPlus.setMetricField(
-            [metricPtrPlus](const Event4D& evt) -> MetricTensor {
-                auto g = metricPtrPlus->evaluate(evt);
-                MetricTensor mt;
-                mt.g = g;
-                return mt;
-            }
-        );
+        integratorPlus.setMetricField([metricPtrPlus](const Event4D& evt) -> MetricTensor {
+            auto g = metricPtrPlus->evaluate(evt);
+            MetricTensor mt;
+            mt.g = g;
+            return mt;
+        });
         auto initMetricPlus = metricPtrPlus->evaluate(initialEvent);
         MetricTensor initMtPlus;
         initMtPlus.g = initMetricPlus;
-        integratorPlus.setMetric(
-            std::make_shared<MetricTensor>(initMtPlus)
-        );
+        integratorPlus.setMetric(std::make_shared<MetricTensor>(initMtPlus));
 
-        auto trajPlus = integratorPlus.integrate(
-            initialEvent, initialVelocity, geodesicType,
-            targetProperTime, true
-        );
+        auto trajPlus = integratorPlus.integrate(initialEvent, initialVelocity, geodesicType,
+                                                 targetProperTime, true);
         auto obsPlus = extractObservables(trajPlus);
 
         // Perturb -eps
@@ -272,31 +218,23 @@ DifferentiableSimulator::computeJacobian(
         currentParams_ = paramsMinus;
         rebuildMetric_();
 
-        GeodesicIntegrator integratorMinus(
-            config_.tolerance, config_.minStepSize,
-            config_.maxStepSize, config_.safetyFactor,
-            config_.maxIterations
-        );
+        GeodesicIntegrator integratorMinus(config_.tolerance, config_.minStepSize,
+                                           config_.maxStepSize, config_.safetyFactor,
+                                           config_.maxIterations);
         auto metricPtrMinus = baseMetric_;
-        integratorMinus.setMetricField(
-            [metricPtrMinus](const Event4D& evt) -> MetricTensor {
-                auto g = metricPtrMinus->evaluate(evt);
-                MetricTensor mt;
-                mt.g = g;
-                return mt;
-            }
-        );
+        integratorMinus.setMetricField([metricPtrMinus](const Event4D& evt) -> MetricTensor {
+            auto g = metricPtrMinus->evaluate(evt);
+            MetricTensor mt;
+            mt.g = g;
+            return mt;
+        });
         auto initMetricMinus = metricPtrMinus->evaluate(initialEvent);
         MetricTensor initMtMinus;
         initMtMinus.g = initMetricMinus;
-        integratorMinus.setMetric(
-            std::make_shared<MetricTensor>(initMtMinus)
-        );
+        integratorMinus.setMetric(std::make_shared<MetricTensor>(initMtMinus));
 
-        auto trajMinus = integratorMinus.integrate(
-            initialEvent, initialVelocity, geodesicType,
-            targetProperTime, true
-        );
+        auto trajMinus = integratorMinus.integrate(initialEvent, initialVelocity, geodesicType,
+                                                   targetProperTime, true);
         auto obsMinus = extractObservables(trajMinus);
 
         // Compute central difference gradient
@@ -316,14 +254,9 @@ DifferentiableSimulator::computeJacobian(
     return jacobian;
 }
 
-std::vector<std::vector<double>>
-DifferentiableSimulator::computeJacobianAdjoint(
-    const Event4D& initialEvent,
-    const std::array<double, 4>& initialVelocity,
-    GeodesicType geodesicType,
-    double targetProperTime
-) const
-{
+std::vector<std::vector<double>> DifferentiableSimulator::computeJacobianAdjoint(
+    const Event4D& initialEvent, const std::array<double, 4>& initialVelocity,
+    GeodesicType geodesicType, double targetProperTime) const {
     (void)geodesicType;
     (void)targetProperTime;
     (void)initialEvent;
@@ -334,17 +267,12 @@ DifferentiableSimulator::computeJacobianAdjoint(
         return {};
     }
 
-    auto baseTrajectory = simulateFull(
-        initialEvent, initialVelocity, geodesicType,
-        targetProperTime, false
-    );
+    auto baseTrajectory =
+        simulateFull(initialEvent, initialVelocity, geodesicType, targetProperTime, false);
     auto baseObservables = extractObservables(baseTrajectory);
     const size_t numObservables = baseObservables.size();
 
-    std::vector<std::vector<double>> jacobian(
-        numObservables,
-        std::vector<double>(numParams, 0.0)
-    );
+    std::vector<std::vector<double>> jacobian(numObservables, std::vector<double>(numParams, 0.0));
 
     using namespace quantumverse::math;
     ADTape::clear();
@@ -366,61 +294,45 @@ DifferentiableSimulator::computeJacobianAdjoint(
 }
 
 std::pair<std::vector<double>, std::vector<std::vector<double>>>
-DifferentiableSimulator::simulateWithJacobian(
-    const Event4D& initialEvent,
-    const std::array<double, 4>& initialVelocity,
-    GeodesicType geodesicType,
-    double targetProperTime
-) const
-{
-    auto baseTrajectory = simulateFull(
-        initialEvent, initialVelocity, geodesicType,
-        targetProperTime, false
-    );
+DifferentiableSimulator::simulateWithJacobian(const Event4D& initialEvent,
+                                              const std::array<double, 4>& initialVelocity,
+                                              GeodesicType geodesicType,
+                                              double targetProperTime) const {
+    auto baseTrajectory =
+        simulateFull(initialEvent, initialVelocity, geodesicType, targetProperTime, false);
     auto observables = extractObservables(baseTrajectory);
-    auto jacobian = computeJacobian(
-        initialEvent, initialVelocity, geodesicType, targetProperTime
-    );
+    auto jacobian = computeJacobian(initialEvent, initialVelocity, geodesicType, targetProperTime);
     return {observables, jacobian};
 }
 
-void DifferentiableSimulator::setParameters(const std::vector<double>& params)
-{
+void DifferentiableSimulator::setParameters(const std::vector<double>& params) {
     currentParams_ = params;
     baseMetric_ = nullptr;
     trajectoryCached_ = false;
 }
 
-std::vector<double> DifferentiableSimulator::getParameters() const
-{
+std::vector<double> DifferentiableSimulator::getParameters() const {
     return currentParams_;
 }
 
-size_t DifferentiableSimulator::getNumParameters() const noexcept
-{
+size_t DifferentiableSimulator::getNumParameters() const noexcept {
     return currentParams_.size();
 }
 
-std::vector<std::string> DifferentiableSimulator::getParameterNames() const
-{
+std::vector<std::string> DifferentiableSimulator::getParameterNames() const {
     return paramNames_;
 }
 
-double DifferentiableSimulator::verifyGradient(
-    const Event4D& initialEvent,
-    const std::array<double, 4>& initialVelocity,
-    GeodesicType geodesicType,
-    double targetProperTime,
-    double epsilon
-) const
-{
+double DifferentiableSimulator::verifyGradient(const Event4D& initialEvent,
+                                               const std::array<double, 4>& initialVelocity,
+                                               GeodesicType geodesicType, double targetProperTime,
+                                               double epsilon) const {
     const size_t numParams = getNumParameters();
-    if (numParams == 0) return 0.0;
+    if (numParams == 0)
+        return 0.0;
 
     // Get Jacobian using the configured paramEpsilon
-    auto jacobian = computeJacobian(
-        initialEvent, initialVelocity, geodesicType, targetProperTime
-    );
+    auto jacobian = computeJacobian(initialEvent, initialVelocity, geodesicType, targetProperTime);
 
     double maxRelError = 0.0;
     std::vector<double> originalParams = currentParams_;
@@ -432,50 +344,36 @@ double DifferentiableSimulator::verifyGradient(
         currentParams_ = paramsP;
         rebuildMetric_();
 
-        GeodesicIntegrator integratorP(
-            config_.tolerance, config_.minStepSize,
-            config_.maxStepSize, config_.safetyFactor,
-            config_.maxIterations
-        );
+        GeodesicIntegrator integratorP(config_.tolerance, config_.minStepSize, config_.maxStepSize,
+                                       config_.safetyFactor, config_.maxIterations);
         auto metricPtrP = baseMetric_;
-        integratorP.setMetricField(
-            [metricPtrP](const Event4D& evt) -> MetricTensor {
-                auto g = metricPtrP->evaluate(evt);
-                MetricTensor mt;
-                mt.g = g;
-                return mt;
-            }
-        );
+        integratorP.setMetricField([metricPtrP](const Event4D& evt) -> MetricTensor {
+            auto g = metricPtrP->evaluate(evt);
+            MetricTensor mt;
+            mt.g = g;
+            return mt;
+        });
         auto initMetricP = metricPtrP->evaluate(initialEvent);
         MetricTensor initMtP;
         initMtP.g = initMetricP;
-        integratorP.setMetric(
-            std::make_shared<MetricTensor>(initMtP)
-        );
+        integratorP.setMetric(std::make_shared<MetricTensor>(initMtP));
 
-        auto trajP = integratorP.integrate(
-            initialEvent, initialVelocity, geodesicType,
-            targetProperTime, true
-        );
+        auto trajP = integratorP.integrate(initialEvent, initialVelocity, geodesicType,
+                                           targetProperTime, true);
         auto obsP = extractObservables(trajP);
 
         // Base observables at nominal parameters
         currentParams_ = originalParams;
         rebuildMetric_();
-        auto baseTraj = simulateFull(
-            initialEvent, initialVelocity, geodesicType,
-            targetProperTime, false
-        );
+        auto baseTraj =
+            simulateFull(initialEvent, initialVelocity, geodesicType, targetProperTime, false);
         auto baseObs = extractObservables(baseTraj);
 
         for (size_t o = 0; o < baseObs.size() && o < obsP.size(); ++o) {
             double numericalGrad = (obsP[o] - baseObs[o]) / epsilon;
             double analyticalGrad = jacobian[o][p];
 
-            double denom = std::max(
-                std::abs(analyticalGrad),
-                std::abs(numericalGrad)
-            );
+            double denom = std::max(std::abs(analyticalGrad), std::abs(numericalGrad));
             if (denom > 1e-15) {
                 double relError = std::abs(analyticalGrad - numericalGrad) / denom;
                 maxRelError = std::max(maxRelError, relError);
@@ -490,8 +388,7 @@ double DifferentiableSimulator::verifyGradient(
     return maxRelError;
 }
 
-std::string DifferentiableSimulator::getMetricName() const
-{
+std::string DifferentiableSimulator::getMetricName() const {
     // Return the metric type name based on parameter names (even if baseMetric_ is null)
     if (!paramNames_.empty()) {
         if (paramNames_.size() == 1 && paramNames_[0] == "M") {
@@ -511,8 +408,7 @@ std::string DifferentiableSimulator::getMetricName() const
     return "custom";
 }
 
-bool DifferentiableSimulator::isValid() const noexcept
-{
+bool DifferentiableSimulator::isValid() const noexcept {
     return metricFactory_ != nullptr;
 }
 
@@ -520,12 +416,9 @@ bool DifferentiableSimulator::isValid() const noexcept
 // Factory Function
 // ============================================================================
 
-std::unique_ptr<DifferentiableSimulator> createDifferentiableSimulator(
-    const std::string& metricType,
-    const std::vector<double>& params,
-    const SimulatorConfig& config
-)
-{
+std::unique_ptr<DifferentiableSimulator>
+createDifferentiableSimulator(const std::string& metricType, const std::vector<double>& params,
+                              const SimulatorConfig& config) {
     MetricFactory factory;
     std::vector<std::string> paramNames;
 
@@ -534,22 +427,17 @@ std::unique_ptr<DifferentiableSimulator> createDifferentiableSimulator(
         factory = [](const std::vector<double>& p) -> std::shared_ptr<MetricTensor> {
             double M = p.empty() ? 1.0 : p[0];
             auto metric = std::make_shared<MetricTensor>(
-                MetricTensor::schwarzschild(M, 10.0, M_PI / 2.0, 0.0)
-            );
+                MetricTensor::schwarzschild(M, 10.0, M_PI / 2.0, 0.0));
             return metric;
         };
-    }
-    else if (metricType == "kerr") {
+    } else if (metricType == "kerr") {
         paramNames = {"M", "a"};
         factory = [](const std::vector<double>& p) -> std::shared_ptr<MetricTensor> {
             double M = p.size() > 0 ? p[0] : 1.0;
             double a = p.size() > 1 ? p[1] : 0.0;
-            return std::make_shared<MetricTensor>(
-                MetricTensor::kerr(M, a, 10.0, M_PI / 2.0)
-            );
+            return std::make_shared<MetricTensor>(MetricTensor::kerr(M, a, 10.0, M_PI / 2.0));
         };
-    }
-    else if (metricType == "reissner-nordstrom") {
+    } else if (metricType == "reissner-nordstrom") {
         paramNames = {"M", "Q"};
         factory = [](const std::vector<double>& p) -> std::shared_ptr<MetricTensor> {
             double M = p.size() > 0 ? p[0] : 1.0;
@@ -561,18 +449,14 @@ std::unique_ptr<DifferentiableSimulator> createDifferentiableSimulator(
             std::array<double, 4> diag = {-f, 1.0 / f, r * r, r * r};
             return std::make_shared<MetricTensor>(MetricTensor::diagonal(diag));
         };
-    }
-    else {
-        throw std::invalid_argument(
-            "createDifferentiableSimulator: unknown metric type: " + metricType
-        );
+    } else {
+        throw std::invalid_argument("createDifferentiableSimulator: unknown metric type: " +
+                                    metricType);
     }
 
-    auto sim = std::make_unique<DifferentiableSimulator>(
-        factory, paramNames, config
-    );
+    auto sim = std::make_unique<DifferentiableSimulator>(factory, paramNames, config);
     sim->setParameters(params);
     return sim;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

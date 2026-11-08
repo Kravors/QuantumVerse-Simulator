@@ -1,25 +1,27 @@
 #include "CDTEngine.h"
-#include <set>
-#include <map>
+#include <algorithm>
+#include <cmath>
 #include <fstream>
-#include <sstream>
-#include <cmath>
-#include <algorithm>
-#include <numeric>
-#include <limits>
-#include <stdexcept>
-#include <cmath>
-#include <algorithm>
-#include <numeric>
 #include <iostream>
+#include <limits>
+#include <map>
+#include <numeric>
+#include <set>
+#include <sstream>
+#include <stdexcept>
 
 namespace quantumverse {
 namespace quantumgravity {
 
 // ========== SimplicialManifold Implementation ==========
 
-SimplicialManifold::SimplicialManifold(int numVertices, double spatialSize, double timeSize, int topology)
-    : N(numVertices), spatialVolume(spatialSize), temporalExtent(timeSize), topologyType(topology), rng(std::random_device{}()) {
+SimplicialManifold::SimplicialManifold(int numVertices, double spatialSize, double timeSize,
+                                       int topology)
+    : N(numVertices),
+      spatialVolume(spatialSize),
+      temporalExtent(timeSize),
+      topologyType(topology),
+      rng(std::random_device{}()) {
     vertices.reserve(N);
     edges.reserve(static_cast<size_t>(N) * 10);
     triangles.reserve(static_cast<size_t>(N) * 20);
@@ -39,7 +41,8 @@ void SimplicialManifold::initializeLattice() {
 
     // Create regular lattice: time slices × spatial grid
     int timeSteps = static_cast<int>(std::ceil(std::cbrt(static_cast<double>(N))));
-    int spatialGrid = static_cast<int>(std::ceil(std::pow(static_cast<double>(N) / timeSteps, 1.0/3.0)));
+    int spatialGrid =
+        static_cast<int>(std::ceil(std::pow(static_cast<double>(N) / timeSteps, 1.0 / 3.0)));
 
     double dt = temporalExtent / timeSteps;
     double dx = spatialVolume / spatialGrid;
@@ -49,9 +52,10 @@ void SimplicialManifold::initializeLattice() {
         for (int x = 0; x < spatialGrid; ++x) {
             for (int y = 0; y < spatialGrid; ++y) {
                 for (int z = 0; z < spatialGrid; ++z) {
-                    if (vertexId >= N) break;
+                    if (vertexId >= N)
+                        break;
                     Vertex v;
-                    v.coordinates = { t * dt, x * dx, y * dx, z * dx };
+                    v.coordinates = {t * dt, x * dx, y * dx, z * dx};
                     v.id = vertexId++;
                     vertices.push_back(v);
                 }
@@ -75,12 +79,7 @@ void SimplicialManifold::initializeRandom() {
 
     for (int i = 0; i < N; ++i) {
         Vertex v;
-        v.coordinates = {
-            timeDist(rng),
-            spatialDist(rng),
-            spatialDist(rng),
-            spatialDist(rng)
-        };
+        v.coordinates = {timeDist(rng), spatialDist(rng), spatialDist(rng), spatialDist(rng)};
         v.id = i;
         vertices.push_back(v);
     }
@@ -97,7 +96,7 @@ void SimplicialManifold::buildSimplicesFromLattice() {
         if (i + 4 < vertices.size()) {
             Simplex4D s;
             for (int j = 0; j < 5; ++j) {
-                s.v[j] = vertices[i+j].id;
+                s.v[j] = vertices[i + j].id;
             }
             s.id = idx++;
             simplices.push_back(s);
@@ -111,7 +110,7 @@ void SimplicialManifold::buildSimplicesFromPointCloud() {
     int numSimplices = N / 5;
     simplices.reserve(numSimplices);
 
-    std::uniform_int_distribution<int> vertexDist(0, N-1);
+    std::uniform_int_distribution<int> vertexDist(0, N - 1);
 
     for (int i = 0; i < numSimplices; ++i) {
         Simplex4D s;
@@ -135,25 +134,26 @@ double SimplicialManifold::estimateSimplexVolume(const int v[5]) const {
     double sumLen2 = 0.0;
     int count = 0;
     for (int i = 0; i < 5; ++i) {
-        for (int j = i+1; j < 5; ++j) {
+        for (int j = i + 1; j < 5; ++j) {
             const auto& vi = vertices[v[i]].coordinates;
             const auto& vj = vertices[v[j]].coordinates;
-            double dx = vi[0]-vj[0], dy = vi[1]-vj[1], dz = vi[2]-vj[2], dt = vi[3]-vj[3];
-            double len2 = dx*dx + dy*dy + dz*dz + dt*dt;
+            double dx = vi[0] - vj[0], dy = vi[1] - vj[1], dz = vi[2] - vj[2], dt = vi[3] - vj[3];
+            double len2 = dx * dx + dy * dy + dz * dz + dt * dt;
             sumLen2 += len2;
             count++;
         }
     }
     double avgLen2 = sumLen2 / count;
-    return std::pow(avgLen2, 2.0) / 288.0; // Approximate 4-simplex volume
+    return std::pow(avgLen2, 2.0) / 288.0;  // Approximate 4-simplex volume
 }
 
 bool SimplicialManifold::performPachnerMove2_6() {
     // 2-6 move: Replace 2-simplices (edge) with 6 triangles
     // Simplified: Randomly select an edge and flip
-    if (simplices.empty()) return false;
+    if (simplices.empty())
+        return false;
 
-    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size())-1);
+    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size()) - 1);
     int idx = simplexDist(rng);
     auto& s = simplices[idx];
     (void)s;
@@ -165,23 +165,25 @@ bool SimplicialManifold::performPachnerMove2_6() {
 
 bool SimplicialManifold::performPachnerMove3_3() {
     // 3-3 move: Replace 3 tetrahedra with 3 others
-    if (simplices.size() < 3) return false;
+    if (simplices.size() < 3)
+        return false;
 
-    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size())-3);
+    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size()) - 3);
     int idx = simplexDist(rng);
 
     // Swap three simplices (simplified)
-    std::swap(simplices[idx], simplices[idx+1]);
-    std::swap(simplices[idx+1], simplices[idx+2]);
+    std::swap(simplices[idx], simplices[idx + 1]);
+    std::swap(simplices[idx + 1], simplices[idx + 2]);
 
     return true;
 }
 
 bool SimplicialManifold::performPachnerMove4_2() {
     // 4-2 move: Replace 1 4-simplex with 2
-    if (simplices.empty()) return false;
+    if (simplices.empty())
+        return false;
 
-    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size())-1);
+    std::uniform_int_distribution<int> simplexDist(0, static_cast<int>(simplices.size()) - 1);
     int idx = simplexDist(rng);
 
     // Split simplex into two (simplified)
@@ -194,7 +196,7 @@ bool SimplicialManifold::performPachnerMove4_2() {
         s2.v[i] = original.v[i];
     }
     s1.id = static_cast<int>(simplices.size());
-    s2.id = static_cast<int>(simplices.size())+1;
+    s2.id = static_cast<int>(simplices.size()) + 1;
     s1.volume = original.volume / 2;
     s2.volume = original.volume / 2;
 
@@ -215,9 +217,15 @@ bool SimplicialManifold::performMonteCarloStep(double beta) {
     bool moveSuccess = false;
 
     switch (move) {
-        case 0: moveSuccess = performPachnerMove2_6(); break;
-        case 1: moveSuccess = performPachnerMove3_3(); break;
-        case 2: moveSuccess = performPachnerMove4_2(); break;
+        case 0:
+            moveSuccess = performPachnerMove2_6();
+            break;
+        case 1:
+            moveSuccess = performPachnerMove3_3();
+            break;
+        case 2:
+            moveSuccess = performPachnerMove4_2();
+            break;
     }
 
     if (moveSuccess) {
@@ -282,24 +290,25 @@ double SimplicialManifold::estimateSpectralDimension(int numWalkers, int numStep
     // Random walk diffusion: <r^2> ~ t^(2/d_s)
     // For CDT, spectral dimension should be ~4 at large scales, ~2 at Planck scale
     // This is a simplified implementation - full version would use proper diffusion
-    
+
     // For small triangulations, return a reasonable default value
     // The spectral dimension is a statistical measure that requires large samples
     if (vertices.size() < 100 || simplices.size() < 10) {
         return 3.5;  // Reasonable default for small systems
     }
-    
+
     std::vector<double> meanSqDist(numSteps, 0.0);
 
     for (int w = 0; w < numWalkers; ++w) {
         // Start at random vertex
-        std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size())-1);
+        std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size()) - 1);
         int current = vertexDist(rng);
         const auto& startPos = vertices[current].coordinates;
 
         for (int step = 0; step < numSteps; ++step) {
             // Random walk on dual graph (simplified: random neighbor)
-            std::uniform_int_distribution<int> neighborDist(0, static_cast<int>(simplices.size())-1);
+            std::uniform_int_distribution<int> neighborDist(0,
+                                                            static_cast<int>(simplices.size()) - 1);
             int neighborSimplex = neighborDist(rng);
 
             // Move to random vertex in that simplex
@@ -337,12 +346,14 @@ double SimplicialManifold::estimateSpectralDimension(int numWalkers, int numStep
 
     double denominator = n * sumLogT2 - sumLogT * sumLogT;
     double slope = (denominator != 0) ? (n * sumLogTR2 - sumLogT * sumLogR2) / denominator : 1.0;
-    
+
     // Clamp to reasonable range for CDT
     double dS = 2.0 * slope;
-    if (dS < 1.0) dS = 1.0;
-    if (dS > 6.0) dS = 6.0;
-    
+    if (dS < 1.0)
+        dS = 1.0;
+    if (dS > 6.0)
+        dS = 6.0;
+
     return dS;
 }
 
@@ -357,7 +368,7 @@ double SimplicialManifold::estimateSpectralDimensionAtScale(double mu) {
     std::vector<double> r2_t1(numWalkers), r2_t2(numWalkers);
 
     for (int w = 0; w < numWalkers; ++w) {
-        std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size())-1);
+        std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size()) - 1);
         int start = vertexDist(rng);
 
         // Walk t1 steps
@@ -380,13 +391,13 @@ double SimplicialManifold::estimateSpectralDimensionAtScale(double mu) {
 
 double SimplicialManifold::randomWalkDistance(int start, int steps) const {
     // Simplified random walk: jump to random vertex
-    std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size())-1);
+    std::uniform_int_distribution<int> vertexDist(0, static_cast<int>(vertices.size()) - 1);
     int current = start;
     for (int i = 0; i < steps; ++i) {
         current = vertexDist(rng);
     }
     const auto& pos = vertices[current].coordinates;
-    return pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2] + pos[3]*pos[3];
+    return pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2] + pos[3] * pos[3];
 }
 
 double SimplicialManifold::estimateHausdorffDimension() {
@@ -395,7 +406,7 @@ double SimplicialManifold::estimateHausdorffDimension() {
     std::vector<double> radii = {1.0, 2.0, 4.0, 8.0, 16.0};
     std::vector<double> volumes;
 
-    std::uniform_int_distribution<int> centerDist(0, static_cast<int>(vertices.size())-1);
+    std::uniform_int_distribution<int> centerDist(0, static_cast<int>(vertices.size()) - 1);
 
     for (double r : radii) {
         double totalVol = 0.0;
@@ -410,9 +421,10 @@ double SimplicialManifold::estimateHausdorffDimension() {
                 double dist2 = 0.0;
                 for (int i = 0; i < 4; ++i) {
                     double d = v.coordinates[i] - center[i];
-                    dist2 += d*d;
+                    dist2 += d * d;
                 }
-                if (std::sqrt(dist2) <= r) count++;
+                if (std::sqrt(dist2) <= r)
+                    count++;
             }
             totalVol += count;
         }
@@ -470,13 +482,15 @@ std::vector<double> SimplicialManifold::getVertexColors() const {
 }
 
 double SimplicialManifold::getAverageDeficit() const {
-    if (vertexDeficitAngles.empty()) return 0.0;
+    if (vertexDeficitAngles.empty())
+        return 0.0;
     double sum = std::accumulate(vertexDeficitAngles.begin(), vertexDeficitAngles.end(), 0.0);
     return sum / vertexDeficitAngles.size();
 }
 
 double SimplicialManifold::getCurvatureVariance() const {
-    if (vertexDeficitAngles.empty()) return 0.0;
+    if (vertexDeficitAngles.empty())
+        return 0.0;
     double mean = getAverageDeficit();
     double sumSq = 0.0;
     for (double d : vertexDeficitAngles) {
@@ -499,17 +513,26 @@ void SimplicialManifold::loadFromFile(const std::string& filename) {
 
 CDTEngine::CDTEngine(int initialVertices, double spatialSize, double timeSize)
     : manifold(std::make_unique<SimplicialManifold>(initialVertices, spatialSize, timeSize)),
-      beta(1.0), alpha(0.001), numTimeSlices(10), spatialSlices(10),
-      spectralDimension(4.0), hausdorffDimension(4.0),
-      averageCurvature(0.0), curvatureFluctuations(0.0),
-      sweepSize(100), thermalizationSteps(1000), measurementInterval(10),
-      rng(std::random_device{}()), uniformDist(0.0, 1.0) {
-}
+      beta(1.0),
+      alpha(0.001),
+      numTimeSlices(10),
+      spatialSlices(10),
+      spectralDimension(4.0),
+      hausdorffDimension(4.0),
+      averageCurvature(0.0),
+      curvatureFluctuations(0.0),
+      sweepSize(100),
+      thermalizationSteps(1000),
+      measurementInterval(10),
+      rng(std::random_device{}()),
+      uniformDist(0.0, 1.0) {}
 
 CDTEngine::CDTEngine(const CDTEngine& other)
     : manifold(other.manifold ? std::make_unique<SimplicialManifold>(*other.manifold) : nullptr),
-      beta(other.beta), alpha(other.alpha),
-      numTimeSlices(other.numTimeSlices), spatialSlices(other.spatialSlices),
+      beta(other.beta),
+      alpha(other.alpha),
+      numTimeSlices(other.numTimeSlices),
+      spatialSlices(other.spatialSlices),
       spectralDimension(other.spectralDimension),
       hausdorffDimension(other.hausdorffDimension),
       averageCurvature(other.averageCurvature),
@@ -519,8 +542,8 @@ CDTEngine::CDTEngine(const CDTEngine& other)
       measurementInterval(other.measurementInterval),
       spectralDimensionHistory(other.spectralDimensionHistory),
       curvatureHistory(other.curvatureHistory),
-      rng(std::random_device{}()), uniformDist(other.uniformDist) {
-}
+      rng(std::random_device{}()),
+      uniformDist(other.uniformDist) {}
 
 std::string CDTEngine::getDescription() const {
     return "Causal Dynamical Triangulations: A non-perturbative path integral approach "
@@ -535,10 +558,8 @@ std::string CDTEngine::getPlanckScaleEffects() const {
            "ultraviolet finiteness without renormalization.";
 }
 
-MetricTensor CDTEngine::computeMetric(
-    const Event4D& location,
-    const std::map<std::string, double>& parameters
-) const {
+MetricTensor CDTEngine::computeMetric(const Event4D& location,
+                                      const std::map<std::string, double>& parameters) const {
     // Return effective continuum metric from triangulation
     // Simplified: Use Minkowski with small corrections from curvature
     MetricTensor metric;
@@ -559,10 +580,8 @@ MetricTensor CDTEngine::computeMetric(
     return metric;
 }
 
-std::array<std::array<double, 4>, 4> CDTEngine::computeChristoffel(
-    const Event4D& location,
-    int rho, int mu, int nu
-) const {
+std::array<std::array<double, 4>, 4> CDTEngine::computeChristoffel(const Event4D& location, int rho,
+                                                                   int mu, int nu) const {
     // Christoffel symbols from effective metric
     std::array<std::array<double, 4>, 4> gamma{};
 
@@ -604,10 +623,7 @@ double CDTEngine::computeKretschmannScalar(const Event4D& location) const {
     return R * R;
 }
 
-double CDTEngine::computeAmplitude(
-    const Event4D& from,
-    const Event4D& to
-) const {
+double CDTEngine::computeAmplitude(const Event4D& from, const Event4D& to) const {
     (void)from;
     (void)to;
 
@@ -639,10 +655,10 @@ std::vector<double> CDTEngine::getGeometryColors() const {
 
 std::map<std::string, std::pair<double, double>> CDTEngine::getParameterRanges() const {
     return {
-        {"beta", {0.1, 10.0}},      // Inverse Newton constant
-        {"alpha", {0.0, 0.1}},      // Cosmological constant
-        {"vertices", {100, 10000}}, // Triangulation size
-        {"topology", {0, 2}}        // Topology type
+        {"beta", {0.1, 10.0}},       // Inverse Newton constant
+        {"alpha", {0.0, 0.1}},       // Cosmological constant
+        {"vertices", {100, 10000}},  // Triangulation size
+        {"topology", {0, 2}}         // Topology type
     };
 }
 
@@ -688,26 +704,26 @@ void CDTEngine::printStatistics() const {
 CDTPlugin::CDTPlugin(int vertices, double spatialSize, double timeSize)
     : CDTEngine(vertices, spatialSize, timeSize) {
     name = "Causal Dynamical Triangulations (CDT)";
-    description = "Non-perturbative path integral quantum gravity using 4D triangulations. "
-                  "Predicts dimensional reduction at Planck scale.";
+    description =
+        "Non-perturbative path integral quantum gravity using 4D triangulations. "
+        "Predicts dimensional reduction at Planck scale.";
 }
 
-CDTPlugin::CDTPlugin(const CDTPlugin& other)
-     : CDTEngine(other) {
+CDTPlugin::CDTPlugin(const CDTPlugin& other) : CDTEngine(other) {
     name = other.name;
     description = other.description;
 }
 
-CDTPlugin::CDTPlugin(const CDTEngine& other)
-     : CDTEngine(other) {
+CDTPlugin::CDTPlugin(const CDTEngine& other) : CDTEngine(other) {
     name = "Causal Dynamical Triangulations (CDT)";
-    description = "Non-perturbative path integral quantum gravity using 4D triangulations. "
-                  "Predicts dimensional reduction at Planck scale.";
+    description =
+        "Non-perturbative path integral quantum gravity using 4D triangulations. "
+        "Predicts dimensional reduction at Planck scale.";
 }
 
 std::unique_ptr<TheoryPlugin> CDTPlugin::clone() const {
     return std::make_unique<CDTPlugin>(*this);
 }
 
-} // namespace quantumgravity
-} // namespace quantumverse
+}  // namespace quantumgravity
+}  // namespace quantumverse

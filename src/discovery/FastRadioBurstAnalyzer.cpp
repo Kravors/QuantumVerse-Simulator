@@ -4,8 +4,8 @@
  */
 
 #include "FastRadioBurstAnalyzer.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 
 #ifndef M_PI
@@ -14,8 +14,7 @@
 
 namespace quantumverse {
 
-FastRadioBurstAnalyzer::FastRadioBurstAnalyzer()
-{
+FastRadioBurstAnalyzer::FastRadioBurstAnalyzer() {
     setParameter("snr_threshold", 5.0);
     setParameter("time_window_seconds", 60.0);
     setParameter("dm_min", 100.0);
@@ -24,33 +23,30 @@ FastRadioBurstAnalyzer::FastRadioBurstAnalyzer()
 }
 
 std::map<std::string, std::pair<double, double>>
-FastRadioBurstAnalyzer::getParameterRanges() const
-{
-    return {
-        {"snr_threshold", {3.0, 10.0}},
-        {"time_window_seconds", {1.0, 3600.0}},
-        {"dm_min", {50.0, 500.0}},
-        {"dm_max", {1000.0, 5000.0}},
-        {"gw_trigger_time", {0.0, 10.0}}
-    };
+FastRadioBurstAnalyzer::getParameterRanges() const {
+    return {{"snr_threshold", {3.0, 10.0}},
+            {"time_window_seconds", {1.0, 3600.0}},
+            {"dm_min", {50.0, 500.0}},
+            {"dm_max", {1000.0, 5000.0}},
+            {"gw_trigger_time", {0.0, 10.0}}};
 }
 
-double FastRadioBurstAnalyzer::computeSNR(double peakFlux, double noiseSigma)
-{
-    if (noiseSigma <= 0.0) return 0.0;
+double FastRadioBurstAnalyzer::computeSNR(double peakFlux, double noiseSigma) {
+    if (noiseSigma <= 0.0)
+        return 0.0;
     return peakFlux / noiseSigma;
 }
 
-double FastRadioBurstAnalyzer::estimateDM(double pulseWidthSec, double freqSweepMHz)
-{
-    if (freqSweepMHz <= 0.0 || pulseWidthSec <= 0.0) return 0.0;
+double FastRadioBurstAnalyzer::estimateDM(double pulseWidthSec, double freqSweepMHz) {
+    if (freqSweepMHz <= 0.0 || pulseWidthSec <= 0.0)
+        return 0.0;
     return pulseWidthSec * 100000.0;
 }
 
 double FastRadioBurstAnalyzer::estimateNoiseSigma(const std::vector<Event4D>& trajectory,
-                                                 double& medianFlux)
-{
-    if (trajectory.size() < 4) return 0.0;
+                                                  double& medianFlux) {
+    if (trajectory.size() < 4)
+        return 0.0;
 
     std::vector<double> fluxes;
     fluxes.reserve(trajectory.size());
@@ -59,7 +55,8 @@ double FastRadioBurstAnalyzer::estimateNoiseSigma(const std::vector<Event4D>& tr
             fluxes.push_back(evt.x);
         }
     }
-    if (fluxes.size() < 4) return 0.0;
+    if (fluxes.size() < 4)
+        return 0.0;
 
     // Median
     std::nth_element(fluxes.begin(), fluxes.begin() + fluxes.size() / 2, fluxes.end());
@@ -79,28 +76,29 @@ double FastRadioBurstAnalyzer::estimateNoiseSigma(const std::vector<Event4D>& tr
 }
 
 FastRadioBurstAnalyzer::BurstResult
-FastRadioBurstAnalyzer::detectBurst(
-    const std::vector<Event4D>& trajectory,
-    double snrThreshold,
-    const std::vector<double>& gwTriggerTimes,
-    double timeWindowSec)
-{
+FastRadioBurstAnalyzer::detectBurst(const std::vector<Event4D>& trajectory, double snrThreshold,
+                                    const std::vector<double>& gwTriggerTimes,
+                                    double timeWindowSec) {
     BurstResult result;
     size_t n = trajectory.size();
-    if (n < kMinSamples) return result;
+    if (n < kMinSamples)
+        return result;
 
     double dt = (n > 1) ? (trajectory[1].t - trajectory[0].t) : 0.0;
-    if (dt <= 0.0) return result;
+    if (dt <= 0.0)
+        return result;
 
     double medianFlux = 0.0;
     double noiseSigma = estimateNoiseSigma(trajectory, medianFlux);
-    if (noiseSigma <= 0.0) return result;
+    if (noiseSigma <= 0.0)
+        return result;
 
     // Find the peak flux
     double peakFlux = 0.0;
     size_t peakIdx = 0;
     for (size_t i = 0; i < n; ++i) {
-        if (std::isnan(trajectory[i].x) || std::isinf(trajectory[i].x)) continue;
+        if (std::isnan(trajectory[i].x) || std::isinf(trajectory[i].x))
+            continue;
         if (trajectory[i].x > peakFlux) {
             peakFlux = trajectory[i].x;
             peakIdx = i;
@@ -111,18 +109,21 @@ FastRadioBurstAnalyzer::detectBurst(
     result.peakTime = trajectory[peakIdx].t;
     result.snr = computeSNR(peakFlux - medianFlux, noiseSigma);
 
-    if (result.snr < snrThreshold) return result;
+    if (result.snr < snrThreshold)
+        return result;
 
     // Estimate pulse duration (FWHM)
     double halfMax = medianFlux + (peakFlux - medianFlux) * 0.5;
     size_t leftIdx = peakIdx;
     size_t rightIdx = peakIdx;
-    while (leftIdx > 0 && trajectory[leftIdx].x > halfMax) --leftIdx;
-    while (rightIdx < n - 1 && trajectory[rightIdx].x > halfMax) ++rightIdx;
+    while (leftIdx > 0 && trajectory[leftIdx].x > halfMax)
+        --leftIdx;
+    while (rightIdx < n - 1 && trajectory[rightIdx].x > halfMax)
+        ++rightIdx;
     result.duration = (rightIdx - leftIdx) * dt;
 
     // DM proxy from pulse duration (simplified dispersion sweep)
-    double freqSweepMHz = 400.0; // Typical CHIME bandwidth
+    double freqSweepMHz = 400.0;  // Typical CHIME bandwidth
     result.dmProxy = estimateDM(result.duration, freqSweepMHz);
 
     // Check for GW coincidence: burst must fit within the time window
@@ -139,22 +140,21 @@ FastRadioBurstAnalyzer::detectBurst(
 }
 
 std::vector<InstrumentFinding>
-FastRadioBurstAnalyzer::analyze(
-    const MetricTensor& metric,
-    const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+FastRadioBurstAnalyzer::analyze(const MetricTensor& metric, const Event4D& location,
+                                const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
-    if (trajectory.size() < kMinSamples) return findings;
+    if (trajectory.size() < kMinSamples)
+        return findings;
 
-    double dt = (trajectory.size() > 1) ?
-        (trajectory[1].t - trajectory[0].t) : 0.0;
-    if (dt <= 0.0) return findings;
+    double dt = (trajectory.size() > 1) ? (trajectory[1].t - trajectory[0].t) : 0.0;
+    if (dt <= 0.0)
+        return findings;
 
     for (const auto& pt : trajectory) {
-        if (std::isnan(pt.x) || std::isinf(pt.x)) return findings;
+        if (std::isnan(pt.x) || std::isinf(pt.x))
+            return findings;
     }
 
     double snrThresh = getParameter("snr_threshold");
@@ -167,8 +167,10 @@ FastRadioBurstAnalyzer::analyze(
 
     BurstResult burst = detectBurst(trajectory, snrThresh, gwTriggers, timeWindow);
 
-    if (burst.snr <= snrThresh) return findings;
-    if (burst.dmProxy < dmMin || burst.dmProxy > dmMax) return findings;
+    if (burst.snr <= snrThresh)
+        return findings;
+    if (burst.dmProxy < dmMin || burst.dmProxy > dmMax)
+        return findings;
 
     InstrumentFinding finding;
     finding.id = "FRB_" + std::to_string(getTotalFindings());
@@ -178,16 +180,14 @@ FastRadioBurstAnalyzer::analyze(
     finding.isAnomaly = burst.hasCoincidence;
 
     if (burst.hasCoincidence) {
-        finding.description = "FRB-GW coincidence: SNR=" +
-            std::to_string(burst.snr) + ", DM=" +
-            std::to_string(burst.dmProxy) + " pc/cm^3, dt=" +
-            std::to_string(burst.gwTimeOffset) + "s, duration=" +
-            std::to_string(burst.duration) + "s.";
+        finding.description = "FRB-GW coincidence: SNR=" + std::to_string(burst.snr) +
+                              ", DM=" + std::to_string(burst.dmProxy) +
+                              " pc/cm^3, dt=" + std::to_string(burst.gwTimeOffset) +
+                              "s, duration=" + std::to_string(burst.duration) + "s.";
     } else {
-        finding.description = "FRB detected: SNR=" +
-            std::to_string(burst.snr) + ", DM=" +
-            std::to_string(burst.dmProxy) + " pc/cm^3, duration=" +
-            std::to_string(burst.duration) + "s.";
+        finding.description = "FRB detected: SNR=" + std::to_string(burst.snr) +
+                              ", DM=" + std::to_string(burst.dmProxy) +
+                              " pc/cm^3, duration=" + std::to_string(burst.duration) + "s.";
     }
 
     finding.location = location;
@@ -205,4 +205,4 @@ FastRadioBurstAnalyzer::analyze(
     return findings;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

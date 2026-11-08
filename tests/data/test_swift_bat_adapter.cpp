@@ -15,8 +15,7 @@
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     (void)argc;
     (void)argv;
 
@@ -24,9 +23,7 @@ int main(int argc, char** argv)
     {
         SwiftBATAdapter adapter;
         std::vector<SwiftBATAlert> received;
-        adapter.setCallback([&received](const SwiftBATAlert& alert) {
-            received.push_back(alert);
-        });
+        adapter.setCallback([&received](const SwiftBATAlert& alert) { received.push_back(alert); });
 
         SwiftBATAlert bat;
         bat.trigger_id = "swift_bat_240512A";
@@ -69,8 +66,12 @@ int main(int argc, char** argv)
         int count = 0;
         adapter.setCallback([&count](const SwiftBATAlert&) { ++count; });
 
-        SwiftBATAlert a1; a1.trigger_id = "evt1"; adapter.simulateAlert(a1);
-        SwiftBATAlert a2; a2.trigger_id = "evt2"; adapter.simulateAlert(a2);
+        SwiftBATAlert a1;
+        a1.trigger_id = "evt1";
+        adapter.simulateAlert(a1);
+        SwiftBATAlert a2;
+        a2.trigger_id = "evt2";
+        adapter.simulateAlert(a2);
 
         QV_CHECK(adapter.receivedAlerts().size() == 2u);
         QV_CHECK(count == 2);

@@ -6,13 +6,13 @@
  * event processing, and ScenarioManager file loading.
  */
 
-#include "scenario/Scenario.h"
-#include "scenario/ScenarioManager.h"
 #include <cassert>
 #include <cmath>
-#include <iostream>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include "scenario/Scenario.h"
+#include "scenario/ScenarioManager.h"
 
 using namespace quantumverse;
 
@@ -25,25 +25,28 @@ namespace fs = std::filesystem;
 static int test_count = 0;
 static int pass_count = 0;
 
-#define TEST_ASSERT(cond, msg) do { \
-    test_count++; \
-    if (!(cond)) { \
-        std::cerr << "[FAIL] " << msg << " (line " << __LINE__ << ")" << std::endl; \
-    } else { \
-        pass_count++; \
-        std::cout << "[PASS] " << msg << std::endl; \
-    } \
-} while(0)
+#define TEST_ASSERT(cond, msg)                                                          \
+    do {                                                                                \
+        test_count++;                                                                   \
+        if (!(cond)) {                                                                  \
+            std::cerr << "[FAIL] " << msg << " (line " << __LINE__ << ")" << std::endl; \
+        } else {                                                                        \
+            pass_count++;                                                               \
+            std::cout << "[PASS] " << msg << std::endl;                                 \
+        }                                                                               \
+    } while (0)
 
-#define TEST_ASSERT_NEAR(a, b, tol, msg) do { \
-    test_count++; \
-    if (std::abs((a) - (b)) > (tol)) { \
-        std::cerr << "[FAIL] " << msg << " (got " << (a) << ", expected " << (b) << ", tol " << (tol) << ")" << std::endl; \
-    } else { \
-        pass_count++; \
-        std::cout << "[PASS] " << msg << std::endl; \
-    } \
-} while(0)
+#define TEST_ASSERT_NEAR(a, b, tol, msg)                                                         \
+    do {                                                                                         \
+        test_count++;                                                                            \
+        if (std::abs((a) - (b)) > (tol)) {                                                       \
+            std::cerr << "[FAIL] " << msg << " (got " << (a) << ", expected " << (b) << ", tol " \
+                      << (tol) << ")" << std::endl;                                              \
+        } else {                                                                                 \
+            pass_count++;                                                                        \
+            std::cout << "[PASS] " << msg << std::endl;                                          \
+        }                                                                                        \
+    } while (0)
 
 // ============================================================================
 // Tests
@@ -102,7 +105,8 @@ void test_scenario_serialization() {
     TEST_ASSERT(restored.bodies.size() == 1, "Body count preserved");
     TEST_ASSERT(restored.events.size() == 1, "Event count preserved");
     TEST_ASSERT(restored.camera_path.size() == 2, "Camera keyframe count preserved");
-    TEST_ASSERT(restored.events[0].type == ScenarioEventType::INJECT_ASTEROID, "Event type preserved");
+    TEST_ASSERT(restored.events[0].type == ScenarioEventType::INJECT_ASTEROID,
+                "Event type preserved");
     TEST_ASSERT_NEAR(restored.events[0].params[0], 1.0e11, 1e-5, "Event params preserved");
     TEST_ASSERT_NEAR(restored.camera_path[1].fov, 45.0, 1e-10, "Camera FOV preserved");
 }

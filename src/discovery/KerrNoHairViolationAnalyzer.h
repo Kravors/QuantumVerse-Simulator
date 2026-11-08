@@ -19,9 +19,9 @@
 #ifndef QUANTUMVERSE_KERR_NO_HAIR_VIOLATION_ANALYZER_H
 #define QUANTUMVERSE_KERR_NO_HAIR_VIOLATION_ANALYZER_H
 
-#include "DiscoveryInstrument.h"
-#include "../spacetime/MetricTensor.h"
 #include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
+#include "DiscoveryInstrument.h"
 
 namespace quantumverse {
 
@@ -38,25 +38,28 @@ namespace quantumverse {
  * both modes imply the same (M, a*).  A statistically significant
  * disagreement flags a potential no-hair violation.
  */
-class KerrNoHairViolationAnalyzer : public DiscoveryInstrument
-{
-public:
+class KerrNoHairViolationAnalyzer : public DiscoveryInstrument {
+   public:
     KerrNoHairViolationAnalyzer();
     ~KerrNoHairViolationAnalyzer() override = default;
 
-    std::vector<InstrumentFinding> analyze(const MetricTensor& metric,
-        const Event4D& location,
-        const std::vector<Event4D>& trajectory = {}) override;
+    std::vector<InstrumentFinding> analyze(const MetricTensor& metric, const Event4D& location,
+                                           const std::vector<Event4D>& trajectory = {}) override;
 
-    std::string getName() const override { return "KerrNoHairViolationAnalyzer"; }
-    std::string getDescription() const override
-    {
+    std::string getName() const override {
+        return "KerrNoHairViolationAnalyzer";
+    }
+    std::string getDescription() const override {
         return "Kerr no-hair violation analyzer. Extracts QNM frequencies from "
                "ringdown strain and tests whether multiple modes imply the same "
                "(M, J). Flags disagreements as potential no-hair violations.";
     }
-    std::string getCategory() const override { return "Black Holes"; }
-    AlertSeverity getDefaultSeverity() const override { return AlertSeverity::HIGH; }
+    std::string getCategory() const override {
+        return "Black Holes";
+    }
+    AlertSeverity getDefaultSeverity() const override {
+        return AlertSeverity::HIGH;
+    }
 
     std::map<std::string, std::pair<double, double>> getParameterRanges() const override;
 
@@ -69,7 +72,7 @@ public:
     /// @brief Kerr (221) QNM imaginary part: Berti et al. (2006) fit.
     static double kerrQNM221Imag(double spin);
 
-private:
+   private:
     static constexpr double kMinSamples = 16;
 
     struct QNMResult {
@@ -78,13 +81,11 @@ private:
         double amplitude = 0.0;
     };
 
-    static QNMResult extractDominantMode(const std::vector<Event4D>& trajectory,
-                                         double dt);
+    static QNMResult extractDominantMode(const std::vector<Event4D>& trajectory, double dt);
     static double inferSpinFrom220(double mOmegaReal);
-    static double inferMassFromQNM(double mOmegaReal, double spin,
-                                   double (*qnmRealFunc)(double));
+    static double inferMassFromQNM(double mOmegaReal, double spin, double (*qnmRealFunc)(double));
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_KERR_NO_HAIR_VIOLATION_ANALYZER_H
+#endif  // QUANTUMVERSE_KERR_NO_HAIR_VIOLATION_ANALYZER_H

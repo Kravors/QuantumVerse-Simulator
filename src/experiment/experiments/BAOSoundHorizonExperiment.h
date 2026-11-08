@@ -15,21 +15,27 @@
 namespace quantumverse {
 
 class BAOSoundHorizonExperiment : public CosmologyExperimentBase {
-public:
+   public:
     using CosmologyExperimentBase::CosmologyExperimentBase;
 
-    QString id() const override { return QStringLiteral("bao_sound_horizon"); }
-    QString name() const override { return QStringLiteral("BAO Sound Horizon"); }
-    QString category() const override { return QStringLiteral("Cosmology"); }
+    QString id() const override {
+        return QStringLiteral("bao_sound_horizon");
+    }
+    QString name() const override {
+        return QStringLiteral("BAO Sound Horizon");
+    }
+    QString category() const override {
+        return QStringLiteral("Cosmology");
+    }
     QString description() const override {
-        return QStringLiteral("Sound horizon at the drag epoch r_drag vs Planck 2018; c_s(z)/H(z) curve.");
+        return QStringLiteral(
+            "Sound horizon at the drag epoch r_drag vs Planck 2018; c_s(z)/H(z) curve.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_BAO_SOUND_HORIZON_EXPERIMENT_H
+#endif  // QUANTUMVERSE_BAO_SOUND_HORIZON_EXPERIMENT_H

@@ -20,15 +20,15 @@
  *   - Critical density and density parameters
  */
 
-#include "spacetime/FRWMetric.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "physics/CurvatureCalculator.h"
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <vector>
-#include <functional>
+#include "physics/CurvatureCalculator.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/FRWMetric.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -37,8 +37,8 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4189)
-#pragma warning(disable:4505)
+#pragma warning(disable : 4189)
+#pragma warning(disable : 4505)
 #endif
 
 using namespace quantumverse;
@@ -49,7 +49,8 @@ static constexpr double H0 = 2.27e-18;
 static constexpr double T0 = 4.354e17;
 
 [[maybe_unused]] static double relError(double computed, double expected) {
-    if (expected == 0.0) return std::abs(computed);
+    if (expected == 0.0)
+        return std::abs(computed);
     return std::abs(computed - expected) / std::abs(expected);
 }
 
@@ -66,10 +67,12 @@ void test_frw_matter_scale_factor_exact() {
         double a_expected = std::pow(t / T0, 2.0 / 3.0);
         QV_CHECK(a > 0.0);
         QV_CHECK(relError(a, a_expected) < 1e-12);
-        (void)a; (void)a_expected;
+        (void)a;
+        (void)a_expected;
         count++;
     }
-    std::cout << "[PASS] FRW matter-dominated scale factor exact: " << count << " points" << std::endl;
+    std::cout << "[PASS] FRW matter-dominated scale factor exact: " << count << " points"
+              << std::endl;
 }
 
 // ============================================================================
@@ -85,10 +88,12 @@ void test_frw_radiation_scale_factor_exact() {
         double a_expected = std::pow(t / T0, 0.5);
         QV_CHECK(a > 0.0);
         QV_CHECK(relError(a, a_expected) < 1e-12);
-        (void)a; (void)a_expected;
+        (void)a;
+        (void)a_expected;
         count++;
     }
-    std::cout << "[PASS] FRW radiation-dominated scale factor exact: " << count << " points" << std::endl;
+    std::cout << "[PASS] FRW radiation-dominated scale factor exact: " << count << " points"
+              << std::endl;
 }
 
 // ============================================================================
@@ -104,10 +109,12 @@ void test_frw_de_sitter_exact() {
         double a_expected = std::exp(H0 * t);
         QV_CHECK(std::isfinite(a));
         QV_CHECK(relError(a, a_expected) < 1e-12);
-        (void)a; (void)a_expected;
+        (void)a;
+        (void)a_expected;
         count++;
     }
-    std::cout << "[PASS] FRW de Sitter exponential expansion exact: " << count << " points" << std::endl;
+    std::cout << "[PASS] FRW de Sitter exponential expansion exact: " << count << " points"
+              << std::endl;
 }
 
 // ============================================================================
@@ -141,10 +148,12 @@ void test_frw_hubble_parameter_consistency() {
         double H_expected = adot / a;
         QV_CHECK(std::isfinite(H) && H > 0.0);
         QV_CHECK(relError(H, H_expected) < 1e-6);
-        (void)H; (void)H_expected;
+        (void)H;
+        (void)H_expected;
         count++;
     }
-    std::cout << "[PASS] FRW Hubble parameter H = ȧ/a consistency: " << count << " points" << std::endl;
+    std::cout << "[PASS] FRW Hubble parameter H = ȧ/a consistency: " << count << " points"
+              << std::endl;
 }
 
 // ============================================================================
@@ -164,7 +173,7 @@ void test_frw_age_of_universe() {
 // ============================================================================
 void test_frw_age_of_universe_lambda_cdm() {
     // Planck 2018-like: H0 = 67.66 km/s/Mpc, Ωm = 0.3111, ΩΛ = 0.6889
-    constexpr double H0_planck = 67.66 * 1000.0 / 3.0856775814913673e22; // s⁻¹
+    constexpr double H0_planck = 67.66 * 1000.0 / 3.0856775814913673e22;  // s⁻¹
     auto frw = FRWMetric::lambdaCDM(0.3111, 0.6889, H0_planck);
     double t_age = frw.ageOfUniverse();
     const double secondsPerGyr = 365.25 * 86400.0 * 1e9;
@@ -172,9 +181,9 @@ void test_frw_age_of_universe_lambda_cdm() {
 
     // ΛCDM age should be ≈13.8 Gyr (not 2/(3H0) ≈ 9.7 Gyr for matter-dom)
     QV_CHECK(std::isfinite(t_age));
-    QV_CHECK(t_age_gyr > 10.0);   // well above matter-dominated 2/(3H0)
-    QV_CHECK(t_age_gyr < 20.0);   // below de Sitter infinity
-    QV_CHECK_NEAR(t_age_gyr, 13.8, 0.5); // Planck 2018: 13.787 ± 0.02 Gyr
+    QV_CHECK(t_age_gyr > 10.0);           // well above matter-dominated 2/(3H0)
+    QV_CHECK(t_age_gyr < 20.0);           // below de Sitter infinity
+    QV_CHECK_NEAR(t_age_gyr, 13.8, 0.5);  // Planck 2018: 13.787 ± 0.02 Gyr
     (void)t_age;
     (void)t_age_gyr;
     std::cout << "[PASS] FRW ΛCDM age of universe ≈ " << t_age_gyr << " Gyr" << std::endl;
@@ -281,10 +290,12 @@ void test_frw_luminosity_distance() {
 // ============================================================================
 void test_frw_curvature_types() {
     auto flat = FRWMetric::matterDominated(H0, T0);
-    auto closed = FRWMetric(FRWMetric::Curvature::CLOSED,
-        [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
-    auto open = FRWMetric(FRWMetric::Curvature::OPEN,
-        [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
+    auto closed = FRWMetric(
+        FRWMetric::Curvature::CLOSED, [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); },
+        H0);
+    auto open = FRWMetric(
+        FRWMetric::Curvature::OPEN, [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); },
+        H0);
 
     QV_CHECK(flat.curvature() == 0);
     QV_CHECK(closed.curvature() == 1);
@@ -364,13 +375,14 @@ void test_frw_deceleration_parameter() {
     // relative step keeps both derivatives well conditioned: the round-off term
     // scales as eps/h^2 and the truncation term as (h/t)^2, and h/t = 1e-2 puts
     // both far below the 1e-3 tolerance asserted here.
-    const double h1 = t * 1e-2;   // step for the first derivative
-    const double h2 = t * 1e-2;   // step for the second derivative
+    const double h1 = t * 1e-2;  // step for the first derivative
+    const double h2 = t * 1e-2;  // step for the second derivative
 
     auto decelerationParameter = [&](const FRWMetric& model) {
         const double a = model.scaleFactor(t);
         const double adot = (model.scaleFactor(t + h1) - model.scaleFactor(t - h1)) / (2.0 * h1);
-        const double addot = (model.scaleFactor(t + h2) - 2.0 * a + model.scaleFactor(t - h2)) / (h2 * h2);
+        const double addot =
+            (model.scaleFactor(t + h2) - 2.0 * a + model.scaleFactor(t - h2)) / (h2 * h2);
         return -addot * a / (adot * adot);
     };
 
@@ -386,8 +398,8 @@ void test_frw_deceleration_parameter() {
     double q_ds = decelerationParameter(desitter);
     QV_CHECK_NEAR(q_ds - (-1.0), 0.0, 1e-3);
 
-    std::cout << "[PASS] FRW deceleration parameter: q_mat=" << q_mat
-              << ", q_rad=" << q_rad << ", q_ds=" << q_ds << std::endl;
+    std::cout << "[PASS] FRW deceleration parameter: q_mat=" << q_mat << ", q_rad=" << q_rad
+              << ", q_ds=" << q_ds << std::endl;
 }
 
 // ============================================================================
@@ -428,10 +440,12 @@ void test_frw_g_tt_constant() {
 // ============================================================================
 void test_frw_g_rr_curvature_dependence() {
     auto flat = FRWMetric::matterDominated(H0, T0);
-    auto closed = FRWMetric(FRWMetric::Curvature::CLOSED,
-        [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
-    auto open = FRWMetric(FRWMetric::Curvature::OPEN,
-        [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); }, H0);
+    auto closed = FRWMetric(
+        FRWMetric::Curvature::CLOSED, [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); },
+        H0);
+    auto open = FRWMetric(
+        FRWMetric::Curvature::OPEN, [t0 = T0](double t) { return std::pow(t / t0, 2.0 / 3.0); },
+        H0);
 
     double t = T0 * 0.8;
     double r = 1e9;
@@ -445,7 +459,9 @@ void test_frw_g_rr_curvature_dependence() {
     double g_rr_flat = a * a / (1.0 - 0.0 * r * r);
     double g_rr_closed = a * a / (1.0 - 1.0 * r * r);
     double g_rr_open = a * a / (1.0 - (-1.0) * r * r);
-    (void)g_rr_flat; (void)g_rr_closed; (void)g_rr_open;
+    (void)g_rr_flat;
+    (void)g_rr_closed;
+    (void)g_rr_open;
 
     QV_CHECK(relError(g_flat.g[1][1], g_rr_flat) < 1e-10);
     QV_CHECK(relError(g_open.g[1][1], g_rr_open) < 1e-10);
@@ -466,8 +482,8 @@ void test_frw_lookback_time() {
     double t_lookback_expected = (2.0 / (3.0 * H0)) * (1.0 - 1.0 / std::sqrt(1.0 + z));
     QV_CHECK(t_lookback_expected > 0.0);
     QV_CHECK(std::isfinite(t_lookback_expected));
-    std::cout << "[PASS] FRW lookback time for z=1: " << t_lookback_expected / (60.0 * 60.0 * 24.0 * 365.25)
-              << " Gyr" << std::endl;
+    std::cout << "[PASS] FRW lookback time for z=1: "
+              << t_lookback_expected / (60.0 * 60.0 * 24.0 * 365.25) << " Gyr" << std::endl;
 }
 
 // ============================================================================
@@ -484,9 +500,11 @@ void test_frw_conformal_time() {
     double eta = 0.0;
     for (int i = 0; i < 1000; i++) {
         double ti = i * dt;
-        if (ti >= t) break;
+        if (ti >= t)
+            break;
         double ai = frw.scaleFactor(ti);
-        if (ai > 1e-30) eta += dt / ai;
+        if (ai > 1e-30)
+            eta += dt / ai;
     }
     QV_CHECK(std::isfinite(eta) && eta > 0.0);
     std::cout << "[PASS] FRW conformal time integral converges: eta = " << eta << std::endl;
@@ -506,7 +524,7 @@ void test_frw_critical_density() {
     // 5.5 hydrogen atoms per cubic metre. The previous ">1e-20 kg/m^3" bound was
     // wrong by seven orders of magnitude and could never hold for a physically
     // correct closed form; pin the literature value instead.
-    [[maybe_unused]] const double rho_crit_expected = 9.2156e-27;   // kg/m^3
+    [[maybe_unused]] const double rho_crit_expected = 9.2156e-27;  // kg/m^3
     QV_CHECK(relError(rho_crit, rho_crit_expected) < 1e-3);
     QV_CHECK(rho_crit > 1e-28 && rho_crit < 1e-25);
     std::cout << "[PASS] FRW critical density: rho_crit = " << rho_crit << " kg/m^3" << std::endl;
@@ -526,7 +544,8 @@ void test_frw_matter_density_scaling() {
     double rho_ratio = (a2 * a2 * a2) / (a1 * a1 * a1);
     QV_CHECK(rho_ratio > 0.0);
     QV_CHECK(std::isfinite(rho_ratio));
-    std::cout << "[PASS] FRW matter density scaling: rho2/rho1 = (a1/a2)^3 = " << rho_ratio << std::endl;
+    std::cout << "[PASS] FRW matter density scaling: rho2/rho1 = (a1/a2)^3 = " << rho_ratio
+              << std::endl;
 }
 
 // ============================================================================
@@ -543,7 +562,8 @@ void test_frw_radiation_density_scaling() {
     double rho_ratio = (a2 * a2 * a2 * a2) / (a1 * a1 * a1 * a1);
     QV_CHECK(rho_ratio > 0.0);
     QV_CHECK(std::isfinite(rho_ratio));
-    std::cout << "[PASS] FRW radiation density scaling: rho2/rho1 = (a1/a2)^4 = " << rho_ratio << std::endl;
+    std::cout << "[PASS] FRW radiation density scaling: rho2/rho1 = (a1/a2)^4 = " << rho_ratio
+              << std::endl;
 }
 
 // ============================================================================
@@ -628,8 +648,8 @@ void test_frw_scale_factor_normalization() {
     // lambdaCDM's normalisation epoch is likewise implied by H0 and the density
     // parameters, not by T0: a(t) = (Om/OL)^(1/3) sinh(3/2 H0 sqrt(OL) t)^(2/3)
     // reaches 1 when sinh(3/2 H0 sqrt(OL) t) = sqrt(OL/Om).
-    const double t_age_lcdm = std::asinh(std::sqrt(omegaLambda / omegaM))
-                            / (1.5 * H0 * std::sqrt(omegaLambda));
+    const double t_age_lcdm =
+        std::asinh(std::sqrt(omegaLambda / omegaM)) / (1.5 * H0 * std::sqrt(omegaLambda));
     QV_CHECK(relError(lcdm.scaleFactor(t_age_lcdm), 1.0) < 1e-9);
 
     std::cout << "[PASS] FRW a = 1 at each model's normalisation epoch"
@@ -650,8 +670,10 @@ void test_frw_matter_radiation_equality() {
     double a_eq_mat = matter.scaleFactor(t_eq);
     double a_eq_rad = radiation.scaleFactor(t_eq);
     QV_CHECK(relError(a_eq_mat, a_eq_rad) < 1e-12);
-    (void)a_eq_mat; (void)a_eq_rad;
-    std::cout << "[PASS] FRW matter-radiation equality verified at t = " << t_eq / T0 << " t0" << std::endl;
+    (void)a_eq_mat;
+    (void)a_eq_rad;
+    std::cout << "[PASS] FRW matter-radiation equality verified at t = " << t_eq / T0 << " t0"
+              << std::endl;
 }
 
 // ============================================================================
@@ -725,6 +747,7 @@ int main() {
 #pragma warning(pop)
 #endif
 
-    std::cout << "=== ALL FRW CONSISTENCY TESTS PASSED (" << 31 << " test functions) ===" << std::endl;
+    std::cout << "=== ALL FRW CONSISTENCY TESTS PASSED (" << 31
+              << " test functions) ===" << std::endl;
     return 0;
 }

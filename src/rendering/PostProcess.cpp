@@ -156,33 +156,31 @@ const char* compositeFrag = R"(
     }
 )";
 
-} // anonymous namespace
+}  // anonymous namespace
 
 PostProcess::PostProcess()
-    : m_initialized(false)
-    , m_width(0)
-    , m_height(0)
-    , m_sceneFbo(0)
-    , m_sceneTexture(0)
-    , m_brightPassFbo(0)
-    , m_brightPassTexture(0)
-    , m_blurFbo{0, 0}
-    , m_blurTexture{0, 0}
-    , m_quadVao(0)
-    , m_brightPassProgram(0)
-    , m_blurProgram(0)
-    , m_compositeProgram(0)
-    , m_bloomEnabled(true)
-    , m_bloomIntensity(0.8f)
-    , m_bloomThreshold(1.0f)
-    , m_toneMappingMode(0)
-    , m_exposure(1.0f)
-{
-}
+    : m_initialized(false),
+      m_width(0),
+      m_height(0),
+      m_sceneFbo(0),
+      m_sceneTexture(0),
+      m_brightPassFbo(0),
+      m_brightPassTexture(0),
+      m_blurFbo{0, 0},
+      m_blurTexture{0, 0},
+      m_quadVao(0),
+      m_brightPassProgram(0),
+      m_blurProgram(0),
+      m_compositeProgram(0),
+      m_bloomEnabled(true),
+      m_bloomIntensity(0.8f),
+      m_bloomThreshold(1.0f),
+      m_toneMappingMode(0),
+      m_exposure(1.0f) {}
 
-PostProcess::~PostProcess()
-{
-    if (!m_initialized) return;
+PostProcess::~PostProcess() {
+    if (!m_initialized)
+        return;
 
     // Destroy FBOs
     destroyFbo(m_sceneFbo, m_sceneTexture);
@@ -213,8 +211,7 @@ PostProcess::~PostProcess()
     m_initialized = false;
 }
 
-void PostProcess::initialize(int width, int height)
-{
+void PostProcess::initialize(int width, int height) {
     if (m_initialized) {
         resize(width, height);
         return;
@@ -256,8 +253,7 @@ void PostProcess::initialize(int width, int height)
     qDebug() << "PostProcess: Initialized bloom pipeline" << width << "x" << height;
 }
 
-void PostProcess::resize(int width, int height)
-{
+void PostProcess::resize(int width, int height) {
     if (!m_initialized || (width == m_width && height == m_height)) {
         m_width = width;
         m_height = height;
@@ -282,9 +278,9 @@ void PostProcess::resize(int width, int height)
     createFbo(m_blurFbo[1], m_blurTexture[1], halfW, halfH, GL_RGBA16F);
 }
 
-void PostProcess::beginScene()
-{
-    if (!m_initialized) return;
+void PostProcess::beginScene() {
+    if (!m_initialized)
+        return;
 
     // Bind HDR scene FBO
     glBindFramebuffer(GL_FRAMEBUFFER, m_sceneFbo);
@@ -293,9 +289,9 @@ void PostProcess::beginScene()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void PostProcess::endScene()
-{
-    if (!m_initialized) return;
+void PostProcess::endScene() {
+    if (!m_initialized)
+        return;
 
     // Disable depth testing for post-processing passes
     glDisable(GL_DEPTH_TEST);
@@ -333,8 +329,7 @@ void PostProcess::endScene()
         glViewport(0, 0, halfW, halfH);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUniform2f(glGetUniformLocation(m_blurProgram, "uDirection"),
-                     1.0f / halfW, 0.0f);
+        glUniform2f(glGetUniformLocation(m_blurProgram, "uDirection"), 1.0f / halfW, 0.0f);
 
         glBindTexture(GL_TEXTURE_2D, (i == 0) ? m_brightPassTexture : m_blurTexture[(i + 1) % 2]);
         drawFullscreenQuad();
@@ -344,8 +339,7 @@ void PostProcess::endScene()
         glViewport(0, 0, halfW, halfH);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUniform2f(glGetUniformLocation(m_blurProgram, "uDirection"),
-                     0.0f, 1.0f / halfH);
+        glUniform2f(glGetUniformLocation(m_blurProgram, "uDirection"), 0.0f, 1.0f / halfH);
 
         glBindTexture(GL_TEXTURE_2D, m_blurTexture[i % 2]);
         drawFullscreenQuad();
@@ -385,11 +379,13 @@ void PostProcess::endScene()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void PostProcess::createFbo(GLuint& fbo, GLuint& texture, int width, int height, GLenum internalFormat)
-{
+void PostProcess::createFbo(GLuint& fbo, GLuint& texture, int width, int height,
+                            GLenum internalFormat) {
     // Delete existing resources
-    if (fbo) glDeleteFramebuffers(1, &fbo);
-    if (texture) glDeleteTextures(1, &texture);
+    if (fbo)
+        glDeleteFramebuffers(1, &fbo);
+    if (texture)
+        glDeleteTextures(1, &texture);
 
     // Create texture
     glGenTextures(1, &texture);
@@ -413,8 +409,7 @@ void PostProcess::createFbo(GLuint& fbo, GLuint& texture, int width, int height,
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void PostProcess::destroyFbo(GLuint& fbo, GLuint& texture)
-{
+void PostProcess::destroyFbo(GLuint& fbo, GLuint& texture) {
     if (fbo) {
         glDeleteFramebuffers(1, &fbo);
         fbo = 0;
@@ -425,8 +420,7 @@ void PostProcess::destroyFbo(GLuint& fbo, GLuint& texture)
     }
 }
 
-GLuint PostProcess::compileShaderProgram(const char* vertexSource, const char* fragmentSource)
-{
+GLuint PostProcess::compileShaderProgram(const char* vertexSource, const char* fragmentSource) {
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertShader, 1, &vertexSource, nullptr);
     glCompileShader(vertShader);
@@ -475,11 +469,10 @@ GLuint PostProcess::compileShaderProgram(const char* vertexSource, const char* f
     return program;
 }
 
-void PostProcess::drawFullscreenQuad()
-{
+void PostProcess::drawFullscreenQuad() {
     glBindVertexArray(m_quadVao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -1,13 +1,13 @@
-#include "glad.h"
 #include "UI4D.h"
-#include "../config/ConfigLoader.h"
-#include "../utils/DataPaths.h"
-#include "physics/PhysicsConstants.h"
-#include "../rendering/ComputeShader.h"
-#include <cmath>
 #include <algorithm>
-#include <iostream>
+#include <cmath>
 #include <cstring>
+#include <iostream>
+#include "../config/ConfigLoader.h"
+#include "../rendering/ComputeShader.h"
+#include "../utils/DataPaths.h"
+#include "glad.h"
+#include "physics/PhysicsConstants.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -38,8 +38,7 @@ namespace quantumverse {
 
 void UI4D::startEventCreation(const Event4D& position) {
     isCreatingEvent = true;
-    std::cout << "Starting event creation at: (" 
-              << position.t << ", " << position.x << ", " 
+    std::cout << "Starting event creation at: (" << position.t << ", " << position.x << ", "
               << position.y << ", " << position.z << ")" << std::endl;
 }
 
@@ -61,16 +60,14 @@ void UI4D::startWorldLineCreation(const Event4D& position) {
     isCreatingWorldLine = true;
     newWorldLinePoints.clear();
     newWorldLinePoints.push_back(position);
-    std::cout << "Starting world-line creation at: (" 
-              << position.t << ", " << position.x << ", " 
+    std::cout << "Starting world-line creation at: (" << position.t << ", " << position.x << ", "
               << position.y << ", " << position.z << ")" << std::endl;
 }
 
 void UI4D::addWorldLinePoint(const Event4D& position) {
     if (isCreatingWorldLine) {
         newWorldLinePoints.push_back(position);
-        std::cout << "Added world-line point at: (" 
-                  << position.t << ", " << position.x << ", " 
+        std::cout << "Added world-line point at: (" << position.t << ", " << position.x << ", "
                   << position.y << ", " << position.z << ")" << std::endl;
     }
 }
@@ -81,7 +78,7 @@ void UI4D::endWorldLineCreation() {
         newWorldLine.name = "New Object";
         newWorldLine.isClosed = false;
         newWorldLine.mass = 1.0e24;
-        
+
         for (size_t i = 0; i < newWorldLinePoints.size(); i++) {
             WorldLinePoint point;
             point.event = newWorldLinePoints[i];
@@ -89,23 +86,23 @@ void UI4D::endWorldLineCreation() {
             point.isControlPoint = true;
             newWorldLine.points.push_back(point);
         }
-        
+
         worldLines.push_back(newWorldLine);
-        std::cout << "Ended world-line creation with " 
-                  << newWorldLinePoints.size() << " points" << std::endl;
+        std::cout << "Ended world-line creation with " << newWorldLinePoints.size() << " points"
+                  << std::endl;
     }
     isCreatingWorldLine = false;
     newWorldLinePoints.clear();
 }
 
-void UI4D::editWorldLineControlPoint(int worldLineIndex, int pointIndex, const Event4D& newPosition) {
-    if (worldLineIndex >= 0 && worldLineIndex < (int)worldLines.size() &&
-        pointIndex >= 0 && pointIndex < (int)worldLines[worldLineIndex].points.size()) {
+void UI4D::editWorldLineControlPoint(int worldLineIndex, int pointIndex,
+                                     const Event4D& newPosition) {
+    if (worldLineIndex >= 0 && worldLineIndex < (int)worldLines.size() && pointIndex >= 0 &&
+        pointIndex < (int)worldLines[worldLineIndex].points.size()) {
         worldLines[worldLineIndex].points[pointIndex].event = newPosition;
-        std::cout << "Edited world-line control point (" 
-                  << worldLineIndex << ", " << pointIndex << ") to: (" 
-                  << newPosition.t << ", " << newPosition.x << ", " 
-                  << newPosition.y << ", " << newPosition.z << ")" << std::endl;
+        std::cout << "Edited world-line control point (" << worldLineIndex << ", " << pointIndex
+                  << ") to: (" << newPosition.t << ", " << newPosition.x << ", " << newPosition.y
+                  << ", " << newPosition.z << ")" << std::endl;
     }
 }
 
@@ -130,9 +127,8 @@ void UI4D::editSingularityPosition(const std::array<double, 3>& newPosition) {
     if (editingSingularity && editingSingularity->singularity) {
         editingSingularity->singularity->setPosition(newPosition);
         editingSingularity->isPositionEditing = true;
-        std::cout << "Edited singularity position to: (" 
-                  << newPosition[0] << ", " << newPosition[1] << ", " 
-                  << newPosition[2] << ")" << std::endl;
+        std::cout << "Edited singularity position to: (" << newPosition[0] << ", " << newPosition[1]
+                  << ", " << newPosition[2] << ")" << std::endl;
     }
 }
 
@@ -201,8 +197,7 @@ void UI4D::editBodyVelocity(const Event4D& newVelocity) {
     if (editingBody && solarSystem.bodies.find(editingBody->bodyName) != solarSystem.bodies.end()) {
         solarSystem.bodies[editingBody->bodyName].velocity = newVelocity;
         editingBody->isVelocityEditing = true;
-        std::cout << "Edited body velocity to: (" 
-                  << newVelocity.t << ", " << newVelocity.x << ", " 
+        std::cout << "Edited body velocity to: (" << newVelocity.t << ", " << newVelocity.x << ", "
                   << newVelocity.y << ", " << newVelocity.z << ")" << std::endl;
     }
 }
@@ -213,324 +208,330 @@ void UI4D::endBodyPropertyEditing() {
 }
 
 // ============================================================================
-    // Power-up features implementation
-    // ============================================================================
+// Power-up features implementation
+// ============================================================================
 
-    void UI4D::addWaypoint(const std::string& name, const Event4D& position, const std::string& description) {
-        Waypoint wp;
-        wp.name = name;
-        wp.position = position;
-        wp.description = description;
-        wp.isActive = false;
-        waypoints.push_back(wp);
-        std::cout << "Added waypoint: " << name << std::endl;
+void UI4D::addWaypoint(const std::string& name, const Event4D& position,
+                       const std::string& description) {
+    Waypoint wp;
+    wp.name = name;
+    wp.position = position;
+    wp.description = description;
+    wp.isActive = false;
+    waypoints.push_back(wp);
+    std::cout << "Added waypoint: " << name << std::endl;
+}
+
+void UI4D::removeWaypoint(int index) {
+    if (index >= 0 && index < static_cast<int>(waypoints.size())) {
+        waypoints.erase(waypoints.begin() + index);
+        if (activeWaypointIndex >= index) {
+            activeWaypointIndex = -1;
+        }
+        std::cout << "Removed waypoint at index: " << index << std::endl;
     }
+}
 
-    void UI4D::removeWaypoint(int index) {
-        if (index >= 0 && index < static_cast<int>(waypoints.size())) {
-            waypoints.erase(waypoints.begin() + index);
-            if (activeWaypointIndex >= index) {
-                activeWaypointIndex = -1;
+void UI4D::setActiveWaypoint(int index) {
+    if (index >= 0 && index < static_cast<int>(waypoints.size())) {
+        // Deactivate current waypoint
+        if (activeWaypointIndex >= 0 && activeWaypointIndex < static_cast<int>(waypoints.size())) {
+            waypoints[activeWaypointIndex].isActive = false;
+        }
+
+        // Activate new waypoint
+        activeWaypointIndex = index;
+        waypoints[index].isActive = true;
+
+        // Move camera to waypoint
+        camera = Camera4D(waypoints[index].position,
+                          Event4D(waypoints[index].position.t + 1.0, waypoints[index].position.x,
+                                  waypoints[index].position.y, waypoints[index].position.z));
+        std::cout << "Set active waypoint: " << waypoints[index].name << std::endl;
+    }
+}
+
+void UI4D::clearWaypoints() {
+    waypoints.clear();
+    activeWaypointIndex = -1;
+    std::cout << "Cleared all waypoints" << std::endl;
+}
+
+// Waypoint flight system implementation
+void UI4D::updateWaypointFlight(float deltaTime) {
+    if (!waypointFlight.enabled || waypoints.size() < 2)
+        return;
+
+    // Update progress through current segment
+    waypointFlight.progress += waypointFlight.speed * deltaTime;
+
+    // If we've completed the current segment, move to next
+    if (waypointFlight.progress >= 1.0f) {
+        waypointFlight.progress = 0.0f;
+        waypointFlight.currentSegment++;
+
+        // Check if we've reached the end
+        if (waypointFlight.currentSegment >= static_cast<int>(waypoints.size()) - 1) {
+            if (waypointFlight.loop) {
+                waypointFlight.currentSegment = 0;  // Loop back to start
+            } else {
+                waypointFlight.enabled = false;  // Stop at end
+                return;
             }
-            std::cout << "Removed waypoint at index: " << index << std::endl;
         }
     }
 
-    void UI4D::setActiveWaypoint(int index) {
-        if (index >= 0 && index < static_cast<int>(waypoints.size())) {
-            // Deactivate current waypoint
-            if (activeWaypointIndex >= 0 && activeWaypointIndex < static_cast<int>(waypoints.size())) {
-                waypoints[activeWaypointIndex].isActive = false;
-            }
-            
-            // Activate new waypoint
-            activeWaypointIndex = index;
-            waypoints[index].isActive = true;
-            
-            // Move camera to waypoint
-            camera = Camera4D(waypoints[index].position, 
-                            Event4D(waypoints[index].position.t + 1.0, 
-                                   waypoints[index].position.x, 
-                                   waypoints[index].position.y, 
-                                   waypoints[index].position.z));
-            std::cout << "Set active waypoint: " << waypoints[index].name << std::endl;
-        }
+    // Interpolate position between current and next waypoint
+    if (waypointFlight.currentSegment < static_cast<int>(waypoints.size()) - 1) {
+        const Waypoint& current = waypoints[waypointFlight.currentSegment];
+        const Waypoint& next = waypoints[waypointFlight.currentSegment + 1];
+
+        // Linear interpolation in 4D space
+        Event4D interpolatedPos;
+        interpolatedPos.t =
+            current.position.t + (next.position.t - current.position.t) * waypointFlight.progress;
+        interpolatedPos.x =
+            current.position.x + (next.position.x - current.position.x) * waypointFlight.progress;
+        interpolatedPos.y =
+            current.position.y + (next.position.y - current.position.y) * waypointFlight.progress;
+        interpolatedPos.z =
+            current.position.z + (next.position.z - current.position.z) * waypointFlight.progress;
+
+        // Update camera to follow the interpolated path
+        camera = Camera4D(interpolatedPos, Event4D(interpolatedPos.t + 1.0, interpolatedPos.x,
+                                                   interpolatedPos.y, interpolatedPos.z));
     }
+}
 
-    void UI4D::clearWaypoints() {
-        waypoints.clear();
-        activeWaypointIndex = -1;
-        std::cout << "Cleared all waypoints" << std::endl;
+void UI4D::startWaypointFlight() {
+    if (waypoints.size() >= 2) {
+        waypointFlight.enabled = true;
+        waypointFlight.progress = 0.0f;
+        waypointFlight.currentSegment = 0;
+        std::cout << "Started waypoint flight" << std::endl;
     }
-    
-    // Waypoint flight system implementation
-    void UI4D::updateWaypointFlight(float deltaTime) {
-        if (!waypointFlight.enabled || waypoints.size() < 2) return;
-        
-        // Update progress through current segment
-        waypointFlight.progress += waypointFlight.speed * deltaTime;
-        
-        // If we've completed the current segment, move to next
-        if (waypointFlight.progress >= 1.0f) {
-            waypointFlight.progress = 0.0f;
-            waypointFlight.currentSegment++;
-            
-            // Check if we've reached the end
-            if (waypointFlight.currentSegment >= static_cast<int>(waypoints.size()) - 1) {
-                if (waypointFlight.loop) {
-                    waypointFlight.currentSegment = 0; // Loop back to start
-                } else {
-                    waypointFlight.enabled = false; // Stop at end
-                    return;
-                }
-            }
-        }
-        
-        // Interpolate position between current and next waypoint
-        if (waypointFlight.currentSegment < static_cast<int>(waypoints.size()) - 1) {
-            const Waypoint& current = waypoints[waypointFlight.currentSegment];
-            const Waypoint& next = waypoints[waypointFlight.currentSegment + 1];
-            
-            // Linear interpolation in 4D space
-            Event4D interpolatedPos;
-            interpolatedPos.t = current.position.t + (next.position.t - current.position.t) * waypointFlight.progress;
-            interpolatedPos.x = current.position.x + (next.position.x - current.position.x) * waypointFlight.progress;
-            interpolatedPos.y = current.position.y + (next.position.y - current.position.y) * waypointFlight.progress;
-            interpolatedPos.z = current.position.z + (next.position.z - current.position.z) * waypointFlight.progress;
-            
-            // Update camera to follow the interpolated path
-            camera = Camera4D(interpolatedPos, 
-                            Event4D(interpolatedPos.t + 1.0, 
-                                   interpolatedPos.x, 
-                                   interpolatedPos.y, 
-                                   interpolatedPos.z));
-        }
-    }
+}
 
-    void UI4D::startWaypointFlight() {
-        if (waypoints.size() >= 2) {
-            waypointFlight.enabled = true;
-            waypointFlight.progress = 0.0f;
-            waypointFlight.currentSegment = 0;
-            std::cout << "Started waypoint flight" << std::endl;
-        }
-    }
+void UI4D::stopWaypointFlight() {
+    waypointFlight.enabled = false;
+    std::cout << "Stopped waypoint flight" << std::endl;
+}
 
-    void UI4D::stopWaypointFlight() {
-        waypointFlight.enabled = false;
-        std::cout << "Stopped waypoint flight" << std::endl;
-    }
+void UI4D::setWaypointFlightSpeed(float speed) {
+    waypointFlight.speed = speed;
+    std::cout << "Waypoint flight speed set to: " << speed << std::endl;
+}
 
-    void UI4D::setWaypointFlightSpeed(float speed) {
-        waypointFlight.speed = speed;
-        std::cout << "Waypoint flight speed set to: " << speed << std::endl;
-    }
+void UI4D::setWaypointFlightLoop(bool loop) {
+    waypointFlight.loop = loop;
+    std::cout << "Waypoint flight loop set to: " << (loop ? "true" : "false") << std::endl;
+}
 
-    void UI4D::setWaypointFlightLoop(bool loop) {
-        waypointFlight.loop = loop;
-        std::cout << "Waypoint flight loop set to: " << (loop ? "true" : "false") << std::endl;
-    }
+void UI4D::addSingularity(std::shared_ptr<SingularityHandler> singularity) {
+    singularities.push_back(singularity);
+    std::cout << "Added singularity for anomaly detection" << std::endl;
+}
 
-    void UI4D::addSingularity(std::shared_ptr<SingularityHandler> singularity) {
-       singularities.push_back(singularity);
-       std::cout << "Added singularity for anomaly detection" << std::endl;
-   }
+void UI4D::detectCurvatureAnomalies() {
+    if (!anomalyDetectionEnabled || !currentMetric)
+        return;
 
-   void UI4D::detectCurvatureAnomalies() {
-        if (!anomalyDetectionEnabled || !currentMetric) return;
+    // Sample curvature at various points in the scene
+    const int sampleGridSize = 10;
+    const float sampleRange = 50.0f;
+    const float step = sampleRange * 2.0f / (sampleGridSize - 1);
 
-        // Sample curvature at various points in the scene
-        const int sampleGridSize = 10;
-        const float sampleRange = 50.0f;
-        const float step = sampleRange * 2.0f / (sampleGridSize - 1);
+    for (int i = 0; i < sampleGridSize; i++) {
+        for (int j = 0; j < sampleGridSize; j++) {
+            for (int k = 0; k < sampleGridSize; k++) {
+                float x = -sampleRange + i * step;
+                float y = -sampleRange + j * step;
+                float z = -sampleRange + k * step;
 
-        for (int i = 0; i < sampleGridSize; i++) {
-            for (int j = 0; j < sampleGridSize; j++) {
-                for (int k = 0; k < sampleGridSize; k++) {
-                    float x = -sampleRange + i * step;
-                    float y = -sampleRange + j * step;
-                    float z = -sampleRange + k * step;
-                    
-                    Event4D event(0.0, x, y, z); // Sample at t=0 for simplicity
-                    
-                    // Calculate curvature
-                    double curvature = 0.0;
-                    if (!singularities.empty()) {
-                        for (const auto& singularity : singularities) {
-                            const auto& pos = singularity->getPosition();
-                            double dx = event.x - pos[0];
-                            double dy = event.y - pos[1];
-                            double dz = event.z - pos[2];
-                            double r = std::sqrt(dx * dx + dy * dy + dz * dz);
-                            double rs = singularity->getProperties().schwarzschild_radius;
-                            if (r > rs * 1.1) {
-                                curvature += 48.0 * rs * rs / (r * r * r * r * r * r);
-                            }
+                Event4D event(0.0, x, y, z);  // Sample at t=0 for simplicity
+
+                // Calculate curvature
+                double curvature = 0.0;
+                if (!singularities.empty()) {
+                    for (const auto& singularity : singularities) {
+                        const auto& pos = singularity->getPosition();
+                        double dx = event.x - pos[0];
+                        double dy = event.y - pos[1];
+                        double dz = event.z - pos[2];
+                        double r = std::sqrt(dx * dx + dy * dy + dz * dz);
+                        double rs = singularity->getProperties().schwarzschild_radius;
+                        if (r > rs * 1.1) {
+                            curvature += 48.0 * rs * rs / (r * r * r * r * r * r);
                         }
                     }
-                    
+                }
+
                 // Check if anomaly detected
-                    if (curvature > anomalyDetectionThreshold) {
-                        // Check if we already have an alert for this area
-                        bool duplicate = false;
-                        for (const auto& alert : anomalyAlerts) {
-                            double dx = alert.position.x - x;
-                            double dy = alert.position.y - y;
-                            double dz = alert.position.z - z;
-                            double dist = std::sqrt(dx*dx + dy*dy + dz*dz);
-                            if (dist < 5.0) { // Within 5 meters
-                                duplicate = true;
-                                break;
-                            }
+                if (curvature > anomalyDetectionThreshold) {
+                    // Check if we already have an alert for this area
+                    bool duplicate = false;
+                    for (const auto& alert : anomalyAlerts) {
+                        double dx = alert.position.x - x;
+                        double dy = alert.position.y - y;
+                        double dz = alert.position.z - z;
+                        double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+                        if (dist < 5.0) {  // Within 5 meters
+                            duplicate = true;
+                            break;
                         }
-                        
-                        if (!duplicate) {
-                            AnomalyAlert alert;
-                            alert.position = event;
-                            alert.curvatureValue = curvature;
-                            alert.description = "High curvature anomaly detected";
-                            alert.isAcknowledged = false;
-                            alert.timestamp = 0.0; // Would be set to current time in real implementation
-                            anomalyAlerts.push_back(alert);
-                            std::cout << "Anomaly detected at (" << x << ", " << y << ", " << z << ") with curvature " << curvature << std::endl;
-                        }
+                    }
+
+                    if (!duplicate) {
+                        AnomalyAlert alert;
+                        alert.position = event;
+                        alert.curvatureValue = curvature;
+                        alert.description = "High curvature anomaly detected";
+                        alert.isAcknowledged = false;
+                        alert.timestamp =
+                            0.0;  // Would be set to current time in real implementation
+                        anomalyAlerts.push_back(alert);
+                        std::cout << "Anomaly detected at (" << x << ", " << y << ", " << z
+                                  << ") with curvature " << curvature << std::endl;
                     }
                 }
             }
         }
     }
+}
 
-    void UI4D::acknowledgeAnomaly(int index) {
-        if (index >= 0 && index < static_cast<int>(anomalyAlerts.size())) {
-            anomalyAlerts[index].isAcknowledged = true;
-            std::cout << "Acknowledged anomaly at index: " << index << std::endl;
-        }
+void UI4D::acknowledgeAnomaly(int index) {
+    if (index >= 0 && index < static_cast<int>(anomalyAlerts.size())) {
+        anomalyAlerts[index].isAcknowledged = true;
+        std::cout << "Acknowledged anomaly at index: " << index << std::endl;
     }
+}
 
-    void UI4D::clearAnomalies() {
-        anomalyAlerts.clear();
-        std::cout << "Cleared all anomaly alerts" << std::endl;
-    }
+void UI4D::clearAnomalies() {
+    anomalyAlerts.clear();
+    std::cout << "Cleared all anomaly alerts" << std::endl;
+}
 
-    void UI4D::setAnomalyDetectionThreshold(double threshold) {
-        anomalyDetectionThreshold = threshold;
-        std::cout << "Anomaly detection threshold set to: " << threshold << std::endl;
-    }
+void UI4D::setAnomalyDetectionThreshold(double threshold) {
+    anomalyDetectionThreshold = threshold;
+    std::cout << "Anomaly detection threshold set to: " << threshold << std::endl;
+}
 
-    void UI4D::toggleAnomalyDetection(bool enable) {
-        anomalyDetectionEnabled = enable;
-        std::cout << "Anomaly detection " << (enable ? "enabled" : "disabled") << std::endl;
-    }
+void UI4D::toggleAnomalyDetection(bool enable) {
+    anomalyDetectionEnabled = enable;
+    std::cout << "Anomaly detection " << (enable ? "enabled" : "disabled") << std::endl;
+}
 
-    void UI4D::addAnomalyAlert(const AnomalyAlert& alert) {
-        anomalyAlerts.push_back(alert);
-        std::cout << "ML anomaly alert added: " << alert.description << std::endl;
-    }
+void UI4D::addAnomalyAlert(const AnomalyAlert& alert) {
+    anomalyAlerts.push_back(alert);
+    std::cout << "ML anomaly alert added: " << alert.description << std::endl;
+}
 
-     // Spacetime curvature manipulation methods
-     // ============================================================================
-     
-     void UI4D::activateCurvatureManipulation(const Event4D& position, CurvatureManipulationTool::Type type) {
-         curvatureTool.active = true;
-         curvatureTool.center = position;
-         curvatureTool.type = type;
-         std::cout << "Activated curvature manipulation at (" 
-                   << position.t << ", " << position.x << ", " 
-                   << position.y << ", " << position.z << ") with type: " 
-                   << (type == CurvatureManipulationTool::POSITIVE ? "positive" : 
-                       type == CurvatureManipulationTool::NEGATIVE ? "negative" : "wave") 
-                   << std::endl;
-     }
-     
-     void UI4D::deactivateCurvatureManipulation() {
-         curvatureTool.active = false;
-         std::cout << "Deactivated curvature manipulation" << std::endl;
-     }
-     
-     void UI4D::setCurvatureManipulationRadius(float radius) {
-         curvatureTool.radius = radius;
-         std::cout << "Set curvature manipulation radius to: " << radius << std::endl;
-     }
-     
-     void UI4D::setCurvatureManipulationStrength(float strength) {
-         curvatureTool.strength = strength;
-         std::cout << "Set curvature manipulation strength to: " << strength << std::endl;
-     }
-     
-     // Gravitational lensing visualization methods
-     // ============================================================================
-     
-     void UI4D::enableLensingEffect(bool enable) {
-         lensingEffect.enabled = enable;
-         std::cout << "Gravitational lensing effect " << (enable ? "enabled" : "disabled") << std::endl;
-     }
-     
-     void UI4D::setLensingNumRings(int numRings) {
-         lensingEffect.numRings = numRings;
-         std::cout << "Set lensing number of rings to: " << numRings << std::endl;
-     }
-     
-     void UI4D::setLensingRingSpacing(float spacing) {
-         lensingEffect.ringSpacing = spacing;
-         std::cout << "Set lensing ring spacing to: " << spacing << std::endl;
-     }
-     
-     void UI4D::setLensingIntensity(float intensity) {
-         lensingEffect.intensity = intensity;
-         std::cout << "Set lensing intensity to: " << intensity << std::endl;
-     }
-     
-     // Time dilation visualization methods
-     // ============================================================================
-     
-     void UI4D::enableTimeDilationEffect(bool enable) {
-         timeDilationEffect.enabled = enable;
-         std::cout << "Time dilation effect " << (enable ? "enabled" : "disabled") << std::endl;
-     }
-     
-     void UI4D::setTimeDilationRange(float minDilation, float maxDilation) {
-         timeDilationEffect.minDilation = minDilation;
-         timeDilationEffect.maxDilation = maxDilation;
-         std::cout << "Set time dilation range to: [" << minDilation << ", " << maxDilation << "]" << std::endl;
-     }
-     
-     void UI4D::setTimeDilationShowGrid(bool showGrid) {
-         timeDilationEffect.showGrid = showGrid;
-         std::cout << "Set time dilation show grid to: " << (showGrid ? "true" : "false") << std::endl;
-     }
-     
-     // Quantum foam visualization methods
-     // ============================================================================
-     
-     void UI4D::enableQuantumFoamEffect(bool enable) {
-         quantumFoamEffect.enabled = enable;
-         std::cout << "Quantum foam effect " << (enable ? "enabled" : "disabled") << std::endl;
-     }
-     
-     void UI4D::setQuantumFoamScale(float scale) {
-         quantumFoamEffect.scale = scale;
-         std::cout << "Set quantum foam scale to: " << scale << std::endl;
-     }
-     
-     void UI4D::setQuantumFoamFluctuationCount(int count) {
-         quantumFoamEffect.fluctuationCount = count;
-         std::cout << "Set quantum foam fluctuation count to: " << count << std::endl;
-     }
-     
-     void UI4D::setQuantumFoamLifetime(float lifetime) {
-         quantumFoamEffect.lifetime = lifetime;
-         std::cout << "Set quantum foam lifetime to: " << lifetime << std::endl;
-     }
-     
-     void UI4D::setQuantumFoamEnergy(float energy) {
-         quantumFoamEffect.energy = energy;
-         std::cout << "Set quantum foam energy to: " << energy << std::endl;
-     }
-     
-     // Solar system specific methods implementation
-     // ============================================================================
+// Spacetime curvature manipulation methods
+// ============================================================================
 
-    void UI4D::initializeSolarSystem() {
+void UI4D::activateCurvatureManipulation(const Event4D& position,
+                                         CurvatureManipulationTool::Type type) {
+    curvatureTool.active = true;
+    curvatureTool.center = position;
+    curvatureTool.type = type;
+    std::cout << "Activated curvature manipulation at (" << position.t << ", " << position.x << ", "
+              << position.y << ", " << position.z << ") with type: "
+              << (type == CurvatureManipulationTool::POSITIVE   ? "positive"
+                  : type == CurvatureManipulationTool::NEGATIVE ? "negative"
+                                                                : "wave")
+              << std::endl;
+}
+
+void UI4D::deactivateCurvatureManipulation() {
+    curvatureTool.active = false;
+    std::cout << "Deactivated curvature manipulation" << std::endl;
+}
+
+void UI4D::setCurvatureManipulationRadius(float radius) {
+    curvatureTool.radius = radius;
+    std::cout << "Set curvature manipulation radius to: " << radius << std::endl;
+}
+
+void UI4D::setCurvatureManipulationStrength(float strength) {
+    curvatureTool.strength = strength;
+    std::cout << "Set curvature manipulation strength to: " << strength << std::endl;
+}
+
+// Gravitational lensing visualization methods
+// ============================================================================
+
+void UI4D::enableLensingEffect(bool enable) {
+    lensingEffect.enabled = enable;
+    std::cout << "Gravitational lensing effect " << (enable ? "enabled" : "disabled") << std::endl;
+}
+
+void UI4D::setLensingNumRings(int numRings) {
+    lensingEffect.numRings = numRings;
+    std::cout << "Set lensing number of rings to: " << numRings << std::endl;
+}
+
+void UI4D::setLensingRingSpacing(float spacing) {
+    lensingEffect.ringSpacing = spacing;
+    std::cout << "Set lensing ring spacing to: " << spacing << std::endl;
+}
+
+void UI4D::setLensingIntensity(float intensity) {
+    lensingEffect.intensity = intensity;
+    std::cout << "Set lensing intensity to: " << intensity << std::endl;
+}
+
+// Time dilation visualization methods
+// ============================================================================
+
+void UI4D::enableTimeDilationEffect(bool enable) {
+    timeDilationEffect.enabled = enable;
+    std::cout << "Time dilation effect " << (enable ? "enabled" : "disabled") << std::endl;
+}
+
+void UI4D::setTimeDilationRange(float minDilation, float maxDilation) {
+    timeDilationEffect.minDilation = minDilation;
+    timeDilationEffect.maxDilation = maxDilation;
+    std::cout << "Set time dilation range to: [" << minDilation << ", " << maxDilation << "]"
+              << std::endl;
+}
+
+void UI4D::setTimeDilationShowGrid(bool showGrid) {
+    timeDilationEffect.showGrid = showGrid;
+    std::cout << "Set time dilation show grid to: " << (showGrid ? "true" : "false") << std::endl;
+}
+
+// Quantum foam visualization methods
+// ============================================================================
+
+void UI4D::enableQuantumFoamEffect(bool enable) {
+    quantumFoamEffect.enabled = enable;
+    std::cout << "Quantum foam effect " << (enable ? "enabled" : "disabled") << std::endl;
+}
+
+void UI4D::setQuantumFoamScale(float scale) {
+    quantumFoamEffect.scale = scale;
+    std::cout << "Set quantum foam scale to: " << scale << std::endl;
+}
+
+void UI4D::setQuantumFoamFluctuationCount(int count) {
+    quantumFoamEffect.fluctuationCount = count;
+    std::cout << "Set quantum foam fluctuation count to: " << count << std::endl;
+}
+
+void UI4D::setQuantumFoamLifetime(float lifetime) {
+    quantumFoamEffect.lifetime = lifetime;
+    std::cout << "Set quantum foam lifetime to: " << lifetime << std::endl;
+}
+
+void UI4D::setQuantumFoamEnergy(float energy) {
+    quantumFoamEffect.energy = energy;
+    std::cout << "Set quantum foam energy to: " << energy << std::endl;
+}
+
+// Solar system specific methods implementation
+// ============================================================================
+
+void UI4D::initializeSolarSystem() {
     solarSystem.barycenter = Event4D(0.0, 0.0, 0.0, 0.0);
     solarSystem.scaleFactor = 1.0;
 
@@ -590,8 +591,8 @@ void UI4D::endBodyPropertyEditing() {
         calculateOrbitalTrajectory(bodyPair.second, 50);
     }
 
-    std::cout << "[SolarSystem] Initialized " << solarSystem.bodies.size()
-              << " bodies from config" << std::endl;
+    std::cout << "[SolarSystem] Initialized " << solarSystem.bodies.size() << " bodies from config"
+              << std::endl;
 }
 
 void UI4D::updateSolarSystemPositions([[maybe_unused]] double currentTime) {
@@ -601,24 +602,25 @@ void UI4D::updateSolarSystemPositions([[maybe_unused]] double currentTime) {
 }
 
 void UI4D::stepSimulation(double dt, int substeps) {
-    if (substeps < 1) substeps = 1;
+    if (substeps < 1)
+        substeps = 1;
 
     // Adaptive time stepping: calculate max acceleration to determine substep count
     double maxAccel = computeMaxAcceleration();
-    
+
     // Target: each substep should move bodies no more than a fraction of the softening length
     // Higher acceleration → more substeps needed for stability
     double adaptiveSubsteps = substeps;
-    
+
     if (maxAccel > 0.0) {
         // Courant-like condition: dt < sqrt(softening / maxAccel)
-        double softening = 1e6; // 1000 km softening (matches force calculation)
+        double softening = 1e6;  // 1000 km softening (matches force calculation)
         double stableDt = 0.1 * std::sqrt(softening / maxAccel);
         adaptiveSubsteps = std::max(1.0, std::ceil(dt / stableDt));
         // Cap at 1000 substeps to prevent freezing
         adaptiveSubsteps = std::min(adaptiveSubsteps, 1000.0);
     }
-    
+
     substeps = static_cast<int>(adaptiveSubsteps);
     double sub_dt = dt / substeps;
 
@@ -648,21 +650,23 @@ void UI4D::stepSimulation(double dt, int substeps) {
 
 double UI4D::computeMaxAcceleration() const {
     double maxAccel = 0.0;
-    
+
     std::vector<const SolarSystemBody*> ptrs;
     ptrs.reserve(solarSystem.bodies.size());
     for (auto& pair : solarSystem.bodies) {
         ptrs.push_back(&pair.second);
     }
     int n = static_cast<int>(ptrs.size());
-    
+
     for (int i = 0; i < n; ++i) {
-        if (ptrs[i]->isCentralBody) continue;
-        
+        if (ptrs[i]->isCentralBody)
+            continue;
+
         double acc[3] = {0.0, 0.0, 0.0};
         for (int j = 0; j < n; ++j) {
-            if (i == j) continue;
-            
+            if (i == j)
+                continue;
+
             double dx = ptrs[j]->position.x - ptrs[i]->position.x;
             double dy = ptrs[j]->position.y - ptrs[i]->position.y;
             double dz = ptrs[j]->position.z - ptrs[i]->position.z;
@@ -670,16 +674,17 @@ double UI4D::computeMaxAcceleration() const {
             double softening = 1e6;
             double r_soft = std::sqrt(r2 + softening * softening);
             double a_mag = PHYS_G() * ptrs[j]->mass / (r_soft * r_soft);
-            
+
             acc[0] += a_mag * (dx / r_soft);
             acc[1] += a_mag * (dy / r_soft);
             acc[2] += a_mag * (dz / r_soft);
         }
-        
+
         double a_total = std::sqrt(acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]);
-        if (a_total > maxAccel) maxAccel = a_total;
+        if (a_total > maxAccel)
+            maxAccel = a_total;
     }
-    
+
     return maxAccel;
 }
 
@@ -694,36 +699,40 @@ void UI4D::startRecording(int maxFrames, int frameInterval) {
     recordingState.currentFrame = 0;
     recordingState.recording = true;
     recordingState.playing = false;
-    std::cout << "[Telemetry] Recording started (max " << maxFrames << " frames, interval " << frameInterval << ")" << std::endl;
+    std::cout << "[Telemetry] Recording started (max " << maxFrames << " frames, interval "
+              << frameInterval << ")" << std::endl;
 }
 
 void UI4D::stopRecording() {
     if (recordingState.recording) {
         recordingState.recording = false;
-        std::cout << "[Telemetry] Recording stopped (" << recordingState.frames.size() << " frames captured)" << std::endl;
+        std::cout << "[Telemetry] Recording stopped (" << recordingState.frames.size()
+                  << " frames captured)" << std::endl;
     }
 }
 
 void UI4D::recordFrame() {
-    if (!recordingState.recording) return;
-    
+    if (!recordingState.recording)
+        return;
+
     recordingState.frameCounter++;
-    if (recordingState.frameCounter % recordingState.frameInterval != 0) return;
-    
+    if (recordingState.frameCounter % recordingState.frameInterval != 0)
+        return;
+
     if (static_cast<int>(recordingState.frames.size()) >= recordingState.maxFrames) {
         recordingState.recording = false;
         std::cout << "[Telemetry] Recording buffer full" << std::endl;
         return;
     }
-    
+
     TelemetryFrame frame;
-    frame.time = recordingState.frames.size() * recordingState.frameInterval / 60.0; // ~60fps
-    
+    frame.time = recordingState.frames.size() * recordingState.frameInterval / 60.0;  // ~60fps
+
     auto tel = getTelemetry();
     frame.totalEnergy = tel.totalEnergy;
     frame.kineticEnergy = tel.totalKineticEnergy;
     frame.potentialEnergy = tel.totalPotentialEnergy;
-    
+
     for (auto& pair : solarSystem.bodies) {
         auto& body = pair.second;
         frame.names.push_back(body.name);
@@ -734,16 +743,18 @@ void UI4D::recordFrame() {
         frame.velocities.push_back(body.velocity.y);
         frame.velocities.push_back(body.velocity.z);
     }
-    
+
     recordingState.frames.push_back(frame);
 }
 
 void UI4D::playRecording() {
-    if (recordingState.frames.empty()) return;
+    if (recordingState.frames.empty())
+        return;
     recordingState.playing = true;
     recordingState.recording = false;
     recordingState.currentFrame = 0;
-    std::cout << "[Telemetry] Playback started (" << recordingState.frames.size() << " frames)" << std::endl;
+    std::cout << "[Telemetry] Playback started (" << recordingState.frames.size() << " frames)"
+              << std::endl;
 }
 
 void UI4D::pausePlayback() {
@@ -756,13 +767,16 @@ void UI4D::stopPlayback() {
 }
 
 void UI4D::scrubToFrame(int frameIndex) {
-    if (recordingState.frames.empty()) return;
-    recordingState.currentFrame = std::max(0, std::min(frameIndex, static_cast<int>(recordingState.frames.size()) - 1));
+    if (recordingState.frames.empty())
+        return;
+    recordingState.currentFrame =
+        std::max(0, std::min(frameIndex, static_cast<int>(recordingState.frames.size()) - 1));
     applyFrame(recordingState.currentFrame);
 }
 
 void UI4D::scrubToTime(double time) {
-    if (recordingState.frames.empty()) return;
+    if (recordingState.frames.empty())
+        return;
     for (int i = 0; i < static_cast<int>(recordingState.frames.size()); ++i) {
         if (recordingState.frames[i].time >= time) {
             scrubToFrame(i);
@@ -772,7 +786,8 @@ void UI4D::scrubToTime(double time) {
 }
 
 double UI4D::recordingDuration() const {
-    if (recordingState.frames.empty()) return 0.0;
+    if (recordingState.frames.empty())
+        return 0.0;
     return recordingState.frames.back().time;
 }
 
@@ -782,7 +797,7 @@ void UI4D::exportToCSV(const std::string& filepath) const {
         std::cerr << "[Telemetry] Failed to open " << filepath << " for export" << std::endl;
         return;
     }
-    
+
     // Header
     file << "frame,time";
     if (!recordingState.frames.empty()) {
@@ -792,18 +807,22 @@ void UI4D::exportToCSV(const std::string& filepath) const {
         }
     }
     file << ",total_energy,kinetic_energy,potential_energy\n";
-    
+
     // Data
     for (int i = 0; i < static_cast<int>(recordingState.frames.size()); ++i) {
         auto& frame = recordingState.frames[i];
         file << i << "," << frame.time;
-        for (double v : frame.positions) file << "," << v;
-        for (double v : frame.velocities) file << "," << v;
-        file << "," << frame.totalEnergy << "," << frame.kineticEnergy << "," << frame.potentialEnergy << "\n";
+        for (double v : frame.positions)
+            file << "," << v;
+        for (double v : frame.velocities)
+            file << "," << v;
+        file << "," << frame.totalEnergy << "," << frame.kineticEnergy << ","
+             << frame.potentialEnergy << "\n";
     }
-    
+
     file.close();
-    std::cout << "[Telemetry] Exported " << recordingState.frames.size() << " frames to " << filepath << std::endl;
+    std::cout << "[Telemetry] Exported " << recordingState.frames.size() << " frames to "
+              << filepath << std::endl;
 }
 
 void UI4D::clearRecording() {
@@ -814,21 +833,23 @@ void UI4D::clearRecording() {
 }
 
 void UI4D::applyFrame(int frameIndex) {
-    if (frameIndex < 0 || frameIndex >= static_cast<int>(recordingState.frames.size())) return;
-    
+    if (frameIndex < 0 || frameIndex >= static_cast<int>(recordingState.frames.size()))
+        return;
+
     auto& frame = recordingState.frames[frameIndex];
-    
+
     // Build name lookup for current bodies
     std::unordered_map<std::string, SolarSystemBody*> bodyMap;
     for (auto& pair : solarSystem.bodies) {
         bodyMap[pair.first] = &pair.second;
     }
-    
+
     // Apply recorded state
     for (int i = 0; i < static_cast<int>(frame.names.size()); ++i) {
         auto it = bodyMap.find(frame.names[i]);
-        if (it == bodyMap.end()) continue;
-        
+        if (it == bodyMap.end())
+            continue;
+
         auto* body = it->second;
         body->position.x = frame.positions[i * 3 + 0];
         body->position.y = frame.positions[i * 3 + 1];
@@ -847,10 +868,12 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
         bi->acc[1] = 0.0;
         bi->acc[2] = 0.0;
 
-        if (bi->isCentralBody) continue;
+        if (bi->isCentralBody)
+            continue;
 
         for (int j = 0; j < n; ++j) {
-            if (i == j) continue;
+            if (i == j)
+                continue;
             SolarSystemBody* bj = bodyPtrs[j];
 
             double dx = bj->position.x - bi->position.x;
@@ -902,8 +925,9 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
             if (bj->isCentralBody && m_kerrSpin > 1e-10) {
                 double G = PHYS_G();
                 double c2 = PHYS_C2();
-                double J = m_kerrSpin * G * bj->mass * bj->mass; // J = a*GM²/c (dimensionless spin)
-                
+                double J =
+                    m_kerrSpin * G * bj->mass * bj->mass;  // J = a*GM²/c (dimensionless spin)
+
                 double r = std::sqrt(r2);
                 if (r > softening) {
                     // Lense-Thirring acceleration: a_LT = (2GJ/c²r³) * [3(r·v)r/r² - v×(Ĵ×r̂)]
@@ -911,22 +935,22 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
                     double vx = bi->velocity.x;
                     double vy = bi->velocity.y;
                     double vz = bi->velocity.z;
-                    
+
                     double r_dot_v = dx * vx + dy * vy + dz * vz;
                     double r_hat_x = dx / r;
                     double r_hat_y = dy / r;
                     double r_hat_z = dz / r;
-                    
+
                     // Ĵ × r̂ (J along z)
                     double J_cross_r_x = -r_hat_y;
                     double J_cross_r_y = r_hat_x;
                     double J_cross_r_z = 0.0;
-                    
+
                     // v × (Ĵ × r̂)
                     double v_cross_Jr_x = vy * J_cross_r_z - vz * J_cross_r_y;
                     double v_cross_Jr_y = vz * J_cross_r_x - vx * J_cross_r_z;
                     double v_cross_Jr_z = vx * J_cross_r_y - vy * J_cross_r_x;
-                    
+
                     // 3(r·v)r/r² - v×(Ĵ×r̂)
                     double factor = 2.0 * G * J / (c2 * r * r * r);
                     bi->acc[0] += factor * (3.0 * r_dot_v * r_hat_x / r2 - v_cross_Jr_x);
@@ -939,14 +963,16 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
 
     // 2. Leapfrog Kick-Drift-Kick
     for (int i = 0; i < n; ++i) {
-        if (bodyPtrs[i]->isCentralBody) continue;
+        if (bodyPtrs[i]->isCentralBody)
+            continue;
         bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
     }
 
     for (int i = 0; i < n; ++i) {
-        if (bodyPtrs[i]->isCentralBody) continue;
+        if (bodyPtrs[i]->isCentralBody)
+            continue;
         bodyPtrs[i]->position.x += bodyPtrs[i]->velocity.x * sub_dt;
         bodyPtrs[i]->position.y += bodyPtrs[i]->velocity.y * sub_dt;
         bodyPtrs[i]->position.z += bodyPtrs[i]->velocity.z * sub_dt;
@@ -959,10 +985,12 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
         bi->acc[1] = 0.0;
         bi->acc[2] = 0.0;
 
-        if (bi->isCentralBody) continue;
+        if (bi->isCentralBody)
+            continue;
 
         for (int j = 0; j < n; ++j) {
-            if (i == j) continue;
+            if (i == j)
+                continue;
             SolarSystemBody* bj = bodyPtrs[j];
 
             double dx = bj->position.x - bi->position.x;
@@ -1009,7 +1037,8 @@ void UI4D::stepSimulationCPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
     }
 
     for (int i = 0; i < n; ++i) {
-        if (bodyPtrs[i]->isCentralBody) continue;
+        if (bodyPtrs[i]->isCentralBody)
+            continue;
         bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
@@ -1052,7 +1081,8 @@ void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
 
     // Upload data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboPositions);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.positionData.data());
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float),
+                    gpuAccel.positionData.data());
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboMasses);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * sizeof(float), gpuAccel.massData.data());
@@ -1077,7 +1107,8 @@ void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
 
     // Read back accelerations
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboAccelerations);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.accelerationData.data());
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float),
+                       gpuAccel.accelerationData.data());
 
     // Store accelerations
     for (int i = 0; i < n; ++i) {
@@ -1088,14 +1119,16 @@ void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
 
     // Leapfrog Kick-Drift-Kick (on CPU)
     for (int i = 0; i < n; ++i) {
-        if (bodyPtrs[i]->isCentralBody) continue;
+        if (bodyPtrs[i]->isCentralBody)
+            continue;
         bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
     }
 
     for (int i = 0; i < n; ++i) {
-        if (bodyPtrs[i]->isCentralBody) continue;
+        if (bodyPtrs[i]->isCentralBody)
+            continue;
         bodyPtrs[i]->position.x += bodyPtrs[i]->velocity.x * sub_dt;
         bodyPtrs[i]->position.y += bodyPtrs[i]->velocity.y * sub_dt;
         bodyPtrs[i]->position.z += bodyPtrs[i]->velocity.z * sub_dt;
@@ -1110,7 +1143,8 @@ void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
     }
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboPositions);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.positionData.data());
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float),
+                    gpuAccel.positionData.data());
 
     gpuAccel.computeShader->use();
     gpuAccel.computeShader->setUniform("G", static_cast<float>(PHYS_G()));
@@ -1122,7 +1156,8 @@ void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboAccelerations);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float), gpuAccel.accelerationData.data());
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, n * 4 * sizeof(float),
+                       gpuAccel.accelerationData.data());
 
     for (int i = 0; i < n; ++i) {
         bodyPtrs[i]->acc[0] = gpuAccel.accelerationData[i * 4 + 0];
@@ -1131,7 +1166,8 @@ void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
     }
 
     for (int i = 0; i < n; ++i) {
-        if (bodyPtrs[i]->isCentralBody) continue;
+        if (bodyPtrs[i]->isCentralBody)
+            continue;
         bodyPtrs[i]->velocity.x += bodyPtrs[i]->acc[0] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.y += bodyPtrs[i]->acc[1] * sub_dt * 0.5;
         bodyPtrs[i]->velocity.z += bodyPtrs[i]->acc[2] * sub_dt * 0.5;
@@ -1144,7 +1180,8 @@ void UI4D::stepSimulationGPU(double sub_dt, std::vector<SolarSystemBody*>& bodyP
 
 void UI4D::initGPUAcceleration() {
 #if HAS_GLAD
-    if (gpuAccel.initialized) return;
+    if (gpuAccel.initialized)
+        return;
 
     if (!ComputeShader::isComputeSupported()) {
         std::cout << "[GPU] Compute shaders not supported on this GPU" << std::endl;
@@ -1227,15 +1264,18 @@ void main() {
 
     glGenBuffers(1, &gpuAccel.ssboPositions);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboPositions);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * 4 * sizeof(float), nullptr,
+                 GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &gpuAccel.ssboMasses);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboMasses);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * sizeof(float), nullptr,
+                 GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &gpuAccel.ssboAccelerations);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gpuAccel.ssboAccelerations);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, gpuAccel.maxBodies * 4 * sizeof(float), nullptr,
+                 GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -1246,7 +1286,8 @@ void main() {
     gpuAccel.initialized = true;
     gpuAccel.enabled = true;
 
-    std::cout << "[GPU] N-body acceleration initialized (max " << gpuAccel.maxBodies << " bodies)" << std::endl;
+    std::cout << "[GPU] N-body acceleration initialized (max " << gpuAccel.maxBodies << " bodies)"
+              << std::endl;
 #else
     gpuAccel.enabled = false;
     gpuAccel.initialized = false;
@@ -1255,7 +1296,8 @@ void main() {
 
 void UI4D::shutdownGPUAcceleration() {
 #if HAS_GLAD
-    if (!gpuAccel.initialized) return;
+    if (!gpuAccel.initialized)
+        return;
 
     if (gpuAccel.ssboPositions != 0) {
         glDeleteBuffers(1, &gpuAccel.ssboPositions);
@@ -1285,7 +1327,7 @@ void UI4D::calculateOrbitalTrajectory(const SolarSystemBody& body, int points) {
     if (it != solarSystem.bodies.end()) {
         SolarSystemBody& mutableBody = it->second;
         mutableBody.orbitPoints.clear();
-        
+
         for (int i = 0; i < points; i++) {
             double phase = static_cast<double>(i) / points * 2.0 * M_PI;
             double x = body.semiMajorAxis * std::cos(phase);
@@ -1333,10 +1375,8 @@ UI4D::PhysicsTelemetry UI4D::getTelemetry() const {
 
     // Angular momentum (Z-component): sum of m * (x*vy - y*vx)
     for (int i = 0; i < n; ++i) {
-        tel.angularMomentumZ += ptrs[i]->mass * (
-            ptrs[i]->position.x * ptrs[i]->velocity.y -
-            ptrs[i]->position.y * ptrs[i]->velocity.x
-        );
+        tel.angularMomentumZ += ptrs[i]->mass * (ptrs[i]->position.x * ptrs[i]->velocity.y -
+                                                 ptrs[i]->position.y * ptrs[i]->velocity.x);
     }
 
     // Earth-specific data
@@ -1381,7 +1421,7 @@ UI4D::PhysicsTelemetry UI4D::getTelemetry() const {
                 double v2 = vx * vx + vy * vy + vz * vz;
 
                 // Observer distance (use 1 AU as reference)
-                double r_obs = 1.496e11; // 1 AU
+                double r_obs = 1.496e11;  // 1 AU
 
                 // Gravitational wave strain amplitude
                 // h ≈ (4G / c⁴) * μ * v² / r_obs
@@ -1397,7 +1437,7 @@ UI4D::PhysicsTelemetry UI4D::getTelemetry() const {
                 // Chirp mass: Mc = (m1*m2)^(3/5) / (m1+m2)^(1/5)
                 double m1 = sun.mass;
                 double m2 = earth.mass;
-                tel.chirpMass = std::pow(m1 * m2, 3.0/5.0) / std::pow(m1 + m2, 1.0/5.0);
+                tel.chirpMass = std::pow(m1 * m2, 3.0 / 5.0) / std::pow(m1 + m2, 1.0 / 5.0);
             }
         }
     }
@@ -1405,12 +1445,12 @@ UI4D::PhysicsTelemetry UI4D::getTelemetry() const {
     return tel;
 }
 
-void UI4D::injectAsteroid(double x, double y, double z, double vx, double vy, double vz, double mass)
-{
+void UI4D::injectAsteroid(double x, double y, double z, double vx, double vy, double vz,
+                          double mass) {
     SolarSystemBody asteroid;
     asteroid.name = "Asteroid_" + std::to_string(asteroidCount());
     asteroid.mass = mass;
-    asteroid.radius = 1000.0; // 1 km default
+    asteroid.radius = 1000.0;  // 1 km default
     asteroid.position = Event4D(0.0, x, y, z);
     asteroid.velocity = Event4D(0.0, vx, vy, vz);
     asteroid.acc[0] = asteroid.acc[1] = asteroid.acc[2] = 0.0;
@@ -1422,13 +1462,13 @@ void UI4D::injectAsteroid(double x, double y, double z, double vx, double vy, do
     asteroid.textureId = "asteroid_texture";
     solarSystem.bodies[asteroid.name] = asteroid;
 
-    std::cout << "[Asteroid] Injected " << asteroid.name << " at (" << x << ", " << y << ", " << z << ")"
+    std::cout << "[Asteroid] Injected " << asteroid.name << " at (" << x << ", " << y << ", " << z
+              << ")"
               << " v=(" << vx << ", " << vy << ", " << vz << ")"
               << " m=" << mass << " kg" << std::endl;
 }
 
-void UI4D::clearAsteroids()
-{
+void UI4D::clearAsteroids() {
     // Remove all bodies that are not the Sun or planets
     std::vector<std::string> toRemove;
     for (auto& pair : solarSystem.bodies) {
@@ -1441,15 +1481,14 @@ void UI4D::clearAsteroids()
     }
 }
 
-void UI4D::removeLastAsteroid()
-{
+void UI4D::removeLastAsteroid() {
     // Find the last injected asteroid (highest number)
     std::string lastAsteroid;
     int lastNum = -1;
     for (auto& pair : solarSystem.bodies) {
         if (pair.second.name.find("Asteroid_") == 0) {
             // Extract number from name
-            std::string numStr = pair.second.name.substr(9); // After "Asteroid_"
+            std::string numStr = pair.second.name.substr(9);  // After "Asteroid_"
             int num = std::stoi(numStr);
             if (num > lastNum) {
                 lastNum = num;
@@ -1462,8 +1501,7 @@ void UI4D::removeLastAsteroid()
     }
 }
 
-int UI4D::asteroidCount() const
-{
+int UI4D::asteroidCount() const {
     int count = 0;
     for (auto& pair : solarSystem.bodies) {
         if (pair.second.name.find("Asteroid_") == 0) {
@@ -1532,8 +1570,8 @@ bool UI4D::loadScenario(const Scenario& scenario) {
     applyScenarioAudio();
 
     std::cout << "[Scenario] Loaded " << solarSystem.bodies.size() << " bodies, "
-              << scenario.events.size() << " events, "
-              << scenario.camera_path.size() << " camera keyframes" << std::endl;
+              << scenario.events.size() << " events, " << scenario.camera_path.size()
+              << " camera keyframes" << std::endl;
 
     return true;
 }
@@ -1564,7 +1602,8 @@ void UI4D::stopScenario() {
 }
 
 void UI4D::stepScenario(double dt) {
-    if (!scenarioState.active || !scenarioState.playing) return;
+    if (!scenarioState.active || !scenarioState.playing)
+        return;
 
     auto& state = scenarioState;
     double prev_time = state.time;
@@ -1582,7 +1621,8 @@ void UI4D::stepScenario(double dt) {
 }
 
 void UI4D::processScenarioEvents(double prev_time, double curr_time) {
-    if (!scenarioState.current_scenario) return;
+    if (!scenarioState.current_scenario)
+        return;
 
     const auto& events = scenarioState.current_scenario->events;
     auto& idx = scenarioState.next_event_index;
@@ -1596,8 +1636,7 @@ void UI4D::processScenarioEvents(double prev_time, double curr_time) {
 }
 
 void UI4D::executeScenarioEvent(const ScenarioEvent& event) {
-    std::cout << "[Scenario] Event at t=" << event.time << "s: "
-              << eventTypeToString(event.type);
+    std::cout << "[Scenario] Event at t=" << event.time << "s: " << eventTypeToString(event.type);
 
     switch (event.type) {
         case ScenarioEventType::INJECT_ASTEROID:
@@ -1662,29 +1701,29 @@ void UI4D::executeScenarioEvent(const ScenarioEvent& event) {
 }
 
 void UI4D::applyScenarioCamera() {
-    if (!scenarioState.current_scenario) return;
+    if (!scenarioState.current_scenario)
+        return;
 
     const auto& path = scenarioState.current_scenario->camera_path;
-    if (path.empty()) return;
+    if (path.empty())
+        return;
 
-     ScenarioCameraState state = interpolateCamera(path, scenarioState.time);
-     setCameraFromState(state);
+    ScenarioCameraState state = interpolateCamera(path, scenarioState.time);
+    setCameraFromState(state);
 }
 
 void UI4D::applyScenarioAudio() {
-    if (!scenarioState.current_scenario) return;
+    if (!scenarioState.current_scenario)
+        return;
     const auto& audio = scenarioState.current_scenario->audio;
-    std::cout << "[Scenario] Audio: enabled=" << audio.enabled
-              << " vol=" << audio.volume
+    std::cout << "[Scenario] Audio: enabled=" << audio.enabled << " vol=" << audio.volume
               << " freq=" << audio.base_frequency << std::endl;
 }
 
 void UI4D::setCameraFromState(const ScenarioCameraState& state) {
-    camera = Camera4D(
-        Event4D(0.0, state.position[0], state.position[1], state.position[2]),
-        Event4D(0.0, state.target[0], state.target[1], state.target[2]),
-        state.fov * M_PI / 180.0
-    );
+    camera = Camera4D(Event4D(0.0, state.position[0], state.position[1], state.position[2]),
+                      Event4D(0.0, state.target[0], state.target[1], state.target[2]),
+                      state.fov * M_PI / 180.0);
 }
 
 void UI4D::injectAsteroidFromEvent(const ScenarioEvent& event) {
@@ -1714,21 +1753,25 @@ void UI4D::addBodyFromConfig(const ScenarioBodyConfig& localConfig) {
     body.textureId = localConfig.name + "_texture";
 
     if (body.semiMajorAxis > 0.0 && !localConfig.is_central_body) {
-        double centralMass = scenarioState.current_scenario ?
-            scenarioState.current_scenario->central_body.mass_kg : 1.989e30;
+        double centralMass = scenarioState.current_scenario
+                                 ? scenarioState.current_scenario->central_body.mass_kg
+                                 : 1.989e30;
         double orbitalVelocity = std::sqrt((PHYS_G() * centralMass) / body.semiMajorAxis);
         body.position = Event4D(0.0, body.semiMajorAxis, 0.0, 0.0);
         body.velocity = Event4D(0.0, 0.0, -orbitalVelocity, 0.0);
     } else {
-        body.position = Event4D(0.0, localConfig.position[0], localConfig.position[1], localConfig.position[2]);
-        body.velocity = Event4D(0.0, localConfig.velocity[0], localConfig.velocity[1], localConfig.velocity[2]);
+        body.position =
+            Event4D(0.0, localConfig.position[0], localConfig.position[1], localConfig.position[2]);
+        body.velocity =
+            Event4D(0.0, localConfig.velocity[0], localConfig.velocity[1], localConfig.velocity[2]);
     }
 
     solarSystem.bodies[body.name] = body;
 }
 
 void UI4D::renderSolarSystem() {
-    if (!showSolarSystem) return;
+    if (!showSolarSystem)
+        return;
 
     if (scenarioState.active && scenarioState.playing) {
         stepScenario(0.016);
@@ -1743,67 +1786,64 @@ void UI4D::renderSolarSystem() {
 
     for (const auto& bodyPair : solarSystem.bodies) {
         const SolarSystemBody& body = bodyPair.second;
-        
-        if (!showBodyMarkers) continue;
-        
-        Event4D scaledPos(
-            body.position.t,
-            body.position.x * solarSystem.scaleFactor,
-            body.position.y * solarSystem.scaleFactor,
-            body.position.z * solarSystem.scaleFactor
-        );
-        
-        std::cout << "Rendering " << body.name << " at position: ("
-                  << scaledPos.t << ", " << scaledPos.x << ", "
-                  << scaledPos.y << ", " << scaledPos.z << ")" << std::endl;
-        
+
+        if (!showBodyMarkers)
+            continue;
+
+        Event4D scaledPos(body.position.t, body.position.x * solarSystem.scaleFactor,
+                          body.position.y * solarSystem.scaleFactor,
+                          body.position.z * solarSystem.scaleFactor);
+
+        std::cout << "Rendering " << body.name << " at position: (" << scaledPos.t << ", "
+                  << scaledPos.x << ", " << scaledPos.y << ", " << scaledPos.z << ")" << std::endl;
+
         if (showOrbitalTrajectories && !body.orbitPoints.empty()) {
-            std::cout << "Rendering orbit for " << body.name << " with "
-                      << body.orbitPoints.size() << " points" << std::endl;
+            std::cout << "Rendering orbit for " << body.name << " with " << body.orbitPoints.size()
+                      << " points" << std::endl;
         }
-        
+
         if (solarSystem.showLabels) {
-            std::cout << "Label for " << body.name << " at position: ("
-                      << scaledPos.t << ", " << scaledPos.x << ", "
-                      << scaledPos.y << ", " << scaledPos.z << ")" << std::endl;
+            std::cout << "Label for " << body.name << " at position: (" << scaledPos.t << ", "
+                      << scaledPos.x << ", " << scaledPos.y << ", " << scaledPos.z << ")"
+                      << std::endl;
         }
     }
 }
 
 void UI4D::renderPlanetaryDataPanel(const std::string& bodyName) {
-    if (!showDataPanels) return;
-    
+    if (!showDataPanels)
+        return;
+
     auto it = solarSystem.bodies.find(bodyName);
     if (it == solarSystem.bodies.end()) {
         std::cout << "Body not found: " << bodyName << std::endl;
         return;
     }
-    
+
     const SolarSystemBody& body = it->second;
-    
+
     std::cout << "=== " << body.name << " Data Panel ===" << std::endl;
     std::cout << "Mass: " << body.mass << " kg" << std::endl;
     std::cout << "Radius: " << body.radius << " m" << std::endl;
     std::cout << "Semi-major axis: " << body.semiMajorAxis << " m" << std::endl;
-    std::cout << "Orbital period: " << body.orbitalPeriod << " s (" 
+    std::cout << "Orbital period: " << body.orbitalPeriod << " s ("
               << body.orbitalPeriod / (24.0 * 3600.0) << " days)" << std::endl;
-    
+
     if (!body.isCentralBody) {
-        double orbitalVelocity = std::sqrt((Event4D::C * Event4D::C * 1.989e30) / body.semiMajorAxis);
+        double orbitalVelocity =
+            std::sqrt((Event4D::C * Event4D::C * 1.989e30) / body.semiMajorAxis);
         std::cout << "Orbital velocity: " << orbitalVelocity << " m/s" << std::endl;
     }
-    
-    std::cout << "Current position: (" << body.position.t << ", "
-              << body.position.x << ", " << body.position.y << ", "
-              << body.position.z << ")" << std::endl;
-    std::cout << "Current velocity: (" << body.velocity.t << ", "
-              << body.velocity.x << ", " << body.velocity.y << ", "
-              << body.velocity.z << ")" << std::endl;
+
+    std::cout << "Current position: (" << body.position.t << ", " << body.position.x << ", "
+              << body.position.y << ", " << body.position.z << ")" << std::endl;
+    std::cout << "Current velocity: (" << body.velocity.t << ", " << body.velocity.x << ", "
+              << body.velocity.y << ", " << body.velocity.z << ")" << std::endl;
 }
 
 void UI4D::createSolarSystemEventMarkers() {
     eventToBodyMap.clear();
-    
+
     for (const auto& bodyPair : solarSystem.bodies) {
         const SolarSystemBody& body = bodyPair.second;
         int eventIndex = addEvent(body.position);
@@ -1819,22 +1859,19 @@ void UI4D::setSolarSystemScale(double scale) {
 // Slice view controls
 // ============================================================================
 
-void UI4D::setSliceMode(int viewIndex, SlicingMode mode)
-{
+void UI4D::setSliceMode(int viewIndex, SlicingMode mode) {
     if (viewIndex >= 0 && viewIndex < (int)sliceViews.size()) {
         sliceViews[viewIndex].setMode(mode);
     }
 }
 
-void UI4D::setSliceParameter(int viewIndex, double parameter)
-{
+void UI4D::setSliceParameter(int viewIndex, double parameter) {
     if (viewIndex >= 0 && viewIndex < (int)sliceViews.size()) {
         sliceViews[viewIndex].setParameter(parameter);
     }
 }
 
-void UI4D::nextSliceMode(int viewIndex)
-{
+void UI4D::nextSliceMode(int viewIndex) {
     if (viewIndex >= 0 && viewIndex < (int)sliceViews.size()) {
         SlicingMode current = sliceViews[viewIndex].getMode();
         int modeValue = static_cast<int>(current);
@@ -1843,12 +1880,12 @@ void UI4D::nextSliceMode(int viewIndex)
     }
 }
 
-void UI4D::previousSliceMode(int viewIndex)
-{
+void UI4D::previousSliceMode(int viewIndex) {
     if (viewIndex >= 0 && viewIndex < (int)sliceViews.size()) {
         SlicingMode current = sliceViews[viewIndex].getMode();
         int modeValue = static_cast<int>(current);
-        int prevValue = (modeValue - 1 + static_cast<int>(SlicingMode::COUNT)) % static_cast<int>(SlicingMode::COUNT);
+        int prevValue = (modeValue - 1 + static_cast<int>(SlicingMode::COUNT)) %
+                        static_cast<int>(SlicingMode::COUNT);
         sliceViews[viewIndex].setMode(static_cast<SlicingMode>(prevValue));
     }
 }
@@ -1891,9 +1928,9 @@ double computeProperTimeInterval(const MetricTensor& metric, const Event4D& e1, 
  * @param targetProperTime Target proper time
  * @return Index of the closest event
  */
-int findProperTimeIndex(const std::vector<Event4D>& worldLine, double targetProperTime)
-{
-    if (worldLine.empty()) return 0;
+int findProperTimeIndex(const std::vector<Event4D>& worldLine, double targetProperTime) {
+    if (worldLine.empty())
+        return 0;
 
     // Accumulate proper time along the world-line
     double accumulated = 0.0;
@@ -1901,13 +1938,13 @@ int findProperTimeIndex(const std::vector<Event4D>& worldLine, double targetProp
     int bestIndex = 0;
 
     for (size_t i = 1; i < worldLine.size(); i++) {
-        double dt = worldLine[i].t - worldLine[i-1].t;
-        double dx = worldLine[i].x - worldLine[i-1].x;
-        double dy = worldLine[i].y - worldLine[i-1].y;
-        double dz = worldLine[i].z - worldLine[i-1].z;
+        double dt = worldLine[i].t - worldLine[i - 1].t;
+        double dx = worldLine[i].x - worldLine[i - 1].x;
+        double dy = worldLine[i].y - worldLine[i - 1].y;
+        double dz = worldLine[i].z - worldLine[i - 1].z;
 
         // Use Minkowski interval as approximation for proper time increment
-        double ds2 = -(dt*dt) + dx*dx + dy*dy + dz*dz;
+        double ds2 = -(dt * dt) + dx * dx + dy * dy + dz * dz;
         if (ds2 < 0) {
             accumulated += std::sqrt(-ds2);
         }
@@ -1927,9 +1964,8 @@ int findProperTimeIndex(const std::vector<Event4D>& worldLine, double targetProp
  * @param index Index of the point on the world-line
  * @return Three orthonormal spatial vectors perpendicular to the 4-velocity
  */
-std::array<std::array<double, 4>, 3> computeOrthogonalFrame(
-    const std::vector<Event4D>& worldLine, int index)
-{
+std::array<std::array<double, 4>, 3> computeOrthogonalFrame(const std::vector<Event4D>& worldLine,
+                                                            int index) {
     std::array<std::array<double, 4>, 3> frame;
 
     // Compute 4-velocity (tangent to world-line)
@@ -1937,13 +1973,13 @@ std::array<std::array<double, 4>, 3> computeOrthogonalFrame(
 
     if (index > 0 && index < static_cast<int>(worldLine.size()) - 1) {
         // Central difference for velocity
-        double dt = worldLine[index+1].t - worldLine[index-1].t;
-        double dx = worldLine[index+1].x - worldLine[index-1].x;
-        double dy = worldLine[index+1].y - worldLine[index-1].y;
-        double dz = worldLine[index+1].z - worldLine[index-1].z;
-        double norm = std::sqrt(std::abs(-dt*dt + dx*dx + dy*dy + dz*dz));
+        double dt = worldLine[index + 1].t - worldLine[index - 1].t;
+        double dx = worldLine[index + 1].x - worldLine[index - 1].x;
+        double dy = worldLine[index + 1].y - worldLine[index - 1].y;
+        double dz = worldLine[index + 1].z - worldLine[index - 1].z;
+        double norm = std::sqrt(std::abs(-dt * dt + dx * dx + dy * dy + dz * dz));
         if (norm > 1e-10) {
-            u = {dt/norm, dx/norm, dy/norm, dz/norm};
+            u = {dt / norm, dx / norm, dy / norm, dz / norm};
         }
     } else if (worldLine.size() >= 2) {
         // Forward or backward difference at endpoints
@@ -1952,9 +1988,9 @@ std::array<std::array<double, 4>, 3> computeOrthogonalFrame(
         double dx = worldLine[next].x - worldLine[index].x;
         double dy = worldLine[next].y - worldLine[index].y;
         double dz = worldLine[next].z - worldLine[index].z;
-        double norm = std::sqrt(std::abs(-dt*dt + dx*dx + dy*dy + dz*dz));
+        double norm = std::sqrt(std::abs(-dt * dt + dx * dx + dy * dy + dz * dz));
         if (norm > 1e-10) {
-            u = {dt/norm, dx/norm, dy/norm, dz/norm};
+            u = {dt / norm, dx / norm, dy / norm, dz / norm};
         }
     }
 
@@ -1966,8 +2002,8 @@ std::array<std::array<double, 4>, 3> computeOrthogonalFrame(
 
     // Project out u component (using Minkowski inner product)
     auto projectOut = [&u](std::array<double, 4>& v) {
-        double dot = -(u[0]*v[0]) + u[1]*v[1] + u[2]*v[2] + u[3]*v[3];
-        double uNorm = -(u[0]*u[0]) + u[1]*u[1] + u[2]*u[2] + u[3]*u[3];
+        double dot = -(u[0] * v[0]) + u[1] * v[1] + u[2] * v[2] + u[3] * v[3];
+        double uNorm = -(u[0] * u[0]) + u[1] * u[1] + u[2] * u[2] + u[3] * u[3];
         if (std::abs(uNorm) > 1e-10) {
             for (int i = 0; i < 4; i++) {
                 v[i] -= (dot / uNorm) * u[i];
@@ -1981,29 +2017,34 @@ std::array<std::array<double, 4>, 3> computeOrthogonalFrame(
 
     // Normalize (spatial norm)
     auto spatialNorm = [](const std::array<double, 4>& v) {
-        return std::sqrt(v[1]*v[1] + v[2]*v[2] + v[3]*v[3]);
+        return std::sqrt(v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
     };
 
     double n1 = spatialNorm(e1);
     if (n1 > 1e-10) {
-        for (int i = 0; i < 4; i++) e1[i] /= n1;
+        for (int i = 0; i < 4; i++)
+            e1[i] /= n1;
     }
 
     // Make e2 orthogonal to e1
-    double dot12 = e1[1]*e2[1] + e1[2]*e2[2] + e1[3]*e2[3];
-    for (int i = 0; i < 4; i++) e2[i] -= dot12 * e1[i];
+    double dot12 = e1[1] * e2[1] + e1[2] * e2[2] + e1[3] * e2[3];
+    for (int i = 0; i < 4; i++)
+        e2[i] -= dot12 * e1[i];
     double n2 = spatialNorm(e2);
     if (n2 > 1e-10) {
-        for (int i = 0; i < 4; i++) e2[i] /= n2;
+        for (int i = 0; i < 4; i++)
+            e2[i] /= n2;
     }
 
     // Make e3 orthogonal to e1 and e2
-    double dot13 = e1[1]*e3[1] + e1[2]*e3[2] + e1[3]*e3[3];
-    double dot23 = e2[1]*e3[1] + e2[2]*e3[2] + e2[3]*e3[3];
-    for (int i = 0; i < 4; i++) e3[i] -= dot13 * e1[i] + dot23 * e2[i];
+    double dot13 = e1[1] * e3[1] + e1[2] * e3[2] + e1[3] * e3[3];
+    double dot23 = e2[1] * e3[1] + e2[2] * e3[2] + e2[3] * e3[3];
+    for (int i = 0; i < 4; i++)
+        e3[i] -= dot13 * e1[i] + dot23 * e2[i];
     double n3 = spatialNorm(e3);
     if (n3 > 1e-10) {
-        for (int i = 0; i < 4; i++) e3[i] /= n3;
+        for (int i = 0; i < 4; i++)
+            e3[i] /= n3;
     }
 
     frame[0] = e1;
@@ -2012,10 +2053,9 @@ std::array<std::array<double, 4>, 3> computeOrthogonalFrame(
     return frame;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
-void SliceView::updateSlice()
-{
+void SliceView::updateSlice() {
     slicePoints.clear();
 
     // Generate points on the 3D slice based on current mode
@@ -2053,15 +2093,15 @@ void SliceView::updateSlice()
                     for (int j = 0; j < gridSize; j++) {
                         for (int k = 0; k < gridSize; k++) {
                             double offset = range * (2.0 * i / (gridSize - 1) - 1.0);
-                            double x = origin.x + offset * frame[0][1]
-                                             + range * (2.0 * j / (gridSize - 1) - 1.0) * frame[1][1]
-                                             + range * (2.0 * k / (gridSize - 1) - 1.0) * frame[2][1];
-                            double y = origin.y + offset * frame[0][2]
-                                             + range * (2.0 * j / (gridSize - 1) - 1.0) * frame[1][2]
-                                             + range * (2.0 * k / (gridSize - 1) - 1.0) * frame[2][2];
-                            double z = origin.z + offset * frame[0][3]
-                                             + range * (2.0 * j / (gridSize - 1) - 1.0) * frame[1][3]
-                                             + range * (2.0 * k / (gridSize - 1) - 1.0) * frame[2][3];
+                            double x = origin.x + offset * frame[0][1] +
+                                       range * (2.0 * j / (gridSize - 1) - 1.0) * frame[1][1] +
+                                       range * (2.0 * k / (gridSize - 1) - 1.0) * frame[2][1];
+                            double y = origin.y + offset * frame[0][2] +
+                                       range * (2.0 * j / (gridSize - 1) - 1.0) * frame[1][2] +
+                                       range * (2.0 * k / (gridSize - 1) - 1.0) * frame[2][2];
+                            double z = origin.z + offset * frame[0][3] +
+                                       range * (2.0 * j / (gridSize - 1) - 1.0) * frame[1][3] +
+                                       range * (2.0 * k / (gridSize - 1) - 1.0) * frame[2][3];
 
                             // Use the proper time of the reference event as the time coordinate
                             slicePoints.push_back(Event4D(origin.t, x, y, z));
@@ -2090,11 +2130,13 @@ void SliceView::updateSlice()
             Event4D origin(0.0, 0.0, 0.0, 0.0);
             if (!referenceWorldLine.empty()) {
                 int idx = std::min(static_cast<int>(referenceWorldLine.size()) - 1,
-                                   std::max(0, static_cast<int>(referenceWorldLine.size() * sliceParameter / range)));
+                                   std::max(0, static_cast<int>(referenceWorldLine.size() *
+                                                                sliceParameter / range)));
                 origin = referenceWorldLine[idx];
             }
 
-            // Parameterize the null cone: t = t0 + r, spatial point at distance r in direction (theta, phi)
+            // Parameterize the null cone: t = t0 + r, spatial point at distance r in direction
+            // (theta, phi)
             for (int i = 0; i < gridSize; i++) {
                 double r = range * (i + 1) / gridSize;
                 int nTheta = std::max(4, gridSize / 2);
@@ -2182,11 +2224,13 @@ void UI4D::expandPanel(int panelIndex) {
 }
 
 void UI4D::setPanelPosition(int panelIndex, int x, int y) {
-    std::cout << "Setting position of panel " << panelIndex << " to (" << x << ", " << y << ")" << std::endl;
+    std::cout << "Setting position of panel " << panelIndex << " to (" << x << ", " << y << ")"
+              << std::endl;
 }
 
 void UI4D::setPanelSize(int panelIndex, int width, int height) {
-    std::cout << "Setting size of panel " << panelIndex << " to (" << width << ", " << height << ")" << std::endl;
+    std::cout << "Setting size of panel " << panelIndex << " to (" << width << ", " << height << ")"
+              << std::endl;
 }
 
 void UI4D::startResize(int panelIndex, int startX, int startY) {
@@ -2194,12 +2238,14 @@ void UI4D::startResize(int panelIndex, int startX, int startY) {
     resizePanelIndex = panelIndex;
     resizeStartX = startX;
     resizeStartY = startY;
-    std::cout << "Starting resize of panel " << panelIndex << " at (" << startX << ", " << startY << ")" << std::endl;
+    std::cout << "Starting resize of panel " << panelIndex << " at (" << startX << ", " << startY
+              << ")" << std::endl;
 }
 
 void UI4D::updateResize(int currentX, int currentY) {
-    if (!isResizing || resizePanelIndex < 0) return;
-    
+    if (!isResizing || resizePanelIndex < 0)
+        return;
+
     int deltaX = currentX - resizeStartX;
     int deltaY = currentY - resizeStartY;
     std::cout << "Updating resize: delta (" << deltaX << ", " << deltaY << ")" << std::endl;
@@ -2229,7 +2275,7 @@ void UI4D::setPlanckMicroscope(PlanckMicroscope* microscope) {
 
 void UI4D::setActiveQuantumTheory(const std::string& theoryName) {
     activeQuantumTheory = theoryName;
-    
+
     if (quantumRenderer) {
         QuantumGeometryType type = QuantumGeometryType::NONE;
         if (theoryName == "CDT" || theoryName == "causal_dynamical_triangulations") {
@@ -2243,7 +2289,7 @@ void UI4D::setActiveQuantumTheory(const std::string& theoryName) {
         }
         quantumRenderer->setCurrentType(type);
     }
-    
+
     std::cout << "Active quantum theory set to: " << theoryName << std::endl;
 }
 
@@ -2263,4 +2309,4 @@ void UI4D::toggleQuantumGeometry(bool enable) {
     std::cout << "Quantum geometry overlay " << (enable ? "enabled" : "disabled") << std::endl;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

@@ -16,21 +16,21 @@
  * @note Lorentz signature: (-,+,+,+)
  */
 
-#include <vector>
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <memory>
-#include <algorithm>
-#include "../spacetime/Event4D.h"
-#include "../spacetime/MetricTensor.h"
+#include <vector>
 #include "../math/AutoDiff.h"
 #include "../physics/GeodesicIntegrator.h"
+#include "../spacetime/Event4D.h"
+#include "../spacetime/MetricTensor.h"
 
 namespace quantumverse {
 namespace physics {
 
-using math::ADVar;
 using math::ADTape;
+using math::ADVar;
 
 constexpr double kPi = 3.14159265358979323846;
 
@@ -38,8 +38,9 @@ constexpr double kPi = 3.14159265358979323846;
  * @brief Adjoint geodesic integration result with parameter gradients.
  */
 struct AdjointGeodesicResult {
-    std::vector<double> finalState;              ///< Final state [t, r, theta, phi, u^t, u^r, u^theta, u^phi]
-    std::vector<std::vector<double>> dState_dParams; ///< Gradient of final state w.r.t. each parameter [state_idx][param_idx]
+    std::vector<double> finalState;  ///< Final state [t, r, theta, phi, u^t, u^r, u^theta, u^phi]
+    std::vector<std::vector<double>>
+        dState_dParams;  ///< Gradient of final state w.r.t. each parameter [state_idx][param_idx]
     double finalProperTime = 0.0;
     int steps = 0;
     bool success = false;
@@ -57,7 +58,7 @@ struct AdjointGeodesicResult {
  * implementations via evaluateAD / computeChristoffelAD.
  */
 class AdjointGeodesicIntegrator {
-private:
+   private:
     std::shared_ptr<MetricTensor> metric_;
     std::vector<double> param_values_;
     double tolerance_;
@@ -80,20 +81,17 @@ private:
     /**
      * @brief Compute Christoffel symbols from the generic metric interface.
      */
-    std::array<std::array<std::array<ADVar*, 4>, 4>, 4> computeChristoffelFromMetric(
-        const std::array<ADVar*, 4>& pos,
-        const std::vector<ADVar*>& tape_params
-    ) const {
+    std::array<std::array<std::array<ADVar*, 4>, 4>, 4>
+    computeChristoffelFromMetric(const std::array<ADVar*, 4>& pos,
+                                 const std::vector<ADVar*>& tape_params) const {
         return metric_->computeChristoffelAD(pos, tape_params);
     }
 
     /**
      * @brief Geodesic ODE right-hand side using tape arithmetic and generic metric.
      */
-    std::vector<ADVar*> geodesicRHS(
-        const std::vector<ADVar*>& y,
-        const std::vector<ADVar*>& tape_params
-    ) const {
+    std::vector<ADVar*> geodesicRHS(const std::vector<ADVar*>& y,
+                                    const std::vector<ADVar*>& tape_params) const {
         std::array<ADVar*, 4> pos = {y[0], y[1], y[2], y[3]};
         auto Gamma = computeChristoffelFromMetric(pos, tape_params);
 
@@ -110,22 +108,26 @@ private:
         ADVar* du_t = ADTape::record(0.0, nullptr);
         for (int mu = 0; mu < 4; ++mu)
             for (int nu = 0; nu < 4; ++nu)
-                du_t = math::sub(du_t, math::mul(Gamma[0][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
+                du_t =
+                    math::sub(du_t, math::mul(Gamma[0][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
 
         ADVar* du_r = ADTape::record(0.0, nullptr);
         for (int mu = 0; mu < 4; ++mu)
             for (int nu = 0; nu < 4; ++nu)
-                du_r = math::sub(du_r, math::mul(Gamma[1][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
+                du_r =
+                    math::sub(du_r, math::mul(Gamma[1][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
 
         ADVar* du_theta = ADTape::record(0.0, nullptr);
         for (int mu = 0; mu < 4; ++mu)
             for (int nu = 0; nu < 4; ++nu)
-                du_theta = math::sub(du_theta, math::mul(Gamma[2][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
+                du_theta = math::sub(du_theta,
+                                     math::mul(Gamma[2][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
 
         ADVar* du_phi = ADTape::record(0.0, nullptr);
         for (int mu = 0; mu < 4; ++mu)
             for (int nu = 0; nu < 4; ++nu)
-                du_phi = math::sub(du_phi, math::mul(Gamma[3][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
+                du_phi =
+                    math::sub(du_phi, math::mul(Gamma[3][mu][nu], math::mul(y[mu + 4], y[nu + 4])));
 
         return {dt, dr, dtheta, dphi, du_t, du_r, du_theta, du_phi};
     }
@@ -133,11 +135,8 @@ private:
     /**
      * @brief RK4 single step with tape recording.
      */
-    std::vector<ADVar*> rk4Step(
-        const std::vector<ADVar*>& y,
-        const std::vector<ADVar*>& tape_params,
-        double h
-    ) const {
+    std::vector<ADVar*> rk4Step(const std::vector<ADVar*>& y,
+                                const std::vector<ADVar*>& tape_params, double h) const {
         std::vector<ADVar*> k1 = geodesicRHS(y, tape_params);
 
         std::vector<ADVar*> y2(8);
@@ -173,11 +172,8 @@ private:
     /**
      * @brief Initialize common state.
      */
-    void initialize(
-        std::shared_ptr<MetricTensor> metric,
-        const std::vector<double>& param_values,
-        double tol, double minStep, double maxStep, double safety, int maxIter
-    ) {
+    void initialize(std::shared_ptr<MetricTensor> metric, const std::vector<double>& param_values,
+                    double tol, double minStep, double maxStep, double safety, int maxIter) {
         metric_ = std::move(metric);
         param_values_ = param_values;
         tolerance_ = tol;
@@ -187,21 +183,15 @@ private:
         maxIter_ = maxIter;
     }
 
-public:
+   public:
     /**
      * @brief Legacy constructor for Schwarzschild-only usage.
      *
      * Creates an internal SchwarzschildMetric and records mass as the
      * sole differentiable parameter.
      */
-    AdjointGeodesicIntegrator(
-        double mass = 1.0,
-        double tol = 1e-8,
-        double minStep = 1e-10,
-        double maxStep = 1.0,
-        double safety = 0.9,
-        int maxIter = 100000
-    ) {
+    AdjointGeodesicIntegrator(double mass = 1.0, double tol = 1e-8, double minStep = 1e-10,
+                              double maxStep = 1.0, double safety = 0.9, int maxIter = 100000) {
         auto metric = std::make_shared<SchwarzschildMetric>(mass);
         initialize(std::move(metric), {mass}, tol, minStep, maxStep, safety, maxIter);
     }
@@ -217,27 +207,19 @@ public:
      * @param safety Step size safety factor.
      * @param maxIter Maximum iteration count.
      */
-    AdjointGeodesicIntegrator(
-        std::shared_ptr<MetricTensor> metric,
-        const std::vector<double>& param_values,
-        double tol = 1e-8,
-        double minStep = 1e-10,
-        double maxStep = 1.0,
-        double safety = 0.9,
-        int maxIter = 100000
-    ) {
+    AdjointGeodesicIntegrator(std::shared_ptr<MetricTensor> metric,
+                              const std::vector<double>& param_values, double tol = 1e-8,
+                              double minStep = 1e-10, double maxStep = 1.0, double safety = 0.9,
+                              int maxIter = 100000) {
         initialize(std::move(metric), param_values, tol, minStep, maxStep, safety, maxIter);
     }
 
     /**
      * @brief Integrate geodesic with adjoint-mode gradient computation.
      */
-    AdjointGeodesicResult integrate(
-        const Event4D& startEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType type,
-        double targetProperTime
-    ) const {
+    AdjointGeodesicResult integrate(const Event4D& startEvent,
+                                    const std::array<double, 4>& initialVelocity, GeodesicType type,
+                                    double targetProperTime) const {
         (void)type;
         AdjointGeodesicResult result;
         result.success = false;
@@ -247,18 +229,23 @@ public:
         auto tape_params = createTapeParams();
         size_t n_params = tape_params.size();
 
-        double r = std::sqrt(startEvent.x * startEvent.x + startEvent.y * startEvent.y + startEvent.z * startEvent.z);
+        double r = std::sqrt(startEvent.x * startEvent.x + startEvent.y * startEvent.y +
+                             startEvent.z * startEvent.z);
         const double minR = 1e-9;
-        if (r < minR) r = minR;
+        if (r < minR)
+            r = minR;
         double theta = std::acos(std::max(-1.0, std::min(1.0, startEvent.z / r)));
         double phi = std::atan2(startEvent.y, startEvent.x);
 
-        double u_r = (startEvent.x * initialVelocity[1] + startEvent.y * initialVelocity[2] + startEvent.z * initialVelocity[3]) / r;
+        double u_r = (startEvent.x * initialVelocity[1] + startEvent.y * initialVelocity[2] +
+                      startEvent.z * initialVelocity[3]) /
+                     r;
         double u_theta = 0.0;
         double u_phi = 0.0;
         if (std::sin(theta) > 1e-15) {
             u_theta = (startEvent.z * u_r - initialVelocity[3]) / r;
-            u_phi = (startEvent.x * initialVelocity[2] - startEvent.y * initialVelocity[1]) / (r * r * std::sin(theta) * std::sin(theta));
+            u_phi = (startEvent.x * initialVelocity[2] - startEvent.y * initialVelocity[1]) /
+                    (r * r * std::sin(theta) * std::sin(theta));
         }
 
         std::vector<ADVar*> y(8);
@@ -296,7 +283,8 @@ public:
         int steps = 0;
 
         while (tau < targetProperTime && steps < maxIter_) {
-            if (tau + h > targetProperTime) h = targetProperTime - tau;
+            if (tau + h > targetProperTime)
+                h = targetProperTime - tau;
 
             std::vector<ADVar*> y_new = rk4Step(y, tape_params, h);
 
@@ -317,7 +305,8 @@ public:
             tau += h;
             ++steps;
 
-            if (h > minStep_) h *= safety_;
+            if (h > minStep_)
+                h *= safety_;
         }
 
         result.finalState.resize(8);
@@ -330,10 +319,12 @@ public:
         result.dState_dParams.assign(8, std::vector<double>(n_params, 0.0));
         auto& tape_vars = ADTape::getVariables();
         for (int i = 0; i < 8; ++i) {
-            for (auto& v : tape_vars) v->grad = 0.0;
+            for (auto& v : tape_vars)
+                v->grad = 0.0;
             y[i]->grad = 1.0;
             for (auto it = tape_vars.rbegin(); it != tape_vars.rend(); ++it) {
-                if ((*it)->backward) (*it)->backward();
+                if ((*it)->backward)
+                    (*it)->backward();
             }
             for (size_t p = 0; p < n_params; ++p) {
                 result.dState_dParams[i][p] = tape_params[p]->grad;
@@ -356,9 +347,11 @@ public:
 
         ADVar* M = ADTape::record(mass, nullptr);
 
-        double r = std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
+        double r =
+            std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
         const double minR = 1e-9;
-        if (r < minR) r = minR;
+        if (r < minR)
+            r = minR;
 
         std::vector<ADVar*> pos(4);
         pos[0] = ADTape::record(location.t, nullptr);
@@ -371,7 +364,8 @@ public:
         auto Gamma = metric_->computeChristoffelAD(pos_arr, tape_params);
         (void)Gamma;
 
-        ADVar* rs = math::mul(M, ADTape::record(2.0 * Event4D::G / (Event4D::C * Event4D::C), nullptr));
+        ADVar* rs =
+            math::mul(M, ADTape::record(2.0 * Event4D::G / (Event4D::C * Event4D::C), nullptr));
         ADVar* r_var = pos[1];
         ADVar* r2 = math::mul(r_var, r_var);
         ADVar* r4 = math::mul(r2, r2);
@@ -380,10 +374,12 @@ public:
         ADVar* K = math::div(math::mul(ADTape::record(48.0, nullptr), rs2), r6);
 
         auto& tape_vars = ADTape::getVariables();
-        for (auto& v : tape_vars) v->grad = 0.0;
+        for (auto& v : tape_vars)
+            v->grad = 0.0;
         K->grad = 1.0;
         for (auto it = tape_vars.rbegin(); it != tape_vars.rend(); ++it) {
-            if ((*it)->backward) (*it)->backward();
+            if ((*it)->backward)
+                (*it)->backward();
         }
 
         return M->grad;
@@ -399,12 +395,9 @@ public:
      * @param targetProperTime Integration duration.
      * @return Pair of (finalState, d(finalState)/dParams matrix).
      */
-    std::pair<std::vector<double>, std::vector<std::vector<double>>> computeStateGradient(
-        const Event4D& startEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType type,
-        double targetProperTime
-    ) const {
+    std::pair<std::vector<double>, std::vector<std::vector<double>>>
+    computeStateGradient(const Event4D& startEvent, const std::array<double, 4>& initialVelocity,
+                         GeodesicType type, double targetProperTime) const {
         auto result = integrate(startEvent, initialVelocity, type, targetProperTime);
         return std::make_pair(result.finalState, result.dState_dParams);
     }
@@ -413,13 +406,10 @@ public:
      * @brief Compute gradient of final spatial radius w.r.t. parameters using
      *        central finite differences (for validation).
      */
-    std::vector<double> computePositionGradientFD(
-        const Event4D& startEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType type,
-        double targetProperTime,
-        double eps = 1e-6
-    ) const {
+    std::vector<double> computePositionGradientFD(const Event4D& startEvent,
+                                                  const std::array<double, 4>& initialVelocity,
+                                                  GeodesicType type, double targetProperTime,
+                                                  double eps = 1e-6) const {
         auto makeMetricField = [this](const std::vector<double>& p) {
             return [this, p](const Event4D& evt) -> MetricTensor {
                 (void)p;
@@ -436,7 +426,8 @@ public:
             GeodesicIntegrator gi;
             gi.setMetricField(makeMetricField(param_values_));
             auto traj = gi.integrate(startEvent, initialVelocity, type, targetProperTime, false);
-            if (traj.empty()) return std::vector<double>(8, 0.0);
+            if (traj.empty())
+                return std::vector<double>(8, 0.0);
             base_final = traj.back().event;
             base_pt = traj.back().properTime;
         }
@@ -452,13 +443,15 @@ public:
             {
                 GeodesicIntegrator gi;
                 gi.setMetricField(makeMetricField({p_plus}));
-                auto traj = gi.integrate(startEvent, initialVelocity, type, targetProperTime, false);
+                auto traj =
+                    gi.integrate(startEvent, initialVelocity, type, targetProperTime, false);
                 final_plus = traj.empty() ? startEvent : traj.back().event;
             }
             {
                 GeodesicIntegrator gi;
                 gi.setMetricField(makeMetricField({p_minus}));
-                auto traj = gi.integrate(startEvent, initialVelocity, type, targetProperTime, false);
+                auto traj =
+                    gi.integrate(startEvent, initialVelocity, type, targetProperTime, false);
                 final_minus = traj.empty() ? startEvent : traj.back().event;
             }
 
@@ -472,7 +465,7 @@ public:
     }
 };
 
-} // namespace physics
-} // namespace quantumverse
+}  // namespace physics
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_ADJOINT_GEODESIC_INTEGRATOR_H
+#endif  // QUANTUMVERSE_ADJOINT_GEODESIC_INTEGRATOR_H

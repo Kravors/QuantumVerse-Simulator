@@ -5,12 +5,12 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "discovery/GWRingdownScanner.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -69,7 +69,7 @@ std::vector<Event4D> makeTinyDeviationTrajectory() {
     }
     return data;
 }
-}
+}  // namespace
 
 int main() {
     std::cout << "=== GWRingdownScanner Test ===" << std::endl;
@@ -83,7 +83,8 @@ int main() {
         auto traj = makeGRConsistentTrajectory();
         auto findings = scanner.analyze(metric, location, traj);
         QV_CHECK(findings.empty());
-        std::cout << "  GR-consistent ringdown: no anomaly (findings=" << findings.size() << ")" << std::endl;
+        std::cout << "  GR-consistent ringdown: no anomaly (findings=" << findings.size() << ")"
+                  << std::endl;
     }
 
     // --- 2. Anomalous ringdown frequencies: should be flagged ---------------------

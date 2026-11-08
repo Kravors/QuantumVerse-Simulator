@@ -12,12 +12,12 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 #include <limits>
+#include <vector>
 
 #include "discovery/KerrNoHairViolationAnalyzer.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -48,8 +48,7 @@ std::vector<Event4D> makeKerrConsistentWaveform(double freq, double dt, size_t n
     return data;
 }
 
-std::vector<Event4D> makeNoHairViolationWaveform(double freq1, double freq2,
-                                                   double dt, size_t n) {
+std::vector<Event4D> makeNoHairViolationWaveform(double freq1, double freq2, double dt, size_t n) {
     std::vector<Event4D> data;
     data.reserve(n);
     size_t half = n / 2;
@@ -62,7 +61,7 @@ std::vector<Event4D> makeNoHairViolationWaveform(double freq1, double freq2,
     }
     return data;
 }
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== KerrNoHairViolationAnalyzerTest ===" << std::endl;
@@ -71,11 +70,10 @@ int main() {
 
     // 1. Static QNM functions return finite values
     for (double a : {0.0, 0.3, 0.6, 0.9}) {
-        [[maybe_unused]] bool ok =
-            std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM220Real(a)) &&
-            std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM220Imag(a)) &&
-            std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM221Real(a)) &&
-            std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM221Imag(a));
+        [[maybe_unused]] bool ok = std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM220Real(a)) &&
+                                   std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM220Imag(a)) &&
+                                   std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM221Real(a)) &&
+                                   std::isfinite(KerrNoHairViolationAnalyzer::kerrQNM221Imag(a));
         QV_CHECK(ok);
     }
     std::cout << "  Static QNM functions: finite." << std::endl;
@@ -102,7 +100,8 @@ int main() {
         if (!findings.empty()) {
             [[maybe_unused]] bool okAnomaly = findings[0].isAnomaly;
             QV_CHECK(okAnomaly);
-            [[maybe_unused]] bool okConf = findings[0].confidence > 0.0 && findings[0].confidence <= 1.0;
+            [[maybe_unused]] bool okConf =
+                findings[0].confidence > 0.0 && findings[0].confidence <= 1.0;
             QV_CHECK(okConf);
             [[maybe_unused]] bool okSigma = findings[0].parameters.at("deviation_sigma") > 0.0;
             QV_CHECK(okSigma);
@@ -161,8 +160,8 @@ int main() {
         QV_CHECK(ok);
         for ([[maybe_unused]] const auto& kv : ranges) {
             [[maybe_unused]] bool okRange = std::isfinite(kv.second.first) &&
-                                           std::isfinite(kv.second.second) &&
-                                           kv.second.first < kv.second.second;
+                                            std::isfinite(kv.second.second) &&
+                                            kv.second.first < kv.second.second;
             QV_CHECK(okRange);
         }
         std::cout << "  Parameter ranges valid." << std::endl;

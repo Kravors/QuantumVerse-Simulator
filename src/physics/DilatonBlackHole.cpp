@@ -2,8 +2,7 @@
 
 namespace quantumverse {
 
-DilatonBlackHole::DilatonBlackHole(double mass, double sigma) noexcept
-    : metric(sigma, mass) {}
+DilatonBlackHole::DilatonBlackHole(double mass, double sigma) noexcept : metric(sigma, mass) {}
 
 bool DilatonBlackHole::isHorizon(double x_plus, double x_minus, double tol) const noexcept {
     return metric.isApparentHorizon(x_plus, x_minus, tol);
@@ -27,7 +26,8 @@ double DilatonBlackHole::getSigma() const noexcept {
 
 double DilatonBlackHole::hawkingTemperature() const noexcept {
     double m = getMass();
-    if (m == 0.0) return 0.0;
+    if (m == 0.0)
+        return 0.0;
     return 1.0 / (4.0 * PI * m);
 }
 
@@ -35,4 +35,4 @@ double DilatonBlackHole::entropy() const noexcept {
     return 2.0 * PI * getMass();
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

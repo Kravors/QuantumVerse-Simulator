@@ -1,18 +1,18 @@
 // QuantumVerse Test: Kerr Metric
 // Validates Kerr metric for rotating black holes
 
-#include <iostream>
-#include <cmath>
 #include <array>
+#include <cmath>
+#include <iostream>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
+#include "physics/PhysicsConstants.h"
+#include "spacetime/Event4D.h"
 #include "spacetime/KerrMetric.h"
 #include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "physics/PhysicsConstants.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -35,7 +35,8 @@ int main() {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 QV_CHECK(std::abs(g_kerr[i][j] - g_schwarzschild[i][j]) /
-                       std::max(std::abs(g_schwarzschild[i][j]), 1.0) < tol);
+                             std::max(std::abs(g_schwarzschild[i][j]), 1.0) <
+                         tol);
             }
         }
         (void)tol;
@@ -76,7 +77,7 @@ int main() {
         KerrMetric kerr(mass, 0.7);
 
         double r = 5.0 * kerr.schwarzschildRadius();  // 5x Schwarzschild radius
-        double theta = M_PI / 2.0;  // Equatorial plane
+        double theta = M_PI / 2.0;                    // Equatorial plane
 
         double omega = kerr.frameDraggingOmega(r, theta);
         QV_CHECK(std::abs(omega) > 1e-20);

@@ -2,20 +2,19 @@
 // Validates TheoryDiscoveryAgent integrates with RLDiscoveryAgent,
 // TheoryManager, and the physics core to evaluate modified-gravity theories.
 
+#include <QJsonObject>
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <numeric>
 #include <string>
 #include <vector>
-#include <QJsonObject>
 
-#include "discovery/TheoryDiscoveryAgent.h"
 #include "discovery/DiscoveryEngine.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "spacetime/Event4D.h"
+#include "discovery/TheoryDiscoveryAgent.h"
 #include "physics/CurvatureCalculator.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -29,7 +28,7 @@ void assertFinite(const std::string& label, double v) {
     (void)label;
     (void)v;
 }
-}
+}  // namespace
 
 void test_active_learning_disabled_by_default() {
     TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
@@ -75,8 +74,7 @@ void test_uncertainty_sampling_selects_point() {
         agent.evaluateTheory(p);
     }
 
-    agent.setActiveLearningEnabled(
-        true, TheoryDiscoveryAgent::ActiveLearningMode::UNCERTAINTY);
+    agent.setActiveLearningEnabled(true, TheoryDiscoveryAgent::ActiveLearningMode::UNCERTAINTY);
     std::vector<double> next = agent.selectNextActiveLearningPoint();
     QV_CHECK(next.size() == 2);
     QV_CHECK(next[0] >= -2.0 && next[0] <= 2.0);
@@ -187,8 +185,8 @@ void test_bma_with_single_model() {
         return r.parameters.empty() ? 0.0 : r.parameters[1];
     });
     QV_CHECK(std::fabs(bma_val - 1e-55) < 1e-60 || bma_val > 0.0);
-    std::cout << "  BMA single-model weight = " << weights[0]
-              << ", prediction = " << bma_val << std::endl;
+    std::cout << "  BMA single-model weight = " << weights[0] << ", prediction = " << bma_val
+              << std::endl;
 }
 
 // ============================================================================
@@ -287,14 +285,14 @@ void test_ehvi_improves_hypervolume() {
     };
     accum(front_before);
     accum(front_after);
-    for (auto& r : ref) r = r * 1.1 + 0.1;
+    for (auto& r : ref)
+        r = r * 1.1 + 0.1;
 
     double hv_before = agent.computeHypervolume(front_before, ref);
     double hv_after = agent.computeHypervolume(front_after, ref);
 
     QV_CHECK(hv_after >= hv_before);
-    std::cout << "  Hypervolume before = " << hv_before
-              << ", after = " << hv_after << std::endl;
+    std::cout << "  Hypervolume before = " << hv_before << ", after = " << hv_after << std::endl;
 }
 
 int main() {
@@ -304,8 +302,8 @@ int main() {
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         QV_CHECK(agent.getEpisodeCount() == 0);
-        std::cout << "  f(R) agent constructed. Param dim = "
-                  << agent.getEpisodeCount() << " (episodes)" << std::endl;
+        std::cout << "  f(R) agent constructed. Param dim = " << agent.getEpisodeCount()
+                  << " (episodes)" << std::endl;
     }
 
     // --- 2. Construct agent for Brans-Dicke -------------------------------------
@@ -355,7 +353,8 @@ int main() {
             assertFinite("best_param[" + std::to_string(i) + "]", best[i]);
         }
         std::cout << "  Brans-Dicke best params:";
-        for (double p : best) std::cout << " " << p;
+        for (double p : best)
+            std::cout << " " << p;
         std::cout << std::endl;
     }
 
@@ -397,8 +396,8 @@ int main() {
         std::vector<double> empty;
         auto result = agent.evaluateTheory(empty);
         QV_CHECK(result.total_reward < 0.0);
-        std::cout << "  Empty params handled gracefully. reward = "
-                  << result.total_reward << std::endl;
+        std::cout << "  Empty params handled gracefully. reward = " << result.total_reward
+                  << std::endl;
     }
 
     // --- 11. Symbolic verification toggle ----------------------------------------
@@ -408,8 +407,8 @@ int main() {
         std::vector<double> params = {40000.0, 1.0};
         auto result = agent.evaluateTheory(params);
         assertFinite("sym_disabled_reward", result.total_reward);
-        std::cout << "  Symbolic verification disabled. reward = "
-                  << result.total_reward << std::endl;
+        std::cout << "  Symbolic verification disabled. reward = " << result.total_reward
+                  << std::endl;
     }
 
     // --- 12. TeVeS agent construction and evaluation ------------------------------
@@ -467,8 +466,8 @@ int main() {
         std::vector<double> wild = {10.0, 10.0};
         auto wild_result = agent.evaluateTheory(wild);
 
-        QV_CHECK(wild_result.observational_chi2 >= near_result.observational_chi2
-               || wild_result.theoretical_penalty > near_result.theoretical_penalty);
+        QV_CHECK(wild_result.observational_chi2 >= near_result.observational_chi2 ||
+                 wild_result.theoretical_penalty > near_result.theoretical_penalty);
         std::cout << "  Near-GR chi2 = " << near_result.observational_chi2
                   << ", wild chi2 = " << wild_result.observational_chi2 << std::endl;
     }
@@ -481,8 +480,8 @@ int main() {
         auto result = agent.evaluateTheory(params);
         assertFinite("gw_chi2_gr", result.observational_chi2);
         // With alpha ~ 0, GW speed ~ c, so chi2 should be small
-        std::cout << "  Near-GR f(R) GW chi2 contribution = "
-                  << result.observational_chi2 << " (should be small)" << std::endl;
+        std::cout << "  Near-GR f(R) GW chi2 contribution = " << result.observational_chi2
+                  << " (should be small)" << std::endl;
     }
 
     // --- 15. Symbolic verification: healthy theory gets small penalty ------------
@@ -492,8 +491,8 @@ int main() {
         std::vector<double> params = {40000.0, 1.0};
         auto result = agent.evaluateTheory(params);
         assertFinite("healthy_penalty", result.theoretical_penalty);
-        std::cout << "  Healthy Brans-Dicke theoretical penalty = "
-                  << result.theoretical_penalty << std::endl;
+        std::cout << "  Healthy Brans-Dicke theoretical penalty = " << result.theoretical_penalty
+                  << std::endl;
     }
 
     // --- 16. computeLogLikelihood: finite for valid chi2 -------------------------
@@ -501,7 +500,7 @@ int main() {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
         double ll = agent.computeLogLikelihood(10.0, 10);
         assertFinite("log_likelihood", ll);
-        QV_CHECK(ll < 0.0); // log-likelihood should be negative for chi2 > 0
+        QV_CHECK(ll < 0.0);  // log-likelihood should be negative for chi2 > 0
         std::cout << "  Log-likelihood (chi2=10, N=10) = " << ll << std::endl;
     }
 
@@ -511,8 +510,8 @@ int main() {
         double bic_1param = agent.computeBIC(10.0, 1, 20);
         double bic_2param = agent.computeBIC(10.0, 2, 20);
         QV_CHECK(bic_2param > bic_1param);
-        std::cout << "  BIC(1 param) = " << bic_1param
-                  << ", BIC(2 param) = " << bic_2param << std::endl;
+        std::cout << "  BIC(1 param) = " << bic_1param << ", BIC(2 param) = " << bic_2param
+                  << std::endl;
     }
 
     // --- 18. computeBayesFactor: near-GR f(R) should not strongly prefer GR -------
@@ -621,8 +620,7 @@ int main() {
         std::vector<double> params = {0.5, 0.5};
         agent.evaluateTheory(params);
         QV_CHECK(agent.getEvaluationCount() >= 1);
-        std::cout << "  Active learning history size = "
-                  << agent.getEvaluationCount() << std::endl;
+        std::cout << "  Active learning history size = " << agent.getEvaluationCount() << std::endl;
     }
 
     // --- 28. Active learning: surrogate trained and makes predictions --------------
@@ -642,8 +640,7 @@ int main() {
         assertFinite("surrogate_mean", mean);
         assertFinite("surrogate_std", std);
         QV_CHECK(std >= 0.0);
-        std::cout << "  Surrogate mean = " << mean
-                  << " std = " << std << std::endl;
+        std::cout << "  Surrogate mean = " << mean << " std = " << std << std::endl;
     }
 
     // --- 29. Active learning: reset clears history -------------------------------
@@ -672,7 +669,8 @@ int main() {
             assertFinite("active_best_param[" + std::to_string(i) + "]", best[i]);
         }
         std::cout << "  Active learning best params:";
-        for (double p : best) std::cout << " " << p;
+        for (double p : best)
+            std::cout << " " << p;
         std::cout << std::endl;
     }
 
@@ -723,27 +721,23 @@ int main() {
         assertFinite("obj_penalty", objectives[1]);
         assertFinite("obj_simplicity", objectives[2]);
         QV_CHECK(objectives[3] == 0.0 || objectives[3] == 1000.0);
-        std::cout << "  Objectives: chi2=" << objectives[0]
-                  << " penalty=" << objectives[1]
-                  << " simplicity=" << objectives[2]
-                  << " singularity=" << objectives[3] << std::endl;
+        std::cout << "  Objectives: chi2=" << objectives[0] << " penalty=" << objectives[1]
+                  << " simplicity=" << objectives[2] << " singularity=" << objectives[3]
+                  << std::endl;
     }
 
     // --- 40. Multi-objective Pareto: dominance checks -----------------------------
     {
         TheoryDiscoveryAgent agent(TheoryParameterSpace::TheoryType::FR_GRAVITY);
-        TheoryDiscoveryAgent::ParetoPoint a(
-            {0.1, 1.0}, {1.0, 0.5, 0.02, 0.0}, -1.5, true, false, "A"
-        );
-        TheoryDiscoveryAgent::ParetoPoint b(
-            {0.5, 1.0}, {2.0, 1.0, 0.02, 0.0}, -2.0, true, false, "B"
-        );
+        TheoryDiscoveryAgent::ParetoPoint a({0.1, 1.0}, {1.0, 0.5, 0.02, 0.0}, -1.5, true, false,
+                                            "A");
+        TheoryDiscoveryAgent::ParetoPoint b({0.5, 1.0}, {2.0, 1.0, 0.02, 0.0}, -2.0, true, false,
+                                            "B");
         QV_CHECK(TheoryDiscoveryAgent::dominates(a, b));
         QV_CHECK(!TheoryDiscoveryAgent::dominates(b, a));
 
-        TheoryDiscoveryAgent::ParetoPoint c(
-            {0.3, 1.0}, {1.0, 0.5, 0.02, 0.0}, -1.5, true, false, "C"
-        );
+        TheoryDiscoveryAgent::ParetoPoint c({0.3, 1.0}, {1.0, 0.5, 0.02, 0.0}, -1.5, true, false,
+                                            "C");
         QV_CHECK(!TheoryDiscoveryAgent::dominates(a, c));
         QV_CHECK(!TheoryDiscoveryAgent::dominates(c, a));
         std::cout << "  Pareto dominance logic verified." << std::endl;
@@ -770,7 +764,7 @@ int main() {
             for (size_t j = 0; j < front.size(); ++j) {
                 if (i != j) {
                     QV_CHECK(!TheoryDiscoveryAgent::dominates(front[i], front[j]) ||
-                           TheoryDiscoveryAgent::dominates(front[j], front[i]));
+                             TheoryDiscoveryAgent::dominates(front[j], front[i]));
                 }
             }
         }
@@ -802,7 +796,8 @@ int main() {
             assertFinite("pareto_best_param[" + std::to_string(i) + "]", best[i]);
         }
         std::cout << "  Multi-objective best params:";
-        for (double p : best) std::cout << " " << p;
+        for (double p : best)
+            std::cout << " " << p;
         std::cout << std::endl;
     }
 
@@ -940,7 +935,8 @@ int main() {
 
         std::vector<double> weights_before = agent.getModelWeights();
         QV_CHECK(weights_before.size() == 2u);
-        double weight_sum_before = std::accumulate(weights_before.begin(), weights_before.end(), 0.0);
+        double weight_sum_before =
+            std::accumulate(weights_before.begin(), weights_before.end(), 0.0);
         QV_CHECK_NEAR(weight_sum_before - 1.0, 0.0, 1e-6);
         (void)weight_sum_before;
 

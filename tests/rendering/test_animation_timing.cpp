@@ -1,22 +1,20 @@
 // Animation timing test for QuantumVerse headless rendering
 // Verifies that frame times are consistent (95% under threshold).
 
-#include <QTest>
-#include <QProcess>
-#include <QFile>
 #include <QDir>
+#include <QFile>
+#include <QProcess>
+#include <QTest>
 #include <QTextStream>
 #include <QVector>
 #include <algorithm>
 #include <cmath>
 
-class AnimationTimingTest : public QObject
-{
+class AnimationTimingTest : public QObject {
     Q_OBJECT
 
-private slots:
-    void test_frame_time_consistency()
-    {
+   private slots:
+    void test_frame_time_consistency() {
         QString exePath = QCoreApplication::applicationDirPath() + "/quantumverse_qml";
 #ifdef Q_OS_WIN
         exePath += ".exe";
@@ -32,7 +30,8 @@ private slots:
 
         process.start(exePath, args);
         bool finished = process.waitForFinished(60000);
-        QVERIFY2(finished, qPrintable("Process timed out or failed to start: " + process.errorString()));
+        QVERIFY2(finished,
+                 qPrintable("Process timed out or failed to start: " + process.errorString()));
         QCOMPARE(process.exitStatus(), QProcess::NormalExit);
         QCOMPARE(process.exitCode(), 0);
 
@@ -67,8 +66,7 @@ private slots:
         }
 
         double pctOver = 100.0 * violations / static_cast<double>(deltas.size());
-        qDebug() << "Frame time stats: count=" << deltas.size()
-                 << "violations=" << violations
+        qDebug() << "Frame time stats: count=" << deltas.size() << "violations=" << violations
                  << "pct_over=" << pctOver;
 
         QVERIFY2(pctOver <= 5.0,

@@ -15,21 +15,27 @@
 namespace quantumverse {
 
 class GrowthFactorExperiment : public CosmologyExperimentBase {
-public:
+   public:
     using CosmologyExperimentBase::CosmologyExperimentBase;
 
-    QString id() const override { return QStringLiteral("growth_factor"); }
-    QString name() const override { return QStringLiteral("Growth Factor"); }
-    QString category() const override { return QStringLiteral("Cosmology"); }
+    QString id() const override {
+        return QStringLiteral("growth_factor");
+    }
+    QString name() const override {
+        return QStringLiteral("Growth Factor");
+    }
+    QString category() const override {
+        return QStringLiteral("Cosmology");
+    }
     QString description() const override {
-        return QStringLiteral("Linear growth factor D(1)/D(0) vs Planck 2018; full D(z) curve z = 0..10.");
+        return QStringLiteral(
+            "Linear growth factor D(1)/D(0) vs Planck 2018; full D(z) curve z = 0..10.");
     }
     QVector<ExperimentParameter> parameters() const override;
-    ExperimentResult run(const QVariantMap& params,
-                         std::function<void(double)> progress,
+    ExperimentResult run(const QVariantMap& params, std::function<void(double)> progress,
                          std::function<bool()> shouldAbort) override;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GROWTH_FACTOR_EXPERIMENT_H
+#endif  // QUANTUMVERSE_GROWTH_FACTOR_EXPERIMENT_H

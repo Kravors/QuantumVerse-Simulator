@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <functional>
-#include <string>
-#include <memory>
 #include <emscripten/fetch.h>
+#include <functional>
+#include <memory>
+#include <string>
 
 namespace quantumverse {
 
@@ -24,7 +24,7 @@ namespace quantumverse {
  * No Qt dependency — safe for WebAssembly compilation.
  */
 class WasmLLMCoPilot {
-public:
+   public:
     using AnalysisCallback = std::function<void(const std::string&)>;
 
     WasmLLMCoPilot();
@@ -36,11 +36,11 @@ public:
     /// Register a callback to receive LLM explanations.
     void setAnalysisCallback(AnalysisCallback cb);
 
-private:
+   private:
     AnalysisCallback m_callback;
 
     static void onFetchSucceeded(emscripten_fetch_t* fetch);
     static void onFetchFailed(emscripten_fetch_t* fetch);
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

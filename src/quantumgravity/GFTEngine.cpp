@@ -5,10 +5,10 @@
 
 #include <cmath>
 
-#include "GFTEngine.h"
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include "GFTEngine.h"
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
 #ifndef M_PI
@@ -18,23 +18,18 @@
 namespace quantumverse {
 namespace quantumgravity {
 
-GFTEngine::GFTEngine(
-    double coupling_,
-    double mass_squared_,
-    double cutoff_,
-    int grid_size_
-) : coupling(coupling_),
-    mass_squared(mass_squared_),
-    cutoff(cutoff_),
-    grid_size(grid_size_),
-    spectralDimension(4.0),
-    effectiveVolume(0.0),
-    twoPointCorrelation(0.0),
-    is_condensate(false),
-    condensate_magnitude(0.0),
-    rng(std::random_device{}()),
-    normalDist(0.0, 1.0)
-{
+GFTEngine::GFTEngine(double coupling_, double mass_squared_, double cutoff_, int grid_size_)
+    : coupling(coupling_),
+      mass_squared(mass_squared_),
+      cutoff(cutoff_),
+      grid_size(grid_size_),
+      spectralDimension(4.0),
+      effectiveVolume(0.0),
+      twoPointCorrelation(0.0),
+      is_condensate(false),
+      condensate_magnitude(0.0),
+      rng(std::random_device{}()),
+      normalDist(0.0, 1.0) {
     // Allocate field: φ(g1,g2,g3,g4) on SU(2)^4 grid
     // Simplified: use linear array of size grid_size^4
     // In full implementation, would use group representation theory
@@ -51,7 +46,9 @@ std::string GFTEngine::getName() const {
 }
 
 std::string GFTEngine::getDescription() const {
-    return "Quantum gravity via field theory on group manifolds. Uses SU(2)^4 fields for 4-simplices. Predicts emergent spacetime from condensates, with spectral dimension running from 4 to 2.";
+    return "Quantum gravity via field theory on group manifolds. Uses SU(2)^4 fields for "
+           "4-simplices. Predicts emergent spacetime from condensates, with spectral dimension "
+           "running from 4 to 2.";
 }
 
 std::string GFTEngine::getFieldEquation() const {
@@ -61,14 +58,13 @@ std::string GFTEngine::getFieldEquation() const {
 
 std::string GFTEngine::getPlanckScaleEffects() const {
     return "Spacetime emerges from GFT condensate. At Planck scale, spectral dimension d_s → 2. "
-           "Geometric observables (area, volume) have discrete spectra via group representation theory. "
+           "Geometric observables (area, volume) have discrete spectra via group representation "
+           "theory. "
            "Big Bang replaced by condensate nucleation (Big Bounce possible).";
 }
 
-MetricTensor GFTEngine::computeMetric(
-    const Event4D& location,
-    const std::map<std::string, double>& parameters
-) const {
+MetricTensor GFTEngine::computeMetric(const Event4D& location,
+                                      const std::map<std::string, double>& parameters) const {
     (void)location;
     (void)parameters;
     // GFT effective metric from condensate two-point function
@@ -79,12 +75,13 @@ MetricTensor GFTEngine::computeMetric(
     // with scale factor a(t) determined by condensate evolution
 
     // Extract radial distance
-    double r = std::sqrt(location.x*location.x + location.y*location.y + location.z*location.z);
+    double r =
+        std::sqrt(location.x * location.x + location.y * location.y + location.z * location.z);
     double t = location.t;
 
     // Condensate-driven scale factor: a(t) ∝ exp(H t) for de Sitter-like phase
     // or a(t) ∝ t^p for power-law evolution
-    double H = 1.0 / (cutoff * cutoff);  // Hubble from Planck scale
+    double H = 1.0 / (cutoff * cutoff);    // Hubble from Planck scale
     double a = std::exp(H * std::abs(t));  // Simplified: always expanding
 
     // Effective FLRW metric: ds² = -dt² + a(t)² (dr²/(1-kr²) + r² dΩ²)
@@ -94,25 +91,24 @@ MetricTensor GFTEngine::computeMetric(
     double angular = a * a * r * r;
 
     MetricTensor metric;
-    metric.g[0][0] = -1.0;  // cosmic time
-    metric.g[1][1] = a * a / (1.0);  // radial (k=0)
-    metric.g[2][2] = angular;  // θ
-    metric.g[3][3] = angular * std::sin(M_PI/2.0) * std::sin(M_PI/2.0);  // φ
+    metric.g[0][0] = -1.0;                                                   // cosmic time
+    metric.g[1][1] = a * a / (1.0);                                          // radial (k=0)
+    metric.g[2][2] = angular;                                                // θ
+    metric.g[3][3] = angular * std::sin(M_PI / 2.0) * std::sin(M_PI / 2.0);  // φ
 
     // Off-diagonals zero
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-            if (i != j) metric.g[i][j] = 0.0;
+            if (i != j)
+                metric.g[i][j] = 0.0;
         }
     }
 
     return metric;
 }
 
-std::array<std::array<double, 4>, 4> GFTEngine::computeChristoffel(
-    const Event4D& location,
-    int rho, int mu, int nu
-) const {
+std::array<std::array<double, 4>, 4> GFTEngine::computeChristoffel(const Event4D& location, int rho,
+                                                                   int mu, int nu) const {
     (void)location;
     (void)rho;
     (void)mu;
@@ -140,7 +136,8 @@ MetricTensor GFTEngine::computeRicciTensor(const Event4D& location) const {
     zero.g[3][3] = 3.0 * H * H;
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-            if (i != j) zero.g[i][j] = 0.0;
+            if (i != j)
+                zero.g[i][j] = 0.0;
         }
     }
     return zero;
@@ -160,10 +157,7 @@ double GFTEngine::computeKretschmannScalar(const Event4D& location) const {
     return 12.0 * H * H * H * H;
 }
 
-double GFTEngine::computeAmplitude(
-    const Event4D& from,
-    const Event4D& to
-) const {
+double GFTEngine::computeAmplitude(const Event4D& from, const Event4D& to) const {
     // GFT transition amplitude between two 4-geometries
     // In path integral: A = ∫ Dφ exp(-S[φ]) with boundary conditions
     // Simplified: use saddle-point approximation around condensate
@@ -173,13 +167,14 @@ double GFTEngine::computeAmplitude(
     double dx = to.x - from.x;
     double dy = to.y - from.y;
     double dz = to.z - from.z;
-    double ds2 = -Event4D::C2 * dt*dt + dx*dx + dy*dy + dz*dz;
+    double ds2 = -Event4D::C2 * dt * dt + dx * dx + dy * dy + dz * dz;
     double distance = std::sqrt(std::abs(ds2));
 
     // Amplitude from effective action: exp(-S_eff / ħ)
     // S_eff ~ m² ⟨φ⟩² V + λ ⟨φ⟩⁴ V  (mean-field)
-    double S_eff = mass_squared * condensate_magnitude * condensate_magnitude * distance
-                 + coupling * condensate_magnitude * condensate_magnitude * condensate_magnitude * condensate_magnitude * distance;
+    double S_eff = mass_squared * condensate_magnitude * condensate_magnitude * distance +
+                   coupling * condensate_magnitude * condensate_magnitude * condensate_magnitude *
+                       condensate_magnitude * distance;
 
     return std::exp(-S_eff);
 }
@@ -208,12 +203,9 @@ std::vector<double> GFTEngine::getGeometryVertices() const {
     // 4-simplex vertices in 4D spacetime (t, x, y, z)
     // Place at t=0 for simplicity
     double a = 1.0;  // scale
-    std::vector<std::array<double,4>> positions = {
-        {0.0,  a,  a,  a},
-        {0.0,  a, -a, -a},
-        {0.0, -a,  a, -a},
-        {0.0, -a, -a,  a},
-        {0.0,  0,  0,  0}   // center
+    std::vector<std::array<double, 4>> positions = {
+        {0.0, a, a, a}, {0.0, a, -a, -a}, {0.0, -a, a, -a}, {0.0, -a, -a, a}, {0.0, 0, 0, 0}
+        // center
     };
 
     for (const auto& pos : positions) {
@@ -229,12 +221,7 @@ std::vector<double> GFTEngine::getGeometryVertices() const {
 std::vector<int> GFTEngine::getGeometryEdges() const {
     // 4-simplex has 10 edges connecting 5 vertices
     // Connect each vertex to all others (complete graph K5)
-    return {
-        0,1, 0,2, 0,3, 0,4,
-        1,2, 1,3, 1,4,
-        2,3, 2,4,
-        3,4
-    };
+    return {0, 1, 0, 2, 0, 3, 0, 4, 1, 2, 1, 3, 1, 4, 2, 3, 2, 4, 3, 4};
 }
 
 std::vector<double> GFTEngine::getGeometryColors() const {
@@ -244,13 +231,11 @@ std::vector<double> GFTEngine::getGeometryColors() const {
 }
 
 std::map<std::string, std::pair<double, double>> GFTEngine::getParameterRanges() const {
-    return {
-        {"coupling", {0.01, 1.0}},          // Interaction strength λ
-        {"mass_squared", {-1.0, 10.0}},     // Can be tachyonic for condensate
-        {"cutoff", {1.0e30, 1.0e40}},       // Planck scale cutoff
-        {"grid_size", {5, 20}},             // Discretization resolution
-        {"condensate_magnitude", {0.0, 10.0}}
-    };
+    return {{"coupling", {0.01, 1.0}},       // Interaction strength λ
+            {"mass_squared", {-1.0, 10.0}},  // Can be tachyonic for condensate
+            {"cutoff", {1.0e30, 1.0e40}},    // Planck scale cutoff
+            {"grid_size", {5, 20}},          // Discretization resolution
+            {"condensate_magnitude", {0.0, 10.0}}};
 }
 
 std::unique_ptr<TheoryPlugin> GFTEngine::clone() const {
@@ -275,14 +260,15 @@ double GFTEngine::computeAction(const std::vector<double>& field) const {
     // Kinetic term: simplified as (φ(i+1) - φ(i))² (needs proper group derivative)
     // For now, omit or use simple difference
     for (size_t i = 0; i < field.size() - 1; ++i) {
-        double diff = field[i+1] - field[i];
+        double diff = field[i + 1] - field[i];
         kinetic += diff * diff;
     }
 
     // Interaction term: λ Σ_{simplices} φ(g1)...φ(g5)
     // Simplified: sum over all 5-tuples (brute force, very expensive)
     // In practice, use Monte Carlo or tensor network techniques
-    interaction = coupling * std::pow(std::accumulate(field.begin(), field.end(), 0.0) / field.size(), 5);
+    interaction =
+        coupling * std::pow(std::accumulate(field.begin(), field.end(), 0.0) / field.size(), 5);
 
     return 0.5 * (kinetic + mass_term) + interaction;
 }
@@ -298,7 +284,8 @@ std::vector<double> GFTEngine::randomFieldConfiguration() const {
 double GFTEngine::computeTwoPointFunction(const std::vector<double>& field, int separation) const {
     // Two-point function: G(x,y) = ⟨φ(x) φ(y)⟩
     // For homogeneous case, depends only on |x-y|
-    if (separation >= static_cast<int>(field.size())) return 0.0;
+    if (separation >= static_cast<int>(field.size()))
+        return 0.0;
 
     double sum = 0.0;
     for (size_t i = 0; i + separation < field.size(); ++i) {
@@ -353,16 +340,17 @@ double GFTEngine::computeCondensateFraction() const {
     variance /= field_values.size();
 
     // Condensate fraction ~ |mean| / sqrt(variance)
-    if (variance < 1e-10) return 1.0;
+    if (variance < 1e-10)
+        return 1.0;
     return std::abs(mean) / std::sqrt(variance);
 }
 
 double GFTEngine::computeEffectiveAction() const {
     // Effective action from mean-field: S_eff = V [m² φ₀² + λ φ₀⁴]
     double V = groupVolumeSU2();  // Simplified: single group volume
-    return V * (mass_squared * condensate_magnitude * condensate_magnitude
-                + coupling * std::pow(condensate_magnitude, 4));
+    return V * (mass_squared * condensate_magnitude * condensate_magnitude +
+                coupling * std::pow(condensate_magnitude, 4));
 }
 
-} // namespace quantumgravity
-} // namespace quantumverse
+}  // namespace quantumgravity
+}  // namespace quantumverse

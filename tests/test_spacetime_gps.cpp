@@ -4,21 +4,20 @@
  */
 
 #include <QCoreApplication>
-#include <QSignalSpy>
 #include <QModelIndex>
-#include <memory>
+#include <QSignalSpy>
 #include <cmath>
 #include <iostream>
+#include <memory>
 
-#include "ui4d/SpacetimeGPS.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
+#include "ui4d/SpacetimeGPS.h"
 
 using namespace quantumverse;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     std::cout << "=== SpacetimeGPS Test ===" << std::endl;
 
@@ -34,9 +33,11 @@ int main(int argc, char** argv)
     earth.id = QStringLiteral("body:earth");
     earth.name = QStringLiteral("Earth");
     earth.type = QStringLiteral("Planet");
-    earth.pos = Event4D(0.0, 1.496e11, 0.0, 0.0); // 1 AU on +X
+    earth.pos = Event4D(0.0, 1.496e11, 0.0, 0.0);  // 1 AU on +X
     earth.vel = Event4D(0.0, 0.0, 29780.0, 0.0);
-    earth.spinX = 0.0; earth.spinY = 1.0; earth.spinZ = 0.0;
+    earth.spinX = 0.0;
+    earth.spinY = 1.0;
+    earth.spinZ = 0.0;
     earth.spinRate = 7.292e-5;
     gps.registerObject(earth);
 
@@ -68,7 +69,7 @@ int main(int argc, char** argv)
     QV_CHECK(types.contains(QStringLiteral("BlackHole")));
 
     // Update from a metric first so r / redshift are computed for every object.
-    auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(1.989e30); // 1 Msun
+    auto metric = std::make_shared<quantumverse::SchwarzschildMetric>(1.989e30);  // 1 Msun
     gps.updateFromSimulation(nullptr, metric.get(), 0.0, 0.016);
 
     // details() map now reflects computed r / redshift.

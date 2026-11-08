@@ -4,25 +4,24 @@
  */
 
 #include "GWEchoHunter.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace quantumverse {
 
-GWEchoHunter::GWEchoHunter()
-{
+GWEchoHunter::GWEchoHunter() {
     setParameter("echo_delay", 0.5);
     setParameter("echo_ratio_threshold", 1.5);
 }
 
-std::vector<InstrumentFinding> GWEchoHunter::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding> GWEchoHunter::analyze(const MetricTensor& metric,
+                                                     const Event4D& location,
+                                                     const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
-    if (trajectory.size() < kMinTrajectorySize) return findings;
+    if (trajectory.size() < kMinTrajectorySize)
+        return findings;
 
     double echoDelay = getParameter("echo_delay");
     double ratioThreshold = getParameter("echo_ratio_threshold");
@@ -36,7 +35,8 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
         }
         samples.emplace_back(pt.t, pt.x);
     }
-    if (samples.size() < kMinTrajectorySize) return findings;
+    if (samples.size() < kMinTrajectorySize)
+        return findings;
 
     std::sort(samples.begin(), samples.end());
 
@@ -46,27 +46,35 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
     std::vector<std::pair<double, double>> crests;
     auto ampAt = [&](size_t i) { return std::abs(samples[i].second); };
     for (size_t i = 0; i < samples.size(); ++i) {
-        if (ampAt(i) <= 1e-12) continue;
+        if (ampAt(i) <= 1e-12)
+            continue;
         bool isMax = true;
-        if (i > 0 && ampAt(i) < ampAt(i - 1)) isMax = false;
-        if (i + 1 < samples.size() && ampAt(i) < ampAt(i + 1)) isMax = false;
-        if (isMax) crests.emplace_back(samples[i].first, ampAt(i));
+        if (i > 0 && ampAt(i) < ampAt(i - 1))
+            isMax = false;
+        if (i + 1 < samples.size() && ampAt(i) < ampAt(i + 1))
+            isMax = false;
+        if (isMax)
+            crests.emplace_back(samples[i].first, ampAt(i));
     }
-    if (crests.empty()) return findings;
+    if (crests.empty())
+        return findings;
 
     // Global ringdown peak is the earliest crest.
     double tPeak = crests[0].first;
     double aRing = crests[0].second;
-    if (aRing <= 0.0) return findings;
+    if (aRing <= 0.0)
+        return findings;
 
     double echoStart = tPeak + echoDelay;
 
     // Estimate the decay constant tau from pre-echo crests (unbiased).
     std::vector<std::pair<double, double>> fitCrests;
     for (const auto& c : crests) {
-        if (c.first < echoStart) fitCrests.push_back(c);
+        if (c.first < echoStart)
+            fitCrests.push_back(c);
     }
-    if (fitCrests.size() < 2) fitCrests = crests; // fallback
+    if (fitCrests.size() < 2)
+        fitCrests = crests;  // fallback
 
     double tau = kMaxTau;
     if (fitCrests.size() >= 2) {
@@ -75,16 +83,21 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
         for (const auto& c : fitCrests) {
             double t = c.first - tPeak;
             double l = std::log(c.second / aRing);
-            sumT += t; sumL += l; sumTT += t * t; sumTL += t * l;
+            sumT += t;
+            sumL += l;
+            sumTT += t * t;
+            sumTL += t * l;
             ++cnt;
         }
         double denom = cnt * sumTT - sumT * sumT;
         if (std::abs(denom) > 1e-12) {
-            double slope = (cnt * sumTL - sumT * sumL) / denom; // = -1/tau
-            if (slope < 0.0) tau = -1.0 / slope;
+            double slope = (cnt * sumTL - sumT * sumL) / denom;  // = -1/tau
+            if (slope < 0.0)
+                tau = -1.0 / slope;
         }
     }
-    if (!(tau > 0.0) || !std::isfinite(tau) || tau > kMaxTau) tau = kMaxTau;
+    if (!(tau > 0.0) || !std::isfinite(tau) || tau > kMaxTau)
+        tau = kMaxTau;
 
     // Scan echo-window crests for a localized strain excess above the
     // extrapolated ringdown tail.
@@ -93,7 +106,8 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
     double tEcho = tPeak;
     double aEcho = 0.0;
     for (const auto& c : crests) {
-        if (c.first < echoStart) continue;
+        if (c.first < echoStart)
+            continue;
         double expected = aRing * std::exp(-(c.first - tPeak) / tau);
         double ratio = c.second / (expected + 1e-12);
         if (ratio > bestRatio) {
@@ -103,7 +117,8 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
             found = true;
         }
     }
-    if (!found) return findings;
+    if (!found)
+        return findings;
 
     if (bestRatio > ratioThreshold) {
         double excess = bestRatio - ratioThreshold;
@@ -115,8 +130,9 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
         f.severity = confidenceToSeverity(confidence);
         f.confidence = confidence;
         f.isAnomaly = true;
-        f.description = "Post-ringdown gravitational-wave echo detected at t=" +
-            std::to_string(tEcho) + " with strain excess ratio " + std::to_string(bestRatio) +
+        f.description =
+            "Post-ringdown gravitational-wave echo detected at t=" + std::to_string(tEcho) +
+            " with strain excess ratio " + std::to_string(bestRatio) +
             "x over the extrapolated ringdown tail. Consistent with quantum "
             "structure near the horizon (echoes) or an exotic compact object.";
         f.location = location;
@@ -136,12 +152,8 @@ std::vector<InstrumentFinding> GWEchoHunter::analyze(
     return findings;
 }
 
-std::map<std::string, std::pair<double, double>> GWEchoHunter::getParameterRanges() const
-{
-    return {
-        {"echo_delay", {0.1, 2.0}},
-        {"echo_ratio_threshold", {1.2, 3.0}}
-    };
+std::map<std::string, std::pair<double, double>> GWEchoHunter::getParameterRanges() const {
+    return {{"echo_delay", {0.1, 2.0}}, {"echo_ratio_threshold", {1.2, 3.0}}};
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

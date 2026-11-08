@@ -26,8 +26,8 @@
 #include <vector>
 
 #include "discovery/DarkMatterAnnihilationAnalyzer.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -37,30 +37,30 @@ namespace {
 // Build a smooth power-law photon spectrum N(E) = norm * E^(-index) over a
 // grid of energies, then optionally inject a Gaussian monochromatic line at
 // `lineEnergy` with the given per-bin amplitude (the annihilation signal).
-std::vector<double> makeSpectrum(std::vector<double>& energies,
-                                 double norm, double index, size_t nBins,
-                                 double dE, double lineEnergy, double lineAmp,
+std::vector<double> makeSpectrum(std::vector<double>& energies, double norm, double index,
+                                 size_t nBins, double dE, double lineEnergy, double lineAmp,
                                  unsigned seed) {
     energies.resize(nBins);
     std::vector<double> counts(nBins);
     std::mt19937 gen(seed);
     std::normal_distribution<double> g(0.0, 1.0);
-    const double sigmaLine = lineEnergy * 0.04; // narrow line
+    const double sigmaLine = lineEnergy * 0.04;  // narrow line
     for (size_t i = 0; i < nBins; ++i) {
         double E = 1.0 + static_cast<double>(i) * dE;
         energies[i] = E;
         double bg = norm * std::pow(E, -index);
-        double c = bg + 0.03 * bg * g(gen); // small photon-count noise
+        double c = bg + 0.03 * bg * g(gen);  // small photon-count noise
         if (lineAmp > 0.0 && sigmaLine > 0.0) {
             c += lineAmp * std::exp(-0.5 * std::pow((E - lineEnergy) / sigmaLine, 2.0));
         }
-        if (c < 0.0) c = 0.0;
+        if (c < 0.0)
+            c = 0.0;
         counts[i] = c;
     }
     return counts;
 }
 
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== DarkMatterAnnihilationAnalyzerTest ===" << std::endl;
@@ -93,10 +93,13 @@ int main() {
         std::vector<double> E, C;
         C = makeSpectrum(E, norm, index, nBins, dE, lineEnergy, 0.0, 999);
         auto findings = dma.analyzeSpectrum(E, C, lineEnergy);
-        double nullSig = findings.empty() ? 0.0 : findings.front().parameters.at("significance_sigma");
-        std::cout << "  Null background findings: " << findings.size() << " sig=" << nullSig << std::endl;
+        double nullSig =
+            findings.empty() ? 0.0 : findings.front().parameters.at("significance_sigma");
+        std::cout << "  Null background findings: " << findings.size() << " sig=" << nullSig
+                  << std::endl;
         if (!findings.empty()) {
-            std::cerr << "FAIL: pure power-law background must NOT be flagged (sig=" << nullSig << ")\n";
+            std::cerr << "FAIL: pure power-law background must NOT be flagged (sig=" << nullSig
+                      << ")\n";
             return 1;
         }
     }
@@ -111,9 +114,8 @@ int main() {
         auto findings = dma.analyzeSpectrum(E, C, lineEnergy);
         bool allFinite = true;
         for (const auto& f : findings) {
-            allFinite = allFinite
-                && std::isfinite(f.confidence)
-                && std::isfinite(f.parameters.at("significance_sigma"));
+            allFinite = allFinite && std::isfinite(f.confidence) &&
+                        std::isfinite(f.parameters.at("significance_sigma"));
         }
         QV_CHECK(allFinite);
         std::cout << "  NaN/Inf robustness findings: " << findings.size()
@@ -148,9 +150,8 @@ int main() {
         auto ranges = dma.getParameterRanges();
         bool rangesOk = !ranges.empty();
         for (const auto& kv : ranges) {
-            rangesOk = rangesOk
-                && std::isfinite(kv.second.first) && std::isfinite(kv.second.second)
-                && (kv.second.second > kv.second.first);
+            rangesOk = rangesOk && std::isfinite(kv.second.first) &&
+                       std::isfinite(kv.second.second) && (kv.second.second > kv.second.first);
         }
         QV_CHECK(rangesOk);
         std::cout << "  parameter ranges ok=" << (rangesOk ? 1 : 0) << std::endl;
@@ -163,7 +164,8 @@ int main() {
         C = makeSpectrum(E, norm, index, nBins, dE, lineEnergy, 8.0, 777);
         std::vector<Event4D> traj;
         traj.reserve(E.size());
-        for (size_t i = 0; i < E.size(); ++i) traj.emplace_back(E[i], C[i], 0.0, 0.0); // t=E, x=counts
+        for (size_t i = 0; i < E.size(); ++i)
+            traj.emplace_back(E[i], C[i], 0.0, 0.0);  // t=E, x=counts
         auto findings = dma.analyze(metric, location, traj);
         std::cout << "  analyze(scan) findings: " << findings.size() << std::endl;
         QV_CHECK(!findings.empty());

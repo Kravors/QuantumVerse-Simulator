@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "data/MultiMessengerCorrelator.h"
-#include "spacetime/Event4D.h"
 #include "discovery/DiscoveryInstrument.h"
+#include "spacetime/Event4D.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -20,11 +20,8 @@ using namespace quantumverse;
 namespace {
 constexpr double kEps = 1e-9;
 
-InstrumentFinding makeFinding(const std::string& id,
-                              const std::string& instrument,
-                              double t, double x, double y, double z,
-                              double confidence = 0.9)
-{
+InstrumentFinding makeFinding(const std::string& id, const std::string& instrument, double t,
+                              double x, double y, double z, double confidence = 0.9) {
     InstrumentFinding f;
     f.id = id;
     f.instrumentName = instrument;
@@ -33,10 +30,9 @@ InstrumentFinding makeFinding(const std::string& id,
     f.location = Event4D(t, x, y, z);
     return f;
 }
-} // anonymous namespace
+}  // anonymous namespace
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
     std::cout << "=== SimFrameCorrelationTest ===" << std::endl;
 
@@ -87,7 +83,7 @@ int main(int argc, char* argv[])
         std::vector<InstrumentFinding> findings = {
             makeFinding("f1", "GWScanner", 0.0, 0.0, 0.0, 0.0),
             makeFinding("f2", "NeutrinoBurst", 0.0, 100.0, 0.0, 0.0),
-            makeFinding("f3", "FermiGBM",    0.0, 200.0, 0.0, 0.0),
+            makeFinding("f3", "FermiGBM", 0.0, 200.0, 0.0, 0.0),
         };
 
         auto events = correlator.correlateFindings(findings, 1.0e6, 1.0);
@@ -97,9 +93,12 @@ int main(int argc, char* argv[])
         int f1f2 = 0, f1f3 = 0, f2f3 = 0;
         for (const auto& ev : events) {
             QString ids = ev.alertIds.join(",");
-            if (ids.contains("f1") && ids.contains("f2")) ++f1f2;
-            if (ids.contains("f1") && ids.contains("f3")) ++f1f3;
-            if (ids.contains("f2") && ids.contains("f3")) ++f2f3;
+            if (ids.contains("f1") && ids.contains("f2"))
+                ++f1f2;
+            if (ids.contains("f1") && ids.contains("f3"))
+                ++f1f3;
+            if (ids.contains("f2") && ids.contains("f3"))
+                ++f2f3;
         }
         QV_CHECK(f1f2 == 1);
         QV_CHECK(f1f3 == 1);

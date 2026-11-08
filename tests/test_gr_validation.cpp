@@ -1,11 +1,11 @@
-#include "physics/GWPolarization.h"
-#include "physics/GeodesicDeviation.h"
-#include "physics/SingularityHandler.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/Event4D.h"
-#include "physics/GeodesicIntegrator.h"
 #include <cmath>
 #include <iostream>
+#include "physics/GWPolarization.h"
+#include "physics/GeodesicDeviation.h"
+#include "physics/GeodesicIntegrator.h"
+#include "physics/SingularityHandler.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 #ifndef M_PI
@@ -18,10 +18,9 @@ using namespace quantumverse;
 // 3.2.1 - Gravitational wave polarization modes
 // ============================================================================
 void test_gw_polarization_modes() {
-    auto plus = GWPolarization::generateWaveform(
-        PolarizationMode::Plus, 1e-21, 100.0, 1.0, 4096.0);
-    auto cross = GWPolarization::generateWaveform(
-        PolarizationMode::Cross, 1e-21, 100.0, 1.0, 4096.0);
+    auto plus = GWPolarization::generateWaveform(PolarizationMode::Plus, 1e-21, 100.0, 1.0, 4096.0);
+    auto cross =
+        GWPolarization::generateWaveform(PolarizationMode::Cross, 1e-21, 100.0, 1.0, 4096.0);
 
     QV_CHECK(plus.mode == PolarizationMode::Plus);
     QV_CHECK(cross.mode == PolarizationMode::Cross);
@@ -35,7 +34,8 @@ void test_gw_polarization_modes() {
     QV_CHECK(std::isfinite(h_cross));
     QV_CHECK(std::abs(h_plus) <= plus.amplitude + 1e-30);
     QV_CHECK(std::abs(h_cross) <= cross.amplitude + 1e-30);
-    (void)h_plus; (void)h_cross;
+    (void)h_plus;
+    (void)h_cross;
 
     std::vector<GWPolarizationState> polarizations = {plus, cross};
     QV_CHECK(GWPolarization::isGRConsistent(polarizations));
@@ -47,8 +47,7 @@ void test_gw_polarization_modes() {
 // 3.2.2 - GW detector response
 // ============================================================================
 void test_gw_detector_response() {
-    auto plus = GWPolarization::generateWaveform(
-        PolarizationMode::Plus, 1e-21, 100.0, 1.0, 4096.0);
+    auto plus = GWPolarization::generateWaveform(PolarizationMode::Plus, 1e-21, 100.0, 1.0, 4096.0);
 
     std::array<double, 3> arm1 = {1.0, 0.0, 0.0};
     std::array<double, 3> arm2 = {0.0, 1.0, 0.0};
@@ -79,7 +78,8 @@ void test_light_deflection_general() {
     auto g = sch.evaluate(Event4D(0.0, b_critical, 0.0, 0.0));
     (void)g;
 
-    std::cout << "[PASS] Light deflection: analytic formula valid, photon sphere at b=" << b_critical << std::endl;
+    std::cout << "[PASS] Light deflection: analytic formula valid, photon sphere at b="
+              << b_critical << std::endl;
 }
 
 // ============================================================================
@@ -106,10 +106,12 @@ void test_geodesic_deviation_tidal_tensor() {
     QV_CHECK(std::abs(tidal[0][0] - expected_rr) < 1e-6);
     QV_CHECK(std::abs(tidal[1][1] - expected_tt) < 1e-6);
     QV_CHECK(std::abs(tidal[2][2] - expected_tt) < 1e-6);
-    (void)expected_rr; (void)expected_tt;
+    (void)expected_rr;
+    (void)expected_tt;
     (void)tidal;
 
-    std::cout << "[PASS] Geodesic deviation tidal tensor matches Schwarzschild 1/r^3 law" << std::endl;
+    std::cout << "[PASS] Geodesic deviation tidal tensor matches Schwarzschild 1/r^3 law"
+              << std::endl;
 }
 
 // ============================================================================
@@ -120,7 +122,8 @@ void test_time_dilation_schwarzschild() {
     double r1 = 20.0 * M;
     double r2 = 10.0 * M;
 
-    SingularityHandler handler(SingularityType::SCHWARZSCHILD, M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
+    SingularityHandler handler(SingularityType::SCHWARZSCHILD,
+                               M * Event4D::C * Event4D::C / Event4D::G, 0.0, 0.0);
 
     Event4D event1(0.0, r1, 0.0, 0.0);
     Event4D event2(0.0, r2, 0.0, 0.0);
@@ -138,7 +141,8 @@ void test_time_dilation_schwarzschild() {
     QV_CHECK(relError < 0.1);
     (void)relError;
 
-    std::cout << "[PASS] Time dilation: ratio=" << ratio_actual << ", expected=" << ratio_expected << std::endl;
+    std::cout << "[PASS] Time dilation: ratio=" << ratio_actual << ", expected=" << ratio_expected
+              << std::endl;
 }
 
 int main() {

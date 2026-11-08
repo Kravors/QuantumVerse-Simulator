@@ -14,8 +14,8 @@
 
 #include "PhotonSphereExperiment.h"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 #include "../../spacetime/KerrMetric.h"
@@ -26,13 +26,14 @@ QVector<ExperimentParameter> PhotonSphereExperiment::parameters() const {
     QVector<ExperimentParameter> p;
     p.append({QStringLiteral("mass_Msun"), QStringLiteral("BH mass (M\u2299)"),
               QStringLiteral("double"), QVariant(10.0), QVariant(0.1), QVariant(1000.0),
-              QStringList(), QStringLiteral("M\u2299"), QStringLiteral("Black hole mass — sets physical scale; r_ph/M is dimensionless")});
-    p.append({QStringLiteral("spin_a_max"), QStringLiteral("Max spin a*"),
-              QStringLiteral("double"), QVariant(0.99), QVariant(0.05), QVariant(0.999),
-              QStringList(), QStringLiteral(""), QStringLiteral("Upper end of spin sweep.")});
-    p.append({QStringLiteral("n_steps"),    QStringLiteral("Spin samples"),
-              QStringLiteral("int"), QVariant(50), QVariant(10), QVariant(200),
-              QStringList(), QStringLiteral(""), QStringLiteral("Number of spin samples on the curve.")});
+              QStringList(), QStringLiteral("M\u2299"),
+              QStringLiteral("Black hole mass — sets physical scale; r_ph/M is dimensionless")});
+    p.append({QStringLiteral("spin_a_max"), QStringLiteral("Max spin a*"), QStringLiteral("double"),
+              QVariant(0.99), QVariant(0.05), QVariant(0.999), QStringList(), QStringLiteral(""),
+              QStringLiteral("Upper end of spin sweep.")});
+    p.append({QStringLiteral("n_steps"), QStringLiteral("Spin samples"), QStringLiteral("int"),
+              QVariant(50), QVariant(10), QVariant(200), QStringList(), QStringLiteral(""),
+              QStringLiteral("Number of spin samples on the curve.")});
     return p;
 }
 
@@ -54,7 +55,7 @@ ExperimentResult PhotonSphereExperiment::run(const QVariantMap& p,
     ExperimentResult out;
 
     const double a_max = p.value(QStringLiteral("spin_a_max"), 0.99).toDouble();
-    const int    N     = p.value(QStringLiteral("n_steps"),   50).toInt();
+    const int N = p.value(QStringLiteral("n_steps"), 50).toInt();
 
     if (!(a_max >= 0.0 && a_max < 1.0 && N >= 2)) {
         out.success = false;
@@ -66,33 +67,38 @@ ExperimentResult PhotonSphereExperiment::run(const QVariantMap& p,
 
     // Main curve: prograde r_ph(a)/M vs spin a
     for (int i = 0; i < n; ++i) {
-        if (shouldAbort()) { out.success = false; return out; }
+        if (shouldAbort()) {
+            out.success = false;
+            return out;
+        }
 
         const double a = a_max * static_cast<double>(i) / static_cast<double>(n > 1 ? n - 1 : 1);
         const double r = r_ph_over_M(a, true);
 
         out.curve.append(QPointF(a, r));
         out.logLines << QString("a=%1  r_ph+/M=%2  r_ph-/M=%3")
-                        .arg(a, 0, 'f', 4).arg(r, 0, 'f', 6)
-                        .arg(r_ph_over_M(a, false), 0, 'f', 6);
+                            .arg(a, 0, 'f', 4)
+                            .arg(r, 0, 'f', 6)
+                            .arg(r_ph_over_M(a, false), 0, 'f', 6);
 
-        if (progress) progress(static_cast<double>(i + 1) / static_cast<double>(n));
+        if (progress)
+            progress(static_cast<double>(i + 1) / static_cast<double>(n));
     }
 
     // Schwarzschild limit scalars (a=0)
-    out.scalars[QStringLiteral("r_ph_pro_a0")]    = r_ph_over_M(0.0,   true);
-    out.scalars[QStringLiteral("r_ph_ret_a0")]    = r_ph_over_M(0.0,   false);
-    out.scalars[QStringLiteral("b_c_pro_a0")]     = b_c_over_M(0.0,   true);
-    out.scalars[QStringLiteral("b_c_ret_a0")]     = b_c_over_M(0.0,   false);
+    out.scalars[QStringLiteral("r_ph_pro_a0")] = r_ph_over_M(0.0, true);
+    out.scalars[QStringLiteral("r_ph_ret_a0")] = r_ph_over_M(0.0, false);
+    out.scalars[QStringLiteral("b_c_pro_a0")] = b_c_over_M(0.0, true);
+    out.scalars[QStringLiteral("b_c_ret_a0")] = b_c_over_M(0.0, false);
 
     // Extremal-limit scalars (a=a_max)
     out.scalars[QStringLiteral("r_ph_pro_a_max")] = r_ph_over_M(a_max, true);
     out.scalars[QStringLiteral("r_ph_ret_a_max")] = r_ph_over_M(a_max, false);
-    out.scalars[QStringLiteral("b_c_pro_a_max")]  = b_c_over_M(a_max, true);
-    out.scalars[QStringLiteral("b_c_ret_a_max")]  = b_c_over_M(a_max, false);
+    out.scalars[QStringLiteral("b_c_pro_a_max")] = b_c_over_M(a_max, true);
+    out.scalars[QStringLiteral("b_c_ret_a_max")] = b_c_over_M(a_max, false);
 
-    const double b_c_pro  = b_c_over_M(a_max, true);
-    const double b_c_ret  = b_c_over_M(a_max, false);
+    const double b_c_pro = b_c_over_M(a_max, true);
+    const double b_c_ret = b_c_over_M(a_max, false);
     out.scalars[QStringLiteral("shadow_asymmetry_a_max")] = b_c_pro / b_c_ret;
     out.scalars[QStringLiteral("spin_a_max")] = a_max;
 
@@ -101,20 +107,22 @@ ExperimentResult PhotonSphereExperiment::run(const QVariantMap& p,
     // clamps only at r_+ (not 3M), so r_ph < 3M prograde orbits are
     // evaluated at their true radius.
     constexpr double M_SUN_KG = 1.98892e30;
-    const double   mass_Msun  = p.value(QStringLiteral("mass_Msun"), 10.0).toDouble();
-    const double   mass_kg    = mass_Msun * M_SUN_KG;
-    KerrMetric     km(mass_kg, a_max);
-    const double   M_geo      = km.geometricMass(); // meters
-    const double   r_ph_pro_m = r_ph_over_M(a_max, true)  * M_geo;
-    const double   r_ph_ret_m = r_ph_over_M(a_max, false) * M_geo;
-    const auto     curv_pro   = km.curvatureScalars(Event4D(0.0, r_ph_pro_m, 0.0, 0.0));
-    const auto     curv_ret   = km.curvatureScalars(Event4D(0.0, r_ph_ret_m, 0.0, 0.0));
-    out.scalars[QStringLiteral("kretschmann_at_r_ph_pro")] = curv_pro.valid  ? curv_pro.kretschmann  : std::numeric_limits<double>::quiet_NaN();
-    out.scalars[QStringLiteral("kretschmann_at_r_ph_ret")] = curv_ret.valid  ? curv_ret.kretschmann  : std::numeric_limits<double>::quiet_NaN();
+    const double mass_Msun = p.value(QStringLiteral("mass_Msun"), 10.0).toDouble();
+    const double mass_kg = mass_Msun * M_SUN_KG;
+    KerrMetric km(mass_kg, a_max);
+    const double M_geo = km.geometricMass();  // meters
+    const double r_ph_pro_m = r_ph_over_M(a_max, true) * M_geo;
+    const double r_ph_ret_m = r_ph_over_M(a_max, false) * M_geo;
+    const auto curv_pro = km.curvatureScalars(Event4D(0.0, r_ph_pro_m, 0.0, 0.0));
+    const auto curv_ret = km.curvatureScalars(Event4D(0.0, r_ph_ret_m, 0.0, 0.0));
+    out.scalars[QStringLiteral("kretschmann_at_r_ph_pro")] =
+        curv_pro.valid ? curv_pro.kretschmann : std::numeric_limits<double>::quiet_NaN();
+    out.scalars[QStringLiteral("kretschmann_at_r_ph_ret")] =
+        curv_ret.valid ? curv_ret.kretschmann : std::numeric_limits<double>::quiet_NaN();
     out.scalars[QStringLiteral("mass_Msun")] = mass_Msun;
 
     out.success = true;
     return out;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

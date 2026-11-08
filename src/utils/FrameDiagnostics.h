@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include <chrono>
 #include <fstream>
 #include <mutex>
-#include <chrono>
+#include <string>
+#include <vector>
 
 namespace quantumverse {
 namespace utils {
@@ -39,7 +39,7 @@ struct FrameSnapshot {
  * On shutdown, writes the collected data as a JSON array to a file.
  */
 class FrameDiagnostics {
-public:
+   public:
     FrameDiagnostics();
     ~FrameDiagnostics();
 
@@ -72,19 +72,23 @@ public:
     /**
      * @brief Check if diagnostics collection is enabled
      */
-    bool isEnabled() const { return enabled_; }
+    bool isEnabled() const {
+        return enabled_;
+    }
 
     /**
      * @brief Enable or disable diagnostics collection
      */
-    void setEnabled(bool enabled) { enabled_ = enabled; }
+    void setEnabled(bool enabled) {
+        enabled_ = enabled;
+    }
 
-private:
+   private:
     mutable std::mutex mutex_;
     std::vector<FrameSnapshot> frames_;
     bool enabled_ = false;
     std::chrono::steady_clock::time_point start_time_;
 };
 
-} // namespace utils
-} // namespace quantumverse
+}  // namespace utils
+}  // namespace quantumverse

@@ -4,8 +4,8 @@
  */
 
 #include "DiscoveryPanelManager.h"
-#include "DiscoveryEngine.h"
 #include <QVariant>
+#include "DiscoveryEngine.h"
 #ifdef QUANTUMVERSE_USE_QML
 #include "DiscoveryResultJson.h"
 #endif
@@ -13,21 +13,21 @@
 #ifdef QUANTUMVERSE_USE_QML
 #include "data/MultiMessengerCorrelator.h"
 #endif
-#include "../spacetime/MetricTensor.h"
-#include "../spacetime/KerrMetric.h"
-#include "../spacetime/Event4D.h"
 #include "../discovery/ScanSummary.h"
+#include "../spacetime/Event4D.h"
+#include "../spacetime/KerrMetric.h"
+#include "../spacetime/MetricTensor.h"
 
 #ifdef QUANTUMVERSE_USE_QML
 
-#include <QDebug>
-#include <fstream>
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <QTextStream>
 #include <QJsonObject>
+#include <QTextStream>
 #include <algorithm>
+#include <fstream>
 #include <limits>
 #include "../utils/DataPaths.h"
 #include "data/GCNNoticeParser.h"
@@ -35,38 +35,34 @@
 namespace quantumverse {
 
 DiscoveryPanelManager::DiscoveryPanelManager(QObject* parent)
-    : QObject(parent)
-    , m_activeInstrumentIndex(0)
-    , m_scanRunning(false)
-    , m_scanProgress(0.0)
-    , m_pool(std::max<size_t>(1, std::thread::hardware_concurrency()))
-{
+    : QObject(parent),
+      m_activeInstrumentIndex(0),
+      m_scanRunning(false),
+      m_scanProgress(0.0),
+      m_pool(std::max<size_t>(1, std::thread::hardware_concurrency())) {
 #ifdef QUANTUMVERSE_USE_QML
     m_correlator = std::make_unique<MultiMessengerCorrelator>(this);
-    connect(m_correlator.get(), &MultiMessengerCorrelator::correlationDetected,
-            this, &DiscoveryPanelManager::onCorrelationDetected);
-    connect(m_correlator.get(), &MultiMessengerCorrelator::followUpTriggered,
-            this, &DiscoveryPanelManager::onFollowUpTriggered);
+    connect(m_correlator.get(), &MultiMessengerCorrelator::correlationDetected, this,
+            &DiscoveryPanelManager::onCorrelationDetected);
+    connect(m_correlator.get(), &MultiMessengerCorrelator::followUpTriggered, this,
+            &DiscoveryPanelManager::onFollowUpTriggered);
 #endif
 }
 
-void DiscoveryPanelManager::registerInstrument(std::unique_ptr<DiscoveryInstrument> instrument)
-{
+void DiscoveryPanelManager::registerInstrument(std::unique_ptr<DiscoveryInstrument> instrument) {
     m_instruments.push_back(std::move(instrument));
     emit instrumentCountChanged();
     emit instrumentNamesChanged();
 }
 
-DiscoveryInstrument* DiscoveryPanelManager::instrument(int index)
-{
+DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) {
     if (index >= 0 && index < static_cast<int>(m_instruments.size())) {
         return m_instruments[index].get();
     }
     return nullptr;
 }
 
-const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const
-{
+const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const {
     if (index >= 0 && index < static_cast<int>(m_instruments.size())) {
         return m_instruments[index].get();
     }
@@ -74,9 +70,9 @@ const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const
 }
 
 void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location,
-                                   const std::vector<Event4D>& trajectory)
-{
-    if (m_instruments.empty() || m_scanRunning) return;
+                                    const std::vector<Event4D>& trajectory) {
+    if (m_instruments.empty() || m_scanRunning)
+        return;
 
     m_scanRunning = true;
     m_scanCancelled.store(false);
@@ -89,7 +85,8 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
 
     int enabledCount = 0;
     for (const auto& inst : m_instruments) {
-        if (inst->isEnabled()) ++enabledCount;
+        if (inst->isEnabled())
+            ++enabledCount;
     }
 
     if (enabledCount == 0) {
@@ -104,51 +101,56 @@ void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& l
 
     MetricTensor metricCopy = metric;
     for (const auto& inst : m_instruments) {
-        if (!inst->isEnabled()) continue;
+        if (!inst->isEnabled())
+            continue;
         DiscoveryInstrument* ptr = inst.get();
         m_pool.enqueue([this, ptr, metricCopy, location, enabledCount]() {
             auto findings = ptr->analyze(metricCopy, location, m_scanTrajectory);
-            QMetaObject::invokeMethod(this, [this, findings = std::move(findings), enabledCount]() mutable {
-                if (m_scanCancelled.load()) return;
+            QMetaObject::invokeMethod(
+                this,
+                [this, findings = std::move(findings), enabledCount]() mutable {
+                    if (m_scanCancelled.load())
+                        return;
 
-                for (auto& f : findings) {
-                    m_allFindings.push_back(std::move(f));
-                    emit newFindingDiscovered(
-                        QString::fromStdString(f.instrumentName),
-                        QString::fromStdString(f.description),
-                        f.confidence
-                    );
-                }
-                emit findingsListChanged();
-                emit findingsChanged();
+                    for (auto& f : findings) {
+                        m_allFindings.push_back(std::move(f));
+                        emit newFindingDiscovered(QString::fromStdString(f.instrumentName),
+                                                  QString::fromStdString(f.description),
+                                                  f.confidence);
+                    }
+                    emit findingsListChanged();
+                    emit findingsChanged();
 
-                int remaining = --m_scanRemaining;
-                m_scanProgress = 1.0 - (remaining / static_cast<double>(enabledCount));
-                emit scanProgressChanged();
-
-                if (remaining == 0) {
-                    m_correlationEvents = m_correlator
-                        ? m_correlator->correlateFindings(m_allFindings, 1.0e6, 1.0)
-                        : std::vector<CorrelationEvent>{};
-
-                    m_scanRunning = false;
-                    m_scanProgress = 1.0;
+                    int remaining = --m_scanRemaining;
+                    m_scanProgress = 1.0 - (remaining / static_cast<double>(enabledCount));
                     emit scanProgressChanged();
-                    emit scanRunningChanged();
-                    emit correlationCountChanged();
-                    emit correlationsListChanged();
-                    emit discoveryResultReady(buildResultMap());
-                    emit scanComplete();
-                }
-            }, Qt::QueuedConnection);
+
+                    if (remaining == 0) {
+                        m_correlationEvents =
+                            m_correlator
+                                ? m_correlator->correlateFindings(m_allFindings, 1.0e6, 1.0)
+                                : std::vector<CorrelationEvent>{};
+
+                        m_scanRunning = false;
+                        m_scanProgress = 1.0;
+                        emit scanProgressChanged();
+                        emit scanRunningChanged();
+                        emit correlationCountChanged();
+                        emit correlationsListChanged();
+                        emit discoveryResultReady(buildResultMap());
+                        emit scanComplete();
+                    }
+                },
+                Qt::QueuedConnection);
         });
     }
 }
 
-void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric, const Event4D& location,
-                                       const std::vector<Event4D>& trajectory)
-{
-    if (index < 0 || index >= static_cast<int>(m_instruments.size())) return;
+void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric,
+                                          const Event4D& location,
+                                          const std::vector<Event4D>& trajectory) {
+    if (index < 0 || index >= static_cast<int>(m_instruments.size()))
+        return;
 
     m_scanRunning = true;
     emit scanRunningChanged();
@@ -156,11 +158,8 @@ void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric,
     auto findings = m_instruments[index]->analyze(metric, location, trajectory);
     for (auto& f : findings) {
         m_allFindings.push_back(f);
-        emit newFindingDiscovered(
-            QString::fromStdString(f.instrumentName),
-            QString::fromStdString(f.description),
-            f.confidence
-        );
+        emit newFindingDiscovered(QString::fromStdString(f.instrumentName),
+                                  QString::fromStdString(f.description), f.confidence);
     }
 
     m_scanRunning = false;
@@ -171,14 +170,14 @@ void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric,
     emit scanComplete();
 }
 
-QVariantMap DiscoveryPanelManager::buildResultMap() const
-{
+QVariantMap DiscoveryPanelManager::buildResultMap() const {
     QVariantMap result;
 
     // Use the highest-confidence finding as the primary result.
     const InstrumentFinding* best = nullptr;
     for (const auto& f : m_allFindings) {
-        if (!best || f.confidence > best->confidence) best = &f;
+        if (!best || f.confidence > best->confidence)
+            best = &f;
     }
 
     if (best) {
@@ -199,11 +198,11 @@ QVariantMap DiscoveryPanelManager::buildResultMap() const
         double redshift = 0.0;
         if (m_metric) {
             if (auto* kerr = dynamic_cast<KerrMetric*>(m_metric.get())) {
-                massKg = kerr->mass();     // kg
-                spin   = kerr->spin();     // dimensionless
+                massKg = kerr->mass();  // kg
+                spin = kerr->spin();    // dimensionless
             } else if (auto* schw = dynamic_cast<SchwarzschildMetric*>(m_metric.get())) {
-                massKg = schw->mass();     // kg
-                spin   = 0.0;              // Schwarzschild is non-rotating by construction
+                massKg = schw->mass();  // kg
+                spin = 0.0;             // Schwarzschild is non-rotating by construction
             }
 
             // Instrument-reported spin takes precedence over metric-derived spin,
@@ -226,14 +225,16 @@ QVariantMap DiscoveryPanelManager::buildResultMap() const
             double g_tt = g[0][0];
             if (g_tt < 0.0 && std::isfinite(g_tt)) {
                 redshift = 1.0 / std::sqrt(-g_tt) - 1.0;
-                if (!std::isfinite(redshift) || redshift < 0.0) redshift = std::numeric_limits<double>::quiet_NaN();
+                if (!std::isfinite(redshift) || redshift < 0.0)
+                    redshift = std::numeric_limits<double>::quiet_NaN();
             } else {
                 redshift = std::numeric_limits<double>::quiet_NaN();
             }
 
             // Kretschmann from metric curvature scalars (analytic where available).
             auto cs = m_metric->curvatureScalars(probe);
-            if (cs.valid) result["kretschmann"] = cs.kretschmann;
+            if (cs.valid)
+                result["kretschmann"] = cs.kretschmann;
 
             // Tag the metric type so the paper narrative can match reality.
             if (dynamic_cast<KerrMetric*>(m_metric.get())) {
@@ -245,9 +246,9 @@ QVariantMap DiscoveryPanelManager::buildResultMap() const
             }
         }
 
-        result["mass"]    = massKg / M_SUN_KG;   // kg -> solar masses
-        result["spin"]    = spin;
-        result["charge"]  = 0.0;                 // Kerr is uncharged by construction
+        result["mass"] = massKg / M_SUN_KG;  // kg -> solar masses
+        result["spin"] = spin;
+        result["charge"] = 0.0;  // Kerr is uncharged by construction
         result["redshift"] = redshift;
     } else {
         result["id"] = QString();
@@ -265,8 +266,7 @@ QVariantMap DiscoveryPanelManager::buildResultMap() const
     return result;
 }
 
-void DiscoveryPanelManager::clearFindings()
-{
+void DiscoveryPanelManager::clearFindings() {
     m_allFindings.clear();
     m_correlationEvents.clear();
     emit findingsListChanged();
@@ -275,20 +275,18 @@ void DiscoveryPanelManager::clearFindings()
     emit correlationsListChanged();
 }
 
-QString DiscoveryPanelManager::exportFindings() const
-{
+QString DiscoveryPanelManager::exportFindings() const {
     QString result;
     for (const auto& f : m_allFindings) {
         result += QString("[%1] %2 (confidence: %3)\n")
-            .arg(QString::fromStdString(f.instrumentName))
-            .arg(QString::fromStdString(f.description))
-            .arg(f.confidence);
+                      .arg(QString::fromStdString(f.instrumentName))
+                      .arg(QString::fromStdString(f.description))
+                      .arg(f.confidence);
     }
     return result;
 }
 
-void DiscoveryPanelManager::setActiveInstrumentIndex(int index)
-{
+void DiscoveryPanelManager::setActiveInstrumentIndex(int index) {
     if (m_activeInstrumentIndex != index) {
         m_activeInstrumentIndex = index;
         emit activeInstrumentIndexChanged();
@@ -297,13 +295,11 @@ void DiscoveryPanelManager::setActiveInstrumentIndex(int index)
     }
 }
 
-int DiscoveryPanelManager::correlationCount() const
-{
+int DiscoveryPanelManager::correlationCount() const {
     return static_cast<int>(m_correlationEvents.size());
 }
 
-void DiscoveryPanelManager::onCorrelationDetected(const CorrelationEvent& correlation)
-{
+void DiscoveryPanelManager::onCorrelationDetected(const CorrelationEvent& correlation) {
 #ifdef QUANTUMVERSE_USE_QML
     emit correlationCountChanged();
     emit correlationsListChanged();
@@ -311,28 +307,30 @@ void DiscoveryPanelManager::onCorrelationDetected(const CorrelationEvent& correl
     Q_UNUSED(correlation);
 }
 
-void DiscoveryPanelManager::onFollowUpTriggered(const CorrelationEvent& correlation)
-{
+void DiscoveryPanelManager::onFollowUpTriggered(const CorrelationEvent& correlation) {
 #ifdef QUANTUMVERSE_USE_QML
     emit liveAlertProcessed(QStringLiteral("GW+EM follow-up: %1").arg(correlation.description));
 #endif
     Q_UNUSED(correlation);
 }
 
-QString DiscoveryPanelManager::severityToString(AlertSeverity sev) const
-{
+QString DiscoveryPanelManager::severityToString(AlertSeverity sev) const {
     switch (sev) {
-    case AlertSeverity::INFO:     return "INFO";
-    case AlertSeverity::LOW:      return "LOW";
-    case AlertSeverity::MEDIUM:   return "MEDIUM";
-    case AlertSeverity::HIGH:     return "HIGH";
-    case AlertSeverity::CRITICAL: return "CRITICAL";
+        case AlertSeverity::INFO:
+            return "INFO";
+        case AlertSeverity::LOW:
+            return "LOW";
+        case AlertSeverity::MEDIUM:
+            return "MEDIUM";
+        case AlertSeverity::HIGH:
+            return "HIGH";
+        case AlertSeverity::CRITICAL:
+            return "CRITICAL";
     }
     return "UNKNOWN";
 }
 
-QVariantList DiscoveryPanelManager::correlationsList() const
-{
+QVariantList DiscoveryPanelManager::correlationsList() const {
     QVariantList list;
     for (const CorrelationEvent& ev : m_correlationEvents) {
         QVariantMap item;
@@ -353,8 +351,7 @@ QVariantList DiscoveryPanelManager::correlationsList() const
     return list;
 }
 
-QStringList DiscoveryPanelManager::instrumentNames() const
-{
+QStringList DiscoveryPanelManager::instrumentNames() const {
     QStringList names;
     for (const auto& inst : m_instruments) {
         names.append(QString::fromStdString(inst->getName()));
@@ -362,38 +359,34 @@ QStringList DiscoveryPanelManager::instrumentNames() const
     return names;
 }
 
-void DiscoveryPanelManager::setMetric(const std::shared_ptr<MetricTensor>& metric)
-{
+void DiscoveryPanelManager::setMetric(const std::shared_ptr<MetricTensor>& metric) {
     m_metric = metric;
 }
 
-void DiscoveryPanelManager::setLocation(const Event4D& location)
-{
+void DiscoveryPanelManager::setLocation(const Event4D& location) {
     m_location = location;
     m_locationSet = true;
 }
 
-void DiscoveryPanelManager::startScan()
-{
-    if (!m_metric || !m_locationSet) return;
+void DiscoveryPanelManager::startScan() {
+    if (!m_metric || !m_locationSet)
+        return;
     auto trajectory = generateScanTrajectory();
     qWarning() << "DIAG startScan: metric=" << (m_metric ? "set" : "null")
-               << "locationSet=" << m_locationSet
-               << "trajectoryPoints=" << trajectory.size();
+               << "locationSet=" << m_locationSet << "trajectoryPoints=" << trajectory.size();
     {
         std::ofstream df("viewport_diag.log", std::ios::app);
         if (df) {
-            df << QDateTime::currentMSecsSinceEpoch() << "  [DIAG-startScan] metric="
-               << (m_metric ? "set" : "null")
-               << " locationSet=" << m_locationSet
-               << " trajectoryPoints=" << trajectory.size() << "\n";
+            df << QDateTime::currentMSecsSinceEpoch()
+               << "  [DIAG-startScan] metric=" << (m_metric ? "set" : "null")
+               << " locationSet=" << m_locationSet << " trajectoryPoints=" << trajectory.size()
+               << "\n";
         }
     }
     runScan(*m_metric, m_location, trajectory);
 }
 
-void DiscoveryPanelManager::ingestAlert(const QJsonObject& alertJson)
-{
+void DiscoveryPanelManager::ingestAlert(const QJsonObject& alertJson) {
     const ParsedGCNNotice parsed = GCNNoticeParser::parse(alertJson);
 
     InstrumentFinding finding;
@@ -401,93 +394,98 @@ void DiscoveryPanelManager::ingestAlert(const QJsonObject& alertJson)
     finding.timestamp = QDateTime::currentMSecsSinceEpoch() / 1000.0;
 
     switch (parsed.origin) {
-    case AlertOrigin::LIGO: {
-        finding.instrumentName = "LIGO (Live)";
-        finding.description = QStringLiteral("Live GW alert %1 (SNR=%2, FAR=%3)")
-            .arg(QString::fromStdString(parsed.gw.event_id))
-            .arg(parsed.gw.snr)
-            .arg(parsed.gw.false_alarm_rate)
-            .toStdString();
-        finding.confidence = alertConfidence(parsed.gw.false_alarm_rate, parsed.gw.confidence);
-        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
-        finding.location = Event4D(finding.timestamp, parsed.gw.ra, parsed.gw.dec, 0.0);
-        finding.parameters["snr"] = parsed.gw.snr;
-        finding.parameters["m1"] = parsed.gw.m1;
-        finding.parameters["m2"] = parsed.gw.m2;
-        break;
-    }
-    case AlertOrigin::IceCube: {
-        finding.instrumentName = "IceCube (Live)";
-        finding.description = QStringLiteral("Live neutrino alert %1 (E=%2 TeV, FAR=%3)")
-            .arg(QString::fromStdString(parsed.neutrino.event_id))
-            .arg(parsed.neutrino.energy_tev)
-            .arg(parsed.neutrino.false_alarm_rate)
-            .toStdString();
-        finding.confidence = alertConfidence(parsed.neutrino.false_alarm_rate, parsed.neutrino.confidence);
-        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
-        finding.location = Event4D(finding.timestamp, parsed.neutrino.ra, parsed.neutrino.dec, 0.0);
-        finding.parameters["energy_tev"] = parsed.neutrino.energy_tev;
-        break;
-    }
-    case AlertOrigin::TESS: {
-        finding.instrumentName = "TESS (Live)";
-        finding.description = QStringLiteral("Live TOI alert %1 (P=%2 d, depth=%3 ppm)")
-            .arg(QString::fromStdString(parsed.tess.toi_id))
-            .arg(parsed.tess.period_days)
-            .arg(parsed.tess.depth_ppm)
-            .toStdString();
-        finding.confidence = parsed.tess.confidence;
-        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
-        finding.location = Event4D(finding.timestamp, parsed.tess.ra, parsed.tess.dec, 0.0);
-        finding.parameters["period_days"] = parsed.tess.period_days;
-        finding.parameters["depth_ppm"] = parsed.tess.depth_ppm;
-        finding.parameters["duration_hours"] = parsed.tess.duration_hours;
-        break;
-    }
-    case AlertOrigin::FermiGBM: {
-        finding.instrumentName = "Fermi GBM (Live)";
-        finding.description = QStringLiteral("Live GRB alert %1 (duration=%2 s, flux=%3)")
-            .arg(QString::fromStdString(parsed.fermi_gbm.trigger_id))
-            .arg(parsed.fermi_gbm.duration)
-            .arg(parsed.fermi_gbm.peak_flux)
-            .toStdString();
-        finding.confidence = alertConfidence(parsed.fermi_gbm.false_alarm_rate, parsed.fermi_gbm.confidence);
-        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
-        finding.location = Event4D(finding.timestamp, parsed.fermi_gbm.ra, parsed.fermi_gbm.dec, 0.0);
-        finding.parameters["duration"] = parsed.fermi_gbm.duration;
-        finding.parameters["peak_flux"] = parsed.fermi_gbm.peak_flux;
-        finding.parameters["error_radius"] = parsed.fermi_gbm.error_radius;
-        break;
-    }
-    case AlertOrigin::Swift: {
-        finding.instrumentName = "Swift BAT (Live)";
-        finding.description = QStringLiteral("Live X-ray transient %1 (BAT rate=%2, XRT flux=%3)")
-            .arg(QString::fromStdString(parsed.swift_bat.trigger_id))
-            .arg(parsed.swift_bat.bat_rate)
-            .arg(parsed.swift_bat.xrt_flux)
-            .toStdString();
-        finding.confidence = alertConfidence(parsed.swift_bat.false_alarm_rate, parsed.swift_bat.confidence);
-        finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
-        finding.location = Event4D(finding.timestamp, parsed.swift_bat.ra, parsed.swift_bat.dec, 0.0);
-        finding.parameters["bat_rate"] = parsed.swift_bat.bat_rate;
-        finding.parameters["xrt_flux"] = parsed.swift_bat.xrt_flux;
-        finding.parameters["error_radius"] = parsed.swift_bat.error_radius;
-        break;
-    }
-    default:
-        finding.instrumentName = "Unknown (Live)";
-        finding.description = QStringLiteral("Unsupported alert type: %1").arg(parsed.raw_type).toStdString();
-        finding.severity = AlertSeverity::INFO;
-        finding.confidence = 0.0;
-        break;
+        case AlertOrigin::LIGO: {
+            finding.instrumentName = "LIGO (Live)";
+            finding.description = QStringLiteral("Live GW alert %1 (SNR=%2, FAR=%3)")
+                                      .arg(QString::fromStdString(parsed.gw.event_id))
+                                      .arg(parsed.gw.snr)
+                                      .arg(parsed.gw.false_alarm_rate)
+                                      .toStdString();
+            finding.confidence = alertConfidence(parsed.gw.false_alarm_rate, parsed.gw.confidence);
+            finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+            finding.location = Event4D(finding.timestamp, parsed.gw.ra, parsed.gw.dec, 0.0);
+            finding.parameters["snr"] = parsed.gw.snr;
+            finding.parameters["m1"] = parsed.gw.m1;
+            finding.parameters["m2"] = parsed.gw.m2;
+            break;
+        }
+        case AlertOrigin::IceCube: {
+            finding.instrumentName = "IceCube (Live)";
+            finding.description = QStringLiteral("Live neutrino alert %1 (E=%2 TeV, FAR=%3)")
+                                      .arg(QString::fromStdString(parsed.neutrino.event_id))
+                                      .arg(parsed.neutrino.energy_tev)
+                                      .arg(parsed.neutrino.false_alarm_rate)
+                                      .toStdString();
+            finding.confidence =
+                alertConfidence(parsed.neutrino.false_alarm_rate, parsed.neutrino.confidence);
+            finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+            finding.location =
+                Event4D(finding.timestamp, parsed.neutrino.ra, parsed.neutrino.dec, 0.0);
+            finding.parameters["energy_tev"] = parsed.neutrino.energy_tev;
+            break;
+        }
+        case AlertOrigin::TESS: {
+            finding.instrumentName = "TESS (Live)";
+            finding.description = QStringLiteral("Live TOI alert %1 (P=%2 d, depth=%3 ppm)")
+                                      .arg(QString::fromStdString(parsed.tess.toi_id))
+                                      .arg(parsed.tess.period_days)
+                                      .arg(parsed.tess.depth_ppm)
+                                      .toStdString();
+            finding.confidence = parsed.tess.confidence;
+            finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+            finding.location = Event4D(finding.timestamp, parsed.tess.ra, parsed.tess.dec, 0.0);
+            finding.parameters["period_days"] = parsed.tess.period_days;
+            finding.parameters["depth_ppm"] = parsed.tess.depth_ppm;
+            finding.parameters["duration_hours"] = parsed.tess.duration_hours;
+            break;
+        }
+        case AlertOrigin::FermiGBM: {
+            finding.instrumentName = "Fermi GBM (Live)";
+            finding.description = QStringLiteral("Live GRB alert %1 (duration=%2 s, flux=%3)")
+                                      .arg(QString::fromStdString(parsed.fermi_gbm.trigger_id))
+                                      .arg(parsed.fermi_gbm.duration)
+                                      .arg(parsed.fermi_gbm.peak_flux)
+                                      .toStdString();
+            finding.confidence =
+                alertConfidence(parsed.fermi_gbm.false_alarm_rate, parsed.fermi_gbm.confidence);
+            finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+            finding.location =
+                Event4D(finding.timestamp, parsed.fermi_gbm.ra, parsed.fermi_gbm.dec, 0.0);
+            finding.parameters["duration"] = parsed.fermi_gbm.duration;
+            finding.parameters["peak_flux"] = parsed.fermi_gbm.peak_flux;
+            finding.parameters["error_radius"] = parsed.fermi_gbm.error_radius;
+            break;
+        }
+        case AlertOrigin::Swift: {
+            finding.instrumentName = "Swift BAT (Live)";
+            finding.description =
+                QStringLiteral("Live X-ray transient %1 (BAT rate=%2, XRT flux=%3)")
+                    .arg(QString::fromStdString(parsed.swift_bat.trigger_id))
+                    .arg(parsed.swift_bat.bat_rate)
+                    .arg(parsed.swift_bat.xrt_flux)
+                    .toStdString();
+            finding.confidence =
+                alertConfidence(parsed.swift_bat.false_alarm_rate, parsed.swift_bat.confidence);
+            finding.severity = DiscoveryInstrument::confidenceToSeverity(finding.confidence);
+            finding.location =
+                Event4D(finding.timestamp, parsed.swift_bat.ra, parsed.swift_bat.dec, 0.0);
+            finding.parameters["bat_rate"] = parsed.swift_bat.bat_rate;
+            finding.parameters["xrt_flux"] = parsed.swift_bat.xrt_flux;
+            finding.parameters["error_radius"] = parsed.swift_bat.error_radius;
+            break;
+        }
+        default:
+            finding.instrumentName = "Unknown (Live)";
+            finding.description =
+                QStringLiteral("Unsupported alert type: %1").arg(parsed.raw_type).toStdString();
+            finding.severity = AlertSeverity::INFO;
+            finding.confidence = 0.0;
+            break;
     }
 
     m_allFindings.push_back(finding);
-    emit newFindingDiscovered(
-        QString::fromStdString(finding.instrumentName),
-        QString::fromStdString(finding.description),
-        finding.confidence
-    );
+    emit newFindingDiscovered(QString::fromStdString(finding.instrumentName),
+                              QString::fromStdString(finding.description), finding.confidence);
     emit findingsListChanged();
     emit findingsChanged();
     emit liveAlertProcessed(QString::fromStdString(finding.id));
@@ -506,15 +504,12 @@ void DiscoveryPanelManager::ingestAlert(const QJsonObject& alertJson)
 #endif
 }
 
-bool DiscoveryPanelManager::runAnomalyDetection(const InstrumentFinding& finding)
-{
-    if (!m_anomalyDetectionEnabled) return false;
+bool DiscoveryPanelManager::runAnomalyDetection(const InstrumentFinding& finding) {
+    if (!m_anomalyDetectionEnabled)
+        return false;
 
-    DiscoveryResult result = m_engine.detectAnomaly(
-        finding.location,
-        m_metric ? *m_metric : MetricTensor(),
-        {}
-    );
+    DiscoveryResult result =
+        m_engine.detectAnomaly(finding.location, m_metric ? *m_metric : MetricTensor(), {});
 
     if (result.confidence > 0.8) {
         QJsonObject anomaly;
@@ -529,21 +524,20 @@ bool DiscoveryPanelManager::runAnomalyDetection(const InstrumentFinding& finding
     return false;
 }
 
-std::vector<Event4D> DiscoveryPanelManager::generateScanTrajectory() const
-{
+std::vector<Event4D> DiscoveryPanelManager::generateScanTrajectory() const {
     std::vector<Event4D> traj;
     const int N = 240;
-    const double a = 5.0e5;     // semi-major axis (metres)
-    const double e = 0.30;      // eccentricity
+    const double a = 5.0e5;  // semi-major axis (metres)
+    const double e = 0.30;   // eccentricity
     const double p = a * (1.0 - e * e);
-    const double precession = 0.18; // radians of perihelion advance per orbit
+    const double precession = 0.18;  // radians of perihelion advance per orbit
     const double twoPi = 2.0 * 3.141592653589793;
     traj.reserve(N);
     for (int i = 0; i < N; ++i) {
         double frac = static_cast<double>(i) / static_cast<double>(N - 1);
-        double f = twoPi * frac;                 // true anomaly
+        double f = twoPi * frac;  // true anomaly
         double r = p / (1.0 + e * std::cos(f));
-        double phi = f + precession * frac;      // precessing azimuth
+        double phi = f + precession * frac;  // precessing azimuth
         double x = r * std::cos(phi);
         double y = r * std::sin(phi);
         // Monotonic timestamp so direction-based detectors register motion.
@@ -553,8 +547,7 @@ std::vector<Event4D> DiscoveryPanelManager::generateScanTrajectory() const
     return traj;
 }
 
-void DiscoveryPanelManager::stopScan()
-{
+void DiscoveryPanelManager::stopScan() {
     m_scanCancelled.store(true);
     m_scanRunning = false;
     emit scanRunningChanged();
@@ -567,13 +560,14 @@ void DiscoveryPanelManager::stopScan()
 }
 
 void DiscoveryPanelManager::runParameterSweep(double massLoMsun, double massHiMsun, int steps,
-                                               double spin, double charge, double probeR)
-{
+                                              double spin, double charge, double probeR) {
     m_sweepRows.clear();
     (void)charge;  // Kerr metric does not support charge; reserved for Kerr-Newman
 
-    if (steps < 1) steps = 1;
-    if (steps > 10000) steps = 10000;
+    if (steps < 1)
+        steps = 1;
+    if (steps > 10000)
+        steps = 10000;
 
     // Fixed probe at the production radius, theta = pi/4.
     double theta = M_PI / 4.0;
@@ -609,8 +603,7 @@ void DiscoveryPanelManager::runParameterSweep(double massLoMsun, double massHiMs
     emit sweepResultsChanged();
 }
 
-QVariantList DiscoveryPanelManager::sweepResults() const
-{
+QVariantList DiscoveryPanelManager::sweepResults() const {
     QVariantList list;
     for (const auto& row : m_sweepRows) {
         QVariantMap item;
@@ -626,8 +619,7 @@ QVariantList DiscoveryPanelManager::sweepResults() const
     return list;
 }
 
-void DiscoveryPanelManager::exportCurrentFindings(const QString& path)
-{
+void DiscoveryPanelManager::exportCurrentFindings(const QString& path) {
     std::ofstream file(path.toStdString());
     if (!file.is_open()) {
         qWarning() << "exportCurrentFindings: cannot open" << path;
@@ -635,20 +627,15 @@ void DiscoveryPanelManager::exportCurrentFindings(const QString& path)
     }
     file << "step,mass_msun,spin,charge,kretschmann,redshift,valid\n";
     for (const auto& row : m_sweepRows) {
-        file << row.step << ","
-             << row.massMsun << ","
-             << row.spin << ","
-             << row.charge << ","
-             << row.kretschmann << ","
-             << row.redshift << ","
-             << (row.valid ? "true" : "false") << "\n";
+        file << row.step << "," << row.massMsun << "," << row.spin << "," << row.charge << ","
+             << row.kretschmann << "," << row.redshift << "," << (row.valid ? "true" : "false")
+             << "\n";
     }
     file.close();
     qDebug() << "Exported" << m_sweepRows.size() << "sweep rows to" << path;
 }
 
-QString DiscoveryPanelManager::exportSweepResults(const QString& fmt)
-{
+QString DiscoveryPanelManager::exportSweepResults(const QString& fmt) {
     if (m_sweepRows.empty()) {
         qWarning() << "exportSweepResults: no sweep rows to export";
         return QString();
@@ -676,26 +663,20 @@ QString DiscoveryPanelManager::exportSweepResults(const QString& fmt)
     if (format == "csv") {
         out << "step,mass_msun,spin,charge,kretschmann,redshift,valid\n";
         for (const auto& row : m_sweepRows) {
-            out << row.step << ","
-                << row.massMsun << ","
-                << row.spin << ","
-                << row.charge << ","
-                << row.kretschmann << ","
-                << row.redshift << ","
-                << (row.valid ? "true" : "false") << "\n";
+            out << row.step << "," << row.massMsun << "," << row.spin << "," << row.charge << ","
+                << row.kretschmann << "," << row.redshift << "," << (row.valid ? "true" : "false")
+                << "\n";
         }
     } else {
         out << "[\n";
         for (size_t i = 0; i < m_sweepRows.size(); ++i) {
             const auto& row = m_sweepRows[i];
-            out << "  {\"step\":" << row.step
-                << ",\"mass_msun\":" << row.massMsun
-                << ",\"spin\":" << row.spin
-                << ",\"charge\":" << row.charge
-                << ",\"kretschmann\":" << row.kretschmann
-                << ",\"redshift\":" << row.redshift
+            out << "  {\"step\":" << row.step << ",\"mass_msun\":" << row.massMsun
+                << ",\"spin\":" << row.spin << ",\"charge\":" << row.charge
+                << ",\"kretschmann\":" << row.kretschmann << ",\"redshift\":" << row.redshift
                 << ",\"valid\":" << (row.valid ? "true" : "false") << "}";
-            if (i + 1 < m_sweepRows.size()) out << ",";
+            if (i + 1 < m_sweepRows.size())
+                out << ",";
             out << "\n";
         }
         out << "]\n";
@@ -707,14 +688,12 @@ QString DiscoveryPanelManager::exportSweepResults(const QString& fmt)
     return path;
 }
 
-void DiscoveryPanelManager::exportCurrentFindings()
-{
+void DiscoveryPanelManager::exportCurrentFindings() {
     QString findings = exportFindings();
     qDebug() << "=== Discovery Findings Export ===" << findings;
 }
 
-QVariantList DiscoveryPanelManager::findingsList() const
-{
+QVariantList DiscoveryPanelManager::findingsList() const {
     QVariantList list;
     for (const auto& f : m_allFindings) {
         QVariantMap item;
@@ -732,8 +711,7 @@ QVariantList DiscoveryPanelManager::findingsList() const
     return list;
 }
 
-QVariantList DiscoveryPanelManager::paretoFront() const
-{
+QVariantList DiscoveryPanelManager::paretoFront() const {
     QVariantList list;
     const auto& pareto = m_engine.getParetoFront();
     for (const auto& r : pareto) {
@@ -742,19 +720,19 @@ QVariantList DiscoveryPanelManager::paretoFront() const
     return list;
 }
 
-QVariantList DiscoveryPanelManager::bmaWeights() const
-{
+QVariantList DiscoveryPanelManager::bmaWeights() const {
     QVariantList list;
     const auto weights = m_engine.getModelWeights();
-    for (double w : weights) list.append(w);
+    for (double w : weights)
+        list.append(w);
     return list;
 }
 
-QVariantMap DiscoveryPanelManager::activeInstrumentInfo() const
-{
+QVariantMap DiscoveryPanelManager::activeInstrumentInfo() const {
     QVariantMap info;
     auto* inst = instrument(m_activeInstrumentIndex);
-    if (!inst) return info;
+    if (!inst)
+        return info;
 
     info["name"] = QString::fromStdString(inst->getName());
     info["description"] = QString::fromStdString(inst->getDescription());
@@ -780,11 +758,11 @@ QVariantMap DiscoveryPanelManager::activeInstrumentInfo() const
     return info;
 }
 
-QVariantList DiscoveryPanelManager::instrumentParameters() const
-{
+QVariantList DiscoveryPanelManager::instrumentParameters() const {
     QVariantList list;
     const auto* inst = instrument(m_activeInstrumentIndex);
-    if (!inst) return list;
+    if (!inst)
+        return list;
 
     const auto ranges = inst->getParameterRanges();
     for (const auto& r : ranges) {
@@ -798,16 +776,16 @@ QVariantList DiscoveryPanelManager::instrumentParameters() const
     return list;
 }
 
-void DiscoveryPanelManager::setInstrumentParameter(const QString& name, double value)
-{
+void DiscoveryPanelManager::setInstrumentParameter(const QString& name, double value) {
     auto* inst = instrument(m_activeInstrumentIndex);
-    if (!inst) return;
+    if (!inst)
+        return;
     inst->setParameter(name.toStdString(), value);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_USE_QML
+#endif  // QUANTUMVERSE_USE_QML
 
 // Plain C++ implementations when Qt is unavailable
 #ifndef QUANTUMVERSE_USE_QML
@@ -833,19 +811,23 @@ const DiscoveryInstrument* DiscoveryPanelManager::instrument(int index) const {
 }
 
 void DiscoveryPanelManager::runScan(const MetricTensor& metric, const Event4D& location,
-                                     const std::vector<Event4D>& trajectory) {
+                                    const std::vector<Event4D>& trajectory) {
     m_allFindings.clear();
     for (auto& inst : m_instruments) {
-        if (!inst->isEnabled()) continue;
+        if (!inst->isEnabled())
+            continue;
         auto findings = inst->analyze(metric, location);
         m_allFindings.insert(m_allFindings.end(), findings.begin(), findings.end());
     }
 }
 
-void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric, const Event4D& location) {
-    if (index < 0 || index >= static_cast<int>(m_instruments.size())) return;
+void DiscoveryPanelManager::runInstrument(int index, const MetricTensor& metric,
+                                          const Event4D& location) {
+    if (index < 0 || index >= static_cast<int>(m_instruments.size()))
+        return;
     auto* inst = m_instruments[index].get();
-    if (!inst->isEnabled()) return;
+    if (!inst->isEnabled())
+        return;
     auto findings = inst->analyze(metric, location);
     m_allFindings.insert(m_allFindings.end(), findings.begin(), findings.end());
 }
@@ -888,6 +870,6 @@ void DiscoveryPanelManager::setLocation(const Event4D& location) {
     m_locationSet = true;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // !QUANTUMVERSE_USE_QML
+#endif  // !QUANTUMVERSE_USE_QML

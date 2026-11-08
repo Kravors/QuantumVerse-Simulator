@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "discovery/BosonStarCollisionPredictor.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 int main() {
@@ -31,7 +31,7 @@ int main() {
             double A = 1e-6 * std::exp(-(t - tMerger) / tau);
             strain = A * std::sin(twoPi * 0.5 * (t - tMerger));
         }
-        trajectory.emplace_back(t, 0.0, 0.0, strain); // t=time, z=strain
+        trajectory.emplace_back(t, 0.0, 0.0, strain);  // t=time, z=strain
     }
 
     quantumverse::MetricTensor metric;

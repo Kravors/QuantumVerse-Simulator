@@ -1,21 +1,21 @@
 #pragma once
 
+#include <chrono>
+#include <map>
+#include <optional>
 #include <string>
 #include <vector>
-#include <map>
-#include <chrono>
-#include <optional>
 
 namespace quantumverse {
 
 /**
  * @brief Build and test analytics collector
- * 
+ *
  * Collects performance metrics, test results, and build statistics
  * for AI-driven optimization and trend analysis.
  */
 class WorkflowAnalytics {
-public:
+   public:
     struct BuildMetrics {
         double configure_time;
         double build_time;
@@ -88,9 +88,9 @@ public:
      */
     std::string exportJSON() const;
 
-private:
+   private:
     WorkflowAnalytics() = default;
-    
+
     std::vector<BuildMetrics> m_build_history;
     std::vector<TestMetrics> m_test_history;
     int m_max_build_history = 100;
@@ -99,14 +99,14 @@ private:
 
 /**
  * @brief AI-driven build optimizer
- * 
+ *
  * Analyzes historical build data to suggest:
  * - Optimal parallel job count
  * - Compiler flag improvements
  * - Cache strategies
  */
 class BuildOptimizer {
-public:
+   public:
     struct OptimizationSuggestion {
         std::string type;
         std::string description;
@@ -117,9 +117,8 @@ public:
     /**
      * @brief Analyze build history and suggest optimizations
      */
-    std::vector<OptimizationSuggestion> analyze(
-        const std::vector<WorkflowAnalytics::BuildMetrics>& history
-    ) const;
+    std::vector<OptimizationSuggestion>
+    analyze(const std::vector<WorkflowAnalytics::BuildMetrics>& history) const;
 
     /**
      * @brief Get optimal parallel job count based on system
@@ -130,9 +129,7 @@ public:
      * @brief Get recommended compiler flags
      * @param build_type Debug or Release
      */
-    std::vector<std::string> getRecommendedFlags(
-        const std::string& build_type
-    ) const;
+    std::vector<std::string> getRecommendedFlags(const std::string& build_type) const;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse

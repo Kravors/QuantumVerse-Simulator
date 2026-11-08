@@ -6,23 +6,21 @@
 #include "KafkaAlertListener.h"
 #include "GCNBrokerConfig.h"
 
+#include <QDebug>
 #include <QJsonDocument>
 #include <QJsonParseError>
-#include <QDebug>
-#include <QThread>
 #include <QMutex>
+#include <QThread>
 
 namespace quantumverse {
 
 #ifdef HAVE_LIBRDKAFKA
 
-static QString kafkaErrorString(rd_kafka_resp_err_t err)
-{
+static QString kafkaErrorString(rd_kafka_resp_err_t err) {
     return QString::fromLocal8Bit(rd_kafka_err2str(err));
 }
 
-void KafkaAlertListener::consumeLoop()
-{
+void KafkaAlertListener::consumeLoop() {
     rd_kafka_t* consumer = m_consumer;
     rd_kafka_topic_partition_list_t* topics = m_topics_list;
 
@@ -34,7 +32,8 @@ void KafkaAlertListener::consumeLoop()
 
     while (m_running) {
         rd_kafka_message_t* msg = rd_kafka_consumer_poll(consumer, 500);
-        if (!msg) continue;
+        if (!msg)
+            continue;
 
         if (msg->err == RD_KAFKA_RESP_ERR_NO_ERROR) {
             const char* payload = static_cast<const char*>(msg->payload);
@@ -58,8 +57,7 @@ void KafkaAlertListener::consumeLoop()
     emit consumerStopped();
 }
 
-void KafkaAlertListener::onRawMessage(const QByteArray& payload)
-{
+void KafkaAlertListener::onRawMessage(const QByteArray& payload) {
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(payload, &err);
     if (err.error != QJsonParseError::NoError || !doc.isObject()) {
@@ -70,38 +68,33 @@ void KafkaAlertListener::onRawMessage(const QByteArray& payload)
     emit alertReceived(doc.object());
 }
 
-#else // HAVE_LIBRDKAFKA not defined
+#else  // HAVE_LIBRDKAFKA not defined
 
-void KafkaAlertListener::consumeLoop()
-{
+void KafkaAlertListener::consumeLoop() {
     emit consumerError(QStringLiteral("librdkafka not available at build time"));
     emit consumerStopped();
 }
 
-void KafkaAlertListener::onRawMessage(const QByteArray& payload)
-{
+void KafkaAlertListener::onRawMessage(const QByteArray& payload) {
     Q_UNUSED(payload)
 }
 
 #endif
 
-KafkaAlertListener::KafkaAlertListener(const GCNBrokerConfig& config,
-                                       QObject* parent)
-    : AlertListener(parent)
-    , m_brokers(config.brokers)
-    , m_thread(new QThread(this))
-    , m_groupId(config.groupId)
-    , m_securityProtocol(config.securityProtocol)
-    , m_saslMechanism(config.saslMechanism)
-    , m_saslUsername(config.saslUsername)
-    , m_saslPassword(config.saslPassword)
-    , m_autoOffsetResetLatest(config.autoOffsetResetLatest)
-{
+KafkaAlertListener::KafkaAlertListener(const GCNBrokerConfig& config, QObject* parent)
+    : AlertListener(parent),
+      m_brokers(config.brokers),
+      m_thread(new QThread(this)),
+      m_groupId(config.groupId),
+      m_securityProtocol(config.securityProtocol),
+      m_saslMechanism(config.saslMechanism),
+      m_saslUsername(config.saslUsername),
+      m_saslPassword(config.saslPassword),
+      m_autoOffsetResetLatest(config.autoOffsetResetLatest) {
     m_topics = config.topics;
 }
 
-KafkaAlertListener::~KafkaAlertListener()
-{
+KafkaAlertListener::~KafkaAlertListener() {
     stop();
     if (m_thread) {
         m_thread->quit();
@@ -124,10 +117,10 @@ KafkaAlertListener::~KafkaAlertListener()
 #endif
 }
 
-void KafkaAlertListener::start()
-{
+void KafkaAlertListener::start() {
     QMutexLocker locker(&m_mutex);
-    if (m_running) return;
+    if (m_running)
+        return;
 
 #ifdef HAVE_LIBRDKAFKA
     char errstr[512];
@@ -138,18 +131,23 @@ void KafkaAlertListener::start()
         return;
     }
 
-    rd_kafka_conf_set(m_conf, "bootstrap.servers", m_brokers.toUtf8().constData(), errstr, sizeof(errstr));
+    rd_kafka_conf_set(m_conf, "bootstrap.servers", m_brokers.toUtf8().constData(), errstr,
+                      sizeof(errstr));
     rd_kafka_conf_set(m_conf, "group.id", m_groupId.toUtf8().constData(), errstr, sizeof(errstr));
-    rd_kafka_conf_set(m_conf, "auto.offset.reset", m_autoOffsetResetLatest ? "latest" : "earliest", errstr, sizeof(errstr));
+    rd_kafka_conf_set(m_conf, "auto.offset.reset", m_autoOffsetResetLatest ? "latest" : "earliest",
+                      errstr, sizeof(errstr));
 
     if (m_securityProtocol == QLatin1String("sasl_ssl")) {
         rd_kafka_conf_set(m_conf, "security.protocol", "sasl_ssl", errstr, sizeof(errstr));
-        rd_kafka_conf_set(m_conf, "sasl.mechanism", m_saslMechanism.toUtf8().constData(), errstr, sizeof(errstr));
+        rd_kafka_conf_set(m_conf, "sasl.mechanism", m_saslMechanism.toUtf8().constData(), errstr,
+                          sizeof(errstr));
         if (!m_saslUsername.isEmpty()) {
-            rd_kafka_conf_set(m_conf, "sasl.username", m_saslUsername.toUtf8().constData(), errstr, sizeof(errstr));
+            rd_kafka_conf_set(m_conf, "sasl.username", m_saslUsername.toUtf8().constData(), errstr,
+                              sizeof(errstr));
         }
         if (!m_saslPassword.isEmpty()) {
-            rd_kafka_conf_set(m_conf, "sasl.password", m_saslPassword.toUtf8().constData(), errstr, sizeof(errstr));
+            rd_kafka_conf_set(m_conf, "sasl.password", m_saslPassword.toUtf8().constData(), errstr,
+                              sizeof(errstr));
         }
     } else {
         rd_kafka_conf_set(m_conf, "security.protocol", "plaintext", errstr, sizeof(errstr));
@@ -157,7 +155,8 @@ void KafkaAlertListener::start()
 
     m_consumer = rd_kafka_new(RD_KAFKA_CONSUMER, m_conf, errstr, sizeof(errstr));
     if (!m_consumer) {
-        emit consumerError(QStringLiteral("Failed to create Kafka consumer: %1").arg(QString::fromLocal8Bit(errstr)));
+        emit consumerError(QStringLiteral("Failed to create Kafka consumer: %1")
+                               .arg(QString::fromLocal8Bit(errstr)));
         rd_kafka_conf_destroy(m_conf);
         m_conf = nullptr;
         return;
@@ -165,7 +164,8 @@ void KafkaAlertListener::start()
 
     m_topics_list = rd_kafka_topic_partition_list_new();
     for (const QString& topic : m_topics) {
-        rd_kafka_topic_partition_list_add(m_topics_list, topic.toUtf8().constData(), RD_KAFKA_PARTITION_UA);
+        rd_kafka_topic_partition_list_add(m_topics_list, topic.toUtf8().constData(),
+                                          RD_KAFKA_PARTITION_UA);
     }
 
     m_running = true;
@@ -178,14 +178,15 @@ void KafkaAlertListener::start()
 #else
     Q_UNUSED(m_brokers)
     Q_UNUSED(m_topics)
-    emit consumerError(QStringLiteral("librdkafka not available - Kafka listener disabled at build time"));
+    emit consumerError(
+        QStringLiteral("librdkafka not available - Kafka listener disabled at build time"));
 #endif
 }
 
-void KafkaAlertListener::stop()
-{
+void KafkaAlertListener::stop() {
     QMutexLocker locker(&m_mutex);
-    if (!m_running) return;
+    if (!m_running)
+        return;
 
     m_running = false;
 
@@ -205,4 +206,4 @@ void KafkaAlertListener::stop()
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

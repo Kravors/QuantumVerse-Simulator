@@ -9,10 +9,10 @@
 #ifndef QMLCAMCONTROLLER_H
 #define QMLCAMCONTROLLER_H
 
-#include <QObject>
-#include <QVector3D>
 #include <QMatrix4x4>
+#include <QObject>
 #include <QQmlEngine>
+#include <QVector3D>
 #include <memory>
 
 // Camera4D is defined in UI4D.h
@@ -28,8 +28,7 @@ namespace quantumverse {
  * Handles orbit, pan, zoom, and 4D rotation interactions.
  * Designed for Solar System Scope-like intuitive manipulation.
  */
-class QmlCamController : public ::QObject
-{
+class QmlCamController : public ::QObject {
     Q_OBJECT
     Q_PROPERTY(float distance READ distance WRITE setDistance NOTIFY distanceChanged)
     Q_PROPERTY(float azimuth READ azimuth WRITE setAzimuth NOTIFY azimuthChanged)
@@ -38,17 +37,29 @@ class QmlCamController : public ::QObject
     Q_PROPERTY(float fov READ fov WRITE setFov NOTIFY fovChanged)
     Q_PROPERTY(bool isDragging READ isDragging NOTIFY isDraggingChanged)
 
-public:
+   public:
     explicit QmlCamController(QObject* parent = nullptr);
     ~QmlCamController() override;
 
     // Property accessors
-    float distance() const { return m_distance; }
-    float azimuth() const { return m_azimuth; }
-    float elevation() const { return m_elevation; }
-    QVector3D target() const { return m_target; }
-    float fov() const { return m_fov; }
-    bool isDragging() const { return m_isDragging; }
+    float distance() const {
+        return m_distance;
+    }
+    float azimuth() const {
+        return m_azimuth;
+    }
+    float elevation() const {
+        return m_elevation;
+    }
+    QVector3D target() const {
+        return m_target;
+    }
+    float fov() const {
+        return m_fov;
+    }
+    bool isDragging() const {
+        return m_isDragging;
+    }
 
     // Get computed view matrix
     QMatrix4x4 viewMatrix() const;
@@ -66,7 +77,7 @@ public:
     // 4D rotation
     Q_INVOKABLE void rotate4D(int planeA, int planeB, double angle);
 
-signals:
+   signals:
     void distanceChanged();
     void azimuthChanged();
     void elevationChanged();
@@ -75,7 +86,7 @@ signals:
     void isDraggingChanged();
     void viewChanged();
 
-public slots:
+   public slots:
     void setDistance(float dist);
     void setAzimuth(float az);
     void setElevation(float el);
@@ -90,7 +101,7 @@ public slots:
     Q_INVOKABLE void onPinchDelta(float scale);
     Q_INVOKABLE void onKeyPressed(int key);
 
-private:
+   private:
     // Spherical orbit coordinates
     float m_distance;    ///< Distance from target
     float m_azimuth;     ///< Horizontal angle (radians)
@@ -108,6 +119,6 @@ private:
     std::unique_ptr<Camera4D> m_camera4d;
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QMLCAMCONTROLLER_H
+#endif  // QMLCAMCONTROLLER_H

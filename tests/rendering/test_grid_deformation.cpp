@@ -1,17 +1,15 @@
-#include <QTest>
-#include <QProcess>
-#include <QImage>
-#include <QFile>
-#include <QDir>
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
+#include <QImage>
+#include <QProcess>
+#include <QTest>
 
-class GridDeformationTest : public QObject
-{
+class GridDeformationTest : public QObject {
     Q_OBJECT
 
-private slots:
-    void test_headless_screenshot_produces_valid_image()
-    {
+   private slots:
+    void test_headless_screenshot_produces_valid_image() {
         QString exePath = QCoreApplication::applicationDirPath() + "/quantumverse_qml";
 #ifdef Q_OS_WIN
         exePath += ".exe";
@@ -26,7 +24,8 @@ private slots:
 
         process.start(exePath, args);
         bool finished = process.waitForFinished(30000);
-        QVERIFY2(finished, qPrintable("Process timed out or failed to start: " + process.errorString()));
+        QVERIFY2(finished,
+                 qPrintable("Process timed out or failed to start: " + process.errorString()));
         QCOMPARE(process.exitStatus(), QProcess::NormalExit);
         QCOMPARE(process.exitCode(), 0);
 
@@ -40,8 +39,7 @@ private slots:
         QFile::remove(tempOutput);
     }
 
-    void test_geodesic_mode_produces_valid_image()
-    {
+    void test_geodesic_mode_produces_valid_image() {
         QString exePath = QCoreApplication::applicationDirPath() + "/quantumverse_qml";
 #ifdef Q_OS_WIN
         exePath += ".exe";
@@ -56,7 +54,8 @@ private slots:
 
         process.start(exePath, args);
         bool finished = process.waitForFinished(30000);
-        QVERIFY2(finished, qPrintable("Process timed out or failed to start: " + process.errorString()));
+        QVERIFY2(finished,
+                 qPrintable("Process timed out or failed to start: " + process.errorString()));
         QCOMPARE(process.exitStatus(), QProcess::NormalExit);
         QCOMPARE(process.exitCode(), 0);
 
@@ -70,8 +69,7 @@ private slots:
         QFile::remove(tempOutput);
     }
 
-    void test_screenshot_dimensions_are_consistent()
-    {
+    void test_screenshot_dimensions_are_consistent() {
         QString exePath = QCoreApplication::applicationDirPath() + "/quantumverse_qml";
 #ifdef Q_OS_WIN
         exePath += ".exe";

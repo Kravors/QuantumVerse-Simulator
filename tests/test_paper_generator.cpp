@@ -12,13 +12,13 @@
 // In CI (Qt6): all tests run, including pdflatex compilation.
 
 #include <QCoreApplication>
-#include <QFile>
 #include <QDir>
+#include <QFile>
 #include <QProcess>
-#include <QTest>
 #include <QTemporaryDir>
-#include <iostream>
+#include <QTest>
 #include <cstdlib>
+#include <iostream>
 #include "discovery/PaperGenerator.h"
 #include "test_assert.h"
 
@@ -34,27 +34,27 @@ int main(int argc, char* argv[]) {
     std::cout << "--- escapeLatex unit tests ---" << std::endl;
 
     // All nine LaTeX specials must be escaped
-    QV_CHECK(PaperGenerator::escapeLatex("a_b") == "a\\_b");           // underscore
-    QV_CHECK(PaperGenerator::escapeLatex("c%d") == "c\\%d");           // percent
-    QV_CHECK(PaperGenerator::escapeLatex("e&f") == "e\\&f");           // ampersand
-    QV_CHECK(PaperGenerator::escapeLatex("g#h") == "g\\#h");           // hash
-    QV_CHECK(PaperGenerator::escapeLatex("i$j") == "i\\$j");           // dollar
-    QV_CHECK(PaperGenerator::escapeLatex("{k}") == "\\{k\\}");         // braces
+    QV_CHECK(PaperGenerator::escapeLatex("a_b") == "a\\_b");                // underscore
+    QV_CHECK(PaperGenerator::escapeLatex("c%d") == "c\\%d");                // percent
+    QV_CHECK(PaperGenerator::escapeLatex("e&f") == "e\\&f");                // ampersand
+    QV_CHECK(PaperGenerator::escapeLatex("g#h") == "g\\#h");                // hash
+    QV_CHECK(PaperGenerator::escapeLatex("i$j") == "i\\$j");                // dollar
+    QV_CHECK(PaperGenerator::escapeLatex("{k}") == "\\{k\\}");              // braces
     QV_CHECK(PaperGenerator::escapeLatex("~l") == "\\textasciitilde{}l");   // tilde
     QV_CHECK(PaperGenerator::escapeLatex("^m") == "\\textasciicircum{}m");  // caret
     QV_CHECK(PaperGenerator::escapeLatex("\\n") == "\\textbackslash{}n");   // backslash
 
     // Mixed string with all specials
-    QV_CHECK(PaperGenerator::escapeLatex("a_b c%d e&f g#h i$j {k} ~l ^m \\n")
-             == "a\\_b c\\%d e\\&f g\\#h i\\$j \\{k\\} \\textasciitilde{}l "
-                "\\textasciicircum{}m \\textbackslash{}n");
+    QV_CHECK(PaperGenerator::escapeLatex("a_b c%d e&f g#h i$j {k} ~l ^m \\n") ==
+             "a\\_b c\\%d e\\&f g\\#h i\\$j \\{k\\} \\textasciitilde{}l "
+             "\\textasciicircum{}m \\textbackslash{}n");
 
     // Empty string
     QV_CHECK(PaperGenerator::escapeLatex("") == "");
 
     // Plain text with no specials passes through unchanged
-    QV_CHECK(PaperGenerator::escapeLatex("Plain text with no specials")
-             == "Plain text with no specials");
+    QV_CHECK(PaperGenerator::escapeLatex("Plain text with no specials") ==
+             "Plain text with no specials");
 
     std::cout << "[PASS] escapeLatex: all 9 LaTeX specials + edge cases" << std::endl;
 
@@ -62,14 +62,14 @@ int main(int argc, char* argv[]) {
     // generatePaper() — end-to-end .tex + PDF (Qt-dependent)
     // ========================================================================
     QTemporaryDir tmpDir;
-    if (!tmpDir.isValid()) return 1;
+    if (!tmpDir.isValid())
+        return 1;
     QDir::setCurrent(tmpDir.path());
 
     PaperGenerator generator;
 
     const QString abstract = "a_b c%d e&f g#h i$j {k} ~l ^m \\n";
-    generator.generatePaper(10.0, 0.0, 0.0, 1.0e-4, 0.001, abstract,
-                            QStringLiteral("unknown"),
+    generator.generatePaper(10.0, 0.0, 0.0, 1.0e-4, 0.001, abstract, QStringLiteral("unknown"),
                             tmpDir.path() + "/output/discovery_paper.tex");
 
     // Poll for .tex to be written (generatePaper writes synchronously)
@@ -78,7 +78,8 @@ int main(int argc, char* argv[]) {
     bool texWritten = false;
     for (int i = 0; i < 40 && !texWritten; ++i) {
         texWritten = texFile.exists();
-        if (!texWritten) QTest::qWait(50);
+        if (!texWritten)
+            QTest::qWait(50);
     }
     if (!texWritten) {
         std::cerr << "[WARN] .tex not written at " << qPrintable(texPath)

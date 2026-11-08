@@ -16,7 +16,8 @@ ThreadPool::ThreadPool(size_t numThreads) {
                 {
                     std::unique_lock<std::mutex> lock(queueMutex_);
                     condition_.wait(lock, [this] { return !tasks_.empty() || !running_; });
-                    if (!running_ && tasks_.empty()) break;
+                    if (!running_ && tasks_.empty())
+                        break;
                     task = std::move(tasks_.front());
                     tasks_.pop();
                 }
@@ -52,5 +53,5 @@ ThreadPool& getThreadPool() {
     return instance;
 }
 
-} // namespace physics
-} // namespace quantumverse
+}  // namespace physics
+}  // namespace quantumverse

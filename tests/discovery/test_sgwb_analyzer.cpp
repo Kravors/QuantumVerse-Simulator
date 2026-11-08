@@ -27,8 +27,8 @@
 #include <vector>
 
 #include "discovery/SGWBBackgroundAnalyzer.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -40,8 +40,8 @@ constexpr double kPi = 3.14159265358979323846;
 // Inject a stochastic background shared by two detectors, plus independent
 // detector noise.  a and b thus share `amp * g_signal` but have uncorrelated
 // noise `noise * g_noise`, so their cross-correlation reveals the common SGWB.
-void fillSGWB(std::vector<double>& a, std::vector<double>& b,
-              double amp, double noise, size_t n, unsigned seed) {
+void fillSGWB(std::vector<double>& a, std::vector<double>& b, double amp, double noise, size_t n,
+              unsigned seed) {
     std::mt19937 gs(seed), ga(seed + 1), gb(seed + 2);
     std::normal_distribution<double> g(0.0, 1.0);
     a.resize(n);
@@ -54,8 +54,8 @@ void fillSGWB(std::vector<double>& a, std::vector<double>& b,
 }
 
 // Two independent noise streams (no shared signal) -> must not correlate.
-void fillNoise(std::vector<double>& a, std::vector<double>& b,
-               double noise, size_t n, unsigned seed) {
+void fillNoise(std::vector<double>& a, std::vector<double>& b, double noise, size_t n,
+               unsigned seed) {
     std::mt19937 ga(seed), gb(seed + 7);
     std::normal_distribution<double> g(0.0, 1.0);
     a.resize(n);
@@ -73,7 +73,7 @@ std::vector<Event4D> makeSlowCorrelatedTrajectory(size_t n = 2000, double dt = 0
     std::normal_distribution<double> g(0.0, 1.0);
     std::vector<Event4D> traj;
     traj.reserve(n);
-    const double period = 400.0; // samples; persists across the mid-point split
+    const double period = 400.0;  // samples; persists across the mid-point split
     for (size_t i = 0; i < n; ++i) {
         double t = static_cast<double>(i) * dt;
         double common = 0.8 * std::sin(2.0 * kPi * t / (period * dt));
@@ -83,7 +83,7 @@ std::vector<Event4D> makeSlowCorrelatedTrajectory(size_t n = 2000, double dt = 0
     return traj;
 }
 
-} // namespace
+}  // namespace
 
 int main() {
     std::cout << "=== SGWBBackgroundAnalyzerTest ===" << std::endl;
@@ -112,8 +112,10 @@ int main() {
         std::vector<double> a, b;
         fillNoise(a, b, 1.0, 8000, 999);
         auto findings = sgwb.analyzeStrains(a, b);
-        double nullSig = findings.empty() ? 0.0 : findings.front().parameters.at("significance_sigma");
-        std::cout << "  Null noise findings: " << findings.size() << " sig=" << nullSig << std::endl;
+        double nullSig =
+            findings.empty() ? 0.0 : findings.front().parameters.at("significance_sigma");
+        std::cout << "  Null noise findings: " << findings.size() << " sig=" << nullSig
+                  << std::endl;
         if (!findings.empty()) {
             std::cerr << "FAIL: uncorrelated noise must NOT be flagged (sig=" << nullSig << ")\n";
             return 1;
@@ -175,7 +177,8 @@ int main() {
         fillSGWB(a, b, 1.0, 0.3, 4000, 777);
         std::vector<Event4D> traj;
         traj.reserve(a.size());
-        for (size_t i = 0; i < a.size(); ++i) traj.emplace_back(static_cast<double>(i), a[i], 0.0, 0.0);
+        for (size_t i = 0; i < a.size(); ++i)
+            traj.emplace_back(static_cast<double>(i), a[i], 0.0, 0.0);
         sgwb.setReferenceStrain(b);
         auto findings = sgwb.analyze(metric, location, traj);
         std::cout << "  analyze(reference) findings: " << findings.size() << std::endl;

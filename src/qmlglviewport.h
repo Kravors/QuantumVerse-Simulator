@@ -17,28 +17,28 @@
 // Qt headers MUST be included outside any namespace, because Qt uses
 // QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros that break when nested
 // inside namespace quantumverse {}.
+#include <QOpenGLFramebufferObject>
 #include <QQuickFramebufferObject>
 #include <QQuickItem>
 #include <QSGSimpleTextureNode>
 #include <QSGTexture>
-#include <QOpenGLFramebufferObject>
 
-#include <QMatrix4x4>
 #include <QDateTime>
-#include <QOpenGLContext>
 #include <QDebug>
+#include <QMatrix4x4>
+#include <QOpenGLContext>
 #include <QVariant>
-#include <memory>
-#include <vector>
-#include <deque>
-#include <chrono>
 #include <algorithm>
-#include <cmath>
 #include <array>
 #include <atomic>
+#include <chrono>
+#include <cmath>
+#include <deque>
+#include <memory>
+#include <vector>
 
-#include "ml/SurrogateIntegration.h"
 #include "ml/SessionRecorder.h"
+#include "ml/SurrogateIntegration.h"
 #include "physics/PhysicsValidator.h"
 #ifdef QUANTUMVERSE_USE_VR
 #include "vr/OpenXRBackend.h"
@@ -58,7 +58,7 @@ class PostProcess;
 class GravitationalLensing;
 class PhysicsValidator;
 class SpacetimeGPS;
-}
+}  // namespace quantumverse
 
 // Ensure M_PI is available on all platforms (MSVC <cmath> may not define it)
 #ifndef M_PI
@@ -71,10 +71,10 @@ namespace quantumverse {
  * @brief Timing data for a single rendered frame
  */
 struct FrameTiming {
-    int64_t frameStart;   ///< Timestamp at frame start (ms)
-    int64_t frameEnd;     ///< Timestamp at frame end (ms)
-    float frameTimeMs;    ///< Duration in milliseconds
-    float fps;            ///< Instantaneous FPS
+    int64_t frameStart;  ///< Timestamp at frame start (ms)
+    int64_t frameEnd;    ///< Timestamp at frame end (ms)
+    float frameTimeMs;   ///< Duration in milliseconds
+    float fps;           ///< Instantaneous FPS
 };
 
 /**
@@ -84,13 +84,14 @@ struct FrameTiming {
  * average/min/max/percentile frame times and FPS.
  */
 class FrameProfiler {
-public:
+   public:
     /**
      * @brief Construct a new FrameProfiler
      * @param windowSize Number of recent frames to keep in the rolling window
      */
     explicit FrameProfiler(size_t windowSize = 60)
-        : m_windowSize(windowSize), m_totalFrameTime(0) {}
+        : m_windowSize(windowSize),
+          m_totalFrameTime(0) {}
 
     /**
      * @brief Record a completed frame's timing
@@ -119,7 +120,8 @@ public:
      * @return Average frame time in milliseconds
      */
     float getAverageFrameTime() const {
-        if (m_frameHistory.empty()) return 0.0f;
+        if (m_frameHistory.empty())
+            return 0.0f;
         return static_cast<float>(m_totalFrameTime) / static_cast<float>(m_frameHistory.size());
     }
 
@@ -137,10 +139,12 @@ public:
      * @return Minimum frame time in milliseconds
      */
     float getMinFrameTime() const {
-        if (m_frameHistory.empty()) return 0.0f;
+        if (m_frameHistory.empty())
+            return 0.0f;
         float minTime = m_frameHistory[0].frameTimeMs;
         for (const auto& t : m_frameHistory) {
-            if (t.frameTimeMs < minTime) minTime = t.frameTimeMs;
+            if (t.frameTimeMs < minTime)
+                minTime = t.frameTimeMs;
         }
         return minTime;
     }
@@ -150,10 +154,12 @@ public:
      * @return Maximum frame time in milliseconds
      */
     float getMaxFrameTime() const {
-        if (m_frameHistory.empty()) return 0.0f;
+        if (m_frameHistory.empty())
+            return 0.0f;
         float maxTime = m_frameHistory[0].frameTimeMs;
         for (const auto& t : m_frameHistory) {
-            if (t.frameTimeMs > maxTime) maxTime = t.frameTimeMs;
+            if (t.frameTimeMs > maxTime)
+                maxTime = t.frameTimeMs;
         }
         return maxTime;
     }
@@ -164,12 +170,12 @@ public:
      * @return Frame time at the given percentile in milliseconds
      */
     float getPercentileFrameTime(float percentile = 99.0f) const {
-        if (m_frameHistory.empty()) return 0.0f;
+        if (m_frameHistory.empty())
+            return 0.0f;
         std::deque<FrameTiming> sorted = m_frameHistory;
-        std::sort(sorted.begin(), sorted.end(),
-                  [](const FrameTiming& a, const FrameTiming& b) {
-                      return a.frameTimeMs < b.frameTimeMs;
-                  });
+        std::sort(sorted.begin(), sorted.end(), [](const FrameTiming& a, const FrameTiming& b) {
+            return a.frameTimeMs < b.frameTimeMs;
+        });
         size_t idx = static_cast<size_t>(
             std::min(percentile / 100.0f * static_cast<float>(sorted.size() - 1),
                      static_cast<float>(sorted.size() - 1)));
@@ -179,37 +185,40 @@ public:
     /**
      * @brief Get total number of recorded frames
      */
-    size_t getFrameCount() const { return m_frameHistory.size(); }
+    size_t getFrameCount() const {
+        return m_frameHistory.size();
+    }
 
     /**
      * @brief Get reference to recent frame history
      */
-    const std::deque<FrameTiming>& getRecentFrames() const { return m_frameHistory; }
+    const std::deque<FrameTiming>& getRecentFrames() const {
+        return m_frameHistory;
+    }
 
-private:
+   private:
     std::deque<FrameTiming> m_frameHistory;  ///< Rolling window of frame timings
     size_t m_windowSize;                     ///< Maximum frames to retain
     int64_t m_totalFrameTime;                ///< Sum of frame times for fast average
 };
 
+/**
+ * @brief Renderer callback interface for the QML OpenGL viewport
+ *
+ * Implements the QQuickFramebufferObject::Renderer interface to provide
+ * OpenGL rendering into a framebuffer object that QML can display.
+ * Uses GLAD for OpenGL function loading (no QOpenGLFunctions inheritance
+ * to avoid shadowing global GLAD functions).
+ */
+class QmlGlRenderer : public ::QQuickFramebufferObject::Renderer {
+   public:
     /**
-     * @brief Renderer callback interface for the QML OpenGL viewport
-     *
-     * Implements the QQuickFramebufferObject::Renderer interface to provide
-     * OpenGL rendering into a framebuffer object that QML can display.
-     * Uses GLAD for OpenGL function loading (no QOpenGLFunctions inheritance
-     * to avoid shadowing global GLAD functions).
+     * @brief Construct a new QML GL Renderer
+     * @param viewportWidth Initial viewport width in pixels
+     * @param viewportHeight Initial viewport height in pixels
      */
-    class QmlGlRenderer : public ::QQuickFramebufferObject::Renderer
- {
- public:
-     /**
-      * @brief Construct a new QML GL Renderer
-      * @param viewportWidth Initial viewport width in pixels
-      * @param viewportHeight Initial viewport height in pixels
-      */
-     explicit QmlGlRenderer(int viewportWidth = 1280, int viewportHeight = 720);
-     ~QmlGlRenderer() override;
+    explicit QmlGlRenderer(int viewportWidth = 1280, int viewportHeight = 720);
+    ~QmlGlRenderer() override;
 
     // Disable copy, enable move
     QmlGlRenderer(const QmlGlRenderer&) = delete;
@@ -254,15 +263,21 @@ private:
      * @param ui4d Shared pointer to the UI4D instance
      */
     void setUI4D(std::shared_ptr<UI4D> ui4d);
-    size_t geodesicCount() const { return m_cachedGeodesics.size(); }
+    size_t geodesicCount() const {
+        return m_cachedGeodesics.size();
+    }
 
     // Sandbox bodies pushed from SandboxManager via QmlGlViewport::setSandboxBodies.
     // Synced from the viewport each frame in ViewportRenderer::synchronize().
-    void setSandboxBodies(const QVariantList& bodies) { m_sandboxBodies = bodies; }
+    void setSandboxBodies(const QVariantList& bodies) {
+        m_sandboxBodies = bodies;
+    }
 
     // Peer bodies pushed via QmlGlViewport::setPeerBodies from VR collaboration.
     // Synced from the viewport each frame in ViewportRenderer::synchronize().
-    void setPeerBodies(const QVariantList& bodies) { m_peerBodies = bodies; }
+    void setPeerBodies(const QVariantList& bodies) {
+        m_peerBodies = bodies;
+    }
 
     // Camera control
     void setViewMatrix(const QMatrix4x4& view);
@@ -275,16 +290,23 @@ private:
 #ifdef QUANTUMVERSE_USE_VR
     void setHeadPose(const quantumverse::vr::HeadPose& pose);
     void applyHeadPose();
-    bool hasHeadPose() const { return m_hasHeadPose; }
+    bool hasHeadPose() const {
+        return m_hasHeadPose;
+    }
 
     // Stereo VR rendering
     void setVRActive(bool active);
-    bool isVRActive() const { return m_vrActive; }
-    void setVRConfig(const quantumverse::vr::VRConfig& config) { m_vrConfig = config; }
-    const quantumverse::vr::VRConfig& vrConfig() const { return m_vrConfig; }
+    bool isVRActive() const {
+        return m_vrActive;
+    }
+    void setVRConfig(const quantumverse::vr::VRConfig& config) {
+        m_vrConfig = config;
+    }
+    const quantumverse::vr::VRConfig& vrConfig() const {
+        return m_vrConfig;
+    }
     QOpenGLFramebufferObject* vrFbo(quantumverse::vr::StereoEye eye) const;
-    void renderVRStereoPass(quantumverse::vr::StereoEye eye,
-                            const QMatrix4x4& viewMatrix,
+    void renderVRStereoPass(quantumverse::vr::StereoEye eye, const QMatrix4x4& viewMatrix,
                             const QMatrix4x4& projMatrix);
     void cleanupVRResources();
 #endif
@@ -305,8 +327,12 @@ private:
 
     // Texture source
     enum class TextureSource { Procedural, FileFirst };
-    void setTextureSource(TextureSource source) { m_textureSource = source; }
-    TextureSource textureSource() const { return m_textureSource; }
+    void setTextureSource(TextureSource source) {
+        m_textureSource = source;
+    }
+    TextureSource textureSource() const {
+        return m_textureSource;
+    }
 
     // Time control
     void updateTime(float deltaTime);
@@ -314,34 +340,52 @@ private:
     void setSimulationTime(float time);
 
     // Metrics
-    float getFrameTime() const { return m_frameTime; }
-    int getFrameCount() const { return m_frameCount; }
+    float getFrameTime() const {
+        return m_frameTime;
+    }
+    int getFrameCount() const {
+        return m_frameCount;
+    }
 
     // Frame profiler access for overlay rendering and tests
-    const FrameProfiler& getFrameProfiler() const { return m_frameProfiler; }
+    const FrameProfiler& getFrameProfiler() const {
+        return m_frameProfiler;
+    }
 
     // Headless performance baseline support
     void setHeadlessFrameTarget(int frames);
-    bool headlessTargetReached() const { return m_headlessStatsLogged; }
-    int getHeadlessFrameCount() const { return m_frameCount; }
+    bool headlessTargetReached() const {
+        return m_headlessStatsLogged;
+    }
+    int getHeadlessFrameCount() const {
+        return m_frameCount;
+    }
 
     // Headless screenshot support
-    void requestScreenshot(const QString &path);
-    bool screenshotRequested() const { return m_screenshotRequested; }
-    QString screenshotPath() const { return m_screenshotPath; }
-    void clearScreenshotRequest() { m_screenshotRequested = false; }
+    void requestScreenshot(const QString& path);
+    bool screenshotRequested() const {
+        return m_screenshotRequested;
+    }
+    QString screenshotPath() const {
+        return m_screenshotPath;
+    }
+    void clearScreenshotRequest() {
+        m_screenshotRequested = false;
+    }
 
     // Headless frame-time dump support (--dump-frame-times)
-    void setFrameTimesPath(const QString &path);
-    QString frameTimesPath() const { return m_frameTimesPath; }
+    void setFrameTimesPath(const QString& path);
+    QString frameTimesPath() const {
+        return m_frameTimesPath;
+    }
 
-     // Celestial body & camera adapters
-     void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
-     void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
-     void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
-     void renderHUD();
+    // Celestial body & camera adapters
+    void setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer);
+    void setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter);
+    void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
+    void renderHUD();
 
-    private:
+   private:
     // OpenGL initialization helpers
     void initializeGL();
     void setupShaders();
@@ -350,17 +394,18 @@ private:
     void setupOverlayGeometry();
     void setupHUDGeometry();
 
-     // Rendering helpers
-     void renderGrid();
-     void renderAxisGizmo();
-     void renderGeodesics();
-     void renderQuantumGeometry();
-     void renderOverlay();
-     void renderProfilingOverlay();
-     void renderLensing();
+    // Rendering helpers
+    void renderGrid();
+    void renderAxisGizmo();
+    void renderGeodesics();
+    void renderQuantumGeometry();
+    void renderOverlay();
+    void renderProfilingOverlay();
+    void renderLensing();
 
     // Shader compilation (raw OpenGL to avoid threading issues)
-    static bool compileShader(GLuint& program, const char* vertexSource, const char* fragmentSource);
+    static bool compileShader(GLuint& program, const char* vertexSource,
+                              const char* fragmentSource);
 
     // Viewport dimensions
     int m_viewportWidth;
@@ -415,30 +460,30 @@ private:
     float m_cameraPanX;
     float m_cameraPanY;
 
-     // VR head tracking state
+    // VR head tracking state
 #ifdef QUANTUMVERSE_USE_VR
-     bool m_hasHeadPose = false;
-     quantumverse::vr::HeadPose m_headPose;
-     bool m_vrActive = false;
-     float m_vrIpd = 0.063f;
-     quantumverse::vr::VRConfig m_vrConfig;
-     QOpenGLFramebufferObject* m_vrFboLeft = nullptr;
-     QOpenGLFramebufferObject* m_vrFboRight = nullptr;
+    bool m_hasHeadPose = false;
+    quantumverse::vr::HeadPose m_headPose;
+    bool m_vrActive = false;
+    float m_vrIpd = 0.063f;
+    quantumverse::vr::VRConfig m_vrConfig;
+    QOpenGLFramebufferObject* m_vrFboLeft = nullptr;
+    QOpenGLFramebufferObject* m_vrFboRight = nullptr;
 
-      // Multi-user remote participants (ghost cameras)
-      struct RemoteParticipant {
-          std::string id;
-          std::string name;
-          std::array<float, 16> cameraMatrix;
-          std::array<float, 3> position;
-          bool vrActive = false;
-          double lastUpdateTime = 0.0;
-      };
-       std::vector<RemoteParticipant> m_remoteParticipants;
-       bool m_showGhostCameras = true;
+    // Multi-user remote participants (ghost cameras)
+    struct RemoteParticipant {
+        std::string id;
+        std::string name;
+        std::array<float, 16> cameraMatrix;
+        std::array<float, 3> position;
+        bool vrActive = false;
+        double lastUpdateTime = 0.0;
+    };
+    std::vector<RemoteParticipant> m_remoteParticipants;
+    bool m_showGhostCameras = true;
 #endif
 
-     // Pointers to core renderers (non-owning)
+    // Pointers to core renderers (non-owning)
     std::shared_ptr<CurvatureRenderer> m_curvatureRenderer;
     std::shared_ptr<QuantumGeometryRenderer> m_quantumRenderer;
 
@@ -484,13 +529,13 @@ private:
     QOpenGLFramebufferObject* m_fbo;
 
     // Post-processing pipeline (HDR bloom + tone mapping)
-     std::shared_ptr<PostProcess> m_postProcess;
+    std::shared_ptr<PostProcess> m_postProcess;
 
-     // Gravitational lensing renderer
-     std::shared_ptr<GravitationalLensing> m_lensing;
+    // Gravitational lensing renderer
+    std::shared_ptr<GravitationalLensing> m_lensing;
 
-     // One-time GL initialization guard
-     bool m_glInitialized;
+    // One-time GL initialization guard
+    bool m_glInitialized;
 
     // H5: cached scaled-orbit worldlines for renderGeodesics(). Rebuilt only
     // when the solar system data signature changes, avoiding per-frame
@@ -515,41 +560,60 @@ private:
  * }
  * \endqml
  */
-class QmlGlViewport : public ::QQuickFramebufferObject
-{
+class QmlGlViewport : public ::QQuickFramebufferObject {
     Q_OBJECT
     Q_PROPERTY(bool showGrid READ showGrid WRITE setShowGrid NOTIFY showGridChanged)
-    Q_PROPERTY(bool showLightCones READ showLightCones WRITE setShowLightCones NOTIFY showLightConesChanged)
-    Q_PROPERTY(bool showGeodesics READ showGeodesics WRITE setShowGeodesics NOTIFY showGeodesicsChanged)
-    Q_PROPERTY(bool showQuantumGeometry READ showQuantumGeometry WRITE setShowQuantumGeometry NOTIFY showQuantumGeometryChanged)
+    Q_PROPERTY(bool showLightCones READ showLightCones WRITE setShowLightCones NOTIFY
+                   showLightConesChanged)
+    Q_PROPERTY(
+        bool showGeodesics READ showGeodesics WRITE setShowGeodesics NOTIFY showGeodesicsChanged)
+    Q_PROPERTY(bool showQuantumGeometry READ showQuantumGeometry WRITE setShowQuantumGeometry NOTIFY
+                   showQuantumGeometryChanged)
     Q_PROPERTY(bool showHUD READ showHUD WRITE setShowHUD NOTIFY showHUDChanged)
-    Q_PROPERTY(int curvatureMode READ curvatureMode WRITE setCurvatureMode NOTIFY curvatureModeChanged)
+    Q_PROPERTY(
+        int curvatureMode READ curvatureMode WRITE setCurvatureMode NOTIFY curvatureModeChanged)
 
     // Gravitational lensing properties
-    Q_PROPERTY(bool lensingEnabled READ lensingEnabled WRITE setLensingEnabled NOTIFY lensingEnabledChanged)
+    Q_PROPERTY(bool lensingEnabled READ lensingEnabled WRITE setLensingEnabled NOTIFY
+                   lensingEnabledChanged)
     Q_PROPERTY(int lensingSteps READ lensingSteps WRITE setLensingSteps NOTIFY lensingStepsChanged)
-    Q_PROPERTY(float shadowIntensity READ shadowIntensity WRITE setShadowIntensity NOTIFY shadowIntensityChanged)
+    Q_PROPERTY(float shadowIntensity READ shadowIntensity WRITE setShadowIntensity NOTIFY
+                   shadowIntensityChanged)
     Q_PROPERTY(float lensingMass READ lensingMass WRITE setLensingMass NOTIFY lensingMassChanged)
     Q_PROPERTY(float lensingSpin READ lensingSpin WRITE setLensingSpin NOTIFY lensingSpinChanged)
-    Q_PROPERTY(float lensingDistance READ lensingDistance WRITE setLensingDistance NOTIFY lensingDistanceChanged)
-    Q_PROPERTY(float lensingTheta READ lensingTheta WRITE setLensingTheta NOTIFY lensingThetaChanged)
+    Q_PROPERTY(float lensingDistance READ lensingDistance WRITE setLensingDistance NOTIFY
+                   lensingDistanceChanged)
+    Q_PROPERTY(
+        float lensingTheta READ lensingTheta WRITE setLensingTheta NOTIFY lensingThetaChanged)
     Q_PROPERTY(float lensingPhi READ lensingPhi WRITE setLensingPhi NOTIFY lensingPhiChanged)
-    Q_PROPERTY(bool accretionDiskEnabled READ accretionDiskEnabled WRITE setAccretionDiskEnabled NOTIFY accretionDiskEnabledChanged)
-    Q_PROPERTY(bool photonRingEnabled READ photonRingEnabled WRITE setPhotonRingEnabled NOTIFY photonRingEnabledChanged)
-    Q_PROPERTY(float accretionDiskIntensity READ accretionDiskIntensity WRITE setAccretionDiskIntensity NOTIFY accretionDiskIntensityChanged)
-    Q_PROPERTY(bool volumetricDiskEnabled READ volumetricDiskEnabled WRITE setVolumetricDiskEnabled NOTIFY volumetricDiskEnabledChanged)
-    Q_PROPERTY(float volumetricDiskDensity READ volumetricDiskDensity WRITE setVolumetricDiskDensity NOTIFY volumetricDiskDensityChanged)
-    Q_PROPERTY(float volumetricDiskTemperature READ volumetricDiskTemperature WRITE setVolumetricDiskTemperature NOTIFY volumetricDiskTemperatureChanged)
-    Q_PROPERTY(float volumetricDiskScaleHeight READ volumetricDiskScaleHeight WRITE setVolumetricDiskScaleHeight NOTIFY volumetricDiskScaleHeightChanged)
-    Q_PROPERTY(float volumetricDiskInnerRadius READ volumetricDiskInnerRadius WRITE setVolumetricDiskInnerRadius NOTIFY volumetricDiskInnerRadiusChanged)
-    Q_PROPERTY(float volumetricDiskOuterRadius READ volumetricDiskOuterRadius WRITE setVolumetricDiskOuterRadius NOTIFY volumetricDiskOuterRadiusChanged)
-    Q_PROPERTY(float volumetricDiskOpacity READ volumetricDiskOpacity WRITE 
-setVolumetricDiskOpacity NOTIFY volumetricDiskOpacityChanged)
-    Q_PROPERTY(float volumetricDiskInnerEdgeFade READ volumetricDiskInnerEdgeFade WRITE 
-setVolumetricDiskInnerEdgeFade NOTIFY volumetricDiskInnerEdgeFadeChanged)
-    Q_PROPERTY(float cameraDistance READ cameraDistance WRITE setCameraDistance NOTIFY cameraDistanceChanged)
-    Q_PROPERTY(float cameraAngleX READ cameraAngleX WRITE setCameraAngleX NOTIFY cameraAngleXChanged)
-    Q_PROPERTY(float cameraAngleY READ cameraAngleY WRITE setCameraAngleY NOTIFY cameraAngleYChanged)
+    Q_PROPERTY(bool accretionDiskEnabled READ accretionDiskEnabled WRITE setAccretionDiskEnabled
+                   NOTIFY accretionDiskEnabledChanged)
+    Q_PROPERTY(bool photonRingEnabled READ photonRingEnabled WRITE setPhotonRingEnabled NOTIFY
+                   photonRingEnabledChanged)
+    Q_PROPERTY(float accretionDiskIntensity READ accretionDiskIntensity WRITE
+                   setAccretionDiskIntensity NOTIFY accretionDiskIntensityChanged)
+    Q_PROPERTY(bool volumetricDiskEnabled READ volumetricDiskEnabled WRITE setVolumetricDiskEnabled
+                   NOTIFY volumetricDiskEnabledChanged)
+    Q_PROPERTY(float volumetricDiskDensity READ volumetricDiskDensity WRITE setVolumetricDiskDensity
+                   NOTIFY volumetricDiskDensityChanged)
+    Q_PROPERTY(float volumetricDiskTemperature READ volumetricDiskTemperature WRITE
+                   setVolumetricDiskTemperature NOTIFY volumetricDiskTemperatureChanged)
+    Q_PROPERTY(float volumetricDiskScaleHeight READ volumetricDiskScaleHeight WRITE
+                   setVolumetricDiskScaleHeight NOTIFY volumetricDiskScaleHeightChanged)
+    Q_PROPERTY(float volumetricDiskInnerRadius READ volumetricDiskInnerRadius WRITE
+                   setVolumetricDiskInnerRadius NOTIFY volumetricDiskInnerRadiusChanged)
+    Q_PROPERTY(float volumetricDiskOuterRadius READ volumetricDiskOuterRadius WRITE
+                   setVolumetricDiskOuterRadius NOTIFY volumetricDiskOuterRadiusChanged)
+    Q_PROPERTY(float volumetricDiskOpacity READ volumetricDiskOpacity WRITE setVolumetricDiskOpacity
+                   NOTIFY volumetricDiskOpacityChanged)
+    Q_PROPERTY(float volumetricDiskInnerEdgeFade READ volumetricDiskInnerEdgeFade WRITE
+                   setVolumetricDiskInnerEdgeFade NOTIFY volumetricDiskInnerEdgeFadeChanged)
+    Q_PROPERTY(float cameraDistance READ cameraDistance WRITE setCameraDistance NOTIFY
+                   cameraDistanceChanged)
+    Q_PROPERTY(
+        float cameraAngleX READ cameraAngleX WRITE setCameraAngleX NOTIFY cameraAngleXChanged)
+    Q_PROPERTY(
+        float cameraAngleY READ cameraAngleY WRITE setCameraAngleY NOTIFY cameraAngleYChanged)
     Q_PROPERTY(float simulationTime READ simulationTime NOTIFY simulationTimeChanged)
     Q_PROPERTY(float frameRate READ frameRate NOTIFY frameRateChanged)
 #ifdef QUANTUMVERSE_USE_VR
@@ -558,7 +622,7 @@ setVolumetricDiskInnerEdgeFade NOTIFY volumetricDiskInnerEdgeFadeChanged)
     Q_PROPERTY(float vrIpd READ vrIpd WRITE setVrIpd NOTIFY vrIpdChanged)
 #endif
 
-public:
+   public:
     explicit QmlGlViewport(QQuickItem* parent = nullptr);
     ~QmlGlViewport() override;
 
@@ -569,26 +633,54 @@ public:
     void setSimulationTime(float time);
 
     // Property accessors
-    bool showGrid() const { return m_showGrid; }
-    bool showLightCones() const { return m_showLightCones; }
-    bool showGeodesics() const { return m_showGeodesics; }
-    bool showQuantumGeometry() const { return m_showQuantumGeometry; }
-    bool showHUD() const { return m_showHUD; }
-    int curvatureMode() const { return m_curvatureMode; }
-    float cameraDistance() const { return m_cameraDistance; }
-    float cameraAngleX() const { return m_cameraAngleX; }
-    float cameraAngleY() const { return m_cameraAngleY; }
-    float simulationTime() const { return m_simulationTime; }
+    bool showGrid() const {
+        return m_showGrid;
+    }
+    bool showLightCones() const {
+        return m_showLightCones;
+    }
+    bool showGeodesics() const {
+        return m_showGeodesics;
+    }
+    bool showQuantumGeometry() const {
+        return m_showQuantumGeometry;
+    }
+    bool showHUD() const {
+        return m_showHUD;
+    }
+    int curvatureMode() const {
+        return m_curvatureMode;
+    }
+    float cameraDistance() const {
+        return m_cameraDistance;
+    }
+    float cameraAngleX() const {
+        return m_cameraAngleX;
+    }
+    float cameraAngleY() const {
+        return m_cameraAngleY;
+    }
+    float simulationTime() const {
+        return m_simulationTime;
+    }
     float frameRate() const;
 #ifdef QUANTUMVERSE_USE_VR
-     bool vrEnabled() const { return m_vrEnabled; }
-     bool vrActive() const { return m_vrActive; }
-     float vrIpd() const { return m_vrIpd; }
-     void setVrEnabled(bool enabled);
-     void setVrActive(bool active);
-     void setVrIpd(float ipd);
-     bool showGhostCameras() const { return m_showGhostCameras; }
-     void setShowGhostCameras(bool show);
+    bool vrEnabled() const {
+        return m_vrEnabled;
+    }
+    bool vrActive() const {
+        return m_vrActive;
+    }
+    float vrIpd() const {
+        return m_vrIpd;
+    }
+    void setVrEnabled(bool enabled);
+    void setVrActive(bool active);
+    void setVrIpd(float ipd);
+    bool showGhostCameras() const {
+        return m_showGhostCameras;
+    }
+    void setShowGhostCameras(bool show);
 #endif
 
     // --- Curvature probe readout (wired to the live metric) -------------
@@ -596,43 +688,53 @@ public:
     Q_PROPERTY(QString ricciScalar READ ricciScalar NOTIFY probeChanged)
     Q_PROPERTY(QString weylSquared READ weylSquared NOTIFY probeChanged)
     Q_PROPERTY(QString redshift READ redshift NOTIFY probeChanged)
-     Q_PROPERTY(bool probeValid READ probeValid NOTIFY probeChanged)
-     Q_PROPERTY(bool physicsWarning READ physicsWarning NOTIFY physicsWarningChanged)
+    Q_PROPERTY(bool probeValid READ probeValid NOTIFY probeChanged)
+    Q_PROPERTY(bool physicsWarning READ physicsWarning NOTIFY physicsWarningChanged)
     Q_PROPERTY(bool planeMode READ isPlaneMode WRITE togglePlaneMode NOTIFY planeModeChanged)
-    Q_PROPERTY(int planeResolution READ getPlaneResolution WRITE setPlaneResolution NOTIFY planeResolutionChanged)
-    Q_PROPERTY(int textureSource READ textureSource WRITE setTextureSource NOTIFY textureSourceChanged)
-    Q_PROPERTY(double blackHoleMass READ blackHoleMass WRITE setBlackHoleMass NOTIFY blackHoleMassChanged)
-    Q_PROPERTY(double blackHoleSpin READ blackHoleSpin WRITE setBlackHoleSpin NOTIFY blackHoleSpinChanged)
-    Q_PROPERTY(double blackHoleCharge READ blackHoleCharge WRITE setBlackHoleCharge NOTIFY blackHoleChargeChanged)
-    Q_PROPERTY(QString blackHoleType READ blackHoleType WRITE setBlackHoleType NOTIFY blackHoleTypeChanged)
+    Q_PROPERTY(int planeResolution READ getPlaneResolution WRITE setPlaneResolution NOTIFY
+                   planeResolutionChanged)
+    Q_PROPERTY(
+        int textureSource READ textureSource WRITE setTextureSource NOTIFY textureSourceChanged)
+    Q_PROPERTY(
+        double blackHoleMass READ blackHoleMass WRITE setBlackHoleMass NOTIFY blackHoleMassChanged)
+    Q_PROPERTY(
+        double blackHoleSpin READ blackHoleSpin WRITE setBlackHoleSpin NOTIFY blackHoleSpinChanged)
+    Q_PROPERTY(double blackHoleCharge READ blackHoleCharge WRITE setBlackHoleCharge NOTIFY
+                   blackHoleChargeChanged)
+    Q_PROPERTY(
+        QString blackHoleType READ blackHoleType WRITE setBlackHoleType NOTIFY blackHoleTypeChanged)
     Q_PROPERTY(double liveKineticEnergy READ liveKineticEnergy NOTIFY telemetryUpdated)
     Q_PROPERTY(double livePotentialEnergy READ livePotentialEnergy NOTIFY telemetryUpdated)
     Q_PROPERTY(double liveTotalEnergy READ liveTotalEnergy NOTIFY telemetryUpdated)
     Q_PROPERTY(double liveEarthSpeed READ liveEarthSpeed NOTIFY telemetryUpdated)
     Q_PROPERTY(double physicsG READ physicsG WRITE setPhysicsG NOTIFY physicsConstantsChanged)
     Q_PROPERTY(double physicsC READ physicsC WRITE setPhysicsC NOTIFY physicsConstantsChanged)
-    Q_PROPERTY(double physicsGLog READ physicsGLog WRITE setPhysicsGLog NOTIFY physicsConstantsChanged)
-     Q_PROPERTY(double gravitationalWaveStrain READ gravitationalWaveStrain NOTIFY telemetryUpdated)
-     Q_PROPERTY(double gravitationalWaveFreq READ gravitationalWaveFreq NOTIFY telemetryUpdated)
+    Q_PROPERTY(
+        double physicsGLog READ physicsGLog WRITE setPhysicsGLog NOTIFY physicsConstantsChanged)
+    Q_PROPERTY(double gravitationalWaveStrain READ gravitationalWaveStrain NOTIFY telemetryUpdated)
+    Q_PROPERTY(double gravitationalWaveFreq READ gravitationalWaveFreq NOTIFY telemetryUpdated)
 
-     // Scenario system properties
-     Q_PROPERTY(QString scenarioName READ scenarioName NOTIFY scenarioChanged)
-     Q_PROPERTY(double scenarioTime READ scenarioTime NOTIFY scenarioChanged)
-     Q_PROPERTY(bool scenarioPlaying READ scenarioPlaying NOTIFY scenarioChanged)
-     Q_PROPERTY(QStringList scenarioList READ scenarioList NOTIFY scenarioListChanged)
+    // Scenario system properties
+    Q_PROPERTY(QString scenarioName READ scenarioName NOTIFY scenarioChanged)
+    Q_PROPERTY(double scenarioTime READ scenarioTime NOTIFY scenarioChanged)
+    Q_PROPERTY(bool scenarioPlaying READ scenarioPlaying NOTIFY scenarioChanged)
+    Q_PROPERTY(QStringList scenarioList READ scenarioList NOTIFY scenarioListChanged)
 
-     // Telemetry recording properties
-     Q_PROPERTY(bool recording READ isRecording NOTIFY recordingChanged)
-     Q_PROPERTY(bool playing READ isPlaying NOTIFY playbackChanged)
-     Q_PROPERTY(int currentFrame READ currentFrame NOTIFY playbackChanged)
-     Q_PROPERTY(int totalFrames READ totalFrames NOTIFY recordingChanged)
-     Q_PROPERTY(double recordingDuration READ recordingDuration NOTIFY recordingChanged)
+    // Telemetry recording properties
+    Q_PROPERTY(bool recording READ isRecording NOTIFY recordingChanged)
+    Q_PROPERTY(bool playing READ isPlaying NOTIFY playbackChanged)
+    Q_PROPERTY(int currentFrame READ currentFrame NOTIFY playbackChanged)
+    Q_PROPERTY(int totalFrames READ totalFrames NOTIFY recordingChanged)
+    Q_PROPERTY(double recordingDuration READ recordingDuration NOTIFY recordingChanged)
 
     // Post-processing / bloom controls
     Q_PROPERTY(bool bloomEnabled READ bloomEnabled WRITE setBloomEnabled NOTIFY bloomEnabledChanged)
-    Q_PROPERTY(float bloomIntensity READ bloomIntensity WRITE setBloomIntensity NOTIFY bloomIntensityChanged)
-    Q_PROPERTY(float bloomThreshold READ bloomThreshold WRITE setBloomThreshold NOTIFY bloomThresholdChanged)
-    Q_PROPERTY(int toneMappingMode READ toneMappingMode WRITE setToneMappingMode NOTIFY toneMappingModeChanged)
+    Q_PROPERTY(float bloomIntensity READ bloomIntensity WRITE setBloomIntensity NOTIFY
+                   bloomIntensityChanged)
+    Q_PROPERTY(float bloomThreshold READ bloomThreshold WRITE setBloomThreshold NOTIFY
+                   bloomThresholdChanged)
+    Q_PROPERTY(int toneMappingMode READ toneMappingMode WRITE setToneMappingMode NOTIFY
+                   toneMappingModeChanged)
     Q_PROPERTY(float exposure READ exposure WRITE setExposure NOTIFY exposureChanged)
 
     // Undo/Redo
@@ -650,15 +752,31 @@ public:
     /// @brief Set the probe position for curvature readout and recording.
     void setProbePosition(double x, double y, double z);
     /// @brief Get the current probe position.
-    Event4D probePosition() const { return m_probePosition; }
+    Event4D probePosition() const {
+        return m_probePosition;
+    }
 
-    QString kretschmann() const { return m_kretschmann; }
-    QString ricciScalar() const { return m_ricciScalar; }
-    QString weylSquared() const { return m_weylSquared; }
-    QString redshift() const { return m_redshift; }
-    bool probeValid() const { return m_probeValid; }
-    bool physicsWarning() const { return m_physicsWarning; }
-    PhysicsValidator* physicsValidator() const { return m_physicsValidator.get(); }
+    QString kretschmann() const {
+        return m_kretschmann;
+    }
+    QString ricciScalar() const {
+        return m_ricciScalar;
+    }
+    QString weylSquared() const {
+        return m_weylSquared;
+    }
+    QString redshift() const {
+        return m_redshift;
+    }
+    bool probeValid() const {
+        return m_probeValid;
+    }
+    bool physicsWarning() const {
+        return m_physicsWarning;
+    }
+    PhysicsValidator* physicsValidator() const {
+        return m_physicsValidator.get();
+    }
 
     // Exposed methods for QML
     Q_INVOKABLE void zoomIn();
@@ -685,7 +803,7 @@ public:
     Q_INVOKABLE bool neuralGeodesicsEnabled() const;
     Q_INVOKABLE void setBlackHoleType(const QString& type);
     Q_INVOKABLE QString blackHoleType() const;
-    void setBlackHoleMassDirect(double mass); // For undo/redo (no command push)
+    void setBlackHoleMassDirect(double mass);  // For undo/redo (no command push)
     // World position the curvature grid's well centers on. Defaults to the
     // config black_hole.position; wired from main_qml.cpp alongside the annulus
     // so the grid well and the accretion disk track the same physics BH.
@@ -712,31 +830,32 @@ public:
     Q_INVOKABLE void setAudioListenerForward(double fx, double fy, double fz);
     Q_INVOKABLE void setAudioPan(double pan);
     Q_INVOKABLE void setWaveformMode(int mode);
-    Q_INVOKABLE void injectAsteroid(double x, double y, double z, double vx, double vy, double vz, double mass);
-     Q_INVOKABLE void clearAsteroids();
-     Q_INVOKABLE int asteroidCount() const;
+    Q_INVOKABLE void injectAsteroid(double x, double y, double z, double vx, double vy, double vz,
+                                    double mass);
+    Q_INVOKABLE void clearAsteroids();
+    Q_INVOKABLE int asteroidCount() const;
 
-     // Scenario system methods
-     Q_INVOKABLE void loadScenario(const QString& name);
-     Q_INVOKABLE void playScenario();
-     Q_INVOKABLE void pauseScenario();
-     Q_INVOKABLE void stopScenario();
-     Q_INVOKABLE void reloadScenarios();
-     Q_INVOKABLE QStringList scenarioList();
+    // Scenario system methods
+    Q_INVOKABLE void loadScenario(const QString& name);
+    Q_INVOKABLE void playScenario();
+    Q_INVOKABLE void pauseScenario();
+    Q_INVOKABLE void stopScenario();
+    Q_INVOKABLE void reloadScenarios();
+    Q_INVOKABLE QStringList scenarioList();
 
-     QString scenarioName() const;
-     double scenarioTime() const;
-     bool scenarioPlaying() const;
+    QString scenarioName() const;
+    double scenarioTime() const;
+    bool scenarioPlaying() const;
 
-     // Telemetry recording & replay
-     Q_INVOKABLE void startRecording(int maxFrames = 6000, int frameInterval = 1);
-     Q_INVOKABLE void stopRecording();
-     Q_INVOKABLE void playRecording();
-     Q_INVOKABLE void pausePlayback();
-     Q_INVOKABLE void stopPlayback();
-     Q_INVOKABLE void scrubToFrame(int frameIndex);
-     Q_INVOKABLE void scrubToTime(double time);
-     Q_INVOKABLE void exportRecording(const QString& filepath);
+    // Telemetry recording & replay
+    Q_INVOKABLE void startRecording(int maxFrames = 6000, int frameInterval = 1);
+    Q_INVOKABLE void stopRecording();
+    Q_INVOKABLE void playRecording();
+    Q_INVOKABLE void pausePlayback();
+    Q_INVOKABLE void stopPlayback();
+    Q_INVOKABLE void scrubToFrame(int frameIndex);
+    Q_INVOKABLE void scrubToTime(double time);
+    Q_INVOKABLE void exportRecording(const QString& filepath);
     Q_INVOKABLE void clearRecording();
     bool isRecording() const;
     bool isPlaying() const;
@@ -754,25 +873,63 @@ public:
     QString redoDescription() const;
 
     // Gravitational lensing accessors
-    bool lensingEnabled() const { return m_lensingEnabled; }
-    int lensingSteps() const { return m_lensingSteps; }
-    float shadowIntensity() const { return m_shadowIntensity; }
-    float lensingMass() const { return m_lensingMass; }
-    float lensingSpin() const { return m_lensingSpin; }
-    float lensingDistance() const { return m_lensingDistance; }
-    float lensingTheta() const { return m_lensingTheta; }
-    float lensingPhi() const { return m_lensingPhi; }
-    bool accretionDiskEnabled() const { return m_accretionDiskEnabled; }
-    bool photonRingEnabled() const { return m_photonRingEnabled; }
-    float accretionDiskIntensity() const { return m_accretionDiskIntensity; }
-    bool volumetricDiskEnabled() const { return m_volumetricDiskEnabled; }
-    float volumetricDiskDensity() const { return m_volumetricDiskDensity; }
-    float volumetricDiskTemperature() const { return m_volumetricDiskTemperature; }
-    float volumetricDiskScaleHeight() const { return m_volumetricDiskScaleHeight; }
-    float volumetricDiskInnerRadius() const { return m_volumetricDiskInnerRadius; }
-    float volumetricDiskOuterRadius() const { return m_volumetricDiskOuterRadius; }
-    float volumetricDiskOpacity() const { return m_volumetricDiskOpacity; }
-    float volumetricDiskInnerEdgeFade() const { return m_volumetricDiskInnerEdgeFade; }
+    bool lensingEnabled() const {
+        return m_lensingEnabled;
+    }
+    int lensingSteps() const {
+        return m_lensingSteps;
+    }
+    float shadowIntensity() const {
+        return m_shadowIntensity;
+    }
+    float lensingMass() const {
+        return m_lensingMass;
+    }
+    float lensingSpin() const {
+        return m_lensingSpin;
+    }
+    float lensingDistance() const {
+        return m_lensingDistance;
+    }
+    float lensingTheta() const {
+        return m_lensingTheta;
+    }
+    float lensingPhi() const {
+        return m_lensingPhi;
+    }
+    bool accretionDiskEnabled() const {
+        return m_accretionDiskEnabled;
+    }
+    bool photonRingEnabled() const {
+        return m_photonRingEnabled;
+    }
+    float accretionDiskIntensity() const {
+        return m_accretionDiskIntensity;
+    }
+    bool volumetricDiskEnabled() const {
+        return m_volumetricDiskEnabled;
+    }
+    float volumetricDiskDensity() const {
+        return m_volumetricDiskDensity;
+    }
+    float volumetricDiskTemperature() const {
+        return m_volumetricDiskTemperature;
+    }
+    float volumetricDiskScaleHeight() const {
+        return m_volumetricDiskScaleHeight;
+    }
+    float volumetricDiskInnerRadius() const {
+        return m_volumetricDiskInnerRadius;
+    }
+    float volumetricDiskOuterRadius() const {
+        return m_volumetricDiskOuterRadius;
+    }
+    float volumetricDiskOpacity() const {
+        return m_volumetricDiskOpacity;
+    }
+    float volumetricDiskInnerEdgeFade() const {
+        return m_volumetricDiskInnerEdgeFade;
+    }
 
     // Gravitational lensing QML methods
     Q_INVOKABLE void setLensingEnabled(bool enabled);
@@ -797,9 +954,9 @@ public:
     Q_INVOKABLE void setVolumetricDiskInnerEdgeFade(float fade);
     Q_INVOKABLE void setLensingMetric(const QString& metricType);
 
-     Q_INVOKABLE void setBloomEnabled(bool enabled);
-     Q_INVOKABLE bool bloomEnabled() const;
-     Q_INVOKABLE float bloomIntensity() const;
+    Q_INVOKABLE void setBloomEnabled(bool enabled);
+    Q_INVOKABLE bool bloomEnabled() const;
+    Q_INVOKABLE float bloomIntensity() const;
     Q_INVOKABLE void setBloomIntensity(float intensity);
     Q_INVOKABLE float bloomThreshold() const;
     Q_INVOKABLE void setBloomThreshold(float threshold);
@@ -824,22 +981,31 @@ public:
     }
 
     // Camera4D adapter access for QML toolbar
-    Q_PROPERTY(QObject* camera4DAdapter READ camera4DAdapterObj WRITE setCamera4DAdapterObj NOTIFY camera4DAdapterChanged)
+    Q_PROPERTY(QObject* camera4DAdapter READ camera4DAdapterObj WRITE setCamera4DAdapterObj NOTIFY
+                   camera4DAdapterChanged)
 
     // Direct C++ setters for shared_ptr renderers (bypasses QML type system)
     void setCurvatureRendererDirect(std::shared_ptr<CurvatureRenderer> renderer);
-    std::shared_ptr<CurvatureRenderer> curvatureRenderer() const { return m_curvatureRenderer; }
+    std::shared_ptr<CurvatureRenderer> curvatureRenderer() const {
+        return m_curvatureRenderer;
+    }
 
     void setQuantumRendererDirect(std::shared_ptr<QuantumGeometryRenderer> renderer);
-    std::shared_ptr<QuantumGeometryRenderer> quantumGeometryRenderer() const { return m_quantumRenderer; }
+    std::shared_ptr<QuantumGeometryRenderer> quantumGeometryRenderer() const {
+        return m_quantumRenderer;
+    }
 
     // Set UI4D instance for scene data access
     void setUI4D(std::shared_ptr<UI4D> ui4d);
-    std::shared_ptr<UI4D> ui4d() const { return m_ui4d; }
+    std::shared_ptr<UI4D> ui4d() const {
+        return m_ui4d;
+    }
 
     // Spacetime GPS telemetry feed
     void setSpacetimeGPS(SpacetimeGPS* gps);
-    SpacetimeGPS* spacetimeGPS() const { return m_gps; }
+    SpacetimeGPS* spacetimeGPS() const {
+        return m_gps;
+    }
 
     // Camera4D adapter access for QML toolbar
     QObject* camera4DAdapterObj() const;
@@ -847,66 +1013,87 @@ public:
 
     // Direct setter for CelestialBodyRenderer (bypasses QML type system)
     void setCelestialBodyRendererDirect(std::shared_ptr<CelestialBodyRenderer> renderer);
-    std::shared_ptr<CelestialBodyRenderer> celestialBodyRenderer() const { return m_celestialBodyRenderer; }
+    std::shared_ptr<CelestialBodyRenderer> celestialBodyRenderer() const {
+        return m_celestialBodyRenderer;
+    }
 
     // Direct setter for Camera4DAdapter (bypasses QML type system)
     void setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter);
-    std::shared_ptr<Camera4DAdapter> camera4DAdapter() const { return m_camera4DAdapter; }
+    std::shared_ptr<Camera4DAdapter> camera4DAdapter() const {
+        return m_camera4DAdapter;
+    }
 
     // Post-processing pipeline access (for QmlGlRenderer synchronization)
-     std::shared_ptr<PostProcess> postProcess() const { return m_postProcess; }
+    std::shared_ptr<PostProcess> postProcess() const {
+        return m_postProcess;
+    }
 
-// Gravitational lensing access
-      void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
-      std::shared_ptr<GravitationalLensing> lensingRenderer() const { return m_lensing; }
-      QmlGlRenderer* renderer() const { return m_renderer; }
+    // Gravitational lensing access
+    void setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing);
+    std::shared_ptr<GravitationalLensing> lensingRenderer() const {
+        return m_lensing;
+    }
+    QmlGlRenderer* renderer() const {
+        return m_renderer;
+    }
 
     void setHeadlessFrameTarget(int frames) {
         m_headlessTargetFrames = frames;
-        if (m_renderer) m_renderer->setHeadlessFrameTarget(frames);
+        if (m_renderer)
+            m_renderer->setHeadlessFrameTarget(frames);
     }
 
     // Planck Microscope - logarithmic zoom scale for quantum gravity transition
     Q_PROPERTY(float spectralDimension READ spectralDimension NOTIFY spectralDimensionChanged)
 
     Q_INVOKABLE void setPlanckScale(float logScale);
-    Q_INVOKABLE float planckScale() const { return m_planckLogScale; }
+    Q_INVOKABLE float planckScale() const {
+        return m_planckLogScale;
+    }
     Q_INVOKABLE float spectralDimension() const;
 
-signals:
+   signals:
     void spectralDimensionChanged();
 
-public:
+   public:
     // Screenshot / frame-times helpers (called from QML / main_qml.cpp)
-    void setFrameTimesPath(const QString &path) {
-        if (m_renderer) m_renderer->setFrameTimesPath(path);
+    void setFrameTimesPath(const QString& path) {
+        if (m_renderer)
+            m_renderer->setFrameTimesPath(path);
     }
 
-    Q_INVOKABLE void requestScreenshot(const QString &path) {
+    Q_INVOKABLE void requestScreenshot(const QString& path) {
         m_pendingScreenshotRequested = true;
         m_pendingScreenshotPath = path;
-        qDebug() << "[DEBUG] requestScreenshot() called, path=" << path << "flag=" << m_pendingScreenshotRequested.load();
+        qDebug() << "[DEBUG] requestScreenshot() called, path=" << path
+                 << "flag=" << m_pendingScreenshotRequested.load();
     }
 
-    bool headlessTargetReached() const { return m_renderer ? m_renderer->headlessTargetReached() : false; }
+    bool headlessTargetReached() const {
+        return m_renderer ? m_renderer->headlessTargetReached() : false;
+    }
 
-    bool screenshotRequested() const { return m_renderer ? m_renderer->screenshotRequested() : false; }
+    bool screenshotRequested() const {
+        return m_renderer ? m_renderer->screenshotRequested() : false;
+    }
 
     // Set slice offset (called from QML)
     Q_INVOKABLE void setSliceOffset(int viewIndex, double offset);
 
-private:
+   private:
     float m_planckLogScale = 0.0f;  // 0 = 10^0 m, -35 = 10^-35 m
     std::unique_ptr<quantumverse::PhysicsValidator> m_physicsValidator;
 
 #ifdef QUANTUMVERSE_USE_VR
-      Q_INVOKABLE void toggleVR();
-      Q_INVOKABLE void updateVRControllerInput();
-      Q_INVOKABLE void updateRemoteParticipant(const QString& id, const QString& name, const QVariantList& cameraMatrix, const QVariantList& position, bool vrActive);
-      Q_INVOKABLE void removeRemoteParticipant(const QString& id);
+    Q_INVOKABLE void toggleVR();
+    Q_INVOKABLE void updateVRControllerInput();
+    Q_INVOKABLE void updateRemoteParticipant(const QString& id, const QString& name,
+                                             const QVariantList& cameraMatrix,
+                                             const QVariantList& position, bool vrActive);
+    Q_INVOKABLE void removeRemoteParticipant(const QString& id);
 #endif
 
-signals:
+   signals:
     void showGridChanged();
     void showLightConesChanged();
     void showGeodesicsChanged();
@@ -925,10 +1112,10 @@ signals:
     void probeChanged();
     void physicsWarningChanged();
 #ifdef QUANTUMVERSE_USE_VR
-     void vrEnabledChanged();
-     void vrActiveChanged();
-     void vrIpdChanged();
-     void showGhostCamerasChanged();
+    void vrEnabledChanged();
+    void vrActiveChanged();
+    void vrIpdChanged();
+    void showGhostCamerasChanged();
 #endif
     void planeModeChanged();
     void planeResolutionChanged();
@@ -939,44 +1126,44 @@ signals:
     void blackHoleTypeChanged();
     void telemetryUpdated();
     void physicsConstantsChanged();
-      void bloomEnabledChanged();
-      void bloomIntensityChanged();
-      void bloomThresholdChanged();
-      void toneMappingModeChanged();
-      void exposureChanged();
+    void bloomEnabledChanged();
+    void bloomIntensityChanged();
+    void bloomThresholdChanged();
+    void toneMappingModeChanged();
+    void exposureChanged();
 
-      // Undo/Redo signals
-      void undoRedoChanged();
+    // Undo/Redo signals
+    void undoRedoChanged();
 
-      // Gravitational lensing signals
-      void lensingEnabledChanged();
-      void lensingStepsChanged();
-      void shadowIntensityChanged();
-      void lensingMassChanged();
-      void lensingSpinChanged();
-      void lensingDistanceChanged();
-      void lensingThetaChanged();
-      void lensingPhiChanged();
-      void accretionDiskEnabledChanged();
-      void photonRingEnabledChanged();
-      void accretionDiskIntensityChanged();
-      void volumetricDiskEnabledChanged();
-      void volumetricDiskDensityChanged();
-      void volumetricDiskTemperatureChanged();
-      void volumetricDiskScaleHeightChanged();
-      void volumetricDiskInnerRadiusChanged();
-      void volumetricDiskOuterRadiusChanged();
-      void volumetricDiskOpacityChanged();
-      void volumetricDiskInnerEdgeFadeChanged();
+    // Gravitational lensing signals
+    void lensingEnabledChanged();
+    void lensingStepsChanged();
+    void shadowIntensityChanged();
+    void lensingMassChanged();
+    void lensingSpinChanged();
+    void lensingDistanceChanged();
+    void lensingThetaChanged();
+    void lensingPhiChanged();
+    void accretionDiskEnabledChanged();
+    void photonRingEnabledChanged();
+    void accretionDiskIntensityChanged();
+    void volumetricDiskEnabledChanged();
+    void volumetricDiskDensityChanged();
+    void volumetricDiskTemperatureChanged();
+    void volumetricDiskScaleHeightChanged();
+    void volumetricDiskInnerRadiusChanged();
+    void volumetricDiskOuterRadiusChanged();
+    void volumetricDiskOpacityChanged();
+    void volumetricDiskInnerEdgeFadeChanged();
 
-      void scenarioChanged();
-     void scenarioListChanged();
+    void scenarioChanged();
+    void scenarioListChanged();
 
-     // Telemetry recording signals
-     void recordingChanged();
-     void playbackChanged();
+    // Telemetry recording signals
+    void recordingChanged();
+    void playbackChanged();
 
-public slots:
+   public slots:
     void setShowGrid(bool show);
     void setShowLightCones(bool show);
     void setShowGeodesics(bool show);
@@ -995,7 +1182,7 @@ public slots:
     // Gravitational lensing slots
     void syncLensingParams();
 
-private:
+   private:
     QmlGlRenderer* m_renderer;
     bool m_showGrid;
     bool m_showLightCones;
@@ -1015,7 +1202,8 @@ private:
     QString m_blackHoleType = "Schwarzschild";
     float m_gridBlackHoleCenter[3] = {0.0f, 0.0f, 0.0f};
     int m_frameCount;
-    int m_headlessTargetFrames = 0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode
+    int m_headlessTargetFrames =
+        0;  // mirrors the renderer's target; gates the FBO->screen blit in headless/benchmark mode
     qint64 m_lastFrameTime;
 
     // FPS averaging state (measured from the actual render rate in renderGL)
@@ -1071,22 +1259,22 @@ private:
     bool m_physicsWarning = false;
 
 #ifdef QUANTUMVERSE_USE_VR
-     // VR state
-     bool m_vrEnabled = false;
-     bool m_vrActive = false;
-     float m_vrIpd = 0.063f;
+    // VR state
+    bool m_vrEnabled = false;
+    bool m_vrActive = false;
+    float m_vrIpd = 0.063f;
 
-     // Multi-user remote participants (ghost cameras)
-     struct RemoteParticipant {
-         std::string id;
-         std::string name;
-         std::array<float, 16> cameraMatrix;
-         std::array<float, 3> position;
-         bool vrActive = false;
-         double lastUpdateTime = 0.0;
-     };
-     std::vector<RemoteParticipant> m_remoteParticipants;
-     bool m_showGhostCameras = true;
+    // Multi-user remote participants (ghost cameras)
+    struct RemoteParticipant {
+        std::string id;
+        std::string name;
+        std::array<float, 16> cameraMatrix;
+        std::array<float, 3> position;
+        bool vrActive = false;
+        double lastUpdateTime = 0.0;
+    };
+    std::vector<RemoteParticipant> m_remoteParticipants;
+    bool m_showGhostCameras = true;
 #endif
 
     // Pending screenshot request, transferred to the render thread in
@@ -1094,23 +1282,23 @@ private:
     std::atomic<bool> m_pendingScreenshotRequested{false};
     QString m_pendingScreenshotPath;
 
-     // The QQuickFramebufferObject renderer needs full access to the item's
-     // renderer/camera/flag state to mirror it onto the render thread.
-     class ViewportRenderer;
-     friend class ViewportRenderer;
+    // The QQuickFramebufferObject renderer needs full access to the item's
+    // renderer/camera/flag state to mirror it onto the render thread.
+    class ViewportRenderer;
+    friend class ViewportRenderer;
 
-     // Scenario system state
-     QStringList m_scenarioList;
-     QString m_scenarioName;
-     double m_scenarioTime = 0.0;
-     bool m_scenarioPlaying = false;
+    // Scenario system state
+    QStringList m_scenarioList;
+    QString m_scenarioName;
+    double m_scenarioTime = 0.0;
+    bool m_scenarioPlaying = false;
 
-     // Telemetry recording state
-     bool m_recording = false;
-     bool m_playing = false;
-     int m_currentFrame = 0;
-     int m_totalFrames = 0;
-     double m_recordingDuration = 0.0;
+    // Telemetry recording state
+    bool m_recording = false;
+    bool m_playing = false;
+    int m_currentFrame = 0;
+    int m_totalFrames = 0;
+    double m_recordingDuration = 0.0;
     double m_accumulatedTime = 0.0;
     double m_recordingIntervalSec = 0.1;  // 10 Hz default
 
@@ -1125,22 +1313,23 @@ private:
     std::vector<Command> m_undoStack;
     std::vector<Command> m_redoStack;
     int m_maxUndoSteps = 50;
-    bool m_isUndoRedoAction = false; // Prevents recording undo/redo actions
+    bool m_isUndoRedoAction = false;  // Prevents recording undo/redo actions
 
-    void pushCommand(const QString& description, std::function<void()> undo, std::function<void()> redo);
+    void pushCommand(const QString& description, std::function<void()> undo,
+                     std::function<void()> redo);
     void truncateUndoStack();
     void truncateRedoStack();
 
     // Gravitational lensing state
-     bool m_lensingEnabled = true;
-     int m_lensingSteps = 1024;
-     float m_shadowIntensity = 1.0f;
-     float m_lensingMass = 1.0f;
-float m_lensingSpin = 0.6f;
-      float m_lensingDistance = 10.0f;
-      float m_lensingTheta = 1.5708f;  // pi/2 = equatorial (edge-on)
-      float m_lensingPhi = 0.0f;
-      bool m_accretionDiskEnabled = true;
+    bool m_lensingEnabled = true;
+    int m_lensingSteps = 1024;
+    float m_shadowIntensity = 1.0f;
+    float m_lensingMass = 1.0f;
+    float m_lensingSpin = 0.6f;
+    float m_lensingDistance = 10.0f;
+    float m_lensingTheta = 1.5708f;  // pi/2 = equatorial (edge-on)
+    float m_lensingPhi = 0.0f;
+    bool m_accretionDiskEnabled = true;
     bool m_photonRingEnabled = true;
     float m_accretionDiskIntensity = 0.8f;
     bool m_volumetricDiskEnabled = false;
@@ -1152,13 +1341,13 @@ float m_lensingSpin = 0.6f;
     float m_volumetricDiskOpacity = 1.0f;
     float m_volumetricDiskInnerEdgeFade = 0.5f;
     std::shared_ptr<GravitationalLensing> m_lensing;
-     std::shared_ptr<MetricTensor> m_lensingMetric;
+    std::shared_ptr<MetricTensor> m_lensingMetric;
 
- private slots:
+   private slots:
     // (renderGL / onWindowChanged removed: rendering now happens in the
     // QQuickFramebufferObject::Renderer created by createRenderer().)
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QMLGLVIEWPORT_H
+#endif  // QMLGLVIEWPORT_H

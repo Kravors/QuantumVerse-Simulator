@@ -6,8 +6,8 @@
  * normalised into the internal ParsedGCNNotice structure.
  */
 
-#include <QJsonObject>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <iostream>
 
 #include "data/GCNNoticeParser.h"
@@ -15,17 +15,16 @@
 
 using namespace quantumverse;
 
-static QJsonObject makeJson(const char* json)
-{
+static QJsonObject makeJson(const char* json) {
     QJsonParseError err;
-    const QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromRawData(json, int(strlen(json))), &err);
+    const QJsonDocument doc =
+        QJsonDocument::fromJson(QByteArray::fromRawData(json, int(strlen(json))), &err);
     QV_CHECK(err.error == QJsonParseError::NoError);
     QV_CHECK(doc.isObject());
     return doc.object();
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     Q_UNUSED(argc)
     Q_UNUSED(argv)
 
@@ -42,8 +41,7 @@ int main(int argc, char** argv)
             "  \"m1\": 35.0,"
             "  \"m2\": 26.0,"
             "  \"confidence\": 0.98"
-            "}"
-        );
+            "}");
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         QV_CHECK(parsed.origin == AlertOrigin::LIGO);
@@ -68,8 +66,7 @@ int main(int argc, char** argv)
             "  \"energy_tev\": 145.2,"
             "  \"false_alarm_rate\": 3.4e-4,"
             "  \"confidence\": 0.91"
-            "}"
-        );
+            "}");
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         QV_CHECK(parsed.origin == AlertOrigin::IceCube);
@@ -93,8 +90,7 @@ int main(int argc, char** argv)
             "  \"depth_ppm\": 500.0,"
             "  \"duration_hours\": 2.5,"
             "  \"confidence\": 0.95"
-            "}"
-        );
+            "}");
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         QV_CHECK(parsed.origin == AlertOrigin::TESS);
@@ -113,8 +109,7 @@ int main(int argc, char** argv)
             "{"
             "  \"alert_type\": \"Mysterious/ALIEN\","
             "  \"event_id\": \"X250601\""
-            "}"
-        );
+            "}");
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         QV_CHECK(parsed.origin == AlertOrigin::Unknown);
@@ -134,8 +129,7 @@ int main(int argc, char** argv)
             "  \"error_radius\": 2.0,"
             "  \"false_alarm_rate\": 0.001,"
             "  \"confidence\": 0.95"
-            "}"
-        );
+            "}");
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         QV_CHECK(parsed.origin == AlertOrigin::FermiGBM);
@@ -163,8 +157,7 @@ int main(int argc, char** argv)
             "  \"error_radius\": 1.5,"
             "  \"false_alarm_rate\": 0.0005,"
             "  \"confidence\": 0.98"
-            "}"
-        );
+            "}");
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         QV_CHECK(parsed.origin == AlertOrigin::Swift);
@@ -184,8 +177,7 @@ int main(int argc, char** argv)
         const QJsonObject obj = makeJson(
             "{"
             "  \"alert_type\": \"LIGO/Virgo\""
-            "}"
-        );
+            "}");
 
         const ParsedGCNNotice parsed = GCNNoticeParser::parse(obj);
         QV_CHECK(parsed.origin == AlertOrigin::LIGO);

@@ -38,5 +38,5 @@ std::vector<PeerInfo> WebRTCManager::getConnectedPeers() const {
     return m_peers;
 }
 
-} // namespace net
-} // namespace quantumverse
+}  // namespace net
+}  // namespace quantumverse

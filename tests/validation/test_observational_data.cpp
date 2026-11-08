@@ -11,15 +11,15 @@
  * Uses a small embedded Pantheon+ sample covering z ∈ [0.01, 1.0].
  */
 
-#include "spacetime/FRWMetric.h"
-#include "data/MultiMessengerCorrelator.h"
-#include "spacetime/Event4D.h"
-#include "discovery/DiscoveryInstrument.h"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <vector>
-#include <algorithm>
 #include <numeric>
+#include <vector>
+#include "data/MultiMessengerCorrelator.h"
+#include "discovery/DiscoveryInstrument.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/FRWMetric.h"
 
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -34,11 +34,11 @@ using namespace quantumverse;
 // ============================================================================
 // Constants: Planck 2018 best-fit flat ΛCDM
 // ============================================================================
-static constexpr double PLANCK_H0 = 2.185e-18;   // 67.4 km/s/Mpc in s⁻¹
+static constexpr double PLANCK_H0 = 2.185e-18;  // 67.4 km/s/Mpc in s⁻¹
 static constexpr double PLANCK_OMEGA_M = 0.315;
 static constexpr double PLANCK_OMEGA_LAMBDA = 0.685;
-static constexpr double C_LIGHT = 299792458.0;     // m/s
-static constexpr double MPC = 3.085677581e22;      // metres
+static constexpr double C_LIGHT = 299792458.0;  // m/s
+static constexpr double MPC = 3.085677581e22;   // metres
 
 // ============================================================================
 // Pantheon+ reference sample: small representative subset (z, μ_obs, σ_μ)
@@ -54,24 +54,18 @@ struct PantheonSN {
 };
 
 static const std::vector<PantheonSN> PANETHEON_SAMPLE = {
-    {0.0148, 34.17, 0.18},
-    {0.0320, 35.76, 0.19},
-    {0.0510, 36.93, 0.21},
-    {0.0980, 38.27, 0.23},
-    {0.1850, 39.94, 0.25},
-    {0.2980, 40.91, 0.28},
-    {0.4980, 42.44, 0.32},
-    {0.7920, 43.40, 0.38},
-    {0.9980, 44.31, 0.42},
+    {0.0148, 34.17, 0.18}, {0.0320, 35.76, 0.19}, {0.0510, 36.93, 0.21},
+    {0.0980, 38.27, 0.23}, {0.1850, 39.94, 0.25}, {0.2980, 40.91, 0.28},
+    {0.4980, 42.44, 0.32}, {0.7920, 43.40, 0.38}, {0.9980, 44.31, 0.42},
 };
 
 // ============================================================================
 // Helper: numerical comoving distance for flat ΛCDM via Simpson's rule
 // ============================================================================
-static double comovingDistanceLCDM(double z, double H0,
-                                   double omegaM, double omegaLambda,
+static double comovingDistanceLCDM(double z, double H0, double omegaM, double omegaLambda,
                                    int steps = 20000) {
-    if (z <= 0.0) return 0.0;
+    if (z <= 0.0)
+        return 0.0;
     double dz = z / steps;
     double sum = 0.0;
 
@@ -94,8 +88,7 @@ static double comovingDistanceLCDM(double z, double H0,
 // ============================================================================
 // Helper: luminosity distance d_L(z) = (1+z) * chi(z) in Mpc
 // ============================================================================
-static double luminosityDistanceMpc(double z, double H0,
-                                    double omegaM, double omegaLambda) {
+static double luminosityDistanceMpc(double z, double H0, double omegaM, double omegaLambda) {
     double chi = comovingDistanceLCDM(z, H0, omegaM, omegaLambda);
     return (1.0 + z) * chi;
 }
@@ -104,7 +97,8 @@ static double luminosityDistanceMpc(double z, double H0,
 // Helper: distance modulus μ = 5 log10(d_L/Mpc) + 25
 // ============================================================================
 static double distanceModulus(double dL_mpc) {
-    if (dL_mpc <= 0.0) return std::numeric_limits<double>::infinity();
+    if (dL_mpc <= 0.0)
+        return std::numeric_limits<double>::infinity();
     return 5.0 * std::log10(dL_mpc) + 25.0;
 }
 
@@ -115,11 +109,10 @@ void test_pantheon_lcdm_chi2() {
     auto frw = FRWMetric::lambdaCDM(PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA, PLANCK_H0);
 
     double chi2 = 0.0;
-    int dof = -3; // 3 parameters (H0, Ωm, ΩΛ) are fixed to Planck best-fit
+    int dof = -3;  // 3 parameters (H0, Ωm, ΩΛ) are fixed to Planck best-fit
 
     for (const auto& sn : PANETHEON_SAMPLE) {
-        double dL = luminosityDistanceMpc(sn.z, PLANCK_H0,
-                                          PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
+        double dL = luminosityDistanceMpc(sn.z, PLANCK_H0, PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
         double mu_theory = distanceModulus(dL);
         double residual = sn.mu_obs - mu_theory;
         chi2 += (residual * residual) / (sn.sigma_mu * sn.sigma_mu);
@@ -135,14 +128,13 @@ void test_pantheon_lcdm_chi2() {
     QV_CHECK(reduced_chi2 > 0.0);
     QV_CHECK(reduced_chi2 < 5.0);
 
-    std::cout << "[PASS] Pantheon+ ΛCDM χ²/dof = " << reduced_chi2
-              << " (χ² = " << chi2 << ", dof = " << dof << ")" << std::endl;
+    std::cout << "[PASS] Pantheon+ ΛCDM χ²/dof = " << reduced_chi2 << " (χ² = " << chi2
+              << ", dof = " << dof << ")" << std::endl;
 
     // Verify each individual SN distance modulus is physically reasonable
     int valid_count = 0;
     for (const auto& sn : PANETHEON_SAMPLE) {
-        double dL = luminosityDistanceMpc(sn.z, PLANCK_H0,
-                                          PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
+        double dL = luminosityDistanceMpc(sn.z, PLANCK_H0, PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
         double mu = distanceModulus(dL);
         if (std::isfinite(mu) && mu > 20.0 && mu < 60.0) {
             valid_count++;
@@ -163,19 +155,18 @@ void test_luminosity_distance_monotonic() {
     std::vector<double> dLs;
 
     for (double z : redshifts) {
-        double dL = luminosityDistanceMpc(z, PLANCK_H0,
-                                          PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
+        double dL = luminosityDistanceMpc(z, PLANCK_H0, PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
         dLs.push_back(dL);
         QV_CHECK(dL > 0.0);
         QV_CHECK(std::isfinite(dL));
     }
 
     for (size_t i = 1; i < dLs.size(); i++) {
-        QV_CHECK(dLs[i] > dLs[i-1]);
+        QV_CHECK(dLs[i] > dLs[i - 1]);
     }
 
-    std::cout << "[PASS] Luminosity distance monotonic with redshift verified ("
-              << redshifts.size() << " points)" << std::endl;
+    std::cout << "[PASS] Luminosity distance monotonic with redshift verified (" << redshifts.size()
+              << " points)" << std::endl;
 }
 
 // ============================================================================
@@ -195,10 +186,11 @@ void test_etherington_duality_lcdm() {
     }
 
     for (size_t i = 1; i < dLs.size(); i++) {
-        QV_CHECK(dLs[i] > dLs[i-1]);
+        QV_CHECK(dLs[i] > dLs[i - 1]);
     }
 
-    std::cout << "[PASS] Etherington distance duality: d_L = (1+z)^2 d_A verified for ΛCDM" << std::endl;
+    std::cout << "[PASS] Etherington distance duality: d_L = (1+z)^2 d_A verified for ΛCDM"
+              << std::endl;
 }
 
 // ============================================================================
@@ -209,13 +201,14 @@ void test_distance_modulus_monotonic() {
 
     int monotonic_count = 0;
     for (size_t i = 1; i < redshifts.size(); i++) {
-        double dL_prev = luminosityDistanceMpc(redshifts[i-1], PLANCK_H0,
-                                               PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
-        double dL_curr = luminosityDistanceMpc(redshifts[i], PLANCK_H0,
-                                               PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
+        double dL_prev =
+            luminosityDistanceMpc(redshifts[i - 1], PLANCK_H0, PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
+        double dL_curr =
+            luminosityDistanceMpc(redshifts[i], PLANCK_H0, PLANCK_OMEGA_M, PLANCK_OMEGA_LAMBDA);
         double mu_prev = distanceModulus(dL_prev);
         double mu_curr = distanceModulus(dL_curr);
-        if (mu_curr > mu_prev) monotonic_count++;
+        if (mu_curr > mu_prev)
+            monotonic_count++;
     }
     QV_CHECK(monotonic_count == static_cast<int>(redshifts.size() - 1));
 
@@ -227,7 +220,7 @@ void test_distance_modulus_monotonic() {
 // ============================================================================
 void test_gw170817_time_delay() {
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
 
     // NGC 4993 coordinates (host galaxy of GW170817)
@@ -310,7 +303,7 @@ void test_gw170817_uncertainty() {
     // We verify the boundary at 1.79 s (1.74 + 0.05) is accepted
     // and 1.80 s is rejected with a 2.0 s window.
     int dummy_argc = 0;
-    char* dummy_argv[] = { nullptr };
+    char* dummy_argv[] = {nullptr};
     QCoreApplication app(dummy_argc, dummy_argv);
 
     static constexpr double NGC4993_RA = 197.45;

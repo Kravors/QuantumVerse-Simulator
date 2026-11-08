@@ -9,12 +9,12 @@
 #include <vector>
 
 #include "discovery/DiscoveryPanelManager.h"
-#include "discovery/GalacticRotationCurveScanner.h"
 #include "discovery/FineStructureConstantDriftObservatory.h"
+#include "discovery/GalacticRotationCurveScanner.h"
 #include "ml/CurvatureNormalizingFlow.h"
 #include "ml/GeodesicNeuralODE.h"
-#include "spacetime/MetricTensor.h"
 #include "spacetime/Event4D.h"
+#include "spacetime/MetricTensor.h"
 #include "test_assert.h"
 
 using namespace quantumverse;
@@ -22,7 +22,7 @@ using namespace quantumverse;
 namespace {
 constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 constexpr double kInf = std::numeric_limits<double>::infinity();
-}
+}  // namespace
 
 int main() {
     std::cout << "=== DiscoveryRobustnessTest ===" << std::endl;

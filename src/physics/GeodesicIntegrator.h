@@ -24,12 +24,12 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <vector>
-#include <cmath>
-#include <memory>
-#include <functional>
-#include <array>
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <functional>
+#include <memory>
+#include <vector>
 #include "../spacetime/Event4D.h"
 #include "../spacetime/MetricTensor.h"
 
@@ -37,10 +37,10 @@ namespace quantumverse {
 
 // Geodesic integration result
 struct GeodesicStep {
-    Event4D event;      ///< Spacetime position
-    double properTime = 0.0;  ///< Proper time along geodesic
-    double stepSize = 0.0;    ///< Integration step size used
-    bool valid = false;         ///< Integration success flag
+    Event4D event;                                          ///< Spacetime position
+    double properTime = 0.0;                                ///< Proper time along geodesic
+    double stepSize = 0.0;                                  ///< Integration step size used
+    bool valid = false;                                     ///< Integration success flag
     std::array<double, 4> velocity = {0.0, 0.0, 0.0, 0.0};  ///< Four-velocity at this step
 };
 
@@ -52,17 +52,17 @@ enum class GeodesicType {
 };
 
 class GeodesicIntegrator {
-private:
+   private:
     // Integration parameters
-    double tolerance;           ///< Error tolerance for adaptive step
-    double minStepSize;         ///< Minimum allowed step size
-    double maxStepSize;         ///< Maximum allowed step size
-    double safetyFactor;        ///< Safety factor for step adjustment
-    int maxIterations;          ///< Maximum integration steps
+    double tolerance;     ///< Error tolerance for adaptive step
+    double minStepSize;   ///< Minimum allowed step size
+    double maxStepSize;   ///< Maximum allowed step size
+    double safetyFactor;  ///< Safety factor for step adjustment
+    int maxIterations;    ///< Maximum integration steps
 
     // Event horizon termination
-    double m_horizonRadius;     ///< Schwarzschild radius rs = 2GM/c^2 (0 = disabled)
-    double m_escapeRadius;      ///< Escape radius (1000 * rs by default)
+    double m_horizonRadius;  ///< Schwarzschild radius rs = 2GM/c^2 (0 = disabled)
+    double m_escapeRadius;   ///< Escape radius (1000 * rs by default)
 
     // Current metric (can be updated for dynamic spacetime)
     std::shared_ptr<MetricTensor> currentMetric;
@@ -90,7 +90,7 @@ private:
     // Finite-difference step for numerical derivatives
     static constexpr double FD_H = 1e-6;
 
-public:
+   public:
     /**
      * @brief Constructor with default parameters.
      * @param tol Error tolerance for adaptive step
@@ -99,16 +99,16 @@ public:
      * @param safety Safety factor for step adjustment
      * @param maxIter Maximum integration steps
      */
-    GeodesicIntegrator(
-        double tol = 1e-8,
-        double minStep = 1e-10,
-        double maxStep = 1.0,
-        double safety = 0.9,
-        int maxIter = 1000000
-    ) : tolerance(tol), minStepSize(minStep), maxStepSize(maxStep),
-        safetyFactor(safety), maxIterations(maxIter),
-        m_horizonRadius(0.0), m_escapeRadius(0.0),
-        cacheValid(false) {
+    GeodesicIntegrator(double tol = 1e-8, double minStep = 1e-10, double maxStep = 1.0,
+                       double safety = 0.9, int maxIter = 1000000)
+        : tolerance(tol),
+          minStepSize(minStep),
+          maxStepSize(maxStep),
+          safetyFactor(safety),
+          maxIterations(maxIter),
+          m_horizonRadius(0.0),
+          m_escapeRadius(0.0),
+          cacheValid(false) {
         currentMetric = std::make_shared<MetricTensor>();
         // Default metric field resolves the metric at the requested event so
         // position-dependent metrics (e.g. SchwarzschildMetric) integrate real
@@ -172,7 +172,9 @@ public:
     /**
      * @brief Get the current horizon radius.
      */
-    double horizonRadius() const { return m_horizonRadius; }
+    double horizonRadius() const {
+        return m_horizonRadius;
+    }
 
     /**
      * @brief Compute Christoffel symbols Γ^λ_μν at a given position.
@@ -186,7 +188,8 @@ public:
      * @param position Spacetime event at which to compute Christoffel symbols.
      */
     void computeChristoffelSymbols(const Event4D& position) const {
-        if (!currentMetric) return;
+        if (!currentMetric)
+            return;
 
         const double h = FD_H;
 
@@ -208,10 +211,22 @@ public:
 
             // Perturb the appropriate coordinate
             switch (mu) {
-                case 0: pos_plus.t += h; pos_minus.t -= h; break;
-                case 1: pos_plus.x += h; pos_minus.x -= h; break;
-                case 2: pos_plus.y += h; pos_minus.y -= h; break;
-                case 3: pos_plus.z += h; pos_minus.z -= h; break;
+                case 0:
+                    pos_plus.t += h;
+                    pos_minus.t -= h;
+                    break;
+                case 1:
+                    pos_plus.x += h;
+                    pos_minus.x -= h;
+                    break;
+                case 2:
+                    pos_plus.y += h;
+                    pos_minus.y -= h;
+                    break;
+                case 3:
+                    pos_plus.z += h;
+                    pos_minus.z -= h;
+                    break;
             }
 
             MetricTensor g_plus = metricField(pos_plus);
@@ -231,7 +246,7 @@ public:
                     double sum = 0.0;
                     for (int sigma = 0; sigma < 4; sigma++) {
                         // Note: g^λσ is the inverse metric (raised index)
-                        double dg_mu_sigma_nu = dg[sigma][nu];           // ∂_μ g_σν
+                        double dg_mu_sigma_nu = dg[sigma][nu];  // ∂_μ g_σν
                         // For ∂_ν g_σμ we need the derivative in the ν direction.
                         // dg only holds μ-direction derivatives, so reuse it only when ν == μ.
                         double dg_nu_sigma_mu;
@@ -241,10 +256,22 @@ public:
                             Event4D pos_p = position;
                             Event4D pos_m = position;
                             switch (nu) {
-                                case 0: pos_p.t += h; pos_m.t -= h; break;
-                                case 1: pos_p.x += h; pos_m.x -= h; break;
-                                case 2: pos_p.y += h; pos_m.y -= h; break;
-                                case 3: pos_p.z += h; pos_m.z -= h; break;
+                                case 0:
+                                    pos_p.t += h;
+                                    pos_m.t -= h;
+                                    break;
+                                case 1:
+                                    pos_p.x += h;
+                                    pos_m.x -= h;
+                                    break;
+                                case 2:
+                                    pos_p.y += h;
+                                    pos_m.y -= h;
+                                    break;
+                                case 3:
+                                    pos_p.z += h;
+                                    pos_m.z -= h;
+                                    break;
                             }
                             MetricTensor gp = metricField(pos_p);
                             MetricTensor gm = metricField(pos_m);
@@ -261,10 +288,22 @@ public:
                             Event4D pos_p = position;
                             Event4D pos_m = position;
                             switch (sigma) {
-                                case 0: pos_p.t += h; pos_m.t -= h; break;
-                                case 1: pos_p.x += h; pos_m.x -= h; break;
-                                case 2: pos_p.y += h; pos_m.y -= h; break;
-                                case 3: pos_p.z += h; pos_m.z -= h; break;
+                                case 0:
+                                    pos_p.t += h;
+                                    pos_m.t -= h;
+                                    break;
+                                case 1:
+                                    pos_p.x += h;
+                                    pos_m.x -= h;
+                                    break;
+                                case 2:
+                                    pos_p.y += h;
+                                    pos_m.y -= h;
+                                    break;
+                                case 3:
+                                    pos_p.z += h;
+                                    pos_m.z -= h;
+                                    break;
                             }
                             MetricTensor gp = metricField(pos_p);
                             MetricTensor gm = metricField(pos_m);
@@ -290,7 +329,8 @@ public:
      * @return Value of the Christoffel symbol.
      */
     double getChristoffel(int lambda, int mu, int nu) const {
-        if (!cacheValid) return 0.0;
+        if (!cacheValid)
+            return 0.0;
         return christoffelCache[lambda][mu][nu];
     }
 
@@ -334,8 +374,7 @@ public:
 
             for (int mu = 0; mu < 4; mu++) {
                 for (int nu = 0; nu < 4; nu++) {
-                    acceleration -= christoffelCache[lambda][mu][nu]
-                                   * y[mu + 4] * y[nu + 4];
+                    acceleration -= christoffelCache[lambda][mu][nu] * y[mu + 4] * y[nu + 4];
                 }
             }
 
@@ -352,11 +391,7 @@ public:
      * @param h Step size.
      * @return New state vector after step.
      */
-    std::vector<double> rungeKutta4Step(
-        double tau,
-        const std::vector<double>& y,
-        double h
-    ) const {
+    std::vector<double> rungeKutta4Step(double tau, const std::vector<double>& y, double h) const {
         std::vector<double> k1 = geodesicDerivative(tau, y);
 
         std::vector<double> y2(8);
@@ -379,8 +414,7 @@ public:
 
         std::vector<double> result(8);
         for (int i = 0; i < 8; i++) {
-            result[i] = y[i] + (h / 6.0) *
-                (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+            result[i] = y[i] + (h / 6.0) * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
         }
 
         return result;
@@ -393,11 +427,8 @@ public:
      * @param h Current step size.
      * @return Pair of (new state, suggested new step size).
      */
-    std::pair<std::vector<double>, double> adaptiveStep(
-        double tau,
-        const std::vector<double>& y,
-        double h
-    ) const {
+    std::pair<std::vector<double>, double> adaptiveStep(double tau, const std::vector<double>& y,
+                                                        double h) const {
         // Take full step
         std::vector<double> y_full = rungeKutta4Step(tau, y, h);
 
@@ -443,13 +474,10 @@ public:
      * @param adaptive Use adaptive step size if true.
      * @return Vector of GeodesicStep records.
      */
-    std::vector<GeodesicStep> integrate(
-        const Event4D& startEvent,
-        const std::array<double, 4>& initialVelocity,
-        GeodesicType type,
-        double targetProperTime,
-        bool adaptive = true
-    ) {
+    std::vector<GeodesicStep> integrate(const Event4D& startEvent,
+                                        const std::array<double, 4>& initialVelocity,
+                                        GeodesicType type, double targetProperTime,
+                                        bool adaptive = true) {
         std::vector<GeodesicStep> trajectory;
 
         // Initial conditions
@@ -489,7 +517,8 @@ public:
         initialStep.properTime = 0.0;
         initialStep.stepSize = 0.0;
         initialStep.valid = true;
-        for (int i = 0; i < 4; i++) initialStep.velocity[i] = y[i + 4];
+        for (int i = 0; i < 4; i++)
+            initialStep.velocity[i] = y[i + 4];
         trajectory.push_back(initialStep);
 
         int iterations = 0;
@@ -519,7 +548,8 @@ public:
             // Check if an adaptive (non-final) step was rejected
             if (adaptive && !isFinalStep && y_new == y) {
                 stepSize = newStep;
-                if (stepSize <= minStepSize) break;
+                if (stepSize <= minStepSize)
+                    break;
                 continue;
             }
 
@@ -537,7 +567,8 @@ public:
             step.properTime = tau;
             step.stepSize = stepSize;
             step.valid = true;
-            for (int i = 0; i < 4; i++) step.velocity[i] = y[i + 4];
+            for (int i = 0; i < 4; i++)
+                step.velocity[i] = y[i + 4];
 
             trajectory.push_back(step);
 
@@ -565,31 +596,35 @@ public:
      * symmetric in-and-out path to r_start. See AGENTS.md for the b=6M/b=12M
      * flat-sweep formula correction that resulted from this assumption.
      */
-    std::vector<Event4D> integrateSimple(
-        const Event4D& start,
-        const std::array<double, 4>& velocity,
-        int steps,
-        double deltaTau
-    ) {
+    std::vector<Event4D> integrateSimple(const Event4D& start,
+                                         const std::array<double, 4>& velocity, int steps,
+                                         double deltaTau) {
         std::vector<Event4D> path;
         path.push_back(start);
 
         std::vector<double> y(8);
-        y[0] = start.t; y[1] = start.x; y[2] = start.y; y[3] = start.z;
-        y[4] = velocity[0]; y[5] = velocity[1]; y[6] = velocity[2]; y[7] = velocity[3];
+        y[0] = start.t;
+        y[1] = start.x;
+        y[2] = start.y;
+        y[3] = start.z;
+        y[4] = velocity[0];
+        y[5] = velocity[1];
+        y[6] = velocity[2];
+        y[7] = velocity[3];
 
         for (int i = 0; i < steps; i++) {
             y = rungeKutta4Step(i * deltaTau, y, deltaTau);
             Event4D event(y[0], y[1], y[2], y[3]);
             path.push_back(event);
 
-            if (isNearSingularity(event)) break;
+            if (isNearSingularity(event))
+                break;
         }
 
         return path;
     }
 
-private:
+   private:
     /**
      * @brief Check if event is near a gravitational singularity or has escaped.
      * Uses the configured horizon radius (rs = 2GM/c^2) for termination.
@@ -612,6 +647,6 @@ private:
     }
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_GEODESIC_INTEGRATOR_H
+#endif  // QUANTUMVERSE_GEODESIC_INTEGRATOR_H

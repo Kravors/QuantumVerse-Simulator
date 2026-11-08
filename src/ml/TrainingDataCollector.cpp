@@ -4,10 +4,10 @@
  */
 
 #include "ml/TrainingDataCollector.h"
-#include <nlohmann/json.hpp>
-#include <filesystem>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <filesystem>
+#include <nlohmann/json.hpp>
 
 namespace quantumverse {
 
@@ -36,16 +36,13 @@ void TrainingDataCollector::stop() {
     active_ = false;
 }
 
-void TrainingDataCollector::sample(
-    const UI4D::PhysicsTelemetry& telemetry,
-    double blackHoleMassKg,
-    const std::vector<UI4D::SolarSystemBody>& bodies,
-    const std::vector<InstrumentFinding>& findings,
-    double simulationTime,
-    const std::string& currentScenarioName
-) {
+void TrainingDataCollector::sample(const UI4D::PhysicsTelemetry& telemetry, double blackHoleMassKg,
+                                   const std::vector<UI4D::SolarSystemBody>& bodies,
+                                   const std::vector<InstrumentFinding>& findings,
+                                   double simulationTime, const std::string& currentScenarioName) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!active_) return;
+    if (!active_)
+        return;
 
     if (samples_.empty()) {
         lastSampleTime_ = simulationTime;
@@ -128,7 +125,8 @@ bool TrainingDataCollector::load(const std::string& path) {
 }
 
 void TrainingDataCollector::flushIfNeeded() {
-    if (!config_.autoSave) return;
+    if (!config_.autoSave)
+        return;
     if (samples_.size() % static_cast<std::size_t>(config_.autoSaveInterval) == 0) {
         writeJson(config_.outputPath);
     }
@@ -138,10 +136,8 @@ bool TrainingDataCollector::writeJson(const std::string& path) const {
     try {
         std::filesystem::create_directories(std::filesystem::path(path).parent_path());
         nlohmann::json j;
-        j["config"] = {
-            {"sampleInterval", config_.sampleInterval},
-            {"maxSamples", config_.maxSamples}
-        };
+        j["config"] = {{"sampleInterval", config_.sampleInterval},
+                       {"maxSamples", config_.maxSamples}};
         j["totalSamples"] = samples_.size();
         j["samples"] = nlohmann::json::array();
 
@@ -157,7 +153,8 @@ bool TrainingDataCollector::writeJson(const std::string& path) const {
         }
 
         std::ofstream f(path);
-        if (!f.is_open()) return false;
+        if (!f.is_open())
+            return false;
         f << j.dump(2);
         return true;
     } catch (const std::exception& e) {
@@ -172,12 +169,14 @@ bool TrainingDataCollector::writeJson(const std::string& path) const {
 bool TrainingDataCollector::readJson(const std::string& path) {
     try {
         std::ifstream f(path);
-        if (!f.is_open()) return false;
+        if (!f.is_open())
+            return false;
         nlohmann::json j;
         f >> j;
 
         samples_.clear();
-        if (!j.contains("samples") || !j["samples"].is_array()) return false;
+        if (!j.contains("samples") || !j["samples"].is_array())
+            return false;
 
         for (const auto& elem : j["samples"]) {
             TrainingSample s;
@@ -209,4 +208,4 @@ bool TrainingDataCollector::readJson(const std::string& path) {
     }
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

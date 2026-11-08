@@ -4,8 +4,8 @@
  */
 
 #include "CosmicShearScanner.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -13,23 +13,22 @@
 
 namespace quantumverse {
 
-CosmicShearScanner::CosmicShearScanner()
-{
+CosmicShearScanner::CosmicShearScanner() {
     setParameter("chi2_threshold", 2.0);
     setParameter("min_theta", 1.0);
     setParameter("max_theta", 1000.0);
     setParameter("min_points", 3.0);
 }
 
-std::vector<InstrumentFinding> CosmicShearScanner::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding> CosmicShearScanner::analyze(const MetricTensor& metric,
+                                                           const Event4D& location,
+                                                           const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
     double minPoints = getParameter("min_points");
-    if (trajectory.size() < static_cast<size_t>(minPoints)) return findings;
+    if (trajectory.size() < static_cast<size_t>(minPoints))
+        return findings;
 
     double threshold = getParameter("chi2_threshold");
     double minTheta = getParameter("min_theta");
@@ -38,7 +37,8 @@ std::vector<InstrumentFinding> CosmicShearScanner::analyze(
     std::vector<double> thetas, obsShears, errors, theoryShears;
     for (const auto& ev : trajectory) {
         double theta = ev.t;
-        if (theta < minTheta || theta > maxTheta) continue;
+        if (theta < minTheta || theta > maxTheta)
+            continue;
         thetas.push_back(theta);
         obsShears.push_back(ev.x);
         errors.push_back(ev.y);
@@ -46,21 +46,24 @@ std::vector<InstrumentFinding> CosmicShearScanner::analyze(
     }
 
     size_t n = thetas.size();
-    if (n < static_cast<size_t>(minPoints)) return findings;
+    if (n < static_cast<size_t>(minPoints))
+        return findings;
 
     double chi2 = 0.0;
     double maxExcessSigma = 0.0;
     for (size_t i = 0; i < n; ++i) {
         double residual = obsShears[i] - theoryShears[i];
         double sigma = errors[i];
-        if (sigma <= 0.0) continue;
+        if (sigma <= 0.0)
+            continue;
         double z = residual / sigma;
         chi2 += z * z;
         maxExcessSigma = std::max(maxExcessSigma, std::abs(z));
     }
 
     double dof = static_cast<double>(n);
-    if (dof < 1.0) return findings;
+    if (dof < 1.0)
+        return findings;
 
     double reducedChi2 = chi2 / dof;
 
@@ -72,8 +75,8 @@ std::vector<InstrumentFinding> CosmicShearScanner::analyze(
         finding.instrumentName = getName();
         finding.severity = confidenceToSeverity(confidence);
         finding.confidence = confidence;
-        finding.description = "Cosmic shear anomaly detected: reduced chi-squared = "
-            + std::to_string(reducedChi2) +
+        finding.description =
+            "Cosmic shear anomaly detected: reduced chi-squared = " + std::to_string(reducedChi2) +
             " exceeds threshold " + std::to_string(threshold) +
             ". Max shear excess = " + std::to_string(maxExcessSigma) +
             " sigma. Possible modified gravity or dark-matter substructure.";
@@ -91,10 +94,10 @@ std::vector<InstrumentFinding> CosmicShearScanner::analyze(
     return findings;
 }
 
-double CosmicShearScanner::theoreticalShear(double theta)
-{
-    if (theta <= 0.0) return 0.0;
+double CosmicShearScanner::theoreticalShear(double theta) {
+    if (theta <= 0.0)
+        return 0.0;
     return 1e-4 / (theta * theta);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse

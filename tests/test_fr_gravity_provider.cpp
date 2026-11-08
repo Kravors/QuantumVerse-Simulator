@@ -11,10 +11,10 @@
 
 #include "test_assert.h"
 
+#include "experiment/cosmology/BransDickeProvider.h"
 #include "experiment/cosmology/FRGravityProvider.h"
 #include "experiment/cosmology/LambdaCDMReferenceProvider.h"
 #include "experiment/cosmology/WCDMProvider.h"
-#include "experiment/cosmology/BransDickeProvider.h"
 
 #include <cmath>
 #include <iostream>
@@ -22,7 +22,8 @@
 using namespace quantumverse;
 
 static bool nearEqual(double a, double b, double tol = 1e-6) {
-    if (a == b) return true;
+    if (a == b)
+        return true;
     double diff = std::fabs(a - b);
     double scale = std::fmax(std::fabs(a), std::fabs(b));
     return scale > 0.0 ? diff / scale < tol : diff < tol;
@@ -59,8 +60,8 @@ int main() {
             const double h_lcdm = lcdm.H(z);
             QV_CHECK(nearEqual(h_fr, h_lcdm, 1e-6));
             if (!nearEqual(h_fr, h_lcdm, 1e-6)) {
-                std::cout << "FAIL H(" << z << "): f(R) b=0 = " << h_fr
-                          << ", ΛCDM = " << h_lcdm << std::endl;
+                std::cout << "FAIL H(" << z << "): f(R) b=0 = " << h_fr << ", ΛCDM = " << h_lcdm
+                          << std::endl;
             }
         }
 
@@ -90,21 +91,24 @@ int main() {
             const double h_fr = fr01.H(z);
             const double h_lcdm = lcdm.H(z);
             const double relDiff = std::fabs(h_fr - h_lcdm) / h_lcdm;
-            std::cout << "  z=" << z << ": H_fR=" << h_fr
-                      << " H_lCDM=" << h_lcdm
+            std::cout << "  z=" << z << ": H_fR=" << h_fr << " H_lCDM=" << h_lcdm
                       << " relDiff=" << (relDiff * 100.0) << "%" << std::endl;
-            if (relDiff > 0.01) differsAtHighZ = true;
+            if (relDiff > 0.01)
+                differsAtHighZ = true;
         }
         QV_CHECK(differsAtHighZ);
         if (!differsAtHighZ) {
-            std::cout << "FAIL: f(R) b=0.1 must differ from ΛCDM by >1% at some high z" << std::endl;
+            std::cout << "FAIL: f(R) b=0.1 must differ from ΛCDM by >1% at some high z"
+                      << std::endl;
         }
 
         // Derived quantities must differ too
-        const double diffDM = std::fabs(fr01.distanceModulus(1059.94) - lcdm.distanceModulus(1059.94));
+        const double diffDM =
+            std::fabs(fr01.distanceModulus(1059.94) - lcdm.distanceModulus(1059.94));
         QV_CHECK(diffDM > 0.01);
         if (!(diffDM > 0.01)) {
-            std::cout << "FAIL: distanceModulus at z_drag must differ by >0.01 mag for b=0.1" << std::endl;
+            std::cout << "FAIL: distanceModulus at z_drag must differ by >0.01 mag for b=0.1"
+                      << std::endl;
         }
 
         // ---- Diagnostic: show actual H(z) ratios for all z ----
@@ -116,8 +120,7 @@ int main() {
                       << " ratio=" << (h01 / h00) << std::endl;
         }
         std::cout << "  DIAGNOSTIC r_drag: b=0=" << lcdm.soundHorizon()
-                  << " Mpc  b=0.1=" << fr01.soundHorizon() << " Mpc"
-                  << std::endl;
+                  << " Mpc  b=0.1=" << fr01.soundHorizon() << " Mpc" << std::endl;
 
         std::cout << "Test 2 PASS: b=0.1 differs from ΛCDM by >1% at high z" << std::endl;
     }
@@ -137,8 +140,8 @@ int main() {
                       << " ratio_b03=" << (h03 / h0) << std::endl;
         }
         std::cout << "  DIAGNOSTIC r_drag: b=0=" << diag0.soundHorizon()
-                  << " Mpc  b=0.1=" << diag01.soundHorizon() << " Mpc  b=0.3="
-                  << diag03.soundHorizon() << " Mpc" << std::endl;
+                  << " Mpc  b=0.1=" << diag01.soundHorizon()
+                  << " Mpc  b=0.3=" << diag03.soundHorizon() << " Mpc" << std::endl;
     }
 
     // ---- Test 3: b=0.3 produces even larger deviation ----
@@ -149,8 +152,7 @@ int main() {
         const double h_fr = fr03.H(1059.94);
         const double h_lcdm = lcdm.H(1059.94);
         const double relDiff = std::fabs(h_fr - h_lcdm) / h_lcdm;
-        std::cout << "  z=1059.94: H_fR(b=0.3)=" << h_fr
-                  << " H_lCDM=" << h_lcdm
+        std::cout << "  z=1059.94: H_fR(b=0.3)=" << h_fr << " H_lCDM=" << h_lcdm
                   << " relDiff=" << (relDiff * 100.0) << "%" << std::endl;
         QV_CHECK(relDiff > 0.01);
         if (!(relDiff > 0.01)) {
@@ -167,7 +169,8 @@ int main() {
             LambdaCDMReferenceProvider lcdm(H0, Om, Ob, Or, OL, Ok, Tcmb);
             QV_CHECK(nearEqual(fr.H(0.0), lcdm.H(0.0), 1e-12));
             if (!nearEqual(fr.H(0.0), lcdm.H(0.0), 1e-12)) {
-                std::cout << "FAIL: H(0) must match ΛCDM for all b (present-day unchanged), b=" << b << std::endl;
+                std::cout << "FAIL: H(0) must match ΛCDM for all b (present-day unchanged), b=" << b
+                          << std::endl;
             }
         }
         std::cout << "Test 4 PASS: H(0) unchanged for all b" << std::endl;
@@ -192,7 +195,8 @@ int main() {
         WCDMProvider w09(H0, Om, Ob, Or, OL, Ok, Tcmb, -0.9, 0.0);
         const double relDiff = std::fabs(w09.H(1.0) - lcdm.H(1.0)) / lcdm.H(1.0);
         QV_CHECK(relDiff > 0.01);
-        std::cout << "  wCDM(w0=-0.9) vs ΛCDM at z=1: relDiff=" << (relDiff * 100.0) << "%" << std::endl;
+        std::cout << "  wCDM(w0=-0.9) vs ΛCDM at z=1: relDiff=" << (relDiff * 100.0) << "%"
+                  << std::endl;
 
         std::cout << "Test 5 PASS: wCDM degenerate case" << std::endl;
     }
@@ -219,7 +223,8 @@ int main() {
         const double bdGrowth = bd10.growthFactor(1.0);
         const double relDiff = std::fabs(bdGrowth - grGrowth) / grGrowth;
         QV_CHECK(relDiff > 0.01);
-        std::cout << "  Brans-Dicke(ω=10) vs GR at z=1: growth relDiff=" << (relDiff * 100.0) << "%" << std::endl;
+        std::cout << "  Brans-Dicke(ω=10) vs GR at z=1: growth relDiff=" << (relDiff * 100.0) << "%"
+                  << std::endl;
 
         std::cout << "Test 6 PASS: Brans-Dicke degenerate case" << std::endl;
     }

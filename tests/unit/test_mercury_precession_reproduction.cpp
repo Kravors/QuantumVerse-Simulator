@@ -25,9 +25,9 @@
 
 #include <iostream>
 
-#include "experiment/experiments/MercuryPrecessionExperiment.h"
-#include "experiment/ScanSummaryBuilder.h"
 #include "discovery/ScanSummary.h"
+#include "experiment/ScanSummaryBuilder.h"
+#include "experiment/experiments/MercuryPrecessionExperiment.h"
 
 using namespace quantumverse;
 
@@ -39,7 +39,7 @@ int main() {
     p["orbits"] = 100;
     p["mass_sun_Msun"] = 1.0;
     p["compareToPublished"] = true;
-    ExperimentResult r = exp.run(p, [](double){}, [](){ return false; });
+    ExperimentResult r = exp.run(p, [](double) {}, []() { return false; });
 
     QV_CHECK(r.success);
     QV_CHECK(r.scalars.contains(QStringLiteral("precession_arcsec_per_century")));
@@ -53,7 +53,8 @@ int main() {
     QV_CHECK(std::abs(r.scalars.value(QStringLiteral("eccentricity")).toDouble() - 0.2056) < 1e-9);
 
     // Precession should be ≈ 43 arcsec/century
-    const double precession = r.scalars.value(QStringLiteral("precession_arcsec_per_century")).toDouble();
+    const double precession =
+        r.scalars.value(QStringLiteral("precession_arcsec_per_century")).toDouble();
     QV_CHECK(std::abs(precession - 43.0) < 1.0);
     QV_CHECK(precession > 40.0);
     QV_CHECK(precession < 46.0);

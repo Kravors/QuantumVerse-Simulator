@@ -29,7 +29,7 @@
 namespace quantumverse {
 
 class HuSawickiProvider : public CosmologyProvider {
-public:
+   public:
     /** Parameter bundle. */
     struct Params {
         double H0 = 67.66;     // km/s/Mpc
@@ -49,38 +49,57 @@ public:
     explicit HuSawickiProvider(Params p);
 
     /** Arbitrary cosmology, all quantities in CosmologyProvider units. */
-    HuSawickiProvider(double H0, double OmegaM, double OmegaB, double OmegaR,
-                      double OmegaLambda, double OmegaK, double Tcmb0,
-                      double fR0);
+    HuSawickiProvider(double H0, double OmegaM, double OmegaB, double OmegaR, double OmegaLambda,
+                      double OmegaK, double Tcmb0, double fR0);
 
-    QString name()             const override { return QStringLiteral("Hu-Sawicki f(R)"); }
-    QString parametersSource() const override { return m_parametersSource; }
+    QString name() const override {
+        return QStringLiteral("Hu-Sawicki f(R)");
+    }
+    QString parametersSource() const override {
+        return m_parametersSource;
+    }
 
-    double H0()          const override { return m_H0; }
-    double OmegaM()      const override { return m_Om; }
-    double OmegaB()      const override { return m_Ob; }
-    double OmegaR()      const override { return m_Or; }
-    double OmegaLambda() const override { return m_OL; }
-    double OmegaK()      const override { return m_Ok; }
-    double Tcmb0()       const override { return m_Tcmb; }
-    double fR0()         const { return m_fR0; }  // |f_R0| screening parameter
+    double H0() const override {
+        return m_H0;
+    }
+    double OmegaM() const override {
+        return m_Om;
+    }
+    double OmegaB() const override {
+        return m_Ob;
+    }
+    double OmegaR() const override {
+        return m_Or;
+    }
+    double OmegaLambda() const override {
+        return m_OL;
+    }
+    double OmegaK() const override {
+        return m_Ok;
+    }
+    double Tcmb0() const override {
+        return m_Tcmb;
+    }
+    double fR0() const {
+        return m_fR0;
+    }  // |f_R0| screening parameter
 
-    double H(double z)                        const override;
-    double comovingDistance(double z)         const override;
-    double luminosityDistance(double z)       const override;
-    double angularDiameterDistance(double z)  const override;
-    double distanceModulus(double z)          const override;
-    double ageAtRedshift(double z)            const override;
-    double lookbackTime(double z)             const override;
-    double decelerationParameter(double z)    const override;
-    double soundHorizon()                     const override;
-    double growthFactor(double z)             const override;
-    double criticalDensity()                  const override;
+    double H(double z) const override;
+    double comovingDistance(double z) const override;
+    double luminosityDistance(double z) const override;
+    double angularDiameterDistance(double z) const override;
+    double distanceModulus(double z) const override;
+    double ageAtRedshift(double z) const override;
+    double lookbackTime(double z) const override;
+    double decelerationParameter(double z) const override;
+    double soundHorizon() const override;
+    double growthFactor(double z) const override;
+    double criticalDensity() const override;
 
-private:
+   private:
     double E(double z) const;
     double fR(double z) const;  // f_R(z) = -|f_R0| × Ωₘ(1+z)³ / [Ωₘ(1+z)³ + 4Ω_Λ]
-    template<typename F>
+    template <typename F>
     double integrateSimpson(double z1, double z2, int steps, F f) const;
     double integrateHInv(double z1, double z2, int steps = 4096) const;
 
@@ -95,6 +114,6 @@ private:
     double m_fR0 = 0.0;      // |f_R0| screening parameter
 };
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_HU_SAWICKI_PROVIDER_H
+#endif  // QUANTUMVERSE_HU_SAWICKI_PROVIDER_H

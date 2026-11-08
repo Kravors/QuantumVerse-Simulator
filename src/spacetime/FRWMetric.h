@@ -18,10 +18,10 @@
  * Reference: Weinberg "Gravitation and Cosmology" (1972)
  */
 
-#include "../spacetime/MetricTensor.h"
-#include <functional>
 #include <cmath>
+#include <functional>
 #include <stdexcept>
+#include "../spacetime/MetricTensor.h"
 
 namespace quantumverse {
 
@@ -29,14 +29,14 @@ namespace quantumverse {
  * @brief Friedmann-Robertson-Walker metric with configurable curvature and scale factor.
  */
 class FRWMetric {
-public:
+   public:
     /**
      * @brief Spatial curvature parameter.
      */
     enum class Curvature {
-        FLAT = 0,      ///< k = 0 (Euclidean spatial slices)
-        CLOSED = 1,    ///< k = +1 (3-sphere spatial slices)
-        OPEN = -1      ///< k = -1 (hyperbolic spatial slices)
+        FLAT = 0,    ///< k = 0 (Euclidean spatial slices)
+        CLOSED = 1,  ///< k = +1 (3-sphere spatial slices)
+        OPEN = -1    ///< k = -1 (hyperbolic spatial slices)
     };
 
     /**
@@ -45,13 +45,11 @@ public:
      * @param scaleFactor Function a(t) returning the scale factor at cosmic time t.
      * @param hubbleConstant H₀ in s⁻¹ (default: 70 km/s/Mpc ≈ 2.27e-18 s⁻¹).
      */
-    FRWMetric(Curvature curvature,
-              std::function<double(double)> scaleFactor,
+    FRWMetric(Curvature curvature, std::function<double(double)> scaleFactor,
               double hubbleConstant = 2.27e-18)
-        : curvature_(static_cast<int>(curvature))
-        , scaleFactor_(std::move(scaleFactor))
-        , H0_(hubbleConstant)
-    {
+        : curvature_(static_cast<int>(curvature)),
+          scaleFactor_(std::move(scaleFactor)),
+          H0_(hubbleConstant) {
         if (!scaleFactor_) {
             throw std::invalid_argument("FRWMetric: scale factor function must be provided");
         }
@@ -62,11 +60,12 @@ public:
      * @param hubbleConstant H₀ in s⁻¹.
      * @param t0 Present age of the universe in seconds (default: 13.8 Gyr).
      */
-    static FRWMetric matterDominated(double hubbleConstant = 2.27e-18,
-                                      double t0 = 4.354e17) {
-        FRWMetric m(Curvature::FLAT,
+    static FRWMetric matterDominated(double hubbleConstant = 2.27e-18, double t0 = 4.354e17) {
+        FRWMetric m(
+            Curvature::FLAT,
             [t0](double t) -> double {
-                if (t <= 0) return 0.0;
+                if (t <= 0)
+                    return 0.0;
                 return std::pow(t / t0, 2.0 / 3.0);
             },
             hubbleConstant);
@@ -80,11 +79,12 @@ public:
      * @param hubbleConstant H₀ in s⁻¹.
      * @param t0 Reference time in seconds.
      */
-    static FRWMetric radiationDominated(double hubbleConstant = 2.27e-18,
-                                         double t0 = 4.354e17) {
-        FRWMetric m(Curvature::FLAT,
+    static FRWMetric radiationDominated(double hubbleConstant = 2.27e-18, double t0 = 4.354e17) {
+        FRWMetric m(
+            Curvature::FLAT,
             [t0](double t) -> double {
-                if (t <= 0) return 0.0;
+                if (t <= 0)
+                    return 0.0;
                 return std::pow(t / t0, 0.5);
             },
             hubbleConstant);
@@ -99,21 +99,22 @@ public:
      * @param omegaLambda Dark energy density parameter (default: 0.69).
      * @param hubbleConstant H₀ in s⁻¹.
      */
-    static FRWMetric lambdaCDM(double omegaM = 0.31,
-                                double omegaLambda = 0.69,
-                                double hubbleConstant = 2.27e-18) {
+    static FRWMetric lambdaCDM(double omegaM = 0.31, double omegaLambda = 0.69,
+                               double hubbleConstant = 2.27e-18) {
         if (std::abs(omegaM + omegaLambda - 1.0) > 0.01) {
             throw std::invalid_argument("FRWMetric: Ωm + ΩΛ should ≈ 1 for flat ΛCDM");
         }
-        FRWMetric m(Curvature::FLAT,
+        FRWMetric m(
+            Curvature::FLAT,
             [omegaM, omegaLambda, hubbleConstant](double t) -> double {
-                if (t <= 0) return 0.0;
+                if (t <= 0)
+                    return 0.0;
                 double x = 1.5 * hubbleConstant * std::sqrt(omegaLambda) * t;
                 // Avoid overflow for large x
-                if (x > 500.0) x = 500.0;
+                if (x > 500.0)
+                    x = 500.0;
                 double sinh_val = std::sinh(x);
-                return std::pow(omegaM / omegaLambda, 1.0 / 3.0) *
-                       std::pow(sinh_val, 2.0 / 3.0);
+                return std::pow(omegaM / omegaLambda, 1.0 / 3.0) * std::pow(sinh_val, 2.0 / 3.0);
             },
             hubbleConstant);
         m.omegaM_ = omegaM;
@@ -126,10 +127,9 @@ public:
      * @param hubbleConstant H₀ in s⁻¹.
      */
     static FRWMetric deSitter(double hubbleConstant = 2.27e-18) {
-        FRWMetric m(Curvature::FLAT,
-            [hubbleConstant](double t) -> double {
-                return std::exp(hubbleConstant * t);
-            },
+        FRWMetric m(
+            Curvature::FLAT,
+            [hubbleConstant](double t) -> double { return std::exp(hubbleConstant * t); },
             hubbleConstant);
         m.omegaM_ = 0.0;
         m.omegaLambda_ = 1.0;
@@ -187,29 +187,38 @@ public:
      */
     double hubbleParameter(double t) const {
         double a = scaleFactor_(t);
-        if (std::abs(a) < 1e-30) return 0.0;
+        if (std::abs(a) < 1e-30)
+            return 0.0;
         return derivativeScaleFactor(t) / a;
     }
 
     /**
      * @brief Get the current Hubble constant H₀.
      */
-    double hubbleConstant() const { return H0_; }
+    double hubbleConstant() const {
+        return H0_;
+    }
 
     /**
      * @brief Get the spatial curvature parameter k.
      */
-    int curvature() const { return curvature_; }
+    int curvature() const {
+        return curvature_;
+    }
 
     /**
      * @brief Get the matter density parameter Ωₘ.
      */
-    double omegaM() const { return omegaM_; }
+    double omegaM() const {
+        return omegaM_;
+    }
 
     /**
      * @brief Get the dark energy density parameter ΩΛ.
      */
-    double omegaLambda() const { return omegaLambda_; }
+    double omegaLambda() const {
+        return omegaLambda_;
+    }
 
     /**
      * @brief Get the Hubble parameter H(z) at redshift z.
@@ -222,7 +231,7 @@ public:
      */
     double hubble(double z) const noexcept {
         const double opz = 1.0 + z;
-        const double E2  = omegaM_ * opz * opz * opz + omegaLambda_;
+        const double E2 = omegaM_ * opz * opz * opz + omegaLambda_;
         return H0_ * std::sqrt(E2);
     }
 
@@ -268,17 +277,17 @@ public:
      */
     double ageOfUniverse(double tMax = 6.31e18, int steps = 200) const;
 
-private:
+   private:
     int curvature_;  ///< k = -1, 0, or +1
     std::function<double(double)> scaleFactor_;
     double H0_;
-    double omegaM_ = 0.0;    ///< Matter density parameter Ωₘ
-    double omegaLambda_ = 0.0; ///< Dark energy density parameter ΩΛ
+    double omegaM_ = 0.0;       ///< Matter density parameter Ωₘ
+    double omegaLambda_ = 0.0;  ///< Dark energy density parameter ΩΛ
 
     /**
-      * @brief Numerically compute the derivative of the scale factor.
-      * Uses relative step size for better numerical precision at large t values.
-      */
+     * @brief Numerically compute the derivative of the scale factor.
+     * Uses relative step size for better numerical precision at large t values.
+     */
     double derivativeScaleFactor(double t) const {
         // Use relative step size to handle large t values (cosmic time ~1e17)
         const double h = std::max(1e-6, std::abs(t) * 1e-5);
@@ -291,17 +300,21 @@ private:
 inline double FRWMetric::ageOfUniverse(double tMax, int steps) const {
     // Bisection on t: find t such that scaleFactor(t) = 1 (present day).
     const double aAtZero = scaleFactor_(0.0);
-    if (aAtZero >= 1.0) return 0.0; // degenerate: already at present at t=0
+    if (aAtZero >= 1.0)
+        return 0.0;  // degenerate: already at present at t=0
 
     const double aAtMax = scaleFactor_(tMax);
-    if (aAtMax <= 1.0) return tMax; // hasn't reached present by tMax
+    if (aAtMax <= 1.0)
+        return tMax;  // hasn't reached present by tMax
 
     double lo = 0.0, hi = tMax;
     for (int i = 0; i < steps; ++i) {
         const double mid = 0.5 * (lo + hi);
         const double aMid = scaleFactor_(mid);
-        if (aMid < 1.0) lo = mid;
-        else hi = mid;
+        if (aMid < 1.0)
+            lo = mid;
+        else
+            hi = mid;
     }
     return 0.5 * (lo + hi);
 }
@@ -309,27 +322,29 @@ inline double FRWMetric::ageOfUniverse(double tMax, int steps) const {
 inline double FRWMetric::comovingDistance(double z) const noexcept {
     // χ(z) = c ∫₀^z dz'/H(z')  via Simpson's rule
     // H(z) in s⁻¹, c in m/s → result in metres, convert to Mpc.
-    constexpr double C_SI   = 299792458.0;   // m/s
-    constexpr double MPC_M  = 3.0856775814913673e22; // m per Mpc
+    constexpr double C_SI = 299792458.0;             // m/s
+    constexpr double MPC_M = 3.0856775814913673e22;  // m per Mpc
 
     const int steps = 4096;
-    if (z <= 0.0) return 0.0;
-    if (steps % 2 != 0) { /* steps already even */ }
+    if (z <= 0.0)
+        return 0.0;
+    if (steps % 2 != 0) { /* steps already even */
+    }
 
     const double h = z / static_cast<double>(steps);
-    auto H_inv = [this](double zp) { return 1.0 / hubble(zp); }; // seconds
+    auto H_inv = [this](double zp) { return 1.0 / hubble(zp); };  // seconds
 
     double s = H_inv(0.0) + H_inv(z);
     for (int i = 1; i < steps; ++i) {
         const double zp = i * h;
-        const double w  = (i % 2 == 0) ? 2.0 : 4.0;
+        const double w = (i % 2 == 0) ? 2.0 : 4.0;
         s += w * H_inv(zp);
     }
-    const double integral_seconds = s * h / 3.0; // seconds
-    const double distance_m       = C_SI * integral_seconds; // metres
-    return distance_m / MPC_M; // Mpc
+    const double integral_seconds = s * h / 3.0;        // seconds
+    const double distance_m = C_SI * integral_seconds;  // metres
+    return distance_m / MPC_M;                          // Mpc
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_FRW_METRIC_H
+#endif  // QUANTUMVERSE_FRW_METRIC_H

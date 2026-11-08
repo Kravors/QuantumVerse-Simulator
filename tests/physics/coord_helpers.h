@@ -12,10 +12,10 @@
 // spherical coordinates and obtain the metric expressed in spherical
 // coordinates without changing the physical point being probed.
 
+#include <array>
+#include <cmath>
 #include "spacetime/Event4D.h"
 #include "spacetime/MetricTensor.h"
-#include <cmath>
-#include <array>
 
 namespace quantumverse {
 namespace test_helpers {
@@ -35,8 +35,8 @@ inline Event4D sphericalToCartesian(double t, double r, double theta, double phi
 /// transforms it with the (t,r,theta,phi) -> (t,x,y,z) Jacobian, so the
 /// resulting matrix is the standard Schwarzschild metric
 /// diag(-(1-rs/r), 1/(1-rs/r), r^2, r^2 sin^2(theta)).
-inline std::array<std::array<double, 4>, 4> metricInSpherical(
-    const MetricTensor& metric, double r, double theta, double phi) {
+inline std::array<std::array<double, 4>, 4> metricInSpherical(const MetricTensor& metric, double r,
+                                                              double theta, double phi) {
     Event4D ev = sphericalToCartesian(0.0, r, theta, phi);
     auto gC = metric.evaluate(ev);
 
@@ -44,12 +44,10 @@ inline std::array<std::array<double, 4>, 4> metricInSpherical(
     // a in {0=t,1=r,2=theta,3=phi}: x = r sinθ cosφ, y = r sinθ sinφ, z = r cosθ.
     double st = std::sin(theta), ct = std::cos(theta);
     double sp = std::sin(phi), cp = std::cos(phi);
-    double J[4][4] = {
-        {1.0, 0.0,     0.0,      0.0},
-        {0.0, st * cp, r * ct * cp, -r * st * sp},
-        {0.0, st * sp, r * ct * sp,  r * st * cp},
-        {0.0, ct,     -r * st,      0.0}
-    };
+    double J[4][4] = {{1.0, 0.0, 0.0, 0.0},
+                      {0.0, st * cp, r * ct * cp, -r * st * sp},
+                      {0.0, st * sp, r * ct * sp, r * st * cp},
+                      {0.0, ct, -r * st, 0.0}};
 
     std::array<std::array<double, 4>, 4> gS{};
     for (int a = 0; a < 4; a++) {
@@ -66,7 +64,7 @@ inline std::array<std::array<double, 4>, 4> metricInSpherical(
     return gS;
 }
 
-} // namespace test_helpers
-} // namespace quantumverse
+}  // namespace test_helpers
+}  // namespace quantumverse
 
-#endif // QUANTUMVERSE_TEST_COORD_HELPERS_H
+#endif  // QUANTUMVERSE_TEST_COORD_HELPERS_H

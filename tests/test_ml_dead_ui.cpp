@@ -4,22 +4,23 @@
 
 #include <QCoreApplication>
 #include <cmath>
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
 
-#include "ml/AnomalyMonitor.h"
 #include "ml/AnomalyDetector.h"
+#include "ml/AnomalyMonitor.h"
 
 using namespace quantumverse;
 
-#define CHECK(cond, msg) do {                                              \
-    if (!(cond)) {                                                         \
-        std::cerr << "FAIL: " << msg << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
-        std::exit(1);                                                      \
-    }                                                                      \
-    std::cout << "[PASS] " << msg << std::endl;                            \
-    std::cout.flush();                                                     \
-} while (0)
+#define CHECK(cond, msg)                                                                        \
+    do {                                                                                        \
+        if (!(cond)) {                                                                          \
+            std::cerr << "FAIL: " << msg << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+            std::exit(1);                                                                       \
+        }                                                                                       \
+        std::cout << "[PASS] " << msg << std::endl;                                             \
+        std::cout.flush();                                                                      \
+    } while (0)
 
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);

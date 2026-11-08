@@ -10,43 +10,43 @@
 
 // Qt headers MUST be included outside any namespace block, since Qt uses
 // QT_BEGIN_NAMESPACE / QT_END_NAMESPACE macros internally.
+#include <QColor>
 #include <QDateTime>
 #include <QDebug>
 #include <QImage>
-#include <QOpenGLContext>
-#include <QQuickWindow>
-#include <QColor>
 #include <QMetaType>
-#include <qsgtexture_platform.h>
+#include <QOpenGLContext>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuaternion>
+#include <QQuickWindow>
+#include <qsgtexture_platform.h>
 
-#include "qmlglviewport.h"
-#include "rendering/CurvatureRenderer.h"
-#include "rendering/QuantumGeometryRenderer.h"
-#include "rendering/CelestialBodyRenderer.h"
-#include "rendering/PostProcess.h"
-#include "rendering/GravitationalLensing.h"
-#include "rendering/GLDebug.h"
-#include "rendering/gl_check.h"
-#include "ui4d/UI4D.h"
-#include "ui4d/Camera4DAdapter.h"
-#include "ui4d/SpacetimeGPS.h"
-#include "spacetime/Event4D.h"
-#include "config/ConfigLoader.h"
 #include "audio/GravitationalWaveAudio.h"
-#include "spacetime/MetricTensor.h"
-#include "spacetime/KerrMetric.h"
+#include "config/ConfigLoader.h"
 #include "physics/CurvatureCalculator.h"
 #include "physics/PhysicsValidator.h"
-#include "utils/ThreadPool.h"
+#include "qmlglviewport.h"
+#include "rendering/CelestialBodyRenderer.h"
+#include "rendering/CurvatureRenderer.h"
+#include "rendering/GLDebug.h"
+#include "rendering/GravitationalLensing.h"
+#include "rendering/PostProcess.h"
+#include "rendering/QuantumGeometryRenderer.h"
+#include "rendering/gl_check.h"
 #include "scenario/ScenarioManager.h"
+#include "spacetime/Event4D.h"
+#include "spacetime/KerrMetric.h"
+#include "spacetime/MetricTensor.h"
+#include "ui4d/Camera4DAdapter.h"
+#include "ui4d/SpacetimeGPS.h"
+#include "ui4d/UI4D.h"
+#include "utils/ThreadPool.h"
 
 #include <algorithm>
 #include <cmath>
 #include <deque>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <vector>
 #ifdef _WIN32
 #include <windows.h>  // for MessageBoxA
@@ -78,7 +78,9 @@ namespace quantumverse {
 #include <cstdio>
 namespace {
 struct PerfScope {
-    explicit PerfScope(const char* name) : m_name(name), m_start(std::chrono::steady_clock::now()) {}
+    explicit PerfScope(const char* name)
+        : m_name(name),
+          m_start(std::chrono::steady_clock::now()) {}
     ~PerfScope() {
         using namespace std::chrono;
         const auto us = duration_cast<microseconds>(steady_clock::now() - m_start).count();
@@ -87,8 +89,8 @@ struct PerfScope {
     const char* m_name;
     std::chrono::steady_clock::time_point m_start;
 };
-}
-#define PERF_SCOPE(name) PerfScope _perfScope ## __LINE__(name)
+}  // namespace
+#define PERF_SCOPE(name) PerfScope _perfScope##__LINE__(name)
 #else
 #define PERF_SCOPE(name) ((void)0)
 #endif
@@ -96,11 +98,11 @@ struct PerfScope {
 // Check every element of a 4x4 matrix is finite. A non-finite (NaN/Inf)
 // view or projection matrix makes every perspective-drawn primitive vanish
 // (black viewport) while the orthographic axis gizmo survives.
-static bool matrixIsFinite(const QMatrix4x4& m)
-{
+static bool matrixIsFinite(const QMatrix4x4& m) {
     const float* d = m.constData();
     for (int i = 0; i < 16; ++i) {
-        if (!std::isfinite(d[i])) return false;
+        if (!std::isfinite(d[i]))
+            return false;
     }
     return true;
 }
@@ -108,10 +110,10 @@ static bool matrixIsFinite(const QMatrix4x4& m)
 // [DIAG] Mirror diagnostic lines to a file so they can be captured reliably
 // regardless of how the GUI process' console is (or isn't) attached.
 // Gated behind QV_DEBUG_RENDER to avoid per-frame I/O in normal operation.
-static void diagLog(const QString& msg)
-{
+static void diagLog(const QString& msg) {
     static const bool enabled = qEnvironmentVariableIsSet("QV_DEBUG_RENDER");
-    if (!enabled) return;
+    if (!enabled)
+        return;
     static std::ofstream s_file("viewport_diag.log", std::ios::app);
     if (s_file) {
         s_file << QDateTime::currentMSecsSinceEpoch() << "  " << msg.toStdString() << "\n";
@@ -119,10 +121,10 @@ static void diagLog(const QString& msg)
     }
 }
 
-static bool initializeGlad()
-{
+static bool initializeGlad() {
     static bool initialized = false;
-    if (initialized) return true;
+    if (initialized)
+        return true;
 
     QOpenGLContext* ctx = QOpenGLContext::currentContext();
     if (!ctx) {
@@ -132,20 +134,26 @@ static bool initializeGlad()
 
     auto loader = [](const char* name) -> void* {
         QOpenGLContext* c = QOpenGLContext::currentContext();
-        if (!c) return nullptr;
+        if (!c)
+            return nullptr;
         return reinterpret_cast<void*>(c->getProcAddress(name));
     };
 
     if (gladLoadGLLoader(loader)) {
         qDebug() << "QmlGlViewport: glad initialized successfully, GL version:"
                  << reinterpret_cast<const char*>(glad_glGetString(GL_VERSION));
-        qDebug() << "QmlGlViewport: GL_RENDERER:" << reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
-        qDebug() << "QmlGlViewport: GL_VENDOR:" << reinterpret_cast<const char*>(glad_glGetString(GL_VENDOR));
-        qDebug() << "QmlGlViewport: openGLModuleType (instance):" << (ctx ? ctx->openGLModuleType() : -1);
-        qDebug() << "QmlGlViewport: openGLModuleType (static):" << QOpenGLContext::openGLModuleType();
+        qDebug() << "QmlGlViewport: GL_RENDERER:"
+                 << reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+        qDebug() << "QmlGlViewport: GL_VENDOR:"
+                 << reinterpret_cast<const char*>(glad_glGetString(GL_VENDOR));
+        qDebug() << "QmlGlViewport: openGLModuleType (instance):"
+                 << (ctx ? ctx->openGLModuleType() : -1);
+        qDebug() << "QmlGlViewport: openGLModuleType (static):"
+                 << QOpenGLContext::openGLModuleType();
 
         const char* renderer_str = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
-        if (renderer_str && (strstr(renderer_str, "ANGLE") || strstr(renderer_str, "Microsoft GDI"))) {
+        if (renderer_str &&
+            (strstr(renderer_str, "ANGLE") || strstr(renderer_str, "Microsoft GDI"))) {
             qWarning() << "WARNING: Desktop OpenGL may not be active! Renderer contains ANGLE/GDI.";
         }
 
@@ -155,7 +163,8 @@ static bool initializeGlad()
             bool isDesktop = glRenderer && strstr(glRenderer, "ANGLE") == nullptr &&
                              strstr(glRenderer, "Microsoft GDI") == nullptr;
             if (!isDesktop) {
-                qWarning() << "Desktop OpenGL not available; fallback to software renderer or ANGLE mode.";
+                qWarning()
+                    << "Desktop OpenGL not available; fallback to software renderer or ANGLE mode.";
             } else {
                 qDebug() << "Desktop OpenGL confirmed active.";
             }
@@ -171,39 +180,38 @@ static bool initializeGlad()
 }
 
 QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
-: m_viewportWidth(viewportWidth)
-, m_viewportHeight(viewportHeight)
-, m_gridVao(0)
-, m_gridVbo(0)
-, m_gridEbo(0)
-, m_axisVao(0)
-, m_axisVbo(0)
-, m_overlayVAO(0)
-, m_overlayVBO(0)
-, m_profilingVAO(0)
-    , m_profilingVBO(0)
-    , m_showGrid(true)
-    , m_showLightCones(false)
-    , m_showGeodesics(false)
-    , m_showQuantumGeometry(false)
-    , m_curvatureMode(0)
-, m_time(0.0f)
-, m_frameTime(0.0f)
-, m_frameCount(0)
-, m_cameraDistance(50.0f)
-, m_cameraAngleX(0.0f)
-, m_cameraAngleY(0.0f)
-, m_cameraPanX(0.0f)
-, m_cameraPanY(0.0f)
-, m_headlessTargetFrames(0)
-, m_headlessStatsLogged(false)
-    , m_screenshotRequested(false)
-    , m_fbo(nullptr)
-    , m_postProcess(std::make_shared<PostProcess>())
-    , m_glInitialized(false)
-    , m_geodesicsCacheKey(0)
-    , m_cachedGeodesicsUi4d(nullptr)
-{
+    : m_viewportWidth(viewportWidth),
+      m_viewportHeight(viewportHeight),
+      m_gridVao(0),
+      m_gridVbo(0),
+      m_gridEbo(0),
+      m_axisVao(0),
+      m_axisVbo(0),
+      m_overlayVAO(0),
+      m_overlayVBO(0),
+      m_profilingVAO(0),
+      m_profilingVBO(0),
+      m_showGrid(true),
+      m_showLightCones(false),
+      m_showGeodesics(false),
+      m_showQuantumGeometry(false),
+      m_curvatureMode(0),
+      m_time(0.0f),
+      m_frameTime(0.0f),
+      m_frameCount(0),
+      m_cameraDistance(50.0f),
+      m_cameraAngleX(0.0f),
+      m_cameraAngleY(0.0f),
+      m_cameraPanX(0.0f),
+      m_cameraPanY(0.0f),
+      m_headlessTargetFrames(0),
+      m_headlessStatsLogged(false),
+      m_screenshotRequested(false),
+      m_fbo(nullptr),
+      m_postProcess(std::make_shared<PostProcess>()),
+      m_glInitialized(false),
+      m_geodesicsCacheKey(0),
+      m_cachedGeodesicsUi4d(nullptr) {
     // Initialize view matrix
     m_viewMatrix.setToIdentity();
     m_viewMatrix.translate(0.0f, 0.0f, -m_cameraDistance);
@@ -219,8 +227,7 @@ QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
     // to avoid crashes when constructor is called before GL context is ready
 }
 
-QmlGlRenderer::~QmlGlRenderer()
-{
+QmlGlRenderer::~QmlGlRenderer() {
     QOpenGLContext* ctx = QOpenGLContext::currentContext();
     if (!ctx) {
         return;
@@ -272,632 +279,666 @@ QmlGlRenderer::~QmlGlRenderer()
     // (it releases its own GL resources in ~PostProcess)
 }
 
-void QmlGlRenderer::render()
-{
-  try {
+void QmlGlRenderer::render() {
+    try {
 #if PERF_TRACE
-     std::ofstream("renderer_render.log", std::ios::app) << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch() << std::endl;
+        std::ofstream("renderer_render.log", std::ios::app)
+            << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch()
+            << std::endl;
 #endif
-    // [DIAG] Confirm render() is actually entered each frame and whether a GL
-    // context is current. Placed at the very top so it logs even if a later
-    // early-return (e.g. null context) would otherwise hide activity.
-    static int s_rCalls = 0;
-    if (s_rCalls < 3 || (s_rCalls % 120) == 0) {
-        QOpenGLContext* c = QOpenGLContext::currentContext();
-        const QString m = QString("[DIAG-render] render() ENTERED call#%1 ctx=%2")
-                             .arg(s_rCalls).arg(c ? "valid" : "NULL");
-        qWarning() << m;
-        diagLog(m);
-    }
-    s_rCalls++;
+        // [DIAG] Confirm render() is actually entered each frame and whether a GL
+        // context is current. Placed at the very top so it logs even if a later
+        // early-return (e.g. null context) would otherwise hide activity.
+        static int s_rCalls = 0;
+        if (s_rCalls < 3 || (s_rCalls % 120) == 0) {
+            QOpenGLContext* c = QOpenGLContext::currentContext();
+            const QString m = QString("[DIAG-render] render() ENTERED call#%1 ctx=%2")
+                                  .arg(s_rCalls)
+                                  .arg(c ? "valid" : "NULL");
+            qWarning() << m;
+            diagLog(m);
+        }
+        s_rCalls++;
 
-    static int64_t lastTime = 0;
-    int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
-    if (lastTime > 0) {
-        m_frameTime = static_cast<float>(currentTime - lastTime) / 1000.0f;
-    }
-    lastTime = currentTime;
-    m_frameCount++;
+        static int64_t lastTime = 0;
+        int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
+        if (lastTime > 0) {
+            m_frameTime = static_cast<float>(currentTime - lastTime) / 1000.0f;
+        }
+        lastTime = currentTime;
+        m_frameCount++;
 
-    // Record frame in profiler (microsecond precision)
-    static int64_t frameStartUs = 0;
-    int64_t frameEndUs = currentTime * 1000;
-    if (frameStartUs > 0) {
-        m_frameProfiler.recordFrame(frameStartUs, frameEndUs);
-    }
-    frameStartUs = frameEndUs;
+        // Record frame in profiler (microsecond precision)
+        static int64_t frameStartUs = 0;
+        int64_t frameEndUs = currentTime * 1000;
+        if (frameStartUs > 0) {
+            m_frameProfiler.recordFrame(frameStartUs, frameEndUs);
+        }
+        frameStartUs = frameEndUs;
 
-    // Get the current OpenGL context
-    QOpenGLContext* ctx = QOpenGLContext::currentContext();
-    if (!ctx) {
-        qWarning("QmlGlRenderer: No OpenGL context available in render()");
-        return;
-    }
+        // Get the current OpenGL context
+        QOpenGLContext* ctx = QOpenGLContext::currentContext();
+        if (!ctx) {
+            qWarning("QmlGlRenderer: No OpenGL context available in render()");
+            return;
+        }
 
-    // Initialize OpenGL/GLAD state on the FIRST render, BEFORE any glad_*
-    // helper is invoked below. The glad_* function pointers are NULL until
-    // gladLoadGL() runs inside initializeGL(); calling one beforehand
-    // (e.g. glad_glGetError) dereferences a null function pointer and crashes
-    // with an access violation at EIP=0x0 on the very first real frame.
-    static bool initialized = false;
-    if (!initialized) {
-        initializeGL();
-        initialized = true;
-    }
+        // Initialize OpenGL/GLAD state on the FIRST render, BEFORE any glad_*
+        // helper is invoked below. The glad_* function pointers are NULL until
+        // gladLoadGL() runs inside initializeGL(); calling one beforehand
+        // (e.g. glad_glGetError) dereferences a null function pointer and crashes
+        // with an access violation at EIP=0x0 on the very first real frame.
+        static bool initialized = false;
+        if (!initialized) {
+            initializeGL();
+            initialized = true;
+        }
 
-    // [DIAG] Clear GL error queue every frame (gated: driver round-trip).
-    if (qEnvironmentVariableIsSet("QV_DEBUG_RENDER")) {
-        while (glad_glGetError() != GL_NO_ERROR) {}
-        GLenum startErr = glad_glGetError();
-        if (startErr != GL_NO_ERROR) {
-            static int s_errCount = 0;
-            if (s_errCount++ < 10) {
-                const QString m = QString("[DIAG-render] GL error at start of render: %1").arg(startErr);
-                qWarning() << m;
-                diagLog(m);
+        // [DIAG] Clear GL error queue every frame (gated: driver round-trip).
+        if (qEnvironmentVariableIsSet("QV_DEBUG_RENDER")) {
+            while (glad_glGetError() != GL_NO_ERROR) {}
+            GLenum startErr = glad_glGetError();
+            if (startErr != GL_NO_ERROR) {
+                static int s_errCount = 0;
+                if (s_errCount++ < 10) {
+                    const QString m =
+                        QString("[DIAG-render] GL error at start of render: %1").arg(startErr);
+                    qWarning() << m;
+                    diagLog(m);
+                }
             }
         }
-    }
-    static int s_sizeLog = 0;
-    if (s_sizeLog < 5 || s_sizeLog % 15 == 0) {
-        const QString m = QString("[DIAG-render] viewport size: %1 x %2")
-                             .arg(m_viewportWidth).arg(m_viewportHeight);
-        qWarning() << m;
-        diagLog(m);
-    }
-    s_sizeLog++;
-
-    // Ensure the GL viewport matches the FBO size before any draw call.
-    glad_glViewport(0, 0, m_viewportWidth, m_viewportHeight);
-
-    // The FBO is already bound by ViewportRenderer::render() before calling
-    // m_gl->render(). Do NOT create a separate FBO here — doing so would bind
-    // a different FBO than the one ViewportRenderer::render() uses for
-    // toImage() screenshot capture, causing black screenshots.
-    // Just verify the currently bound FBO is valid.
-    {
-        GLint fboID = -1;
-        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboID);
-        static int s_fboLog = 0;
-        if (s_fboLog++ < 2) {
-            // qWarning() << "[DIAG-fboBind] FBO already bound by caller, GL_FRAMEBUFFER_BINDING=" << fboID;
-            // if (fboID != 0) {
-            //     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-            //     qWarning() << "[DIAG-fboBind] FBO completeness status: 0x" << Qt::hex << status
-            //                << (status == GL_FRAMEBUFFER_COMPLETE ? "(COMPLETE)" : "(INCOMPLETE!)");
-            // } else {
-            //     qWarning() << "[DIAG-fboBind] WARNING: No FBO bound (GL_FRAMEBUFFER_BINDING=0)!";
-            // }
+        static int s_sizeLog = 0;
+        if (s_sizeLog < 5 || s_sizeLog % 15 == 0) {
+            const QString m = QString("[DIAG-render] viewport size: %1 x %2")
+                                  .arg(m_viewportWidth)
+                                  .arg(m_viewportHeight);
+            qWarning() << m;
+            diagLog(m);
         }
-    }
+        s_sizeLog++;
 
-    // One-time GL initialization of the celestial body renderer.
-    // Kept in render() (not initializeGL()) because m_celestialBodyRenderer
-    // is set by synchronize() which may not have run on the very first
-    // render() call; placing it in initializeGL() (also called from the
-    // top of render) would evaluate the guard while the pointer is still
-    // null and then never retry. The isInitialized() guard makes this
-    // run exactly once. Done after the ctx check so a GL context exists.
-    if (m_celestialBodyRenderer && !m_celestialBodyRenderer->isInitialized()) {
-        try {
-            m_celestialBodyRenderer->initializeGL();
-        } catch (const std::exception& e) {
-            qWarning() << "QmlGlRenderer: Failed to initialize celestial body renderer:" << e.what();
-        } catch (...) {
-            qWarning() << "QmlGlRenderer: Failed to initialize celestial body renderer (unknown error)";
+        // Ensure the GL viewport matches the FBO size before any draw call.
+        glad_glViewport(0, 0, m_viewportWidth, m_viewportHeight);
+
+        // The FBO is already bound by ViewportRenderer::render() before calling
+        // m_gl->render(). Do NOT create a separate FBO here — doing so would bind
+        // a different FBO than the one ViewportRenderer::render() uses for
+        // toImage() screenshot capture, causing black screenshots.
+        // Just verify the currently bound FBO is valid.
+        {
+            GLint fboID = -1;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboID);
+            static int s_fboLog = 0;
+            if (s_fboLog++ < 2) {
+                // qWarning() << "[DIAG-fboBind] FBO already bound by caller,
+                // GL_FRAMEBUFFER_BINDING=" << fboID; if (fboID != 0) {
+                //     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+                //     qWarning() << "[DIAG-fboBind] FBO completeness status: 0x" << Qt::hex <<
+                //     status
+                //                << (status == GL_FRAMEBUFFER_COMPLETE ? "(COMPLETE)" :
+                //                "(INCOMPLETE!)");
+                // } else {
+                //     qWarning() << "[DIAG-fboBind] WARNING: No FBO bound
+                //     (GL_FRAMEBUFFER_BINDING=0)!";
+                // }
+            }
         }
-    }
 
-    // Update view matrix from Camera4DAdapter if available
-    if (m_camera4DAdapter) {
-        m_viewMatrix = m_camera4DAdapter->viewMatrix();
-    }
+        // One-time GL initialization of the celestial body renderer.
+        // Kept in render() (not initializeGL()) because m_celestialBodyRenderer
+        // is set by synchronize() which may not have run on the very first
+        // render() call; placing it in initializeGL() (also called from the
+        // top of render) would evaluate the guard while the pointer is still
+        // null and then never retry. The isInitialized() guard makes this
+        // run exactly once. Done after the ctx check so a GL context exists.
+        if (m_celestialBodyRenderer && !m_celestialBodyRenderer->isInitialized()) {
+            try {
+                m_celestialBodyRenderer->initializeGL();
+            } catch (const std::exception& e) {
+                qWarning() << "QmlGlRenderer: Failed to initialize celestial body renderer:"
+                           << e.what();
+            } catch (...) {
+                qWarning() << "QmlGlRenderer: Failed to initialize celestial body renderer "
+                              "(unknown error)";
+            }
+        }
+
+        // Update view matrix from Camera4DAdapter if available
+        if (m_camera4DAdapter) {
+            m_viewMatrix = m_camera4DAdapter->viewMatrix();
+        }
 
 #ifdef QUANTUMVERSE_USE_VR
-    // Apply VR head tracking offset
-    if (m_hasHeadPose) {
-        applyHeadPose();
-    }
+        // Apply VR head tracking offset
+        if (m_hasHeadPose) {
+            applyHeadPose();
+        }
 #endif
 
-    // [DIAG] Guard against non-finite camera matrices. A degenerate view or
-    // projection matrix (e.g. NaN from a focus/selection that places the eye on
-    // the target, or a zero-aspect projection) makes every perspective-drawn
-    // primitive (grid, geodesics, celestial bodies) vanish while the
-    // orthographic axis gizmo survives -- i.e. a "black viewport". Reset to a
-    // safe default so the scene stays visible.
-    if (!matrixIsFinite(m_viewMatrix) || !matrixIsFinite(m_projectionMatrix)) {
-        static int s_badMatrix = 0;
-        if (s_badMatrix++ < 10) {
-            const QString mdiag = QString("[DIAG-render] non-finite matrix; resetting (viewFinite=%1 projFinite=%2)")
-                                  .arg(matrixIsFinite(m_viewMatrix)).arg(matrixIsFinite(m_projectionMatrix));
-            qWarning() << mdiag;
-            diagLog(mdiag);
+        // [DIAG] Guard against non-finite camera matrices. A degenerate view or
+        // projection matrix (e.g. NaN from a focus/selection that places the eye on
+        // the target, or a zero-aspect projection) makes every perspective-drawn
+        // primitive (grid, geodesics, celestial bodies) vanish while the
+        // orthographic axis gizmo survives -- i.e. a "black viewport". Reset to a
+        // safe default so the scene stays visible.
+        if (!matrixIsFinite(m_viewMatrix) || !matrixIsFinite(m_projectionMatrix)) {
+            static int s_badMatrix = 0;
+            if (s_badMatrix++ < 10) {
+                const QString mdiag =
+                    QString(
+                        "[DIAG-render] non-finite matrix; resetting (viewFinite=%1 projFinite=%2)")
+                        .arg(matrixIsFinite(m_viewMatrix))
+                        .arg(matrixIsFinite(m_projectionMatrix));
+                qWarning() << mdiag;
+                diagLog(mdiag);
+            }
+            m_viewMatrix.setToIdentity();
+            m_viewMatrix.translate(0.0f, 0.0f, -m_cameraDistance);
+            m_viewMatrix.rotate(m_cameraAngleX, 1.0f, 0.0f, 0.0f);
+            m_viewMatrix.rotate(m_cameraAngleY, 0.0f, 1.0f, 0.0f);
+            m_viewMatrix.translate(m_cameraPanX, m_cameraPanY, 0.0f);
+
+            const float fov = 45.0f;
+            const float aspect = (m_viewportHeight > 0) ? static_cast<float>(m_viewportWidth) /
+                                                              static_cast<float>(m_viewportHeight)
+                                                        : 1.0f;
+            m_projectionMatrix.setToIdentity();
+            m_projectionMatrix.perspective(fov, aspect, 0.1f, 10000.0f);
         }
-        m_viewMatrix.setToIdentity();
-        m_viewMatrix.translate(0.0f, 0.0f, -m_cameraDistance);
-        m_viewMatrix.rotate(m_cameraAngleX, 1.0f, 0.0f, 0.0f);
-        m_viewMatrix.rotate(m_cameraAngleY, 0.0f, 1.0f, 0.0f);
-        m_viewMatrix.translate(m_cameraPanX, m_cameraPanY, 0.0f);
 
-        const float fov = 45.0f;
-        const float aspect = (m_viewportHeight > 0)
-                                 ? static_cast<float>(m_viewportWidth) / static_cast<float>(m_viewportHeight)
-                                 : 1.0f;
-        m_projectionMatrix.setToIdentity();
-        m_projectionMatrix.perspective(fov, aspect, 0.1f, 10000.0f);
-    }
+        // Clear the framebuffer
+        glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Clear the framebuffer
-    glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Enable depth testing
+        glEnable(GL_DEPTH_TEST);
+        GL_CHECK();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GL_CHECK();
+        glEnable(GL_LINE_SMOOTH);
+        GL_CHECK();
 
-    // Enable depth testing
-    glEnable(GL_DEPTH_TEST);
-    GL_CHECK();
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    GL_CHECK();
-    glEnable(GL_LINE_SMOOTH);
-    GL_CHECK();
-
-    // Bind HDR scene FBO for post-processing pipeline
-    if (m_postProcess && m_postProcess->isInitialized()) {
-        // TEMPORARILY DISABLED - post-processing blits to default FBO, not QML's FBO
-        // m_postProcess->beginScene();
-    }
-
-    // Render scene components
-    // If curvature renderer is active, it handles grid rendering itself (with deformation)
-    if (m_showGrid && !m_curvatureRenderer) {
-        PERF_SCOPE("renderGrid");
-        renderGrid();
-    }
-
-    // Diagnostic: log grid rendering state
-    static int s_gridDiagCount = 0;
-    if (s_gridDiagCount++ < 5) {
-        qWarning() << "[DIAG-gridState] m_showGrid=" << m_showGrid
-                   << " m_curvatureRenderer=" << (m_curvatureRenderer ? "set" : "null");
-    }
-
-    // Render gravitational lensing background (before other objects)
-    if (m_lensing && m_lensing->isEnabled()) {
-        PERF_SCOPE("renderLensing");
-        renderLensing();
-    } else {
-        static int s_lensingSkip = 0;
-        if (s_lensingSkip++ < 5) {
-            qWarning() << "[DIAG-renderLensing] SKIPPED, m_lensing="
-                       << (m_lensing ? "set" : "null")
-                       << " enabled=" << (m_lensing ? m_lensing->isEnabled() : -1);
+        // Bind HDR scene FBO for post-processing pipeline
+        if (m_postProcess && m_postProcess->isInitialized()) {
+            // TEMPORARILY DISABLED - post-processing blits to default FBO, not QML's FBO
+            // m_postProcess->beginScene();
         }
-    }
 
-    {
-        PERF_SCOPE("renderAxisGizmo");
-        renderAxisGizmo();
-    }
-
-    if (m_showGeodesics && m_curvatureRenderer) {
-        static int s_geoDiag = 0;
-        if (s_geoDiag++ < 5) {
-            qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics
-                       << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+        // Render scene components
+        // If curvature renderer is active, it handles grid rendering itself (with deformation)
+        if (m_showGrid && !m_curvatureRenderer) {
+            PERF_SCOPE("renderGrid");
+            renderGrid();
         }
-        PERF_SCOPE("renderGeodesics");
-        renderGeodesics();
-    } else {
-        static int s_geoSkip = 0;
-        if (s_geoSkip++ < 5) {
-            qWarning() << "[DIAG-renderGeodesics] SKIPPED, m_showGeodesics=" << m_showGeodesics
-                       << "m_curvatureRenderer=" << m_curvatureRenderer.get();
-        }
-    }
 
-    // Render curvature visualization (delegates to CurvatureRenderer)
-    if (m_curvatureRenderer) {
-        // Initialize if not already done (synchronize() may not be called in headless mode)
-        if (!m_curvatureRenderer->isInitialized()) {
-            try {
-                m_curvatureRenderer->initializeGL();
-            } catch (const std::exception& e) {
-                qWarning() << "[DIAG-qmlRender] Failed to initialize curvature renderer:" << e.what();
+        // Diagnostic: log grid rendering state
+        static int s_gridDiagCount = 0;
+        if (s_gridDiagCount++ < 5) {
+            qWarning() << "[DIAG-gridState] m_showGrid=" << m_showGrid
+                       << " m_curvatureRenderer=" << (m_curvatureRenderer ? "set" : "null");
+        }
+
+        // Render gravitational lensing background (before other objects)
+        if (m_lensing && m_lensing->isEnabled()) {
+            PERF_SCOPE("renderLensing");
+            renderLensing();
+        } else {
+            static int s_lensingSkip = 0;
+            if (s_lensingSkip++ < 5) {
+                qWarning() << "[DIAG-renderLensing] SKIPPED, m_lensing="
+                           << (m_lensing ? "set" : "null")
+                           << " enabled=" << (m_lensing ? m_lensing->isEnabled() : -1);
             }
         }
-        PERF_SCOPE("curvatureRender");
 
-        // [DIAG] Check FBO state before/after curvature render (rate-limited)
-        static int s_fboStateDiag = 0;
-        if (s_fboStateDiag++ < 3) {
-            GLint fboBefore = -1;
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboBefore);
-            qWarning() << "[DIAG-fboBeforeCurvature] GL_FRAMEBUFFER_BINDING=" << fboBefore;
+        {
+            PERF_SCOPE("renderAxisGizmo");
+            renderAxisGizmo();
         }
 
-        m_curvatureRenderer->render(m_viewMatrix.constData(),
-                                     m_projectionMatrix.constData());
-
-        static int s_fboAfterDiag = 0;
-        if (s_fboAfterDiag++ < 3) {
-            GLint fboAfter = -1;
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboAfter);
-            qWarning() << "[DIAG-fboAfterCurvature] GL_FRAMEBUFFER_BINDING=" << fboAfter;
-        }
-    }
-
-    // Initialize celestial body textures once (must be before render)
-    if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()
-        && !m_celestialTexturesInitialized) {
-        m_celestialTexturesInitialized = true;
-        qWarning() << "[Texture] Initializing texture array...";
-        if (!m_celestialBodyRenderer->isTextureArrayInitialized()) {
-            bool arrOk = m_celestialBodyRenderer->initializeTextureArray(8, 512, 512);
-            qWarning() << "[Texture] initializeTextureArray result:" << arrOk;
+        if (m_showGeodesics && m_curvatureRenderer) {
+            static int s_geoDiag = 0;
+            if (s_geoDiag++ < 5) {
+                qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics
+                           << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+            }
+            PERF_SCOPE("renderGeodesics");
+            renderGeodesics();
+        } else {
+            static int s_geoSkip = 0;
+            if (s_geoSkip++ < 5) {
+                qWarning() << "[DIAG-renderGeodesics] SKIPPED, m_showGeodesics=" << m_showGeodesics
+                           << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+            }
         }
 
-        // Texture file paths (relative to executable) - fallback to procedural if missing
-        static const char* textureFiles[] = {
-            "data/textures/planets/earth.png",      // 0: Earth
-            "data/textures/planets/mars.png",       // 1: Mars
-            "data/textures/planets/jupiter.png",    // 2: Jupiter
-            "data/textures/planets/saturn.png",     // 3: Saturn
-            "data/textures/planets/venus.png",      // 4: Venus
-            "data/textures/planets/mercury.png",    // 5: Mercury
-            "data/textures/planets/moon.png",       // 6: Moon
-            "data/textures/planets/sun.png"         // 7: Sun
-        };
+        // Render curvature visualization (delegates to CurvatureRenderer)
+        if (m_curvatureRenderer) {
+            // Initialize if not already done (synchronize() may not be called in headless mode)
+            if (!m_curvatureRenderer->isInitialized()) {
+                try {
+                    m_curvatureRenderer->initializeGL();
+                } catch (const std::exception& e) {
+                    qWarning() << "[DIAG-qmlRender] Failed to initialize curvature renderer:"
+                               << e.what();
+                }
+            }
+            PERF_SCOPE("curvatureRender");
 
-        for (int layer = 0; layer < 8; ++layer) {
-            PlanetTextureConfig config;
-            config.width = 512;
-            config.height = 512;
-            config.seed = 42 + layer;
-            if (layer == 7) {
-                config.type = PlanetTextureConfig::PlanetType::CUSTOM;
-                config.baseColor[0] = 1.0f;
-                config.baseColor[1] = 0.95f;
-                config.baseColor[2] = 0.8f;
-                config.colorVariation = 0.15f;
-                config.noiseScale = 4.0f;
-            } else if (layer == 2 || layer == 3) {
-                config.type = PlanetTextureConfig::PlanetType::GAS_GIANT;
-            } else if (layer == 4 || layer == 5) {
-                config.type = PlanetTextureConfig::PlanetType::BARREN;
-            } else if (layer == 6) {
-                config.type = PlanetTextureConfig::PlanetType::ICE_WORLD;
-            } else {
-                config.type = PlanetTextureConfig::PlanetType::TERRESTRIAL;
+            // [DIAG] Check FBO state before/after curvature render (rate-limited)
+            static int s_fboStateDiag = 0;
+            if (s_fboStateDiag++ < 3) {
+                GLint fboBefore = -1;
+                glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboBefore);
+                qWarning() << "[DIAG-fboBeforeCurvature] GL_FRAMEBUFFER_BINDING=" << fboBefore;
             }
 
-            bool useFile = m_textureSource == TextureSource::FileFirst;
-            bool ok = m_celestialBodyRenderer->loadTextureLayer(
-                layer,
-                useFile ? textureFiles[layer] : "",
-                config,
-                !useFile
-            );
-            qWarning() << "[Texture] Layer" << layer << "loaded:" << ok;
-        }
-        qWarning() << "[Texture] Texture array ready, enabled=" << m_celestialBodyRenderer->isTextureArrayEnabled();
-    }
+            m_curvatureRenderer->render(m_viewMatrix.constData(), m_projectionMatrix.constData());
 
-    // Populate celestial body renderer with solar system bodies (once per frame)
-    // Only if the renderer is initialized (GL context is available)
-    if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized() && m_ui4d) {
-        const auto& solarData = m_ui4d->getSolarSystemData();
-        
-        // Clear previous frame's bodies to prevent unbounded accumulation
-        m_celestialBodyRenderer->clearBodies();
-
-        // Assign texture layers based on body name for texture array support
-        auto assignTextureLayer = [](const std::string& name, bool isStar) -> int {
-            if (isStar) return 7; // Sun / star layer
-            if (name.find("Earth") != std::string::npos) return 0;
-            if (name.find("Mars") != std::string::npos) return 1;
-            if (name.find("Jupiter") != std::string::npos) return 2;
-            if (name.find("Saturn") != std::string::npos) return 3;
-            if (name.find("Venus") != std::string::npos) return 4;
-            if (name.find("Mercury") != std::string::npos) return 5;
-            if (name.find("Moon") != std::string::npos) return 6;
-            return -1; // No texture
-        };
-
-        for (const auto& bodyPair : solarData.bodies) {
-            const auto& body = bodyPair.second;
-            // Need a position source; the Sun has no orbit (showOrbit
-            // false) but is the central body and must still be drawn.
-            if (body.orbitPoints.empty()) continue;
-            if (!body.isCentralBody && !body.showOrbit) continue;
-
-            CelestialBodyInstance cbi;
-            cbi.objectId = bodyPair.first;
-            cbi.name = body.name;
-            cbi.mass = static_cast<float>(body.mass);
-            // Visual radius. Physical radii (1e6..1e9 m) shrink to
-            // sub-pixel specks once converted by the meters->viewport
-            // scaleFactor (~8.7e-12), so exaggerate and clamp to keep
-            // every body visible while preserving rough relative sizes
-            // (Sun largest, gas giants larger than terrestrials).
-            const double kRadiusExaggeration = 2000.0;
-            const float rPhys = static_cast<float>(body.radius * solarData.scaleFactor);
-            float visRadius = rPhys * static_cast<float>(kRadiusExaggeration);
-            visRadius = std::max(visRadius, 0.04f);
-            visRadius = std::min(visRadius, 2.5f);
-            cbi.radius = visRadius;
-            cbi.position[0] = static_cast<float>(body.position.x * solarData.scaleFactor);
-            cbi.position[1] = static_cast<float>(body.position.y * solarData.scaleFactor);
-            cbi.position[2] = static_cast<float>(body.position.z * solarData.scaleFactor);
-            cbi.isStar = body.isStar;
-            cbi.hasAtmosphere = !body.isStar;
-            cbi.atmosphereRadius = 1.15f;
-            cbi.textureLayer = body.isStar ? -1 : assignTextureLayer(body.name, body.isStar);
-
-            // Color based on body type
-            if (body.isStar) {
-                cbi.color[0] = 1.0f; cbi.color[1] = 0.95f; cbi.color[2] = 0.8f;
-                cbi.emissive[0] = 0.8f; cbi.emissive[1] = 0.6f; cbi.emissive[2] = 0.3f;
-            } else if (body.name.find("Earth") != std::string::npos) {
-                cbi.color[0] = 0.2f; cbi.color[1] = 0.5f; cbi.color[2] = 0.9f;
-                cbi.emissive[0] = 0.0f; cbi.emissive[1] = 0.0f; cbi.emissive[2] = 0.0f;
-            } else if (body.name.find("Mars") != std::string::npos) {
-                cbi.color[0] = 0.9f; cbi.color[1] = 0.4f; cbi.color[2] = 0.2f;
-                cbi.emissive[0] = 0.0f; cbi.emissive[1] = 0.0f; cbi.emissive[2] = 0.0f;
-            } else {
-                cbi.color[0] = 0.6f; cbi.color[1] = 0.6f; cbi.color[2] = 0.6f;
-                cbi.emissive[0] = 0.0f; cbi.emissive[1] = 0.0f; cbi.emissive[2] = 0.0f;
+            static int s_fboAfterDiag = 0;
+            if (s_fboAfterDiag++ < 3) {
+                GLint fboAfter = -1;
+                glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboAfter);
+                qWarning() << "[DIAG-fboAfterCurvature] GL_FRAMEBUFFER_BINDING=" << fboAfter;
             }
-            // Add body (respects maxBodies cap internally)
-            m_celestialBodyRenderer->addBody(cbi);
         }
 
-        // Sandbox bodies: static user-editable bodies pushed from SandboxManager.
-        // Re-added each frame because clearBodies() above wipes the renderer.
-        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
-            const double kRadiusExaggeration = 2000.0;
-            for (const QVariant& vb : m_sandboxBodies) {
-                QVariantMap b = vb.toMap();
+        // Initialize celestial body textures once (must be before render)
+        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized() &&
+            !m_celestialTexturesInitialized) {
+            m_celestialTexturesInitialized = true;
+            qWarning() << "[Texture] Initializing texture array...";
+            if (!m_celestialBodyRenderer->isTextureArrayInitialized()) {
+                bool arrOk = m_celestialBodyRenderer->initializeTextureArray(8, 512, 512);
+                qWarning() << "[Texture] initializeTextureArray result:" << arrOk;
+            }
+
+            // Texture file paths (relative to executable) - fallback to procedural if missing
+            static const char* textureFiles[] = {
+                "data/textures/planets/earth.png",    // 0: Earth
+                "data/textures/planets/mars.png",     // 1: Mars
+                "data/textures/planets/jupiter.png",  // 2: Jupiter
+                "data/textures/planets/saturn.png",   // 3: Saturn
+                "data/textures/planets/venus.png",    // 4: Venus
+                "data/textures/planets/mercury.png",  // 5: Mercury
+                "data/textures/planets/moon.png",     // 6: Moon
+                "data/textures/planets/sun.png"       // 7: Sun
+            };
+
+            for (int layer = 0; layer < 8; ++layer) {
+                PlanetTextureConfig config;
+                config.width = 512;
+                config.height = 512;
+                config.seed = 42 + layer;
+                if (layer == 7) {
+                    config.type = PlanetTextureConfig::PlanetType::CUSTOM;
+                    config.baseColor[0] = 1.0f;
+                    config.baseColor[1] = 0.95f;
+                    config.baseColor[2] = 0.8f;
+                    config.colorVariation = 0.15f;
+                    config.noiseScale = 4.0f;
+                } else if (layer == 2 || layer == 3) {
+                    config.type = PlanetTextureConfig::PlanetType::GAS_GIANT;
+                } else if (layer == 4 || layer == 5) {
+                    config.type = PlanetTextureConfig::PlanetType::BARREN;
+                } else if (layer == 6) {
+                    config.type = PlanetTextureConfig::PlanetType::ICE_WORLD;
+                } else {
+                    config.type = PlanetTextureConfig::PlanetType::TERRESTRIAL;
+                }
+
+                bool useFile = m_textureSource == TextureSource::FileFirst;
+                bool ok = m_celestialBodyRenderer->loadTextureLayer(
+                    layer, useFile ? textureFiles[layer] : "", config, !useFile);
+                qWarning() << "[Texture] Layer" << layer << "loaded:" << ok;
+            }
+            qWarning() << "[Texture] Texture array ready, enabled="
+                       << m_celestialBodyRenderer->isTextureArrayEnabled();
+        }
+
+        // Populate celestial body renderer with solar system bodies (once per frame)
+        // Only if the renderer is initialized (GL context is available)
+        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized() && m_ui4d) {
+            const auto& solarData = m_ui4d->getSolarSystemData();
+
+            // Clear previous frame's bodies to prevent unbounded accumulation
+            m_celestialBodyRenderer->clearBodies();
+
+            // Assign texture layers based on body name for texture array support
+            auto assignTextureLayer = [](const std::string& name, bool isStar) -> int {
+                if (isStar)
+                    return 7;  // Sun / star layer
+                if (name.find("Earth") != std::string::npos)
+                    return 0;
+                if (name.find("Mars") != std::string::npos)
+                    return 1;
+                if (name.find("Jupiter") != std::string::npos)
+                    return 2;
+                if (name.find("Saturn") != std::string::npos)
+                    return 3;
+                if (name.find("Venus") != std::string::npos)
+                    return 4;
+                if (name.find("Mercury") != std::string::npos)
+                    return 5;
+                if (name.find("Moon") != std::string::npos)
+                    return 6;
+                return -1;  // No texture
+            };
+
+            for (const auto& bodyPair : solarData.bodies) {
+                const auto& body = bodyPair.second;
+                // Need a position source; the Sun has no orbit (showOrbit
+                // false) but is the central body and must still be drawn.
+                if (body.orbitPoints.empty())
+                    continue;
+                if (!body.isCentralBody && !body.showOrbit)
+                    continue;
+
                 CelestialBodyInstance cbi;
-                cbi.objectId = b.value("id").toString().toStdString();
-                cbi.name = b.value("name").toString().toStdString();
-                cbi.mass = static_cast<float>(b.value("mass_kg").toDouble());
-                const double rPhys = b.value("radius_m").toDouble() * solarData.scaleFactor;
-                float visRadius = static_cast<float>(rPhys * kRadiusExaggeration);
+                cbi.objectId = bodyPair.first;
+                cbi.name = body.name;
+                cbi.mass = static_cast<float>(body.mass);
+                // Visual radius. Physical radii (1e6..1e9 m) shrink to
+                // sub-pixel specks once converted by the meters->viewport
+                // scaleFactor (~8.7e-12), so exaggerate and clamp to keep
+                // every body visible while preserving rough relative sizes
+                // (Sun largest, gas giants larger than terrestrials).
+                const double kRadiusExaggeration = 2000.0;
+                const float rPhys = static_cast<float>(body.radius * solarData.scaleFactor);
+                float visRadius = rPhys * static_cast<float>(kRadiusExaggeration);
                 visRadius = std::max(visRadius, 0.04f);
                 visRadius = std::min(visRadius, 2.5f);
                 cbi.radius = visRadius;
-                cbi.position[0] = static_cast<float>(b.value("x").toDouble() * solarData.scaleFactor);
-                cbi.position[1] = static_cast<float>(b.value("y").toDouble() * solarData.scaleFactor);
-                cbi.position[2] = static_cast<float>(b.value("z").toDouble() * solarData.scaleFactor);
-                cbi.isStar = (b.value("type").toString() == QLatin1String("star"));
-                cbi.hasAtmosphere = !cbi.isStar;
+                cbi.position[0] = static_cast<float>(body.position.x * solarData.scaleFactor);
+                cbi.position[1] = static_cast<float>(body.position.y * solarData.scaleFactor);
+                cbi.position[2] = static_cast<float>(body.position.z * solarData.scaleFactor);
+                cbi.isStar = body.isStar;
+                cbi.hasAtmosphere = !body.isStar;
                 cbi.atmosphereRadius = 1.15f;
-                cbi.textureLayer = cbi.isStar ? -1 : 0;
+                cbi.textureLayer = body.isStar ? -1 : assignTextureLayer(body.name, body.isStar);
 
-                QVariant cv = b.value("color");
-                QColor col;
-                if (cv.userType() == QMetaType::QColor) {
-                    col = cv.value<QColor>();
+                // Color based on body type
+                if (body.isStar) {
+                    cbi.color[0] = 1.0f;
+                    cbi.color[1] = 0.95f;
+                    cbi.color[2] = 0.8f;
+                    cbi.emissive[0] = 0.8f;
+                    cbi.emissive[1] = 0.6f;
+                    cbi.emissive[2] = 0.3f;
+                } else if (body.name.find("Earth") != std::string::npos) {
+                    cbi.color[0] = 0.2f;
+                    cbi.color[1] = 0.5f;
+                    cbi.color[2] = 0.9f;
+                    cbi.emissive[0] = 0.0f;
+                    cbi.emissive[1] = 0.0f;
+                    cbi.emissive[2] = 0.0f;
+                } else if (body.name.find("Mars") != std::string::npos) {
+                    cbi.color[0] = 0.9f;
+                    cbi.color[1] = 0.4f;
+                    cbi.color[2] = 0.2f;
+                    cbi.emissive[0] = 0.0f;
+                    cbi.emissive[1] = 0.0f;
+                    cbi.emissive[2] = 0.0f;
                 } else {
-                    col = QColor(cv.toString());
+                    cbi.color[0] = 0.6f;
+                    cbi.color[1] = 0.6f;
+                    cbi.color[2] = 0.6f;
+                    cbi.emissive[0] = 0.0f;
+                    cbi.emissive[1] = 0.0f;
+                    cbi.emissive[2] = 0.0f;
                 }
-                cbi.color[0] = static_cast<float>(col.redF());
-                cbi.color[1] = static_cast<float>(col.greenF());
-                cbi.color[2] = static_cast<float>(col.blueF());
-                cbi.emissive[0] = cbi.isStar ? 0.8f : 0.0f;
-                cbi.emissive[1] = cbi.isStar ? 0.6f : 0.0f;
-                cbi.emissive[2] = cbi.isStar ? 0.3f : 0.0f;
-
+                // Add body (respects maxBodies cap internally)
                 m_celestialBodyRenderer->addBody(cbi);
             }
-        }
 
-        // Peer bodies: remote VR participants' camera positions pushed via
-        // setPeerBodies(). Rendered as small colored spheres so each client
-        // can see where its peers are looking.
-        if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
-            for (const QVariant& vb : m_peerBodies) {
-                QVariantMap b = vb.toMap();
-                CelestialBodyInstance cbi;
-                cbi.objectId = b.value("id").toString().toStdString();
-                cbi.name = b.value("name").toString().toStdString();
-                cbi.mass = 0.0f;
-                cbi.radius = 0.08f; // small peer indicator sphere
-                cbi.position[0] = static_cast<float>(b.value("x").toDouble());
-                cbi.position[1] = static_cast<float>(b.value("y").toDouble());
-                cbi.position[2] = static_cast<float>(b.value("z").toDouble());
-                cbi.isStar = false;
-                cbi.hasAtmosphere = false;
-                cbi.atmosphereRadius = 0.0f;
-                cbi.textureLayer = -1;
+            // Sandbox bodies: static user-editable bodies pushed from SandboxManager.
+            // Re-added each frame because clearBodies() above wipes the renderer.
+            if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
+                const double kRadiusExaggeration = 2000.0;
+                for (const QVariant& vb : m_sandboxBodies) {
+                    QVariantMap b = vb.toMap();
+                    CelestialBodyInstance cbi;
+                    cbi.objectId = b.value("id").toString().toStdString();
+                    cbi.name = b.value("name").toString().toStdString();
+                    cbi.mass = static_cast<float>(b.value("mass_kg").toDouble());
+                    const double rPhys = b.value("radius_m").toDouble() * solarData.scaleFactor;
+                    float visRadius = static_cast<float>(rPhys * kRadiusExaggeration);
+                    visRadius = std::max(visRadius, 0.04f);
+                    visRadius = std::min(visRadius, 2.5f);
+                    cbi.radius = visRadius;
+                    cbi.position[0] =
+                        static_cast<float>(b.value("x").toDouble() * solarData.scaleFactor);
+                    cbi.position[1] =
+                        static_cast<float>(b.value("y").toDouble() * solarData.scaleFactor);
+                    cbi.position[2] =
+                        static_cast<float>(b.value("z").toDouble() * solarData.scaleFactor);
+                    cbi.isStar = (b.value("type").toString() == QLatin1String("star"));
+                    cbi.hasAtmosphere = !cbi.isStar;
+                    cbi.atmosphereRadius = 1.15f;
+                    cbi.textureLayer = cbi.isStar ? -1 : 0;
 
-                QVariant cv = b.value("color");
-                QColor col;
-                if (cv.userType() == QMetaType::QColor) {
-                    col = cv.value<QColor>();
-                } else {
-                    col = QColor(cv.toString());
+                    QVariant cv = b.value("color");
+                    QColor col;
+                    if (cv.userType() == QMetaType::QColor) {
+                        col = cv.value<QColor>();
+                    } else {
+                        col = QColor(cv.toString());
+                    }
+                    cbi.color[0] = static_cast<float>(col.redF());
+                    cbi.color[1] = static_cast<float>(col.greenF());
+                    cbi.color[2] = static_cast<float>(col.blueF());
+                    cbi.emissive[0] = cbi.isStar ? 0.8f : 0.0f;
+                    cbi.emissive[1] = cbi.isStar ? 0.6f : 0.0f;
+                    cbi.emissive[2] = cbi.isStar ? 0.3f : 0.0f;
+
+                    m_celestialBodyRenderer->addBody(cbi);
                 }
-                cbi.color[0] = static_cast<float>(col.redF());
-                cbi.color[1] = static_cast<float>(col.greenF());
-                cbi.color[2] = static_cast<float>(col.blueF());
-                cbi.emissive[0] = cbi.color[0];
-                cbi.emissive[1] = cbi.color[1];
-                cbi.emissive[2] = cbi.color[2];
+            }
 
-                m_celestialBodyRenderer->addBody(cbi);
+            // Peer bodies: remote VR participants' camera positions pushed via
+            // setPeerBodies(). Rendered as small colored spheres so each client
+            // can see where its peers are looking.
+            if (m_celestialBodyRenderer && m_celestialBodyRenderer->isInitialized()) {
+                for (const QVariant& vb : m_peerBodies) {
+                    QVariantMap b = vb.toMap();
+                    CelestialBodyInstance cbi;
+                    cbi.objectId = b.value("id").toString().toStdString();
+                    cbi.name = b.value("name").toString().toStdString();
+                    cbi.mass = 0.0f;
+                    cbi.radius = 0.08f;  // small peer indicator sphere
+                    cbi.position[0] = static_cast<float>(b.value("x").toDouble());
+                    cbi.position[1] = static_cast<float>(b.value("y").toDouble());
+                    cbi.position[2] = static_cast<float>(b.value("z").toDouble());
+                    cbi.isStar = false;
+                    cbi.hasAtmosphere = false;
+                    cbi.atmosphereRadius = 0.0f;
+                    cbi.textureLayer = -1;
+
+                    QVariant cv = b.value("color");
+                    QColor col;
+                    if (cv.userType() == QMetaType::QColor) {
+                        col = cv.value<QColor>();
+                    } else {
+                        col = QColor(cv.toString());
+                    }
+                    cbi.color[0] = static_cast<float>(col.redF());
+                    cbi.color[1] = static_cast<float>(col.greenF());
+                    cbi.color[2] = static_cast<float>(col.blueF());
+                    cbi.emissive[0] = cbi.color[0];
+                    cbi.emissive[1] = cbi.color[1];
+                    cbi.emissive[2] = cbi.color[2];
+
+                    m_celestialBodyRenderer->addBody(cbi);
+                }
+            }
+
+            // [DIAG-CelestialBodies] Confirm how many bodies were queued and
+            // at what scale, so it is clear whether the population loop ran.
+            // Every 25th render is logged in addition to the first five so the
+            // render-side body state can be compared with the [N-BODY] physics
+            // log at the end of a long capture.
+            static int s_bodyDiag = 0;
+            ++s_bodyDiag;
+            if (s_bodyDiag <= 5 || s_bodyDiag % 25 == 0) {
+                qWarning() << "[DIAG-CelestialBodies] render#" << s_bodyDiag << "added"
+                           << m_celestialBodyRenderer->bodyCount()
+                           << "bodies; scaleFactor=" << solarData.scaleFactor;
+                const auto earthIt = solarData.bodies.find("Earth");
+                if (earthIt != solarData.bodies.end()) {
+                    qWarning() << "[DIAG-RenderBody] render#" << s_bodyDiag << "Earth world pos="
+                               << earthIt->second.position.x * solarData.scaleFactor
+                               << earthIt->second.position.y * solarData.scaleFactor
+                               << earthIt->second.position.z * solarData.scaleFactor;
+                }
+                if (!solarData.bodies.empty()) {
+                    const auto& sample = solarData.bodies.begin()->second;
+                    qWarning() << "[DIAG-CelestialBodies] sample:" << sample.name.c_str()
+                               << "radius(m)=" << sample.radius
+                               << "pos(unscaled)=" << sample.position.x;
+                }
+                // Debug: print all bodies
+                for (const auto& bp : solarData.bodies) {
+                    const auto& b = bp.second;
+                    float visR = static_cast<float>(b.radius * solarData.scaleFactor * 2000.0);
+                    visR = std::max(visR, 0.04f);
+                    visR = std::min(visR, 2.5f);
+                    float px = static_cast<float>(b.position.x * solarData.scaleFactor);
+                    float py = static_cast<float>(b.position.y * solarData.scaleFactor);
+                    float pz = static_cast<float>(b.position.z * solarData.scaleFactor);
+                    qWarning() << "[DIAG-Body]" << b.name.c_str() << "isStar=" << b.isStar
+                               << "isCentral=" << b.isCentralBody << "visRadius=" << visR
+                               << "pos=" << px << py << pz;
+                }
             }
         }
-        
-        // [DIAG-CelestialBodies] Confirm how many bodies were queued and
-        // at what scale, so it is clear whether the population loop ran.
-        // Every 25th render is logged in addition to the first five so the
-        // render-side body state can be compared with the [N-BODY] physics
-        // log at the end of a long capture.
-        static int s_bodyDiag = 0;
-        ++s_bodyDiag;
-        if (s_bodyDiag <= 5 || s_bodyDiag % 25 == 0) {
-            qWarning() << "[DIAG-CelestialBodies] render#" << s_bodyDiag << "added"
-                       << m_celestialBodyRenderer->bodyCount() << "bodies; scaleFactor="
-                       << solarData.scaleFactor;
-            const auto earthIt = solarData.bodies.find("Earth");
-            if (earthIt != solarData.bodies.end()) {
-                qWarning() << "[DIAG-RenderBody] render#" << s_bodyDiag
-                           << "Earth world pos="
-                           << earthIt->second.position.x * solarData.scaleFactor
-                           << earthIt->second.position.y * solarData.scaleFactor
-                           << earthIt->second.position.z * solarData.scaleFactor;
+
+        // Render celestial bodies (only if initialized)
+        if (m_celestialBodyRenderer) {
+            // Update light position to follow camera (headlight effect)
+            // Extract camera position from view matrix inverse
+            float camPos[3] = {0.0f, 0.0f, m_cameraDistance};
+            if (m_camera4DAdapter) {
+                Event4D cam = m_camera4DAdapter->cameraPosition4D();
+                camPos[0] = static_cast<float>(cam.x);
+                camPos[1] = static_cast<float>(cam.y);
+                camPos[2] = static_cast<float>(cam.z);
             }
-            if (!solarData.bodies.empty()) {
-                const auto& sample = solarData.bodies.begin()->second;
-                qWarning() << "[DIAG-CelestialBodies] sample:" << sample.name.c_str()
-                           << "radius(m)=" << sample.radius
-                            << "pos(unscaled)=" << sample.position.x;
+            m_celestialBodyRenderer->setLightPosition(camPos);
+
+            PERF_SCOPE("celestialRender");
+            static int s_renderDiag = 0;
+            if (s_renderDiag++ < 5) {
+                qWarning() << "[DIAG-CelestialRender] about to call render(); queued bodies="
+                           << m_celestialBodyRenderer->bodyCount()
+                           << "initialized=" << m_celestialBodyRenderer->isInitialized()
+                           << "texEnabled=" << m_celestialBodyRenderer->isTextureArrayEnabled()
+                           << "texValid=" << m_celestialBodyRenderer->isTextureArrayInitialized();
             }
-            // Debug: print all bodies
-            for (const auto& bp : solarData.bodies) {
-                const auto& b = bp.second;
-                float visR = static_cast<float>(b.radius * solarData.scaleFactor * 2000.0);
-                visR = std::max(visR, 0.04f);
-                visR = std::min(visR, 2.5f);
-                float px = static_cast<float>(b.position.x * solarData.scaleFactor);
-                float py = static_cast<float>(b.position.y * solarData.scaleFactor);
-                float pz = static_cast<float>(b.position.z * solarData.scaleFactor);
-                qWarning() << "[DIAG-Body]" << b.name.c_str()
-                           << "isStar=" << b.isStar
-                           << "isCentral=" << b.isCentralBody
-                           << "visRadius=" << visR
-                           << "pos=" << px << py << pz;
+            try {
+                if (m_celestialBodyRenderer->isInitialized()) {
+                    m_celestialBodyRenderer->render(m_viewMatrix.constData(),
+                                                    m_projectionMatrix.constData());
+                }
+            } catch (const std::exception& e) {
+                qWarning() << "QmlGlRenderer: Error rendering celestial bodies:" << e.what();
+            } catch (...) {
+                qWarning() << "QmlGlRenderer: Unknown error rendering celestial bodies";
             }
         }
-    }
 
-    // Render celestial bodies (only if initialized)
-    if (m_celestialBodyRenderer) {
-        // Update light position to follow camera (headlight effect)
-        // Extract camera position from view matrix inverse
-        float camPos[3] = {0.0f, 0.0f, m_cameraDistance};
-        if (m_camera4DAdapter) {
-            Event4D cam = m_camera4DAdapter->cameraPosition4D();
-            camPos[0] = static_cast<float>(cam.x);
-            camPos[1] = static_cast<float>(cam.y);
-            camPos[2] = static_cast<float>(cam.z);
+        if (m_showQuantumGeometry && m_quantumRenderer) {
+            PERF_SCOPE("renderQuantumGeometry");
+            renderQuantumGeometry();
         }
-        m_celestialBodyRenderer->setLightPosition(camPos);
 
-        PERF_SCOPE("celestialRender");
-        static int s_renderDiag = 0;
-        if (s_renderDiag++ < 5) {
-            qWarning() << "[DIAG-CelestialRender] about to call render(); queued bodies="
-                       << m_celestialBodyRenderer->bodyCount()
-                       << "initialized=" << m_celestialBodyRenderer->isInitialized()
-                       << "texEnabled=" << m_celestialBodyRenderer->isTextureArrayEnabled()
-                       << "texValid=" << m_celestialBodyRenderer->isTextureArrayInitialized();
+        {
+            PERF_SCOPE("renderOverlay");
+            renderOverlay();
         }
-        try {
-            if (m_celestialBodyRenderer->isInitialized()) {
-                m_celestialBodyRenderer->render(m_viewMatrix.constData(),
-                                               m_projectionMatrix.constData());
-            }
-        } catch (const std::exception& e) {
-            qWarning() << "QmlGlRenderer: Error rendering celestial bodies:" << e.what();
-        } catch (...) {
-            qWarning() << "QmlGlRenderer: Unknown error rendering celestial bodies";
+        {
+            PERF_SCOPE("renderProfilingOverlay");
+            renderProfilingOverlay();
         }
-    }
 
-    if (m_showQuantumGeometry && m_quantumRenderer) {
-        PERF_SCOPE("renderQuantumGeometry");
-        renderQuantumGeometry();
-    }
+        ::glUseProgram(0);
 
-    {
-        PERF_SCOPE("renderOverlay");
-        renderOverlay();
-    }
-    {
-        PERF_SCOPE("renderProfilingOverlay");
-        renderProfilingOverlay();
-    }
-
-    ::glUseProgram(0);
-
-    // [DIAG] Read back a pixel from the center of the FBO to verify it has data
-    {
-        static int s_pixelLog = 0;
-        if (s_pixelLog++ < 3) {
-            GLubyte pixel[4] = {0, 0, 0, 0};
-            GLint readFBO = -1;
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &readFBO);
-            // Read from whatever FBO is currently bound (should be ViewportRenderer's FBO)
-            if (readFBO != 0) {
-                glReadPixels(m_viewportWidth / 2, m_viewportHeight / 2, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
-                qWarning() << "[DIAG-pixelRead] Center pixel after render: R=" << pixel[0]
-                           << "G=" << pixel[1] << "B=" << pixel[2] << "A=" << pixel[3]
-                           << "FBO handle=" << readFBO;
-            } else {
-                qWarning() << "[DIAG-pixelRead] Cannot read pixel, no FBO bound (GL_FRAMEBUFFER_BINDING=0)";
+        // [DIAG] Read back a pixel from the center of the FBO to verify it has data
+        {
+            static int s_pixelLog = 0;
+            if (s_pixelLog++ < 3) {
+                GLubyte pixel[4] = {0, 0, 0, 0};
+                GLint readFBO = -1;
+                glGetIntegerv(GL_FRAMEBUFFER_BINDING, &readFBO);
+                // Read from whatever FBO is currently bound (should be ViewportRenderer's FBO)
+                if (readFBO != 0) {
+                    glReadPixels(m_viewportWidth / 2, m_viewportHeight / 2, 1, 1, GL_RGBA,
+                                 GL_UNSIGNED_BYTE, pixel);
+                    qWarning() << "[DIAG-pixelRead] Center pixel after render: R=" << pixel[0]
+                               << "G=" << pixel[1] << "B=" << pixel[2] << "A=" << pixel[3]
+                               << "FBO handle=" << readFBO;
+                } else {
+                    qWarning() << "[DIAG-pixelRead] Cannot read pixel, no FBO bound "
+                                  "(GL_FRAMEBUFFER_BINDING=0)";
+                }
             }
         }
-    }
 
-    // [DIAG] Final FBO check before screenshot capture
-    {
-        GLint fboFinal = -1;
-        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboFinal);
-        static int s_finalFboLog = 0;
-        if (s_finalFboLog++ < 5) {
-            qWarning() << "[DIAG-fboFinal] FBO state at end of render()=" << fboFinal
-                       << "(ViewportRenderer will use this FBO for toImage() screenshot)";
-        }
-    }
-
-    // Run post-processing pipeline (bloom + tone mapping) to screen
-    if (m_postProcess && m_postProcess->isInitialized()) {
-        // TEMPORARILY DISABLED - post-processing blits to default FBO, not QML's FBO
-        // PERF_SCOPE("postProcess");
-        // m_postProcess->endScene();
-    }
-
-    // Update time for animation
-    m_time += m_frameTime;
-
-    // Headless baseline: emit stats once the target frame count is reached
-    if (m_headlessTargetFrames > 0 && !m_headlessStatsLogged && m_frameCount >= m_headlessTargetFrames) {
-        m_headlessStatsLogged = true;
-        const FrameProfiler& profiler = getFrameProfiler();
-        float avg = profiler.getAverageFrameTime();
-        float max = profiler.getMaxFrameTime();
-        float min = profiler.getMinFrameTime();
-        float fps = profiler.getAverageFPS();
-        qWarning() << "HeadlessPerformanceStats: frames=" << m_frameCount
-                   << "avg=" << avg << "ms min=" << min << "ms max=" << max
-                   << "ms fps=" << fps;
-        std::ofstream perfLog("headless_performance.log", std::ios::app);
-        perfLog << "Average frame time: " << avg << " ms, Max: " << max
-                << " ms, Min: " << min << " ms, FPS: " << fps
-                << " (frames=" << m_frameCount << ")\n";
-
-        if (!m_frameTimesPath.isEmpty()) {
-            std::ofstream ft(m_frameTimesPath.toStdString());
-            for (const auto& t : profiler.getRecentFrames()) {
-                ft << t.frameTimeMs << "\n";
+        // [DIAG] Final FBO check before screenshot capture
+        {
+            GLint fboFinal = -1;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboFinal);
+            static int s_finalFboLog = 0;
+            if (s_finalFboLog++ < 5) {
+                qWarning() << "[DIAG-fboFinal] FBO state at end of render()=" << fboFinal
+                           << "(ViewportRenderer will use this FBO for toImage() screenshot)";
             }
         }
-    }
+
+        // Run post-processing pipeline (bloom + tone mapping) to screen
+        if (m_postProcess && m_postProcess->isInitialized()) {
+            // TEMPORARILY DISABLED - post-processing blits to default FBO, not QML's FBO
+            // PERF_SCOPE("postProcess");
+            // m_postProcess->endScene();
+        }
+
+        // Update time for animation
+        m_time += m_frameTime;
+
+        // Headless baseline: emit stats once the target frame count is reached
+        if (m_headlessTargetFrames > 0 && !m_headlessStatsLogged &&
+            m_frameCount >= m_headlessTargetFrames) {
+            m_headlessStatsLogged = true;
+            const FrameProfiler& profiler = getFrameProfiler();
+            float avg = profiler.getAverageFrameTime();
+            float max = profiler.getMaxFrameTime();
+            float min = profiler.getMinFrameTime();
+            float fps = profiler.getAverageFPS();
+            qWarning() << "HeadlessPerformanceStats: frames=" << m_frameCount << "avg=" << avg
+                       << "ms min=" << min << "ms max=" << max << "ms fps=" << fps;
+            std::ofstream perfLog("headless_performance.log", std::ios::app);
+            perfLog << "Average frame time: " << avg << " ms, Max: " << max << " ms, Min: " << min
+                    << " ms, FPS: " << fps << " (frames=" << m_frameCount << ")\n";
+
+            if (!m_frameTimesPath.isEmpty()) {
+                std::ofstream ft(m_frameTimesPath.toStdString());
+                for (const auto& t : profiler.getRecentFrames()) {
+                    ft << t.frameTimeMs << "\n";
+                }
+            }
+        }
     } catch (const std::exception& e) {
         std::ofstream("qml_runtime.log", std::ios::app)
             << "[RENDER-EXCEPTION] " << e.what() << "\n";
         qWarning() << "QmlGlRenderer::render() threw:" << e.what();
     } catch (...) {
-        std::ofstream("qml_runtime.log", std::ios::app)
-            << "[RENDER-EXCEPTION] unknown exception\n";
+        std::ofstream("qml_runtime.log", std::ios::app) << "[RENDER-EXCEPTION] unknown exception\n";
         qWarning() << "QmlGlRenderer::render() threw unknown exception";
     }
 }
 
-QOpenGLFramebufferObject* QmlGlRenderer::createFramebufferObject(const QSize& size)
-{
+QOpenGLFramebufferObject* QmlGlRenderer::createFramebufferObject(const QSize& size) {
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     m_viewportWidth = size.width();
@@ -923,8 +964,7 @@ QOpenGLFramebufferObject* QmlGlRenderer::createFramebufferObject(const QSize& si
     return fbo;
 }
 
-void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
-{
+void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item) {
     static const bool debugSync = qEnvironmentVariableIsSet("QV_DEBUG_RENDER");
     if (debugSync) {
         std::ofstream("sync_debug.log", std::ios::app) << "synchronize() CALLED" << std::endl;
@@ -942,8 +982,10 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
         if (debugSync) {
             std::ofstream("sync_debug.log", std::ios::app) << "viewport is valid" << std::endl;
             qWarning() << "[DIAG-sync] viewport is valid";
-            std::ofstream("sync_debug.log", std::ios::app) << "m_curvatureRenderer=" << (m_curvatureRenderer ? "set" : "null") << std::endl;
-            qWarning() << "[DIAG-sync] m_curvatureRenderer=" << (m_curvatureRenderer ? "set" : "null");
+            std::ofstream("sync_debug.log", std::ios::app)
+                << "m_curvatureRenderer=" << (m_curvatureRenderer ? "set" : "null") << std::endl;
+            qWarning() << "[DIAG-sync] m_curvatureRenderer="
+                       << (m_curvatureRenderer ? "set" : "null");
         }
 
         // One-time GL initialization on the first synchronize/render cycle.
@@ -960,8 +1002,8 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
         m_ui4d = viewport->ui4d();
         m_celestialBodyRenderer = viewport->celestialBodyRenderer();
         m_camera4DAdapter = viewport->camera4DAdapter();
-         m_postProcess = viewport->postProcess();
-         m_lensing = viewport->lensingRenderer();
+        m_postProcess = viewport->postProcess();
+        m_lensing = viewport->lensingRenderer();
 
         // Initialize gravitational lensing renderer if available.
         if (m_lensing) {
@@ -982,19 +1024,22 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
         if (!m_curvatureRenderer) {
             static bool warned = false;
             if (!warned) {
-                qWarning() << "QmlGlRenderer: curvatureRenderer not yet set in synchronize() - will retry";
+                qWarning()
+                    << "QmlGlRenderer: curvatureRenderer not yet set in synchronize() - will retry";
                 warned = true;
             }
         }
 
         // Initialize curvature renderer GL resources if available.
         if (m_curvatureRenderer) {
-            qWarning() << "[DIAG-sync] m_curvatureRenderer is set, isInitialized=" << m_curvatureRenderer->isInitialized();
+            qWarning() << "[DIAG-sync] m_curvatureRenderer is set, isInitialized="
+                       << m_curvatureRenderer->isInitialized();
             try {
                 if (!m_curvatureRenderer->isInitialized()) {
                     qWarning() << "[DIAG-sync] Calling initializeGL() on curvature renderer";
                     m_curvatureRenderer->initializeGL();
-                    qWarning() << "[DIAG-sync] initializeGL() completed, isInitialized=" << m_curvatureRenderer->isInitialized();
+                    qWarning() << "[DIAG-sync] initializeGL() completed, isInitialized="
+                               << m_curvatureRenderer->isInitialized();
                 }
             } catch (const std::exception& e) {
                 qWarning() << "QmlGlRenderer: Failed to initialize curvature renderer:" << e.what();
@@ -1025,102 +1070,95 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item)
     }
 }
 
-void QmlGlRenderer::setCurvatureRenderer(std::shared_ptr<CurvatureRenderer> renderer)
-{
+void QmlGlRenderer::setCurvatureRenderer(std::shared_ptr<CurvatureRenderer> renderer) {
     m_curvatureRenderer = std::move(renderer);
 }
 
-void QmlGlRenderer::setQuantumRenderer(std::shared_ptr<QuantumGeometryRenderer> renderer)
-{
+void QmlGlRenderer::setQuantumRenderer(std::shared_ptr<QuantumGeometryRenderer> renderer) {
     m_quantumRenderer = std::move(renderer);
 }
 
-void QmlGlRenderer::setUI4D(std::shared_ptr<UI4D> ui4d)
-{
+void QmlGlRenderer::setUI4D(std::shared_ptr<UI4D> ui4d) {
     m_ui4d = std::move(ui4d);
 }
 
-void QmlGlRenderer::setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer)
-{
+void QmlGlRenderer::setCelestialBodyRenderer(std::shared_ptr<CelestialBodyRenderer> renderer) {
     m_celestialBodyRenderer = std::move(renderer);
 }
 
-void QmlGlRenderer::setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter)
-{
+void QmlGlRenderer::setCamera4DAdapter(std::shared_ptr<Camera4DAdapter> adapter) {
     m_camera4DAdapter = std::move(adapter);
 }
 
-void QmlGlRenderer::setViewMatrix(const QMatrix4x4& view)
-{
+void QmlGlRenderer::setViewMatrix(const QMatrix4x4& view) {
     m_viewMatrix = view;
 }
 
-void QmlGlRenderer::setProjectionMatrix(const QMatrix4x4& proj)
-{
+void QmlGlRenderer::setProjectionMatrix(const QMatrix4x4& proj) {
     m_projectionMatrix = proj;
 }
 
-void QmlGlRenderer::setViewportSize(int width, int height)
-{
+void QmlGlRenderer::setViewportSize(int width, int height) {
     m_viewportWidth = width;
     m_viewportHeight = height;
 }
 
 #ifdef QUANTUMVERSE_USE_VR
-void QmlGlRenderer::setHeadPose(const quantumverse::vr::HeadPose& pose)
-{
+void QmlGlRenderer::setHeadPose(const quantumverse::vr::HeadPose& pose) {
     m_headPose = pose;
     m_hasHeadPose = true;
 }
 
-void QmlGlRenderer::applyHeadPose()
-{
-    if (!m_hasHeadPose) return;
+void QmlGlRenderer::applyHeadPose() {
+    if (!m_hasHeadPose)
+        return;
     QMatrix4x4 headMatrix;
     headMatrix.translate(m_headPose.position.x, m_headPose.position.y, m_headPose.position.z);
-    QQuaternion q(m_headPose.orientation.w, m_headPose.orientation.x,
-                  m_headPose.orientation.y, m_headPose.orientation.z);
+    QQuaternion q(m_headPose.orientation.w, m_headPose.orientation.x, m_headPose.orientation.y,
+                  m_headPose.orientation.z);
     headMatrix.rotate(q);
     m_viewMatrix = m_viewMatrix * headMatrix.inverted();
 }
 
-void QmlGlRenderer::setVRActive(bool active)
-{
+void QmlGlRenderer::setVRActive(bool active) {
     m_vrActive = active;
     if (!active) {
         cleanupVRResources();
     }
 }
 
-QOpenGLFramebufferObject* QmlGlRenderer::vrFbo(quantumverse::vr::StereoEye eye) const
-{
-    if (eye == quantumverse::vr::StereoEye::Left) return m_vrFboLeft;
-    if (eye == quantumverse::vr::StereoEye::Right) return m_vrFboRight;
+QOpenGLFramebufferObject* QmlGlRenderer::vrFbo(quantumverse::vr::StereoEye eye) const {
+    if (eye == quantumverse::vr::StereoEye::Left)
+        return m_vrFboLeft;
+    if (eye == quantumverse::vr::StereoEye::Right)
+        return m_vrFboRight;
     return nullptr;
 }
 
 void QmlGlRenderer::renderVRStereoPass(quantumverse::vr::StereoEye eye,
-                                        const QMatrix4x4& viewMatrix,
-                                        const QMatrix4x4& projMatrix)
-{
+                                       const QMatrix4x4& viewMatrix, const QMatrix4x4& projMatrix) {
     QOpenGLFramebufferObject* fbo = vrFbo(eye);
-    if (!fbo) return;
+    if (!fbo)
+        return;
 
     fbo->bind();
     glViewport(0, 0, fbo->width(), fbo->height());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render scene with per-eye view/projection
-    if (m_showGrid) renderGrid();
-    if (m_showLightCones) renderAxisGizmo();
-    if (m_showGeodesics && m_curvatureRenderer) renderGeodesics();
-    if (m_showQuantumGeometry && m_quantumRenderer) renderQuantumGeometry();
+    if (m_showGrid)
+        renderGrid();
+    if (m_showLightCones)
+        renderAxisGizmo();
+    if (m_showGeodesics && m_curvatureRenderer)
+        renderGeodesics();
+    if (m_showQuantumGeometry && m_quantumRenderer)
+        renderQuantumGeometry();
 
     fbo->release();
 }
 
-void QmlGlRenderer::cleanupVRResources()
-{
+void QmlGlRenderer::cleanupVRResources() {
     if (m_vrFboLeft) {
         delete m_vrFboLeft;
         m_vrFboLeft = nullptr;
@@ -1132,18 +1170,15 @@ void QmlGlRenderer::cleanupVRResources()
 }
 #endif
 
-QMatrix4x4 QmlGlRenderer::getViewMatrix() const
-{
+QMatrix4x4 QmlGlRenderer::getViewMatrix() const {
     return m_viewMatrix;
 }
 
-QMatrix4x4 QmlGlRenderer::getProjectionMatrix() const
-{
+QMatrix4x4 QmlGlRenderer::getProjectionMatrix() const {
     return m_projectionMatrix;
 }
 
-void QmlGlRenderer::zoom(float factor)
-{
+void QmlGlRenderer::zoom(float factor) {
     m_cameraDistance *= factor;
     m_cameraDistance = std::max(0.1f, std::min(m_cameraDistance, 10000.0f));
     m_viewMatrix.setToIdentity();
@@ -1153,14 +1188,13 @@ void QmlGlRenderer::zoom(float factor)
     m_viewMatrix.translate(m_cameraPanX, m_cameraPanY, 0.0f);
 }
 
-void QmlGlRenderer::rotate(float angleX, float angleY)
-{
+void QmlGlRenderer::rotate(float angleX, float angleY) {
     m_cameraAngleX += angleX;
     m_cameraAngleY += angleY;
 
     // Clamp X rotation to avoid gimbal lock
     m_cameraAngleX = std::max(-89.0f * static_cast<float>(M_PI) / 180.0f,
-                                std::min(89.0f * static_cast<float>(M_PI) / 180.0f, m_cameraAngleX));
+                              std::min(89.0f * static_cast<float>(M_PI) / 180.0f, m_cameraAngleX));
 
     m_viewMatrix.setToIdentity();
     m_viewMatrix.translate(0.0f, 0.0f, -m_cameraDistance);
@@ -1169,8 +1203,7 @@ void QmlGlRenderer::rotate(float angleX, float angleY)
     m_viewMatrix.translate(m_cameraPanX, m_cameraPanY, 0.0f);
 }
 
-void QmlGlRenderer::pan(float dx, float dy)
-{
+void QmlGlRenderer::pan(float dx, float dy) {
     float scale = m_cameraDistance * 0.001f;
     m_cameraPanX += dx * scale;
     m_cameraPanY += dy * scale;
@@ -1182,51 +1215,54 @@ void QmlGlRenderer::pan(float dx, float dy)
     m_viewMatrix.translate(m_cameraPanX, m_cameraPanY, 0.0f);
 }
 
-void QmlGlRenderer::setSliceOffset(int viewIndex, double offset)
-{
+void QmlGlRenderer::setSliceOffset(int viewIndex, double offset) {
     if (m_ui4d) {
         m_ui4d->setSliceOffset(viewIndex, offset);
     }
 }
 
-void QmlGlRenderer::setShowGrid(bool show) { m_showGrid = show; }
-void QmlGlRenderer::setShowLightCones(bool show) { m_showLightCones = show; }
-void QmlGlRenderer::setShowGeodesics(bool show) { m_showGeodesics = show; }
-void QmlGlRenderer::setShowQuantumGeometry(bool show) { m_showQuantumGeometry = show; }
-void QmlGlRenderer::setCurvatureMode(int mode) { m_curvatureMode = mode; }
+void QmlGlRenderer::setShowGrid(bool show) {
+    m_showGrid = show;
+}
+void QmlGlRenderer::setShowLightCones(bool show) {
+    m_showLightCones = show;
+}
+void QmlGlRenderer::setShowGeodesics(bool show) {
+    m_showGeodesics = show;
+}
+void QmlGlRenderer::setShowQuantumGeometry(bool show) {
+    m_showQuantumGeometry = show;
+}
+void QmlGlRenderer::setCurvatureMode(int mode) {
+    m_curvatureMode = mode;
+}
 
-void QmlGlRenderer::setHeadlessFrameTarget(int frames)
-{
+void QmlGlRenderer::setHeadlessFrameTarget(int frames) {
     m_headlessTargetFrames = frames;
     m_headlessStatsLogged = false;
 }
 
-void QmlGlRenderer::requestScreenshot(const QString &path)
-{
+void QmlGlRenderer::requestScreenshot(const QString& path) {
     m_screenshotRequested = true;
     m_screenshotPath = path;
 }
 
-void QmlGlRenderer::setFrameTimesPath(const QString &path)
-{
+void QmlGlRenderer::setFrameTimesPath(const QString& path) {
     m_frameTimesPath = path;
 }
 
-void QmlGlRenderer::updateTime(float deltaTime)
-{
+void QmlGlRenderer::updateTime(float deltaTime) {
     m_time += deltaTime;
     if (m_curvatureRenderer) {
         m_curvatureRenderer->updateTime(deltaTime);
     }
 }
 
-void QmlGlRenderer::resetTime()
-{
+void QmlGlRenderer::resetTime() {
     m_time = 0.0f;
 }
 
-void QmlGlRenderer::setSimulationTime(float time)
-{
+void QmlGlRenderer::setSimulationTime(float time) {
     m_time = time;
 }
 
@@ -1234,8 +1270,7 @@ void QmlGlRenderer::setSimulationTime(float time)
 // OpenGL Initialization
 // ============================================================================
 
-void QmlGlRenderer::initializeGL()
-{
+void QmlGlRenderer::initializeGL() {
     std::ofstream initLog("renderer_init.log");
     initLog << "initializeGL() called" << std::endl;
 
@@ -1294,10 +1329,8 @@ void QmlGlRenderer::initializeGL()
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 }
 
-bool QmlGlRenderer::compileShader(GLuint& program,
-                                   const char* vertexSource,
-                                   const char* fragmentSource)
-{
+bool QmlGlRenderer::compileShader(GLuint& program, const char* vertexSource,
+                                  const char* fragmentSource) {
     GLuint vertShader = ::glCreateShader(GL_VERTEX_SHADER);
     ::glShaderSource(vertShader, 1, &vertexSource, nullptr);
     ::glCompileShader(vertShader);
@@ -1353,8 +1386,7 @@ static void setUniform(GLuint program, const char* name, float value) {
     ::glUniform1f(::glGetUniformLocation(program, name), value);
 }
 
-void QmlGlRenderer::setupShaders()
-{
+void QmlGlRenderer::setupShaders() {
     // Grid shader - vertex displacement based on curvature
     const char* gridVert = R"(
         #version 450 core
@@ -1459,8 +1491,7 @@ void QmlGlRenderer::setupShaders()
     compileShader(m_overlayShaderProgram, overlayVert, overlayFrag);
 }
 
-void QmlGlRenderer::setupGridGeometry()
-{
+void QmlGlRenderer::setupGridGeometry() {
     // Generate a 3D grid for spacetime visualization
     const int gridRes = 20;
     const float gridSize = 100.0f;
@@ -1475,32 +1506,20 @@ void QmlGlRenderer::setupGridGeometry()
         float x = -halfSize + i * step;
         // Z-axis lines
         vertices.insert(vertices.end(), {
-            x, 0.0f, -halfSize,  // position
-            0.0f, 1.0f, 0.0f,    // normal
-            0.2f, 0.3f, 0.6f, 0.5f, // color
-            0.0f                  // curvature
-        });
-        vertices.insert(vertices.end(), {
-            x, 0.0f, halfSize,
-            0.0f, 1.0f, 0.0f,
-            0.2f, 0.3f, 0.6f, 0.5f,
-            0.0f
-        });
+                                            x, 0.0f, -halfSize,      // position
+                                            0.0f, 1.0f, 0.0f,        // normal
+                                            0.2f, 0.3f, 0.6f, 0.5f,  // color
+                                            0.0f                     // curvature
+                                        });
+        vertices.insert(vertices.end(),
+                        {x, 0.0f, halfSize, 0.0f, 1.0f, 0.0f, 0.2f, 0.3f, 0.6f, 0.5f, 0.0f});
 
         // X-axis lines
         float z = -halfSize + i * step;
-        vertices.insert(vertices.end(), {
-            -halfSize, 0.0f, z,
-            0.0f, 1.0f, 0.0f,
-            0.2f, 0.3f, 0.6f, 0.5f,
-            0.0f
-        });
-        vertices.insert(vertices.end(), {
-            halfSize, 0.0f, z,
-            0.0f, 1.0f, 0.0f,
-            0.2f, 0.3f, 0.6f, 0.5f,
-            0.0f
-        });
+        vertices.insert(vertices.end(),
+                        {-halfSize, 0.0f, z, 0.0f, 1.0f, 0.0f, 0.2f, 0.3f, 0.6f, 0.5f, 0.0f});
+        vertices.insert(vertices.end(),
+                        {halfSize, 0.0f, z, 0.0f, 1.0f, 0.0f, 0.2f, 0.3f, 0.6f, 0.5f, 0.0f});
     }
 
     // Generate indices for line drawing
@@ -1529,15 +1548,10 @@ void QmlGlRenderer::setupGridGeometry()
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, m_gridVbo);
-    glBufferData(GL_ARRAY_BUFFER,
-                 vertices.size() * sizeof(float),
-                 vertices.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_gridEbo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 indices.size() * sizeof(unsigned int),
-                 indices.data(),
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
                  GL_STATIC_DRAW);
 
     // Position (3 floats)
@@ -1551,26 +1565,86 @@ void QmlGlRenderer::setupGridGeometry()
     glEnableVertexAttribArray(2);
     // Curvature (1 float) — vertex is 11 floats (pos3+normal3+color4+curvature1),
     // so the stride must be 11, not 10, or the attribute is misaligned.
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(10 * sizeof(float)));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(float),
+                          (void*)(10 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
     glBindVertexArray(0);
 }
 
-void QmlGlRenderer::setupAxisGizmo()
-{
+void QmlGlRenderer::setupAxisGizmo() {
     // Simple axis gizmo: 3 colored lines for X, Y, Z
     const float axisLength = 5.0f;
     std::vector<float> vertices = {
         // X axis (red)
-        0.0f, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f, 1.0f,  0.0f,
-        axisLength, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f, 1.0f,  0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        axisLength,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
         // Y axis (green)
-        0.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f,  0.0f, 1.0f, 0.0f, 1.0f,  0.0f,
-        0.0f, axisLength, 0.0f,  0.0f, 1.0f, 0.0f,  0.0f, 1.0f, 0.0f, 1.0f,  0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        axisLength,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        0.0f,
         // Z axis (blue)
-        0.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f,
-        0.0f, 0.0f, axisLength,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f, 1.0f, 1.0f,  0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        axisLength,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        1.0f,
+        0.0f,
     };
 
     std::vector<unsigned int> indices = {0, 1, 2, 3, 4, 5};
@@ -1581,10 +1655,7 @@ void QmlGlRenderer::setupAxisGizmo()
     glBindVertexArray(m_axisVao);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_axisVbo);
-    glBufferData(GL_ARRAY_BUFFER,
-                 vertices.size() * sizeof(float),
-                 vertices.data(),
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
     // Position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)0);
@@ -1603,8 +1674,7 @@ void QmlGlRenderer::setupAxisGizmo()
 // Overlay Geometry Setup
 // ============================================================================
 
-void QmlGlRenderer::setupOverlayGeometry()
-{
+void QmlGlRenderer::setupOverlayGeometry() {
     // Axis indicator VAO/VBO (screen-space, 2D position + 4D color = 6 floats per vertex)
     glGenVertexArrays(1, &m_overlayVAO);
     glGenBuffers(1, &m_overlayVBO);
@@ -1618,7 +1688,8 @@ void QmlGlRenderer::setupOverlayGeometry()
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
     // layout 1: vec4 aColor
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat),
+                          (void*)(2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
@@ -1634,15 +1705,16 @@ void QmlGlRenderer::setupOverlayGeometry()
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat),
+                          (void*)(2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
 }
 
-void QmlGlRenderer::setupHUDGeometry()
-{
-    if (m_hudInitialized) return;
+void QmlGlRenderer::setupHUDGeometry() {
+    if (m_hudInitialized)
+        return;
     m_hudInitialized = true;
 
     const GLuint stride = 6 * sizeof(GLfloat);
@@ -1669,8 +1741,7 @@ void QmlGlRenderer::setupHUDGeometry()
 // Rendering Methods
 // ============================================================================
 
-void QmlGlRenderer::renderGrid()
-{
+void QmlGlRenderer::renderGrid() {
     // [DIAG] Step 2: confirm renderGrid is still entered after a scan and that
     // the grid VAO / shader program remain valid. Throttled to ~1 Hz plus any
     // frame where the state is actually bad, so the transition to black is
@@ -1680,12 +1751,16 @@ void QmlGlRenderer::renderGrid()
     // DIAG line still run, which is the usual cause of a grid-less black viewport.
     static int s_gridLog = 0;
     const bool bindOk = m_gridShaderProgram != 0;
-    const bool bad = !bindOk || (m_gridVao == 0)
-                     || !matrixIsFinite(m_viewMatrix) || !matrixIsFinite(m_projectionMatrix);
+    const bool bad = !bindOk || (m_gridVao == 0) || !matrixIsFinite(m_viewMatrix) ||
+                     !matrixIsFinite(m_projectionMatrix);
     if (s_gridLog < 5 || s_gridLog % 15 == 0 || bad) {
-        const QString m = QString("[DIAG-renderGrid] called: m_gridVao=%1 isLinked=%2 bindOk=%3 viewFinite=%4 projFinite=%5")
-                             .arg(m_gridVao).arg(bindOk)
-                             .arg(matrixIsFinite(m_viewMatrix)).arg(matrixIsFinite(m_projectionMatrix));
+        const QString m = QString(
+                              "[DIAG-renderGrid] called: m_gridVao=%1 isLinked=%2 bindOk=%3 "
+                              "viewFinite=%4 projFinite=%5")
+                              .arg(m_gridVao)
+                              .arg(bindOk)
+                              .arg(matrixIsFinite(m_viewMatrix))
+                              .arg(matrixIsFinite(m_projectionMatrix));
         qWarning() << m;
         diagLog(m);
     }
@@ -1716,8 +1791,7 @@ void QmlGlRenderer::renderGrid()
     ::glUseProgram(0);
 }
 
-void QmlGlRenderer::renderAxisGizmo()
-{
+void QmlGlRenderer::renderAxisGizmo() {
     if (m_overlayShaderProgram == 0) {
         qWarning() << "QmlGlRenderer: Overlay shader not linked!";
         return;
@@ -1739,96 +1813,93 @@ void QmlGlRenderer::renderAxisGizmo()
     ::glUseProgram(0);
 }
 
-void QmlGlRenderer::renderGeodesics()
-  {
-      static bool s_debugRender = qEnvironmentVariableIsSet("QV_DEBUG_RENDER");
-      if (s_debugRender) {
-          qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics << "m_curvatureRenderer=" << m_curvatureRenderer.get();
-      }
-      ::glUseProgram(m_geodesicShaderProgram);
+void QmlGlRenderer::renderGeodesics() {
+    static bool s_debugRender = qEnvironmentVariableIsSet("QV_DEBUG_RENDER");
+    if (s_debugRender) {
+        qWarning() << "[DIAG-renderGeodesics] entered, m_showGeodesics=" << m_showGeodesics
+                   << "m_curvatureRenderer=" << m_curvatureRenderer.get();
+    }
+    ::glUseProgram(m_geodesicShaderProgram);
 
-     setUniform(m_geodesicShaderProgram, "viewMatrix", m_viewMatrix);
-     setUniform(m_geodesicShaderProgram, "projectionMatrix", m_projectionMatrix);
+    setUniform(m_geodesicShaderProgram, "viewMatrix", m_viewMatrix);
+    setUniform(m_geodesicShaderProgram, "projectionMatrix", m_projectionMatrix);
 
-     // Collect orbit worldlines from UI4D solar system data
-     if (!m_ui4d) {
-         ::glUseProgram(0);
-         return;
-     }
-     
-     const auto& solarData = m_ui4d->getSolarSystemData();
+    // Collect orbit worldlines from UI4D solar system data
+    if (!m_ui4d) {
+        ::glUseProgram(0);
+        return;
+    }
 
-     // H5: Cache the scaled orbit worldlines. The orbit points are
-     // pre-calculated and only change when the solar system data changes
-     // (bodies added/removed, orbit points regenerated, or scale factor
-     // changed). Rebuilding them every frame churns vector<vector<Event4D>>
-     // allocations, so we key the cache on a cheap signature and reuse the
-     // previous geometry whenever the key is unchanged.
-     auto foldBytes = [](std::size_t h, const void* p, std::size_t n) {
-         const unsigned char* b = static_cast<const unsigned char*>(p);
-         for (std::size_t i = 0; i < n; ++i) h = h * 1000003u + b[i];
-         return h;
-     };
-     std::size_t key = reinterpret_cast<std::size_t>(static_cast<const void*>(m_ui4d.get()));
-     key = foldBytes(key, &solarData.scaleFactor, sizeof(double));
-     for (const auto& bp : solarData.bodies) {
-         const auto& body = bp.second;
-         key = foldBytes(key, &body.showOrbit, sizeof(bool));
-         const std::size_t n = body.orbitPoints.size();
-         key = key * 1000003u + n;
-         if (n) {
-             key = foldBytes(key, &body.orbitPoints.front(), sizeof(Event4D));
-             key = foldBytes(key, &body.orbitPoints.back(), sizeof(Event4D));
-         }
-     }
+    const auto& solarData = m_ui4d->getSolarSystemData();
 
-     if (key != m_geodesicsCacheKey || m_cachedGeodesicsUi4d != m_ui4d.get()) {
-         m_cachedGeodesics.clear();
-         for (const auto& bp : solarData.bodies) {
-             const auto& body = bp.second;
-             if (!body.showOrbit || body.orbitPoints.empty()) continue;
+    // H5: Cache the scaled orbit worldlines. The orbit points are
+    // pre-calculated and only change when the solar system data changes
+    // (bodies added/removed, orbit points regenerated, or scale factor
+    // changed). Rebuilding them every frame churns vector<vector<Event4D>>
+    // allocations, so we key the cache on a cheap signature and reuse the
+    // previous geometry whenever the key is unchanged.
+    auto foldBytes = [](std::size_t h, const void* p, std::size_t n) {
+        const unsigned char* b = static_cast<const unsigned char*>(p);
+        for (std::size_t i = 0; i < n; ++i)
+            h = h * 1000003u + b[i];
+        return h;
+    };
+    std::size_t key = reinterpret_cast<std::size_t>(static_cast<const void*>(m_ui4d.get()));
+    key = foldBytes(key, &solarData.scaleFactor, sizeof(double));
+    for (const auto& bp : solarData.bodies) {
+        const auto& body = bp.second;
+        key = foldBytes(key, &body.showOrbit, sizeof(bool));
+        const std::size_t n = body.orbitPoints.size();
+        key = key * 1000003u + n;
+        if (n) {
+            key = foldBytes(key, &body.orbitPoints.front(), sizeof(Event4D));
+            key = foldBytes(key, &body.orbitPoints.back(), sizeof(Event4D));
+        }
+    }
 
-             // Convert orbit points from solar system scale to viewport scale
-             std::vector<Event4D> scaledOrbit;
-             scaledOrbit.reserve(body.orbitPoints.size());
-             for (const auto& pt : body.orbitPoints) {
-                 scaledOrbit.emplace_back(
-                     pt.t,
-                     pt.x * solarData.scaleFactor,
-                     pt.y * solarData.scaleFactor,
-                     pt.z * solarData.scaleFactor
-                 );
-             }
-             m_cachedGeodesics.push_back(std::move(scaledOrbit));
-         }
-         m_geodesicsCacheKey = key;
-         m_cachedGeodesicsUi4d = m_ui4d.get();
-     }
-     const auto& geodesics = m_cachedGeodesics;
+    if (key != m_geodesicsCacheKey || m_cachedGeodesicsUi4d != m_ui4d.get()) {
+        m_cachedGeodesics.clear();
+        for (const auto& bp : solarData.bodies) {
+            const auto& body = bp.second;
+            if (!body.showOrbit || body.orbitPoints.empty())
+                continue;
 
-      // Delegate to CurvatureRenderer for actual GPU rendering
-      if (m_curvatureRenderer && !geodesics.empty()) {
-         try {
-             m_curvatureRenderer->renderGeodesics(
-                 geodesics,
-                 m_viewMatrix.constData(),
-                 m_projectionMatrix.constData()
-             );
-         } catch (const std::exception& e) {
-             qWarning() << "QmlGlRenderer: Error rendering geodesics:" << e.what();
-         } catch (...) {
-             qWarning() << "QmlGlRenderer: Unknown error rendering geodesics";
-         }
-      }
+            // Convert orbit points from solar system scale to viewport scale
+            std::vector<Event4D> scaledOrbit;
+            scaledOrbit.reserve(body.orbitPoints.size());
+            for (const auto& pt : body.orbitPoints) {
+                scaledOrbit.emplace_back(pt.t, pt.x * solarData.scaleFactor,
+                                         pt.y * solarData.scaleFactor,
+                                         pt.z * solarData.scaleFactor);
+            }
+            m_cachedGeodesics.push_back(std::move(scaledOrbit));
+        }
+        m_geodesicsCacheKey = key;
+        m_cachedGeodesicsUi4d = m_ui4d.get();
+    }
+    const auto& geodesics = m_cachedGeodesics;
 
-      ::glUseProgram(0);
-  }
+    // Delegate to CurvatureRenderer for actual GPU rendering
+    if (m_curvatureRenderer && !geodesics.empty()) {
+        try {
+            m_curvatureRenderer->renderGeodesics(geodesics, m_viewMatrix.constData(),
+                                                 m_projectionMatrix.constData());
+        } catch (const std::exception& e) {
+            qWarning() << "QmlGlRenderer: Error rendering geodesics:" << e.what();
+        } catch (...) {
+            qWarning() << "QmlGlRenderer: Unknown error rendering geodesics";
+        }
+    }
 
-void QmlGlRenderer::renderQuantumGeometry()
-{
+    ::glUseProgram(0);
+}
+
+void QmlGlRenderer::renderQuantumGeometry() {
     // Check for null quantum renderer to avoid crash
-    if (!m_quantumRenderer) return;
-    if (!m_ui4d) return;
+    if (!m_quantumRenderer)
+        return;
+    if (!m_ui4d)
+        return;
 
     // Use Camera4DAdapter for camera state if available
     Event4D camPos, lookAt;
@@ -1861,7 +1932,8 @@ void QmlGlRenderer::renderQuantumGeometry()
 
     // Get metric from UI4D
     auto metric = m_ui4d->getCurrentMetric();
-    if (!metric) return;
+    if (!metric)
+        return;
 
     // Delegate to QuantumGeometryRenderer
     try {
@@ -1873,8 +1945,7 @@ void QmlGlRenderer::renderQuantumGeometry()
     }
 }
 
-void QmlGlRenderer::renderOverlay()
-{
+void QmlGlRenderer::renderOverlay() {
     if (m_overlayShaderProgram == 0) {
         qWarning() << "QmlGlRenderer: Overlay shader not linked in renderOverlay!";
         return;
@@ -1889,9 +1960,8 @@ void QmlGlRenderer::renderOverlay()
     ::glUseProgram(m_overlayShaderProgram);
 
     QMatrix4x4 ortho;
-    ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
-                0.0f, static_cast<float>(m_viewportHeight),
-                -1.0f, 1.0f);
+    ortho.ortho(0.0f, static_cast<float>(m_viewportWidth), 0.0f,
+                static_cast<float>(m_viewportHeight), -1.0f, 1.0f);
     setUniform(m_overlayShaderProgram, "projectionMatrix", ortho);
 
     // Render axis indicator lines (simple colored lines for X, Y, Z)
@@ -1899,20 +1969,20 @@ void QmlGlRenderer::renderOverlay()
 
     // X axis (red) - horizontal
     GLfloat xAxisVerts[] = {
-        labelOffset, labelOffset,         1.0f, 0.0f, 0.0f, 0.9f,
+        labelOffset,         labelOffset, 1.0f, 0.0f, 0.0f, 0.9f,
         labelOffset + 50.0f, labelOffset, 1.0f, 0.0f, 0.0f, 0.9f,
     };
 
     // Y axis (green) - vertical
     GLfloat yAxisVerts[] = {
-        labelOffset, labelOffset,              0.0f, 1.0f, 0.0f, 0.9f,
-        labelOffset, labelOffset + 50.0f,      0.0f, 1.0f, 0.0f, 0.9f,
+        labelOffset, labelOffset,         0.0f, 1.0f, 0.0f, 0.9f,
+        labelOffset, labelOffset + 50.0f, 0.0f, 1.0f, 0.0f, 0.9f,
     };
 
     // Z axis (blue) - diagonal
     GLfloat zAxisVerts[] = {
-        labelOffset, labelOffset,                    0.0f, 0.0f, 1.0f, 0.9f,
-        labelOffset + 35.0f, labelOffset + 35.0f,    0.0f, 0.0f, 1.0f, 0.9f,
+        labelOffset,         labelOffset,         0.0f, 0.0f, 1.0f, 0.9f,
+        labelOffset + 35.0f, labelOffset + 35.0f, 0.0f, 0.0f, 1.0f, 0.9f,
     };
 
     // Draw axis lines using VAO/VBO
@@ -1970,8 +2040,7 @@ void QmlGlRenderer::renderOverlay()
     ::glUseProgram(0);
 }
 
-void QmlGlRenderer::renderProfilingOverlay()
-{
+void QmlGlRenderer::renderProfilingOverlay() {
     if (m_overlayShaderProgram == 0) {
         qWarning() << "QmlGlRenderer: Overlay shader not linked in renderProfilingOverlay!";
         return;
@@ -1981,9 +2050,8 @@ void QmlGlRenderer::renderProfilingOverlay()
     // Draw profiling stats using OpenGL primitives
 
     QMatrix4x4 ortho;
-    ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
-                0.0f, static_cast<float>(m_viewportHeight),
-                -1.0f, 1.0f);
+    ortho.ortho(0.0f, static_cast<float>(m_viewportWidth), 0.0f,
+                static_cast<float>(m_viewportHeight), -1.0f, 1.0f);
     setUniform(m_overlayShaderProgram, "projectionMatrix", ortho);
 
     // Render profiling bars: top-right corner HUD
@@ -1994,32 +2062,56 @@ void QmlGlRenderer::renderProfilingOverlay()
 
         float barWidth = 2.0f;
         float maxBarHeight = 100.0f;
-        float originX = static_cast<float>(m_viewportWidth) - 10.0f - barWidth * static_cast<float>(frames.size());
+        float originX = static_cast<float>(m_viewportWidth) - 10.0f -
+                        barWidth * static_cast<float>(frames.size());
         float originY = 50.0f;
 
         float maxTime = m_frameProfiler.getMaxFrameTime();
-        if (maxTime < 1.0f) maxTime = 1.0f;
+        if (maxTime < 1.0f)
+            maxTime = 1.0f;
 
         glLineWidth(1.0f);
 
         // Build all bar vertices into a single buffer
         size_t maxBars = std::min(frames.size(), static_cast<size_t>(120));
-        std::vector<GLfloat> barData(maxBars * 4 * 6); // 4 verts * 6 floats per bar
+        std::vector<GLfloat> barData(maxBars * 4 * 6);  // 4 verts * 6 floats per bar
 
         for (size_t i = 0; i < maxBars; ++i) {
             float height = (frames[i].frameTimeMs / maxTime) * maxBarHeight;
             float x = originX + static_cast<float>(i) * barWidth;
 
-            float r = frames[i].frameTimeMs < 16.0f ? 0.0f : (frames[i].frameTimeMs < 33.0f ? 1.0f : 1.0f);
-            float g = frames[i].frameTimeMs < 16.0f ? 1.0f : (frames[i].frameTimeMs < 33.0f ? 1.0f : 0.0f);
+            float r = frames[i].frameTimeMs < 16.0f ? 0.0f
+                                                    : (frames[i].frameTimeMs < 33.0f ? 1.0f : 1.0f);
+            float g = frames[i].frameTimeMs < 16.0f ? 1.0f
+                                                    : (frames[i].frameTimeMs < 33.0f ? 1.0f : 0.0f);
             float b = 0.0f;
 
             float* base = barData.data() + i * 4 * 6;
             // Triangle fan: BL, TL, TR, BR
-            base[0]  = x;              base[1]  = originY;              base[2] = r; base[3] = g; base[4] = b; base[5] = 0.7f;
-            base[6]  = x;              base[7]  = originY + height;     base[8] = r; base[9] = g; base[10] = b; base[11] = 0.7f;
-            base[12] = x + barWidth;   base[13] = originY + height;     base[14] = r; base[15] = g; base[16] = b; base[17] = 0.7f;
-            base[18] = x + barWidth;   base[19] = originY;              base[20] = r; base[21] = g; base[22] = b; base[23] = 0.7f;
+            base[0] = x;
+            base[1] = originY;
+            base[2] = r;
+            base[3] = g;
+            base[4] = b;
+            base[5] = 0.7f;
+            base[6] = x;
+            base[7] = originY + height;
+            base[8] = r;
+            base[9] = g;
+            base[10] = b;
+            base[11] = 0.7f;
+            base[12] = x + barWidth;
+            base[13] = originY + height;
+            base[14] = r;
+            base[15] = g;
+            base[16] = b;
+            base[17] = 0.7f;
+            base[18] = x + barWidth;
+            base[19] = originY;
+            base[20] = r;
+            base[21] = g;
+            base[22] = b;
+            base[23] = 0.7f;
         }
 
         glBufferSubData(GL_ARRAY_BUFFER, 0, maxBars * 4 * 6 * sizeof(GLfloat), barData.data());
@@ -2032,8 +2124,18 @@ void QmlGlRenderer::renderProfilingOverlay()
         // Render 16ms threshold line
         float thresholdY = originY + (16.0f / maxTime) * maxBarHeight;
         GLfloat thresholdLine[] = {
-            originX - 2.0f, thresholdY,  1.0f, 1.0f, 1.0f, 0.5f,
-            originX + barWidth * static_cast<float>(maxBars) + 2.0f, thresholdY,  1.0f, 1.0f, 1.0f, 0.5f,
+            originX - 2.0f,
+            thresholdY,
+            1.0f,
+            1.0f,
+            1.0f,
+            0.5f,
+            originX + barWidth * static_cast<float>(maxBars) + 2.0f,
+            thresholdY,
+            1.0f,
+            1.0f,
+            1.0f,
+            0.5f,
         };
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(thresholdLine), thresholdLine);
         glDrawArrays(GL_LINES, 0, 2);
@@ -2045,30 +2147,30 @@ void QmlGlRenderer::renderProfilingOverlay()
 
         // Green dot (< 16ms)
         GLfloat greenDot[] = {
-            legendX, legendY,                    0.0f, 1.0f, 0.0f, 0.9f,
-            legendX + dotSize, legendY,          0.0f, 1.0f, 0.0f, 0.9f,
+            legendX,           legendY,           0.0f, 1.0f, 0.0f, 0.9f,
+            legendX + dotSize, legendY,           0.0f, 1.0f, 0.0f, 0.9f,
             legendX + dotSize, legendY + dotSize, 0.0f, 1.0f, 0.0f, 0.9f,
-            legendX, legendY + dotSize,          0.0f, 1.0f, 0.0f, 0.9f,
+            legendX,           legendY + dotSize, 0.0f, 1.0f, 0.0f, 0.9f,
         };
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(greenDot), greenDot);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
         // Yellow dot (16-33ms)
         GLfloat yellowDot[] = {
-            legendX, legendY + dotSize + 4.0f,       1.0f, 1.0f, 0.0f, 0.9f,
-            legendX + dotSize, legendY + dotSize + 4.0f, 1.0f, 1.0f, 0.0f, 0.9f,
+            legendX,           legendY + dotSize + 4.0f,          1.0f, 1.0f, 0.0f, 0.9f,
+            legendX + dotSize, legendY + dotSize + 4.0f,          1.0f, 1.0f, 0.0f, 0.9f,
             legendX + dotSize, legendY + 2.0f * (dotSize + 4.0f), 1.0f, 1.0f, 0.0f, 0.9f,
-            legendX, legendY + 2.0f * (dotSize + 4.0f), 1.0f, 1.0f, 0.0f, 0.9f,
+            legendX,           legendY + 2.0f * (dotSize + 4.0f), 1.0f, 1.0f, 0.0f, 0.9f,
         };
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(yellowDot), yellowDot);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
         // Red dot (> 33ms)
         GLfloat redDot[] = {
-            legendX, legendY + 2.0f * (dotSize + 4.0f) + 4.0f, 1.0f, 0.0f, 0.0f, 0.9f,
+            legendX,           legendY + 2.0f * (dotSize + 4.0f) + 4.0f, 1.0f, 0.0f, 0.0f, 0.9f,
             legendX + dotSize, legendY + 2.0f * (dotSize + 4.0f) + 4.0f, 1.0f, 0.0f, 0.0f, 0.9f,
-            legendX + dotSize, legendY + 3.0f * (dotSize + 4.0f), 1.0f, 0.0f, 0.0f, 0.9f,
-            legendX, legendY + 3.0f * (dotSize + 4.0f), 1.0f, 0.0f, 0.0f, 0.9f,
+            legendX + dotSize, legendY + 3.0f * (dotSize + 4.0f),        1.0f, 0.0f, 0.0f, 0.9f,
+            legendX,           legendY + 3.0f * (dotSize + 4.0f),        1.0f, 0.0f, 0.0f, 0.9f,
         };
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(redDot), redDot);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -2080,17 +2182,15 @@ void QmlGlRenderer::renderProfilingOverlay()
     ::glUseProgram(0);
 }
 
-void QmlGlRenderer::renderHUD()
-{
+void QmlGlRenderer::renderHUD() {
     if (m_overlayShaderProgram == 0 || !m_hudInitialized) {
         return;
     }
     ::glUseProgram(m_overlayShaderProgram);
 
     QMatrix4x4 ortho;
-    ortho.ortho(0.0f, static_cast<float>(m_viewportWidth),
-                0.0f, static_cast<float>(m_viewportHeight),
-                -1.0f, 1.0f);
+    ortho.ortho(0.0f, static_cast<float>(m_viewportWidth), 0.0f,
+                static_cast<float>(m_viewportHeight), -1.0f, 1.0f);
     setUniform(m_overlayShaderProgram, "projectionMatrix", ortho);
 
     float avgFrameMs = m_frameProfiler.getAverageFrameTime();
@@ -2111,10 +2211,10 @@ void QmlGlRenderer::renderHUD()
     };
 
     GLfloat bg[] = {
-        panelX, panelY,                     0.0f, 0.0f, 0.0f, 0.6f,
-        panelX + panelW, panelY,            0.0f, 0.0f, 0.0f, 0.6f,
-        panelX + panelW, panelY + panelH,   0.0f, 0.0f, 0.0f, 0.6f,
-        panelX, panelY + panelH,            0.0f, 0.0f, 0.0f, 0.6f,
+        panelX,          panelY,          0.0f, 0.0f, 0.0f, 0.6f,
+        panelX + panelW, panelY,          0.0f, 0.0f, 0.0f, 0.6f,
+        panelX + panelW, panelY + panelH, 0.0f, 0.0f, 0.0f, 0.6f,
+        panelX,          panelY + panelH, 0.0f, 0.0f, 0.0f, 0.6f,
     };
     uploadQuad(m_hudBgVao, m_hudBgVbo, bg);
 
@@ -2126,20 +2226,60 @@ void QmlGlRenderer::renderHUD()
     float fpsR = fps > 60.0f ? 0.0f : (fps > 30.0f ? 1.0f : 1.0f);
     float fpsG = fps > 60.0f ? 1.0f : (fps > 30.0f ? 1.0f : 0.0f);
     GLfloat fpsBar[] = {
-        barX, barY,                      fpsR, fpsG, 0.0f, 0.8f,
-        barX + barW * fpsRatio, barY,    fpsR, fpsG, 0.0f, 0.8f,
-        barX + barW * fpsRatio, barY + barH, fpsR, fpsG, 0.0f, 0.8f,
-        barX, barY + barH,               fpsR, fpsG, 0.0f, 0.8f,
+        barX,
+        barY,
+        fpsR,
+        fpsG,
+        0.0f,
+        0.8f,
+        barX + barW * fpsRatio,
+        barY,
+        fpsR,
+        fpsG,
+        0.0f,
+        0.8f,
+        barX + barW * fpsRatio,
+        barY + barH,
+        fpsR,
+        fpsG,
+        0.0f,
+        0.8f,
+        barX,
+        barY + barH,
+        fpsR,
+        fpsG,
+        0.0f,
+        0.8f,
     };
     uploadQuad(m_hudFpsVao, m_hudFpsVbo, fpsBar);
 
     float errBarY = barY + 20.0f;
     float errRatio = glErrors > 0 ? 1.0f : 0.0f;
     GLfloat errBar[] = {
-        barX, errBarY,                      1.0f, 0.0f, 0.0f, 0.8f,
-        barX + barW * errRatio, errBarY,    1.0f, 0.0f, 0.0f, 0.8f,
-        barX + barW * errRatio, errBarY + barH, 1.0f, 0.0f, 0.0f, 0.8f,
-        barX, errBarY + barH,               1.0f, 0.0f, 0.0f, 0.8f,
+        barX,
+        errBarY,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.8f,
+        barX + barW * errRatio,
+        errBarY,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.8f,
+        barX + barW * errRatio,
+        errBarY + barH,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.8f,
+        barX,
+        errBarY + barH,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.8f,
     };
     uploadQuad(m_hudErrVao, m_hudErrVbo, errBar);
 
@@ -2151,25 +2291,27 @@ void QmlGlRenderer::renderHUD()
 // ============================================================================
 
 QmlGlViewport::QmlGlViewport(QQuickItem* parent)
-    : QQuickFramebufferObject(parent)
-    , m_renderer(nullptr)
-    , m_showGrid(true)
-    , m_showLightCones(false)
-    , m_showGeodesics(false)
-    , m_showQuantumGeometry(false)
-    , m_showHUD(false)
-    , m_curvatureMode(0)
-    , m_cameraDistance(150.0f)
-    , m_cameraAngleX(0.524f)  // 30 degrees elevation
-    , m_cameraAngleY(0.785f)  // 45 degrees azimuth
-    , m_simulationTime(0.0f)
-    , m_frameRate(0.0f)
-    , m_frameCount(0)
-    , m_lastFrameTime(0)
-    , m_postProcess(std::make_shared<PostProcess>())
-    , m_sessionRecorder(std::make_unique<quantumverse::SessionRecorder>())
-{
-    std::ofstream("viewport_ctor.log") << "QmlGlViewport constructor called, parent=" << parent << std::endl;
+    : QQuickFramebufferObject(parent),
+      m_renderer(nullptr),
+      m_showGrid(true),
+      m_showLightCones(false),
+      m_showGeodesics(false),
+      m_showQuantumGeometry(false),
+      m_showHUD(false),
+      m_curvatureMode(0),
+      m_cameraDistance(150.0f),
+      m_cameraAngleX(0.524f)  // 30 degrees elevation
+      ,
+      m_cameraAngleY(0.785f)  // 45 degrees azimuth
+      ,
+      m_simulationTime(0.0f),
+      m_frameRate(0.0f),
+      m_frameCount(0),
+      m_lastFrameTime(0),
+      m_postProcess(std::make_shared<PostProcess>()),
+      m_sessionRecorder(std::make_unique<quantumverse::SessionRecorder>()) {
+    std::ofstream("viewport_ctor.log")
+        << "QmlGlViewport constructor called, parent=" << parent << std::endl;
     setObjectName("viewport");  // Required for findChild in main_qml.cpp
     setAcceptedMouseButtons(Qt::AllButtons);
     setFlag(QQuickItem::ItemHasContents, true);
@@ -2190,8 +2332,8 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
     QObject::connect(this, &QQuickItem::widthChanged, this, [this]() {
         // [DIAG] Step 5: log viewport width changes to catch a 0x0 resize
         // that would blank the FBO.
-        const QString m = QString("[DIAG-viewport] widthChanged -> %1 x %2")
-                             .arg(width()).arg(height());
+        const QString m =
+            QString("[DIAG-viewport] widthChanged -> %1 x %2").arg(width()).arg(height());
         qWarning() << m;
         diagLog(m);
         if (m_renderer) {
@@ -2199,8 +2341,8 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
         }
     });
     QObject::connect(this, &QQuickItem::heightChanged, this, [this]() {
-        const QString m = QString("[DIAG-viewport] heightChanged -> %1 x %2")
-                             .arg(width()).arg(height());
+        const QString m =
+            QString("[DIAG-viewport] heightChanged -> %1 x %2").arg(width()).arg(height());
         qWarning() << m;
         diagLog(m);
         if (m_renderer) {
@@ -2210,13 +2352,10 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
 
     // Force a QML re-render when the validator banner transitions visible→hidden
     // so any stale scene-graph texture (e.g. red banner pixels) is invalidated.
-    QObject::connect(this, &QmlGlViewport::physicsWarningChanged, this, [this]() {
-        update();
-    });
+    QObject::connect(this, &QmlGlViewport::physicsWarningChanged, this, [this]() { update(); });
 }
 
-QmlGlViewport::~QmlGlViewport()
-{
+QmlGlViewport::~QmlGlViewport() {
     QOpenGLContext* ctx = QOpenGLContext::currentContext();
     if (!ctx) {
         return;
@@ -2226,24 +2365,23 @@ QmlGlViewport::~QmlGlViewport()
     m_renderer = nullptr;
 }
 
-float QmlGlViewport::frameRate() const
-{
+float QmlGlViewport::frameRate() const {
     if (m_frameRate > 0.0f) {
         return m_frameRate;
     }
     return 0.0f;
 }
 
-void QmlGlViewport::updateFrameRate(float fps)
-{
-    if (fps < 0.0f) fps = 0.0f;
+void QmlGlViewport::updateFrameRate(float fps) {
+    if (fps < 0.0f)
+        fps = 0.0f;
     m_frameRate = fps;
     emit frameRateChanged();
 }
 
-void QmlGlViewport::setPlanckScale(float logScale)
-{
-    if (m_planckLogScale == logScale) return;
+void QmlGlViewport::setPlanckScale(float logScale) {
+    if (m_planckLogScale == logScale)
+        return;
     m_planckLogScale = logScale;
 
     float scaleMeters = std::pow(10.0f, logScale);
@@ -2251,7 +2389,8 @@ void QmlGlViewport::setPlanckScale(float logScale)
     // Below 1e-15 m, quantum gravity effects dominate
     if (scaleMeters < 1e-15f) {
         // Fade out classical GR grid
-        if (m_curvatureRenderer) m_curvatureRenderer->setGlobalAlpha(0.0f);
+        if (m_curvatureRenderer)
+            m_curvatureRenderer->setGlobalAlpha(0.0f);
 
         // Fade in quantum geometry
         if (m_quantumRenderer) {
@@ -2260,67 +2399,69 @@ void QmlGlViewport::setPlanckScale(float logScale)
         }
     } else {
         // Classical regime
-        if (m_curvatureRenderer) m_curvatureRenderer->setGlobalAlpha(1.0f);
-        if (m_quantumRenderer) m_quantumRenderer->setGlobalAlpha(0.0f);
+        if (m_curvatureRenderer)
+            m_curvatureRenderer->setGlobalAlpha(1.0f);
+        if (m_quantumRenderer)
+            m_quantumRenderer->setGlobalAlpha(0.0f);
     }
 
     emit spectralDimensionChanged();
     update();
 }
 
-float QmlGlViewport::spectralDimension() const
-{
+float QmlGlViewport::spectralDimension() const {
     if (m_planckLogScale < -15.0f && m_quantumRenderer) {
         // Spectral dimension drops from 4 (classical) to ~2 (quantum)
         // CDT prediction: D_s ~ 2 at Planck scale
-        return 2.0f + 2.0f * (m_planckLogScale + 15.0f) / 20.0f; // Linear interpolate: 4.0 at -15, 2.0 at -35
+        return 2.0f + 2.0f * (m_planckLogScale + 15.0f) /
+                          20.0f;  // Linear interpolate: 4.0 at -15, 2.0 at -35
     }
-    return 4.0f; // Classical spacetime is 4D
+    return 4.0f;  // Classical spacetime is 4D
 }
 
-void QmlGlViewport::setShowGrid(bool show)
-{
+void QmlGlViewport::setShowGrid(bool show) {
     if (m_showGrid != show) {
         m_showGrid = show;
-        if (m_renderer) m_renderer->setShowGrid(show);
-        if (m_curvatureRenderer) m_curvatureRenderer->toggleGrid(show);
+        if (m_renderer)
+            m_renderer->setShowGrid(show);
+        if (m_curvatureRenderer)
+            m_curvatureRenderer->toggleGrid(show);
         emit showGridChanged();
         update();
     }
 }
 
-void QmlGlViewport::setShowLightCones(bool show)
-{
+void QmlGlViewport::setShowLightCones(bool show) {
     if (m_showLightCones != show) {
         m_showLightCones = show;
-        if (m_renderer) m_renderer->setShowLightCones(show);
+        if (m_renderer)
+            m_renderer->setShowLightCones(show);
         emit showLightConesChanged();
         update();
     }
 }
 
-void QmlGlViewport::setShowGeodesics(bool show)
-{
+void QmlGlViewport::setShowGeodesics(bool show) {
     if (m_showGeodesics != show) {
         m_showGeodesics = show;
-        if (m_renderer) m_renderer->setShowGeodesics(show);
+        if (m_renderer)
+            m_renderer->setShowGeodesics(show);
         emit showGeodesicsChanged();
         update();
     }
 }
 
-void QmlGlViewport::setShowQuantumGeometry(bool show)
-{
+void QmlGlViewport::setShowQuantumGeometry(bool show) {
     if (m_showQuantumGeometry != show) {
         m_showQuantumGeometry = show;
-        if (m_renderer) m_renderer->setShowQuantumGeometry(show);
+        if (m_renderer)
+            m_renderer->setShowQuantumGeometry(show);
         emit showQuantumGeometryChanged();
         update();
     }
 }
 
-void QmlGlViewport::setShowHUD(bool show)
-{
+void QmlGlViewport::setShowHUD(bool show) {
     if (m_showHUD != show) {
         m_showHUD = show;
         emit showHUDChanged();
@@ -2328,62 +2469,60 @@ void QmlGlViewport::setShowHUD(bool show)
     }
 }
 
-void QmlGlViewport::setCurvatureMode(int mode)
-{
+void QmlGlViewport::setCurvatureMode(int mode) {
     if (m_curvatureMode != mode) {
         m_curvatureMode = mode;
-        if (m_renderer) m_renderer->setCurvatureMode(mode);
+        if (m_renderer)
+            m_renderer->setCurvatureMode(mode);
         emit curvatureModeChanged();
         update();
     }
 }
 
-void QmlGlViewport::setCameraDistance(float dist)
-{
+void QmlGlViewport::setCameraDistance(float dist) {
     dist = std::max(10.0f, std::min(dist, 5000.0f));
     if (std::abs(m_cameraDistance - dist) > 0.01f) {
         m_cameraDistance = dist;
-        if (m_renderer) m_renderer->zoom(dist / 50.0f);
-        if (m_camera4DAdapter) m_camera4DAdapter->setDistance(dist);
+        if (m_renderer)
+            m_renderer->zoom(dist / 50.0f);
+        if (m_camera4DAdapter)
+            m_camera4DAdapter->setDistance(dist);
         emit cameraDistanceChanged();
         update();
     }
 }
 
-void QmlGlViewport::setCameraAngleX(float angle)
-{
+void QmlGlViewport::setCameraAngleX(float angle) {
     if (std::abs(m_cameraAngleX - angle) > 0.001f) {
         float delta = angle - m_cameraAngleX;
         m_cameraAngleX = angle;
-        if (m_renderer) m_renderer->rotate(delta, 0.0f);
+        if (m_renderer)
+            m_renderer->rotate(delta, 0.0f);
         emit cameraAngleXChanged();
         update();
     }
 }
 
-void QmlGlViewport::setCameraAngleY(float angle)
-{
+void QmlGlViewport::setCameraAngleY(float angle) {
     if (std::abs(m_cameraAngleY - angle) > 0.001f) {
         float delta = angle - m_cameraAngleY;
         m_cameraAngleY = angle;
-        if (m_renderer) m_renderer->rotate(0.0f, delta);
+        if (m_renderer)
+            m_renderer->rotate(0.0f, delta);
         emit cameraAngleYChanged();
         update();
     }
 }
 
-void QmlGlViewport::zoomIn()
-{
+void QmlGlViewport::zoomIn() {
     setCameraDistance(m_cameraDistance * 0.9f);
 }
 
-void QmlGlViewport::zoomOut()
-{
+void QmlGlViewport::zoomOut() {
     setCameraDistance(m_cameraDistance * 1.1f);
 }
 
-void QmlGlViewport::resetView()
-{
+void QmlGlViewport::resetView() {
     setCameraDistance(150.0f);
     setCameraAngleX(0.524f);  // 30 degrees elevation
     setCameraAngleY(0.785f);  // 45 degrees azimuth
@@ -2394,24 +2533,21 @@ void QmlGlViewport::resetView()
     }
 }
 
-void QmlGlViewport::setCurvatureRenderer(QObject* renderer)
-{
+void QmlGlViewport::setCurvatureRenderer(QObject* renderer) {
     // QML-accessible slot - CurvatureRenderer is not a QObject,
     // so this cannot be invoked from QML directly.
     // Use setCurvatureRendererDirect() from C++ instead.
     Q_UNUSED(renderer);
 }
 
-void QmlGlViewport::setQuantumRenderer(QObject* renderer)
-{
+void QmlGlViewport::setQuantumRenderer(QObject* renderer) {
     // QML-accessible slot - QuantumGeometryRenderer is not a QObject,
     // so this cannot be invoked from QML directly.
     // Use setQuantumRendererDirect() from C++ instead.
     Q_UNUSED(renderer);
 }
 
-void QmlGlViewport::setCurvatureRendererDirect(std::shared_ptr<CurvatureRenderer> renderer)
-{
+void QmlGlViewport::setCurvatureRendererDirect(std::shared_ptr<CurvatureRenderer> renderer) {
     m_curvatureRenderer = std::move(renderer);
     if (m_renderer) {
         m_renderer->setCurvatureRenderer(m_curvatureRenderer);
@@ -2423,8 +2559,7 @@ void QmlGlViewport::setCurvatureRendererDirect(std::shared_ptr<CurvatureRenderer
     update();
 }
 
-void QmlGlViewport::setQuantumRendererDirect(std::shared_ptr<QuantumGeometryRenderer> renderer)
-{
+void QmlGlViewport::setQuantumRendererDirect(std::shared_ptr<QuantumGeometryRenderer> renderer) {
     m_quantumRenderer = std::move(renderer);
     if (m_renderer) {
         m_renderer->setQuantumRenderer(m_quantumRenderer);
@@ -2433,8 +2568,7 @@ void QmlGlViewport::setQuantumRendererDirect(std::shared_ptr<QuantumGeometryRend
     update();
 }
 
-void QmlGlViewport::setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter)
-{
+void QmlGlViewport::setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> adapter) {
     m_camera4DAdapter = std::move(adapter);
     if (m_renderer) {
         m_renderer->setCamera4DAdapter(m_camera4DAdapter);
@@ -2442,34 +2576,31 @@ void QmlGlViewport::setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter> ad
     emit camera4DAdapterChanged();
 }
 
-void QmlGlViewport::setUI4D(std::shared_ptr<UI4D> ui4d)
-{
+void QmlGlViewport::setUI4D(std::shared_ptr<UI4D> ui4d) {
     m_ui4d = std::move(ui4d);
     if (m_renderer) {
         m_renderer->setUI4D(m_ui4d);
     }
 }
 
-void QmlGlViewport::setSpacetimeGPS(SpacetimeGPS* gps)
-{
+void QmlGlViewport::setSpacetimeGPS(SpacetimeGPS* gps) {
     m_gps = gps;
 }
 
-void QmlGlViewport::setCelestialBodyRendererDirect(std::shared_ptr<CelestialBodyRenderer> renderer)
-{
+void QmlGlViewport::setCelestialBodyRendererDirect(
+    std::shared_ptr<CelestialBodyRenderer> renderer) {
     m_celestialBodyRenderer = std::move(renderer);
     if (m_renderer) {
         m_renderer->setCelestialBodyRenderer(m_celestialBodyRenderer);
     }
 }
 
-void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
-{
+void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric) {
     qWarning() << "[PROBE] metric swap"
-               << "old=" << (void*)m_probeMetric.get()
-               << "new=" << (void*)metric.get();
+               << "old=" << (void*)m_probeMetric.get() << "new=" << (void*)metric.get();
     m_probeMetric = std::move(metric);
-    if (m_physicsValidator) m_physicsValidator->setMetric(m_probeMetric);
+    if (m_physicsValidator)
+        m_physicsValidator->setMetric(m_probeMetric);
     if (m_probeMetric) {
         probeAt(0.0, 0.0, 100000.0);
     }
@@ -2483,12 +2614,10 @@ void QmlGlViewport::setProbeMetric(std::shared_ptr<MetricTensor> metric)
     }
 }
 
-void QmlGlViewport::probeAt(double x, double y, double z)
-{
+void QmlGlViewport::probeAt(double x, double y, double z) {
     m_probePosition = Event4D(0.0, x, y, z);
-    auto metric = m_probeMetric
-        ? m_probeMetric
-        : (m_curvatureRenderer ? m_curvatureRenderer->metric() : nullptr);
+    auto metric = m_probeMetric ? m_probeMetric
+                                : (m_curvatureRenderer ? m_curvatureRenderer->metric() : nullptr);
     if (!metric) {
         clearProbe();
         return;
@@ -2514,10 +2643,8 @@ void QmlGlViewport::probeAt(double x, double y, double z)
 
     double gtt = metric->evaluate(event)[0][0];
     qWarning() << "[REDSHIFT-DEBUG]"
-               << "x=" << x << "y=" << y << "z=" << z
-               << "gtt=" << gtt
-               << "branch=" << (scalars.valid ? 1 : 0)
-               << "metric=" << (void*)metric.get();
+               << "x=" << x << "y=" << y << "z=" << z << "gtt=" << gtt
+               << "branch=" << (scalars.valid ? 1 : 0) << "metric=" << (void*)metric.get();
     // Gravitational redshift: z = 1/sqrt(-g00) - 1 for timelike coordinates
     // In (-,+,+,+) signature, g00 is negative for valid metrics.
     // Guard against pathological values near the singularity where the
@@ -2537,8 +2664,7 @@ void QmlGlViewport::probeAt(double x, double y, double z)
     emit probeChanged();
 }
 
-void QmlGlViewport::clearProbe()
-{
+void QmlGlViewport::clearProbe() {
     m_kretschmann = "—";
     m_ricciScalar = "—";
     m_weylSquared = "—";
@@ -2547,28 +2673,25 @@ void QmlGlViewport::clearProbe()
     emit probeChanged();
 }
 
-void QmlGlViewport::setProbePosition(double x, double y, double z)
-{
+void QmlGlViewport::setProbePosition(double x, double y, double z) {
     m_probePosition = Event4D(0.0, x, y, z);
 }
 
-QObject* QmlGlViewport::camera4DAdapterObj() const
-{
+QObject* QmlGlViewport::camera4DAdapterObj() const {
     return m_camera4DAdapter.get();
 }
 
-void QmlGlViewport::setCamera4DAdapterObj(QObject* adapter)
-{
+void QmlGlViewport::setCamera4DAdapterObj(QObject* adapter) {
     if (adapter) {
         auto typedAdapter = qobject_cast<Camera4DAdapter*>(adapter);
         if (typedAdapter) {
-            setCamera4DAdapterDirect(std::shared_ptr<Camera4DAdapter>(typedAdapter, [](Camera4DAdapter*){}));
+            setCamera4DAdapterDirect(
+                std::shared_ptr<Camera4DAdapter>(typedAdapter, [](Camera4DAdapter*) {}));
         }
     }
 }
 
-void QmlGlViewport::updateSimulation(double deltaTime)
-{
+void QmlGlViewport::updateSimulation(double deltaTime) {
 #if 0
     std::cerr << "updateSimulation called, dt=" << deltaTime << std::endl;
     std::cerr.flush();
@@ -2585,8 +2708,7 @@ void QmlGlViewport::updateSimulation(double deltaTime)
 
     // Feed the Spacetime GPS telemetry feed from the live simulation.
     if (m_gps && m_ui4d && m_probeMetric) {
-        m_gps->updateFromSimulation(m_ui4d.get(), m_probeMetric.get(),
-                                    m_simulationTime, deltaTime);
+        m_gps->updateFromSimulation(m_ui4d.get(), m_probeMetric.get(), m_simulationTime, deltaTime);
     }
 
     // Persist frames to disk via SessionRecorder when recording.
@@ -2675,24 +2797,21 @@ void QmlGlViewport::updateSimulation(double deltaTime)
             gridRange = QString("%1..%2").arg(range.first, 0, 'g', 3).arg(range.second, 0, 'g', 3);
         }
         qWarning() << "[REALITY]"
-                   << "simTime=" << m_simulationTime
-                   << "bodies=" << bodyCount
-                   << "probeValid=" << (m_probeValid ? 1 : 0)
-                   << "kretch=" << m_kretschmann
-                   << "ricci=" << m_ricciScalar
-                   << "weyl=" << m_weylSquared
-                   << "redshift=" << m_redshift
-                   << "showGeodesics=" << (m_showGeodesics ? 1 : 0)
+                   << "simTime=" << m_simulationTime << "bodies=" << bodyCount
+                   << "probeValid=" << (m_probeValid ? 1 : 0) << "kretch=" << m_kretschmann
+                   << "ricci=" << m_ricciScalar << "weyl=" << m_weylSquared
+                   << "redshift=" << m_redshift << "showGeodesics=" << (m_showGeodesics ? 1 : 0)
                    << "geodCount=" << (m_renderer ? m_renderer->geodesicCount() : 0)
-                   << "showQG=" << (m_showQuantumGeometry ? 1 : 0)
-                   << "qgCount=" << (m_quantumRenderer ? static_cast<int>(m_quantumRenderer->getGeometryInfo().vertexCount) : 0)
-                   << "cam_az=" << m_cameraAngleX
-                   << "cam_el=" << m_cameraAngleY
+                   << "showQG=" << (m_showQuantumGeometry ? 1 : 0) << "qgCount="
+                   << (m_quantumRenderer
+                           ? static_cast<int>(m_quantumRenderer->getGeometryInfo().vertexCount)
+                           : 0)
+                   << "cam_az=" << m_cameraAngleX << "cam_el=" << m_cameraAngleY
                    << "cam_d=" << m_cameraDistance
-                    << "toolbar_overflow=" << (m_toolbarOverflow ? 1 : 0)
-                    << "gridZRange=" << gridRange
-                    << "lensing=" << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
-                    << "texBound=" << texId;
+                   << "toolbar_overflow=" << (m_toolbarOverflow ? 1 : 0)
+                   << "gridZRange=" << gridRange << "lensing="
+                   << (m_lensing ? (m_lensing->isEnabled() ? "yes" : "disabled") : "null")
+                   << "texBound=" << texId;
     }
 
     // Physics Validator - check metric/geodesic invariants at N probes every 60 frames (Layer 2)
@@ -2701,11 +2820,12 @@ void QmlGlViewport::updateSimulation(double deltaTime)
         double rs = 2.0 * 6.67430e-11 * m_blackHoleMass * 1.989e30 / 8.9875517873681764e16;
 
         std::vector<Event4D> probes = {
-            Event4D(0.0, 2.0 * rs, 0.0, 0.0),   // A: outside clamp zone (1.5·rs), near horizon
-            Event4D(0.0, 1.5 * rs, 0.0, 0.0),   // B: at clamp boundary
-            Event4D(0.0, 1e5,      0.0, 0.0),   // C: production probe
-            Event4D(0.0, 1e10,     0.0, 0.0),   // D: far field
-            Event4D(0.0, 0.5 * rs, 0.0, 0.0),   // E: inside clamp zone, non-zero radius (origin triggers acos(0/0) NaN)
+            Event4D(0.0, 2.0 * rs, 0.0, 0.0),  // A: outside clamp zone (1.5·rs), near horizon
+            Event4D(0.0, 1.5 * rs, 0.0, 0.0),  // B: at clamp boundary
+            Event4D(0.0, 1e5, 0.0, 0.0),       // C: production probe
+            Event4D(0.0, 1e10, 0.0, 0.0),      // D: far field
+            Event4D(0.0, 0.5 * rs, 0.0,
+                    0.0),  // E: inside clamp zone, non-zero radius (origin triggers acos(0/0) NaN)
         };
 
         auto result = m_physicsValidator->validateAtProbes(*m_probeMetric, probes);
@@ -2715,9 +2835,8 @@ void QmlGlViewport::updateSimulation(double deltaTime)
             emit physicsWarningChanged();
         }
         if (result.totalFailures > 0) {
-            qWarning() << "[VALIDATOR]" << result.totalFailures << "of"
-                       << result.totalChecks << "checks failed across"
-                       << result.perProbe.size() << "probes:";
+            qWarning() << "[VALIDATOR]" << result.totalFailures << "of" << result.totalChecks
+                       << "checks failed across" << result.perProbe.size() << "probes:";
             int probeIdx = 0;
             for (const auto& report : result.perProbe) {
                 if (report.failedChecks > 0) {
@@ -2725,8 +2844,8 @@ void QmlGlViewport::updateSimulation(double deltaTime)
                 }
                 for (const auto& f : report.failures) {
                     qWarning() << "[VALIDATOR]    " << QString::fromStdString(f.name)
-                               << "value=" << f.value << "expected=" << f.expected
-                               << "- " << QString::fromStdString(f.message);
+                               << "value=" << f.value << "expected=" << f.expected << "- "
+                               << QString::fromStdString(f.message);
                 }
                 probeIdx++;
             }
@@ -2749,8 +2868,7 @@ void QmlGlViewport::updateSimulation(double deltaTime)
     update();
 }
 
-void QmlGlViewport::setSimulationTime(float time)
-{
+void QmlGlViewport::setSimulationTime(float time) {
     m_simulationTime = time;
     if (m_renderer) {
         m_renderer->setSimulationTime(time);
@@ -2758,8 +2876,7 @@ void QmlGlViewport::setSimulationTime(float time)
     emit simulationTimeChanged();
 }
 
-void QmlGlViewport::togglePlaneMode(bool enable)
-{
+void QmlGlViewport::togglePlaneMode(bool enable) {
     if (m_curvatureRenderer) {
         qDebug() << "[DIAG-togglePlaneMode] setting plane mode to:" << enable;
         m_curvatureRenderer->setPlaneMode(enable);
@@ -2770,16 +2887,14 @@ void QmlGlViewport::togglePlaneMode(bool enable)
     }
 }
 
-bool QmlGlViewport::isPlaneMode() const
-{
+bool QmlGlViewport::isPlaneMode() const {
     if (m_curvatureRenderer) {
         return m_curvatureRenderer->isPlaneMode();
     }
     return false;
 }
 
-void QmlGlViewport::setPlaneResolution(int resolution)
-{
+void QmlGlViewport::setPlaneResolution(int resolution) {
     if (m_curvatureRenderer) {
         m_curvatureRenderer->setPlaneResolution(resolution);
         emit planeResolutionChanged();
@@ -2787,16 +2902,14 @@ void QmlGlViewport::setPlaneResolution(int resolution)
     }
 }
 
-int QmlGlViewport::getPlaneResolution() const
-{
+int QmlGlViewport::getPlaneResolution() const {
     if (m_curvatureRenderer) {
         return m_curvatureRenderer->getPlaneResolution();
     }
     return 100;
 }
 
-void QmlGlViewport::reloadConfig()
-{
+void QmlGlViewport::reloadConfig() {
     auto& config = quantumverse::ConfigLoader::instance();
     config.reload();
     if (m_curvatureRenderer) {
@@ -2805,8 +2918,7 @@ void QmlGlViewport::reloadConfig()
     update();
 }
 
-QString QmlGlViewport::configStatus() const
-{
+QString QmlGlViewport::configStatus() const {
     auto& config = quantumverse::ConfigLoader::instance();
     if (config.isLoaded()) {
         return QString("Config: %1").arg(QString::fromStdString(config.path()));
@@ -2814,8 +2926,7 @@ QString QmlGlViewport::configStatus() const
     return "Config: not loaded";
 }
 
-void QmlGlViewport::setTextureSource(int source)
-{
+void QmlGlViewport::setTextureSource(int source) {
     if (m_renderer) {
         m_renderer->setTextureSource(static_cast<QmlGlRenderer::TextureSource>(source));
         emit textureSourceChanged();
@@ -2823,35 +2934,36 @@ void QmlGlViewport::setTextureSource(int source)
     }
 }
 
-int QmlGlViewport::textureSource() const
-{
+int QmlGlViewport::textureSource() const {
     if (m_renderer) {
         return static_cast<int>(m_renderer->textureSource());
     }
     return 0;
 }
 
-void QmlGlViewport::setBlackHoleMass(double mass)
-{
-    if (mass <= 0.0) return;
+void QmlGlViewport::setBlackHoleMass(double mass) {
+    if (mass <= 0.0)
+        return;
     // Clamp to the UI sweep range [0.1, 10.0] M☉.  Values outside this range
     // (e.g. from a stale tour script or a sweep that hasn't been cleared)
     // would produce numerical blow-up in curvature invariants near r = 0.
     const double minMass = 0.1;
     const double maxMass = 10.0;
-    if (mass < minMass) mass = minMass;
-    if (mass > maxMass) mass = maxMass;
+    if (mass < minMass)
+        mass = minMass;
+    if (mass > maxMass)
+        mass = maxMass;
     if (m_curvatureRenderer) {
         double oldMass = m_blackHoleMass;
         double newMass = mass;
 
-        qWarning() << "[MASS] old=" << oldMass
-                   << "new=" << newMass
+        qWarning() << "[MASS] old=" << oldMass << "new=" << newMass
                    << "probeMetric=" << (void*)(m_probeMetric.get())
                    << "rendererMetric=" << (void*)(m_curvatureRenderer->metric().get());
 
         // Push undo command
-        pushCommand(QString("Set BH Mass to %1 M☉").arg(newMass, 0, 'f', 1),
+        pushCommand(
+            QString("Set BH Mass to %1 M☉").arg(newMass, 0, 'f', 1),
             [this, oldMass]() { setBlackHoleMassDirect(oldMass); },
             [this, newMass]() { setBlackHoleMassDirect(newMass); });
 
@@ -2886,23 +2998,23 @@ void QmlGlViewport::setBlackHoleMass(double mass)
     }
 }
 
-void QmlGlViewport::setBlackHoleMassDirect(double mass)
-{
-    if (mass <= 0.0 || !m_curvatureRenderer) return;
+void QmlGlViewport::setBlackHoleMassDirect(double mass) {
+    if (mass <= 0.0 || !m_curvatureRenderer)
+        return;
     double mass_kg = mass * 1.989e30;
     // In-place metric update: mutate the existing SchwarzschildMetric
     // instead of allocating a new one and swapping pointers.
     if (!m_probeMetric) {
         m_probeMetric = std::make_shared<quantumverse::SchwarzschildMetric>(mass_kg);
     }
-        m_probeMetric->setMass(mass_kg);
-        m_curvatureRenderer->setMetric(m_probeMetric);
-        if (m_physicsValidator) {
-            double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
-            m_physicsValidator->setMass(mass_kg);
-            m_physicsValidator->setSchwarzschildRadius(rs);
-        }
-        probeAt(0.0, 0.0, 100000.0);
+    m_probeMetric->setMass(mass_kg);
+    m_curvatureRenderer->setMetric(m_probeMetric);
+    if (m_physicsValidator) {
+        double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
+        m_physicsValidator->setMass(mass_kg);
+        m_physicsValidator->setSchwarzschildRadius(rs);
+    }
+    probeAt(0.0, 0.0, 100000.0);
     // Mirror the lensing wiring from setBlackHoleMass so undo/redo keeps the
     // lensing ring in step with the metric on the direct path too.
     setLensingMass(static_cast<float>(mass));
@@ -2914,17 +3026,18 @@ void QmlGlViewport::setBlackHoleMassDirect(double mass)
     update();
 }
 
-double QmlGlViewport::blackHoleSpin() const
-{
+double QmlGlViewport::blackHoleSpin() const {
     return m_blackHoleSpin;
 }
 
-void QmlGlViewport::setBlackHoleSpin(double spin)
-{
-    if (!m_curvatureRenderer) return;
+void QmlGlViewport::setBlackHoleSpin(double spin) {
+    if (!m_curvatureRenderer)
+        return;
     // Clamp spin to [0, 0.999] - same range as Kerr metric spin parameter
-    if (spin < 0.0) spin = 0.0;
-    if (spin > 0.999) spin = 0.999;
+    if (spin < 0.0)
+        spin = 0.0;
+    if (spin > 0.999)
+        spin = 0.999;
     m_blackHoleSpin = spin;
     // Forward to ergosphere renderer (Kerr frame-dragging boundary)
     m_curvatureRenderer->setErgosphereSpin(spin);
@@ -2932,17 +3045,18 @@ void QmlGlViewport::setBlackHoleSpin(double spin)
     update();
 }
 
-double QmlGlViewport::blackHoleCharge() const
-{
+double QmlGlViewport::blackHoleCharge() const {
     return m_blackHoleCharge;
 }
 
-void QmlGlViewport::setBlackHoleCharge(double charge)
-{
-    if (!m_curvatureRenderer) return;
+void QmlGlViewport::setBlackHoleCharge(double charge) {
+    if (!m_curvatureRenderer)
+        return;
     // Clamp charge to [0, 1.5] - same range as RL agent
-    if (charge < 0.0) charge = 0.0;
-    if (charge > 1.5) charge = 1.5;
+    if (charge < 0.0)
+        charge = 0.0;
+    if (charge > 1.5)
+        charge = 1.5;
     m_blackHoleCharge = charge;
     // Forward to ergosphere renderer
     m_curvatureRenderer->setErgosphereCharge(charge);
@@ -2950,21 +3064,20 @@ void QmlGlViewport::setBlackHoleCharge(double charge)
     update();
 }
 
-void QmlGlViewport::setNeuralGeodesicsEnabled(bool enabled)
-{
-    if (!m_curvatureRenderer) return;
+void QmlGlViewport::setNeuralGeodesicsEnabled(bool enabled) {
+    if (!m_curvatureRenderer)
+        return;
     m_curvatureRenderer->setShowNeuralGeodesics(enabled);
     update();
 }
 
-bool QmlGlViewport::neuralGeodesicsEnabled() const
-{
-    if (!m_curvatureRenderer) return false;
+bool QmlGlViewport::neuralGeodesicsEnabled() const {
+    if (!m_curvatureRenderer)
+        return false;
     return m_curvatureRenderer->showNeuralGeodesics();
 }
 
-void QmlGlViewport::setGridBlackHoleCenter(float x, float y, float z)
-{
+void QmlGlViewport::setGridBlackHoleCenter(float x, float y, float z) {
     m_gridBlackHoleCenter[0] = x;
     m_gridBlackHoleCenter[1] = y;
     m_gridBlackHoleCenter[2] = z;
@@ -2977,92 +3090,83 @@ void QmlGlViewport::setGridBlackHoleCenter(float x, float y, float z)
     update();
 }
 
-void QmlGlViewport::gridBlackHoleCenter(float& x, float& y, float& z) const
-{
+void QmlGlViewport::gridBlackHoleCenter(float& x, float& y, float& z) const {
     x = m_gridBlackHoleCenter[0];
     y = m_gridBlackHoleCenter[1];
     z = m_gridBlackHoleCenter[2];
 }
 
-double QmlGlViewport::blackHoleMass() const
-{
+double QmlGlViewport::blackHoleMass() const {
     return m_blackHoleMass;
 }
 
-double QmlGlViewport::liveKineticEnergy() const
-{
-    if (m_ui4d) return m_ui4d->telemetry().totalKineticEnergy;
+double QmlGlViewport::liveKineticEnergy() const {
+    if (m_ui4d)
+        return m_ui4d->telemetry().totalKineticEnergy;
     return 0.0;
 }
 
-double QmlGlViewport::livePotentialEnergy() const
-{
-    if (m_ui4d) return m_ui4d->telemetry().totalPotentialEnergy;
+double QmlGlViewport::livePotentialEnergy() const {
+    if (m_ui4d)
+        return m_ui4d->telemetry().totalPotentialEnergy;
     return 0.0;
 }
 
-double QmlGlViewport::liveTotalEnergy() const
-{
-    if (m_ui4d) return m_ui4d->telemetry().totalEnergy;
+double QmlGlViewport::liveTotalEnergy() const {
+    if (m_ui4d)
+        return m_ui4d->telemetry().totalEnergy;
     return 0.0;
 }
 
-double QmlGlViewport::liveEarthSpeed() const
-{
-    if (m_ui4d) return m_ui4d->telemetry().earthOrbitalSpeed;
+double QmlGlViewport::liveEarthSpeed() const {
+    if (m_ui4d)
+        return m_ui4d->telemetry().earthOrbitalSpeed;
     return 0.0;
 }
 
-double QmlGlViewport::physicsG() const
-{
+double QmlGlViewport::physicsG() const {
     return quantumverse::PhysicsConstants::instance().get_G();
 }
 
-void QmlGlViewport::setPhysicsG(double G)
-{
+void QmlGlViewport::setPhysicsG(double G) {
     quantumverse::PhysicsConstants::instance().set_G(G);
     emit physicsConstantsChanged();
     update();
 }
 
-double QmlGlViewport::physicsC() const
-{
+double QmlGlViewport::physicsC() const {
     return quantumverse::PhysicsConstants::instance().get_c();
 }
 
-void QmlGlViewport::setPhysicsC(double c)
-{
+void QmlGlViewport::setPhysicsC(double c) {
     quantumverse::PhysicsConstants::instance().set_c(c);
     emit physicsConstantsChanged();
     update();
 }
 
-double QmlGlViewport::physicsGLog() const
-{
+double QmlGlViewport::physicsGLog() const {
     return quantumverse::PhysicsConstants::instance().get_G_log();
 }
 
-void QmlGlViewport::setPhysicsGLog(double log10_G)
-{
+void QmlGlViewport::setPhysicsGLog(double log10_G) {
     quantumverse::PhysicsConstants::instance().set_G_log(log10_G);
     emit physicsConstantsChanged();
     update();
 }
 
-double QmlGlViewport::gravitationalWaveStrain() const
-{
-    if (m_ui4d) return m_ui4d->telemetry().gravitationalWaveStrain;
+double QmlGlViewport::gravitationalWaveStrain() const {
+    if (m_ui4d)
+        return m_ui4d->telemetry().gravitationalWaveStrain;
     return 0.0;
 }
 
-double QmlGlViewport::gravitationalWaveFreq() const
-{
-    if (m_ui4d) return m_ui4d->telemetry().gravitationalWaveFreq;
+double QmlGlViewport::gravitationalWaveFreq() const {
+    if (m_ui4d)
+        return m_ui4d->telemetry().gravitationalWaveFreq;
     return 0.0;
 }
 
-void QmlGlViewport::setAudioEnabled(bool enabled)
-{
+void QmlGlViewport::setAudioEnabled(bool enabled) {
     if (enabled && !m_gwAudio) {
         m_gwAudio = new quantumverse::GravitationalWaveAudio(this);
         m_gwAudio->setVolume(m_audioVolume);
@@ -3077,71 +3181,82 @@ void QmlGlViewport::setAudioEnabled(bool enabled)
     m_audioEnabled = enabled;
 }
 
-bool QmlGlViewport::audioEnabled() const
-{
+bool QmlGlViewport::audioEnabled() const {
     return m_audioEnabled;
 }
 
-void QmlGlViewport::setAudioVolume(double volume)
-{
+void QmlGlViewport::setAudioVolume(double volume) {
     m_audioVolume = std::clamp(volume, 0.0, 1.0);
     if (m_gwAudio) {
         // Volume update would require modifying the audio sink
     }
 }
 
-double QmlGlViewport::audioVolume() const
-{
+double QmlGlViewport::audioVolume() const {
     return m_audioVolume;
 }
 
 void QmlGlViewport::setAudioSourcePosition(double x, double y, double z) {
-    if (m_gwAudio) m_gwAudio->setSourcePosition(x, y, z);
+    if (m_gwAudio)
+        m_gwAudio->setSourcePosition(x, y, z);
 }
 
 void QmlGlViewport::setAudioListenerPosition(double x, double y, double z) {
-    if (m_gwAudio) m_gwAudio->setListenerPosition(x, y, z);
+    if (m_gwAudio)
+        m_gwAudio->setListenerPosition(x, y, z);
 }
 
 void QmlGlViewport::setAudioListenerForward(double fx, double fy, double fz) {
-    if (m_gwAudio) m_gwAudio->setListenerForward(fx, fy, fz);
+    if (m_gwAudio)
+        m_gwAudio->setListenerForward(fx, fy, fz);
 }
 
 void QmlGlViewport::setAudioPan(double pan) {
-    if (m_gwAudio) m_gwAudio->setPan(pan);
+    if (m_gwAudio)
+        m_gwAudio->setPan(pan);
 }
 
 void QmlGlViewport::setWaveformMode(int mode) {
-    if (!m_gwAudio) return;
+    if (!m_gwAudio)
+        return;
     switch (mode) {
-        case 0: m_gwAudio->setWaveformMode(quantumverse::GravitationalWaveAudio::WaveformMode::Sine); break;
-        case 1: m_gwAudio->setWaveformMode(quantumverse::GravitationalWaveAudio::WaveformMode::Chirp); break;
-        case 2: m_gwAudio->setWaveformMode(quantumverse::GravitationalWaveAudio::WaveformMode::InspiralMergerRingdown); break;
+        case 0:
+            m_gwAudio->setWaveformMode(quantumverse::GravitationalWaveAudio::WaveformMode::Sine);
+            break;
+        case 1:
+            m_gwAudio->setWaveformMode(quantumverse::GravitationalWaveAudio::WaveformMode::Chirp);
+            break;
+        case 2:
+            m_gwAudio->setWaveformMode(
+                quantumverse::GravitationalWaveAudio::WaveformMode::InspiralMergerRingdown);
+            break;
     }
 }
 
-void QmlGlViewport::injectAsteroid(double x, double y, double z, double vx, double vy, double vz, double mass)
-{
+void QmlGlViewport::injectAsteroid(double x, double y, double z, double vx, double vy, double vz,
+                                   double mass) {
     if (m_ui4d) {
         // Push undo command
-        pushCommand(QString("Inject Asteroid (m=%1 kg)").arg(mass, 0, 'e', 1),
-            [this]() { 
+        pushCommand(
+            QString("Inject Asteroid (m=%1 kg)").arg(mass, 0, 'e', 1),
+            [this]() {
                 // Undo: remove last asteroid
-                if (m_ui4d) m_ui4d->removeLastAsteroid();
+                if (m_ui4d)
+                    m_ui4d->removeLastAsteroid();
             },
             [this, x, y, z, vx, vy, vz, mass]() {
                 // Redo: re-inject
-                if (m_ui4d) m_ui4d->injectAsteroid(x, y, z, vx, vy, vz, mass);
+                if (m_ui4d)
+                    m_ui4d->injectAsteroid(x, y, z, vx, vy, vz, mass);
             });
-        
+
         m_ui4d->injectAsteroid(x, y, z, vx, vy, vz, mass);
         emit telemetryUpdated();
         update();
     }
 }
 
-void QmlGlViewport::clearAsteroids()
-{
+void QmlGlViewport::clearAsteroids() {
     if (m_ui4d) {
         m_ui4d->clearAsteroids();
         emit telemetryUpdated();
@@ -3149,17 +3264,16 @@ void QmlGlViewport::clearAsteroids()
     }
 }
 
-int QmlGlViewport::asteroidCount() const
-{
+int QmlGlViewport::asteroidCount() const {
     if (m_ui4d) {
         return m_ui4d->asteroidCount();
     }
     return 0;
 }
 
-void QmlGlViewport::setBlackHoleType(const QString& type)
-{
-    if (m_blackHoleType == type) return;
+void QmlGlViewport::setBlackHoleType(const QString& type) {
+    if (m_blackHoleType == type)
+        return;
     m_blackHoleType = type;
     emit blackHoleTypeChanged();
     if (m_curvatureRenderer) {
@@ -3184,31 +3298,32 @@ void QmlGlViewport::setBlackHoleType(const QString& type)
     update();
 }
 
-QString QmlGlViewport::blackHoleType() const
-{
+QString QmlGlViewport::blackHoleType() const {
     return m_blackHoleType;
 }
 
-void QmlGlViewport::handleMousePress(float x, float y, int button)
-{
-    Q_UNUSED(x); Q_UNUSED(y); Q_UNUSED(button);
+void QmlGlViewport::handleMousePress(float x, float y, int button) {
+    Q_UNUSED(x);
+    Q_UNUSED(y);
+    Q_UNUSED(button);
     // Mouse interaction handled via QML MouseArea
 }
 
-void QmlGlViewport::handleMouseMove(float x, float y, int buttons)
-{
-    Q_UNUSED(x); Q_UNUSED(y); Q_UNUSED(buttons);
+void QmlGlViewport::handleMouseMove(float x, float y, int buttons) {
+    Q_UNUSED(x);
+    Q_UNUSED(y);
+    Q_UNUSED(buttons);
     // Mouse interaction handled via QML MouseArea
 }
 
-void QmlGlViewport::handleMouseReleased(float x, float y, int button)
-{
-    Q_UNUSED(x); Q_UNUSED(y); Q_UNUSED(button);
+void QmlGlViewport::handleMouseReleased(float x, float y, int button) {
+    Q_UNUSED(x);
+    Q_UNUSED(y);
+    Q_UNUSED(button);
     // Mouse interaction handled via QML MouseArea
 }
 
-void QmlGlViewport::setSliceOffset(int viewIndex, double offset)
-{
+void QmlGlViewport::setSliceOffset(int viewIndex, double offset) {
     if (m_renderer) {
         m_renderer->setSliceOffset(viewIndex, offset);
     }
@@ -3217,8 +3332,7 @@ void QmlGlViewport::setSliceOffset(int viewIndex, double offset)
     }
 }
 
-void QmlGlViewport::handleWheel(float delta)
-{
+void QmlGlViewport::handleWheel(float delta) {
     if (delta > 0) {
         zoomIn();
     } else {
@@ -3227,29 +3341,28 @@ void QmlGlViewport::handleWheel(float delta)
 }
 
 #ifdef QUANTUMVERSE_USE_VR
-void QmlGlViewport::setVrEnabled(bool enabled)
-{
-    if (m_vrEnabled == enabled) return;
+void QmlGlViewport::setVrEnabled(bool enabled) {
+    if (m_vrEnabled == enabled)
+        return;
     m_vrEnabled = enabled;
     emit vrEnabledChanged();
 }
 
-void QmlGlViewport::setVrActive(bool active)
-{
-    if (m_vrActive == active) return;
+void QmlGlViewport::setVrActive(bool active) {
+    if (m_vrActive == active)
+        return;
     m_vrActive = active;
     emit vrActiveChanged();
 }
 
-void QmlGlViewport::setVrIpd(float ipd)
-{
-    if (qFuzzyCompare(m_vrIpd, ipd)) return;
+void QmlGlViewport::setVrIpd(float ipd) {
+    if (qFuzzyCompare(m_vrIpd, ipd))
+        return;
     m_vrIpd = ipd;
     emit vrIpdChanged();
 }
 
-void QmlGlViewport::toggleVR()
-{
+void QmlGlViewport::toggleVR() {
     setVrEnabled(!m_vrEnabled);
     if (m_vrEnabled) {
         setVrActive(true);
@@ -3258,10 +3371,10 @@ void QmlGlViewport::toggleVR()
     }
 }
 
-void QmlGlViewport::updateVRControllerInput()
-{
+void QmlGlViewport::updateVRControllerInput() {
 #ifdef QUANTUMVERSE_USE_VR
-    if (!m_vrActive || !m_camera4DAdapter) return;
+    if (!m_vrActive || !m_camera4DAdapter)
+        return;
 
     // VR controller input is polled from the OpenXR backend in main_qml.cpp
     // and fed into the Camera4DAdapter here. The actual polling happens
@@ -3275,10 +3388,12 @@ void QmlGlViewport::updateVRControllerInput()
 #endif
 
 #ifdef QUANTUMVERSE_USE_VR
-void QmlGlViewport::updateRemoteParticipant(const QString& id, const QString& name, const QVariantList& cameraMatrix, const QVariantList& position, bool vrActive)
-{
-    auto it = std::find_if(m_remoteParticipants.begin(), m_remoteParticipants.end(),
-                           [&id](const RemoteParticipant& p) { return QString::fromStdString(p.id) == id; });
+void QmlGlViewport::updateRemoteParticipant(const QString& id, const QString& name,
+                                            const QVariantList& cameraMatrix,
+                                            const QVariantList& position, bool vrActive) {
+    auto it = std::find_if(
+        m_remoteParticipants.begin(), m_remoteParticipants.end(),
+        [&id](const RemoteParticipant& p) { return QString::fromStdString(p.id) == id; });
     if (it != m_remoteParticipants.end()) {
         it->name = name.toStdString();
         for (size_t i = 0; i < 16 && i < static_cast<size_t>(cameraMatrix.size()); ++i)
@@ -3301,18 +3416,18 @@ void QmlGlViewport::updateRemoteParticipant(const QString& id, const QString& na
     }
 }
 
-void QmlGlViewport::removeRemoteParticipant(const QString& id)
-{
-    m_remoteParticipants.erase(
-        std::remove_if(m_remoteParticipants.begin(), m_remoteParticipants.end(),
-                       [&id](const RemoteParticipant& p) { return QString::fromStdString(p.id) == id; }),
-        m_remoteParticipants.end()
-    );
+void QmlGlViewport::removeRemoteParticipant(const QString& id) {
+    m_remoteParticipants.erase(std::remove_if(m_remoteParticipants.begin(),
+                                              m_remoteParticipants.end(),
+                                              [&id](const RemoteParticipant& p) {
+                                                  return QString::fromStdString(p.id) == id;
+                                              }),
+                               m_remoteParticipants.end());
 }
 
-void QmlGlViewport::setShowGhostCameras(bool show)
-{
-    if (m_showGhostCameras == show) return;
+void QmlGlViewport::setShowGhostCameras(bool show) {
+    if (m_showGhostCameras == show)
+        return;
     m_showGhostCameras = show;
     emit showGhostCamerasChanged();
 }
@@ -3329,21 +3444,19 @@ void QmlGlViewport::setShowGhostCameras(bool show)
 // with GL_INVALID_OPERATION, and there is no supported way to wrap a raw GL
 // texture id into a QSGTexture in Qt 6.
 // ---------------------------------------------------------------------------
-class QmlGlViewport::ViewportRenderer : public QQuickFramebufferObject::Renderer
-{
-public:
+class QmlGlViewport::ViewportRenderer : public QQuickFramebufferObject::Renderer {
+   public:
     explicit ViewportRenderer(QmlGlRenderer* gl) : m_gl(gl) {}
 
-    QOpenGLFramebufferObject* createFramebufferObject(const QSize& size) override
-    {
+    QOpenGLFramebufferObject* createFramebufferObject(const QSize& size) override {
         QOpenGLFramebufferObjectFormat format;
         format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
         auto* fbo = new QOpenGLFramebufferObject(size, format);
         m_fbo = fbo;
         if (m_gl) {
-            const float aspect = size.height() > 0
-                ? static_cast<float>(size.width()) / static_cast<float>(size.height())
-                : 1.0f;
+            const float aspect = size.height() > 0 ? static_cast<float>(size.width()) /
+                                                         static_cast<float>(size.height())
+                                                   : 1.0f;
             QMatrix4x4 proj;
             proj.perspective(45.0f, aspect, 0.1f, 1000.0f);
             m_gl->setProjectionMatrix(proj);
@@ -3352,8 +3465,7 @@ public:
         return fbo;
     }
 
-    void synchronize(QQuickFramebufferObject* item) override
-    {
+    void synchronize(QQuickFramebufferObject* item) override {
         auto* vp = static_cast<QmlGlViewport*>(item);
         m_item = vp;
         if (!m_gl) {
@@ -3376,78 +3488,78 @@ public:
         m_gl->setPeerBodies(vp->m_peerBodies);
     }
 
-    void render() override
-    {
+    void render() override {
         if (!m_gl || !m_fbo) {
             static int s_nullDiag = 0;
             if (s_nullDiag++ < 5) {
-                qWarning() << "[DIAG-viewportRender] EARLY RETURN: m_gl=" << (m_gl ? "valid" : "NULL")
-                           << " m_fbo=" << (m_fbo ? "valid" : "NULL");
+                qWarning() << "[DIAG-viewportRender] EARLY RETURN: m_gl="
+                           << (m_gl ? "valid" : "NULL") << " m_fbo=" << (m_fbo ? "valid" : "NULL");
             }
             return;
         }
         try {
-        m_fbo->bind();
-        // m_gl->render() must run FIRST: it initializes GL/GLAD on the first
-        // frame, which is required before any glad_* call (GL_CHECK below uses
-        // glad_glGetError, and the viewport is set inside render()). The FBO
-        // is already bound above, so initializeGL() sees a current context.
-        if (m_gl) {
-            m_gl->render();
-        }
-        GL_CHECK();
-        if (m_showHUD && m_gl) {
-            m_gl->renderHUD();
-            GL_CHECK();
-        }
-        if (m_gl && m_gl->screenshotRequested()) {
-            // Ensure all GPU commands are completed before reading back
-            glFinish();
-            // Bind the FBO explicitly before toImage() (defensive — it should already be bound)
             m_fbo->bind();
-            QImage img = m_fbo->toImage();
-            if (!img.save(m_gl->screenshotPath())) {
-                qWarning() << "QmlGlViewport: Failed to save screenshot to" << m_gl->screenshotPath();
-            } else {
-                qWarning() << "QmlGlViewport: Screenshot saved to" << m_gl->screenshotPath();
+            // m_gl->render() must run FIRST: it initializes GL/GLAD on the first
+            // frame, which is required before any glad_* call (GL_CHECK below uses
+            // glad_glGetError, and the viewport is set inside render()). The FBO
+            // is already bound above, so initializeGL() sees a current context.
+            if (m_gl) {
+                m_gl->render();
             }
-            m_gl->clearScreenshotRequest();
-            QCoreApplication::quit();
-        }
-        m_fbo->release();
+            GL_CHECK();
+            if (m_showHUD && m_gl) {
+                m_gl->renderHUD();
+                GL_CHECK();
+            }
+            if (m_gl && m_gl->screenshotRequested()) {
+                // Ensure all GPU commands are completed before reading back
+                glFinish();
+                // Bind the FBO explicitly before toImage() (defensive — it should already be bound)
+                m_fbo->bind();
+                QImage img = m_fbo->toImage();
+                if (!img.save(m_gl->screenshotPath())) {
+                    qWarning() << "QmlGlViewport: Failed to save screenshot to"
+                               << m_gl->screenshotPath();
+                } else {
+                    qWarning() << "QmlGlViewport: Screenshot saved to" << m_gl->screenshotPath();
+                }
+                m_gl->clearScreenshotRequest();
+                QCoreApplication::quit();
+            }
+            m_fbo->release();
 
-        if (m_item && m_gl && m_gl->getFrameTime() > 0.0f) {
-            float fps = 1.0f / m_gl->getFrameTime();
-            QMetaObject::invokeMethod(m_item, "updateFrameRate",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(float, fps));
-        }
+            if (m_item && m_gl && m_gl->getFrameTime() > 0.0f) {
+                float fps = 1.0f / m_gl->getFrameTime();
+                QMetaObject::invokeMethod(m_item, "updateFrameRate", Qt::QueuedConnection,
+                                          Q_ARG(float, fps));
+            }
 
-        if (m_item) {
-            QMetaObject::invokeMethod(m_item, "update", Qt::QueuedConnection);
-        }
+            if (m_item) {
+                QMetaObject::invokeMethod(m_item, "update", Qt::QueuedConnection);
+            }
         } catch (const std::exception& e) {
-            std::ofstream("qml_runtime.log", std::ios::app) << "[VIEWPORT-RENDER-EXCEPTION] " << e.what() << "\n";
+            std::ofstream("qml_runtime.log", std::ios::app)
+                << "[VIEWPORT-RENDER-EXCEPTION] " << e.what() << "\n";
             qWarning() << "ViewportRenderer::render() threw:" << e.what();
         } catch (...) {
-            std::ofstream("qml_runtime.log", std::ios::app) << "[VIEWPORT-RENDER-EXCEPTION] unknown\n";
+            std::ofstream("qml_runtime.log", std::ios::app)
+                << "[VIEWPORT-RENDER-EXCEPTION] unknown\n";
             qWarning() << "ViewportRenderer::render() threw unknown exception";
         }
     }
 
-private:
+   private:
     QmlGlRenderer* m_gl = nullptr;
     QOpenGLFramebufferObject* m_fbo = nullptr;
     QmlGlViewport* m_item = nullptr;
     bool m_showHUD = false;
 };
 
-QQuickFramebufferObject::Renderer* QmlGlViewport::createRenderer() const
-{
+QQuickFramebufferObject::Renderer* QmlGlViewport::createRenderer() const {
     return new QmlGlViewport::ViewportRenderer(m_renderer);
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
 
 // ============================================================================
 // Post-processing / bloom control methods
@@ -3455,14 +3567,13 @@ QQuickFramebufferObject::Renderer* QmlGlViewport::createRenderer() const
 
 namespace quantumverse {
 
-bool QmlGlViewport::bloomEnabled() const
-{
+bool QmlGlViewport::bloomEnabled() const {
     return m_bloomEnabled;
 }
 
-void QmlGlViewport::setBloomEnabled(bool enabled)
-{
-    if (m_bloomEnabled == enabled) return;
+void QmlGlViewport::setBloomEnabled(bool enabled) {
+    if (m_bloomEnabled == enabled)
+        return;
     m_bloomEnabled = enabled;
     if (m_postProcess) {
         m_postProcess->setBloomEnabled(enabled);
@@ -3471,14 +3582,13 @@ void QmlGlViewport::setBloomEnabled(bool enabled)
     update();
 }
 
-float QmlGlViewport::bloomIntensity() const
-{
+float QmlGlViewport::bloomIntensity() const {
     return m_bloomIntensity;
 }
 
-void QmlGlViewport::setBloomIntensity(float intensity)
-{
-    if (qFuzzyCompare(m_bloomIntensity, intensity)) return;
+void QmlGlViewport::setBloomIntensity(float intensity) {
+    if (qFuzzyCompare(m_bloomIntensity, intensity))
+        return;
     m_bloomIntensity = intensity;
     if (m_postProcess) {
         m_postProcess->setBloomIntensity(intensity);
@@ -3487,14 +3597,13 @@ void QmlGlViewport::setBloomIntensity(float intensity)
     update();
 }
 
-float QmlGlViewport::bloomThreshold() const
-{
+float QmlGlViewport::bloomThreshold() const {
     return m_bloomThreshold;
 }
 
-void QmlGlViewport::setBloomThreshold(float threshold)
-{
-    if (qFuzzyCompare(m_bloomThreshold, threshold)) return;
+void QmlGlViewport::setBloomThreshold(float threshold) {
+    if (qFuzzyCompare(m_bloomThreshold, threshold))
+        return;
     m_bloomThreshold = threshold;
     if (m_postProcess) {
         m_postProcess->setBloomThreshold(threshold);
@@ -3503,14 +3612,13 @@ void QmlGlViewport::setBloomThreshold(float threshold)
     update();
 }
 
-int QmlGlViewport::toneMappingMode() const
-{
+int QmlGlViewport::toneMappingMode() const {
     return m_toneMappingMode;
 }
 
-void QmlGlViewport::setToneMappingMode(int mode)
-{
-    if (m_toneMappingMode == mode) return;
+void QmlGlViewport::setToneMappingMode(int mode) {
+    if (m_toneMappingMode == mode)
+        return;
     m_toneMappingMode = mode;
     if (m_postProcess) {
         m_postProcess->setToneMappingMode(mode);
@@ -3519,14 +3627,13 @@ void QmlGlViewport::setToneMappingMode(int mode)
     update();
 }
 
-float QmlGlViewport::exposure() const
-{
+float QmlGlViewport::exposure() const {
     return m_exposure;
 }
 
-void QmlGlViewport::setExposure(float exposure)
-{
-    if (qFuzzyCompare(m_exposure, exposure)) return;
+void QmlGlViewport::setExposure(float exposure) {
+    if (qFuzzyCompare(m_exposure, exposure))
+        return;
     m_exposure = exposure;
     if (m_postProcess) {
         m_postProcess->setExposure(exposure);
@@ -3535,9 +3642,9 @@ void QmlGlViewport::setExposure(float exposure)
     update();
 }
 
-void QmlGlViewport::setToolbarOverflow(bool overflow)
-{
-    if (m_toolbarOverflow == overflow) return;
+void QmlGlViewport::setToolbarOverflow(bool overflow) {
+    if (m_toolbarOverflow == overflow)
+        return;
     m_toolbarOverflow = overflow;
     update();
 }
@@ -3568,7 +3675,8 @@ void QmlGlViewport::loadScenario(const QString& name) {
 }
 
 void QmlGlViewport::playScenario() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->playScenario();
     m_scenarioPlaying = m_ui4d->isScenarioPlaying();
     emit scenarioChanged();
@@ -3576,7 +3684,8 @@ void QmlGlViewport::playScenario() {
 }
 
 void QmlGlViewport::pauseScenario() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->pauseScenario();
     m_scenarioPlaying = m_ui4d->isScenarioPlaying();
     emit scenarioChanged();
@@ -3584,7 +3693,8 @@ void QmlGlViewport::pauseScenario() {
 }
 
 void QmlGlViewport::stopScenario() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->stopScenario();
     m_scenarioPlaying = false;
     m_scenarioTime = 0.0;
@@ -3634,7 +3744,8 @@ bool QmlGlViewport::scenarioPlaying() const {
 // --- Telemetry Recording & Replay ---
 
 void QmlGlViewport::startRecording(int maxFrames, int frameInterval) {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     quantumverse::SessionRecorderConfig cfg;
     cfg.maxFrames = maxFrames;
     cfg.frameInterval = frameInterval;
@@ -3649,7 +3760,8 @@ void QmlGlViewport::startRecording(int maxFrames, int frameInterval) {
 }
 
 void QmlGlViewport::stopRecording() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->stopRecording();
     m_sessionRecorder->stop();
     m_recording = false;
@@ -3660,7 +3772,8 @@ void QmlGlViewport::stopRecording() {
 }
 
 void QmlGlViewport::playRecording() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->playRecording();
     m_playing = true;
     emit playbackChanged();
@@ -3668,7 +3781,8 @@ void QmlGlViewport::playRecording() {
 }
 
 void QmlGlViewport::pausePlayback() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->pausePlayback();
     m_playing = false;
     emit playbackChanged();
@@ -3676,7 +3790,8 @@ void QmlGlViewport::pausePlayback() {
 }
 
 void QmlGlViewport::stopPlayback() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->stopPlayback();
     m_playing = false;
     m_currentFrame = 0;
@@ -3685,7 +3800,8 @@ void QmlGlViewport::stopPlayback() {
 }
 
 void QmlGlViewport::scrubToFrame(int frameIndex) {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->scrubToFrame(frameIndex);
     m_currentFrame = frameIndex;
     emit playbackChanged();
@@ -3693,7 +3809,8 @@ void QmlGlViewport::scrubToFrame(int frameIndex) {
 }
 
 void QmlGlViewport::scrubToTime(double time) {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->scrubToTime(time);
     // Update current frame from UI4D
     m_currentFrame = m_ui4d->currentRecordingFrame();
@@ -3702,12 +3819,14 @@ void QmlGlViewport::scrubToTime(double time) {
 }
 
 void QmlGlViewport::exportRecording(const QString& filepath) {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->exportToCSV(filepath.toStdString());
 }
 
 void QmlGlViewport::clearRecording() {
-    if (!m_ui4d) return;
+    if (!m_ui4d)
+        return;
     m_ui4d->clearRecording();
     m_recording = false;
     m_playing = false;
@@ -3728,104 +3847,114 @@ bool QmlGlViewport::isPlaying() const {
 }
 
 int QmlGlViewport::currentFrame() const {
-    if (m_ui4d) return m_ui4d->currentRecordingFrame();
+    if (m_ui4d)
+        return m_ui4d->currentRecordingFrame();
     return m_currentFrame;
 }
 
 int QmlGlViewport::totalFrames() const {
-    if (m_ui4d) return m_ui4d->totalRecordingFrames();
+    if (m_ui4d)
+        return m_ui4d->totalRecordingFrames();
     return m_totalFrames;
 }
 
 double QmlGlViewport::recordingDuration() const {
-     if (m_ui4d) return m_ui4d->recordingDuration();
-     return m_recordingDuration;
- }
+    if (m_ui4d)
+        return m_ui4d->recordingDuration();
+    return m_recordingDuration;
+}
 
- // ============================================================================
- // Undo/Redo Implementation
- // ============================================================================
+// ============================================================================
+// Undo/Redo Implementation
+// ============================================================================
 
- void QmlGlViewport::pushCommand(const QString& description, std::function<void()> undo, std::function<void()> redo) {
-     if (m_isUndoRedoAction) return; // Don't record undo/redo actions
-     
-     Command cmd{description, undo, redo};
-     m_undoStack.push_back(cmd);
-     truncateUndoStack();
-     m_redoStack.clear(); // Clear redo stack when new command is pushed
-     emit undoRedoChanged();
- }
+void QmlGlViewport::pushCommand(const QString& description, std::function<void()> undo,
+                                std::function<void()> redo) {
+    if (m_isUndoRedoAction)
+        return;  // Don't record undo/redo actions
 
- void QmlGlViewport::truncateUndoStack() {
-     while (static_cast<int>(m_undoStack.size()) > m_maxUndoSteps) {
-         m_undoStack.erase(m_undoStack.begin());
-     }
- }
+    Command cmd{description, undo, redo};
+    m_undoStack.push_back(cmd);
+    truncateUndoStack();
+    m_redoStack.clear();  // Clear redo stack when new command is pushed
+    emit undoRedoChanged();
+}
 
- void QmlGlViewport::truncateRedoStack() {
-     while (static_cast<int>(m_redoStack.size()) > m_maxUndoSteps) {
-         m_redoStack.erase(m_redoStack.begin());
-     }
- }
+void QmlGlViewport::truncateUndoStack() {
+    while (static_cast<int>(m_undoStack.size()) > m_maxUndoSteps) {
+        m_undoStack.erase(m_undoStack.begin());
+    }
+}
 
- void QmlGlViewport::undo() {
-     if (m_undoStack.empty()) return;
-     
-     m_isUndoRedoAction = true;
-     Command cmd = m_undoStack.back();
-     m_undoStack.pop_back();
-     cmd.undo();
-     m_redoStack.push_back(cmd);
-     truncateRedoStack();
-     m_isUndoRedoAction = false;
-     emit undoRedoChanged();
-     update();
- }
+void QmlGlViewport::truncateRedoStack() {
+    while (static_cast<int>(m_redoStack.size()) > m_maxUndoSteps) {
+        m_redoStack.erase(m_redoStack.begin());
+    }
+}
 
- void QmlGlViewport::redo() {
-     if (m_redoStack.empty()) return;
-     
-     m_isUndoRedoAction = true;
-     Command cmd = m_redoStack.back();
-     m_redoStack.pop_back();
-     cmd.redo();
-     m_undoStack.push_back(cmd);
-     truncateUndoStack();
-     m_isUndoRedoAction = false;
-     emit undoRedoChanged();
-     update();
- }
+void QmlGlViewport::undo() {
+    if (m_undoStack.empty())
+        return;
 
- void QmlGlViewport::clearUndoRedo() {
-     m_undoStack.clear();
-     m_redoStack.clear();
-     emit undoRedoChanged();
- }
+    m_isUndoRedoAction = true;
+    Command cmd = m_undoStack.back();
+    m_undoStack.pop_back();
+    cmd.undo();
+    m_redoStack.push_back(cmd);
+    truncateRedoStack();
+    m_isUndoRedoAction = false;
+    emit undoRedoChanged();
+    update();
+}
 
- bool QmlGlViewport::canUndo() const {
-     return !m_undoStack.empty();
- }
+void QmlGlViewport::redo() {
+    if (m_redoStack.empty())
+        return;
 
- bool QmlGlViewport::canRedo() const {
-     return !m_redoStack.empty();
- }
+    m_isUndoRedoAction = true;
+    Command cmd = m_redoStack.back();
+    m_redoStack.pop_back();
+    cmd.redo();
+    m_undoStack.push_back(cmd);
+    truncateUndoStack();
+    m_isUndoRedoAction = false;
+    emit undoRedoChanged();
+    update();
+}
 
- QString QmlGlViewport::undoDescription() const {
-     if (m_undoStack.empty()) return "";
-     return m_undoStack.back().description;
- }
+void QmlGlViewport::clearUndoRedo() {
+    m_undoStack.clear();
+    m_redoStack.clear();
+    emit undoRedoChanged();
+}
 
- QString QmlGlViewport::redoDescription() const {
-     if (m_redoStack.empty()) return "";
-     return m_redoStack.back().description;
- }
+bool QmlGlViewport::canUndo() const {
+    return !m_undoStack.empty();
+}
 
-  // ============================================================================
-  // Gravitational Lensing Implementation
-  // ============================================================================
+bool QmlGlViewport::canRedo() const {
+    return !m_redoStack.empty();
+}
+
+QString QmlGlViewport::undoDescription() const {
+    if (m_undoStack.empty())
+        return "";
+    return m_undoStack.back().description;
+}
+
+QString QmlGlViewport::redoDescription() const {
+    if (m_redoStack.empty())
+        return "";
+    return m_redoStack.back().description;
+}
+
+// ============================================================================
+// Gravitational Lensing Implementation
+// ============================================================================
 
 void QmlGlRenderer::renderLensing() {
-    if (!m_lensing) return;
+    if (!m_lensing)
+        return;
 
     // Lazily initialize on first draw -- the GL context exists by now, and
     // relying solely on synchronize() (which may not run before the first
@@ -3848,18 +3977,21 @@ void QmlGlRenderer::renderLensing() {
     m_lensing->render(m_viewMatrix.constData(), m_projectionMatrix.constData());
 
     // Restore GL state
-    if (prevDepthTest) glEnable(GL_DEPTH_TEST);
-    else glDisable(GL_DEPTH_TEST);
+    if (prevDepthTest)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
 }
 
- void QmlGlRenderer::setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing) {
-     m_lensing = std::move(lensing);
- }
+void QmlGlRenderer::setLensingRenderer(std::shared_ptr<GravitationalLensing> lensing) {
+    m_lensing = std::move(lensing);
+}
 
 void QmlGlViewport::setLensingEnabled(bool enabled) {
     if (m_lensingEnabled != enabled || !m_lensing) {
         m_lensingEnabled = enabled;
-        if (!m_lensing) syncLensingParams();  // Lazily build the renderer on first enable
+        if (!m_lensing)
+            syncLensingParams();  // Lazily build the renderer on first enable
         if (m_lensing) {
             m_lensing->setEnabled(enabled);
         }
@@ -3874,132 +4006,134 @@ void QmlGlViewport::setLensingStarFieldEnabled(bool enabled) {
         m_lensing->setStarFieldEnabled(enabled);
         update();
     } else {
-        qWarning() << "[DIAG-setLensingStarFieldEnabled] m_lensing is null, cannot set starField=" << enabled;
+        qWarning() << "[DIAG-setLensingStarFieldEnabled] m_lensing is null, cannot set starField="
+                   << enabled;
     }
 }
 
 void QmlGlViewport::setLensingSteps(int steps) {
-     if (m_lensingSteps != steps) {
-         m_lensingSteps = std::clamp(steps, 32, 1024);
-         if (m_lensing) {
-             m_lensing->setRaySteps(m_lensingSteps);
-         }
-         emit lensingStepsChanged();
-         update();
-     }
- }
+    if (m_lensingSteps != steps) {
+        m_lensingSteps = std::clamp(steps, 32, 1024);
+        if (m_lensing) {
+            m_lensing->setRaySteps(m_lensingSteps);
+        }
+        emit lensingStepsChanged();
+        update();
+    }
+}
 
- void QmlGlViewport::setShadowIntensity(float intensity) {
-     float clamped = std::clamp(intensity, 0.0f, 1.0f);
-     if (std::abs(m_shadowIntensity - clamped) > 0.001f) {
-         m_shadowIntensity = clamped;
-         if (m_lensing) {
-             m_lensing->setShadowIntensity(clamped);
-         }
-         emit shadowIntensityChanged();
-         update();
-     }
- }
+void QmlGlViewport::setShadowIntensity(float intensity) {
+    float clamped = std::clamp(intensity, 0.0f, 1.0f);
+    if (std::abs(m_shadowIntensity - clamped) > 0.001f) {
+        m_shadowIntensity = clamped;
+        if (m_lensing) {
+            m_lensing->setShadowIntensity(clamped);
+        }
+        emit shadowIntensityChanged();
+        update();
+    }
+}
 
- void QmlGlViewport::setLensingMass(float mass) {
-     float clamped = std::max(mass, 0.1f);
-     if (std::abs(m_lensingMass - clamped) > 0.001f) {
-         m_lensingMass = clamped;
-         if (m_lensing) {
-             auto params = m_lensing->params();
-             params.mass = clamped;
-             m_lensing->setParams(params);
-         }
-         emit lensingMassChanged();
-         update();
-     }
- }
+void QmlGlViewport::setLensingMass(float mass) {
+    float clamped = std::max(mass, 0.1f);
+    if (std::abs(m_lensingMass - clamped) > 0.001f) {
+        m_lensingMass = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.mass = clamped;
+            m_lensing->setParams(params);
+        }
+        emit lensingMassChanged();
+        update();
+    }
+}
 
- void QmlGlViewport::setLensingSpin(float spin) {
-     float clamped = std::clamp(spin, 0.0f, 0.999f);
-     if (std::abs(m_lensingSpin - clamped) > 0.001f) {
-         m_lensingSpin = clamped;
-         if (m_lensing) {
-             auto params = m_lensing->params();
-             params.spin = clamped;
-             m_lensing->setParams(params);
-         }
-         emit lensingSpinChanged();
-         update();
-     }
- }
+void QmlGlViewport::setLensingSpin(float spin) {
+    float clamped = std::clamp(spin, 0.0f, 0.999f);
+    if (std::abs(m_lensingSpin - clamped) > 0.001f) {
+        m_lensingSpin = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.spin = clamped;
+            m_lensing->setParams(params);
+        }
+        emit lensingSpinChanged();
+        update();
+    }
+}
 
 void QmlGlViewport::setLensingDistance(float distance) {
-      float clamped = std::max(distance, 3.0f);
-      if (std::abs(m_lensingDistance - clamped) > 0.001f) {
-          m_lensingDistance = clamped;
-          if (m_lensing) {
-              auto params = m_lensing->params();
-              params.cameraDistance = clamped;
-              m_lensing->setParams(params);
-          }
-          emit lensingDistanceChanged();
-          update();
-      }
-  }
+    float clamped = std::max(distance, 3.0f);
+    if (std::abs(m_lensingDistance - clamped) > 0.001f) {
+        m_lensingDistance = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.cameraDistance = clamped;
+            m_lensing->setParams(params);
+        }
+        emit lensingDistanceChanged();
+        update();
+    }
+}
 
-  void QmlGlViewport::setLensingTheta(float theta) {
-      // cameraTheta is the polar angle from the +y spin axis:
-      //   pi/2 = equatorial (edge-on, disk in the plane of the sky)
-      //   < pi/2 = camera above the plane (inclined)
-      float clamped = std::clamp(theta, 0.05f, 3.14f);
-      if (std::abs(m_lensingTheta - clamped) > 0.001f) {
-          m_lensingTheta = clamped;
-          if (m_lensing) {
-              auto params = m_lensing->params();
-              params.cameraTheta = clamped;
-              m_lensing->setParams(params);
-          }
-          emit lensingThetaChanged();
-          update();
-      }
-  }
+void QmlGlViewport::setLensingTheta(float theta) {
+    // cameraTheta is the polar angle from the +y spin axis:
+    //   pi/2 = equatorial (edge-on, disk in the plane of the sky)
+    //   < pi/2 = camera above the plane (inclined)
+    float clamped = std::clamp(theta, 0.05f, 3.14f);
+    if (std::abs(m_lensingTheta - clamped) > 0.001f) {
+        m_lensingTheta = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.cameraTheta = clamped;
+            m_lensing->setParams(params);
+        }
+        emit lensingThetaChanged();
+        update();
+    }
+}
 
-  void QmlGlViewport::setLensingPhi(float phi) {
-      float clamped = std::fmod(phi, 6.28318530718f);
-      if (clamped < 0.0f) clamped += 6.28318530718f;
-      if (std::abs(m_lensingPhi - clamped) > 0.001f) {
-          m_lensingPhi = clamped;
-          if (m_lensing) {
-              auto params = m_lensing->params();
-              params.cameraPhi = clamped;
-              m_lensing->setParams(params);
-          }
-      emit lensingPhiChanged();
-      update();
-      }
-  }
+void QmlGlViewport::setLensingPhi(float phi) {
+    float clamped = std::fmod(phi, 6.28318530718f);
+    if (clamped < 0.0f)
+        clamped += 6.28318530718f;
+    if (std::abs(m_lensingPhi - clamped) > 0.001f) {
+        m_lensingPhi = clamped;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.cameraPhi = clamped;
+            m_lensing->setParams(params);
+        }
+        emit lensingPhiChanged();
+        update();
+    }
+}
 
-  void QmlGlViewport::setAccretionDiskEnabled(bool enabled) {
-     if (m_accretionDiskEnabled != enabled) {
-         m_accretionDiskEnabled = enabled;
-         if (m_lensing) {
-             auto params = m_lensing->params();
-             params.enableAccretionDisk = enabled;
-             m_lensing->setParams(params);
-         }
-         emit accretionDiskEnabledChanged();
-         update();
-     }
- }
+void QmlGlViewport::setAccretionDiskEnabled(bool enabled) {
+    if (m_accretionDiskEnabled != enabled) {
+        m_accretionDiskEnabled = enabled;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.enableAccretionDisk = enabled;
+            m_lensing->setParams(params);
+        }
+        emit accretionDiskEnabledChanged();
+        update();
+    }
+}
 
- void QmlGlViewport::setPhotonRingEnabled(bool enabled) {
-     if (m_photonRingEnabled != enabled) {
-         m_photonRingEnabled = enabled;
-         if (m_lensing) {
-             auto params = m_lensing->params();
-             params.enablePhotonRing = enabled;
-             m_lensing->setParams(params);
-         }
-         emit photonRingEnabledChanged();
-         update();
-     }
- }
+void QmlGlViewport::setPhotonRingEnabled(bool enabled) {
+    if (m_photonRingEnabled != enabled) {
+        m_photonRingEnabled = enabled;
+        if (m_lensing) {
+            auto params = m_lensing->params();
+            params.enablePhotonRing = enabled;
+            m_lensing->setParams(params);
+        }
+        emit photonRingEnabledChanged();
+        update();
+    }
+}
 
 void QmlGlViewport::setAccretionDiskIntensity(float intensity) {
     float clamped = std::clamp(intensity, 0.0f, 2.0f);
@@ -4124,28 +4258,26 @@ void QmlGlViewport::setVolumetricDiskInnerEdgeFade(float fade) {
     }
 }
 
- void QmlGlViewport::setLensingMetric(const QString& metricType) {
-     if (metricType == "kerr" || metricType == "Kerr") {
-         m_lensingMetric = std::make_shared<KerrMetric>(
-             1.989e30, m_lensingSpin);  // 1 solar mass
-     } else {
-         m_lensingMetric = std::make_shared<SchwarzschildMetric>(
-             1.989e30);  // 1 solar mass
-     }
-     if (m_lensing) {
-         m_lensing->setMetric(m_lensingMetric);
-     }
-     update();
- }
+void QmlGlViewport::setLensingMetric(const QString& metricType) {
+    if (metricType == "kerr" || metricType == "Kerr") {
+        m_lensingMetric = std::make_shared<KerrMetric>(1.989e30, m_lensingSpin);  // 1 solar mass
+    } else {
+        m_lensingMetric = std::make_shared<SchwarzschildMetric>(1.989e30);  // 1 solar mass
+    }
+    if (m_lensing) {
+        m_lensing->setMetric(m_lensingMetric);
+    }
+    update();
+}
 
- void QmlGlViewport::syncLensingParams() {
-     // Sync lensing parameters to the renderer
-     if (!m_lensing) {
-         // Create lensing renderer if it doesn't exist
-         if (!m_lensingMetric) {
-             m_lensingMetric = std::make_shared<KerrMetric>(1.989e30, m_lensingSpin);
-         }
-     m_lensing = std::make_shared<GravitationalLensing>(m_lensingMetric);
+void QmlGlViewport::syncLensingParams() {
+    // Sync lensing parameters to the renderer
+    if (!m_lensing) {
+        // Create lensing renderer if it doesn't exist
+        if (!m_lensingMetric) {
+            m_lensingMetric = std::make_shared<KerrMetric>(1.989e30, m_lensingSpin);
+        }
+        m_lensing = std::make_shared<GravitationalLensing>(m_lensingMetric);
     }
 
     // Sync the metric object's mass in place (no reallocation).  epoch()
@@ -4158,30 +4290,30 @@ void QmlGlViewport::setVolumetricDiskInnerEdgeFade(float fade) {
     // syncLensingParams() creates a fresh LensingParams (hasCameraPos defaults to false),
     // so we must carry over any existing override to avoid resetting it.
     bool hasCamPos = m_lensing ? m_lensing->hasLensingCameraPos() : false;
-    std::array<float,3> camPos = m_lensing ? m_lensing->lensingCameraPos() : std::array<float,3>{0.0f, 0.0f, 0.0f};
+    std::array<float, 3> camPos =
+        m_lensing ? m_lensing->lensingCameraPos() : std::array<float, 3>{0.0f, 0.0f, 0.0f};
 
     // Update all parameters
     GravitationalLensing::LensingParams params;
-      params.mass = m_lensingMass;
-      params.spin = m_lensingSpin;
-      params.cameraDistance = m_lensingDistance;
-      params.cameraTheta = m_lensingTheta;
-      params.cameraPhi = m_lensingPhi;
-      params.raySteps = m_lensingSteps;
-      params.hasCameraPos = hasCamPos;
-      if (hasCamPos) {
-          params.cameraPos = camPos;
-      }
-      params.shadowIntensity = m_shadowIntensity;
-params.enableAccretionDisk = m_accretionDiskEnabled;
+    params.mass = m_lensingMass;
+    params.spin = m_lensingSpin;
+    params.cameraDistance = m_lensingDistance;
+    params.cameraTheta = m_lensingTheta;
+    params.cameraPhi = m_lensingPhi;
+    params.raySteps = m_lensingSteps;
+    params.hasCameraPos = hasCamPos;
+    if (hasCamPos) {
+        params.cameraPos = camPos;
+    }
+    params.shadowIntensity = m_shadowIntensity;
+    params.enableAccretionDisk = m_accretionDiskEnabled;
     params.enablePhotonRing = m_photonRingEnabled;
     params.accretionDiskIntensity = m_accretionDiskIntensity;
     m_lensing->setParams(params);
 
     // Black hole position in world space — shader subtracts it from ray origin
-    m_lensing->setBlackHolePosition({m_gridBlackHoleCenter[0],
-                                     m_gridBlackHoleCenter[1],
-                                     m_gridBlackHoleCenter[2]});
+    m_lensing->setBlackHolePosition(
+        {m_gridBlackHoleCenter[0], m_gridBlackHoleCenter[1], m_gridBlackHoleCenter[2]});
 
     GravitationalLensing::VolumetricDiskParams vol;
     vol.enableVolumetricDisk = m_volumetricDiskEnabled;
@@ -4198,10 +4330,4 @@ params.enableAccretionDisk = m_accretionDiskEnabled;
     m_lensing->setEnabled(m_lensingEnabled);
 }
 
-} // namespace quantumverse
-
-
-
-
-
-
+}  // namespace quantumverse

@@ -4,8 +4,8 @@
  */
 
 #include "EMBrightGWCounterpartDetector.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 #ifndef M_PI
@@ -14,8 +14,7 @@
 
 namespace quantumverse {
 
-EMBrightGWCounterpartDetector::EMBrightGWCounterpartDetector()
-{
+EMBrightGWCounterpartDetector::EMBrightGWCounterpartDetector() {
     setParameter("angular_threshold_deg", 5.0);
     setParameter("time_window_sec", 600.0);
     setParameter("min_confidence", 0.7);
@@ -23,10 +22,9 @@ EMBrightGWCounterpartDetector::EMBrightGWCounterpartDetector()
     setParameter("em_weight", 1.0);
 }
 
-std::vector<InstrumentFinding> EMBrightGWCounterpartDetector::analyze(
-    const MetricTensor& metric, const Event4D& location,
-    const std::vector<Event4D>& trajectory)
-{
+std::vector<InstrumentFinding>
+EMBrightGWCounterpartDetector::analyze(const MetricTensor& metric, const Event4D& location,
+                                       const std::vector<Event4D>& trajectory) {
     (void)metric;
     std::vector<InstrumentFinding> findings;
 
@@ -35,7 +33,8 @@ std::vector<InstrumentFinding> EMBrightGWCounterpartDetector::analyze(
     double minConf = getParameter("min_confidence");
 
     size_t n = trajectory.size();
-    if (n < 2) return findings;
+    if (n < 2)
+        return findings;
 
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
@@ -53,15 +52,17 @@ std::vector<InstrumentFinding> EMBrightGWCounterpartDetector::analyze(
             double angSep = angularSeparation(a, b);
             double dt = timeDelaySec(a, b);
 
-            if (angSep > angThreshold) continue;
-            if (std::abs(dt) > timeWindow) continue;
+            if (angSep > angThreshold)
+                continue;
+            if (std::abs(dt) > timeWindow)
+                continue;
 
             double angScore = 1.0 - std::min(angSep / angThreshold, 1.0);
             double timeScore = 1.0 - std::min(std::abs(dt) / timeWindow, 1.0);
-            double confidence = std::max(0.0, std::min(1.0,
-                0.5 * angScore + 0.5 * timeScore));
+            double confidence = std::max(0.0, std::min(1.0, 0.5 * angScore + 0.5 * timeScore));
 
-            if (confidence < minConf) continue;
+            if (confidence < minConf)
+                continue;
 
             InstrumentFinding finding;
             finding.id = "EM_COUNTERPART_" + std::to_string(getTotalFindings());
@@ -71,10 +72,10 @@ std::vector<InstrumentFinding> EMBrightGWCounterpartDetector::analyze(
             finding.location = location;
             finding.timestamp = std::max(a.t, b.t);
 
-            finding.description = "GW-EM counterpart candidate: angular separation = "
-                + std::to_string(angSep) + " deg, time delay = "
-                + std::to_string(dt) + " s, confidence = "
-                + std::to_string(confidence);
+            finding.description =
+                "GW-EM counterpart candidate: angular separation = " + std::to_string(angSep) +
+                " deg, time delay = " + std::to_string(dt) +
+                " s, confidence = " + std::to_string(confidence);
             finding.parameters["angular_sep_deg"] = angSep;
             finding.parameters["time_delay_sec"] = dt;
             finding.parameters["confidence"] = confidence;
@@ -89,8 +90,7 @@ std::vector<InstrumentFinding> EMBrightGWCounterpartDetector::analyze(
     return findings;
 }
 
-double EMBrightGWCounterpartDetector::angularSeparation(const Event4D& a, const Event4D& b)
-{
+double EMBrightGWCounterpartDetector::angularSeparation(const Event4D& a, const Event4D& b) {
     double dra = a.x - b.x;
     double ddec = a.y - b.y;
     double cosDec = std::cos(a.y * M_PI / 180.0);
@@ -98,9 +98,8 @@ double EMBrightGWCounterpartDetector::angularSeparation(const Event4D& a, const 
     return std::sqrt(sep2);
 }
 
-double EMBrightGWCounterpartDetector::timeDelaySec(const Event4D& gw, const Event4D& em)
-{
+double EMBrightGWCounterpartDetector::timeDelaySec(const Event4D& gw, const Event4D& em) {
     return em.t - gw.t;
 }
 
-} // namespace quantumverse
+}  // namespace quantumverse
