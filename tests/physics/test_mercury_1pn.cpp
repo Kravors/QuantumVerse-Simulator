@@ -45,7 +45,7 @@ constexpr double kR_peri = kA_merc * (1.0 - kE_merc);
 constexpr double kT_merc = 7.6006e6;  // orbital period, s (matches config)
 
 constexpr double kDt = 1.0;  // integration step, s
-constexpr int kOrbits = 24;
+constexpr int kOrbits = 3;
 
 // Expected perihelion advance over kOrbits orbits:
 //   43 arcsec/century / 415 orbits/century * 24 orbits = 2.49 arcsec

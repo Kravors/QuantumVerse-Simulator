@@ -17,7 +17,8 @@
 #include <string>
 
 #ifdef _WIN32
-#include <windows.h>    // must precede dbghelp.h — defines HANDLE, CALLBACK, PCSTR
+#include <windows.h>  // must precede dbghelp.h — defines HANDLE, CALLBACK, PCSTR
+
 #include <dbghelp.h>
 #endif
 
