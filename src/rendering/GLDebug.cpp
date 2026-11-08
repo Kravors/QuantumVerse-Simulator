@@ -9,8 +9,8 @@
 // Include GL headers in implementation only — glad MUST be included before GL headers
 #define GL_SILENCE_DEPRECATION
 // clang-format off
-#include <GL/gl.h>
 #include "glad.h"
+#include <GL/gl.h>
 // clang-format on
 
 namespace quantumverse {
