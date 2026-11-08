@@ -70,7 +70,7 @@ jobs:
           export ASAN_OPTIONS=detect_leaks=1:symbolize=1:print_stacktrace=1
           export LSAN_OPTIONS=suppressions=$GITHUB_WORKSPACE/.github/lsan.supp:print_suppressions=0
           xvfb-run -a ctest --output-on-failure -j "$(nproc)" --timeout 600 \
-            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest)" 2>&1 | tee asan-ctest.log
+            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest|DiscoveryRobustnessTest)" 2>&1 | tee asan-ctest.log
 
       - name: Gate on AddressSanitizer findings
         working-directory: build
@@ -167,7 +167,7 @@ jobs:
           set -o pipefail
           export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
           xvfb-run -a ctest --output-on-failure -j "$(nproc)" --timeout 600 \
-            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest)" 2>&1 | tee ubsan-ctest.log
+            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest|DiscoveryRobustnessTest)" 2>&1 | tee ubsan-ctest.log
 
       - name: Gate on UndefinedBehaviorSanitizer findings
         working-directory: build
@@ -248,7 +248,7 @@ jobs:
           set -o pipefail
           export TSAN_OPTIONS=suppressions=$GITHUB_WORKSPACE/.github/tsan.supp:halt_on_error=0:second_deadlock_stack=1:history_size=4
           xvfb-run -a ctest --output-on-failure -j 2 --timeout 600 \
-            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest)" 2>&1 | tee tsan-ctest.log
+            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest|DiscoveryRobustnessTest)" 2>&1 | tee tsan-ctest.log
 
       - name: Gate on ThreadSanitizer findings
         working-directory: build
@@ -339,7 +339,7 @@ jobs:
         run: |
           $env:ASAN_OPTIONS = "symbolize=1:print_stacktrace=1"
           ctest -C Debug --output-on-failure -j 4 --timeout 600 \
-            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest)" 2>&1 | Tee-Object -FilePath asan-ctest.log
+            -E "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest|DiscoveryRobustnessTest)" 2>&1 | Tee-Object -FilePath asan-ctest.log
 
       - name: Gate on AddressSanitizer findings
         working-directory: build

@@ -122,11 +122,12 @@ class TestMercury1PN : public QObject {
     // ~10^8 RK4 steps per orbit, exceeding CI's timeout budget. The 1PN
     // formula is verified analytically in testPerihelionAnalytic.
     void testPerihelionAdvance() {
-        QWARN("Skipped: stepSimulationCPURaw does not implement the 1PN "
-              "Schwarzschild correction (a_1PN). Numerical perihelion "
-              "measurement exceeds CI timeout. See testPerihelionAnalytic "
-              "for formula verification; testPerihelionNewtonian covers "
-              "the Newtonian limit.");
+        QWARN(
+            "Skipped: stepSimulationCPURaw does not implement the 1PN "
+            "Schwarzschild correction (a_1PN). Numerical perihelion "
+            "measurement exceeds CI timeout. See testPerihelionAnalytic "
+            "for formula verification; testPerihelionNewtonian covers "
+            "the Newtonian limit.");
     }
 
     // Analytic verification of the 1PN perihelion precession formula:
@@ -144,8 +145,7 @@ class TestMercury1PN : public QObject {
         constexpr double kGM = kG * kMsun;
         constexpr double kDeltaOmegaRadPerOrbit =
             6.0 * M_PI * kGM / (kA_merc * (1.0 - kE_merc * kE_merc) * kC * kC);
-        constexpr double kDeltaOmegaArcsecPerOrbit =
-            kDeltaOmegaRadPerOrbit * 206264.806;
+        constexpr double kDeltaOmegaArcsecPerOrbit = kDeltaOmegaRadPerOrbit * 206264.806;
 
         qInfo() << "[1PN analytic] advance per orbit =" << kDeltaOmegaArcsecPerOrbit
                 << " arcsec (expected ~0.1036\")";
