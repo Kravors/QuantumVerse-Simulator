@@ -19,6 +19,7 @@
 //     swamp the ~5.18" GR signal over 50 orbits.
 
 #include <QtTest>
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -126,7 +127,12 @@ class TestMercury1PN : public QObject {
         // ---- Integrate ----
         const int64_t steps = static_cast<int64_t>(kOrbits * kT_merc / kDt);
         const int sample_every = 100;
-        for (int64_t i = 0; i < steps; ++i) {
+
+        // Safety cap: bail out rather than timeout on slow CI.
+        const int64_t kMaxSteps = 30'000'000;
+        int64_t effectiveSteps = std::min(steps, kMaxSteps);
+
+        for (int64_t i = 0; i < effectiveSteps; ++i) {
             ui->stepSimulationCPURaw(kDt);  // raw leapfrog step, dt=1s
             if ((i + 1) % sample_every == 0) {
                 auto s =
@@ -139,6 +145,12 @@ class TestMercury1PN : public QObject {
                 total_rotation += d;
                 prev_arg = s.arg;
             }
+        }
+
+        QV_CHECK(effectiveSteps == steps);
+        if (effectiveSteps != steps) {
+            std::cerr << "Hit step cap before completing " << kOrbits << " orbits" << std::endl;
+            QFAIL("Hit step cap before completing orbits");
         }
 
         // ---- Measure ----
