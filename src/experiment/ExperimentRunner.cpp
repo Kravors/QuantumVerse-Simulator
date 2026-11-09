@@ -608,6 +608,11 @@ QString ExperimentRunner::generateDiscoveryPaper(const QString& id) {
     if (!result)
         return QString();
 
+    if (!m_paperGenerator) {
+        qWarning() << "[EXPORT] no PaperGenerator configured; cannot generate paper";
+        return QString();
+    }
+
     // Compute a unique output path: <id>_discovery_<timestamp>.pdf
     QString baseDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                       "/QuantumVerse/output";
