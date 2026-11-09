@@ -2189,6 +2189,7 @@ endif()
         tests/discovery/test_discovery_robustness.cpp
     )
     target_link_libraries(test_discovery_robustness PRIVATE quantumverse_core Qt6::Core)
+    target_compile_definitions(test_discovery_robustness PRIVATE QUANTUMVERSE_USE_QML)
     add_test(NAME DiscoveryRobustnessTest COMMAND test_discovery_robustness)
 
     # Phase 2: Sim-frame correlation test

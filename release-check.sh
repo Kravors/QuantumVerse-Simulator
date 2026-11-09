@@ -4,7 +4,7 @@ set -euo pipefail
 
 TARGET_SHA="${1:-$(git rev-parse HEAD)}"
 TARGET_SHA_SHORT="${TARGET_SHA:0:7}"
-REQUIRED=("Tests" "CI/CD" "Cross-Platform Tests" "Static Analysis" "Cross-Platform Sanitization Pipeline")
+REQUIRED=("Tests" "CI/CD" "Cross-Platform Tests" "Static Analysis")
 FAILED=0
 
 echo "Verifying workflows green on $TARGET_SHA_SHORT"

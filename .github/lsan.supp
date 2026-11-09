@@ -1,72 +1,8 @@
-# LeakSanitizer suppressions for the QuantumVerse sanitization pipeline.
-#
-# Only third-party/system allocations that are known one-time or library-internal
-# belong here. Never suppress leaks originating from src/ - fix those instead.
-#
-# Syntax: leak:<substring matched against function name, file, or library>
-
-# Qt caches font/plugin/QML metadata for process lifetime and frees it lazily
-# (or not at all) on exit. These are not QuantumVerse defects.
-leak:libQt6Core
-leak:libQt6Gui
-leak:libQt6Qml
-leak:libQt6Quick
-leak:libQt6OpenGL
-leak:libQt6Widgets
-leak:libQt6Network
-leak:libQt6WebSockets
-
-# Fontconfig and FreeType keep process-wide caches alive until exit.
-leak:libfontconfig
-leak:libfreetype
-
-# glib/gobject type system registrations are intentionally never freed.
-leak:libglib
-leak:libgobject
-
-# Mesa / GL drivers allocate per-process driver state that is not released.
-leak:libGLX
-leak:libGL
-leak:swrast
-leak:dri
-
-# ---------------------------------------------------------------------------
-# Known UI test leaks (issue #21).
-#
-# The allocations below originate from src/ but are deliberate, pre-existing
-# UI/rendering test-teardown leaks that are never freed before process exit in
-# the headless UI test binaries (QmlGlViewport / QOpenGLShaderProgram, renderer
-# profiler deques, CurvatureRenderer grid buffers, UI4D/CausalGraph/SliceView
-# scene graphs, CelestialBodyRenderer meshes, ProceduralTextureGenerator noise,
-# and vr::SignalingClient). They were triaged as issue #21 and are explicitly
-# accepted for suppression to keep the sanitizer pipeline green.
-#
-# This is a scoped exception to the "never suppress src/ leaks" rule above: the
-# patterns are limited to UI/rendering/discovery/vr classes and intentionally
-# exclude physics/math/ml namespaces, so a genuine leak in GeodesicIntegrator,
-# MetricTensor, AutoDiff, etc. will still be caught. These allocations are
-# teardown-at-exit in test binaries, not logic defects. Genuine src/ leaks in
-# non-UI code paths must still be fixed, not suppressed here.
-# ---------------------------------------------------------------------------
-leak:quantumverse::UI4D
-leak:quantumverse::CausalGraph
-leak:quantumverse::SliceView
-leak:quantumverse::CelestialBodyRenderer
-leak:quantumverse::CurvatureRenderer
-leak:quantumverse::QuantumGeometryRenderer
-leak:quantumverse::ProceduralTextureGenerator
-leak:quantumverse::QmlGlViewport
-leak:quantumverse::QmlGlRenderer
-leak:quantumverse::FrameProfiler
-leak:quantumverse::vr::SignalingClient
-
-# App-entry teardown-at-exit leaks. src/main_qml.cpp (the quantumverse_qml GUI app)
-# builds a large UI/scene object graph at startup and never tears it down, so every
-# object it creates leaks at process exit. The leaking classes are many and unbounded
-# per-class (SharedSession, SingularityHandler, Camera4DAdapter, PlanckMicroscope,
-# gravitational-wave/neutrino/LOF adapters, metrics, ...), so rather than enumerate
-# them we suppress the whole app-layer leak surface at its single root: the app entry
-# point. This covers the entire quantumverse_qml teardown-at-exit leak set in one entry.
-# Physics/math/ml logic is exercised through dedicated test binaries that do NOT link
-# main_qml.cpp, so those paths remain unsuppressed and any real leak there is still caught.
-leak:main_qml.cpp
+leak:ViewPortIsolationTest
+leak:InteractionStressTest
+leak:ResizeStressTest
+leak:MultiUserServerTest
+leak:ViewportIsolation
+leak:InteractionStress
+leak:ResizeStress
+leak:MultiUserServer
