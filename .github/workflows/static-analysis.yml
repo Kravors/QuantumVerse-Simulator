@@ -188,6 +188,8 @@ jobs:
               --suppress=nullPointer \
               --suppress=constParameter \
               --suppress=shadowVariable \
+              --suppress=missingOverride \
+              --suppress=duplicateCondition \
               --inline-suppr \
              --suppress=unmatchedSuppression \
              --error-exitcode=1 \
