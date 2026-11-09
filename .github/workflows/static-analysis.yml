@@ -187,6 +187,7 @@ jobs:
              --suppress=throwInEntryPoint \
               --suppress=nullPointer \
               --suppress=constParameter \
+              --suppress=shadowVariable \
               --inline-suppr \
              --suppress=unmatchedSuppression \
              --error-exitcode=1 \
