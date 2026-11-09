@@ -1,6 +1,6 @@
 name: Release
 permissions:
-  contents: read
+  contents: write
   actions: read
   checks: write
 
@@ -83,3 +83,20 @@ jobs:
       with:
         name: quantumverse-windows-installer
         path: build/QuantumVerse-*.exe
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: QuantumVerse ${{ github.ref_name }}
+        body: |
+          ## QuantumVerse Simulator ${{ github.ref_name }}
+          - Build from commit ${{ github.sha }}
+          - Includes Windows installer (NSIS) and portable ZIP
+          - All required workflows green
+        files: |
+          quantumverse_v${{ github.ref_name }}_win64.zip
+          build/QuantumVerse-*.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
