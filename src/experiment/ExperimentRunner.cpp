@@ -411,6 +411,10 @@ QString ExperimentRunner::exportPDF(const QString& id, const QString& path /*= Q
     // PaperGenerator::generatePaper is async (QProcess). We fire it and let
     // the paperGenerated signal propagate via pdfFinished. The caller can
     // listen to pdfFinished for the actual path.
+    if (!m_paperGenerator) {
+        qWarning() << "[EXPORT] no PaperGenerator configured; cannot generate PDF";
+        return QString();
+    }
     m_paperGenerator->generatePaper(mass, 0.0, 0.0, einsteinRadius, redshift, abstract,
                                     QStringLiteral("lensing"), pdfPath);
 
