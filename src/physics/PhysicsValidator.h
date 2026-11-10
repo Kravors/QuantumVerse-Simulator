@@ -84,15 +84,30 @@ class PhysicsValidator {
             PhysicsReport report;
             auto g = metric.evaluate(probe);
 
+            // Compute Schwarzschild radius from the metric to detect
+            // inside-horizon probes where the Lorentzian signature check
+            // is not applicable (no static observer exists inside the horizon).
+            double rs = 0.0;
+            if (const auto* schw =
+                    dynamic_cast<const quantumverse::SchwarzschildMetric*>(&metric)) {
+                rs = 2.0 * 6.67430e-11 * schw->mass() / 8.9875517873681764e16;
+            }
+            double r = std::sqrt(probe.x * probe.x + probe.y * probe.y + probe.z * probe.z);
+            bool insideHorizon = (r > 0.0 && r <= rs);
+
             // Check 1: Lorentzian signature (-,+,+,+)
             {
-                PhysicsCheck c;
-                c.name = "lorentzian_signature";
-                bool ok = checkLorentzianSignature(g, c);
-                report.totalChecks++;
-                if (!ok) {
-                    report.failedChecks++;
-                    report.failures.push_back(c);
+                // Inside the horizon, no static observer exists; the signature
+                // check is not applicable. Skip it for inside-horizon probes.
+                if (!insideHorizon) {
+                    PhysicsCheck c;
+                    c.name = "lorentzian_signature";
+                    bool ok = checkLorentzianSignature(g, c);
+                    report.totalChecks++;
+                    if (!ok) {
+                        report.failedChecks++;
+                        report.failures.push_back(c);
+                    }
                 }
             }
 

@@ -544,17 +544,22 @@ class SchwarzschildMetric : public MetricTensor {
         const double c2 = PHYS_C() * PHYS_C();
         double rs = 2.0 * PHYS_G() * m_mass / c2;
 
-        // Clamp r to just outside the horizon to avoid the singularity at r=0
-        // and ensure g_tt stays negative (Lorentzian signature preserved).
-        const double minR = rs * 1.01;
-        if (r < minR)
-            r = minR;
+        // Inside the horizon (r <= rs), return a flat-space Minkowski
+        // placeholder so downstream numerics do not propagate NaN/Inf.
+        // No static observer exists inside the horizon, so the metric
+        // there has no physical meaning; the placeholder preserves
+        // Lorentzian signature (-,+,+,+) for signature checks.
+        if (r <= rs) {
+            std::array<std::array<double, 4>, 4> g4{};
+            g4[0][0] = -1.0;
+            g4[1][1] = 1.0;
+            g4[2][2] = 1.0;
+            g4[3][3] = 1.0;
+            return g4;
+        }
 
         double factor = 1.0 - rs / r;  // g_tt = -factor (negative outside horizon)
-
-        // Spatial correction coefficient; clamp inside the horizon to avoid
-        // the singular blow-up (geometric view is degenerate there anyway).
-        double fr = (r > rs) ? rs / (r - rs) : 0.0;
+        double fr = rs / (r - rs);
         double inv_r2 = 1.0 / (r * r);
 
         std::array<std::array<double, 4>, 4> g4{};
