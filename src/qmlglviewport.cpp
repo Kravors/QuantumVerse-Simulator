@@ -2977,6 +2977,11 @@ void QmlGlViewport::setBlackHoleMass(double mass) {
         }
         m_probeMetric->setMass(mass_kg);
         m_curvatureRenderer->setMetric(m_probeMetric);
+        if (m_physicsValidator) {
+            double rs = 2.0 * 6.67430e-11 * mass_kg / 8.9875517873681764e16;
+            m_physicsValidator->setMass(mass_kg);
+            m_physicsValidator->setSchwarzschildRadius(rs);
+        }
         // Recompute grid Z displacement so the curvature grid deforms with
         // the new mass. Safe: recomputeGridZRange() guards on m_initialized,
         // so it's a no-op during QML init before GL context exists.
