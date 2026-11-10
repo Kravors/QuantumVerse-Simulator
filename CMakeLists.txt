@@ -14,7 +14,7 @@ execute_process(
 if(QUANTUMVERSE_GIT_TAG MATCHES "^v(.+)$")
     set(QUANTUMVERSE_VERSION "${CMAKE_MATCH_1}")
 else()
-    set(QUANTUMVERSE_VERSION "0.0.0-dev")
+    set(QUANTUMVERSE_VERSION "0.0.0")
 endif()
 message(STATUS "QuantumVerse version: ${QUANTUMVERSE_VERSION}")
 
