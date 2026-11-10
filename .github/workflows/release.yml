@@ -16,6 +16,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0
 
     - name: Setup Qt
       uses: jurplel/install-qt-action@v4
@@ -61,7 +62,7 @@ jobs:
       shell: cmd
       run: |
         cd install/bin
-        7z a ../../quantumverse_v${{ github.ref_name }}_win64.zip ^
+        7z a ../../quantumverse_${{ github.ref_name }}_win64.zip ^
           quantumverse_qml.exe ^
           *.dll *.conf ^
           qt.conf ^
@@ -76,7 +77,7 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: quantumverse-windows
-        path: quantumverse_v${{ github.ref_name }}_win64.zip
+        path: quantumverse_${{ github.ref_name }}_win64.zip
 
     - name: Upload installer artifact
       uses: actions/upload-artifact@v5
@@ -94,7 +95,7 @@ jobs:
           - Includes Windows installer (NSIS) and portable ZIP
           - All required workflows green
         files: |
-          quantumverse_v${{ github.ref_name }}_win64.zip
+          quantumverse_${{ github.ref_name }}_win64.zip
           build/QuantumVerse-*.exe
         draft: false
         prerelease: false

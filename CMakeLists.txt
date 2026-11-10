@@ -1,11 +1,28 @@
 # QuantumVerse Simulator - CMakeLists.txt
 # Production-ready 4D spacetime cognition laboratory
 cmake_minimum_required(VERSION 3.20)
-project(QuantumVerse LANGUAGES C CXX VERSION 7.3.0)
+
+# Derive version from git tags (e.g. v7.4.2 → 7.4.2)
+find_package(Git REQUIRED)
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE QUANTUMVERSE_GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    ERROR_VARIABLE QUANTUMVERSE_GIT_DESCRIBE_ERROR)
+if(QUANTUMVERSE_GIT_TAG MATCHES "^v(.+)$")
+    set(QUANTUMVERSE_VERSION "${CMAKE_MATCH_1}")
+else()
+    set(QUANTUMVERSE_VERSION "0.0.0-dev")
+endif()
+message(STATUS "QuantumVerse version: ${QUANTUMVERSE_VERSION}")
+
+project(QuantumVerse LANGUAGES C CXX VERSION ${QUANTUMVERSE_VERSION})
 
 # CPack packaging configuration
 set(CPACK_PROJECT_NAME "QuantumVerse")
-set(CPACK_PACKAGE_VERSION "7.3.0")
+set(CPACK_PACKAGE_VERSION ${QUANTUMVERSE_VERSION})
 set(CPACK_PACKAGE_VENDOR "QuantumVerse Project")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "4D Spacetime Cognition Lab")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "QuantumVerse")
@@ -2669,7 +2686,7 @@ if(NOT QUANTUMVERSE_BUILD_WASM)
     set(CPACK_BINARY_NSIS ON)
     set(CPACK_BINARY_ZIP ON)
     set(CPACK_PACKAGE_NAME "QuantumVerse")
-    set(CPACK_PACKAGE_VERSION "7.3.0")
+    set(CPACK_PACKAGE_VERSION ${QUANTUMVERSE_VERSION})
     set(CPACK_PACKAGE_VENDOR "QuantumVerse Project")
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "4D Spacetime Cognition Lab")
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "QuantumVerse")

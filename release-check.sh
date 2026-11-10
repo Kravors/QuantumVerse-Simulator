@@ -4,6 +4,7 @@ set -euo pipefail
 
 TARGET_SHA="${1:-$(git rev-parse HEAD)}"
 TARGET_SHA_SHORT="${TARGET_SHA:0:7}"
+TARGET_TAG="${2:-$(git describe --tags --exact-match HEAD 2>/dev/null || echo "")}"
 REQUIRED=("Tests" "CI/CD" "Cross-Platform Tests" "Static Analysis")
 FAILED=0
 
@@ -36,3 +37,12 @@ fi
 
 echo ""
 echo "All required workflows green on $TARGET_SHA_SHORT — safe to tag."
+
+# Verify release asset names match the tag version (prevents stale labels like 7.3.0 on v7.4.x)
+TAG_VERSION="${TARGET_TAG#v}"
+if gh release view "$TARGET_TAG" --json assets --jq '.assets[].name' 2>/dev/null | \
+   grep -q "QuantumVerse-${TAG_VERSION}-"; then
+    echo "✅ Release assets match tag $TARGET_TAG"
+else
+    echo "⚠️  No installer asset matching QuantumVerse-${TAG_VERSION}- found in release $TARGET_TAG"
+fi
