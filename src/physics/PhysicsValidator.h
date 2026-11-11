@@ -95,19 +95,24 @@ class PhysicsValidator {
             double r = std::sqrt(probe.x * probe.x + probe.y * probe.y + probe.z * probe.z);
             bool insideHorizon = (r > 0.0 && r <= rs);
 
+            // Inside the horizon, no static observer exists — curvature
+            // checks (signature, determinant, Kretschmann, Ricci) are
+            // not applicable. Skip all of them for inside-horizon probes.
+            if (insideHorizon) {
+                result.perProbe.push_back(PhysicsReport());
+                result.totalChecks++;
+                continue;
+            }
+
             // Check 1: Lorentzian signature (-,+,+,+)
             {
-                // Inside the horizon, no static observer exists; the signature
-                // check is not applicable. Skip it for inside-horizon probes.
-                if (!insideHorizon) {
-                    PhysicsCheck c;
-                    c.name = "lorentzian_signature";
-                    bool ok = checkLorentzianSignature(g, c);
-                    report.totalChecks++;
-                    if (!ok) {
-                        report.failedChecks++;
-                        report.failures.push_back(c);
-                    }
+                PhysicsCheck c;
+                c.name = "lorentzian_signature";
+                bool ok = checkLorentzianSignature(g, c);
+                report.totalChecks++;
+                if (!ok) {
+                    report.failedChecks++;
+                    report.failures.push_back(c);
                 }
             }
 

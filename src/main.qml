@@ -1338,6 +1338,7 @@ ApplicationWindow {
                 // Multi-user collaboration panel
                 Pane {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 110
                     visible: signalingClient != null && signalingClient.isConnected
                     ColumnLayout {
                         anchors.fill: parent
@@ -1859,7 +1860,7 @@ ApplicationWindow {
                             Button {
                                 text: "Export CSV"
                                 enabled: discoveryPanelManager && discoveryPanelManager.hasResults
-                                Layout.preferredWidth: 90
+                                Layout.fillWidth: true
                                 onClicked: {
                                     var path = discoveryPanelManager.exportSweepResults("csv");
                                     if (path) console.log("Sweep exported to:" + path);
