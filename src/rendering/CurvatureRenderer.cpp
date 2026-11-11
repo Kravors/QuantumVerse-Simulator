@@ -393,6 +393,7 @@ void CurvatureRenderer::initializeGL() {
 
         uniform mat4 viewMatrix;
         uniform mat4 projectionMatrix;
+        uniform mat4 modelMatrix;
         uniform float ergoMass;
         uniform float ergoSpin;
         uniform float ergoCharge;
@@ -415,7 +416,7 @@ void CurvatureRenderer::initializeGL() {
             float scale = rE / ergoMass;
             vec3 displacedPos = aPos * scale;
 
-            gl_Position = projectionMatrix * viewMatrix * vec4(displacedPos, 1.0);
+            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(displacedPos, 1.0);
             vNormal = n;
             vLatitude = theta;
         }
@@ -859,6 +860,15 @@ void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* p
     ergoShader.setUniform("ergoMass", static_cast<float>(m_ergoMass));
     ergoShader.setUniform("ergoSpin", static_cast<float>(m_ergoSpin));
     ergoShader.setUniform("ergoCharge", static_cast<float>(m_ergoCharge));
+
+    // Build model matrix to translate ergosphere to black hole position
+    float modelMat[16] = {
+        1.0f, 0.0f, 0.0f, m_blackHoleCenter[0],
+        0.0f, 1.0f, 0.0f, m_blackHoleCenter[1],
+        0.0f, 0.0f, 1.0f, m_blackHoleCenter[2],
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    ergoShader.setUniform("modelMatrix", modelMat);
 
     glBindVertexArray(ergoVao);
     glDisable(GL_CULL_FACE);
