@@ -748,9 +748,10 @@ ApplicationWindow {
             ScrollView {
                 anchors.fill: parent
                 clip: true
+                contentWidth: availableWidth
 
                 ColumnLayout {
-                    Layout.fillWidth: true
+                    width: availableWidth
                     Layout.fillHeight: true
                     spacing: 6
 

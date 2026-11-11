@@ -391,6 +391,26 @@ UI elements on the right side" that were really the default Pane
 background showing through gaps in the layout. Nobody could find them
 by grepping for `color:` or `Rectangle` because the color was implicit.
 
+### `Layout.fillWidth` only works inside `Layout` parents
+
+`Layout.fillWidth: true` on a child of a `ScrollView`, `Flickable`,
+`Item`, or any non-Layout container has no effect — the container's
+implicit width is the max of children's implicit widths, so the child
+sits at its natural size regardless.
+
+For a `ColumnLayout` inside a `ScrollView`:
+    ScrollView {
+        contentWidth: availableWidth
+        ColumnLayout { width: availableWidth }
+    }
+
+Concrete case (2026-11): right panel panes were 240px wide inside a
+380px ScrollView because `Layout.fillWidth` was inert. Pane backgrounds
+stopped at 240px; inner RowLayouts extended past them; the ScrollView's
+default light-grey background showed through the gap — looked like
+"empty grey boxes to the right of the panel" but was actually the
+missing width propagation.
+
 ### DiscoveryPanelManager moc note
 
 `Q_OBJECT` is inside `#ifdef QUANTUMVERSE_USE_QML` in

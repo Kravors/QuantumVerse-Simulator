@@ -7,6 +7,7 @@ Rectangle {
     color: "#0d1117"
     border.color: "#1f2937"
     radius: 6
+    Layout.fillWidth: true
 
     ColumnLayout {
         anchors.fill: parent
