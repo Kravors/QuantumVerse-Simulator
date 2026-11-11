@@ -343,6 +343,25 @@ sentinel, not a physical metric; it exists only to satisfy fuzz contracts that
 reject NaN/Inf output. If a caller needs a real metric at the singularity it
 must check `curvatureScalars().valid` first.
 
+### Changing `evaluate()` semantics requires updating all callers
+
+`MetricTensor::evaluate()` has a documented contract: the returned
+matrix is a NaN-free, Inf-free placeholder inside the horizon (see
+"SchwarzschildMetric::evaluate() r = 0 contract"). Any change to
+*when* the placeholder fires, or *what* it contains, requires
+updating every test that calls `evaluate()` near or inside the
+horizon.
+
+Concrete case (2026-11): a change to return `diag(-1, 1, 1, 1)`
+inside the horizon broke `NumericalConvergenceTest`, which still
+expected `g_tt = 0` at `r = r_s` (the old behavior). The test was
+correct for the old code, wrong for the new code, and nobody
+re-ran it before pushing.
+
+Rule: when you change a public API's return contract, grep for all
+callers of that API and update their assertions in the same commit.
+`git grep 'evaluate(' tests/` should show you the full surface.
+
 ### Qt 6.11 QML parser quirks
 
 - `function` declarations are not hoisted. Declare them before any visual
@@ -438,6 +457,22 @@ Primary workflows:
 - Advanced Error Discovery Pipeline
 
 Nightly workflows (`Nightly Baseline Update`, `Nightly Deep Scan`) are allowed to fail without blocking mainline development. If they fail, check for environment-specific issues such as missing secrets or hardware differences before investigating code changes.
+
+### Checking workflow status: `--json conclusion` vs `--log-failed`
+
+`gh run view <id> --log-failed` shows any log line that *looks* like a
+failure — including informational output from steps that passed, canary
+steps with `continue-on-error: true`, and CTest lines emitted under
+`--output-on-failure` even when the test passed.
+
+`gh run view <id> --json conclusion,jobs --jq '.jobs[].steps[] | select(.conclusion=="failure") | .name'`
+returns the ground truth: the *step names* that actually failed.
+
+For release verification, use the JSON form. For debugging a red
+workflow, `--log-failed` is useful context but not the verdict.
+
+This distinction caused three rounds of "the run failed / no it didn't"
+on v7.4.0's CI/CD run.
 
 ### Windows App Execution Alias trap
 

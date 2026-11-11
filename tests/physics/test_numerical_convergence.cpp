@@ -648,16 +648,54 @@ void test_schwarzschild_radius_formula() {
 // 18.2.24 - Schwarzschild: g_tt behavior at horizon
 // ============================================================================
 void test_schwarzschild_g_tt_at_horizon() {
-    double M = 1.0;
-    double rs = 2.0 * M;
-    SchwarzschildMetric sch(M * Event4D::C * Event4D::C / Event4D::G);
+    // ---- Convergence from outside: g_tt -> 0 as r -> r_s+ ----
+    // Real physics test: verify the numerical implementation approaches
+    // the analytically known limit from the valid side of the coordinate chart.
+    {
+        double M = 1.0;
+        double rs = 2.0 * M;
+        SchwarzschildMetric metric(M * Event4D::C * Event4D::C / Event4D::G);
 
-    // On the radial x-axis so the Cartesian radius equals rs (g_tt -> 0 at horizon)
-    Event4D on_horizon(0.0, rs, 0.0, 0.0);
-    auto g = sch.evaluate(on_horizon);
-    QV_CHECK_NEAR(g[0][0], 0.0, 1e-2);
-    (void)g;
-    std::cout << "[PASS] Schwarzschild g_tt = 0 at horizon" << std::endl;
+        for (double eps : {1e-2, 1e-3, 1e-4, 1e-5}) {
+            const double r = rs * (1.0 + eps);
+            Event4D ev(0.0, r, 0.0, 0.0);
+            auto g = metric.evaluate(ev);
+            // g_tt = -(1 - rs/r) = -eps/(1+eps) ≈ -eps for small eps
+            QV_CHECK(std::abs(std::abs(g[0][0]) - eps) < eps * 0.1);
+        }
+    }
+    std::cout << "[PASS] Schwarzschild g_tt -> 0 as r -> r_s+" << std::endl;
+
+    // ---- Placeholder at exact horizon: diag(-1,1,1,1) ----
+    // Coordinates are singular at r = r_s; evaluate() returns the documented
+    // flat-space placeholder per AGENTS.md contract.
+    {
+        double M = 1.0;
+        double rs = 2.0 * M;
+        SchwarzschildMetric metric(M * Event4D::C * Event4D::C / Event4D::G);
+        Event4D on_horizon(0.0, rs, 0.0, 0.0);
+        auto g = metric.evaluate(on_horizon);
+        QV_CHECK_NEAR(g[0][0], -1.0, 1e-12);
+        QV_CHECK_NEAR(g[1][1], 1.0, 1e-12);
+        QV_CHECK_NEAR(g[2][2], 1.0, 1e-12);
+        QV_CHECK_NEAR(g[3][3], 1.0, 1e-12);
+        QV_CHECK(!metric.curvatureScalars(on_horizon).valid);
+    }
+    std::cout << "[PASS] Schwarzschild placeholder at horizon" << std::endl;
+
+    // ---- Placeholder inside horizon: same diag(-1,1,1,1) ----
+    {
+        double M = 1.0;
+        double rs = 2.0 * M;
+        SchwarzschildMetric metric(M * Event4D::C * Event4D::C / Event4D::G);
+        Event4D inside(0.0, rs * 0.5, 0.0, 0.0);
+        auto g = metric.evaluate(inside);
+        QV_CHECK_NEAR(g[0][0], -1.0, 1e-12);
+        QV_CHECK_NEAR(g[1][1], 1.0, 1e-12);
+        QV_CHECK_NEAR(g[2][2], 1.0, 1e-12);
+        QV_CHECK_NEAR(g[3][3], 1.0, 1e-12);
+    }
+    std::cout << "[PASS] Schwarzschild placeholder inside horizon" << std::endl;
 }
 
 // ============================================================================
