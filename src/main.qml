@@ -474,6 +474,12 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 160
                     visible: objectList.currentItem !== null
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -752,7 +758,6 @@ ApplicationWindow {
 
                 ColumnLayout {
                     width: availableWidth
-                    Layout.fillHeight: true
                     spacing: 6
 
                     // Sandbox panel: shown when sandbox mode is active
@@ -814,6 +819,12 @@ ApplicationWindow {
                 Pane {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 50
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
 
                     RowLayout {
                         anchors.fill: parent
@@ -856,6 +867,12 @@ ApplicationWindow {
                 Pane {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 110
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -1399,7 +1416,12 @@ ApplicationWindow {
                                 Pane {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 110
-                
+                                    background: Rectangle {
+                                        color: "#1a1a2e"
+                                        radius: 6
+                                        border.color: "#2a2a4a"
+                                        border.width: 1
+                                    }
                                     ColumnLayout {
                                         anchors.fill: parent
                                         anchors.margins: 8
@@ -1911,6 +1933,7 @@ ApplicationWindow {
                 Loader {
                     id: gpsPanelLoader
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 200
                     active: true
                     source: "GPSPanel.qml"
                 }
@@ -1919,6 +1942,7 @@ ApplicationWindow {
                 Loader {
                     id: recordingPanelLoader
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 150
                     active: true
                     source: "RecordingPanel.qml"
                 }
@@ -1927,6 +1951,7 @@ ApplicationWindow {
                 Loader {
                     id: experimentsPanelLoader
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 250
                     active: true
                     source: "ExperimentsPanel.qml"
                 }
