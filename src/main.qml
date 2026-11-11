@@ -1340,6 +1340,12 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 110
                     visible: signalingClient != null && signalingClient.isConnected
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 8
@@ -1462,6 +1468,12 @@ ApplicationWindow {
                 Pane {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -1472,6 +1484,7 @@ ApplicationWindow {
 
                         // Filter / sort controls
                         RowLayout {
+                            Layout.fillWidth: true
                             spacing: 4
 
                             ComboBox {
@@ -1549,8 +1562,9 @@ ApplicationWindow {
                                         border.width: model.isAnomaly ? 1 : 0
                                     }
 
-                                    RowLayout {
-                                        spacing: 6
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
 
                                         Label {
                                             text: model.isAnomaly ? "‼" : ""
@@ -1685,6 +1699,12 @@ ApplicationWindow {
                         Pane {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 160
+                            background: Rectangle {
+                                color: "#1a1a2e"
+                                radius: 6
+                                border.color: "#2a2a4a"
+                                border.width: 1
+                            }
 
                             ColumnLayout {
                                 anchors.fill: parent
@@ -1815,6 +1835,12 @@ ApplicationWindow {
                 Pane {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 150
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -1824,6 +1850,7 @@ ApplicationWindow {
                         Label { text: "Parameter Sweep"; font.bold: true; font.pixelSize: 12 }
 
                         RowLayout {
+                            Layout.fillWidth: true
                             Label { text: "Parameter:"; color: "#888" }
                             ComboBox {
                                 id: sweepParamCombo
@@ -1839,6 +1866,7 @@ ApplicationWindow {
                         }
 
                         RowLayout {
+                            Layout.fillWidth: true
                             Label { text: "Range:"; color: "#888"; Layout.preferredWidth: 40 }
                             TextField { id: sweepFromField; text: "0.1"; Layout.preferredWidth: 50; Layout.maximumWidth: 80; font.pixelSize: 11 }
                             Label { text: "to"; color: "#888"; Layout.preferredWidth: 15 }
@@ -1846,11 +1874,13 @@ ApplicationWindow {
                         }
 
                         RowLayout {
+                            Layout.fillWidth: true
                             Label { text: "Steps:"; color: "#888" }
                             SpinBox { id: sweepStepsBox; from: 10; to: 1000; value: 50; Layout.fillWidth: true }
                         }
 
                         RowLayout {
+                            Layout.fillWidth: true
                             spacing: 6
                             Button {
                                 text: "Run Sweep"

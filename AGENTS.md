@@ -372,6 +372,25 @@ callers of that API and update their assertions in the same commit.
 - Two `RowLayout`s directly inside a `ColumnLayout` inside a `Popup` may
   fail to parse — wrap each `RowLayout` in an `Item` container.
 
+### Every `Pane` in a dark-themed app needs an explicit `background`
+
+`Pane` under Qt Quick Controls Basic renders a light-grey background
+(`#f6f6f6`-ish) by default. In a dark-themed application, this appears
+as visible grey boxes wherever a Pane's internal `RowLayout`s don't
+stretch to fill the pane width — and the source is invisible in `grep`
+because the color value lives in Qt's internal style sheet, not in
+`main.qml`.
+
+Rule: any `Pane` in this app must set `background: Rectangle { ... }`
+with a dark color, or use the shared `SectionPane` component. `grep -c
+"Pane {" src/*.qml` should equal `grep -c "background:" src/*.qml` for
+panes that intentionally render a background.
+
+Concrete case (2026-11): the `Parameter Sweep` pane showed "two grey
+UI elements on the right side" that were really the default Pane
+background showing through gaps in the layout. Nobody could find them
+by grepping for `color:` or `Rectangle` because the color was implicit.
+
 ### DiscoveryPanelManager moc note
 
 `Q_OBJECT` is inside `#ifdef QUANTUMVERSE_USE_QML` in
