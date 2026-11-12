@@ -779,6 +779,12 @@ ApplicationWindow {
                 Pane {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 60
+                    background: Rectangle {
+                        color: "#1a1a2e"
+                        radius: 6
+                        border.color: "#2a2a4a"
+                        border.width: 1
+                    }
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -866,7 +872,7 @@ ApplicationWindow {
                 // RL Discovery Scan controls
                 Pane {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 110
+                    Layout.preferredHeight: 180
                     background: Rectangle {
                         color: "#1a1a2e"
                         radius: 6
