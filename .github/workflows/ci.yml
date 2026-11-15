@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Qt 6.11.1
+        id: qt-cache
+        uses: actions/cache@v4
+        with:
+          path: C:\Qt\6.11.1\msvc2022_64
+          key: qt-6.11.1-msvc2022-v1
+
+      - name: Install Qt 6.11.1 MSVC (cache miss only)
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          # Download Qt online installer
+          $installerUrl = "https://download.qt.io/official_releases/online_installers/qt-unified-windows-x64-online.exe"
+          Invoke-WebRequest -Uri $installerUrl -OutFile "$env:TEMP\qt-installer.exe"
+
+          # Install Qt 6.11.1 MSVC silently
+          & "$env:TEMP\qt-installer.exe" `
+            --verbose `
+            --root "C:\Qt" `
+            --accept-licenses `
+            --accept-obligations `
+            --confirm-command `
+            --default-answer `
+            --auto-answer "telemetry-question=No" `
+            install qt.qt6.6111.win64_msvc2022_64
+
+          # Verify
+          if (-not (Test-Path "C:\Qt\6.11.1\msvc2022_64\lib\cmake\Qt6\Qt6Config.cmake")) {
+            Write-Error "Qt 6.11.1 MSVC not installed correctly"
+            exit 1
+          }
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DQUANTUMVERSE_BUILD_TESTS=ON `
+            -DCMAKE_PREFIX_PATH="C:\Qt\6.11.1\msvc2022_64"
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release --parallel
+
+      - name: Unit Tests
+        shell: pwsh
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: QML Lint
+        shell: pwsh
+        run: |
+          & "C:\Qt\6.11.1\msvc2022_64\bin\qml.exe" -f src/main.qml
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "QML syntax check failed"
+            exit 1
+          }
+          # Check for placeholder handlers
+          if (Select-String -Path src/main.qml -Pattern "Placeholder clicked" -Quiet) {
+            Write-Error "Placeholder handler found in main.qml"
+            exit 1
+          }
+
+      - name: UI Contract Check (warn-only until Phase 4)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          python scripts/check_ui_contract.py src/main.qml
+
+      - name: Headless Smoke Test
+        shell: pwsh
+        run: |
+          # Copy Qt DLLs + QML modules (windeployqt)
+          & "C:\Qt\6.11.1\msvc2022_64\bin\windeployqt.exe" `
+            --release `
+            --no-translations `
+            --qmldir src `
+            build\Release\quantumverse_qml.exe
+
+          # Run headless
+          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 30 --metric schwarzschild 2>&1 | Out-String
+          $log | Out-File evidence\ci\smoke.log -Encoding utf8
+          Write-Host $log
+
+          # Verify expected values
+          $expected = @{
+            'bodies= 9'   = 'physics body count'
+            'experiments' = 'experiment registration'
+            'instruments' = 'instrument registration'
+            'VALIDATOR'   = 'validator checks'
+          }
+          $failures = @()
+          foreach ($key in $expected.Keys) {
+            if ($log -notmatch [regex]::Escape($key)) {
+              $failures += "Missing: $key ($($expected[$key]))"
+            }
+          }
+          if ($log -notmatch 'all 17 checks passed') {
+            $failures += "Missing: 'all 17 checks passed'"
+          }
+          if ($failures.Count -gt 0) {
+            $failures | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+
+      - name: Config Presence
+        shell: pwsh
+        run: |
+          if (-not (Test-Path build/Release/config/simulator.json)) {
+            Write-Error "config/simulator.json missing from build output"
+            exit 1
+          }
+          Write-Host "config/simulator.json present"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-${{ github.sha }}
+          path: evidence/ci/
+          if-no-files-found: ignore
