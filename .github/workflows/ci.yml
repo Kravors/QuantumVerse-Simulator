@@ -28,7 +28,7 @@ jobs:
 
       - name: Add Qt to PATH
         shell: pwsh
-        run: echo "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}\bin" >> $env:GITHUB_PATH
+        run: echo "$env:QT_ROOT_DIR\bin" >> $env:GITHUB_PATH
 
       - name: Configure
         shell: pwsh
@@ -36,7 +36,7 @@ jobs:
           cmake -B build `
             -DCMAKE_BUILD_TYPE=Release `
             -DQUANTUMVERSE_BUILD_TESTS=ON `
-            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
+            -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
 
       - name: Build
         shell: pwsh
@@ -52,15 +52,32 @@ jobs:
       - name: QML Lint
         shell: pwsh
         run: |
-          & "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}\bin\qml.exe" -f src/main.qml
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "QML syntax check failed"
+          $qml = "$env:QT_ROOT_DIR\bin\qml.exe"
+          if (-not (Test-Path $qml)) {
+            Write-Error "qml.exe not found at: $qml"
+            Write-Host "QT_ROOT_DIR = $env:QT_ROOT_DIR"
+            Get-ChildItem "$env:QT_ROOT_DIR\bin" -ErrorAction SilentlyContinue |
+              Select-Object -First 20
             exit 1
           }
+
+          # qml.exe -f runs the file. Window-type QML returns non-zero with
+          # "Did not load any objects" — that is NOT a syntax error.
+          # Real syntax errors appear as "error:" lines in output.
+          $output = & $qml -f src/main.qml 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match 'error:') {
+            Write-Error "QML syntax error detected"
+            exit 1
+          }
+
           if (Select-String -Path src/main.qml -Pattern "Placeholder clicked" -Quiet) {
-            Write-Error "Placeholder handler found in main.qml"
+            Write-Error "Placeholder handler found in src/main.qml"
             exit 1
           }
+
+          Write-Host "✓ QML check passed (no syntax errors, no placeholders)"
 
       - name: UI Contract Check (warn-only until Phase 4)
         continue-on-error: true
@@ -73,10 +90,13 @@ jobs:
         run: |
           $env:QT_QPA_PLATFORM="offscreen"
           # Copy Qt DLLs + QML modules (windeployqt)
-          & "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}\bin\windeployqt.exe" `
-            --release `
-            --no-translations `
-            --qmldir src `
+          $windeployqt = "$env:QT_ROOT_DIR\bin\windeployqt.exe"
+          if (-not (Test-Path $windeployqt)) {
+            Write-Error "windeployqt.exe not found at: $windeployqt"
+            exit 1
+          }
+
+          & $windeployqt --release --no-translations --qmldir src `
             build\Release\quantumverse_qml.exe
 
           # Run headless
