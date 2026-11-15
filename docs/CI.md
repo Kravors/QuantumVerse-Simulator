@@ -37,4 +37,4 @@ See `CF-UI_BACKLOG.md` (CF-UI-032) for the full breakdown: 7 REAL (need fixing i
 
 ## Qt Install Note
 
-The CI job installs Qt 6.11.1 MSVC via the online installer. Requires `QT_ACCOUNT_USER` and `QT_ACCOUNT_PASSWORD` GitHub secrets on cache miss.
+The CI job installs Qt 6.8.3 MSVC via `aqtinstall` on cache miss.
