@@ -46,7 +46,7 @@ jobs:
         shell: pwsh
         run: |
           $env:QT_QPA_PLATFORM="offscreen"
-          $EXCLUSIONS = Get-Content -Raw ../.github/workflows/_canary-exclusions.txt
+          $EXCLUSIONS = Get-Content -Raw .github/workflows/_canary-exclusions.txt
           ctest --test-dir build -C Release -E "$EXCLUSIONS" --output-on-failure
 
       - name: QML Lint
