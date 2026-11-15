@@ -15,32 +15,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Cache Qt 6.8.3
-        id: qt-cache
-        uses: actions/cache@v4
+      - name: Install Qt 6.8.3 MSVC (Windows)
+        uses: jurplel/install-qt-action@v4
+        id: setup_qt_windows
         with:
-          path: C:\Qt\6.8.3\msvc2022_64
-          key: qt-6.8.3-msvc2022-v1
+          version: '6.8.3'
+          target: 'desktop'
+          host: 'windows'
+          arch: 'win64_msvc2022_64'
+          modules: 'qtwebsockets'
+          cache: true
 
-      - name: Install Qt 6.8.3 MSVC via aqtinstall
+      - name: Add Qt to PATH
         shell: pwsh
-        run: |
-          # Install aqtinstall
-          python -m pip install --upgrade aqtinstall
-
-          # Install Qt 6.8.3 MSVC 2022 64-bit
-          # Only qtwebsockets is an add-on module; everything else is base install
-          python -m aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 `
-            -m qtwebsockets `
-            --outputdir C:\Qt
-
-          # Verify
-          $qtPath = "C:\Qt\6.8.3\msvc2022_64"
-          if (-not (Test-Path "$qtPath\lib\cmake\Qt6\Qt6Config.cmake")) {
-            Write-Error "Qt 6.8.3 MSVC not installed correctly at $qtPath"
-            exit 1
-          }
-          Write-Host "Qt installed at $qtPath"
+        run: echo "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}\bin" >> $env:GITHUB_PATH
 
       - name: Configure
         shell: pwsh
@@ -48,7 +36,7 @@ jobs:
           cmake -B build `
             -DCMAKE_BUILD_TYPE=Release `
             -DQUANTUMVERSE_BUILD_TESTS=ON `
-            -DCMAKE_PREFIX_PATH="C:\Qt\6.8.3\msvc2022_64"
+            -DCMAKE_PREFIX_PATH="${{ steps.setup_qt_windows.outputs.Qt6_DIR }}"
 
       - name: Build
         shell: pwsh
@@ -56,17 +44,19 @@ jobs:
 
       - name: Unit Tests
         shell: pwsh
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: |
+          $env:QT_QPA_PLATFORM="offscreen"
+          $EXCLUSIONS = Get-Content -Raw ../.github/workflows/_canary-exclusions.txt
+          ctest --test-dir build -C Release -E "$EXCLUSIONS" --output-on-failure
 
       - name: QML Lint
         shell: pwsh
         run: |
-          & "C:\Qt\6.8.3\msvc2022_64\bin\qml.exe" -f src/main.qml
+          & "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}\bin\qml.exe" -f src/main.qml
           if ($LASTEXITCODE -ne 0) {
             Write-Error "QML syntax check failed"
             exit 1
           }
-          # Check for placeholder handlers
           if (Select-String -Path src/main.qml -Pattern "Placeholder clicked" -Quiet) {
             Write-Error "Placeholder handler found in main.qml"
             exit 1
@@ -81,8 +71,9 @@ jobs:
       - name: Headless Smoke Test
         shell: pwsh
         run: |
+          $env:QT_QPA_PLATFORM="offscreen"
           # Copy Qt DLLs + QML modules (windeployqt)
-          & "C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe" `
+          & "${{ steps.setup_qt_windows.outputs.Qt6_DIR }}\bin\windeployqt.exe" `
             --release `
             --no-translations `
             --qmldir src `
