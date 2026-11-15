@@ -22,18 +22,25 @@ jobs:
           path: C:\Qt\6.8.3\msvc2022_64
           key: qt-6.8.3-msvc2022-v1
 
-      - name: Install Qt 6.8.3 MSVC via aqtinstall (cache miss only)
-        if: steps.qt-cache.outputs.cache-hit != 'true'
+      - name: Install Qt 6.8.3 MSVC via aqtinstall
         shell: pwsh
         run: |
-          pip install aqtinstall
-          aqt install-qt windows desktop 6.8.3 msvc2022_64 --outputdir C:\Qt --modules qtbase qttools qtdeclarative qtquick qtquickcontrols2 qtquicklayouts qtsvg qtlocation qtwebsockets
+          # Install aqtinstall
+          python -m pip install --upgrade aqtinstall
+
+          # Install Qt 6.8.3 MSVC 2022 64-bit
+          # Only qtwebsockets is an add-on module; everything else is base install
+          python -m aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 `
+            -m qtwebsockets `
+            --outputdir C:\Qt
 
           # Verify
-          if (-not (Test-Path "C:\Qt\6.8.3\msvc2022_64\lib\cmake\Qt6\Qt6Config.cmake")) {
-            Write-Error "Qt 6.8.3 MSVC not installed correctly"
+          $qtPath = "C:\Qt\6.8.3\msvc2022_64"
+          if (-not (Test-Path "$qtPath\lib\cmake\Qt6\Qt6Config.cmake")) {
+            Write-Error "Qt 6.8.3 MSVC not installed correctly at $qtPath"
             exit 1
           }
+          Write-Host "Qt installed at $qtPath"
 
       - name: Configure
         shell: pwsh
@@ -54,7 +61,7 @@ jobs:
       - name: QML Lint
         shell: pwsh
         run: |
-          & "C:\Qt\6.11.1\msvc2022_64\bin\qml.exe" -f src/main.qml
+          & "C:\Qt\6.8.3\msvc2022_64\bin\qml.exe" -f src/main.qml
           if ($LASTEXITCODE -ne 0) {
             Write-Error "QML syntax check failed"
             exit 1
@@ -75,7 +82,7 @@ jobs:
         shell: pwsh
         run: |
           # Copy Qt DLLs + QML modules (windeployqt)
-          & "C:\Qt\6.11.1\msvc2022_64\bin\windeployqt.exe" `
+          & "C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe" `
             --release `
             --no-translations `
             --qmldir src `
