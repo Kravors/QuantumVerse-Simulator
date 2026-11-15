@@ -617,9 +617,21 @@ ApplicationWindow {
                             }
 
                             if (dragButton === Qt.LeftButton && !isPanning) {
-                                camController.azimuth += dx * 0.005
-                                camController.elevation = Math.max(-1.4, Math.min(1.4,
-                                    camController.elevation + dy * 0.005))
+                                var angle = dx * 0.02
+                                if (mouse.modifiers & Qt.ShiftModifier) {
+                                    camController.rotate4D(2, 3, angle)
+                                    console.log("Shift+drag: rotate YZ plane, angle=" + angle.toFixed(4))
+                                } else if (mouse.modifiers & Qt.ControlModifier) {
+                                    camController.rotate4D(0, 1, angle)
+                                    console.log("Ctrl+drag: rotate TX plane, angle=" + angle.toFixed(4))
+                                } else if (mouse.modifiers & Qt.AltModifier) {
+                                    camController.rotate4D(1, 3, angle)
+                                    console.log("Alt+drag: rotate XZ plane, angle=" + angle.toFixed(4))
+                                } else {
+                                    camController.azimuth += dx * 0.005
+                                    camController.elevation = Math.max(-1.4, Math.min(1.4,
+                                        camController.elevation + dy * 0.005))
+                                }
                             } else if (isPanning) {
                                 camController.onMouseMoved(mouse.x, mouse.y, dragButton)
                             }
@@ -651,8 +663,14 @@ ApplicationWindow {
                     focus: true
                     Keys.onPressed: function(event) {
                         switch (event.key) {
-                        case Qt.Key_W: camController.dolly(-1.0); break
-                        case Qt.Key_S: camController.dolly(1.0); break
+                        case Qt.Key_W: camController.dolly(-1.0); console.log("W: dolly back, distance=" + camController.distance.toFixed(1)); break
+                        case Qt.Key_A: camController.panX(-1.0); console.log("A: pan left, target.x=" + camController.target.x.toFixed(1)); break
+                        case Qt.Key_S: camController.dolly(1.0); console.log("S: dolly forward, distance=" + camController.distance.toFixed(1)); break
+                        case Qt.Key_D: camController.panX(1.0); console.log("D: pan right, target.x=" + camController.target.x.toFixed(1)); break
+                        case Qt.Key_Left: camera4DAdapter.advanceSlice(-0.1); console.log("Left: slice offset -= 0.1"); break
+                        case Qt.Key_Right: camera4DAdapter.advanceSlice(0.1); console.log("Right: slice offset += 0.1"); break
+                        case Qt.Key_Up: camera4DAdapter.advanceSlice(0.1); console.log("Up: slice offset += 0.1"); break
+                        case Qt.Key_Down: camera4DAdapter.advanceSlice(-0.1); console.log("Down: slice offset -= 0.1"); break
                         case Qt.Key_R: camController.reset(); break
                         case Qt.Key_Space: simulationPaused = !simulationPaused; break
                         case Qt.Key_F3: if (viewport) viewport.showHUD = !viewport.showHUD; break
@@ -675,13 +693,9 @@ ApplicationWindow {
                     anchors.fill: parent
                     Text {
                         anchors.centerIn: parent
-                        text: "3D Viewport disabled\n(--noviewport)"
+                        text: "GUI viewport unavailable.\nRun without --noviewport for GUI mode,\nor use --headless for automation."
                         color: "white"
-                        font.pixelSize: 24
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: console.log("Placeholder clicked")
+                        font.pixelSize: 18
                     }
                 }
             }
@@ -894,6 +908,7 @@ ApplicationWindow {
                                 id: rlScanButton
                                 text: rlScanRunning ? "⏹ Stop AI" : "🤖 Run Discovery Scan"
                                 Layout.fillWidth: true
+                                enabled: rlDiscoveryAgent.available
                                 onClicked: {
                                     console.log("RL Discovery Scan button clicked!")
                                     if (rlDiscoveryAgent && rlDiscoveryAgent.isONNXLoaded()) {
@@ -907,6 +922,10 @@ ApplicationWindow {
                                         console.log("RL agent not loaded or ONNX model missing")
                                     }
                                 }
+                                ToolTip.visible: hovered
+                                ToolTip.text: rlDiscoveryAgent.available
+                                    ? "Run RL-based discovery scan"
+                                    : "RL scanning requires ONNX-enabled build (-DQUANTUMVERSE_USE_ONNX=ON)"
                             }
                         }
 
@@ -1357,6 +1376,203 @@ ApplicationWindow {
                             }
                         }
                     }
+                }
+
+                // --- Tier 1: All Chapter 3.4 panels wired ---
+                // Each pane is gated on its context property; QML compiles even
+                // if the C++ backing class is a plain (non-QObject) type exposed
+                // via setContextProperty. Visibility/function verification
+                // deferred to F5.
+
+                // SliceView panel
+                Pane {
+                    id: sliceViewPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "📐 Slice View"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: sliceView ? "active" : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // CausalGraph panel
+                Pane {
+                    id: causalGraphPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "🕸 Causal Graph"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: causalGraph ? "active" : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // DiscoveryProbe panel
+                Pane {
+                    id: discoveryProbePane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "🎯 Discovery Probe"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: discoveryProbe ? "active" : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // SceneGraphManager panel
+                Pane {
+                    id: sceneGraphManagerPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "🌳 Scene Graph"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: sceneGraphManager ? "active" : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // EnhancedLayout panel
+                Pane {
+                    id: enhancedLayoutPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "🎨 Enhanced Layout"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: enhancedLayout ? "active" : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // ScanSummary panel
+                Pane {
+                    id: scanSummaryPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "📋 Scan Summary"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: scanSummary ? "active" : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // SpacetimeGPS panel (QML-registered + context property)
+                Pane {
+                    id: spacetimeGPSPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "🛰 Spacetime GPS"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: spacetimeGPS ? "tracked: " + spacetimeGPS.count : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // QmlRLDiscoveryAgent panel (QML-registered + context property)
+                Pane {
+                    id: rlDiscoveryAgentPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "🤖 RL Discovery"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: rlDiscoveryAgent ? "online: " + (rlDiscoveryAgent.isONNXLoaded() ? "yes" : "no") : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // UI4D panel
+                Pane {
+                    id: ui4dPane
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 80
+                    visible: false
+                    background: Rectangle { color: "#1a1a2e"; radius: 6; border.color: "#2a2a4a"; border.width: 1 }
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Label { text: "🎮 UI4D"; font.bold: true; font.pixelSize: 12; color: "#ccc" }
+                        Label { text: ui4d ? "active quantum: CDT" : "n/a"; font.pixelSize: 10; color: "#888" }
+                    }
+                }
+
+                // Toggle buttons for Tier 1 panels
+                Button {
+                    text: sliceViewPane.visible ? "📐 Slice View ▾" : "📐 Slice View"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: sliceViewPane.visible
+                    onClicked: sliceViewPane.visible = !sliceViewPane.visible
+                }
+                Button {
+                    text: causalGraphPane.visible ? "🕸 Causal Graph ▾" : "🕸 Causal Graph"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: causalGraphPane.visible
+                    onClicked: causalGraphPane.visible = !causalGraphPane.visible
+                }
+                Button {
+                    text: discoveryProbePane.visible ? "🎯 Discovery Probe ▾" : "🎯 Discovery Probe"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: discoveryProbePane.visible
+                    onClicked: discoveryProbePane.visible = !discoveryProbePane.visible
+                }
+                Button {
+                    text: sceneGraphManagerPane.visible ? "🌳 Scene Graph ▾" : "🌳 Scene Graph"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: sceneGraphManagerPane.visible
+                    onClicked: sceneGraphManagerPane.visible = !sceneGraphManagerPane.visible
+                }
+                Button {
+                    text: enhancedLayoutPane.visible ? "🎨 Enhanced Layout ▾" : "🎨 Enhanced Layout"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: enhancedLayoutPane.visible
+                    onClicked: enhancedLayoutPane.visible = !enhancedLayoutPane.visible
+                }
+                Button {
+                    text: scanSummaryPane.visible ? "📋 Scan Summary ▾" : "📋 Scan Summary"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: scanSummaryPane.visible
+                    onClicked: scanSummaryPane.visible = !scanSummaryPane.visible
+                }
+                Button {
+                    text: spacetimeGPSPane.visible ? "🛰 Spacetime GPS ▾" : "🛰 Spacetime GPS"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: spacetimeGPSPane.visible
+                    onClicked: spacetimeGPSPane.visible = !spacetimeGPSPane.visible
+                }
+                Button {
+                    text: rlDiscoveryAgentPane.visible ? "🤖 RL Discovery ▾" : "🤖 RL Discovery"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: rlDiscoveryAgentPane.visible
+                    onClicked: rlDiscoveryAgentPane.visible = !rlDiscoveryAgentPane.visible
+                }
+                Button {
+                    text: ui4dPane.visible ? "🎮 UI4D ▾" : "🎮 UI4D"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: ui4dPane.visible
+                    onClicked: ui4dPane.visible = !ui4dPane.visible
                 }
 
                 // Multi-user collaboration panel
