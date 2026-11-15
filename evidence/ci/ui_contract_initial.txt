@@ -1,0 +1,45 @@
+## CF-UI-032 — UI contract violations (20 total)
+
+Generated: 2026-11-15
+Script: `scripts/check_ui_contract.py src/main.qml`
+
+### REAL (7 — need fixing in Phase 4)
+
+| Line | Element | Issue | Fix |
+|---|---|---|---|
+| 182 | MenuItem "Reload Config" | `onTriggered` block contains `console.log(...)` debug lines | Remove console.log; keep ToolTip.text |
+| 858 | Button "Scan" | `onClicked` handler contains `console.log("Scan button clicked!")` | Remove console.log |
+| 878 | Button "Export" | `enabled:` is dynamic binding (not literal false), `onClicked` has console.log; no ToolTip explaining disabled state | Remove console.log; add ToolTip |
+| 911 | Button "RL Discovery Scan" | `enabled: rlDiscoveryAgent.available` + ToolTip present (CF-UI-025 fix), but `onClicked` has console.log lines | Remove console.log; keep enabled + ToolTip |
+| 941 | Button "Reset" | `onClicked` has `console.log("RL reset clicked!")`; no ToolTip | Remove console.log; add ToolTip |
+| 980 | Button "Load model…" | `onClicked` has `console.log("RL loadONNXModel(...) -> " + ok)` | Remove console.log |
+| 2139 | Button "Export CSV" | `enabled:` dynamic binding, `onClicked` block has `console.log("Sweep exported to:" + path)` | Remove console.log |
+
+### FALSE-POSITIVE (13 — script refinement needed)
+
+| Line | Element | Why flagged | Why it's not a violation | Script fix |
+|---|---|---|---|---|
+| 208 | MenuItem "Show Grid" | No `onTriggered:` found | Checkable MenuItem uses `onToggled`, not `onTriggered` | Accept `onToggled` for checkable MenuItems |
+| 216 | MenuItem "Plane Mode" | Same as above | Same | Same |
+| 224 | MenuItem "Procedural Textures" | Same as above | Same | Same |
+| 231 | MenuItem "Show Geodesics" | Same as above | Same | Same |
+| 238 | MenuItem "Show Quantum Geometry" | Same as above | Same | Same |
+| 246 | MenuItem "Brightness Boost" | Same as above | Same | Same |
+| 257 | MenuItem "Gravitational Lensing" | Same as above | Same | Same |
+| 2267 | Slider "timeSlider" | No `onValueChanged:` found | Slider uses `onMoved`, which is the correct QML handler | Accept `onMoved` for Slider |
+| 814 | ComboBox instrumentCombo | `console.log` in `Component.onCompleted` | Debug logging in Component.onCompleted, not a placeholder handler | Ignore console.log in Component.onCompleted |
+| 2104 | ComboBox sweepParamCombo | Same as above | Same | Same |
+| 390 | TextField "Search objects..." | `placeholderText` matches "placeholder" pattern | `placeholderText` is a legitimate QML property | Exclude `placeholderText` from placeholder detection |
+| 973 | TextField "ONNX model path…" | `placeholderText` matches "placeholder" pattern | Same | Same |
+| 1890 | TextField "Archive directory..." | `placeholderText` matches "placeholder" pattern | Same | Same |
+
+### Summary
+
+- **REAL: 7** — Remove console.log placeholders, add missing ToolTips
+- **FALSE-POSITIVE: 13** — Refine script to handle checkable MenuItems (onToggled), Slider (onMoved), Component.onCompleted debug logging, and placeholderText property
+
+### Next steps for Phase 4
+
+1. Fix the 7 REAL violations (remove console.log, add ToolTips)
+2. Refine `scripts/check_ui_contract.py` to eliminate the 13 FALSE-POSITIVES
+3. Flip `continue-on-error: false` in CI once violations are at zero
