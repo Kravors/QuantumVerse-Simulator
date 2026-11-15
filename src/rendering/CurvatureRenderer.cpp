@@ -863,11 +863,8 @@ void CurvatureRenderer::renderErgosphere(const float* viewMatrix, const float* p
 
     // Build model matrix to translate ergosphere to black hole position
     float modelMat[16] = {
-        1.0f, 0.0f, 0.0f, m_blackHoleCenter[0],
-        0.0f, 1.0f, 0.0f, m_blackHoleCenter[1],
-        0.0f, 0.0f, 1.0f, m_blackHoleCenter[2],
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
+        1.0f, 0.0f, 0.0f, m_blackHoleCenter[0], 0.0f, 1.0f, 0.0f, m_blackHoleCenter[1],
+        0.0f, 0.0f, 1.0f, m_blackHoleCenter[2], 0.0f, 0.0f, 0.0f, 1.0f};
     ergoShader.setUniform("modelMatrix", modelMat);
 
     glBindVertexArray(ergoVao);

@@ -78,6 +78,7 @@ jobs:
           }
 
           Write-Host "✓ QML check passed (no syntax errors, no placeholders)"
+          exit 0
 
       - name: UI Contract Check (warn-only until Phase 4)
         continue-on-error: true

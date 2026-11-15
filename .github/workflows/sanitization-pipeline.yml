@@ -335,11 +335,20 @@ jobs:
         # Pre-existing functional test failures must not mask sanitizer signal;
         # the dedicated gate below is what actually fails this job.
         continue-on-error: true
+        shell: pwsh
         working-directory: build
         run: |
           $env:ASAN_OPTIONS = "symbolize=1:print_stacktrace=1"
-          ctest -C Debug --output-on-failure -j 4 --timeout 600 \
-            --exclude-regex "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest|DiscoveryRobustnessTest|PerformanceGateTest)" 2>&1 | Tee-Object -FilePath asan-ctest.log
+          ctest -C Debug --output-on-failure -j 4 --timeout 600 `
+            --exclude-regex "(RuntimeSmokeTest|VisualRegressionTest|AnimationTimingTest|GridDeformationTest|DiscoveryRobustnessTest|PerformanceGateTest)" `
+            2>&1 | Tee-Object -FilePath asan-ctest.log
+          $exitCode = $LASTEXITCODE
+          if (-not (Test-Path asan-ctest.log)) {
+            Write-Error "asan-ctest.log was not created — command failed before writing"
+            exit 1
+          }
+          Write-Host "asan-ctest.log created, ctest exit: $exitCode"
+          exit $exitCode
 
       - name: Gate on AddressSanitizer findings
         working-directory: build
