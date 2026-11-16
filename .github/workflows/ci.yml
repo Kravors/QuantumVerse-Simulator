@@ -45,7 +45,10 @@ jobs:
       - name: Unit Tests
         shell: pwsh
         run: |
-          $env:QT_QPA_PLATFORM="offscreen"
+          # QT_QPA_PLATFORM intentionally NOT set on Windows — Qt 6.8.3 MSVC
+          # ships only the 'windows' platform plugin (no 'offscreen').
+          # Setting QT_QPA_PLATFORM=offscreen causes immediate failure at
+          # plugin initialization (0xC0000005 / "no Qt platform plugin").
           $EXCLUSIONS = Get-Content -Raw .github/workflows/_canary-exclusions.txt
           ctest --test-dir build -C Release -E "$EXCLUSIONS" --output-on-failure
 
