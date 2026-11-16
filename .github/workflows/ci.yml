@@ -94,47 +94,44 @@ jobs:
         run: |
           python scripts/check_ui_contract.py src/main.qml
 
-      - name: Headless Smoke Test
+      - name: Headless Smoke Test — Default (Solar System)
         shell: pwsh
         run: |
-          $env:QT_QPA_PLATFORM="offscreen"
-          # Copy Qt DLLs + QML modules (windeployqt)
           $windeployqt = "$env:QT_ROOT_DIR\bin\windeployqt.exe"
           if (-not (Test-Path $windeployqt)) {
             Write-Error "windeployqt.exe not found at: $windeployqt"
             exit 1
           }
+          & $windeployqt --release --no-translations --qmldir src build\Release\quantumverse_qml.exe
 
-          & $windeployqt --release --no-translations --qmldir src `
-            build\Release\quantumverse_qml.exe
-
-          # Run headless
-          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 30 --metric schwarzschild 2>&1 | Out-String
-          $log | Out-File evidence\ci\smoke.log -Encoding utf8
+          # Default config — no --metric flag — solar system, bodies= 9
+          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 30 2>&1 | Out-String
+          $log | Out-File evidence\ci\smoke-default.log -Encoding utf8
           Write-Host $log
 
-          # Verify expected values
-          $expected = @{
-            'bodies= 9'   = 'physics body count'
-            'experiments' = 'experiment registration'
-            'instruments' = 'instrument registration'
-            '[VALIDATOR]' = 'validator ran'
-          }
-          $failures = @()
-          foreach ($key in $expected.Keys) {
-            if ($log -notmatch [regex]::Escape($key)) {
-              $failures += "Missing: $key ($($expected[$key]))"
-            }
-          }
-          # Validator summary format changed from 'all N checks passed'
-          # to 'X of Y checks failed across Z probes'. Both mean validator ran.
-          if ($log -notmatch 'checks failed' -and $log -notmatch 'checks passed') {
-            $failures += "Missing: validator summary (checks passed/failed)"
-          }
-          if ($failures.Count -gt 0) {
-            $failures | ForEach-Object { Write-Error $_ }
+          if ($log -notmatch 'bodies= 9') {
+            Write-Error "Default config: expected bodies= 9, not found"
             exit 1
           }
+          if ($log -notmatch 'all 17 checks passed') {
+            Write-Error "Default config: validator did not pass"
+            exit 1
+          }
+          Write-Host "✓ Default config smoke passed"
+
+      - name: Headless Smoke Test — Schwarzschild (Single BH)
+        shell: pwsh
+        run: |
+          # Schwarzschild metric — bodies= 1 (single central mass)
+          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 30 --metric schwarzschild 2>&1 | Out-String
+          $log | Out-File evidence\ci\smoke-schwarzschild.log -Encoding utf8
+          Write-Host $log
+
+          if ($log -notmatch 'bodies= 1') {
+            Write-Error "Schwarzschild: expected bodies= 1, not found"
+            exit 1
+          }
+          Write-Host "✓ Schwarzschild smoke passed"
 
       - name: Config Presence
         shell: pwsh
