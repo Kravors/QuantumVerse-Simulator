@@ -119,19 +119,20 @@ jobs:
           }
           Write-Host "✓ Default config smoke passed"
 
-      - name: Headless Smoke Test — Schwarzschild (Single BH)
+      - name: Headless Smoke Test — Schwarzschild Metric
         shell: pwsh
         run: |
-          # Schwarzschild metric — bodies= 1 (single central mass)
+          # Same body count (config-driven, not metric-driven), but Schwarzschild
+          # metric path must not crash
           $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 30 --metric schwarzschild 2>&1 | Out-String
           $log | Out-File evidence\ci\smoke-schwarzschild.log -Encoding utf8
           Write-Host $log
 
-          if ($log -notmatch 'bodies= 1') {
-            Write-Error "Schwarzschild: expected bodies= 1, not found"
+          if ($log -notmatch 'bodies= 9') {
+            Write-Error "Schwarzschild: expected bodies= 9 (config-driven), not found"
             exit 1
           }
-          Write-Host "✓ Schwarzschild smoke passed"
+          Write-Host "✓ Schwarzschild metric smoke passed"
 
       - name: Config Presence
         shell: pwsh
