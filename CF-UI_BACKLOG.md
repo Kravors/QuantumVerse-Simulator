@@ -149,6 +149,8 @@ Logged for v7.4.1 or later. Not v7.4.0 blockers, but should be tracked.
 | CF-004 | Installer rebuild + Qt deployment | build-windows/QuantumVerse-installer.nsi | 2 weeks calendar |
 | LEGAL-001 | Third party notices + GPL/Qt compliance | THIRD_PARTY_NOTICES | 1 week calendar |
 | CF-UI-024 | C++ compilation gate | CLOSED — Full build succeeded with Qt 6.11.1 MSVC. `cl /Zs` syntax check passes (only pre-existing nlohmann/json.hpp FetchContent dependency). `cmake --build build_full --config Release --target quantumverse_qml` → BUILD_EXIT=0. main_qml.cpp compiles with Tier 1 changes. | 30 min (blocks Tier 2 — now closed) |
+| CF-CI-002 | MinGW ASan unavailable | sanitization-pipeline.yml | MinGW linker missing -lasan; Windows ASan job fails nightly. Fix: switch ASan job to MSVC runner or drop MinGW ASan. | Phase 5 workflow consolidation |
+| CF-CI-003 | CodeQL race in Nightly Baseline Update | ci.yml / push flow | Generated commit pushed before CodeQL completes; branch rule rejects. Fix: retry-with-backoff around push or gate commit on CodeQL success. | Phase 5 workflow consolidation |
 
 ---
 
