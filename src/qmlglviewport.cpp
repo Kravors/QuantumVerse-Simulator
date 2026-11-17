@@ -328,10 +328,11 @@ void QmlGlRenderer::render() {
         // gladLoadGL() runs inside initializeGL(); calling one beforehand
         // (e.g. glad_glGetError) dereferences a null function pointer and crashes
         // with an access violation at EIP=0x0 on the very first real frame.
-        static bool initialized = false;
-        if (!initialized) {
-            initializeGL();
-            initialized = true;
+        if (!m_glInitialized) {
+            if (!initializeGL()) {
+                qWarning("QmlGlRenderer: GLAD initialization failed, skipping render");
+                return;
+            }
         }
 
         // [DIAG] Clear GL error queue every frame (gated: driver round-trip).
@@ -991,10 +992,9 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item) {
         // One-time GL initialization on the first synchronize/render cycle.
         // This must happen before any renderer-specific GL work, and it must
         // not be gated on m_curvatureRenderer being non-null.
-        if (!m_glInitialized) {
-            initializeGL();
-            m_glInitialized = true;
-        }
+        // initializeGL() returns false on GLAD load failure; m_glInitialized
+        // stays false so render() can bail out before calling any GL functions.
+        m_glInitialized = initializeGL();
 
         // Pull per-frame state from the viewport item.
         m_curvatureRenderer = viewport->curvatureRenderer();
@@ -1270,7 +1270,7 @@ void QmlGlRenderer::setSimulationTime(float time) {
 // OpenGL Initialization
 // ============================================================================
 
-void QmlGlRenderer::initializeGL() {
+bool QmlGlRenderer::initializeGL() {
     std::ofstream initLog("renderer_init.log");
     initLog << "initializeGL() called" << std::endl;
 
@@ -1278,7 +1278,7 @@ void QmlGlRenderer::initializeGL() {
     if (!ctx) {
         initLog << "FAIL: No current OpenGL context" << std::endl;
         qWarning("Failed to get current OpenGL context for GLAD loader");
-        return;
+        return false;
     }
     initLog << "ctx=" << ctx << " moduleType=" << ctx->openGLModuleType() << std::endl;
 
@@ -1286,7 +1286,7 @@ void QmlGlRenderer::initializeGL() {
     if (!initializeGlad()) {
         initLog << "FAIL: initializeGlad failed" << std::endl;
         qWarning("Failed to initialize GLAD OpenGL loader");
-        return;
+        return false;
     }
     initLog << "initializeGlad succeeded" << std::endl;
 
@@ -1327,6 +1327,10 @@ void QmlGlRenderer::initializeGL() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+
+    m_glInitialized = true;
+    initLog << "initializeGL() complete, m_glInitialized=true" << std::endl;
+    return true;
 }
 
 bool QmlGlRenderer::compileShader(GLuint& program, const char* vertexSource,

@@ -387,7 +387,7 @@ class QmlGlRenderer : public ::QQuickFramebufferObject::Renderer {
 
    private:
     // OpenGL initialization helpers
-    void initializeGL();
+    bool initializeGL();
     void setupShaders();
     void setupGridGeometry();
     void setupAxisGizmo();
