@@ -151,6 +151,8 @@ Logged for v7.4.1 or later. Not v7.4.0 blockers, but should be tracked.
 | CF-UI-024 | C++ compilation gate | CLOSED — Full build succeeded with Qt 6.11.1 MSVC. `cl /Zs` syntax check passes (only pre-existing nlohmann/json.hpp FetchContent dependency). `cmake --build build_full --config Release --target quantumverse_qml` → BUILD_EXIT=0. main_qml.cpp compiles with Tier 1 changes. | 30 min (blocks Tier 2 — now closed) |
 | CF-CI-002 | MinGW ASan unavailable | sanitization-pipeline.yml | MinGW linker missing -lasan; Windows ASan job fails nightly. Fix: switch ASan job to MSVC runner or drop MinGW ASan. | Phase 5 workflow consolidation |
 | CF-CI-003 | CodeQL race in Nightly Baseline Update | ci.yml / push flow | Generated commit pushed before CodeQL completes; branch rule rejects. Fix: retry-with-backoff around push or gate commit on CodeQL success. | Phase 5 workflow consolidation |
+| CF-MEM-001 | MultiUserServer leaks detected by LeakSanitizer | MultiUserServer.cpp | LeakSanitizer reported leaks in PR Diagnostics run 44088182335 — MultiUserServerTest. Review MultiUserServer.cpp for missing delete/free on cleanup path. Long-running VR multi-user sessions leak memory over time. | Medium — not blocking v7.4.0 (VR collab is CF-UI-031 scope) |
+| CF-MEM-002 | MemoryLeakTest fails on headless smoke | main_qml.cpp / PR Diagnostics run 44088182335 | app didn't finish in time — timeout + potential leak. Investigate why headless app doesn't exit; check for missing thread join. | Medium |
 
 ---
 

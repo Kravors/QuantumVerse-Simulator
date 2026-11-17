@@ -163,3 +163,39 @@ jobs:
             **/*.dmp
             evidence/ci/*.log
           if-no-files-found: ignore
+
+      - name: Analyze crash dump with CDB on failure
+        if: failure()
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          # Find the dump
+          $dump = Get-ChildItem -Path build,evidence -Recurse -Filter "*.dmp" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $dump) {
+            Write-Host "No crash dump found in build/ or evidence/"
+            Get-ChildItem -Recurse -Filter "*.dmp" -ErrorAction SilentlyContinue | Select-Object -First 5 | ForEach-Object { Write-Host $_.FullName }
+            exit 0
+          }
+          Write-Host "Analyzing crash dump: $($dump.FullName)"
+
+          # Find cdb.exe
+          $cdbPaths = @(
+            "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe",
+            "C:\Program Files\Windows Kits\10\Debuggers\x64\cdb.exe"
+          )
+          $cdb = $null
+          foreach ($p in $cdbPaths) {
+            if (Test-Path $p) { $cdb = $p; break }
+          }
+          if (-not $cdb) {
+            $cdb = Get-ChildItem "C:\Program Files\WindowsApps\Microsoft.WinDbg_*\amd64\cdb.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $cdb) {
+            Write-Host "cdb.exe not found — cannot analyze dump"
+            Write-Host "Tip: install Microsoft.WindowsSDK.DebuggingTools or Microsoft.WinDbg"
+            exit 0
+          }
+          Write-Host "Using CDB: $cdb"
+
+          # Run analysis — output to CI log
+          & $cdb -z $dump.FullName -c ".symfix; .reload; .ecxr; !analyze -v; k; q" 2>&1 | Tee-Object -FilePath evidence\ci\crash-trace.txt

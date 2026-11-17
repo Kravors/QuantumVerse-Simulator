@@ -160,12 +160,10 @@ static bool initializeGlad() {
              << reinterpret_cast<const char*>(glad_glGetString(GL_VENDOR));
     qDebug() << "QmlGlViewport: openGLModuleType (instance):"
              << (ctx ? ctx->openGLModuleType() : -1);
-    qDebug() << "QmlGlViewport: openGLModuleType (static):"
-             << QOpenGLContext::openGLModuleType();
+    qDebug() << "QmlGlViewport: openGLModuleType (static):" << QOpenGLContext::openGLModuleType();
 
     const char* renderer_str = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
-    if (renderer_str &&
-        (strstr(renderer_str, "ANGLE") || strstr(renderer_str, "Microsoft GDI"))) {
+    if (renderer_str && (strstr(renderer_str, "ANGLE") || strstr(renderer_str, "Microsoft GDI"))) {
         qWarning() << "WARNING: Desktop OpenGL may not be active! Renderer contains ANGLE/GDI.";
     }
 
