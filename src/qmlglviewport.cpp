@@ -139,44 +139,52 @@ static bool initializeGlad() {
         return reinterpret_cast<void*>(c->getProcAddress(name));
     };
 
-    if (gladLoadGLLoader(loader)) {
-        qDebug() << "QmlGlViewport: glad initialized successfully, GL version:"
-                 << reinterpret_cast<const char*>(glad_glGetString(GL_VERSION));
-        qDebug() << "QmlGlViewport: GL_RENDERER:"
-                 << reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
-        qDebug() << "QmlGlViewport: GL_VENDOR:"
-                 << reinterpret_cast<const char*>(glad_glGetString(GL_VENDOR));
-        qDebug() << "QmlGlViewport: openGLModuleType (instance):"
-                 << (ctx ? ctx->openGLModuleType() : -1);
-        qDebug() << "QmlGlViewport: openGLModuleType (static):"
-                 << QOpenGLContext::openGLModuleType();
-
-        const char* renderer_str = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
-        if (renderer_str &&
-            (strstr(renderer_str, "ANGLE") || strstr(renderer_str, "Microsoft GDI"))) {
-            qWarning() << "WARNING: Desktop OpenGL may not be active! Renderer contains ANGLE/GDI.";
-        }
-
-        static bool fallbackLogged = false;
-        if (!fallbackLogged) {
-            const char* glRenderer = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
-            bool isDesktop = glRenderer && strstr(glRenderer, "ANGLE") == nullptr &&
-                             strstr(glRenderer, "Microsoft GDI") == nullptr;
-            if (!isDesktop) {
-                qWarning()
-                    << "Desktop OpenGL not available; fallback to software renderer or ANGLE mode.";
-            } else {
-                qDebug() << "Desktop OpenGL confirmed active.";
-            }
-            fallbackLogged = true;
-        }
-
-        initialized = true;
-        return true;
+    if (!gladLoadGLLoader(loader)) {
+        qWarning() << "QmlGlViewport: glad initialization failed";
+        return false;
     }
 
-    qWarning() << "QmlGlViewport: glad initialization failed";
-    return false;
+    // gladLoadGLLoader can return true while optional function pointers remain NULL.
+    // Verify critical pointers before dereferencing them — a NULL glad_glGetString
+    // dereferences to 0xC0000005 at address 0 on CI hosts without a GPU.
+    if (!glad_glGetString || !glad_glGetError || !glad_glViewport) {
+        qWarning() << "QmlGlViewport: glad loaded but critical OpenGL functions are NULL";
+        return false;
+    }
+
+    qDebug() << "QmlGlViewport: glad initialized successfully, GL version:"
+             << reinterpret_cast<const char*>(glad_glGetString(GL_VERSION));
+    qDebug() << "QmlGlViewport: GL_RENDERER:"
+             << reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+    qDebug() << "QmlGlViewport: GL_VENDOR:"
+             << reinterpret_cast<const char*>(glad_glGetString(GL_VENDOR));
+    qDebug() << "QmlGlViewport: openGLModuleType (instance):"
+             << (ctx ? ctx->openGLModuleType() : -1);
+    qDebug() << "QmlGlViewport: openGLModuleType (static):"
+             << QOpenGLContext::openGLModuleType();
+
+    const char* renderer_str = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+    if (renderer_str &&
+        (strstr(renderer_str, "ANGLE") || strstr(renderer_str, "Microsoft GDI"))) {
+        qWarning() << "WARNING: Desktop OpenGL may not be active! Renderer contains ANGLE/GDI.";
+    }
+
+    static bool fallbackLogged = false;
+    if (!fallbackLogged) {
+        const char* glRenderer = reinterpret_cast<const char*>(glad_glGetString(GL_RENDERER));
+        bool isDesktop = glRenderer && strstr(glRenderer, "ANGLE") == nullptr &&
+                         strstr(glRenderer, "Microsoft GDI") == nullptr;
+        if (!isDesktop) {
+            qWarning()
+                << "Desktop OpenGL not available; fallback to software renderer or ANGLE mode.";
+        } else {
+            qDebug() << "Desktop OpenGL confirmed active.";
+        }
+        fallbackLogged = true;
+    }
+
+    initialized = true;
+    return true;
 }
 
 QmlGlRenderer::QmlGlRenderer(int viewportWidth, int viewportHeight)
