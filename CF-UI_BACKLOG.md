@@ -139,6 +139,7 @@ Logged for v7.4.1 or later. Not v7.4.0 blockers, but should be tracked.
 | CF-UI-030 | Development scaffolding left in production log output | LOW | `[WARN] [REDSHIFT-DEBUG]`, `[WARN] [DIAG-CelestialBodies] render# 5450 ...` — debug prefixes not stripped from release build. | Remove or gate REDSHIFT-DEBUG/DIAG- prefixed logs behind build flag | 1 h |
 | CF-UI-031 | SceneGraphManager and UI4D::solarSystem are independent body lists | LOW | Object Browser reads from `SceneGraphManager` (~15 bodies), physics reads from `UI4D::solarSystem.bodies` (1 body due to config failure). This masking effect hid CF-UI-026 for the entire verification campaign — UI looked functional while physics ran single-body. | Unify body storage — SceneGraphManager reads from UI4D::solarSystem, or both read from shared BodyRegistry. Acceptance: Object Browser count and "[REALITY] bodies=" count cannot mismatch by construction. | 4–8 h (v7.4.1) |
 | CF-UI-032 | Placeholder handlers in QML interactive elements | MEDIUM | `scripts/check_ui_contract.py` found 20 violations in `src/main.qml` (see `evidence/ci/ui_contract_initial.txt`): **7 REAL** — Buttons (858, 878, 911, 941, 980, 2139), MenuItem (182) with `console.log` placeholders; **13 FALSE-POSITIVE** — checkable MenuItems use `onToggled` (208, 216, 224, 231, 238, 246, 257), Slider uses `onMoved` (2267), ComboBox `Component.onCompleted` debug logging (814, 2104), TextField `placeholderText` property (390, 973, 1890). | Every interactive element has a functional handler or is `enabled: false` with a `ToolTip`. Zero `console.log` placeholders in handlers. Script refined to eliminate false positives. | 1–2 h (Phase 4) |
+| CF-UI-034 | `--version` flag launches GUI instead of printing version | MEDIUM | `quantumverse_qml.exe --version` opens GUI window instead of printing version string and exiting 0. CI smoke tests and F5 verification cannot use `--version` for binary validation. | `--version` prints "7.4.0" and exits 0 without opening a window. Add explicit argument parsing before GUI init in main_qml.cpp. | 15 min |
 
 ---
 
@@ -187,7 +188,8 @@ These run in parallel with CF-UI work on clean Qt 6.11.1 MSVC host:
 - [ ] CF-UI-026 complete (config loading failure → bodies=1) — **HIGH, blocks v7.4.0** (1–2 h code fix: call `loadDefaults()` on failure, add planets to defaults)
 - [ ] CF-UI-027 complete (Sun radius/isStar — same root cause as CF-UI-026) — **HIGH, blocks v7.4.0** (covered by CF-UI-026 fix)
 - [ ] CF-UI-028 complete (QML signal handler injection fix) — LOW, cosmetic (30 min)
-- [ ] CF-004 installer built (non-admin, `RequestExecutionLevel user`, `QuantumVerse-7.4.0-win64.exe`, signed)
+- [ ] CF-UI-034 complete (`--version` flag launches GUI instead of printing version) — MEDIUM, blocks F5 (15 min)
+- [x] CF-004 installer built and tested (non-admin, RequestExecutionLevel user, QuantumVerse-7.4.0-win64.exe, config bundled, THIRD_PARTY_NOTICES bundled, uninstall exit 0)
 - [ ] LEGAL-001 THIRD_PARTY_NOTICES created, GPL/Qt licensing resolved
 - [ ] Chapter 10 rewritten to match implemented controls
 - [ ] Chapter 3.4 rewritten to match wired panels

@@ -1215,9 +1215,11 @@ int main(int argc, char* argv[]) {
         auto causalGraph = std::make_shared<quantumverse::CausalGraph>();
         rootContext->setContextProperty("causalGraph", QVariant::fromValue(causalGraph.get()));
         auto discoveryProbe = std::make_shared<quantumverse::DiscoveryProbe>();
-        rootContext->setContextProperty("discoveryProbe", QVariant::fromValue(discoveryProbe.get()));
+        rootContext->setContextProperty("discoveryProbe",
+                                        QVariant::fromValue(discoveryProbe.get()));
         auto enhancedLayout = std::make_shared<quantumverse::ui4d::EnhancedLayout>();
-        rootContext->setContextProperty("enhancedLayout", QVariant::fromValue(enhancedLayout.get()));
+        rootContext->setContextProperty("enhancedLayout",
+                                        QVariant::fromValue(enhancedLayout.get()));
         auto scanSummary = std::make_shared<quantumverse::ScanSummary>();
         rootContext->setContextProperty("scanSummary", QVariant::fromValue(scanSummary.get()));
 
@@ -1804,8 +1806,8 @@ int main(int argc, char* argv[]) {
 
                 viewport->setCelestialBodyRendererDirect(celestialBodyRenderer);
 
-        if (headlessFrames > 0) {
-            qDebug() << "[BREADCRUMB] entering headless block, frames=" << headlessFrames;
+                if (headlessFrames > 0) {
+                    qDebug() << "[BREADCRUMB] entering headless block, frames=" << headlessFrames;
                     viewport->setHeadlessFrameTarget(headlessFrames);
                 }
 
@@ -2106,7 +2108,8 @@ int main(int argc, char* argv[]) {
                     if (fixedSimTime >= 0.0) {
                         viewport->setSimulationTime(static_cast<float>(fixedSimTime));
                     }
-                    qDebug() << "[BREADCRUMB] benchmark frame" << headlessRendered << "calling viewport->update()";
+                    qDebug() << "[BREADCRUMB] benchmark frame" << headlessRendered
+                             << "calling viewport->update()";
                     viewport->update();
                 }
                 QCoreApplication::processEvents();
