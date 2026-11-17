@@ -295,6 +295,7 @@ void QmlGlRenderer::render() {
         // [DIAG] Confirm render() is actually entered each frame and whether a GL
         // context is current. Placed at the very top so it logs even if a later
         // early-return (e.g. null context) would otherwise hide activity.
+        qDebug() << "[BREADCRUMB-QV] render() ENTERED";
         static int s_rCalls = 0;
         if (s_rCalls < 3 || (s_rCalls % 120) == 0) {
             QOpenGLContext* c = QOpenGLContext::currentContext();
@@ -335,6 +336,7 @@ void QmlGlRenderer::render() {
         // (e.g. glad_glGetError) dereferences a null function pointer and crashes
         // with an access violation at EIP=0x0 on the very first real frame.
         if (!m_glInitialized) {
+            qDebug() << "[BREADCRUMB-QV] calling initializeGL()";
             if (!initializeGL()) {
                 qWarning("QmlGlRenderer: GLAD initialization failed, skipping render");
                 return;
@@ -366,6 +368,7 @@ void QmlGlRenderer::render() {
         s_sizeLog++;
 
         // Ensure the GL viewport matches the FBO size before any draw call.
+        qDebug() << "[BREADCRUMB-QV] calling glad_glViewport";
         glad_glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 
         // The FBO is already bound by ViewportRenderer::render() before calling

@@ -140,6 +140,7 @@
 #include "spacetime/KerrMetric.h"
 #include "spacetime/MetricTensor.h"
 #include "ui4d/Camera4DAdapter.h"
+#include "ui4d/EnhancedLayout.h"
 #include "ui4d/PlanckMicroscope.h"
 #include "ui4d/QmlRLDiscoveryAgent.h"
 #include "ui4d/SceneGraphManager.h"
@@ -160,6 +161,8 @@ void registerQmlTypes() {
     qmlRegisterType<quantumverse::QmlGlViewport>("QuantumVerse", 1, 0, "QmlGlViewport");
     qmlRegisterType<quantumverse::QmlCamController>("QuantumVerse", 1, 0, "QmlCamController");
     qmlRegisterType<quantumverse::SceneGraphModel>("QuantumVerse", 1, 0, "SceneGraphModel");
+    qmlRegisterType<quantumverse::SpacetimeGPS>("QuantumVerse", 1, 0, "SpacetimeGPS");
+    qmlRegisterType<quantumverse::QmlRLDiscoveryAgent>("QuantumVerse", 1, 0, "QmlRLDiscoveryAgent");
 
     // Register uncreatable types (singletons, etc.)
     qmlRegisterUncreatableType<quantumverse::SceneGraphManager>(
@@ -1202,6 +1205,22 @@ int main(int argc, char* argv[]) {
 #endif
         rootContext->setContextProperty("planckContainer", QVariant::fromValue(planckContainer));
 
+        // Expose non-QObject UI panels as context properties (pattern matches
+        // sceneGraphManager, ui4d, spacetimeGPS above).  These are plain C++
+        // classes (not QObject-derived) so they cannot be qmlRegisterType'd,
+        // but QML can call their methods and read properties via the property
+        // name.
+        auto sliceView = std::make_shared<quantumverse::SliceView>();
+        rootContext->setContextProperty("sliceView", QVariant::fromValue(sliceView.get()));
+        auto causalGraph = std::make_shared<quantumverse::CausalGraph>();
+        rootContext->setContextProperty("causalGraph", QVariant::fromValue(causalGraph.get()));
+        auto discoveryProbe = std::make_shared<quantumverse::DiscoveryProbe>();
+        rootContext->setContextProperty("discoveryProbe", QVariant::fromValue(discoveryProbe.get()));
+        auto enhancedLayout = std::make_shared<quantumverse::ui4d::EnhancedLayout>();
+        rootContext->setContextProperty("enhancedLayout", QVariant::fromValue(enhancedLayout.get()));
+        auto scanSummary = std::make_shared<quantumverse::ScanSummary>();
+        rootContext->setContextProperty("scanSummary", QVariant::fromValue(scanSummary.get()));
+
         // Correlations are exposed via DiscoveryPanelManager::correlationsList
         // and emitted through its built-in signals.
 
@@ -1785,7 +1804,8 @@ int main(int argc, char* argv[]) {
 
                 viewport->setCelestialBodyRendererDirect(celestialBodyRenderer);
 
-                if (headlessFrames > 0) {
+        if (headlessFrames > 0) {
+            qDebug() << "[BREADCRUMB] entering headless block, frames=" << headlessFrames;
                     viewport->setHeadlessFrameTarget(headlessFrames);
                 }
 
@@ -2018,7 +2038,9 @@ int main(int argc, char* argv[]) {
             std::cerr << "Headless warmup: rendering initial frames..." << std::endl;
             std::cerr.flush();
             for (int w = 0; w < 5; ++w) {
+                qDebug() << "[BREADCRUMB] warmup iteration" << w;
                 if (viewport) {
+                    qDebug() << "[BREADCRUMB] calling viewport->update() warmup frame" << w;
                     viewport->update();
                 }
                 QCoreApplication::processEvents();
@@ -2084,6 +2106,7 @@ int main(int argc, char* argv[]) {
                     if (fixedSimTime >= 0.0) {
                         viewport->setSimulationTime(static_cast<float>(fixedSimTime));
                     }
+                    qDebug() << "[BREADCRUMB] benchmark frame" << headlessRendered << "calling viewport->update()";
                     viewport->update();
                 }
                 QCoreApplication::processEvents();
