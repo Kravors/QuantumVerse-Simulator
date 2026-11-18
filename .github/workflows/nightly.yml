@@ -10,6 +10,9 @@ on:
     - cron: '0 2 * * *'  # 2 AM UTC daily
   workflow_dispatch:  # Allow manual triggering
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   deep-validation:
     runs-on: windows-latest
@@ -54,3 +57,4 @@ jobs:
         if (Test-Path .\fuzz_physics_invariants.exe) { .\fuzz_physics_invariants.exe --max_time=600 }
     - name: Run shader validation
       run: cmake --build build --target validate_shaders
+

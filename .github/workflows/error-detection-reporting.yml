@@ -26,6 +26,9 @@ on:
         default: true
         type: boolean
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   static-analysis:
     continue-on-error: true
@@ -372,3 +375,4 @@ jobs:
       with:
         name: error-detection-summary
         path: combined_report.md
+

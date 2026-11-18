@@ -9,6 +9,9 @@ on:
   push:
     tags: ['v*']
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   package-windows:
     runs-on: windows-latest
@@ -101,3 +104,4 @@ jobs:
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

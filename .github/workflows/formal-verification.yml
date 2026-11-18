@@ -14,6 +14,9 @@ on:
     - cron: '0 3 * * *'  # Nightly at 3 AM
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   cbmc-verification:
     name: CBMC Verification
@@ -131,4 +134,5 @@ jobs:
 
           print("Differential tests passed - both variants agree")
           EOF
+
 

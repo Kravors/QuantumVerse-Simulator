@@ -15,6 +15,9 @@ on:
     - cron: '0 3 * * 0'
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   mutation-test:
     name: Mull Mutation Testing
@@ -124,4 +127,5 @@ jobs:
               echo "WARNING: Mutation score $SCORE% is below threshold of 80%"
             fi
           fi
+
 

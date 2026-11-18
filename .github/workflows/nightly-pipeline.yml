@@ -11,6 +11,9 @@ on:
     - cron: '0 1 * * *'
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   nightly-build:
     name: Nightly Build and Test
@@ -197,3 +200,4 @@ jobs:
           path: |
             build/Testing/**/*.xml
             *.log
+

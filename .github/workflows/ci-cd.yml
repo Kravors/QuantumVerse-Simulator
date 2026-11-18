@@ -12,6 +12,9 @@ on:
 env:
   BUILD_TYPE: Release
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   build:
     name: Build & Test (${{ matrix.os }})
@@ -171,3 +174,4 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

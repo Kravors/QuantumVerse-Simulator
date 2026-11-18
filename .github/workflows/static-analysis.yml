@@ -11,6 +11,9 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   clang-format:
     name: Code Formatting Check
@@ -241,4 +244,5 @@ jobs:
       - name: Submit to Coverity
         run: |
           cov-submit --dir cov-int --host=https://scan.coverity.com --ssl --token=${{ secrets.COVERITY_TOKEN }} --stream=QuantumVerse
+
 

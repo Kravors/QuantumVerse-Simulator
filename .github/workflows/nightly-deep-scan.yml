@@ -10,6 +10,9 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   nightly-sanitizers:
     name: Sanitizer Deep Scan
@@ -243,4 +246,5 @@ jobs:
           path: |
             crash-*
             *.log
+
 

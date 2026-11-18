@@ -11,6 +11,9 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -282,3 +285,4 @@ jobs:
         with:
           name: clang-tidy-report
           path: clang-tidy.log
+

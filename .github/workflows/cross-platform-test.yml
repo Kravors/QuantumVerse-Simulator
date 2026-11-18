@@ -11,6 +11,9 @@ on:
   pull_request:
     branches: [ develop, main ]
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   test:
     strategy:
@@ -224,3 +227,4 @@ jobs:
         run: |
           sudo apt-get install -y cppcheck
           cppcheck --enable=all --std=c++17 --suppress=missingIncludeSystem src/utils/Security.cpp
+

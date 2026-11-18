@@ -17,6 +17,9 @@ on:
         default: true
         type: boolean
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   update-baseline:
     runs-on: ubuntu-latest
@@ -62,4 +65,5 @@ jobs:
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 

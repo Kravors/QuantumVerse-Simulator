@@ -13,6 +13,9 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   build-and-test:
     runs-on: windows-2022
@@ -172,3 +175,4 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+

@@ -24,6 +24,9 @@ permissions:
   contents: read
   issues: write
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   discover:
     runs-on: ubuntu-latest
@@ -156,4 +159,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+
 

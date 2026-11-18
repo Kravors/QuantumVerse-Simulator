@@ -15,6 +15,9 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   cbmc-verification:
     name: CBMC Bounded Model Checking
@@ -268,4 +271,5 @@ jobs:
         with:
           name: error-detection-report
           path: error_report.json
+
 

@@ -16,6 +16,9 @@ on:
     - cron: '0 6 * * 3'
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   security-scan:
     name: Security Analysis
@@ -172,4 +175,5 @@ jobs:
           path: |
             *.log
             *.txt
+
 

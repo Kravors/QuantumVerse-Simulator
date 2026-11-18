@@ -10,6 +10,9 @@ on:
     - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   chaos-test:
     runs-on: ubuntu-latest
@@ -64,4 +67,5 @@ jobs:
            except Exception as e:
                print(f"Could not analyze journal: {e}")
           EOF
+
 

@@ -15,6 +15,9 @@ on:
     - cron: '0 5 * * 2'
   workflow_dispatch:
 
+env:
+  QT_QUICK_BACKEND: software
+
 jobs:
   fuzz-metric:
     continue-on-error: true
@@ -129,4 +132,5 @@ jobs:
           path: |
             build/crash-*
             *.log
+
 
