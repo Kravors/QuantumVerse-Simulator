@@ -2043,7 +2043,18 @@ int main(int argc, char* argv[]) {
                 qDebug() << "[BREADCRUMB] warmup iteration" << w;
                 if (viewport) {
                     qDebug() << "[BREADCRUMB] calling viewport->update() warmup frame" << w;
-                    viewport->update();
+                    __try {
+                        viewport->update();
+                    } __except (EXCEPTION_EXECUTE_HANDLER) {
+                        DWORD code = GetExceptionCode();
+                        PVOID addr = GetExceptionInformation()
+                            ? GetExceptionInformation()->ExceptionRecord->ExceptionAddress
+                            : nullptr;
+                        qWarning() << "[CRASH] viewport->update() warmup frame" << w
+                                   << "caught exception 0x" << QString::number(code, 16)
+                                   << "at address" << addr;
+                        break;
+                    }
                 }
                 QCoreApplication::processEvents();
                 if (fixedSimTime < 0.0) {
@@ -2098,19 +2109,24 @@ int main(int argc, char* argv[]) {
 #endif
 
                 if (viewport) {
-                    // One clock, every path: the physics dt is always
-                    // interval * timeScale, including the deterministic
-                    // --simTime captures (which previously skipped the step
-                    // entirely and froze the bodies while the display read
-                    // the pinned time). The display pin is applied AFTER the
-                    // step so it holds exactly while the bodies advance.
-                    viewport->updateSimulation(kHeadlessFrameInterval * simTimeScale);
-                    if (fixedSimTime >= 0.0) {
-                        viewport->setSimulationTime(static_cast<float>(fixedSimTime));
+                    qDebug() << "[BREADCRUMB] benchmark frame" << headlessRendered << "calling updateSimulation+update";
+                    __try {
+                        viewport->updateSimulation(kHeadlessFrameInterval * simTimeScale);
+                        if (fixedSimTime >= 0.0) {
+                            viewport->setSimulationTime(static_cast<float>(fixedSimTime));
+                        }
+                        qDebug() << "[BREADCRUMB] benchmark frame" << headlessRendered << "calling viewport->update()";
+                        viewport->update();
+                    } __except (EXCEPTION_EXECUTE_HANDLER) {
+                        DWORD code = GetExceptionCode();
+                        PVOID addr = GetExceptionInformation()
+                            ? GetExceptionInformation()->ExceptionRecord->ExceptionAddress
+                            : nullptr;
+                        qWarning() << "[CRASH] benchmark frame" << headlessRendered
+                                   << "caught exception 0x" << QString::number(code, 16)
+                                   << "at address" << addr;
+                        break;
                     }
-                    qDebug() << "[BREADCRUMB] benchmark frame" << headlessRendered
-                             << "calling viewport->update()";
-                    viewport->update();
                 }
                 QCoreApplication::processEvents();
                 if (fixedSimTime < 0.0) {
