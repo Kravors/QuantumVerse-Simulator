@@ -145,9 +145,18 @@ static bool initializeGlad() {
     }
 
     // gladLoadGLLoader can return true while optional function pointers remain NULL.
-    // Verify critical pointers before dereferencing them — a NULL glad_glGetString
+    // Verify ALL critical pointers before dereferencing them — a NULL glad_* pointer
     // dereferences to 0xC0000005 at address 0 on CI hosts without a GPU.
-    if (!glad_glGetString || !glad_glGetError || !glad_glViewport) {
+    if (!glad_glGetString || !glad_glGetError || !glad_glViewport ||
+        !glad_glEnable || !glad_glDisable || !glad_glClear ||
+        !glad_glClearColor || !glad_glCreateProgram || !glad_glUseProgram ||
+        !glad_glCreateShader || !glad_glShaderSource || !glad_glCompileShader ||
+        !glad_glAttachShader || !glad_glLinkProgram || !glad_glGenVertexArrays ||
+        !glad_glBindVertexArray || !glad_glGenBuffers || !glad_glBindBuffer ||
+        !glad_glBufferData || !glad_glEnableVertexAttribArray ||
+        !glad_glVertexAttribPointer || !glad_glGetAttribLocation ||
+        !glad_glGetUniformLocation || !glad_glUniformMatrix4fv ||
+        !glad_glDrawArrays || !glad_glDrawElements) {
         qWarning() << "QmlGlViewport: glad loaded but critical OpenGL functions are NULL";
         return false;
     }
