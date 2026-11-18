@@ -111,15 +111,24 @@ jobs:
           }
           & $windeployqt --release --no-translations --qmldir src build\Release\quantumverse_qml.exe
 
-          # Default config — no --metric flag — solar system, bodies= 9
-          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 30 2>&1 | Out-String
+          # 300 frames ensures multiple [REALITY] ticks (~5-20s wall clock depending on backend)
+          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 300 2>&1 | Out-String
           $log | Out-File evidence\ci\smoke-default.log -Encoding utf8
           Write-Host $log
 
           if ($log -notmatch 'bodies= 9') {
+            Write-Host "DIAGNOSTIC: 'bodies= 9' not found. Searching for related lines:"
+            Write-Host "--- Lines with 'bodies': ---"
+            ($log -split "`n" | Select-String "bodies") | ForEach-Object { Write-Host $_ }
+            Write-Host "--- Lines with 'REALITY': ---"
+            ($log -split "`n" | Select-String "REALITY") | ForEach-Object { Write-Host $_ }
+            Write-Host "--- Lines with 'VALIDATOR': ---"
+            ($log -split "`n" | Select-String "VALIDATOR") | ForEach-Object { Write-Host $_ }
             Write-Error "Default config: expected bodies= 9, not found"
             exit 1
           }
+          Write-Host "✓ bodies= 9 confirmed"
+
           if ($log -notmatch 'all 17 checks passed') {
             Write-Error "Default config: validator did not pass"
             exit 1
@@ -133,12 +142,19 @@ jobs:
         run: |
           # Same body count (config-driven, not metric-driven), but Schwarzschild
           # metric path must not crash
-          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 30 --metric schwarzschild 2>&1 | Out-String
+          $log = & ".\build\Release\quantumverse_qml.exe" --headless --frames 300 --metric schwarzschild 2>&1 | Out-String
           $log | Out-File evidence\ci\smoke-schwarzschild.log -Encoding utf8
           Write-Host $log
 
           if ($log -notmatch 'bodies= 9') {
-            Write-Error "Schwarzschild: expected bodies= 9 (config-driven), not found"
+            Write-Host "DIAGNOSTIC: 'bodies= 9' not found. Searching for related lines:"
+            Write-Host "--- Lines with 'bodies': ---"
+            ($log -split "`n" | Select-String "bodies") | ForEach-Object { Write-Host $_ }
+            Write-Host "--- Lines with 'REALITY': ---"
+            ($log -split "`n" | Select-String "REALITY") | ForEach-Object { Write-Host $_ }
+            Write-Host "--- Lines with 'VALIDATOR': ---"
+            ($log -split "`n" | Select-String "VALIDATOR") | ForEach-Object { Write-Host $_ }
+            Write-Error "Schwarzschild: expected bodies= 9, not found"
             exit 1
           }
           Write-Host "✓ Schwarzschild metric smoke passed"
