@@ -44,6 +44,8 @@ jobs:
 
       - name: Unit Tests
         shell: pwsh
+        env:
+          QT_QUICK_BACKEND: software
         run: |
           # QT_QPA_PLATFORM intentionally NOT set on Windows — Qt 6.8.3 MSVC
           # ships only the 'windows' platform plugin (no 'offscreen').
@@ -99,6 +101,8 @@ jobs:
 
       - name: Headless Smoke Test — Default (Solar System)
         shell: pwsh
+        env:
+          QT_QUICK_BACKEND: software
         run: |
           $windeployqt = "$env:QT_ROOT_DIR\bin\windeployqt.exe"
           if (-not (Test-Path $windeployqt)) {
@@ -124,6 +128,8 @@ jobs:
 
       - name: Headless Smoke Test — Schwarzschild Metric
         shell: pwsh
+        env:
+          QT_QUICK_BACKEND: software
         run: |
           # Same body count (config-driven, not metric-driven), but Schwarzschild
           # metric path must not crash
