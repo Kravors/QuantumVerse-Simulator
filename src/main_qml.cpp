@@ -432,7 +432,10 @@ int main(int argc, char* argv[]) {
     // approaching limb is not clipped (see CelestialBodyRenderer.h).
     float beamingDisplayGain = 1.0f;
     for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
+        if (strcmp(argv[i], "--version") == 0) {
+            std::cout << "QuantumVerse " << QUANTUMVERSE_VERSION << std::endl;
+            return 0;
+        } else if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             headlessFrames = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--record") == 0 && i + 1 < argc) {
             recordFrames = atoi(argv[++i]);

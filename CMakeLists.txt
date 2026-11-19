@@ -238,8 +238,13 @@ if(QUANTUMVERSE_USE_ONNX)
         quantumverse_copy_onnx_dll(test_surrogate_integration)
         quantumverse_copy_onnx_dll(test_rl_agent)
     else()
-        message(FATAL_ERROR "ONNX Runtime not found. Include: ${ONNX_INCLUDE_DIR}, Lib: ${ONNX_LIBRARY}")
+        message(FATAL_ERROR
+            "QUANTUMVERSE_USE_ONNX=ON but ONNX Runtime not found. "
+            "Install ONNX Runtime from https://github.com/microsoft/onnxruntime/releases "
+            "or set QUANTUMVERSE_USE_ONNX=OFF to disable ML inference.")
     endif()
+else()
+    message(STATUS "QUANTUMVERSE_USE_ONNX=OFF — ML inference disabled")
 endif()
 
 # Qt/QML configuration
@@ -343,7 +348,7 @@ if(QUANTUMVERSE_USE_QT AND NOT QUANTUMVERSE_BUILD_WASM)
         ${RESOURCES_QRC}
     )
     set_target_properties(quantumverse_qml PROPERTIES AUTOMOC ON)
-    target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_QML)
+    target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_QML "QUANTUMVERSE_VERSION=\"${QUANTUMVERSE_VERSION}\"")
     target_link_libraries(quantumverse_qml PRIVATE quantumverse_core quantumverse_multi_user)
     if(QUANTUMVERSE_USE_VR)
         target_compile_definitions(quantumverse_qml PRIVATE QUANTUMVERSE_USE_VR)
@@ -2641,6 +2646,17 @@ if(WIN32 AND QUANTUMVERSE_USE_QT AND EXISTS "${CMAKE_SOURCE_DIR}/shaders")
             "${CMAKE_SOURCE_DIR}/shaders"
             "$<TARGET_FILE_DIR:quantumverse_qml>/shaders"
         COMMENT "Copying shaders to build directory"
+    )
+endif()
+
+# Copy config next to the executable so config/simulator.json is found
+# at runtime by UI4D::initializeSolarSystem() / ConfigLoader.
+if(WIN32 AND QUANTUMVERSE_USE_QT AND EXISTS "${CMAKE_SOURCE_DIR}/config")
+    add_custom_command(TARGET quantumverse_qml POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/config"
+            "$<TARGET_FILE_DIR:quantumverse_qml>/config"
+        COMMENT "Copying config to build directory"
     )
 endif()
 
