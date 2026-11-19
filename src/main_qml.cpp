@@ -195,33 +195,50 @@ QSurfaceFormat createSurfaceFormat() {
 }
 
 namespace {
-// Captures Qt warnings/errors and (more importantly) the crash reason from
-// Qt's render thread, which would otherwise be invisible on a headless/remote
-// run. All output is mirrored to qml_runtime.log for post-mortem analysis.
-void qtMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg) {
-    static std::ofstream s_log("qml_runtime.log", std::ios::app);
-    const char* tag = "QT";
+// Crash-safe Qt message handler: writes every message to crash_diagnostic.log
+// next to the executable with immediate flush, AND mirrors to stderr so the
+// last 10 lines before a crash appear directly in CI console output.
+void crashSafeMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QString& msg) {
+    static std::ofstream s_diagLog;
+    static std::mutex s_logMutex;
+
+    std::lock_guard<std::mutex> lock(s_logMutex);
+
+    if (!s_diagLog.is_open()) {
+        QString logPath = QCoreApplication::applicationDirPath() + "/crash_diagnostic.log";
+        s_diagLog.open(logPath.toStdString(), std::ios::out | std::ios::trunc);
+        s_diagLog << "=== QuantumVerse crash diagnostic log ===" << std::endl;
+        s_diagLog << "Start time: " << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << std::endl;
+        s_diagLog.flush();
+    }
+
+    const char* tag = "INFO";
     switch (type) {
-        case QtDebugMsg:
-            tag = "DEBUG";
-            break;
-        case QtInfoMsg:
-            tag = "INFO";
-            break;
-        case QtWarningMsg:
-            tag = "WARN";
-            break;
-        case QtCriticalMsg:
-            tag = "CRIT";
-            break;
-        case QtFatalMsg:
-            tag = "FATAL";
-            break;
+        case QtDebugMsg:    tag = "DEBUG"; break;
+        case QtInfoMsg:     tag = "INFO "; break;
+        case QtWarningMsg:  tag = "WARN "; break;
+        case QtCriticalMsg: tag = "CRIT "; break;
+        case QtFatalMsg:    tag = "FATAL"; break;
     }
     const char* file = ctx.file ? ctx.file : "?";
-    s_log << "[" << tag << "] " << msg.toStdString() << "  (" << file << ":" << ctx.line << ")\n";
-    s_log.flush();
-    std::fprintf(stderr, "[%s] %s\n", tag, msg.toLocal8Bit().constData());
+    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
+
+    // Write to file with forced flush
+    s_diagLog << "[" << timestamp.toStdString() << "] [" << tag << "] " << msg.toStdString()
+              << "  (" << file << ":" << ctx.line << ")" << std::endl;
+    s_diagLog.flush();
+
+    // Write to stderr for CI console capture
+    std::fprintf(stderr, "[%s] [%s] %s (%s:%d)\n",
+                 timestamp.toStdString().c_str(), tag,
+                 msg.toLocal8Bit().constData(), file, ctx.line);
+    std::fflush(stderr);
+
+    if (type == QtFatalMsg) {
+        s_diagLog << "[FATAL] Terminating due to Qt fatal message" << std::endl;
+        s_diagLog.flush();
+        abort();
+    }
 }
 
 void termHandler() {
@@ -311,7 +328,7 @@ int main(int argc, char* argv[]) {
     // Install crash/exception logging BEFORE any other work so a failure in the
     // Qt render thread (which writes no message to stderr) is captured.
     std::set_terminate(termHandler);
-    qInstallMessageHandler(qtMessageHandler);
+    qInstallMessageHandler(crashSafeMessageHandler);
 #ifdef _WIN32
     SetUnhandledExceptionFilter(unhandledExceptionFilter);
     AddVectoredExceptionHandler(1, vectoredHandler);
@@ -2101,19 +2118,14 @@ int main(int argc, char* argv[]) {
 #endif
 
                 if (viewport) {
-                    // One clock, every path: the physics dt is always
-                    // interval * timeScale, including the deterministic
-                    // --simTime captures (which previously skipped the step
-                    // entirely and froze the bodies while the display read
-                    // the pinned time). The display pin is applied AFTER the
-                    // step so it holds exactly while the bodies advance.
+                    qDebug() << "[HEADLESS] frame=" << headlessRendered << " calling updateSimulation+update";
                     viewport->updateSimulation(kHeadlessFrameInterval * simTimeScale);
                     if (fixedSimTime >= 0.0) {
                         viewport->setSimulationTime(static_cast<float>(fixedSimTime));
                     }
-                    qDebug() << "[BREADCRUMB] benchmark frame" << headlessRendered
-                             << "calling viewport->update()";
+                    qDebug() << "[HEADLESS] frame=" << headlessRendered << " calling viewport->update()";
                     viewport->update();
+                    qDebug() << "[HEADLESS] frame=" << headlessRendered << " complete";
                 }
                 QCoreApplication::processEvents();
                 if (fixedSimTime < 0.0) {

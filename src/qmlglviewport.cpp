@@ -107,20 +107,6 @@ static bool matrixIsFinite(const QMatrix4x4& m) {
     return true;
 }
 
-// [DIAG] Mirror diagnostic lines to a file so they can be captured reliably
-// regardless of how the GUI process' console is (or isn't) attached.
-// Gated behind QV_DEBUG_RENDER to avoid per-frame I/O in normal operation.
-static void diagLog(const QString& msg) {
-    static const bool enabled = qEnvironmentVariableIsSet("QV_DEBUG_RENDER");
-    if (!enabled)
-        return;
-    static std::ofstream s_file("viewport_diag.log", std::ios::app);
-    if (s_file) {
-        s_file << QDateTime::currentMSecsSinceEpoch() << "  " << msg.toStdString() << "\n";
-        s_file.flush();
-    }
-}
-
 static bool initializeGlad() {
     static bool initialized = false;
     if (initialized)
@@ -301,20 +287,11 @@ void QmlGlRenderer::render() {
             << "QmlGlRenderer::render() called at " << QDateTime::currentMSecsSinceEpoch()
             << std::endl;
 #endif
-        // [DIAG] Confirm render() is actually entered each frame and whether a GL
-        // context is current. Placed at the very top so it logs even if a later
-        // early-return (e.g. null context) would otherwise hide activity.
-        qDebug() << "[BREADCRUMB-QV] render() ENTERED";
-        static int s_rCalls = 0;
-        if (s_rCalls < 3 || (s_rCalls % 120) == 0) {
-            QOpenGLContext* c = QOpenGLContext::currentContext();
-            const QString m = QString("[DIAG-render] render() ENTERED call#%1 ctx=%2")
-                                  .arg(s_rCalls)
-                                  .arg(c ? "valid" : "NULL");
-            qWarning() << m;
-            diagLog(m);
-        }
-        s_rCalls++;
+        // Per-frame breadcrumb — always logged to capture crash frame
+        static int s_renderFrame = 0;
+        ++s_renderFrame;
+        qDebug() << "[RENDER] frame=" << s_renderFrame << " ENTERED ctx="
+                 << (QOpenGLContext::currentContext() ? "valid" : "NULL");
 
         static int64_t lastTime = 0;
         int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
@@ -345,7 +322,7 @@ void QmlGlRenderer::render() {
         // (e.g. glad_glGetError) dereferences a null function pointer and crashes
         // with an access violation at EIP=0x0 on the very first real frame.
         if (!m_glInitialized) {
-            qDebug() << "[BREADCRUMB-QV] calling initializeGL()";
+            qDebug() << "[RENDER] frame=" << s_renderFrame << " calling initializeGL()";
             if (!initializeGL()) {
                 qWarning("QmlGlRenderer: GLAD initialization failed, skipping render");
                 return;
@@ -362,7 +339,7 @@ void QmlGlRenderer::render() {
                     const QString m =
                         QString("[DIAG-render] GL error at start of render: %1").arg(startErr);
                     qWarning() << m;
-                    diagLog(m);
+                    qDebug() << m;
                 }
             }
         }
@@ -372,12 +349,12 @@ void QmlGlRenderer::render() {
                                   .arg(m_viewportWidth)
                                   .arg(m_viewportHeight);
             qWarning() << m;
-            diagLog(m);
+            qDebug() << m;
         }
         s_sizeLog++;
 
         // Ensure the GL viewport matches the FBO size before any draw call.
-        qDebug() << "[BREADCRUMB-QV] calling glad_glViewport";
+        qDebug() << "[RENDER] frame=" << s_renderFrame << " calling glad_glViewport";
         glad_glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 
         // The FBO is already bound by ViewportRenderer::render() before calling
@@ -450,7 +427,7 @@ void QmlGlRenderer::render() {
                         .arg(matrixIsFinite(m_viewMatrix))
                         .arg(matrixIsFinite(m_projectionMatrix));
                 qWarning() << mdiag;
-                diagLog(mdiag);
+                qDebug() << mdiag;
             }
             m_viewMatrix.setToIdentity();
             m_viewMatrix.translate(0.0f, 0.0f, -m_cameraDistance);
@@ -984,18 +961,16 @@ QOpenGLFramebufferObject* QmlGlRenderer::createFramebufferObject(const QSize& si
 }
 
 void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item) {
-    static const bool debugSync = qEnvironmentVariableIsSet("QV_DEBUG_RENDER");
-    if (debugSync) {
-        std::ofstream("sync_debug.log", std::ios::app) << "synchronize() CALLED" << std::endl;
-        qWarning() << "[DIAG-sync] synchronize() CALLED";
-    }
+    // Per-frame breadcrumb — always logged
+    static int s_syncFrame = 0;
+    ++s_syncFrame;
+    qDebug() << "[SYNC] frame=" << s_syncFrame << " CALLED viewport="
+             << (item ? "valid" : "NULL");
+
     try {
         auto* viewport = qobject_cast<QmlGlViewport*>(item);
         if (!viewport) {
-            if (debugSync) {
-                std::ofstream("sync_debug.log", std::ios::app) << "viewport is NULL" << std::endl;
-                qWarning() << "[DIAG-sync] viewport is NULL";
-            }
+            qWarning() << "[SYNC] frame=" << s_syncFrame << " viewport is NULL";
             return;
         }
         if (debugSync) {
@@ -1081,12 +1056,14 @@ void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item) {
 
         // CelestialBodyRenderer initialization remains in render() so it runs
         // on the render thread with a current GL context.
-    } catch (const std::exception& e) {
-        std::cerr << "EXCEPTION in synchronize: " << e.what() << std::endl;
-    } catch (...) {
-        std::cerr << "UNKNOWN EXCEPTION in synchronize" << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "EXCEPTION in synchronize: " << e.what() << std::endl;
+        } catch (...) {
+            std::cerr << "UNKNOWN EXCEPTION in synchronize" << std::endl;
+        }
+
+        qDebug() << "[SYNC] frame=" << s_syncFrame << " COMPLETE";
     }
-}
 
 void QmlGlRenderer::setCurvatureRenderer(std::shared_ptr<CurvatureRenderer> renderer) {
     m_curvatureRenderer = std::move(renderer);
@@ -1784,7 +1761,7 @@ void QmlGlRenderer::renderGrid() {
                               .arg(matrixIsFinite(m_viewMatrix))
                               .arg(matrixIsFinite(m_projectionMatrix));
         qWarning() << m;
-        diagLog(m);
+        qDebug() << m;
     }
     s_gridLog++;
     if (m_gridShaderProgram == 0) {
@@ -2357,7 +2334,7 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
         const QString m =
             QString("[DIAG-viewport] widthChanged -> %1 x %2").arg(width()).arg(height());
         qWarning() << m;
-        diagLog(m);
+        qDebug() << m;
         if (m_renderer) {
             m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
         }
@@ -2366,7 +2343,7 @@ QmlGlViewport::QmlGlViewport(QQuickItem* parent)
         const QString m =
             QString("[DIAG-viewport] heightChanged -> %1 x %2").arg(width()).arg(height());
         qWarning() << m;
-        diagLog(m);
+        qDebug() << m;
         if (m_renderer) {
             m_renderer->setViewportSize(static_cast<int>(width()), static_cast<int>(height()));
         }
