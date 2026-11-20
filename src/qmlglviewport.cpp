@@ -961,6 +961,14 @@ QOpenGLFramebufferObject* QmlGlRenderer::createFramebufferObject(const QSize& si
 }
 
 void QmlGlRenderer::synchronize(::QQuickFramebufferObject* item) {
+    // Guard against headless/test environments with no OpenGL context.
+    // ctest on headless CI can instantiate QmlGlViewport without a GL context,
+    // which would cause glad_glViewport / glClear null deref in render().
+    if (!QOpenGLContext::currentContext()) {
+        qDebug() << "[SYNC] SKIPPED - No OpenGL context (headless test environment)";
+        return;
+    }
+
     // Per-frame breadcrumb — always logged
     static int s_syncFrame = 0;
     ++s_syncFrame;
